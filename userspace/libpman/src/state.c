@@ -65,3 +65,7 @@ void pman_print_msg(enum falcosecurity_log_severity level, const char* error_mes
 		log_msg(level, "%s", error_message);
 	}
 }
+
+bool pman_is_cpus_to_ringbufs_mapping_disabled() {
+	return g_state.cpus_for_each_buffer == 0;
+}

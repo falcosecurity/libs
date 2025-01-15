@@ -202,8 +202,14 @@ static __always_inline struct counter_map *maps__get_counter_map() {
 /*=============================== RINGBUF MAPS ===========================*/
 
 static __always_inline struct ringbuf_map *maps__get_ringbuf_map() {
-	uint32_t cpu_id = (uint32_t)bpf_get_smp_processor_id();
-	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &cpu_id);
+	uint32_t ringbuf_id;
+	if(ringbufs_num == 0) {
+		ringbuf_id = (uint32_t)bpf_get_smp_processor_id();
+	} else {
+		uint32_t tgid = (uint32_t)(bpf_get_current_pid_tgid() >> 32);
+		ringbuf_id = tgid % ringbufs_num;
+	}
+	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &ringbuf_id);
 }
 
 /*=============================== RINGBUF MAPS ===========================*/

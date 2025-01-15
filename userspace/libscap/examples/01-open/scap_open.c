@@ -39,7 +39,7 @@ limitations under the License.
 #define EVENT_TYPE_OPTION "--evt_type"
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
-#define CPUS_FOR_EACH_BUFFER_MODE "--cpus_for_buf"
+#define BUFFERS_NUM_OPTION "--buffers_num"
 #define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 #define DROP_FAILED "--drop-failed"
 #define VERBOSE_OPTION "--verbose"
@@ -279,11 +279,14 @@ void print_help() {
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, "
 	       "no print)\n",
 	       EVENT_TYPE_OPTION);
-	printf("'%s <dim>': dimension in bytes of a single per CPU buffer.\n", BUFFER_OPTION);
+	printf("'%s <dim>': dimension in bytes of a single buffer.\n", BUFFER_OPTION);
 	printf("[MODERN PROBE ONLY, EXPERIMENTAL]\n");
-	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` "
-	       "CPUs.\n",
-	       CPUS_FOR_EACH_BUFFER_MODE);
+	printf("'%s <buffers_num>': determines the number of allocated ring buffers. If "
+	       "`<buffers_num> > 1`, it is the number of requested ring buffers; if `<buffers_num> > 0 "
+	       "&& <buffers_num> <= 1`, a ring buffer is allocated for every `1 / <buffers_num>`; if "
+	       "`<buffers_num == 0` it means that 1 ring buffer is shared among all available CPUs. "
+	       "Default: 1.\n",
+	       BUFFERS_NUM_OPTION);
 	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for "
 	       "online CPUs only.\n",
 	       ALL_AVAILABLE_CPUS_MODE);
@@ -309,7 +312,15 @@ void print_scap_source() {
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(vtable == &scap_modern_bpf_engine) {
 		struct scap_modern_bpf_engine_params* params = oargs.engine_params;
-		printf("* Modern BPF probe, 1 ring buffer every %d CPUs\n", params->cpus_for_each_buffer);
+		const double buffers_num = params->buffers_num;
+		if(buffers_num == 0) {
+			printf("* Modern BPF probe, 1 ring buffer shared among all CPUs\n");
+		} else if(buffers_num <= 1) {
+			uint16_t cpus_for_each_buffer = (uint16_t)((double)1 / buffers_num);
+			printf("* Modern BPF probe, 1 ring buffer every %d CPU(s)\n", cpus_for_each_buffer);
+		} else {
+			printf("* Modern BPF probe, %d ring buffers\n", (uint32_t)buffers_num);
+		}
 	}
 #endif
 #ifdef HAS_ENGINE_SAVEFILE
@@ -376,7 +387,7 @@ void parse_CLI_options(int argc, char** argv) {
 		if(!strcmp(argv[i], MODERN_BPF_OPTION)) {
 			vtable = &scap_modern_bpf_engine;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
-			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
+			modern_bpf_params.buffers_num = DEFAULT_BUFFERS_NUM;
 			modern_bpf_params.allocate_online_only = true;
 			oargs.engine_params = &modern_bpf_params;
 		}
@@ -432,12 +443,36 @@ void parse_CLI_options(int argc, char** argv) {
 			enable_simple_set();
 		}
 		/* This should be used only with the modern probe */
-		if(!strcmp(argv[i], CPUS_FOR_EACH_BUFFER_MODE)) {
+		if(!strcmp(argv[i], BUFFERS_NUM_OPTION)) {
 			if(!(i + 1 < argc)) {
-				printf("\nYou need to specify also the number of CPUs. Bye!\n");
+				printf("\nYou need to specify also the number of buffers. Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			modern_bpf_params.cpus_for_each_buffer = atoi(argv[++i]);
+
+			char* err_ptr;
+			const double buffers_num = strtod(argv[++i], &err_ptr);
+			if(*err_ptr != '\0' || buffers_num < 0) {
+				printf("\nInvalid %s parameter. Must be greater than or equal to 0. Bye!\n",
+				       BUFFERS_NUM_OPTION);
+				exit(EXIT_FAILURE);
+			}
+
+			if(buffers_num > 0 && buffers_num <= 1) {
+				const double cpus_for_each_buffer = (double)1 / buffers_num;
+				if(cpus_for_each_buffer != (double)(uint16_t)cpus_for_each_buffer) {
+					printf("\nInvalid %s parameter. 1 / <buffers_num> must be a positive integer. "
+					       "Bye!\n",
+					       BUFFERS_NUM_OPTION);
+					exit(EXIT_FAILURE);
+				}
+			} else if(buffers_num != (double)(uint16_t)buffers_num) {  // buffers_num > 1
+				printf("\nInvalid %s parameter. If the value specified is above 1, it must be a "
+				       "positive integer. Bye!\n",
+				       BUFFERS_NUM_OPTION);
+				exit(EXIT_FAILURE);
+			}
+
+			modern_bpf_params.buffers_num = buffers_num;
 		}
 		/* This should be used only with the modern probe */
 		if(!strcmp(argv[i], ALL_AVAILABLE_CPUS_MODE)) {

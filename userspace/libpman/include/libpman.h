@@ -53,13 +53,18 @@ struct scap_stats;
  *
  * @param log_fn logging callback
  * @param buf_bytes_dim dimension of a single per-CPU buffer in bytes.
- * @param cpus_for_each_buffer number of CPUs to which we want to associate a ring buffer.
+ * @param buffers_num determines the number of allocated ring buffers:
+ * - if buffers_num > 1, it is the number of requested ring buffers
+ * - if buffers_num > 0 && buffers_num <= 1, 1 / buffers_num is the number of CPUs to which we want
+ *   to associate a ring buffer.
+ * - if buffers_num == 0, it means that 1 ring buffer is shared among all available CPUs
  * @param allocate_online_only if true, allocate ring buffers taking only into account online CPUs.
+ *   This parameter is taken into account only if buffers_num >= 0 && buffers_num <= 1.
  * @return `0` on success, `-1` in case of error.
  */
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
-                    uint16_t cpus_for_each_buffer,
+                    double buffers_num,
                     bool allocate_online_only);
 
 /**

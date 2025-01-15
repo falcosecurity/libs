@@ -55,11 +55,9 @@ static int ringbuf_array_set_inner_map() {
 }
 
 static int ringbuf_array_set_max_entries() {
-	/* We always allocate a number of entries equal to the available CPUs.
-	 * This doesn't mean that we allocate a ring buffer for every available CPU,
-	 * it means only that every CPU will have an associated entry.
-	 */
-	if(bpf_map__set_max_entries(g_state.skel->maps.ringbuf_maps, g_state.n_possible_cpus)) {
+	int16_t buffers_num = pman_is_cpus_to_ringbufs_mapping_disabled() ? g_state.n_required_buffers
+	                                                                  : g_state.n_possible_cpus;
+	if(bpf_map__set_max_entries(g_state.skel->maps.ringbuf_maps, buffers_num)) {
 		pman_print_error("unable to set max entries for the ringbuf_array");
 		return errno;
 	}
@@ -128,6 +126,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 		return errno;
 	}
 	bool success = false;
+	const bool is_cpus_to_ringbufs_mapping_disabled = pman_is_cpus_to_ringbufs_mapping_disabled();
 
 	/* We don't need anymore the inner map, close it. */
 	close(g_state.inner_ringbuf_map_fd);
@@ -140,7 +139,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 		if(ringbufs_fds[i] <= 0) {
 			snprintf(error_message,
 			         MAX_ERROR_MESSAGE_LEN,
-			         "failed to create the ringbuf map for CPU '%d'. (If you get memory allocation "
+			         "failed to create the ringbuf [%d] map. (If you get memory allocation "
 			         "errors try to reduce the buffer dimension)",
 			         i);
 			pman_print_error((const char *)error_message);
@@ -163,7 +162,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 		if(ring_buffer__add(g_state.rb_manager, ringbufs_fds[i], NULL, NULL)) {
 			snprintf(error_message,
 			         MAX_ERROR_MESSAGE_LEN,
-			         "failed to add the ringbuf map for CPU %d into the manager",
+			         "failed to add the ringbuf [%d] map into the manager",
 			         i);
 			pman_print_error((const char *)error_message);
 			goto clean_percpu_ring_buffers;
@@ -175,6 +174,21 @@ int pman_finalize_ringbuf_array_after_loading() {
 	if(ringubuf_array_fd <= 0) {
 		pman_print_error("failed to get the ringubuf_array");
 		return errno;
+	}
+
+	if(is_cpus_to_ringbufs_mapping_disabled) {
+		for(int i = 0; i < g_state.n_required_buffers; i++) {
+			if(bpf_map_update_elem(ringubuf_array_fd, &i, &ringbufs_fds[i], BPF_ANY)) {
+				snprintf(error_message,
+				         MAX_ERROR_MESSAGE_LEN,
+				         "failed to add ringbuf [%d] to ringbuf map",
+				         i);
+				pman_print_error((const char *)error_message);
+				goto clean_percpu_ring_buffers;
+			}
+		}
+		success = true;
+		goto clean_percpu_ring_buffers;
 	}
 
 	/* We need to associate every CPU to the right ring buffer */
@@ -203,7 +217,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 		if(bpf_map_update_elem(ringubuf_array_fd, &i, &ringbufs_fds[ringbuf_id], BPF_ANY)) {
 			snprintf(error_message,
 			         MAX_ERROR_MESSAGE_LEN,
-			         "failed to add the ringbuf map for CPU '%d' to ringbuf '%d'",
+			         "failed to add the ringbuf map for CPU [%d] to ringbuf [%d]",
 			         i,
 			         ringbuf_id);
 			pman_print_error((const char *)error_message);

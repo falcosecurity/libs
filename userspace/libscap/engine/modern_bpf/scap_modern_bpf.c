@@ -248,12 +248,12 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs) {
 	}
 
 	/* Initialize the libpman internal state.
-	 * Validation of `cpus_for_each_buffer` is made inside libpman
+	 * Validation of `buffers_num` is made inside libpman
 	 * since this is the unique place where we have the number of CPUs
 	 */
 	if(pman_init_state(oargs->log_fn,
 	                   params->buffer_bytes_dim,
-	                   params->cpus_for_each_buffer,
+	                   params->buffers_num,
 	                   params->allocate_online_only)) {
 		return scap_errprintf(handle->m_lasterr, 0, "unable to configure the libpman state.");
 	}

@@ -41,19 +41,22 @@ struct metrics_v2;
 
 struct internal_state {
 	struct bpf_probe* skel;         /* bpf skeleton with all programs and maps. */
-	struct ring_buffer* rb_manager; /* ring_buffer manager with all per-CPU ringbufs. */
-	int16_t n_possible_cpus;        /* number of possible system CPUs (online and not). */
+	struct ring_buffer* rb_manager; /* ring_buffer manager with all ring buffers. */
+
+	int16_t n_possible_cpus;     /* number of possible system CPUs (online and not). */
 	int16_t n_interesting_cpus;  /* according to userspace configuration we can consider only online
 	                    CPUs or all  available CPUs. */
 	bool allocate_online_only;   /* If true we allocate ring buffers only for online CPUs */
 	uint32_t n_required_buffers; /* number of ring buffers we need to allocate */
-	uint16_t cpus_for_each_buffer;  /* Users want a ring buffer every `cpus_for_each_buffer` CPUs */
-	int ringbuf_pos;                /* actual ringbuf we are considering. */
-	unsigned long* cons_pos;        /* every ringbuf has a consumer position. */
-	unsigned long* prod_pos;        /* every ringbuf has a producer position. */
-	int32_t inner_ringbuf_map_fd;   /* inner map used to configure the ringbuf array before loading
-	                                   phase. */
-	unsigned long buffer_bytes_dim; /* dimension of a single per-CPU ringbuffer in bytes. */
+	uint16_t cpus_for_each_buffer;  /* Users want a ring buffer every `cpus_for_each_buffer` CPUs.
+	                                   Here 0 means that the user specified an absolute number for
+	                                   the ring buffers. */
+	int ringbuf_pos;                /* actual ring buffer we are considering. */
+	unsigned long* cons_pos;        /* every ring buffer has a consumer position. */
+	unsigned long* prod_pos;        /* every ring buffer has a producer position. */
+	int32_t inner_ringbuf_map_fd;   /* inner map used to configure the ring buffer array before
+	                                   loading phase. */
+	unsigned long buffer_bytes_dim; /* dimension of a single ring buffer in bytes. */
 	int last_ring_read; /* Last ring from which we have correctly read an event. Could be `-1` if
 	               there were no successful reads. */
 	unsigned long last_event_size; /* Last event correctly read. Could be `0` if there were no
@@ -73,3 +76,4 @@ extern struct internal_state g_state;
 
 extern void pman_print_error(const char* error_message);
 extern void pman_print_msg(enum falcosecurity_log_severity level, const char* error_message);
+extern bool pman_is_cpus_to_ringbufs_mapping_disabled(void);

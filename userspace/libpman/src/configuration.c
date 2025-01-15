@@ -94,8 +94,13 @@ void pman_clear_state() {
 
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
-                    uint16_t cpus_for_each_buffer,
+                    double buffers_num,
                     bool allocate_online_only) {
+	if(buffers_num < 0) {
+		pman_print_error("buffers_num cannot be negative");
+		return -1;
+	}
+
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
@@ -132,6 +137,35 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 		pman_print_error("no available cpus");
 		return -1;
 	}
+
+	/* Set the dimension of a single ring buffer */
+	g_state.buffer_bytes_dim = buf_bytes_dim;
+
+	/* These will be used during the ring buffer consumption phase. */
+	g_state.last_ring_read = -1;
+	g_state.last_event_size = 0;
+
+	if(buffers_num > 1) {
+		if(buffers_num != (double)(uint32_t)buffers_num) {
+			pman_print_error("buffers_num must be an integer value");
+			return -1;
+		}
+		g_state.n_required_buffers = (uint32_t)buffers_num;
+		/* The following disables cpus-to-ring-buffers mapping */
+		g_state.cpus_for_each_buffer = 0;
+		return 0;
+	}
+
+	uint16_t cpus_for_each_buffer = 0;
+	if(buffers_num != 0) {
+		double ratio = (double)1 / buffers_num;
+		if(ratio != (double)(uint16_t)ratio) {
+			pman_print_error("1 / buffers_num must be an integer value");
+			return -1;
+		}
+		cpus_for_each_buffer = (uint16_t)ratio;
+	}
+	printf("cpus_for_each_buffer %d\n", cpus_for_each_buffer);
 
 	g_state.allocate_online_only = allocate_online_only;
 
@@ -179,12 +213,7 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	if((g_state.n_interesting_cpus % g_state.cpus_for_each_buffer) != 0) {
 		g_state.n_required_buffers++;
 	}
-	/* Set the dimension of a single ring buffer */
-	g_state.buffer_bytes_dim = buf_bytes_dim;
 
-	/* These will be used during the ring buffer consumption phase. */
-	g_state.last_ring_read = -1;
-	g_state.last_event_size = 0;
 	return 0;
 }
 

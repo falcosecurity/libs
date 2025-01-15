@@ -17,26 +17,33 @@ limitations under the License.
 #include <stdint.h>
 
 #define MODERN_BPF_ENGINE "modern_bpf"
+// TODO: remove DEFAULT_CPU_FOR_EACH_BUFFER once sinsp is updated to support the new buffers_num
+//   logic.
 #define DEFAULT_CPU_FOR_EACH_BUFFER 1
+#define DEFAULT_BUFFERS_NUM 1
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct scap_modern_bpf_engine_params {
-	uint16_t cpus_for_each_buffer;  ///< [EXPERIMENTAL] We will allocate a ring buffer every
-	                                ///< `cpus_for_each_buffer` CPUs. `0` is a special value and
-	                                ///< means a single ring buffer shared between all the CPUs.
+	double buffers_num;  ///< [EXPERIMENTAL] Determines the number
+	                     ///< of allocated ring buffers:
+	                     ///< - if buffers_num > 1, it is the number of requested ring buffers
+	                     ///< - if buffers_num > 0 && buffers_num <= 1, 1 / buffers_num is the
+	                     ///<   number of CPUs to which we want to associate a ring buffer.
+	                     ///< - if buffers_num == 0, it means that 1 ring buffer is shared among all
+	                     ///<   available CPUs.
 	bool allocate_online_only;  ///< [EXPERIMENTAL] Allocate ring buffers only for online CPUs. The
 	                            ///< number of ring buffers allocated changes according to the
-	                            ///< `cpus_for_each_buffer` param. Please note: this buffer will be
-	                            ///< mapped twice both kernel and userspace-side, so pay attention
-	                            ///< to its size.
-	unsigned long
-	        buffer_bytes_dim;  ///< Dimension of a ring buffer in bytes. The number of ring buffers
-	                           ///< allocated changes according to the `cpus_for_each_buffer` param.
-	                           ///< Please note: this buffer will be mapped twice both kernel and
-	                           ///< userspace-side, so pay attention to its size.
+	                            ///< `buffers_num` param. This parameter is taken into account only
+	                            ///< if buffers_num >= 0 && buffers_num <= 1. Please note: this
+	                            ///< buffer will be mapped twice both kernel and userspace-side, so
+	                            ///< pay attention to its size.
+	unsigned long buffer_bytes_dim;  ///< Dimension of a ring buffer in bytes. The number of ring
+	                                 ///< buffers allocated changes according to the `buffers_num`
+	                                 ///< param. Please note: this buffer will be mapped twice both
+	                                 ///< kernel and userspace-side, so pay attention to its size.
 };
 
 #ifdef __cplusplus

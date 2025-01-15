@@ -718,7 +718,13 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 	/* Engine-specific args. */
 	scap_modern_bpf_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
-	params.cpus_for_each_buffer = cpus_for_each_buffer;
+	// TODO: the following is a temporary solution, as sinsp has been not updated yet to support the
+	//   new buffers_num parameter value.
+	double buffers_num = 0;
+	if(cpus_for_each_buffer != 0) {
+		buffers_num = static_cast<double>(1) / cpus_for_each_buffer;
+	}
+	params.buffers_num = buffers_num;
 	params.allocate_online_only = online_only;
 	oargs.engine_params = &params;
 
