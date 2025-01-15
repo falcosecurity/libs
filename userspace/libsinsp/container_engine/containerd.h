@@ -100,7 +100,7 @@ private:
 
 class containerd : public container_engine_base {
 public:
-	containerd(container_cache_interface& cache);
+	containerd(container_cache_interface& cache, size_t engine_index);
 
 	void parse_containerd(const containerd_lookup_request& request,
 	                      container_cache_interface* cache);
@@ -108,6 +108,7 @@ public:
 
 private:
 	std::unique_ptr<containerd_async_source> m_containerd_info_source;
+	size_t m_engine_index;
 };
 
 }  // namespace container_engine

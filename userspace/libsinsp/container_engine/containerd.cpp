@@ -37,7 +37,7 @@ constexpr const std::string_view CONTAINERD_SOCKETS[] = {
 };
 
 bool containerd_async_source::is_ok() {
-	return m_container_stub != nullptr && m_image_stub != nullptr;
+	return m_container_stub && m_image_stub;
 }
 
 static inline void setup_grpc_client_context(grpc::ClientContext &context) {
@@ -144,8 +144,11 @@ grpc::Status containerd_async_source::get_image_resp(
 	return m_image_stub->Get(&context, req, &resp);
 }
 
-libsinsp::container_engine::containerd::containerd(container_cache_interface &cache):
+libsinsp::container_engine::containerd::containerd(container_cache_interface &cache,
+                                                   size_t engine_index):
         container_engine_base(cache) {
+	m_engine_index = engine_index;
+
 	for(const auto &p : CONTAINERD_SOCKETS) {
 		if(p.empty()) {
 			continue;
@@ -158,11 +161,8 @@ libsinsp::container_engine::containerd::containerd(container_cache_interface &ca
 		}
 
 		container_cache_interface *cache_interface = &container_cache();
-		auto src = new containerd_async_source(socket_path,
-		                                       containerd_async_source::NO_WAIT_LOOKUP,
-		                                       10000,
-		                                       cache_interface);
-		m_containerd_info_source.reset(src);
+		m_containerd_info_source =
+		        std::make_unique<containerd_async_source>(socket_path, 0, 10000, cache_interface);
 		if(!m_containerd_info_source->is_ok()) {
 			m_containerd_info_source.reset(nullptr);
 			continue;
@@ -172,6 +172,10 @@ libsinsp::container_engine::containerd::containerd(container_cache_interface &ca
 
 bool containerd_async_source::parse(const containerd_lookup_request &request,
                                     sinsp_container_info &container) {
+	if(!is_ok()) {
+		return false;
+	}
+
 	auto container_id = request.container_id;
 
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -294,12 +298,13 @@ void libsinsp::container_engine::containerd::parse_containerd(
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 		                          "containerd_async (%s): Starting asynchronous lookup",
 		                          request.container_id.c_str());
-		done = m_containerd_info_source->lookup(request, result);
+		done = m_containerd_info_source && m_containerd_info_source->lookup(request, result);
 	} else {
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 		                          "containerd_async (%s): Starting synchronous lookup",
 		                          request.container_id.c_str());
-		done = m_containerd_info_source->lookup_sync(request, result);
+
+		done = m_containerd_info_source && m_containerd_info_source->lookup_sync(request, result);
 	}
 	if(done) {
 		// if a previous lookup call already found the metadata, process it now
@@ -339,7 +344,7 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 			return true;
 		}
 
-		if(cache->should_lookup(request.container_id, request.container_type)) {
+		if(cache->should_lookup(request.container_id, request.container_type, m_engine_index)) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "containerd_async (%s): No existing container info",
 			                          request.container_id.c_str());
@@ -348,7 +353,7 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 			cache->set_lookup_status(request.container_id,
 			                         request.container_type,
 			                         sinsp_container_lookup::state::STARTED,
-			                         0);
+			                         m_engine_index);
 			parse_containerd(request, cache);
 		}
 		return false;
@@ -375,7 +380,7 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 	container.m_cpu_period = limits.m_cpu_period;
 	container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
 
-	if(container_cache().should_lookup(container.m_id, CT_CONTAINERD)) {
+	if(container_cache().should_lookup(container.m_id, CT_CONTAINERD, m_engine_index)) {
 		container.m_name = container.m_id;
 		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		container_cache().add_container(std::make_shared<sinsp_container_info>(container), tinfo);
