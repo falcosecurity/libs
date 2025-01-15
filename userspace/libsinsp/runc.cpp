@@ -27,6 +27,7 @@ namespace {
 
 const size_t CONTAINER_ID_LENGTH = 64;
 const size_t REPORTED_CONTAINER_ID_LENGTH = 12;
+const char *CONTAINER_ID_VALID_CHARACTERS = "0123456789abcdefABCDEF";
 
 static_assert(REPORTED_CONTAINER_ID_LENGTH <= CONTAINER_ID_LENGTH,
               "Reported container ID length cannot be longer than actual length");
@@ -38,21 +39,6 @@ namespace runc {
 
 inline static bool endswith(const std::string &s, const std::string &suffix) {
 	return s.rfind(suffix) == (s.size() - suffix.size());
-}
-
-inline static bool is_host(const std::string &cgroup) {
-	// A good approximation to minize false-positives is to exclude systemd suffixes.
-	if(endswith(cgroup, ".slice") || endswith(cgroup, ".service")) {
-		return true;
-	} else if(endswith(cgroup, ".scope")) {
-		if(cgroup.find("crio-") != std::string::npos ||
-		   cgroup.find("docker-") != std::string::npos) {
-			return false;
-		}
-		return true;
-	}
-
-	return false;
 }
 
 // check if cgroup ends with <prefix><container_id><suffix>
@@ -73,6 +59,12 @@ bool match_one_container_id(const std::string &cgroup,
 		return false;
 	}
 
+	if(end_pos - start_pos == CONTAINER_ID_LENGTH &&
+	   cgroup.find_first_not_of(CONTAINER_ID_VALID_CHARACTERS, start_pos) >= CONTAINER_ID_LENGTH) {
+		container_id = cgroup.substr(start_pos, REPORTED_CONTAINER_ID_LENGTH);
+		return true;
+	}
+
 	// In some container runtimes the container the container id is not
 	// necessarly CONTAINER_ID_LENGTH long and can be arbitrarly defined.
 	// To keep it simple we only discard the container id > of CONTAINER_ID_LENGTH.
@@ -80,15 +72,16 @@ bool match_one_container_id(const std::string &cgroup,
 		return false;
 	}
 
-	if(is_host(cgroup)) {
-		return false;
+	if(cgroup.rfind("/default/") == 0 && !endswith(cgroup, ".service") &&
+	   !endswith(cgroup, ".slice")) {
+		size_t reported_len = end_pos - start_pos >= REPORTED_CONTAINER_ID_LENGTH
+		                              ? REPORTED_CONTAINER_ID_LENGTH
+		                              : end_pos;
+		container_id = cgroup.substr(start_pos, reported_len);
+		return true;
 	}
 
-	size_t reported_len = end_pos - start_pos >= REPORTED_CONTAINER_ID_LENGTH
-	                              ? REPORTED_CONTAINER_ID_LENGTH
-	                              : end_pos;
-	container_id = cgroup.substr(start_pos, reported_len);
-	return true;
+	return false;
 }
 
 bool match_container_id(const std::string &cgroup,
