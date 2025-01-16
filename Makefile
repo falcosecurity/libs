@@ -17,11 +17,11 @@
 # mofidy the following variables to match your paths
 CLANG_FORMAT_EXE ?= clang-format
 CLANG_FORMAT_VERSION = "$(shell ${CLANG_FORMAT_EXE} --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')"
-CLANG_FORMAT_DESIRED_VERSION ="18.1.8"
+CLANG_FORMAT_DESIRED_VERSION ?= $(shell cat CLANG_FORMAT_VERSION)
 
 CMAKE_FORMAT_EXE ?= cmake-format
 CMAKE_FORMAT_VERSION = "$(shell ${CMAKE_FORMAT_EXE} --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')"
-CMAKE_FORMAT_DESIRED_VERSION = "0.6.13"
+CMAKE_FORMAT_DESIRED_VERSION ?= $(shell cat CMAKE_FORMAT_VERSION)
 
 PROJECT_ROOT_DIR = $(shell git rev-parse --show-toplevel)
 

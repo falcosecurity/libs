@@ -257,6 +257,100 @@ file(GLOB_RECURSE BPF_H_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB_RECURSE BPF_C_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.bpf.c)
 
 # ##################################################################################################
+# Generate the events dimensions file generator executable.
+# ##################################################################################################
+
+add_executable(
+	events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
+)
+target_link_libraries(events_dimensions_generator PRIVATE scap_event_schema)
+add_dependencies(events_dimensions_generator scap_event_schema)
+
+# ##################################################################################################
+# Retrieve clang-format executable path.
+# ##################################################################################################
+
+# If the user doesn't provide the path to `clang-format` try to find it locally.
+if(NOT MODERN_CLANG_FORMAT_EXE)
+	find_program(
+		MODERN_CLANG_FORMAT_EXE
+		NAMES clang-format clang-format-18
+		DOC "Path to clang-format executable"
+	)
+	if(MODERN_CLANG_FORMAT_EXE)
+		message(
+			STATUS
+				"${MODERN_BPF_LOG_PREFIX} clang-format used by the modern bpf probe: '${MODERN_CLANG_FORMAT_EXE}'"
+		)
+	else()
+		message(
+			WARNING
+				"${MODERN_BPF_LOG_PREFIX} Failed to find clang-format: will not be able to build events dimensions file"
+		)
+	endif()
+endif()
+
+# ##################################################################################################
+# Check clang-format version.
+# ##################################################################################################
+
+# If the user doesn't provide the desired clang-format version, take it from file at known location.
+if(NOT CLANG_FORMAT_DESIRED_VERSION)
+	file(READ ${CMAKE_SOURCE_DIR}/CLANG_FORMAT_VERSION CLANG_FORMAT_DESIRED_VERSION)
+endif()
+
+if(MODERN_CLANG_FORMAT_EXE)
+	execute_process(
+		COMMAND ${MODERN_CLANG_FORMAT_EXE} --version
+		OUTPUT_VARIABLE CLANG_FORMAT_version_output
+		ERROR_VARIABLE CLANG_FORMAT_version_error
+		RESULT_VARIABLE CLANG_FORMAT_version_result
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+
+	if(${CLANG_FORMAT_version_result} EQUAL 0)
+		if("${CLANG_FORMAT_version_output}" MATCHES "^.* clang-format version ([^ ]+) [^\n]+")
+			set(CLANG_FORMAT_ACTUAL_VERSION "${CMAKE_MATCH_1}")
+			if(NOT "${CLANG_FORMAT_DESIRED_VERSION}" EQUAL "${CLANG_FORMAT_ACTUAL_VERSION}")
+				message(
+					FATAL_ERROR
+						"${MODERN_BPF_LOG_PREFIX} Wrong clang-format version - expected: \"${CLANG_FORMAT_DESIRED_VERSION}\", actual: \"${CLANG_FORMAT_ACTUAL_VERSION}\""
+				)
+			endif()
+		else()
+			message(
+				FATAL_ERROR
+					"${MODERN_BPF_LOG_PREFIX} Failed to parse clang-format version string: ${CLANG_FORMAT_version_output}"
+			)
+		endif()
+	else()
+		message(
+			FATAL_ERROR
+				"${MODERN_BPF_LOG_PREFIX} Command \"${MODERN_CLANG_FORMAT_EXE} --version\" failed with output:\n ${CLANG_FORMAT_version_error}"
+		)
+	endif()
+endif()
+
+# ##################################################################################################
+# Generate the events dimensions file.
+# ##################################################################################################
+
+set(MODERN_CLANG_FORMAT_FILE ${CMAKE_SOURCE_DIR}/.clang-format)
+set(BPF_EVENTS_DIMENSIONS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/definitions/events_dimensions.h)
+add_custom_command(
+	OUTPUT ${BPF_EVENTS_DIMENSIONS_FILE}
+	COMMAND events_dimensions_generator ${BPF_EVENTS_DIMENSIONS_FILE}
+	COMMAND ${MODERN_CLANG_FORMAT_EXE} -Werror --style=file:${MODERN_CLANG_FORMAT_FILE} -i
+			${BPF_EVENTS_DIMENSIONS_FILE}
+	VERBATIM
+	DEPENDS events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/../event_table.c
+	COMMENT
+		"${MODERN_BPF_LOG_PREFIX} Building events dimensions file: ${BPF_EVENTS_DIMENSIONS_FILE}"
+)
+
+add_custom_target(EventsDimensions ALL DEPENDS ${BPF_EVENTS_DIMENSIONS_FILE})
+
+# ##################################################################################################
 # Generate an `bpf.o` file for every `bpf.c`
 # ##################################################################################################
 
@@ -278,7 +372,7 @@ foreach(BPF_C_FILE ${BPF_C_FILES})
 				${BPF_O_FILE}
 		VERBATIM
 		DEPENDS lbpf
-		DEPENDS ${BPF_C_FILE} ${BPF_H_FILES}
+		DEPENDS ${BPF_C_FILE} ${BPF_H_FILES} EventsDimensions
 		COMMENT "${MODERN_BPF_LOG_PREFIX} Building BPF object: ${BPF_O_FILE}"
 	)
 
