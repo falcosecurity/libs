@@ -690,7 +690,7 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
-class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::table<int64_t> {
+class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t> {
 public:
 	sinsp_thread_manager(sinsp* inspector);
 	void clear();

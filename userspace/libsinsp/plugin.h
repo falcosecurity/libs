@@ -38,10 +38,13 @@ limitations under the License.
 #include <libsinsp/sinsp_thread_pool.h>
 #endif
 
+namespace libsinsp::state {
+class base_table;
+}
 /**
  * @brief An object-oriented representation of a plugin.
  */
-class sinsp_plugin {
+class sinsp_plugin : public libsinsp::state::sinsp_table_owner {
 public:
 	struct open_param {
 		open_param() = default;
@@ -113,7 +116,6 @@ public:
 	        m_inited(false),
 	        m_state(nullptr),
 	        m_handle(handle),
-	        m_last_owner_err(),
 	        m_scap_source_plugin(),
 	        m_fields_info(),
 	        m_fields(),
@@ -128,11 +130,6 @@ public:
 	        m_table_infos(),
 	        m_owned_tables(),
 	        m_accessed_tables(),
-	        m_accessed_entries(),
-	        m_accessed_table_fields(),
-	        m_ephemeral_tables(),
-	        m_ephemeral_tables_clear(false),
-	        m_accessed_entries_clear(false),
 	        m_thread_pool(tpool) {}
 	virtual ~sinsp_plugin();
 	sinsp_plugin(const sinsp_plugin& s) = delete;
@@ -232,7 +229,6 @@ private:
 	bool m_inited;
 	ss_plugin_t* m_state;
 	plugin_handle_t* m_handle;
-	std::string m_last_owner_err;
 
 	/** Event Sourcing **/
 	scap_source_plugin m_scap_source_plugin;
@@ -276,168 +272,11 @@ private:
 
 	/** Table API state and helpers **/
 
-	// wraps instances of libsinsp::state::XXX_struct::field_accessor and
-	// help making them comply to the plugin API state tables definitions
-	struct sinsp_field_accessor_wrapper {
-		// depending on the value of `dynamic`, one of:
-		// - libsinsp::state::static_struct::field_accessor
-		// - libsinsp::state::dynamic_struct::field_accessor
-		void* accessor = nullptr;
-		bool dynamic = false;
-		ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-		ss_plugin_state_type subtable_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-
-		inline sinsp_field_accessor_wrapper() = default;
-		~sinsp_field_accessor_wrapper();
-		inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
-		inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) =
-		        delete;
-		inline sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
-		inline sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
-	};
-
-	// wraps instances of libsinsp::state::table and help making them comply
-	// to the plugin API state tables definitions
-	struct sinsp_table_wrapper {
-		ss_plugin_state_type m_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-		sinsp_plugin* m_owner_plugin = nullptr;
-		libsinsp::state::base_table* m_table = nullptr;
-		std::vector<ss_plugin_table_fieldinfo> m_field_list;
-		std::unordered_map<std::string, sinsp_plugin::sinsp_field_accessor_wrapper*>
-		        m_field_accessors;
-
-		// used to optimize cases where this wraps a plugin-defined table directly
-		const sinsp_plugin* m_table_plugin_owner = nullptr;
-		ss_plugin_table_input* m_table_plugin_input = nullptr;
-
-		inline sinsp_table_wrapper() = default;
-		virtual ~sinsp_table_wrapper() = default;
-		inline sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
-		inline sinsp_table_wrapper& operator=(const sinsp_table_wrapper& s) = delete;
-
-		void unset();
-		bool is_set() const;
-		template<typename T>
-		void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
-
-		// static functions, will be used to populate vtable functions where
-		// ss_plugin_table_t* will be represented by a sinsp_table_wrapper*
-		static inline const ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t,
-		                                                           uint32_t* nfields);
-		static inline ss_plugin_table_field_t* get_field(ss_plugin_table_t* _t,
-		                                                 const char* name,
-		                                                 ss_plugin_state_type data_type);
-		static inline ss_plugin_table_field_t* add_field(ss_plugin_table_t* _t,
-		                                                 const char* name,
-		                                                 ss_plugin_state_type data_type);
-		static inline const char* get_name(ss_plugin_table_t* _t);
-		static inline uint64_t get_size(ss_plugin_table_t* _t);
-		static inline ss_plugin_table_entry_t* get_entry(ss_plugin_table_t* _t,
-		                                                 const ss_plugin_state_data* key);
-		static inline ss_plugin_rc read_entry_field(ss_plugin_table_t* _t,
-		                                            ss_plugin_table_entry_t* _e,
-		                                            const ss_plugin_table_field_t* f,
-		                                            ss_plugin_state_data* out);
-		;
-		static inline void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e);
-		static inline ss_plugin_bool iterate_entries(ss_plugin_table_t* _t,
-		                                             ss_plugin_table_iterator_func_t it,
-		                                             ss_plugin_table_iterator_state_t* s);
-		static inline ss_plugin_rc clear(ss_plugin_table_t* _t);
-		static inline ss_plugin_rc erase_entry(ss_plugin_table_t* _t,
-		                                       const ss_plugin_state_data* key);
-		static inline ss_plugin_table_entry_t* create_table_entry(ss_plugin_table_t* _t);
-		static inline void destroy_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e);
-		static inline ss_plugin_table_entry_t* add_entry(ss_plugin_table_t* _t,
-		                                                 const ss_plugin_state_data* key,
-		                                                 ss_plugin_table_entry_t* _e);
-		static inline ss_plugin_rc write_entry_field(ss_plugin_table_t* _t,
-		                                             ss_plugin_table_entry_t* e,
-		                                             const ss_plugin_table_field_t* f,
-		                                             const ss_plugin_state_data* in);
-		;
-	};
-
-	// a wrapper around sinsp_table_wrapper (yes...) that makes it comply to the
-	// ss_plugin_table_input facade, thus being accessible through plugin API
-	struct sinsp_table_input {
-		ss_plugin_table_input input;
-		ss_plugin_table_fields_vtable_ext fields_vtable;
-		ss_plugin_table_reader_vtable_ext reader_vtable;
-		ss_plugin_table_writer_vtable_ext writer_vtable;
-		sinsp_table_wrapper wrapper;
-
-		sinsp_table_input();
-		inline ~sinsp_table_input() = default;
-		inline sinsp_table_input(const sinsp_table_input& s) = delete;
-		inline sinsp_table_input& operator=(const sinsp_table_input& s) = delete;
-
-		void update();
-	};
-
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 	std::vector<ss_plugin_table_info> m_table_infos;
 	std::unordered_map<std::string, std::unique_ptr<libsinsp::state::base_table>> m_owned_tables;
 	/* contains tables that the plugin accessed at least once */
-	std::unordered_map<std::string, sinsp_table_input> m_accessed_tables;
-	std::list<std::shared_ptr<libsinsp::state::table_entry>>
-	        m_accessed_entries;  // using lists for ptr stability
-	std::list<sinsp_field_accessor_wrapper>
-	        m_accessed_table_fields;                  // note: lists have pointer stability
-	std::list<sinsp_table_input> m_ephemeral_tables;  // note: lists have pointer stability
-	bool m_ephemeral_tables_clear;
-	bool m_accessed_entries_clear;
-
-	inline void clear_ephemeral_tables() {
-		if(m_ephemeral_tables_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path, in case of no accessed table
-			return;
-		}
-		for(auto& et : m_ephemeral_tables) {
-			et.wrapper.unset();
-			et.update();
-		}
-		m_ephemeral_tables_clear = true;
-	}
-
-	inline sinsp_table_input& find_unset_ephemeral_table() {
-		m_ephemeral_tables_clear = false;
-		for(auto& et : m_ephemeral_tables) {
-			if(!et.wrapper.is_set()) {
-				return et;
-			}
-		}
-		return m_ephemeral_tables.emplace_back();
-	}
-
-	inline void clear_accessed_entries() {
-		if(m_accessed_entries_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path
-			return;
-		}
-		for(auto& et : m_accessed_entries) {
-			if(et != nullptr) {
-				// if we get here, it means that the plugin did not
-				// release some of the entries it acquired
-				ASSERT(false);
-				et.reset();
-			};
-		}
-		m_accessed_entries_clear = true;
-	}
-
-	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry() {
-		m_accessed_entries_clear = false;
-		for(auto& et : m_accessed_entries) {
-			if(et == nullptr) {
-				return &et;
-			}
-		}
-		return &m_accessed_entries.emplace_back();
-	}
-
+	std::unordered_map<std::string, libsinsp::state::table_accessor> m_accessed_tables;
 	static void table_field_api(ss_plugin_table_fields_vtable& out,
 	                            ss_plugin_table_fields_vtable_ext& extout);
 	static void table_read_api(ss_plugin_table_reader_vtable& out,
@@ -451,6 +290,315 @@ private:
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t* o, const ss_plugin_table_input* in);
 
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
+};
 
-	friend struct sinsp_table_wrapper;
+template<typename T>
+struct span {
+	T* m_begin;
+	size_t m_size;
+
+	T* begin() const noexcept { return m_begin; }
+
+	T* end() const noexcept { return m_begin + m_size; }
+
+	auto size() const { return m_size; }
+};
+
+template<typename KeyType>
+static void wrap_state_data(const KeyType& key, ss_plugin_state_data& out);
+
+template<>
+inline void wrap_state_data<int8_t>(const int8_t& key, ss_plugin_state_data& out) {
+	out.s8 = key;
+}
+
+template<>
+inline void wrap_state_data<int16_t>(const int16_t& key, ss_plugin_state_data& out) {
+	out.s16 = key;
+}
+
+template<>
+inline void wrap_state_data<int32_t>(const int32_t& key, ss_plugin_state_data& out) {
+	out.s32 = key;
+}
+
+template<>
+inline void wrap_state_data<int64_t>(const int64_t& key, ss_plugin_state_data& out) {
+	out.s64 = key;
+}
+
+template<>
+inline void wrap_state_data<uint8_t>(const uint8_t& key, ss_plugin_state_data& out) {
+	out.u8 = key;
+}
+
+template<>
+inline void wrap_state_data<uint16_t>(const uint16_t& key, ss_plugin_state_data& out) {
+	out.u16 = key;
+}
+
+template<>
+inline void wrap_state_data<uint32_t>(const uint32_t& key, ss_plugin_state_data& out) {
+	out.u32 = key;
+}
+
+template<>
+inline void wrap_state_data<uint64_t>(const uint64_t& key, ss_plugin_state_data& out) {
+	out.u64 = key;
+}
+
+template<>
+inline void wrap_state_data<std::string>(const std::string& key, ss_plugin_state_data& out) {
+	out.str = key.c_str();
+}
+
+template<>
+inline void wrap_state_data<bool>(const bool& key, ss_plugin_state_data& out) {
+	out.b = key;
+}
+
+template<>
+inline void wrap_state_data<libsinsp::state::base_table*>(libsinsp::state::base_table* const& key,
+                                                          ss_plugin_state_data& out) {
+	out.table = static_cast<ss_plugin_table_t*>(key);
+}
+
+template<typename FieldType>
+static void unwrap_state_data(const ss_plugin_state_data& val, FieldType& out);
+
+template<>
+inline void unwrap_state_data<int8_t>(const ss_plugin_state_data& val, int8_t& out) {
+	out = val.s8;
+}
+
+template<>
+inline void unwrap_state_data<int16_t>(const ss_plugin_state_data& val, int16_t& out) {
+	out = val.s16;
+}
+
+template<>
+inline void unwrap_state_data<int32_t>(const ss_plugin_state_data& val, int32_t& out) {
+	out = val.s32;
+}
+
+template<>
+inline void unwrap_state_data<int64_t>(const ss_plugin_state_data& val, int64_t& out) {
+	out = val.s64;
+}
+
+template<>
+inline void unwrap_state_data<uint8_t>(const ss_plugin_state_data& val, uint8_t& out) {
+	out = val.u8;
+}
+
+template<>
+inline void unwrap_state_data<uint16_t>(const ss_plugin_state_data& val, uint16_t& out) {
+	out = val.u16;
+}
+
+template<>
+inline void unwrap_state_data<uint32_t>(const ss_plugin_state_data& val, uint32_t& out) {
+	out = val.u32;
+}
+
+template<>
+inline void unwrap_state_data<uint64_t>(const ss_plugin_state_data& val, uint64_t& out) {
+	out = val.u64;
+}
+
+template<>
+inline void unwrap_state_data<std::string>(const ss_plugin_state_data& val, std::string& out) {
+	out = val.str;
+}
+
+template<>
+inline void unwrap_state_data<bool>(const ss_plugin_state_data& val, bool& out) {
+	out = val.b != 0;
+}
+
+template<>
+inline void unwrap_state_data<ss_plugin_table_t*>(const ss_plugin_state_data& val,
+                                                  ss_plugin_table_t*& out) {
+	out = val.table;
+}
+
+class sinsp_table_entry {
+	enum class entry_dtor { NONE, DESTROY, RELEASE };
+
+public:
+	sinsp_table_entry() = delete;
+	sinsp_table_entry(libsinsp::state::sinsp_table_owner* owner,
+	                  ss_plugin_table_entry_t* entry,
+	                  libsinsp::state::base_table* table,
+	                  entry_dtor dtor):
+	        m_owner(owner),
+	        m_entry(entry),
+	        m_table(table),
+	        m_dtor(dtor) {}
+	sinsp_table_entry(const sinsp_table_entry& s) = delete;
+	sinsp_table_entry& operator=(const sinsp_table_entry& s) = delete;
+	sinsp_table_entry(sinsp_table_entry&& s) = default;
+	sinsp_table_entry& operator=(sinsp_table_entry&& s) = default;
+	~sinsp_table_entry() {
+		if(m_entry == nullptr) {
+			return;
+		}
+		switch(m_dtor) {
+		case entry_dtor::NONE:
+			break;
+		case entry_dtor::DESTROY:
+			m_table->destroy_table_entry(m_owner, m_entry);
+			break;
+		case entry_dtor::RELEASE:
+			m_table->release_table_entry(m_owner, m_entry);
+			break;
+		default:
+			ASSERT(false);
+		}
+	}
+
+	template<typename FieldType>
+	void read_field(const ss_plugin_table_field_t* field, FieldType& out) {
+		ss_plugin_state_data data;
+		auto rc = m_table->read_entry_field(m_owner, m_entry, field, &data);
+		if(rc != SS_PLUGIN_SUCCESS) {
+			throw sinsp_exception("failed to read field: " + this->m_owner->m_last_owner_err);
+		}
+
+		unwrap_state_data<FieldType>(data, out);
+	}
+
+	template<typename FieldType>
+	void write_field(const ss_plugin_table_field_t* field, const FieldType& in) {
+		ss_plugin_state_data data;
+		wrap_state_data<FieldType>(in, data);
+		auto rc = m_table->write_entry_field(m_owner, m_entry, field, &data);
+		if(rc != SS_PLUGIN_SUCCESS) {
+			throw sinsp_exception("failed to write field: " + this->m_owner->m_last_owner_err);
+		}
+	}
+
+private:
+	libsinsp::state::sinsp_table_owner* m_owner;
+	ss_plugin_table_entry_t* m_entry;
+	libsinsp::state::base_table* m_table;
+	entry_dtor m_dtor;
+
+	template<typename KeyType>
+	friend class sinsp_table;
+};
+
+template<typename KeyType>
+class sinsp_table {
+public:
+	sinsp_table(libsinsp::state::sinsp_table_owner* p, libsinsp::state::base_table* t):
+	        m_owner_plugin(p),
+	        m_table(t) {
+		if(m_table->key_info().type_id() != libsinsp::state::typeinfo::of<KeyType>().type_id()) {
+			throw sinsp_exception("table key type mismatch, requested='" +
+			                      std::string(libsinsp::state::typeinfo::of<KeyType>().name()) +
+			                      "', actual='" + std::string(m_table->key_info().name()) + "'");
+		}
+	}
+
+	std::string_view name() const { return m_table->name(); }
+
+	size_t entries_count() const { return m_table->get_size(m_owner_plugin); }
+
+	const libsinsp::state::typeinfo& key_info() const { return m_table->key_info(); }
+
+	span<const ss_plugin_table_fieldinfo> fields() const {
+		uint32_t nfields;
+		return {m_table->list_fields(m_owner_plugin, &nfields), nfields};
+	}
+
+	const ss_plugin_table_fieldinfo* get_field_info(const char* name) const {
+		auto fields = this->fields();
+		auto field_name = std::string_view(name);
+		auto field =
+		        std::find_if(fields.begin(), fields.end(), [&](const ss_plugin_table_fieldinfo& f) {
+			        return f.name == field_name;
+		        });
+
+		return field;
+	}
+
+	template<typename FieldType>
+	ss_plugin_table_field_t* get_field(const char* name) {
+		auto typeinfo = libsinsp::state::typeinfo::of<FieldType>();
+		return m_table->get_field(m_owner_plugin, name, typeinfo.type_id());
+	}
+
+	template<typename FieldType>
+	ss_plugin_table_field_t* add_field(const char* name) {
+		auto typeinfo = libsinsp::state::typeinfo::of<FieldType>();
+		return m_table->add_field(m_owner_plugin, name, typeinfo.type_id());
+	}
+
+	sinsp_table_entry get_entry(const KeyType& key) {
+		ss_plugin_state_data key_data;
+		wrap_state_data(key, key_data);
+		auto entry = m_table->get_entry(m_owner_plugin, &key_data);
+		if(entry == nullptr) {
+			throw sinsp_exception("could not get entry: " + m_owner_plugin->m_last_owner_err);
+		}
+		return sinsp_table_entry(m_owner_plugin,
+		                         entry,
+		                         m_table,
+		                         sinsp_table_entry::entry_dtor::RELEASE);
+	}
+
+	sinsp_table_entry new_entry() {
+		auto entry = m_table->create_table_entry(m_owner_plugin);
+		if(entry == nullptr) {
+			throw sinsp_exception("could not create entry: " + m_owner_plugin->m_last_owner_err);
+		}
+		return sinsp_table_entry(m_owner_plugin,
+		                         entry,
+		                         m_table,
+		                         sinsp_table_entry::entry_dtor::DESTROY);
+	}
+
+	void add_entry(const KeyType& key, sinsp_table_entry& entry) {
+		ss_plugin_state_data key_data;
+		wrap_state_data(key, key_data);
+
+		auto table_entry = m_table->add_entry(m_owner_plugin, &key_data, entry.m_entry);
+		entry.m_entry = table_entry;
+		entry.m_dtor = sinsp_table_entry::entry_dtor::RELEASE;
+	}
+
+	bool foreach_entry(std::function<bool(sinsp_table_entry& e)> pred) {
+		struct iter_state {
+			libsinsp::state::sinsp_table_owner* m_owner_plugin;
+			libsinsp::state::base_table* m_table;
+			std::function<bool(sinsp_table_entry& e)>& pred;
+		} state = {m_owner_plugin, m_table, pred};
+
+		return m_table->iterate_entries(
+		        m_owner_plugin,
+		        [](void* s, ss_plugin_table_entry_t* e) {
+			        auto state = static_cast<iter_state*>(s);
+			        sinsp_table_entry entry(state->m_owner_plugin,
+			                                e,
+			                                state->m_table,
+			                                sinsp_table_entry::entry_dtor::NONE);
+			        return static_cast<ss_plugin_bool>(state->pred(entry));
+		        },
+		        &state);
+	}
+
+	void erase_entry(const KeyType& key) {
+		ss_plugin_state_data key_data;
+		wrap_state_data(key, key_data);
+		if(m_table->erase_entry(m_owner_plugin, &key_data) != SS_PLUGIN_SUCCESS) {
+			throw sinsp_exception("could not erase entry: " + m_owner_plugin->m_last_owner_err);
+		}
+	}
+
+	void clear_entries() { m_table->clear_entries(m_owner_plugin); }
+
+private:
+	libsinsp::state::sinsp_table_owner* m_owner_plugin = nullptr;
+	libsinsp::state::base_table* m_table = nullptr;
 };
