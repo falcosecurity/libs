@@ -72,11 +72,12 @@ bool match_one_container_id(const std::string &cgroup,
 		return false;
 	}
 
+	// Avoid system host cgroups.
 	if(cgroup.rfind("/default/") == 0 && !endswith(cgroup, ".service") &&
 	   !endswith(cgroup, ".slice")) {
 		size_t reported_len = end_pos - start_pos >= REPORTED_CONTAINER_ID_LENGTH
 		                              ? REPORTED_CONTAINER_ID_LENGTH
-		                              : end_pos;
+		                              : end_pos - start_pos;
 		container_id = cgroup.substr(start_pos, reported_len);
 		return true;
 	}
