@@ -6,7 +6,7 @@
 
 #define MAX_CHARBUF_NUM 16
 #define CGROUP_NUMBER 5
-#define MAX_CGROUP_STRING_LEN 128
+#define MAX_CGROUP_STRING_LEN 256
 #define MAX_CGROUP_PREFIX_LEN 32
 
 /* This array must follow the same order we use in BPF. */
