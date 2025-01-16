@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2025 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -64,10 +64,14 @@ class RE2;
 //     UnaryOperator       ::= 'exists'
 //     NumOperator         ::= '<=' | '<' | '>=' | '>'
 //     StrOperator         ::= '==' | '=' | '!='
-//                             | 'glob ' | 'iglob '
-//                             | 'contains ' | 'icontains ' | 'bcontains '
-//                             | 'startswith ' | 'bstartswith ' | 'endswith '
-//     ListOperator        ::= 'intersects' | 'in' | 'pmatch'
+//                             | 'bcontains' | 'bstartswith'
+//                             | 'contains'
+//                             | 'endswith'
+//                             | 'glob'
+//                             | 'icontains'
+//                             | 'startswith'
+//                             | 'regex'
+//     ListOperator        ::= 'in' | 'intersects' | 'pmatch'
 //     FieldTransformerVal    ::= 'val('
 //     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename(' | 'len('
 //
