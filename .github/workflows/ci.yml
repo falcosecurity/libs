@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-libs-linux:
     name: build-libs-linux-${{ matrix.arch }} 😁 (${{ matrix.name }})
-    runs-on: ${{ (matrix.arch == 'arm64' && 'github-arm64-2c-8gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
     strategy:
       fail-fast: false
       matrix:
