@@ -14,13 +14,21 @@
 #
 
 set(CONTAINER_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/container_plugin-prefix/src/libcontainer.so")
-set(CONTAINER_VERSION "0.1.0-alpha")
+set(CONTAINER_VERSION "0.1.0-beta6")
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+	set(CONTAINER_HASH "f73b4d188e240b5d3d1fced79a30eda8cf4ee55f83c07e09d417a854cd920757")
+	set(CONTAINER_ARCH "amd64")
+else() # arm64
+	set(CONTAINER_HASH "e8f2bf2da9c8f57d9e01bb90d7aaa32e1eaa58145e4ff728be7942f2778435c7")
+	set(CONTAINER_ARCH "arm64")
+endif()
 if(NOT TARGET container_plugin)
 	message(STATUS "Fetching container plugin ${CONTAINER_VERSION} in '${CONTAINER_LIBRARY}'")
 	ExternalProject_Add(
 		container_plugin
-		URL "https://github.com/FedeDP/container_plugin/releases/download/${CONTAINER_VERSION}/libcontainer.so"
-		# URL_HASH "SHA256="
+		URL "https://github.com/FedeDP/container_plugin/releases/download/${CONTAINER_VERSION}/libcontainer_${CONTAINER_ARCH}.so"
+		URL_HASH "SHA256=${CONTAINER_HASH}"
+		DOWNLOAD_NAME "libcontainer.so"
 		DOWNLOAD_NO_EXTRACT 1
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND ""
