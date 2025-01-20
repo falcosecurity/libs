@@ -98,7 +98,7 @@ jobs:
           echo "#### Release Manager @${{ github.event.release.author.login }}" >> release-body.md
 
       - name: Release
-        uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
           body_path: ./release-body.md
           tag_name: ${{ github.event.release.tag_name }}
@@ -182,7 +182,7 @@ jobs:
           echo "#### Release Manager @${{ github.event.release.author.login }}" >> release-body.md
 
       - name: Release
-        uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
           body_path: ./release-body.md
           tag_name: ${{ github.event.release.tag_name }}
