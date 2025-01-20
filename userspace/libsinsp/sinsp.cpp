@@ -717,8 +717,19 @@ std::string sinsp::generate_gvisor_config(const std::string& socket_path) {
 }
 
 int64_t sinsp::get_file_size(const std::string& fname, char* error) {
+	std::filesystem::path p(fname);
+	auto s = std::filesystem::status(p);
+
+	// scap files can be streamed and the source can be one
+	// of the following. In that case we return 0 as file size.
+	if(s.type() == std::filesystem::file_type::character ||
+	   s.type() == std::filesystem::file_type::fifo ||
+	   s.type() == std::filesystem::file_type::socket) {
+		return 0;
+	}
+
 	std::error_code ec;
-	auto sz = std::filesystem::file_size(fname, ec);
+	auto sz = std::filesystem::file_size(p, ec);
 	if(ec) {
 		strlcpy(error, ec.message().c_str(), SCAP_LASTERR_SIZE);
 		return -1;
