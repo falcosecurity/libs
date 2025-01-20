@@ -1551,8 +1551,9 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 		//
 		// The canceled fd should always be deleted immediately, so if it appears
 		// here it means we have a problem.
+		// Note: it looks like that the canceled FD may appear here in case of high drop
+		// and we need to recover. This was an assertion failure, now removed.
 		//
-		ASSERT(eparams.m_fd != CANCELED_FD_NUMBER);
 		eparams.m_fdinfo = &fdinfo;
 
 		/* Here we are just calling the `on_erase` callback */
