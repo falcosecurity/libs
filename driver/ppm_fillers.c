@@ -1390,7 +1390,7 @@ cgroups_error:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 			if(file_inode(exe_file) != NULL) {
 				/* Support exe_writable */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#ifdef HAS_FS_MNT_IDMAP
 				exe_writable |= (file_permission(exe_file, MAY_WRITE | MAY_NOT_BLOCK) == 0);
 				exe_writable |=
 				        inode_owner_or_capable(file_mnt_idmap(exe_file), file_inode(exe_file));
@@ -7754,7 +7754,7 @@ cgroups_error:
 	if(exe_file != NULL) {
 		if(file_inode(exe_file) != NULL) {
 			/* Support exe_writable */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#ifdef HAS_FS_MNT_IDMAP
 			exe_writable |= (file_permission(exe_file, MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(file_mnt_idmap(exe_file), file_inode(exe_file));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
