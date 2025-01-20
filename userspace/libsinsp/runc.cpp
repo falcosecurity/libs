@@ -74,7 +74,7 @@ bool match_one_container_id(const std::string &cgroup,
 
 	// Avoid system host cgroups.
 	if(cgroup.rfind("/default/") == 0 && !endswith(cgroup, ".service") &&
-	   !endswith(cgroup, ".slice") && endswith(cgroup, ".scope")) {
+	   !endswith(cgroup, ".slice") && !endswith(cgroup, ".scope")) {
 		size_t reported_len = end_pos - start_pos >= REPORTED_CONTAINER_ID_LENGTH
 		                              ? REPORTED_CONTAINER_ID_LENGTH
 		                              : end_pos - start_pos;
