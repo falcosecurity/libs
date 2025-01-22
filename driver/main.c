@@ -476,14 +476,6 @@ static int ppm_open(struct inode *inode, struct file *filp) {
 			ring->info = NULL;
 		}
 
-		/*
-		 * If a cpu is offline when the consumer is first created, we
-		 * will never get events for that cpu even if it later comes
-		 * online via hotplug. We could allocate these rings on-demand
-		 * later in this function if needed for hotplug, but that
-		 * requires the consumer to know to call open again, and that is
-		 * not supported.
-		 */
 		for_each_online_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
@@ -1820,6 +1812,10 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	ASSERT(ring);
 
 	ring_info = ring->info;
+	if(!ring_info) {
+		put_cpu();
+		return res;
+	}
 	if(event_datap->category == PPMC_CONTEXT_SWITCH &&
 	   event_datap->event_info.context_data.sched_prev != NULL) {
 		if(event_type != PPME_SCAPEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
@@ -2771,17 +2767,24 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
-static int do_cpu_callback(unsigned long cpu, long sd_action) {
+struct hotplug_st {
+	long sd_action;
+	long cpu;
+};
+
+static int do_cpu_callback(void *payload) {
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
 	struct event_data_t event_data;
+	struct hotplug_st *st;
 
-	if(sd_action != 0) {
+	st = (struct hotplug_st *)payload;
+	if(st->sd_action != 0) {
 		rcu_read_lock();
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
-			if(sd_action == 1) {
+			ring = per_cpu_ptr(consumer->ring_buffers, st->cpu);
+			if(st->sd_action == 1) {
 				/*
 				 * If the cpu was offline when the consumer was created,
 				 * this won't do anything because we never created a ring
@@ -2790,7 +2793,7 @@ static int do_cpu_callback(unsigned long cpu, long sd_action) {
 				 * on this device anyways, so do it in ppm_open.
 				 */
 				ring->cpu_online = true;
-			} else if(sd_action == 2) {
+			} else if(st->sd_action == 2) {
 				ring->cpu_online = false;
 			}
 		}
@@ -2798,49 +2801,55 @@ static int do_cpu_callback(unsigned long cpu, long sd_action) {
 		rcu_read_unlock();
 
 		event_data.category = PPMC_CONTEXT_SWITCH;
-		event_data.event_info.context_data.sched_prev = (void *)cpu;
-		event_data.event_info.context_data.sched_next = (void *)sd_action;
+		event_data.event_info.context_data.sched_prev = (void *)st->cpu;
+		event_data.event_info.context_data.sched_next = (void *)st->sd_action;
 		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data, INTERNAL_EVENTS);
 	}
 	return 0;
 }
 
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 static int scap_cpu_online(unsigned int cpu) {
 	vpr_info("scap_cpu_online on cpu %d\n", cpu);
-	return do_cpu_callback(cpu, 1);
+	struct hotplug_st st;
+	st.sd_action = 1;
+	st.cpu = cpu;
+	return smp_call_on_cpu(0, do_cpu_callback, &st, true);
 }
 
 static int scap_cpu_offline(unsigned int cpu) {
 	vpr_info("scap_cpu_offline on cpu %d\n", cpu);
-	return do_cpu_callback(cpu, 2);
+	struct hotplug_st st;
+	st.sd_action = 2;
+	st.cpu = cpu;
+	return smp_call_on_cpu(0, do_cpu_callback, &st, true);
 }
-#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)) */
+
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
 /*
  * This gets called every time a CPU is added or removed
  */
 static int cpu_callback(struct notifier_block *self, unsigned long action, void *hcpu) {
 	unsigned long cpu = (unsigned long)hcpu;
-	long sd_action = 0;
+	int ret = 0;
 
 	switch(action) {
 	case CPU_UP_PREPARE:
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_UP_PREPARE_FROZEN:
 #endif
-		sd_action = 1;
+		ret = scap_cpu_online(cpu);
 		break;
 	case CPU_DOWN_PREPARE:
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_DOWN_PREPARE_FROZEN:
 #endif
-		sd_action = 2;
+		ret = scap_cpu_offline(cpu);
 		break;
 	default:
 		break;
 	}
 
-	if(do_cpu_callback(cpu, sd_action) < 0)
+	if(ret < 0)
 		return NOTIFY_BAD;
 	else
 		return NOTIFY_OK;
@@ -2850,7 +2859,7 @@ static struct notifier_block cpu_notifier = {
         .notifier_call = &cpu_callback,
         .next = NULL,
 };
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) */
 
 static int scap_init(void) {
 	dev_t dev;
