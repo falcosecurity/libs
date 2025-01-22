@@ -2772,7 +2772,7 @@ struct hotplug_st {
 	long cpu;
 };
 
-static int do_cpu_callback(void *payload) {
+static void do_cpu_callback(void *payload) {
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
 	struct event_data_t event_data;
@@ -2805,7 +2805,6 @@ static int do_cpu_callback(void *payload) {
 		event_data.event_info.context_data.sched_next = (void *)st->sd_action;
 		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data, INTERNAL_EVENTS);
 	}
-	return 0;
 }
 
 static int scap_cpu_online(unsigned int cpu) {
@@ -2813,7 +2812,7 @@ static int scap_cpu_online(unsigned int cpu) {
 	struct hotplug_st st;
 	st.sd_action = 1;
 	st.cpu = cpu;
-	return smp_call_on_cpu(0, do_cpu_callback, &st, true);
+	return smp_call_function_single(0, do_cpu_callback, &st, 1);
 }
 
 static int scap_cpu_offline(unsigned int cpu) {
@@ -2821,7 +2820,7 @@ static int scap_cpu_offline(unsigned int cpu) {
 	struct hotplug_st st;
 	st.sd_action = 2;
 	st.cpu = cpu;
-	return smp_call_on_cpu(0, do_cpu_callback, &st, true);
+	return smp_call_function_single(0, do_cpu_callback, &st, 1);
 }
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
