@@ -428,8 +428,10 @@ TEST(modern_bpf, hotplug) {
 	cpu_file << "0";
 	cpu_file.flush();
 
-	// open scap
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, true);
+	// open scap, we limit the capture to just one syscall to avoid too many events.
+	// The close syscall will be called inside `check_hotplug_event`.
+	scap_t* h =
+	        open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, true, {PPM_SC_CLOSE});
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine: " << error_buffer << std::endl;
 

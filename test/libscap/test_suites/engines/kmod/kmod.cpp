@@ -344,8 +344,13 @@ TEST(kmod, hotplug) {
 	cpu_file << "0";
 	cpu_file.flush();
 
-	// open scap
-	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
+	// open scap, we limit the capture to just one syscall to avoid too many events.
+	// The close syscall will be called inside `check_hotplug_event`.
+	scap_t* h = open_kmod_engine(error_buffer,
+	                             &ret,
+	                             4 * 4096,
+	                             LIBSCAP_TEST_KERNEL_MODULE_PATH,
+	                             {PPM_SC_CLOSE});
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open kmod engine: " << error_buffer << std::endl;
 

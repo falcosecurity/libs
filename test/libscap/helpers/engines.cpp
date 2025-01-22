@@ -225,6 +225,14 @@ void check_hotplug_event(scap_t *h, std::ofstream &cpu_file) {
 	// Generate some syscalls on CPU 1 to make sure we generate an event
 	cpu_file.close();
 
+	// the legacy ebpf probe needs also a new event on CPU 0 after the hotplug to send the event in
+	// userspace
+	CPU_ZERO(&set);    // clear cpu mask
+	CPU_SET(0, &set);  // set cpu 1
+	sched_setaffinity(0, sizeof(cpu_set_t), &set);
+	// we throw a failed close to generate an event
+	close(-1);
+
 	// Reset affinity
 	sched_setaffinity(0, sizeof(cpu_set_t), &starting_set);
 
