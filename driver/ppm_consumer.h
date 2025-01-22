@@ -16,6 +16,7 @@ or GPL2.txt for full copies of the license.
 struct ppm_consumer_t {
 	unsigned int id;  // numeric id for the consumer (ie: registration index)
 	struct task_struct *consumer_id;
+	int16_t hotplug_cpu;
 #ifdef __percpu
 	struct ppm_ring_buffer_context __percpu *ring_buffers;
 #else
