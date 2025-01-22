@@ -417,3 +417,21 @@ TEST(modern_bpf, double_metrics_v2_call) {
 
 	scap_close(h);
 }
+
+TEST(modern_bpf, hotplug) {
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+
+	// Disable cpu 1
+	std::ofstream cpu_file("/sys/devices/system/cpu/cpu1/online");
+	ASSERT_TRUE(cpu_file.is_open());
+	cpu_file << "0";
+	cpu_file.flush();
+
+	// open scap
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, true);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
+	        << "unable to open modern bpf engine: " << error_buffer << std::endl;
+
+	check_hotplug_event(h, cpu_file);
+}

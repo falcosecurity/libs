@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <syscall.h>
-#include <libscap/scap.h>
 #include <errno.h>
 #include <fcntl.h>
+#include "engines.h"
 
 /* We are supposing that if we overcome this threshold, all buffers are full.
  * Probably this threshold is too low, but it depends on the machine's workload.
@@ -204,6 +204,53 @@ void check_event_order(scap_t *h) {
 	GTEST_SKIP() << "Some syscalls required by the test are not defined" << std::endl;
 }
 #endif
+
+void check_hotplug_event(scap_t *h, std::ofstream &cpu_file) {
+	// Start capture
+	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS);
+
+	// Enable back cpu 1
+	cpu_file.seekp(0, std::ios::beg);
+	cpu_file << "1";
+	cpu_file.flush();
+
+	// Set the affinity on first CPU
+	cpu_set_t set, starting_set;
+	sched_getaffinity(0, sizeof(cpu_set_t), &starting_set);
+
+	CPU_ZERO(&set);    // clear cpu mask
+	CPU_SET(1, &set);  // set cpu 1
+	sched_setaffinity(0, sizeof(cpu_set_t), &set);
+
+	// Generate some syscalls on CPU 1 to make sure we generate an event
+	cpu_file.close();
+
+	// Reset affinity
+	sched_setaffinity(0, sizeof(cpu_set_t), &starting_set);
+
+	ASSERT_EQ(scap_stop_capture(h), SCAP_SUCCESS);
+
+	scap_evt *evt = NULL;
+	uint16_t buffer_id;
+	uint32_t flags;
+	bool found_hotplug = false;
+
+	int num_consecutive_timeouts = 0;
+	while(num_consecutive_timeouts < 50 && !found_hotplug) {
+		if(scap_next(h, &evt, &buffer_id, &flags) == SCAP_SUCCESS) {
+			if(evt->type == PPME_CPU_HOTPLUG_E) {
+				found_hotplug = true;
+				break;
+			}
+		} else {
+			num_consecutive_timeouts++;
+		}
+	}
+
+	scap_close(h);
+
+	ASSERT_TRUE(found_hotplug);
+}
 
 /* Right now this is used only by the modern bpf
  * This is extracted from `libbpf_num_possible_cpus()`.
