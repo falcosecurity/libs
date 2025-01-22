@@ -244,7 +244,7 @@ void check_hotplug_event(scap_t *h, std::ofstream &cpu_file) {
 	bool found_hotplug = false;
 
 	int num_consecutive_timeouts = 0;
-	while(num_consecutive_timeouts < 50 && !found_hotplug) {
+	while(num_consecutive_timeouts < 100 && !found_hotplug) {
 		if(scap_next(h, &evt, &buffer_id, &flags) == SCAP_SUCCESS) {
 			if(evt->type == PPME_CPU_HOTPLUG_E) {
 				found_hotplug = true;

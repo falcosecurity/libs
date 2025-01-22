@@ -281,6 +281,7 @@ static bool verbose = 1;
 static bool verbose = 0;
 #endif
 
+static atomic_t hotplug_cpu;
 static unsigned int max_consumers = 5;
 
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
@@ -1762,8 +1763,16 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	long table_index;
 	int64_t retval;
 
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Try to send hotplug\n");
+	}
+
 	if(tp_type < INTERNAL_EVENTS && !(consumer->tracepoints_attached & (1 << tp_type))) {
 		return res;
+	}
+
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Before check interesting syscalls\n");
 	}
 
 	// Check if syscall is interesting for the consumer
@@ -1796,6 +1805,10 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Before drop e/drop x\n");
+	}
+
 	if(event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
 		if(consumer->need_to_insert_drop_e == 1)
 			record_drop_e(consumer, ns, drop_flags);
@@ -1810,6 +1823,10 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			return res;
 	}
 
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Before checking CPU\n");
+	}
+
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	 */
@@ -1819,9 +1836,16 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	ring_info = ring->info;
 	if(!ring_info) {
+		// This is likely an hotplug
+		atomic_set(&hotplug_cpu, cpu);
+		printk("hotplug detected on cpu %d\n", cpu);
 		put_cpu();
 		return res;
 	}
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Before context switch case\n");
+	}
+
 	if(event_datap->category == PPMC_CONTEXT_SWITCH &&
 	   event_datap->event_info.context_data.sched_prev != NULL) {
 		if(event_type != PPME_SCAPEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
@@ -1831,6 +1855,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Before preemption\n");
+	}
 	/*
 	 * Preemption gate
 	 */
@@ -1883,6 +1910,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 */
 	args.nargs = g_event_info[event_type].nparams;
 	args.arg_data_offset = args.nargs * sizeof(uint16_t);
+
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("Before callback, %d, %ld\n",
+		       freespace,
+		       sizeof(struct ppm_evt_hdr) + args.arg_data_offset);
+	}
 
 	/*
 	 * Make sure we have enough space for the event header.
@@ -1967,6 +2000,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		/*
 		 * Fire the filler callback
 		 */
+		if(event_type == PPME_CPU_HOTPLUG_E) {
+			printk("Fire callback\n");
+		}
 
 		/* For events with category `PPMC_SCHED_PROC_EXEC` or `PPMC_SCHED_PROC_FORK`
 		 * we need to call dedicated fillers that are not in our `g_ppm_events` table.
@@ -2024,9 +2060,17 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
+	if(event_type == PPME_CPU_HOTPLUG_E) {
+		printk("After callback\n");
+	}
+
 	if(likely(!drop)) {
 		res = 1;
-
+		if(event_type == PPME_CPU_HOTPLUG_E) {
+			// We clear the hotplug_cpu variable only if the event was successfully inserted
+			atomic_set(&hotplug_cpu, 0);
+			printk("Success\n");
+		}
 		next = head + event_size;
 
 		if(unlikely(next >= consumer->buffer_bytes_dim)) {
@@ -2056,6 +2100,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		++ring->nevents;
 	} else {
+		if(event_type == PPME_CPU_HOTPLUG_E) {
+			printk("Drop\n");
+		}
 		if(cbres == PPM_SUCCESS) {
 			ASSERT(freespace < sizeof(struct ppm_evt_hdr) + args.arg_data_offset);
 			ring_info->n_drops_buffer++;
@@ -2259,6 +2306,18 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret) {
 	const struct syscall_evt_pair *event_pair = NULL;
 	long table_index = 0;
 	int socketcall_syscall_id = -1;
+
+	// Handle hotplugs.
+	if(unlikely(atomic_read(&hotplug_cpu) != 0)) {
+		printk("send hotplug\n");
+		event_data.category = PPMC_CONTEXT_SWITCH;
+		int cpu = atomic_read(&hotplug_cpu);
+		event_data.event_info.context_data.sched_prev = (void *)cpu;
+		event_data.event_info.context_data.sched_next = (void *)cpu;
+		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data, INTERNAL_EVENTS);
+		// we could also continue if we want
+		return;
+	}
 
 	/* If @task is executing a system call or is at system call
 	 * tracing about to attempt one, returns the system call number.
@@ -2810,18 +2869,12 @@ static void do_cpu_callback(void *payload) {
 
 static int scap_cpu_online(unsigned int cpu) {
 	vpr_info("scap_cpu_online on cpu %d\n", cpu);
-	struct hotplug_data_t st;
-	st.sd_action = 1;
-	st.cpu = cpu;
-	return smp_call_function_single(0, do_cpu_callback, &st, 1);
+	return 0;
 }
 
 static int scap_cpu_offline(unsigned int cpu) {
 	vpr_info("scap_cpu_offline on cpu %d\n", cpu);
-	struct hotplug_data_t st;
-	st.sd_action = 2;
-	st.cpu = cpu;
-	return smp_call_function_single(0, do_cpu_callback, &st, 1);
+	return 0;
 }
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
@@ -2997,6 +3050,8 @@ static int scap_init(void) {
 	for(j = 0; j < KMOD_PROG_ATTACHED_MAX; j++) {
 		g_tracepoints_refs[j] = 0;
 	}
+
+	atomic_set(&hotplug_cpu, 0);
 
 	return 0;
 

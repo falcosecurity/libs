@@ -6915,6 +6915,7 @@ int f_sys_pagefault_e(struct event_filler_arguments *args) {
 
 int f_cpu_hotplug_e(struct event_filler_arguments *args) {
 	int res;
+	printk("fired hotplug\n");
 
 	/*
 	 * cpu
@@ -6927,6 +6928,8 @@ int f_cpu_hotplug_e(struct event_filler_arguments *args) {
 	 */
 	res = val_to_ring(args, (uint64_t)args->sched_next, 0, false, 0);
 	CHECK_RES(res);
+
+	printk("called hotplug\n");
 
 	return add_sentinel(args);
 }
