@@ -139,6 +139,12 @@ struct event_data_t {
 	} event_info;
 };
 
+// Data related to hotplug event
+struct hotplug_data_t {
+	long sd_action;
+	long cpu;
+};
+
 /*
  * FORWARD DECLARATIONS
  */
@@ -2767,18 +2773,13 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
-struct hotplug_st {
-	long sd_action;
-	long cpu;
-};
-
 static void do_cpu_callback(void *payload) {
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
 	struct event_data_t event_data;
-	struct hotplug_st *st;
+	struct hotplug_data_t *st;
 
-	st = (struct hotplug_st *)payload;
+	st = (struct hotplug_data_t *)payload;
 	if(st->sd_action != 0) {
 		rcu_read_lock();
 
@@ -2809,7 +2810,7 @@ static void do_cpu_callback(void *payload) {
 
 static int scap_cpu_online(unsigned int cpu) {
 	vpr_info("scap_cpu_online on cpu %d\n", cpu);
-	struct hotplug_st st;
+	struct hotplug_data_t st;
 	st.sd_action = 1;
 	st.cpu = cpu;
 	return smp_call_function_single(0, do_cpu_callback, &st, 1);
@@ -2817,7 +2818,7 @@ static int scap_cpu_online(unsigned int cpu) {
 
 static int scap_cpu_offline(unsigned int cpu) {
 	vpr_info("scap_cpu_offline on cpu %d\n", cpu);
-	struct hotplug_st st;
+	struct hotplug_data_t st;
 	st.sd_action = 2;
 	st.cpu = cpu;
 	return smp_call_function_single(0, do_cpu_callback, &st, 1);
