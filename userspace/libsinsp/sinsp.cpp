@@ -1137,13 +1137,15 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
 	// error is encountered) we attempt popping an event from the asynchronous
 	// event queue. If none is available, we just return the timeout.
 	// note: the queue is optimized for checking for emptyness before popping
-	if(res == SCAP_TIMEOUT && !m_async_events_queue.empty() &&
-	   m_async_events_queue.try_pop(m_async_evt)) {
-		evt = m_async_evt.get();
-		if(evt->get_scap_evt()->ts == (uint64_t)-1) {
-			evt->get_scap_evt()->ts = get_new_ts();
+	if(res == SCAP_TIMEOUT && !m_async_events_queue.empty()) {
+		m_async_events_checker.ts = get_new_ts();
+		if(m_async_events_queue.try_pop_if(m_async_evt, m_async_events_checker)) {
+			evt = m_async_evt.get();
+			if(evt->get_scap_evt()->ts == (uint64_t)-1) {
+				evt->get_scap_evt()->ts = get_new_ts();
+			}
+			return SCAP_SUCCESS;
 		}
-		return SCAP_SUCCESS;
 	}
 
 	// in case we successfully fetched an event, or we have one delayed from
