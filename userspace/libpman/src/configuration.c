@@ -65,6 +65,8 @@ static int libbpf_print(enum libbpf_print_level level, const char *format, va_li
 void pman_clear_state() {
 	g_state.skel = NULL;
 	g_state.rb_manager = NULL;
+	g_state.ringbuf_handles = NULL;
+	g_state.n_reserved_ringbuf_handles = 0;
 	g_state.n_possible_cpus = 0;
 	g_state.n_interesting_cpus = 0;
 	g_state.allocate_online_only = false;
@@ -165,7 +167,6 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 		}
 		cpus_for_each_buffer = (uint16_t)ratio;
 	}
-	printf("cpus_for_each_buffer %d\n", cpus_for_each_buffer);
 
 	g_state.allocate_online_only = allocate_online_only;
 

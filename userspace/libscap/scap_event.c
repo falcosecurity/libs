@@ -56,7 +56,7 @@ uint32_t scap_event_getlen(scap_evt *e) {
 }
 
 uint64_t scap_event_get_num(scap_t *handle) {
-	return handle->m_evtcnt;
+	return atomic_load(&handle->m_evtcnt);
 }
 
 uint16_t scap_event_get_type(scap_evt *e) {

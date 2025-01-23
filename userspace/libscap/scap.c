@@ -208,15 +208,45 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
 	int32_t res = SCAP_FAILURE;
 	if(handle && handle->m_vtable) {
 		res = handle->m_vtable->next(handle->m_engine, pevent, pdevid, pflags);
-	} else {
-		res = SCAP_FAILURE;
 	}
 
 	if(res == SCAP_SUCCESS) {
-		handle->m_evtcnt++;
+		atomic_fetch_add(&handle->m_evtcnt, 1);
 	}
 
 	return res;
+}
+
+scap_buffer_t SCAP_INVALID_BUFFER_HANDLE = 0xFFFFFFFF;
+
+int32_t scap_buffer_next(scap_t* handle,
+                         scap_buffer_t buffer_h,
+                         scap_evt** pevent,
+                         uint32_t* pflags) {
+	int32_t res = SCAP_FAILURE;
+	if(handle && handle->m_vtable && buffer_h != SCAP_INVALID_BUFFER_HANDLE) {
+		res = handle->m_vtable->next_from_buffer(handle->m_engine, buffer_h, pevent, pflags);
+	}
+
+	if(res == SCAP_SUCCESS) {
+		atomic_fetch_add(&handle->m_evtcnt, 1);
+	}
+
+	return res;
+}
+
+uint16_t scap_buffer_get_n_allocated_handles(scap_t* handle) {
+	if(!handle || handle->m_vtable == NULL) {
+		return 0;
+	}
+	return handle->m_vtable->get_n_allocated_buffer_handles(handle->m_engine);
+}
+
+scap_buffer_t scap_buffer_reserve_handle(scap_t* handle) {
+	if(!handle || handle->m_vtable == NULL) {
+		return SCAP_INVALID_BUFFER_HANDLE;
+	}
+	return handle->m_vtable->reserve_buffer_handle(handle->m_engine);
 }
 
 //

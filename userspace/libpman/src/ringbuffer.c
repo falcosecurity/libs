@@ -27,6 +27,7 @@ limitations under the License.
 
 #include "ringbuffer_definitions.h"
 
+#include <libpman.h>
 /* Utility functions object loading */
 
 /* This must be done to please the verifier! At load-time, the verifier must know the
@@ -116,6 +117,21 @@ static bool is_cpu_online(uint16_t cpu_id) {
 	return online == 1;
 }
 
+static int init_ringbuf_handles() {
+	const uint16_t ringbufs_num = g_state.rb_manager->ring_cnt;
+	g_state.ringbuf_handles = malloc(ringbufs_num * sizeof(pman_ringbuf_t));
+	if(g_state.ringbuf_handles == NULL) {
+		pman_print_error("failed to allocate memory for ringbuf_handles");
+		return errno;
+	}
+	for(int i = 0; i < g_state.rb_manager->ring_cnt; i++) {
+		// For the moment, use the ring buffer index as handle.
+		g_state.ringbuf_handles[i] = i;
+	}
+	g_state.n_reserved_ringbuf_handles = 0;
+	return 0;
+}
+
 /* After loading */
 int pman_finalize_ringbuf_array_after_loading() {
 	int ringubuf_array_fd = -1;
@@ -187,6 +203,9 @@ int pman_finalize_ringbuf_array_after_loading() {
 				goto clean_percpu_ring_buffers;
 			}
 		}
+		if(init_ringbuf_handles()) {
+			goto clean_percpu_ring_buffers;
+		}
 		success = true;
 		goto clean_percpu_ring_buffers;
 	}
@@ -230,6 +249,9 @@ int pman_finalize_ringbuf_array_after_loading() {
 			ringbuf_id++;
 		}
 	}
+	if(init_ringbuf_handles()) {
+		goto clean_percpu_ring_buffers;
+	}
 	success = true;
 
 clean_percpu_ring_buffers:
@@ -249,6 +271,20 @@ clean_percpu_ring_buffers:
 		ring_buffer__free(g_state.rb_manager);
 	}
 	return errno;
+}
+
+pman_ringbuf_t PMAN_INVALID_RING_BUFFER_HANDLE = 0xFFFF;
+
+uint16_t pman_get_n_allocated_ringbuf_handles() {
+	return g_state.rb_manager->ring_cnt;
+}
+
+pman_ringbuf_t pman_reserve_ringbuf_handle() {
+	if(g_state.n_reserved_ringbuf_handles == g_state.rb_manager->ring_cnt) {
+		return PMAN_INVALID_RING_BUFFER_HANDLE;
+	}
+
+	return g_state.ringbuf_handles[g_state.n_reserved_ringbuf_handles++];
 }
 
 static inline void *ringbuf__get_first_ring_event(struct ring *r, int pos) {
@@ -334,4 +370,46 @@ static void ringbuf__consume_first_event(struct ring_buffer *rb,
 /* Consume */
 void pman_consume_first_event(void **event_ptr, int16_t *buffer_id) {
 	ringbuf__consume_first_event(g_state.rb_manager, (struct ppm_evt_hdr **)event_ptr, buffer_id);
+}
+
+static inline void *ringbuf__consume_first_ring_event(struct ring *r, int pos) {
+	smp_store_release(r->consumer_pos, g_state.cons_pos[pos]);
+
+	/* If the consumer reaches the producer update the producer position to
+	 * get the newly collected events.
+	 */
+	if(g_state.cons_pos[pos] == g_state.prod_pos[pos]) {
+		/* We try to increment the producer and continue. It is likely that the producer has
+		 * produced new events on this ring. */
+		g_state.prod_pos[pos] = smp_load_acquire(r->producer_pos);
+		if(g_state.cons_pos[pos] == g_state.prod_pos[pos]) {
+			return NULL;
+		}
+	}
+
+	int *len_ptr = r->data + (g_state.cons_pos[pos] & r->mask);
+	int len = smp_load_acquire(len_ptr);
+
+	/* The actual event is not yet committed */
+	if(len & BPF_RINGBUF_BUSY_BIT) {
+		return NULL;
+	}
+
+	g_state.cons_pos[pos] += roundup_len(len);
+
+	/* The sample is not discarded kernel side. */
+	if((len & BPF_RINGBUF_DISCARD_BIT) == 0) {
+		return (void *)len_ptr + BPF_RINGBUF_HDR_SZ;
+	} else {
+		/* Discard the event kernel side and update the consumer position */
+		smp_store_release(r->consumer_pos, g_state.cons_pos[pos]);
+		return NULL;
+	}
+}
+
+void pman_consume_first_event_from_ringbuf(pman_ringbuf_t ringbuf_h, void **event_ptr) {
+	/* The ring buffer handle represents the position of the ring buffer. */
+	uint16_t pos = ringbuf_h;
+	struct ring *r = g_state.rb_manager->rings[pos];
+	*event_ptr = ringbuf__consume_first_ring_event(r, pos);
 }

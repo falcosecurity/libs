@@ -335,6 +335,25 @@ int pman_prepare_ringbuf_array_before_loading(void);
  */
 int pman_finalize_ringbuf_array_after_loading(void);
 
+typedef uint16_t pman_ringbuf_t;
+extern pman_ringbuf_t PMAN_INVALID_RING_BUFFER_HANDLE;
+
+/**
+ * @brief Get the number of allocated ring buffer handles. The returned value determines the maximum
+ * number of times that `scap_buffer_reserve_handle` can be called.
+ *
+ * @return The number of allocated ring buffer handles.
+ */
+uint16_t pman_get_n_allocated_ringbuf_handles();
+
+/*!
+ * @brief Reserve a ring buffer handle.
+ *
+ * \return A valid buffer handle if the call is successful.
+ * If all ring buffer handles are allocated, `PMAN_INVALID_RING_BUFFER_HANDLE` is returned.
+ */
+pman_ringbuf_t pman_reserve_ringbuf_handle();
+
 /**
  * @brief Search for the event with the lowest timestamp in
  * all the ring buffers.
@@ -345,6 +364,14 @@ int pman_finalize_ringbuf_array_after_loading(void);
  * from which we retrieved the event, otherwise return `-1`.
  */
 void pman_consume_first_event(void** event_ptr, int16_t* buffer_id);
+
+/**
+ * @brief Get the first event from the requested ring buffer.
+ *
+ * @param ringbuf_h the handle of the ring buffer from which the event is requested to be consumed.
+ * @param event_ptr in case of success return a pointer to the event, otherwise return NULL.
+ */
+void pman_consume_first_event_from_ringbuf(pman_ringbuf_t ringbuf_h, void** event_ptr);
 
 /////////////////////////////
 // CAPTURE (EXCHANGE VALUES WITH BPF SIDE)

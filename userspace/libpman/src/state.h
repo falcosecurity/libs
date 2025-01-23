@@ -26,6 +26,7 @@ limitations under the License.
 #include <bpf_probe.skel.h>
 #include <unistd.h>
 #include <errno.h>
+#include <libpman.h>
 
 #define MAX_ERROR_MESSAGE_LEN 200
 
@@ -40,10 +41,13 @@ limitations under the License.
 struct metrics_v2;
 
 struct internal_state {
-	struct bpf_probe* skel;         /* bpf skeleton with all programs and maps. */
-	struct ring_buffer* rb_manager; /* ring_buffer manager with all ring buffers. */
-
-	int16_t n_possible_cpus;     /* number of possible system CPUs (online and not). */
+	struct bpf_probe* skel;          /* bpf skeleton with all programs and maps. */
+	struct ring_buffer* rb_manager;  /* ring_buffer manager with all ring buffers. */
+	pman_ringbuf_t* ringbuf_handles; /* Ring buffer handles. Each managed ring buffer is associated
+	                                    with a handle. */
+	uint16_t n_reserved_ringbuf_handles; /* Number of reserved ring buffer handles. Always <= the
+	                                        total number of ring buffer handles.  */
+	int16_t n_possible_cpus;             /* number of possible system CPUs (online and not). */
 	int16_t n_interesting_cpus;  /* according to userspace configuration we can consider only online
 	                    CPUs or all  available CPUs. */
 	bool allocate_online_only;   /* If true we allocate ring buffers only for online CPUs */

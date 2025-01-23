@@ -258,5 +258,8 @@ void pman_close_probe() {
 
 	if(g_state.rb_manager) {
 		ring_buffer__free(g_state.rb_manager);
+		free(g_state.ringbuf_handles);
+		g_state.ringbuf_handles = NULL;
+		g_state.n_reserved_ringbuf_handles = 0;
 	}
 }
