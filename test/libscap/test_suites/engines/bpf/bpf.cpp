@@ -291,12 +291,11 @@ TEST(bpf, hotplug) {
 	cpu_file.flush();
 
 	// open scap, we limit the capture to just one syscall to avoid too many events.
-	// The close syscall will be called inside `check_hotplug_event`.
 	scap_t* h = open_bpf_engine(error_buffer,
 	                            &ret,
 	                            4 * 4096,
 	                            LIBSCAP_TEST_BPF_PROBE_PATH,
-	                            {PPM_SC_CLOSE});
+	                            {PPM_SC_DELETE_MODULE});
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open bpf engine: " << error_buffer << std::endl;
 

@@ -99,7 +99,7 @@ static __always_inline uint32_t ringbuf__reserve_space(struct ringbuf_struct *ri
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
 		// this should never happen because we check it in sys_enter/sys_exit
-		bpf_printk("FAILURE: unable to obtain the ring buffer");
+		bpf_printk("RINGBUF: unable to obtain the ring buffer");
 		return 0;
 	}
 

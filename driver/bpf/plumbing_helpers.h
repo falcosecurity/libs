@@ -718,6 +718,8 @@ static __always_inline void call_filler(void *ctx,
 		return;
 
 	if(cpu == 0 && state->hotplug_cpu != 0) {
+		const char log[] = "[LEGACY] Configure hotplug event";
+		bpf_trace_printk(log, sizeof(log));
 		evt_type = PPME_CPU_HOTPLUG_E;
 		drop_flags = UF_NEVER_DROP;
 	}

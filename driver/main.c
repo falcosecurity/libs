@@ -1814,6 +1814,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	ring_info = ring->info;
 	if(!ring_info) {
+		printk("ring_info is NULL for cpu %d\n", cpu);
 		// This is likely an hotplug
 		atomic_set(&hotplug_cpu, cpu);
 		put_cpu();
@@ -2784,62 +2785,12 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
-static int scap_cpu_online(unsigned int cpu) {
-	vpr_info("scap_cpu_online on cpu %d\n", cpu);
-	return 0;
-}
-
-static int scap_cpu_offline(unsigned int cpu) {
-	vpr_info("scap_cpu_offline on cpu %d\n", cpu);
-	return 0;
-}
-
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
-/*
- * This gets called every time a CPU is added or removed
- */
-static int cpu_callback(struct notifier_block *self, unsigned long action, void *hcpu) {
-	unsigned long cpu = (unsigned long)hcpu;
-	int ret = 0;
-
-	switch(action) {
-	case CPU_UP_PREPARE:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	case CPU_UP_PREPARE_FROZEN:
-#endif
-		ret = scap_cpu_online(cpu);
-		break;
-	case CPU_DOWN_PREPARE:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	case CPU_DOWN_PREPARE_FROZEN:
-#endif
-		ret = scap_cpu_offline(cpu);
-		break;
-	default:
-		break;
-	}
-
-	if(ret < 0)
-		return NOTIFY_BAD;
-	else
-		return NOTIFY_OK;
-}
-
-static struct notifier_block cpu_notifier = {
-        .notifier_call = &cpu_callback,
-        .next = NULL,
-};
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) */
-
 static int scap_init(void) {
 	dev_t dev;
 	unsigned int cpu;
 	unsigned int num_cpus;
 	int ret;
 	int acrret = 0;
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-	int hp_ret;
-#endif
 	int j;
 	int n_created_devices = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -2942,25 +2893,6 @@ static int scap_init(void) {
 		ret = -EFAULT;
 		goto init_module_err;
 	}
-
-	/*
-	 * Set up our callback in case we get a hotplug even while we are
-	 * initializing the cpu structures
-	 */
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-	hp_ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
-	                                   DRIVER_NAME "/driver:online",
-	                                   scap_cpu_online,
-	                                   scap_cpu_offline);
-	if(hp_ret <= 0) {
-		pr_err("error registering cpu hotplug callback\n");
-		ret = hp_ret;
-		goto init_module_err;
-	}
-	hp_state = hp_ret;
-#else
-	register_cpu_notifier(&cpu_notifier);
-#endif
 
 	// Initialize globals
 	g_tracepoints_attached = 0;

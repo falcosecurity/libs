@@ -213,6 +213,7 @@ void check_hotplug_event(scap_t *h, std::ofstream &cpu_file) {
 	cpu_file.seekp(0, std::ios::beg);
 	cpu_file << "1";
 	cpu_file.flush();
+	cpu_file.close();
 
 	// Set the affinity on first CPU
 	cpu_set_t set, starting_set;
@@ -223,7 +224,7 @@ void check_hotplug_event(scap_t *h, std::ofstream &cpu_file) {
 	sched_setaffinity(0, sizeof(cpu_set_t), &set);
 
 	// Generate some syscalls on CPU 1 to make sure we generate an event
-	cpu_file.close();
+	syscall(__NR_delete_module, "fail", 0);
 
 	// the legacy ebpf probe needs also a new event on CPU 0 after the hotplug to send the event in
 	// userspace
@@ -231,7 +232,7 @@ void check_hotplug_event(scap_t *h, std::ofstream &cpu_file) {
 	CPU_SET(0, &set);  // set cpu 1
 	sched_setaffinity(0, sizeof(cpu_set_t), &set);
 	// we throw a failed close to generate an event
-	close(-1);
+	syscall(__NR_delete_module, "fail", 0);
 
 	// Reset affinity
 	sched_setaffinity(0, sizeof(cpu_set_t), &starting_set);

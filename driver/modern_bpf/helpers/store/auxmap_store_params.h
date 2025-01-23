@@ -122,7 +122,7 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
 		// this should never happen because we check it in sys_enter/sys_exit
-		bpf_printk("FAILURE: unable to obtain the ring buffer");
+		bpf_printk("AUXMAP: unable to obtain the ring buffer");
 		return;
 	}
 

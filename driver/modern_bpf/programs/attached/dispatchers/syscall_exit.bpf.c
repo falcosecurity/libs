@@ -56,6 +56,8 @@ int BPF_PROG(t_hotplug) {
 	/* Right now we don't have actions we always send 0 */
 	ringbuf__store_u32(&ringbuf, 0);
 
+	bpf_printk("Send hotplug event for cpu %d", bpf_get_smp_processor_id());
+
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
@@ -170,6 +172,9 @@ static __always_inline bool sampling_logic_exit(void *ctx, uint32_t id) {
 #define X86_64_NR_EXECVE 59
 #define X86_64_NR_EXECVEAT 322
 
+#define X86_64_NR_DELETE_MODULE 176
+#define ARM64_NR_DELETE_MODULE 106
+
 /* From linux tree: /include/trace/events/syscall.h
  * TP_PROTO(struct pt_regs *regs, long ret),
  */
@@ -228,11 +233,22 @@ int BPF_PROG(sys_exit, struct pt_regs *regs, long ret) {
 		return 0;
 	}
 
+#if defined(__TARGET_ARCH_x86)
+	if(syscall_id == X86_64_NR_DELETE_MODULE) {
+		bpf_printk("Calling delete_module syscall on cpu %d", bpf_get_smp_processor_id());
+	}
+#else
+	if(syscall_id == X86_64_NR_DELETE_MODULE) {
+		bpf_printk("Calling delete_module syscall on cpu %d", bpf_get_smp_processor_id());
+	}
+#endif
+
 	// If we cannot find a ring buffer for this CPU we probably have an hotplug event. It's ok to
 	// check only in the exit path since we will always have at least one exit syscall enabled. If
 	// we change our architecture we may need to update this logic.
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
+		bpf_printk("Configure hotplug event on cpu %d", bpf_get_smp_processor_id());
 		bpf_tail_call(ctx, &custom_sys_exit_calls, T_HOTPLUG);
 		bpf_printk("failed to tail call into the 'hotplug' prog");
 		return 0;

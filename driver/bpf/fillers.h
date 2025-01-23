@@ -5273,6 +5273,8 @@ FILLER(cpu_hotplug_e, false) {
 	res = bpf_push_u32_to_ring(data, 0);
 	CHECK_RES(res);
 
+	const char log[] = "[LEGACY] Send hotplug event for CPU %d\n";
+	bpf_trace_printk(log, sizeof(log), data->state->hotplug_cpu);
 	data->state->hotplug_cpu = 0;
 
 	return res;

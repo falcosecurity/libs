@@ -110,6 +110,11 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
 		}
 	}
 
+	if(evt_type == PPME_SYSCALL_DELETE_MODULE_E) {
+		const char log[] = "[LEGACY] Calling delete_module syscall on cpu %d";
+		bpf_trace_printk(log, sizeof(log), bpf_get_smp_processor_id());
+	}
+
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
 #else
