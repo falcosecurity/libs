@@ -152,17 +152,57 @@ int BPF_PROG(sendmmsg_x, struct pt_regs *regs, long ret) {
 	        .ctx = ctx,
 	};
 
-	// We can't use bpf_loop() helper since the below check triggers a verifier failure:
-	// see
-	// https://lore.kernel.org/bpf/CAGQdkDt9zyQwr5JyftXqL=OLKscNcqUtEteY4hvOkx2S4GdEkQ@mail.gmail.com/T/#u
-	/*if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_loop)) {
-	    uint32_t nr_loops = ret < 1024 ? ret : 1024;
-	    bpf_loop(nr_loops, handle_exit, &data, 0);
-	} else {*/
-	for(int i = 0; i < ret && i < MAX_SENDMMSG_RECVMMSG_SIZE; i++) {
-		handle_exit(i, &data);
+	uint32_t nr_loops = ret < 1024 ? ret : 1024;
+	bpf_loop(nr_loops, handle_exit, &data, 0);
+
+	return 0;
+}
+
+SEC("tp_btf/sys_exit")
+int BPF_PROG(sendmmsg_old_x, struct pt_regs *regs, long ret) {
+	if(ret <= 0) {
+		unsigned long fd = 0;
+		struct auxiliary_map *auxmap = auxmap__get();
+		if(!auxmap) {
+			return 0;
+		}
+
+		auxmap__preload_event_header(auxmap, PPME_SOCKET_SENDMMSG_X);
+
+		/* Parameter 1: res (type: PT_ERRNO) */
+		auxmap__store_s64_param(auxmap, ret);
+
+		/* Parameter 2: fd (type: PT_FD) */
+		extract__network_args(&fd, 1, regs);
+		auxmap__store_s64_param(auxmap, (int64_t)(int32_t)fd);
+
+		/* Parameter 3: size (type: PT_UINT32) */
+		auxmap__store_u32_param(auxmap, 0);
+
+		/* Parameter 4: data (type: PT_BYTEBUF) */
+		auxmap__store_empty_param(auxmap);
+
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		auxmap__store_empty_param(auxmap);
+
+		auxmap__finalize_event_header(auxmap);
+
+		auxmap__submit_event(auxmap);
+		return 0;
 	}
-	//}
+
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
+	sendmmsg_exit_t data = {
+	        .fd = args[0],
+	        .mmh = (struct mmsghdr *)args[1],
+	        .regs = regs,
+	        .ctx = ctx,
+	};
+
+	// Only first message
+	handle_exit(0, &data);
 
 	return 0;
 }

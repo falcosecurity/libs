@@ -95,6 +95,14 @@ bool pman_check_support();
 int pman_open_probe(void);
 
 /**
+ * @brief Prepares the bpf skeleton object checking if
+ * it satisfies each events_prog_name feature requirements for each prog.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_prepare_progs_before_loading(void);
+
+/**
  * @brief Load into the kernel all the programs and maps
  * contained into the skeleton.
  *
