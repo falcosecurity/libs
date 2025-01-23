@@ -2272,6 +2272,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret) {
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
+
 	event_data.extract_socketcall_params = false;
 	event_data.compat = false;
 
