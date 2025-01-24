@@ -781,7 +781,7 @@ public:
 	}
 
 	std::shared_ptr<libsinsp::state::table_entry> get_entry(const int64_t& key) override {
-		return find_thread(key, false);
+		return find_thread(key, true);
 	}
 
 	std::shared_ptr<libsinsp::state::table_entry> add_entry(
