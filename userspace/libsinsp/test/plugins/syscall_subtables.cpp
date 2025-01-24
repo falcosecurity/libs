@@ -178,7 +178,7 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t* s,
 
 	ss_plugin_table_t* fdtable = nullptr;
 
-	key.s64 = 0;
+	key.s64 = ev->evt->tid;
 	entry = in->table_reader_ext->get_table_entry(ps->thread_table, &key);
 	if(!entry) {
 		ps->lasterr = "can't get table entry";
