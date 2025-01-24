@@ -124,6 +124,7 @@ const scap_platform_vtable scap_gvisor_platform_vtable = {
         .get_global_pid = NULL,
         .get_threadlist = gvisor_get_threadlist,
         .get_fdlist = NULL,
+        .get_fdinfo = NULL,
 
         .close_platform = scap_gvisor_close_platform,
         .free_platform = scap_gvisor_free_platform,

@@ -117,6 +117,7 @@ static const struct scap_platform_vtable scap_linux_platform_vtable = {
         .get_global_pid = scap_linux_getpid_global,
         .get_threadlist = scap_linux_get_threadlist,
         .get_fdlist = scap_linux_get_fdlist,
+        .get_fdinfo = scap_linux_get_fdinfo,
         .close_platform = scap_linux_close_platform,
         .free_platform = scap_linux_free_platform,
 };

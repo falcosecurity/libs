@@ -113,6 +113,14 @@ struct ppm_proclist_info* scap_get_threadlist(struct scap_platform* platform, ch
 */
 int32_t scap_get_fdlist(struct scap_platform* platform, struct scap_threadinfo* tinfo, char* error);
 
+/*!
+  \brief Get the file descriptor info for a given pid.
+*/
+int32_t scap_get_fdinfo(struct scap_platform* platform,
+                        struct scap_threadinfo* tinfo,
+                        int fd,
+                        char* error);
+
 #ifdef __cplusplus
 };
 #endif

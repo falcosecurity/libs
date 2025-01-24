@@ -65,6 +65,10 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform,
 int32_t scap_linux_get_fdlist(struct scap_platform* platform,
                               struct scap_threadinfo* tinfo,
                               char* lasterr);
+int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
+                              struct scap_threadinfo* tinfo,
+                              int fd,
+                              char* lasterr);
 
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char* error);
@@ -77,3 +81,11 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform* linux_platform,
                             struct scap_ns_socket_list** sockets_by_ns,
                             uint64_t* num_fds_ret,
                             char* error);
+// read the file descriptor info for a given process directory
+int32_t scap_fd_get_fdinfo(struct scap_linux_platform const* linux_platform,
+                           struct scap_proclist* proclist,
+                           char* procdir,
+                           scap_threadinfo* tinfo,
+                           int fd,
+                           struct scap_ns_socket_list** sockets_by_ns,
+                           char* error);
