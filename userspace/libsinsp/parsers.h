@@ -134,6 +134,16 @@ private:
 	inline void add_pipe(sinsp_evt* evt, int64_t fd, uint64_t ino, uint32_t openflags);
 	// Return false if the update didn't happen (for example because the tuple is NULL)
 	bool update_fd(sinsp_evt* evt, const sinsp_evt_param* parinfo);
+#ifndef _WIN32
+	// Process file descriptors extracted from recvmsg ancillary data.
+	inline void process_recvmsg_ancillary_data_fds(int const* fds,
+	                                               size_t fds_len,
+	                                               scap_threadinfo* scap_tinfo,
+	                                               char* error) const;
+	// Process recvmsg ancillary data.
+	inline void process_recvmsg_ancillary_data(sinsp_evt* evt,
+	                                           sinsp_evt_param const* parinfo) const;
+#endif
 
 	// Next 4 return false if the update didn't happen because the tuple is identical to the given
 	// address

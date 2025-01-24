@@ -3662,6 +3662,104 @@ void sinsp_parser::parse_fspath_related_exit(sinsp_evt *evt) {
 	}
 }
 
+#ifndef _WIN32
+// ppm_cmsghdr is a mirror of the POSIX cmsghdr structure. The fundamental assumption when working
+// with it is that actual control message variable-size data follows this (padding-aligned) header.
+struct ppm_cmsghdr {
+	// Length of ppm_cmsghdr structure plus data following it.
+	size_t cmsg_len;
+	// Originating protocol.
+	int cmsg_level;
+	// Protocol specific type.
+	int cmsg_type;
+};
+
+// PPM_CMSG_* macros definitions. Their purpose is to manipulate ppm_cmsghdr structure and fields.
+// Majority of them are equivalent to the corresponding variants without PPM_* prefix, but they
+// don't depend on msghdr definition (as we don't need it at the moment).
+#define PPM_CMSG_FIRSTHDR(msg_control, msg_controllen) \
+	((size_t)msg_controllen >= sizeof(ppm_cmsghdr) ? (ppm_cmsghdr *)msg_control : (ppm_cmsghdr *)0)
+
+#define PPM_CMSG_UNALIGNED_READ(cmsg, field, dest)           \
+	(memcpy((void *)&(dest),                                 \
+	        ((char *)(cmsg)) + offsetof(ppm_cmsghdr, field), \
+	        sizeof((cmsg)->field)))
+
+#define PPM_CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t) ~(sizeof(size_t) - 1))
+
+#define PPM_CMSG_NXTHDR(msg_control, msg_controllen, cmsg) \
+	ppm_cmsg_nxthdr(msg_control, msg_controllen, cmsg)
+static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
+                                    size_t const msg_controllen,
+                                    ppm_cmsghdr *cmsg) {
+	size_t cmsg_len;
+	PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_len, cmsg_len);
+	if(cmsg_len < sizeof(ppm_cmsghdr)) {
+		return nullptr;
+	}
+
+	size_t const cmsg_aligned_len = PPM_CMSG_ALIGN(cmsg_len);
+	cmsg = reinterpret_cast<ppm_cmsghdr *>(reinterpret_cast<char *>(cmsg) + cmsg_aligned_len);
+	if(reinterpret_cast<char *>(cmsg + 1) > msg_control + msg_controllen ||
+	   reinterpret_cast<char *>(cmsg) + cmsg_aligned_len > msg_control + msg_controllen) {
+		return nullptr;
+	}
+	return cmsg;
+}
+
+#define PPM_CMSG_DATA(cmsg) ((char *)((ppm_cmsghdr *)(cmsg) + 1))
+
+inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
+                                                             size_t const fds_len,
+                                                             scap_threadinfo *scap_tinfo,
+                                                             char *error) const {
+	for(int i = 0; i < fds_len; i++) {
+		if(scap_get_fdinfo(m_inspector->get_scap_platform(), scap_tinfo, fds[i], error) !=
+		   SCAP_SUCCESS) {
+			libsinsp_logger()->format(
+			        sinsp_logger::SEV_DEBUG,
+			        "scap_get_fdinfo failed: %s, proc table will not be updated with new fd.",
+			        error);
+		}
+	}
+}
+
+inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
+                                                         sinsp_evt_param const *parinfo) const {
+	// Seek for SCM_RIGHTS control message headers and extract passed file descriptors.
+	char const *msg_ctrl = parinfo->m_val;
+	size_t const msg_ctrllen = parinfo->m_len;
+	for(ppm_cmsghdr *cmsg = PPM_CMSG_FIRSTHDR(msg_ctrl, msg_ctrllen); cmsg != nullptr;
+	    cmsg = PPM_CMSG_NXTHDR(msg_ctrl, msg_ctrllen, cmsg)) {
+		int cmsg_type;
+		PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_type, cmsg_type);
+		if(cmsg_type != SCM_RIGHTS) {
+			continue;
+		}
+		// Found SCM_RIGHT control message. Process it.
+		char error[SCAP_LASTERR_SIZE];
+		scap_threadinfo scap_tinfo{};
+		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
+		m_inspector->m_thread_manager->thread_to_scap(*evt->get_tinfo(), &scap_tinfo);
+#define SCM_MAX_FD 253  // Taken from kernel.
+		int fds[SCM_MAX_FD];
+		size_t cmsg_len;
+		PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_len, cmsg_len);
+		unsigned long const data_size = cmsg_len - CMSG_LEN(0);
+		unsigned long const fds_len = data_size / sizeof(int);
+		// Guard against malformed event, by checking that data size is a multiple of
+		// sizeof(int) (file descriptor size) and the control message doesn't contain more
+		// data than allowed by kernel constraints.
+		if(data_size % sizeof(int) || fds_len > SCM_MAX_FD) {
+			continue;
+		}
+#undef SCM_MAX_FD
+		memcpy(&fds, PPM_CMSG_DATA(cmsg), data_size);
+		process_recvmsg_ancillary_data_fds(fds, fds_len, &scap_tinfo, error);
+	}
+}
+#endif  // _WIN32
+
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
@@ -3792,40 +3890,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 
 			if(cmparam != -1) {
 				parinfo = evt->get_param(cmparam);
-				if(parinfo->m_len > sizeof(cmsghdr)) {
-					cmsghdr cmsg;
-					memcpy(&cmsg, parinfo->m_val, sizeof(cmsghdr));
-					if(cmsg.cmsg_type == SCM_RIGHTS) {
-						char error[SCAP_LASTERR_SIZE];
-						scap_threadinfo scap_tinfo{};
-
-						memset(&scap_tinfo, 0, sizeof(scap_tinfo));
-
-						m_inspector->m_thread_manager->thread_to_scap(*evt->get_tinfo(),
-						                                              &scap_tinfo);
-
-						// Store current fd; it might get changed by scap_get_fdlist below.
-						int64_t fd = -1;
-						if(evt->get_fd_info()) {
-							fd = evt->get_fd_info()->m_fd;
-						}
-
-						// Get the new fds. The callbacks we have registered populate the fd table
-						// with the new file descriptors.
-						if(scap_get_fdlist(m_inspector->get_scap_platform(), &scap_tinfo, error) !=
-						   SCAP_SUCCESS) {
-							libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-							                          "scap_get_fdlist failed: %s, proc table will "
-							                          "not be updated with new fds.",
-							                          error);
-						}
-
-						// Force refresh event fdinfo
-						if(fd != -1) {
-							evt->set_fd_info(evt->get_tinfo()->get_fd(fd));
-						}
-					}
-				}
+				process_recvmsg_ancillary_data(evt, parinfo);
 			}
 #endif
 
