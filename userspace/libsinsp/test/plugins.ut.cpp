@@ -16,6 +16,7 @@ limitations under the License.
 
 */
 
+#include <thread>
 #include <gtest/gtest.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/test/helpers/threads_helpers.h>
