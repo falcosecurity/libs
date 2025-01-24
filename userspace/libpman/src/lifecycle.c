@@ -18,12 +18,50 @@ limitations under the License.
 
 #include "state.h"
 #include <driver/feature_gates.h>
+#include "events_prog_names.h"
 
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
 	if(!g_state.skel) {
 		pman_print_error("failed to open BPF skeleton");
 		return errno;
+	}
+	return 0;
+}
+
+int pman_prepare_progs_before_loading() {
+	/*
+	 * Probe required features for each bpf program, as requested
+	 */
+	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
+		int num_skipped = 0;
+		int idx = 0;
+		event_prog_t *progs = event_prog_names[ev];
+		for(; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
+			if(progs[idx].feat > 0) {
+				if(libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
+				   0) {
+					// Required feature not present
+					struct bpf_program *p =
+					        bpf_object__find_program_by_name(g_state.skel->obj, progs[idx].name);
+					if(p) {
+						bpf_program__set_autoload(p, false);
+					} else {
+						pman_print_error(" unable to find prog");
+					}
+					num_skipped++;
+				}
+			}
+		}
+		if(num_skipped > 0) {
+			if(num_skipped == idx) {
+				pman_print_error(" no program satisfied required features for event");
+				errno = ENXIO;
+				return errno;
+			}
+			// Store selected program in index 0 to be easily accessed by maps.c
+			progs[0] = progs[num_skipped];
+		}
 	}
 	return 0;
 }

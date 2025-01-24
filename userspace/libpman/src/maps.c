@@ -22,6 +22,23 @@ limitations under the License.
 #include "events_prog_names.h"
 #include <libscap/scap.h>
 
+/* Some exit events can require more than one bpf program to collect all the data. */
+static const char* sys_exit_extra_event_names[SYS_EXIT_EXTRA_CODE_MAX] = {
+        [T1_EXECVE_X] = "t1_execve_x",
+        [T1_EXECVEAT_X] = "t1_execveat_x",
+        [T1_CLONE_X] = "t1_clone_x",
+        [T1_CLONE3_X] = "t1_clone3_x",
+        [T1_FORK_X] = "t1_fork_x",
+        [T1_VFORK_X] = "t1_vfork_x",
+        [T2_CLONE_X] = "t2_clone_x",
+        [T2_CLONE3_X] = "t2_clone3_x",
+        [T2_FORK_X] = "t2_fork_x",
+        [T2_VFORK_X] = "t2_vfork_x",
+        [T1_OPEN_BY_HANDLE_AT_X] = "t1_open_by_handle_at_x",
+        [T2_EXECVE_X] = "t2_execve_x",
+        [T2_EXECVEAT_X] = "t2_execveat_x",
+};
+
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 extern const int g_ia32_64_map[];
@@ -220,15 +237,15 @@ int pman_fill_syscalls_tail_table() {
 		 * event. Until we miss some syscalls, this is not true so we manage these cases as generic
 		 * events. We need to remove this workaround when all syscalls will be implemented.
 		 */
-		enter_prog_name = event_prog_names[enter_event_type];
-		exit_prog_name = event_prog_names[exit_event_type];
+		enter_prog_name = event_prog_names[enter_event_type]->name;
+		exit_prog_name = event_prog_names[exit_event_type]->name;
 
 		if(!enter_prog_name) {
-			enter_prog_name = event_prog_names[PPME_GENERIC_E];
+			enter_prog_name = event_prog_names[PPME_GENERIC_E]->name;
 		}
 
 		if(!exit_prog_name) {
-			exit_prog_name = event_prog_names[PPME_GENERIC_X];
+			exit_prog_name = event_prog_names[PPME_GENERIC_X]->name;
 		}
 
 		if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
