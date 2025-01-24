@@ -72,6 +72,10 @@ struct scap_platform_vtable {
 	int32_t (*get_fdlist)(struct scap_platform* platform,
 	                      struct scap_threadinfo* tinfo,
 	                      char* lasterr);
+	int32_t (*get_fdinfo)(struct scap_platform* platform,
+	                      struct scap_threadinfo* tinfo,
+	                      int fd,
+	                      char* lasterr);
 
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`

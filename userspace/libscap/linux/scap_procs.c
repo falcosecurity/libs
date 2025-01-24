@@ -1328,3 +1328,28 @@ int32_t scap_linux_get_fdlist(struct scap_platform* platform,
 	}
 	return res;
 }
+
+int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
+                              struct scap_threadinfo* tinfo,
+                              int const fd,
+                              char* lasterr) {
+	int res = SCAP_SUCCESS;
+	char proc_dir[SCAP_MAX_PATH_SIZE];
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	// We get file descriptor info from the main thread
+	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/%lu/", scap_get_host_root(), tinfo->pid);
+
+	res = scap_fd_get_fdinfo(linux_platform,
+	                         &platform->m_proclist,
+	                         proc_dir,
+	                         tinfo,
+	                         fd,
+	                         &sockets_by_ns,
+	                         lasterr);
+	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1) {
+		scap_fd_free_ns_sockets_list(&sockets_by_ns);
+	}
+	return res;
+}

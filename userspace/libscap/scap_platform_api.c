@@ -149,3 +149,15 @@ int32_t scap_get_fdlist(struct scap_platform* platform,
 	snprintf(error, SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
 }
+
+int32_t scap_get_fdinfo(struct scap_platform* platform,
+                        struct scap_threadinfo* tinfo,
+                        int const fd,
+                        char* error) {
+	if(platform && platform->m_vtable->get_fdinfo) {
+		return platform->m_vtable->get_fdinfo(platform, tinfo, fd, error);
+	}
+
+	snprintf(error, SCAP_LASTERR_SIZE, "operation not supported");
+	return SCAP_FAILURE;
+}

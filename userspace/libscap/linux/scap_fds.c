@@ -1156,6 +1156,48 @@ char *decode_st_mode(struct stat *sb) {
 		break;
 	}
 }
+
+static int32_t handle_file(struct scap_proclist *proclist,
+                           char *f_name,
+                           scap_threadinfo *tinfo,
+                           scap_fdinfo *fdi,
+                           char *procdir,
+                           struct stat const *const sb,
+                           uint64_t const net_ns,
+                           struct scap_ns_socket_list **sockets_by_ns,
+                           char *error) {
+	switch(sb->st_mode & S_IFMT) {
+	case S_IFIFO:
+		fdi->type = SCAP_FD_FIFO;
+		return scap_fd_handle_pipe(proclist, f_name, tinfo, fdi, error);
+	case S_IFREG:
+	case S_IFBLK:
+	case S_IFCHR:
+	case S_IFLNK:
+		fdi->type = SCAP_FD_FILE_V2;
+		fdi->ino = sb->st_ino;
+		return scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+	case S_IFDIR:
+		fdi->type = SCAP_FD_DIRECTORY;
+		fdi->ino = sb->st_ino;
+		return scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+	case S_IFSOCK:
+		fdi->type = SCAP_FD_UNKNOWN;
+		return scap_fd_handle_socket(proclist,
+		                             f_name,
+		                             tinfo,
+		                             fdi,
+		                             procdir,
+		                             net_ns,
+		                             sockets_by_ns,
+		                             error);
+	default:
+		fdi->type = SCAP_FD_UNSUPPORTED;
+		fdi->ino = sb->st_ino;
+		return scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+	}
+}
+
 //
 // Scan the directory containing the fd's of a proc /proc/x/fd
 //
@@ -1171,44 +1213,36 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
 	int32_t res = SCAP_SUCCESS;
 	char fd_dir_name[SCAP_MAX_PATH_SIZE];
 	char f_name[SCAP_MAX_PATH_SIZE];
-	char link_name[SCAP_MAX_PATH_SIZE];
 	struct stat sb;
 	uint64_t fd;
 	scap_fdinfo fdi = {};
 	uint64_t net_ns;
-	ssize_t r;
 	uint32_t fd_added = 0;
 
 	if(num_fds_ret != NULL) {
 		*num_fds_ret = 0;
 	}
 
-	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfd", procdir);
+	snprintf(fd_dir_name, sizeof(fd_dir_name), "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
 	if(dir_p == NULL) {
 		snprintf(error, SCAP_LASTERR_SIZE, "error opening the directory %s", fd_dir_name);
 		return SCAP_NOTFOUND;
 	}
 
-	//
-	// Get the network namespace of the process
-	//
+	// Get the network namespace of the process.
 	snprintf(f_name, sizeof(f_name), "%sns/net", procdir);
-	r = readlink(f_name, link_name, sizeof(link_name) - 1);
-	if(r <= 0) {
-		//
-		// No network namespace available. Assume global
-		//
+	if(stat(f_name, &sb) == -1) {
+		// Assume default network namespace.
 		net_ns = 0;
 	} else {
-		link_name[r] = '\0';
-		sscanf(link_name, "net:[%" PRIi64 "]", &net_ns);
+		net_ns = sb.st_ino;
 	}
 
 	while((dir_entry_p = readdir(dir_p)) != NULL &&
 	      (linux_platform->m_fd_lookup_limit == 0 ||
 	       fd_added < linux_platform->m_fd_lookup_limit)) {
-		snprintf(f_name, SCAP_MAX_PATH_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
+		snprintf(f_name, sizeof(f_name), "%s/%s", fd_dir_name, dir_entry_p->d_name);
 
 		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%" PRIu64, &fd)) {
 			continue;
@@ -1216,52 +1250,17 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
 		fdi.fd = fd;
 
 		// In no driver mode to limit cpu usage we just parse sockets
-		// because we are interested only on them
+		// because we are interested only on them.
 		if(linux_platform->m_minimal_scan && !S_ISSOCK(sb.st_mode)) {
 			continue;
 		}
 
-		switch(sb.st_mode & S_IFMT) {
-		case S_IFIFO:
-			fdi.type = SCAP_FD_FIFO;
-			res = scap_fd_handle_pipe(proclist, f_name, tinfo, &fdi, error);
-			break;
-		case S_IFREG:
-		case S_IFBLK:
-		case S_IFCHR:
-		case S_IFLNK:
-			fdi.type = SCAP_FD_FILE_V2;
-			fdi.ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, &fdi, procdir, error);
-			break;
-		case S_IFDIR:
-			fdi.type = SCAP_FD_DIRECTORY;
-			fdi.ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, &fdi, procdir, error);
-			break;
-		case S_IFSOCK:
-			fdi.type = SCAP_FD_UNKNOWN;
-			res = scap_fd_handle_socket(proclist,
-			                            f_name,
-			                            tinfo,
-			                            &fdi,
-			                            procdir,
-			                            net_ns,
-			                            sockets_by_ns,
-			                            error);
-			break;
-		default:
-			fdi.type = SCAP_FD_UNSUPPORTED;
-			fdi.ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, &fdi, procdir, error);
+		if(handle_file(proclist, f_name, tinfo, &fdi, procdir, &sb, net_ns, sockets_by_ns, error) !=
+		   SCAP_SUCCESS) {
 			break;
 		}
 
-		if(SCAP_SUCCESS != res) {
-			break;
-		} else {
-			++fd_added;
-		}
+		++fd_added;
 	}
 	closedir(dir_p);
 
@@ -1270,4 +1269,41 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
 	}
 
 	return res;
+}
+
+int32_t scap_fd_get_fdinfo(struct scap_linux_platform const *const linux_platform,
+                           struct scap_proclist *proclist,
+                           char *procdir,
+                           scap_threadinfo *tinfo,
+                           int const fd,
+                           struct scap_ns_socket_list **sockets_by_ns,
+                           char *error) {
+	char f_name[SCAP_MAX_PATH_SIZE];
+	struct stat sb;
+	uint64_t net_ns;
+	scap_fdinfo fdi = {};
+
+	// Get the network namespace of the process.
+	snprintf(f_name, sizeof(f_name), "%sns/net", procdir);
+	if(stat(f_name, &sb) == -1) {
+		// Assume default network namespace.
+		net_ns = 0;
+	} else {
+		net_ns = sb.st_ino;
+	}
+
+	// Get file descriptor stat.
+	snprintf(f_name, sizeof(f_name), "%sfd/%d", procdir, fd);
+	if(stat(f_name, &sb) == -1) {
+		return SCAP_NOTFOUND;
+	}
+	fdi.fd = fd;
+
+	// In no driver mode to limit cpu usage we just parse sockets
+	// because we are interested only on them.
+	if(linux_platform->m_minimal_scan && !S_ISSOCK(sb.st_mode)) {
+		return EXIT_SUCCESS;
+	}
+
+	return handle_file(proclist, f_name, tinfo, &fdi, procdir, &sb, net_ns, sockets_by_ns, error);
 }
