@@ -3223,20 +3223,11 @@ void sinsp_parser::erase_fd(erase_fd_params *params) {
 	}
 
 	//
-	// If there's a listener, add a callback to later invoke it.
+	// If there's a listener, invoke the callback
+	// note: we avoid postponing this to avoid the risk of use-after-free
 	//
 	if(m_inspector->get_observer()) {
-		auto ts = params->m_ts;
-		auto remove_from_table = params->m_remove_from_table;
-		auto fd = params->m_fd;
-		auto tinfo = params->m_tinfo;
-		auto fdinfo = params->m_fdinfo;
-		m_inspector->m_post_process_cbs.emplace(
-		        [ts, remove_from_table, fd, tinfo, fdinfo](sinsp_observer *observer,
-		                                                   sinsp_evt *evt) {
-			        erase_fd_params p = {remove_from_table, fd, tinfo, fdinfo, ts};
-			        observer->on_erase_fd(&p);
-		        });
+		m_inspector->get_observer()->on_erase_fd(params);
 	}
 }
 
