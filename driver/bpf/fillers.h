@@ -1529,85 +1529,17 @@ FILLER(sys_getsockopt_x, true) {
 	return bpf_push_u32_to_ring(data, optlen);
 }
 
-static __always_inline int f_sys_send_e_common(struct filler_data *data, int fd) {
-	unsigned long val;
-	int res;
-
-	/*
-	 * fd
-	 */
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/*
-	 * size
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, val);
-
-	return res;
-}
-
 FILLER(sys_send_e, true) {
-	/*
-	 * Push the common params to the ring
-	 */
-	int fd = bpf_syscall_get_argument(data, 0);
-	return f_sys_send_e_common(data, fd);
-}
-
-FILLER(sys_sendto_e, true) {
-	struct sockaddr __user *usrsockaddr;
-	unsigned long val;
-	long size = 0;
-	int err = 0;
 	int res;
-	int fd;
 
-	/*
-	 * Push the common params to the ring
-	 */
-	fd = bpf_syscall_get_argument(data, 0);
-	res = f_sys_send_e_common(data, fd);
+	/* Parameter 1: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
 	CHECK_RES(res);
 
-	/*
-	 * Get the address
-	 */
-	val = bpf_syscall_get_argument(data, 4);
-	usrsockaddr = (struct sockaddr __user *)val;
-
-	/*
-	 * Get the address len
-	 */
-	val = bpf_syscall_get_argument(data, 5);
-
-	if(usrsockaddr && val != 0) {
-		/*
-		 * Copy the address
-		 */
-		err = bpf_addr_to_kernel(usrsockaddr, val, (struct sockaddr *)data->tmp_scratch);
-		if(err >= 0) {
-			/*
-			 * Convert the fd into socket endpoint information
-			 */
-			size = bpf_fd_to_socktuple(data,
-			                           fd,
-			                           (struct sockaddr *)data->tmp_scratch,
-			                           val,
-			                           true,
-			                           false,
-			                           data->tmp_scratch + sizeof(struct sockaddr_storage));
-		}
-	}
-
-	/*
-	 * Copy the endpoint info into the ring
-	 */
-	data->curarg_already_on_frame = true;
-	res = bpf_val_to_ring_len(data, 0, size);
-
-	return res;
+	/* Parameter 2: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, size);
 }
 
 FILLER(sys_send_x, true) {
@@ -1616,14 +1548,169 @@ FILLER(sys_send_x, true) {
 	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
+	/* Extract fd and size syscall parameters */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
+
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	unsigned long bytes_to_read = retval > 0 ? retval : bpf_syscall_get_argument(data, 2);
 	unsigned long sent_data_pointer = bpf_syscall_get_argument(data, 1);
-	data->fd = bpf_syscall_get_argument(data, 0);
-	return __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
+	unsigned long bytes_to_read = retval > 0 ? retval : size;
+	data->fd = fd;
+	res = __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, size);
+	CHECK_RES(res);
+
+	if(retval < 0) {
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		return bpf_push_empty_param(data);
+	}
+
+	/* Convert the fd into socket endpoint information */
+	uint16_t tuple_size = bpf_fd_to_socktuple(data,
+	                                          fd,
+	                                          NULL,
+	                                          0,
+	                                          false,
+	                                          false,
+	                                          data->tmp_scratch + sizeof(struct sockaddr_storage));
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, tuple_size);
+}
+
+FILLER(sys_sendto_e, true) {
+	int res;
+
+	/* Parameter 1: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u32_to_ring(data, size);
+	CHECK_RES(res);
+
+	/* The following parameters are populated if we are able to retrieve address information from
+	 * syscall parameters */
+	struct sockaddr *ksockaddr = NULL;
+	unsigned long sockaddr_len = 0;
+	bool use_sockaddr = false;
+
+	/* Get the address */
+	struct sockaddr __user *usrsockaddr =
+	        (struct sockaddr __user *)bpf_syscall_get_argument(data, 4);
+
+	/* Get the address len */
+	unsigned long usrsockaddr_len = bpf_syscall_get_argument(data, 5);
+
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory */
+		res = bpf_addr_to_kernel(usrsockaddr,
+		                         usrsockaddr_len,
+		                         (struct sockaddr *)data->tmp_scratch);
+		if(likely(res >= 0)) {
+			ksockaddr = (struct sockaddr *)data->tmp_scratch;
+			sockaddr_len = usrsockaddr_len;
+			use_sockaddr = true;
+		}
+	}
+
+	/* Convert the fd into socket endpoint information */
+	uint32_t tuple_size = bpf_fd_to_socktuple(data,
+	                                          fd,
+	                                          ksockaddr,
+	                                          sockaddr_len,
+	                                          use_sockaddr,
+	                                          false,
+	                                          data->tmp_scratch + sizeof(struct sockaddr_storage));
+
+	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, tuple_size);
+}
+
+FILLER(sys_sendto_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Extract fd and size syscall parameters */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
+	 */
+	unsigned long sent_data_pointer = bpf_syscall_get_argument(data, 1);
+	unsigned long bytes_to_read = retval > 0 ? retval : size;
+	data->fd = fd;
+	res = __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, size);
+	CHECK_RES(res);
+
+	if(retval < 0) {
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		return bpf_push_empty_param(data);
+	}
+
+	/* The following parameters are populated if we are able to retrieve address information from
+	 * syscall parameters */
+	struct sockaddr *ksockaddr = NULL;
+	unsigned long sockaddr_len = 0;
+	bool use_sockaddr = false;
+
+	/* Get the address */
+	struct sockaddr __user *usrsockaddr =
+	        (struct sockaddr __user *)bpf_syscall_get_argument(data, 4);
+
+	/* Get the address len */
+	unsigned long usrsockaddr_len = bpf_syscall_get_argument(data, 5);
+
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory */
+		res = bpf_addr_to_kernel(usrsockaddr,
+		                         usrsockaddr_len,
+		                         (struct sockaddr *)data->tmp_scratch);
+		if(likely(res >= 0)) {
+			ksockaddr = (struct sockaddr *)data->tmp_scratch;
+			sockaddr_len = usrsockaddr_len;
+			use_sockaddr = true;
+		}
+	}
+
+	/* Convert the fd into socket endpoint information */
+	uint32_t tuple_size = bpf_fd_to_socktuple(data,
+	                                          fd,
+	                                          ksockaddr,
+	                                          sockaddr_len,
+	                                          use_sockaddr,
+	                                          false,
+	                                          data->tmp_scratch + sizeof(struct sockaddr_storage));
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, tuple_size);
 }
 
 FILLER(sys_execve_e, true) {
