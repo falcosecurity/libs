@@ -687,6 +687,18 @@ void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms) {
 #endif
 }
 
+void sinsp_container_manager::set_cri_retry_parameters(const ::libsinsp::cri::retry_parameters& v) {
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+	if(!libsinsp::cri::cri_settings::set_cri_retry_parameters(v)) {
+		libsinsp_logger()->format(
+		        sinsp_logger::SEV_WARNING,
+		        "CRI retry parameters out of range, using defaults. Wanted: %s, Using: %s",
+		        v.to_string().c_str(),
+		        libsinsp::cri::cri_settings::get_cri_retry_parameters().to_string().c_str());
+	}
+#endif
+}
+
 void sinsp_container_manager::set_cri_async(bool async) {
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_async(async);
