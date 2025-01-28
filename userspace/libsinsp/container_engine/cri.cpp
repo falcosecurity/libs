@@ -19,6 +19,7 @@ limitations under the License.
 #include <libsinsp/container_engine/cri.h>
 
 #include <sys/stat.h>
+#include <chrono>
 #ifdef GRPC_INCLUDE_IS_GRPCPP
 #include <grpcpp/grpcpp.h>
 #else
@@ -163,12 +164,15 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 			// Note that this excludes the time for the last 2 CRI API calls
 			// that will be performed anyway, even if the TTL expires.
 			//
-			// With n=5 the result is 13875ms, we keep some margin as we are
+			// With n=7 the result is 29875ms, we keep some margin as we are
 			// taking into account elapsed time.
-			uint64_t max_wait_ms = 20000;
-			auto async_source =
-			        new cri_async_source(cache, m_cri_v1alpha2.get(), m_cri_v1.get(), max_wait_ms);
-			m_async_source = std::unique_ptr<cri_async_source>(async_source);
+			m_async_source = std::make_unique<cri_async_source>(
+			        cache,
+			        m_cri_v1alpha2.get(),
+			        m_cri_v1.get(),
+			        std::chrono::duration_cast<std::chrono::milliseconds>(
+			                cri_settings::get_cri_retry_parameters().global_timeout_s)
+			                .count());
 		}
 
 		cache->set_lookup_status(container_id,
@@ -176,9 +180,11 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 		                         sinsp_container_lookup::state::STARTED,
 		                         m_engine_index);
 
-		// sinsp_container_lookup is set-up to perform 5 retries at most, with
-		// an exponential backoff with 2000 ms of maximum wait time.
-		sinsp_container_info result(sinsp_container_lookup(5, 2000));
+		// sinsp_container_lookup is set-up to perform `cri_settings::get_cri_max_num_retries()`
+		// retries at most, with an exponential backoff capped with a max retry interva..
+		sinsp_container_info result(sinsp_container_lookup(
+		        cri_settings::get_cri_retry_parameters().max_retries,
+		        cri_settings::get_cri_retry_parameters().max_interval_ms.count()));
 
 		bool done;
 		const bool async = s_async && cache->async_allowed();
@@ -186,7 +192,10 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "cri_async (%s): Starting asynchronous lookup",
 			                          container_id.c_str());
-			done = m_async_source->lookup(key, result);
+			done = m_async_source->lookup_delayed(
+			        key,
+			        result,
+			        cri_settings::get_cri_retry_parameters().initial_delay_ms);
 		} else {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "cri_async (%s): Starting synchronous lookup",
