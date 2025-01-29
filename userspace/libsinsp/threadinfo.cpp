@@ -1312,7 +1312,8 @@ sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector):
 void sinsp_thread_manager::clear() {
 	m_threadtable.clear();
 	m_thread_groups.clear();
-	m_last_tid = 0;
+	m_last_tid = -1;
+	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
 }
 
@@ -1330,6 +1331,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * We use them just to see which tid calls a syscall.
 	 */
 	if(tinfo->is_invalid()) {
+		tinfo->update_main_fdtable();
 		return;
 	}
 
@@ -1337,6 +1339,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * a thread that calls this method should never have a thread group info
 	 */
 	if(tinfo->m_tginfo != nullptr) {
+		tinfo->update_main_fdtable();
 		return;
 	}
 
@@ -1357,6 +1360,20 @@ void sinsp_thread_manager::create_thread_dependencies(
 	}
 	tinfo->m_tginfo = tginfo;
 
+	// update fdtable cached pointer for all threads in the group (which includes
+	// the current thread), as their leader might have changed or we simply need
+	// to first initialize it. Then we do the same with the thread's children.
+	for(const auto& thread : tginfo->get_thread_list()) {
+		if(auto thread_ptr = thread.lock().get(); thread_ptr != nullptr) {
+			thread_ptr->update_main_fdtable();
+		}
+	}
+	for(const auto& thread : tinfo->m_children) {
+		if(auto thread_ptr = thread.lock().get(); thread_ptr != nullptr) {
+			thread_ptr->update_main_fdtable();
+		}
+	}
+
 	/* init group has no parent */
 	if(tinfo->m_pid == 1) {
 		return;
@@ -1374,6 +1391,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 	if(parent_thread == nullptr || parent_thread->is_invalid()) {
 		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
 		tinfo->m_ptid = 0;
+		tinfo->update_main_fdtable();
 		return;
 	}
 	parent_thread->add_child(tinfo);
@@ -1434,6 +1452,12 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 		m_sinsp_stats_v2->m_n_added_threads++;
 	}
 
+	if(m_last_tid == tinfo_shared_ptr->m_tid) {
+		m_last_tid = -1;
+		m_last_tinfo.reset();
+	}
+
+	tinfo_shared_ptr->update_main_fdtable();
 	return m_threadtable.put(tinfo_shared_ptr);
 }
 
@@ -1573,6 +1597,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		thread_to_remove->remove_child_from_parent();
 		m_threadtable.erase(tid);
 		m_last_tid = -1;
+		m_last_tinfo.reset();
 		return;
 	}
 
@@ -1672,6 +1697,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * the cache just to be sure.
 	 */
 	m_last_tid = -1;
+	m_last_tinfo.reset();
 	if(m_sinsp_stats_v2 != nullptr) {
 		m_sinsp_stats_v2->m_n_removed_threads++;
 	}
@@ -1992,7 +2018,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 	//
 	// Try looking up in our simple cache
 	//
-	if(tid == m_last_tid && m_last_tinfo) {
+	if(m_last_tid >= 0 && tid == m_last_tid && m_last_tinfo) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_cached_thread_lookups++;
 		}
@@ -2013,7 +2039,6 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 			m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
 		}
 		if(!lookup_only) {
-			m_last_tinfo.reset();
 			m_last_tid = tid;
 			m_last_tinfo = thr;
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
