@@ -577,7 +577,12 @@ public:
 	        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
 	        bool is_virtual_id = false);
 
-	void update_main_fdtable();
+	inline void update_main_fdtable() {
+		auto fdtable = get_fd_table();
+		m_main_fdtable =
+		        !fdtable ? nullptr
+		                 : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+	}
 
 	void set_exepath(std::string&& exepath);
 

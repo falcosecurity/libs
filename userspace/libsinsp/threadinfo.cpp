@@ -1212,13 +1212,6 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
 	}
 }
 
-void sinsp_threadinfo::update_main_fdtable() {
-	auto fdtable = get_fd_table();
-	if(fdtable) {
-		m_main_fdtable = static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
-	}
-}
-
 void sinsp_threadinfo::set_exepath(std::string&& exepath) {
 	constexpr char suffix[] = " (deleted)";
 	constexpr size_t suffix_len = sizeof(suffix) - 1;  // Exclude null terminator
@@ -1384,8 +1377,6 @@ void sinsp_thread_manager::create_thread_dependencies(
 		return;
 	}
 	parent_thread->add_child(tinfo);
-
-	tinfo->update_main_fdtable();
 }
 
 std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const {
@@ -2008,6 +1999,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 		// This allows us to avoid performing an actual timestamp lookup
 		// for something that may not need to be precise
 		m_last_tinfo->m_lastaccess_ts = m_inspector->get_lastevent_ts();
+		m_last_tinfo->update_main_fdtable();
 		return m_last_tinfo;
 	}
 
@@ -2026,6 +2018,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 			m_last_tinfo = thr;
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
 		}
+		thr->update_main_fdtable();
 		return thr;
 	} else {
 		if(m_sinsp_stats_v2 != nullptr) {

@@ -635,6 +635,10 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	};
 	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		auto* subtable_ptr = out->table;
+		if(!subtable_ptr) {
+			t->m_owner_plugin->m_last_owner_err.clear();
+			return SS_PLUGIN_FAILURE;
+		}
 		__CATCH_ERR_MSG(owner->m_last_owner_err,
 		                { __PLUGIN_STATETYPE_SWITCH(a->subtable_key_type); });
 	}
