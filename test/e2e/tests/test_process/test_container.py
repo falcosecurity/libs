@@ -12,7 +12,7 @@ sinsp_args = [
 containers = [
     {
         'http-hello': {
-            'image': 'hashicorp/http-echo:alpine',
+            'image': 'hashicorp/http-echo:1.0.0',
             'args': ['-text=hello'],
             'user': '11:100'
         }
