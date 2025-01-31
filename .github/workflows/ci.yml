@@ -250,11 +250,12 @@ jobs:
           EOF
           diff -u expected_ldd_out.txt ldd_out.txt
 
-  run-e2e-tests-amd64:
-    name: run-e2e-tests-amd64
+  run-e2e-tests:
+    name: run-e2e-tests-${{ matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
+        arch: [amd64, arm64]
         name: [system_deps, bundled_deps, asan]
         include:
           - name: system_deps
@@ -263,7 +264,7 @@ jobs:
             cmake_opts: -DUSE_BUNDLED_DEPS=True
           - name: asan
             cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
-    runs-on: ubuntu-22.04
+    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
     steps:
       - name: Install deps ⛓️
         run: |
@@ -334,7 +335,7 @@ jobs:
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: failure()
         with:
-          name: ${{ matrix.name }}_report
+          name: ${{ matrix.name }}_report-${{ matrix.arch }}
           path: |
             /tmp/report/
 
