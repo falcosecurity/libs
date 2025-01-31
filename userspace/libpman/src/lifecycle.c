@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "state.h"
 #include <driver/feature_gates.h>
-#include "events_prog_names.h"
+#include "events_prog_table.h"
 
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
@@ -36,7 +36,7 @@ int pman_prepare_progs_before_loading() {
 	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
 		int num_skipped = 0;
 		int idx = 0;
-		event_prog_t *progs = event_prog_names[ev];
+		event_prog_t *progs = event_prog_table[ev];
 		for(; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
 			if(progs[idx].feat > 0) {
 				if(libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
@@ -55,7 +55,7 @@ int pman_prepare_progs_before_loading() {
 		}
 		if(num_skipped > 0) {
 			if(num_skipped == idx) {
-				pman_print_error(" no program satisfied required features for event");
+				pman_print_error(" no program satisfies required features for event");
 				errno = ENXIO;
 				return errno;
 			}

@@ -19,7 +19,7 @@ limitations under the License.
 #include "state.h"
 
 #include <stdint.h>
-#include "events_prog_names.h"
+#include "events_prog_table.h"
 #include <libscap/scap.h>
 
 /* Some exit events can require more than one bpf program to collect all the data. */
@@ -237,15 +237,15 @@ int pman_fill_syscalls_tail_table() {
 		 * event. Until we miss some syscalls, this is not true so we manage these cases as generic
 		 * events. We need to remove this workaround when all syscalls will be implemented.
 		 */
-		enter_prog_name = event_prog_names[enter_event_type]->name;
-		exit_prog_name = event_prog_names[exit_event_type]->name;
+		enter_prog_name = event_prog_table[enter_event_type]->name;
+		exit_prog_name = event_prog_table[exit_event_type]->name;
 
 		if(!enter_prog_name) {
-			enter_prog_name = event_prog_names[PPME_GENERIC_E]->name;
+			enter_prog_name = event_prog_table[PPME_GENERIC_E]->name;
 		}
 
 		if(!exit_prog_name) {
-			exit_prog_name = event_prog_names[PPME_GENERIC_X]->name;
+			exit_prog_name = event_prog_table[PPME_GENERIC_X]->name;
 		}
 
 		if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
