@@ -27,7 +27,7 @@ add_library(
 	src/configuration.c
 	src/state.c
 	src/sc_set.c
-	src/events_prog_names.c
+	src/events_prog_table.c
 )
 
 target_include_directories(

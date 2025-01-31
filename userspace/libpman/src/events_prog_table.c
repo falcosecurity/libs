@@ -16,13 +16,13 @@ limitations under the License.
 
 */
 
-#include "events_prog_names.h"
+#include "events_prog_table.h"
 /*
  * For every event here we have the name of the corresponding bpf program.
  * We can have multiple names in case we need to check the right program
  * that needs to be loaded, eg: because of different bpf features.
  */
-event_prog_t event_prog_names[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
+event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_GENERIC_E] = {{"generic_e", 0}},
         [PPME_GENERIC_X] = {{"generic_x", 0}},
         [PPME_SYSCALL_GETCWD_E] = {{"getcwd_e", 0}},

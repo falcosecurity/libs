@@ -31,4 +31,4 @@ typedef struct {
 #define MAX_FEATURE_CHECKS 3
 
 // Defined in events_prog_names.c
-extern event_prog_t event_prog_names[PPM_EVENT_MAX][MAX_FEATURE_CHECKS];
+extern event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS];
