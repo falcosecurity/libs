@@ -39,7 +39,6 @@ typedef struct {
 	uint32_t fd;
 	struct mmsghdr *mmh;
 	struct pt_regs *regs;
-	void *ctx;
 } recvmmsg_data_t;
 
 static __always_inline long handle_exit(uint32_t index, void *ctx) {
@@ -156,7 +155,6 @@ int BPF_PROG(recvmmsg_x, struct pt_regs *regs, long ret) {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
 	        .regs = regs,
-	        .ctx = ctx,
 	};
 
 	uint32_t nr_loops = ret < 1024 ? ret : 1024;
@@ -208,7 +206,6 @@ int BPF_PROG(recvmmsg_old_x, struct pt_regs *regs, long ret) {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
 	        .regs = regs,
-	        .ctx = ctx,
 	};
 
 	// Send only first message
