@@ -55,7 +55,7 @@ jobs:
             kernelrelease: 6.4.1-1.el9.elrepo.aarch64
             target: centos
             kernelurls: https://download.falco.org/fixtures/libs/kernel-ml-devel-6.4.1-1.el9.elrepo.aarch64.rpm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     container:
       image: falcosecurity/driverkit:latest
     steps:
