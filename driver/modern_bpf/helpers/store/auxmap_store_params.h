@@ -676,6 +676,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	switch(socket_family) {
 	case AF_INET: {
 		struct inet_sock *inet = (struct inet_sock *)sk;
+		struct sockaddr_in usrsockaddr_in = {};
 
 		uint32_t ipv4_local = 0;
 		uint16_t port_local = 0;
@@ -690,7 +691,6 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		 * of an UDP connection). We fallback to the address from userspace when the kernel-provided
 		 * address is NULL */
 		if(port_remote == 0 && usrsockaddr != NULL) {
-			struct sockaddr_in usrsockaddr_in = {};
 			bpf_probe_read_user(&usrsockaddr_in,
 			                    bpf_core_type_size(struct sockaddr_in),
 			                    (void *)usrsockaddr);
@@ -725,6 +725,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 	case AF_INET6: {
 		struct inet_sock *inet = (struct inet_sock *)sk;
+		struct sockaddr_in6 usrsockaddr_in6 = {};
 
 		uint32_t ipv6_local[4] = {0, 0, 0, 0};
 		uint16_t port_local = 0;
@@ -740,7 +741,6 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		 * of an UDP connection). We fallback to the address from userspace when the kernel-provided
 		 * address is NULL */
 		if(port_remote == 0 && usrsockaddr != NULL) {
-			struct sockaddr_in6 usrsockaddr_in6 = {};
 			bpf_probe_read_user(&usrsockaddr_in6,
 			                    bpf_core_type_size(struct sockaddr_in6),
 			                    (void *)usrsockaddr);
@@ -1556,6 +1556,13 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 */
 	unsigned long args[5] = {0};
 	struct sockaddr *sockaddr = NULL;
+	typedef union {
+		struct compat_msghdr compat_mh;
+		struct user_msghdr mh;
+		struct compat_mmsghdr compat_mmh;
+		struct mmsghdr mmh;
+	} mh_t;
+	mh_t msg_mh = {};
 
 	switch(input_args->evt_type) {
 	case PPME_SOCKET_SENDTO_X:
@@ -1568,19 +1575,18 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	case PPME_SOCKET_SENDMSG_X: {
 		extract__network_args(args, 3, regs);
 		if(bpf_in_ia32_syscall()) {
-			struct compat_msghdr compat_mh = {};
-			if(likely(bpf_probe_read_user(&compat_mh,
+			if(likely(bpf_probe_read_user(&msg_mh.compat_mh,
 			                              bpf_core_type_size(struct compat_msghdr),
 			                              (void *)args[1]) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(compat_mh.msg_name);
+				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mh.msg_name);
 			}
 			// in any case we break the switch.
 			break;
 		}
-
-		struct user_msghdr mh = {};
-		if(bpf_probe_read_user(&mh, bpf_core_type_size(struct user_msghdr), (void *)args[1]) == 0) {
-			sockaddr = (struct sockaddr *)mh.msg_name;
+		if(bpf_probe_read_user(&msg_mh.mh,
+		                       bpf_core_type_size(struct user_msghdr),
+		                       (void *)args[1]) == 0) {
+			sockaddr = (struct sockaddr *)msg_mh.mh.msg_name;
 		}
 	} break;
 
@@ -1588,23 +1594,20 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	case PPME_SOCKET_SENDMMSG_X: {
 		extract__network_args(args, 3, regs);
 		if(bpf_in_ia32_syscall()) {
-			struct compat_mmsghdr compat_mmh = {};
 			struct compat_mmsghdr *mmh_ptr = (struct compat_mmsghdr *)args[1];
-			if(likely(bpf_probe_read_user(&compat_mmh,
+			if(likely(bpf_probe_read_user(&msg_mh.compat_mmh,
 			                              bpf_core_type_size(struct compat_mmsghdr),
 			                              (void *)(mmh_ptr + input_args->mmsg_index)) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(compat_mmh.msg_hdr.msg_name);
+				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mmh.msg_hdr.msg_name);
 			}
 			// in any case we break the switch.
 			break;
 		}
-
-		struct mmsghdr mmh = {};
 		struct mmsghdr *mmh_ptr = (struct mmsghdr *)args[1];
-		if(bpf_probe_read_user(&mmh,
+		if(bpf_probe_read_user(&msg_mh.mmh,
 		                       bpf_core_type_size(struct mmsghdr),
 		                       (void *)(mmh_ptr + input_args->mmsg_index)) == 0) {
-			sockaddr = (struct sockaddr *)mmh.msg_hdr.msg_name;
+			sockaddr = (struct sockaddr *)msg_mh.mmh.msg_hdr.msg_name;
 		}
 	} break;
 
