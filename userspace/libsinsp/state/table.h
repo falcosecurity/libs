@@ -38,7 +38,6 @@ struct sinsp_field_accessor_wrapper {
 	void* accessor = nullptr;
 	bool dynamic = false;
 	ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-	ss_plugin_state_type subtable_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 
 	inline sinsp_field_accessor_wrapper() = default;
 	~sinsp_field_accessor_wrapper();
