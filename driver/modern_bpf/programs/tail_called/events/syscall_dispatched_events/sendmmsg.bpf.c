@@ -39,7 +39,6 @@ typedef struct {
 	uint32_t fd;
 	struct mmsghdr *mmh;
 	struct pt_regs *regs;
-	void *ctx;
 } sendmmsg_exit_t;
 
 static __always_inline long handle_exit(uint32_t index, void *ctx) {
@@ -89,18 +88,14 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	}
 
 	/* Parameter 4: data (type: PT_BYTEBUF) */
-	unsigned long msghdr_pointer = (unsigned long)&mmh.msg_hdr;
 	auxmap__store_iovec_data_param(auxmap,
 	                               (unsigned long)mmh.msg_hdr.msg_iov,
 	                               mmh.msg_hdr.msg_iovlen,
 	                               snaplen);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE)*/
-	if(data->fd >= 0) {
-		auxmap__store_socktuple_param(auxmap, data->fd, OUTBOUND, mmh.msg_hdr.msg_name);
-	} else {
-		auxmap__store_empty_param(auxmap);
-	}
+	auxmap__store_socktuple_param(auxmap, data->fd, OUTBOUND, mmh.msg_hdr.msg_name);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
@@ -149,7 +144,6 @@ int BPF_PROG(sendmmsg_x, struct pt_regs *regs, long ret) {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
 	        .regs = regs,
-	        .ctx = ctx,
 	};
 
 	uint32_t nr_loops = ret < 1024 ? ret : 1024;
@@ -198,7 +192,6 @@ int BPF_PROG(sendmmsg_old_x, struct pt_regs *regs, long ret) {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
 	        .regs = regs,
-	        .ctx = ctx,
 	};
 
 	// Only first message
