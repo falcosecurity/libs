@@ -38,7 +38,7 @@ int BPF_PROG(sendmmsg_e, struct pt_regs *regs, long id) {
 typedef struct {
 	uint32_t fd;
 	struct mmsghdr *mmh;
-	struct pt_regs *regs;
+	unsigned long *args;
 } sendmmsg_exit_t;
 
 static __always_inline long handle_exit(uint32_t index, void *ctx) {
@@ -80,9 +80,10 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	        .only_port_range = true,
 	        .evt_type = PPME_SOCKET_SENDMMSG_X,
 	        .mmsg_index = index,
+	        .mm_args = data->args,
 	};
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(data->regs, &snaplen, &snaplen_args);
+	apply_dynamic_snaplen(NULL, &snaplen, &snaplen_args);
 	if(mmh.msg_len > 0 && snaplen > mmh.msg_len) {
 		snaplen = mmh.msg_len;
 	}
@@ -138,12 +139,12 @@ int BPF_PROG(sendmmsg_x, struct pt_regs *regs, long ret) {
 	}
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[2];
-	extract__network_args(args, 2, regs);
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
 	sendmmsg_exit_t data = {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
-	        .regs = regs,
+	        .args = args,
 	};
 
 	uint32_t nr_loops = ret < 1024 ? ret : 1024;
@@ -186,12 +187,12 @@ int BPF_PROG(sendmmsg_old_x, struct pt_regs *regs, long ret) {
 	}
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[2];
-	extract__network_args(args, 2, regs);
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
 	sendmmsg_exit_t data = {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
-	        .regs = regs,
+	        .args = args,
 	};
 
 	// Only first message

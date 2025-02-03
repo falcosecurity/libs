@@ -1506,7 +1506,9 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 typedef struct {
 	bool only_port_range;
 	ppm_event_code evt_type;
-	long mmsg_index;
+	long mmsg_index;         // Only used by sendmmsg/recvmmsg to pass the current message index
+	unsigned long *mm_args;  // Only used by sendmmsg/recvmmsg to reduce stack size to avoid
+	                         // verifier issues
 } dynamic_snaplen_args;
 
 static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
@@ -1592,7 +1594,11 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 
 	case PPME_SOCKET_RECVMMSG_X:
 	case PPME_SOCKET_SENDMMSG_X: {
-		extract__network_args(args, 3, regs);
+		// To avoid verifier stack size issues, sendmmsg and recvmmsg directly pass args
+		// in dynamic_snaplen_args.
+		// This also gives a small perf boost while using `bpf_loop` because we don't need
+		// to re-fetch first 3 syscall args at every iteration.
+		__builtin_memcpy(args, input_args->mm_args, 3 * sizeof(unsigned long));
 		if(bpf_in_ia32_syscall()) {
 			struct compat_mmsghdr *mmh_ptr = (struct compat_mmsghdr *)args[1];
 			if(likely(bpf_probe_read_user(&msg_mh.compat_mmh,
@@ -1645,16 +1651,21 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		port_remote = ntohs(port_remote);
 
 		if(port_remote == 0 && sockaddr != NULL) {
+			typedef union {
+				struct sockaddr_in sockaddr_in;
+				struct sockaddr_in6 sockaddr_in6;
+			} sa_t;
+			sa_t saddr_in = {};
 			if(socket_family == AF_INET) {
-				struct sockaddr_in sockaddr_in = {};
-				bpf_probe_read_user(&sockaddr_in, bpf_core_type_size(struct sockaddr_in), sockaddr);
-				port_remote = ntohs(sockaddr_in.sin_port);
+				bpf_probe_read_user(&saddr_in.sockaddr_in,
+				                    bpf_core_type_size(struct sockaddr_in),
+				                    sockaddr);
+				port_remote = ntohs(saddr_in.sockaddr_in.sin_port);
 			} else {
-				struct sockaddr_in6 sockaddr_in6 = {};
-				bpf_probe_read_user(&sockaddr_in6,
+				bpf_probe_read_user(&saddr_in.sockaddr_in6,
 				                    bpf_core_type_size(struct sockaddr_in6),
 				                    sockaddr);
-				port_remote = ntohs(sockaddr_in6.sin6_port);
+				port_remote = ntohs(saddr_in.sockaddr_in6.sin6_port);
 			}
 		}
 	}
