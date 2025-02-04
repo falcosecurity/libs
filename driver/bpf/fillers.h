@@ -4529,30 +4529,17 @@ FILLER(sys_sendmmsg_x, true) {
 	uint16_t size = 0;
 	int addrlen;
 	int err = 0;
+	int fd = 0;
 	int res;
 	long retval = bpf_syscall_get_retval(data->ctx);
-	int fd = bpf_syscall_get_argument(data, 0);
 
 	if(retval < 0) {
-		/* Parameter 1: res (type: PT_ERRNO) */
-		res = bpf_push_s64_to_ring(data, retval);
-		CHECK_RES(res);
-
-		/* Parameter 2: fd (type: PT_BYTEBUF) */
-		res = bpf_push_s64_to_ring(data, fd);
-		CHECK_RES(res);
-
-		/* Parameter 3: size (type: PT_UINT32) */
-		bpf_push_u32_to_ring(data, 0);
-		CHECK_RES(res);
-
-		/* Parameter 4: data (type: PT_BYTEBUF) */
-		bpf_push_empty_param(data);
-		CHECK_RES(res);
-
-		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
-		return bpf_push_empty_param(data);
+		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sys_sendmmsg_x_failure);
+		bpf_printk("Can't tail call f_sys_sendmmsg_x_failure filler\n");
+		return PPM_FAILURE_BUG;
 	}
+
+	fd = bpf_syscall_get_argument(data, 0);
 
 	mmh_ptr = (struct mmsghdr *)bpf_syscall_get_argument(data, 1);
 	vlen = bpf_syscall_get_argument(data, 2);
@@ -4610,6 +4597,32 @@ FILLER(sys_sendmmsg_x, true) {
 	}
 
 	return res;
+}
+
+FILLER(sys_sendmmsg_x_failure, true) {
+	int res;
+
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int fd = bpf_syscall_get_argument(data, 0);
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_BYTEBUF) */
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: size (type: PT_UINT32) */
+	bpf_push_u32_to_ring(data, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: data (type: PT_BYTEBUF) */
+	bpf_push_empty_param(data);
+	CHECK_RES(res);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	return bpf_push_empty_param(data);
 }
 
 FILLER(sys_creat_e, true) {
