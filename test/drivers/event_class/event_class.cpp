@@ -1440,7 +1440,8 @@ void event_test::assert_param_len_ge(uint16_t expected_size) {
 
 void event_test::assert_address_family(uint8_t desired_family, int starting_index) {
 	uint8_t family = (uint8_t)(m_event_params[m_current_param].valptr[starting_index]);
-	ASSERT_EQ(family, desired_family) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+	ASSERT_EQ(family, desired_family)
+	        << VALUE_NOT_CORRECT << m_current_param << " (address family)" << std::endl;
 }
 
 void event_test::assert_ipv4_string(const char* desired_ipv4, int starting_index, direction dir) {
@@ -1467,10 +1468,10 @@ void event_test::assert_port_string(const char* desired_port, int starting_index
 
 	if(dir == DEST) {
 		ASSERT_STREQ(port_string.c_str(), desired_port)
-		        << VALUE_NOT_CORRECT << m_current_param << "(dest port)" << std::endl;
+		        << VALUE_NOT_CORRECT << m_current_param << " (dest port)" << std::endl;
 	} else {
 		ASSERT_STREQ(port_string.c_str(), desired_port)
-		        << VALUE_NOT_CORRECT << m_current_param << "(source port)" << std::endl;
+		        << VALUE_NOT_CORRECT << m_current_param << " (source port)" << std::endl;
 	}
 }
 
