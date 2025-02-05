@@ -1558,13 +1558,12 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 */
 	unsigned long args[5] = {0};
 	struct sockaddr *sockaddr = NULL;
-	typedef union {
+	union {
 		struct compat_msghdr compat_mh;
 		struct user_msghdr mh;
 		struct compat_mmsghdr compat_mmh;
 		struct mmsghdr mmh;
-	} mh_t;
-	mh_t msg_mh = {};
+	} msg_mh = {};
 
 	switch(input_args->evt_type) {
 	case PPME_SOCKET_SENDTO_X:
@@ -1651,11 +1650,10 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		port_remote = ntohs(port_remote);
 
 		if(port_remote == 0 && sockaddr != NULL) {
-			typedef union {
+			union {
 				struct sockaddr_in sockaddr_in;
 				struct sockaddr_in6 sockaddr_in6;
-			} sa_t;
-			sa_t saddr_in = {};
+			} saddr_in = {};
 			if(socket_family == AF_INET) {
 				bpf_probe_read_user(&saddr_in.sockaddr_in,
 				                    bpf_core_type_size(struct sockaddr_in),
