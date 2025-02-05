@@ -30,38 +30,77 @@ int pman_open_probe() {
 }
 
 int pman_prepare_progs_before_loading() {
+	char msg[MAX_ERROR_MESSAGE_LEN];
 	/*
 	 * Probe required features for each bpf program, as requested
 	 */
+	errno = 0;
 	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
-		int num_skipped = 0;
-		int idx = 0;
 		event_prog_t *progs = event_prog_table[ev];
-		for(; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
-			if(progs[idx].feat > 0) {
-				if(libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
-				   0) {
+		int idx, chosen_idx = -1;
+		for(idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
+			bool should_disable = chosen_idx != -1;
+			if(!should_disable) {
+				if(progs[idx].feat > 0 &&
+				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
+				           0) {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "BPF program '%s' did not satisfy required feature [%d]",
+					         progs[idx].name,
+					         progs[idx].feat);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
 					// Required feature not present
-					struct bpf_program *p =
-					        bpf_object__find_program_by_name(g_state.skel->obj, progs[idx].name);
-					if(p) {
-						bpf_program__set_autoload(p, false);
-					} else {
-						pman_print_error(" unable to find prog");
-					}
-					num_skipped++;
+					should_disable = true;
+				} else {
+					// We satified requested feature
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "BPF program '%s' satisfied required feature [%d]",
+					         progs[idx].name,
+					         progs[idx].feat);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					chosen_idx = idx;
+				}
+			}
+
+			// Disable autoloading for all programs except chosen one
+			if(should_disable) {
+				snprintf(msg, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", progs[idx].name);
+				pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+				struct bpf_program *p =
+				        bpf_object__find_program_by_name(g_state.skel->obj, progs[idx].name);
+				if(p && bpf_program__set_autoload(p, false) == 0) {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "disabled BPF program '%s'",
+					         progs[idx].name);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+				} else {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "failed to disable prog '%s'",
+					         progs[idx].name);
+					pman_print_error(msg);
 				}
 			}
 		}
-		if(num_skipped > 0) {
-			if(num_skipped == idx) {
-				pman_print_error(" no program satisfies required features for event");
-				errno = ENXIO;
-				return errno;
-			}
-			// Store selected program in index 0 to be easily accessed by maps.c
-			progs[0] = progs[num_skipped];
+
+		// In case we couldn't find any program satisfying required features, give an error.
+		// As of today, this will never happen, but better safe than sorry.
+		if(chosen_idx == -1 && progs[0].name != NULL) {
+			snprintf(msg,
+			         MAX_ERROR_MESSAGE_LEN,
+			         "no program satisfies required features for event %d",
+			         ev);
+			pman_print_error(msg);
+			errno = ENXIO;
+			return errno;
 		}
+
+		// Always move the selected program to index 0 to be easily accessed by maps.c
+		// If no programs are skipped, the following line expands to progs[0] = progs[0];
+		progs[0] = progs[chosen_idx];
 	}
 	return 0;
 }
