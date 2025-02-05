@@ -682,3 +682,4 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
+template class libsinsp::state::built_in_table<std::string>;
