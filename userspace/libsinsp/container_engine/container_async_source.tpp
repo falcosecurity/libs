@@ -56,6 +56,20 @@ bool container_async_source<key_type>::lookup(const key_type& key,
 }
 
 template<typename key_type>
+bool container_async_source<key_type>::lookup_delayed(const key_type& key, sinsp_container_info& value, std::chrono::milliseconds delay)
+{
+    return parent_type::lookup_delayed(
+        key,
+        value,
+        delay,
+        std::bind(
+            &container_async_source::source_callback,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2));
+}
+
+template<typename key_type>
 bool container_async_source<key_type>::lookup_sync(const key_type& key, sinsp_container_info& value)
 {
 	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
