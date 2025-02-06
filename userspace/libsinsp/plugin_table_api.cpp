@@ -76,22 +76,6 @@ static inline void convert_types(const From& from, To& to) {
 	to = from;
 }
 
-// special cases for strings
-template<>
-inline void convert_types(const std::string& from, const char*& to) {
-	to = from.c_str();
-}
-
-template<>
-inline void convert_types(libsinsp::state::base_table* const& from, ss_plugin_table_t*& to) {
-	to = static_cast<ss_plugin_table_t*>(from);
-}
-
-template<>
-inline void convert_types(ss_plugin_table_t* const& from, libsinsp::state::base_table*& to) {
-	to = static_cast<libsinsp::state::base_table*>(from);
-}
-
 static void noop_release_table_entry(ss_plugin_table_t*, ss_plugin_table_entry_t*) {}
 
 static ss_plugin_bool noop_iterate_entries(ss_plugin_table_t*,
