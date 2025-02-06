@@ -158,6 +158,11 @@ set(DRIVER_SOURCES
 	ppm_consumer.h
 	capture_macro.h
 	socketcall_to_syscall.h
+	syscall_compat_loongarch64.h
+	syscall_compat_ppc64le.h
+	syscall_compat_riscv64.h
+	syscall_compat_s390x.h
+	syscall_compat_x86_64.h
 	syscall_ia32_64_map.c
 )
 
