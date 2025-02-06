@@ -27,29 +27,36 @@
 
 // This file decouples the C++ test framework from the C code we're testing.
 
+static const char* SOCKET_HEADER =
+        "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  "
+        "timeout inode\n";
+
+static const char* SOCKET_ENTRY =
+        "   0: 00000000:0016 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        "
+        "0 123456\n";
+
+static const char* TIME_WAIT_ENTRY =
+        "   0: 00000000:0016 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        "
+        "0 0";
+
 // Mock a buffer that has a TIME_WAIT socket at the very end and test it.
 int32_t test_time_wait_socket_at_buffer_end(void) {
 	static char error[SCAP_LASTERR_SIZE];
-	// TODO: Make this the same size as the real buffer.
-	char buffer[4096];
-	memset(buffer, 0, sizeof(buffer));
+
+	// Calculate exact size needed for header + 100 entries + TIME_WAIT entry
+	static const size_t BUFFER_SIZE =
+	        strlen(SOCKET_HEADER) + (100 * strlen(SOCKET_ENTRY)) + strlen(TIME_WAIT_ENTRY);
+	char buffer[BUFFER_SIZE];
+	memset(buffer, 0, BUFFER_SIZE);
 
 	int pos = 0;
+	pos += snprintf(buffer + pos, BUFFER_SIZE - pos, "%s", SOCKET_HEADER);
+
 	for(int i = 0; i < 100; i++) {
-		// Resembles typical socket entries.
-		pos += snprintf(buffer + pos,
-		                sizeof(buffer) - pos,
-		                "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when "
-		                "retrnsmt   uid  timeout inode\n"
-		                "   0: 00000000:0016 00000000:0000 0A 00000000:00000000 00:00000000 "
-		                "00000000     0        0 123456\n");
+		pos += snprintf(buffer + pos, BUFFER_SIZE - pos, "%s", SOCKET_ENTRY);
 	}
 
-	// Imitates TIME_WAIT sockets with inode=0.
-	snprintf(buffer + pos,
-	         sizeof(buffer) - pos,
-	         "   0: 00000000:0016 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0    "
-	         "    0 0");
+	snprintf(buffer + pos, BUFFER_SIZE - pos, "%s", TIME_WAIT_ENTRY);
 
 	scap_fdinfo* sockets = NULL;
 	return scap_fd_read_ipv4_sockets_from_proc_fs(buffer, SCAP_L4_TCP, &sockets, error);
