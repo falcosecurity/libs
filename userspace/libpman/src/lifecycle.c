@@ -42,8 +42,7 @@ int pman_prepare_progs_before_loading() {
 			bool should_disable = chosen_idx != -1;
 			if(!should_disable) {
 				if(progs[idx].feat > 0 &&
-				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
-				           0) {
+				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_TRACING, progs[idx].feat, NULL) == 0) {
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "BPF program '%s' did not satisfy required feature [%d]",
