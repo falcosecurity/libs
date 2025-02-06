@@ -25,10 +25,6 @@ limitations under the License.
 #include <libsinsp/filterchecks.h>
 #include <libscap/strl.h>
 
-#if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include <curl/curl.h>
-#endif
-
 #ifndef _WIN32
 #include <climits>
 #include <cstdlib>

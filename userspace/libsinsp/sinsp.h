@@ -45,7 +45,6 @@ limitations under the License.
 #include <libscap/scap.h>
 
 #include <libsinsp/capture_stats_source.h>
-#include <libsinsp/container.h>
 #include <libsinsp/dumper.h>
 #include <libsinsp/event.h>
 #include <libsinsp/fdinfo.h>
@@ -376,21 +375,6 @@ public:
 
 	/*!
 	 * \brief Enables or disables an automatic routine that periodically purges
-	 * thread infos from the internal state. If disabled, the client is
-	 * responsible of manually-handling the lifetime of containers.
-	 */
-	void set_auto_containers_purging(bool enabled) { m_auto_containers_purging = enabled; }
-
-	/*!
-	 * \brief Sets the interval (in seconds) at which the automatic containers
-	 * purging routine runs (if enabled).
-	 */
-	inline void set_auto_containers_purging_interval_s(uint32_t val) {
-		m_containers_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
-	}
-
-	/*!
-	 * \brief Enables or disables an automatic routine that periodically purges
 	 * users and groups infos from the internal state. If disabled, the client
 	 * is responsible of manually-handling the lifetime of users and groups.
 	 */
@@ -526,6 +510,7 @@ public:
 		auto ret = m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
 		                                      : m_thread_manager->new_threadinfo();
 		m_thread_manager->set_tinfo_shared_dynamic_fields(*ret);
+		m_thread_manager->set_tinfo_field_accessors(*ret);
 		return ret;
 	}
 
@@ -734,18 +719,6 @@ public:
 	inline bool is_debug_enabled() const { return m_isdebug_enabled; }
 
 	/*!
-	  \brief Set a flag indicating if the command line requested to show container information.
-
-	  \param set true if the command line argument is set to show container information
-	*/
-	void set_print_container_data(bool print_container_data);
-
-	/*!
-	  \brief Returns true if the command line argument is set to show container information.
-	*/
-	inline bool is_print_container_data() const { return m_print_container_data; }
-
-	/*!
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
@@ -835,16 +808,6 @@ public:
 
 	static unsigned num_possible_cpus();
 
-	inline void set_container_engine_mask(uint64_t mask) {
-		m_container_manager.set_container_engine_mask(mask);
-	}
-
-	inline void set_static_container(const std::string& id,
-	                                 const std::string& name,
-	                                 const std::string& image) {
-		m_container_manager.set_static_container(id, name, image);
-	}
-
 	// Add comm to the list of comms for which the inspector
 	// should not return events.
 	bool suppress_events_comm(const std::string& comm);
@@ -857,27 +820,9 @@ public:
 
 	bool check_suppressed(int64_t tid) const;
 
-	void set_docker_socket_path(std::string socket_path);
-	void set_query_docker_image_info(bool query_image_info);
-
-	void set_cri_extra_queries(bool extra_queries);
-
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
 	void set_statsd_port(uint16_t port);
-
-	/*!
-	  \brief Reset list of crio socket paths currently stored, and set path as the only path.
-	*/
-	void set_cri_socket_path(const std::string& path);
-	/*!
-	  \brief Pushed a new path to the list of crio socket paths
-	*/
-	void add_cri_socket_path(const std::string& path);
-	void set_cri_timeout(int64_t timeout_ms);
-	void set_cri_async(bool async);
-
-	void set_container_labels_max_len(uint32_t max_label_len);
 
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
@@ -1060,16 +1005,7 @@ private:
 
 public:
 	std::unique_ptr<sinsp_thread_manager> m_thread_manager;
-
-	sinsp_container_manager m_container_manager;
-
 	std::unique_ptr<sinsp_usergroup_manager> m_usergroup_manager;
-
-	//
-	// True if the command line argument is set to show container information
-	// The default is false set within the constructor
-	//
-	bool m_print_container_data;
 
 	uint64_t m_firstevent_ts;
 	std::unique_ptr<sinsp_filter> m_filter;
@@ -1100,12 +1036,6 @@ public:
 	uint64_t m_threads_purging_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;
 
 	//
-	// Container limits
-	//
-	bool m_auto_containers_purging = true;
-	uint64_t m_containers_purging_scan_time_ns;
-
-	//
 	// Users/groups limits
 	//
 	bool m_auto_usergroups_purging = true;
@@ -1117,9 +1047,6 @@ public:
 	sinsp_evt::param_fmt m_buffer_format;
 
 	// A queue of pending internal state events:
-	// * 	container events. Written from async
-	// 	callbacks that occur after looking up container
-	// 	information, read from sinsp::next().
 	// *	user added/removed events
 	// * 	group added/removed events
 	// *    async events produced by sinsp or plugins

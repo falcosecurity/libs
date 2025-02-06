@@ -22,7 +22,7 @@ jobs:
 
       - name: Install deps ⛓️
         run: |
-          sudo apt-get update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-$(uname -r) gpg gpg-agent gcovr
+          sudo apt-get update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r) gpg gpg-agent gcovr
           sudo .github/install-deps.sh
 
       - name: Build and test 🏗️🧪

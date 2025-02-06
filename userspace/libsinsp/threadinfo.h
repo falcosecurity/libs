@@ -66,7 +66,10 @@ class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
 	sinsp_threadinfo(sinsp* inspector = nullptr,
 	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                         dyn_fields = nullptr);
+	                         dyn_fields = nullptr,
+	                 const std::map<std::string,
+	                                libsinsp::state::dynamic_struct::field_accessor<std::string>>*
+	                         accessors = nullptr);
 	virtual ~sinsp_threadinfo();
 
 	libsinsp::state::static_struct::field_infos static_fields() const override;
@@ -87,19 +90,25 @@ public:
 	std::string get_exepath() const;
 
 	/*!
+	  \brief Return the container_id associated with this thread, if the container plugins is
+	  running, leveraging sinsp state table API.
+	*/
+	std::string get_container_id();
+
+	/*!
 	  \brief Return the full info about thread uid.
 	*/
-	scap_userinfo* get_user() const;
+	scap_userinfo* get_user();
 
 	/*!
 	  \brief Return the full info about thread gid.
 	*/
-	scap_groupinfo* get_group() const;
+	scap_groupinfo* get_group();
 
 	/*!
 	  \brief Return the full info about thread loginuid.
 	*/
-	scap_userinfo* get_loginuser() const;
+	scap_userinfo* get_loginuser();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -377,10 +386,6 @@ public:
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
 
-	// Return true if this thread is a part of a healthcheck,
-	// readiness probe, or liveness probe.
-	bool is_health_probe() const;
-
 	/*!
 	  \brief Translate a directory's file descriptor into its path
 	  \param dir_fd  A file descriptor for a directory
@@ -415,7 +420,6 @@ public:
 	std::vector<std::string> m_args;  ///< Command line arguments (e.g. "-d1")
 	std::vector<std::string> m_env;   ///< Environment variables
 	cgroups_t m_cgroups;              ///< subsystem-cgroup pairs
-	std::string m_container_id;       ///< heuristic-based container id
 	uint32_t m_flags;   ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid;     ///< uid
@@ -453,24 +457,6 @@ public:
 	bool m_filtered_out;  ///< True if this thread is filtered out by the inspector filter from
 	                      ///< saving to a capture
 
-	// In some cases, a threadinfo has a category that identifies
-	// why it was run. Descriptions:
-	// CAT_NONE: no specific category
-	// CAT_CONTAINER: a process run in a container and *not* any
-	//                of the following more specific categories.
-	// CAT_HEALTHCHECK: part of a container healthcheck
-	// CAT_LIVENESS_PROBE: part of a k8s liveness probe
-	// CAT_READINESS_PROBE: part of a k8s readiness probe
-	enum command_category {
-		CAT_NONE = 0,
-		CAT_CONTAINER,
-		CAT_HEALTHCHECK,
-		CAT_LIVENESS_PROBE,
-		CAT_READINESS_PROBE
-	};
-
-	command_category m_category;
-
 	//
 	// State for multi-event processing
 	//
@@ -504,6 +490,9 @@ public:
 	// Global state
 	//
 	sinsp* m_inspector;
+
+	const std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>*
+	        m_accessors;
 
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
@@ -701,6 +690,7 @@ public:
 
 	void set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const;
 	void set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const;
+	void set_tinfo_field_accessors(sinsp_threadinfo& tinfo) const;
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool from_scap_proctable);
@@ -711,6 +701,7 @@ public:
 	inline bool remove_inactive_threads();
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
 	void fix_sockets_coming_from_proc();
+	void load_foreign_fields_accessors();
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
 	/*!
@@ -870,4 +861,8 @@ private:
 	        m_nullptr_tinfo_ret;  // needed for returning a reference
 	const std::shared_ptr<thread_group_info>
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
+
+	// State table API field accessors to foreign keys written by plugins.
+	std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
+	        m_foreign_fields_accessors;
 };
