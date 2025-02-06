@@ -18,12 +18,88 @@ limitations under the License.
 
 #include "state.h"
 #include <driver/feature_gates.h>
+#include "events_prog_table.h"
 
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
 	if(!g_state.skel) {
 		pman_print_error("failed to open BPF skeleton");
 		return errno;
+	}
+	return 0;
+}
+
+int pman_prepare_progs_before_loading() {
+	char msg[MAX_ERROR_MESSAGE_LEN];
+	/*
+	 * Probe required features for each bpf program, as requested
+	 */
+	errno = 0;
+	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
+		event_prog_t *progs = event_prog_table[ev];
+		int idx, chosen_idx = -1;
+		for(idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
+			bool should_disable = chosen_idx != -1;
+			if(!should_disable) {
+				if(progs[idx].feat > 0 &&
+				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_TRACING, progs[idx].feat, NULL) == 0) {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "BPF program '%s' did not satisfy required feature [%d]",
+					         progs[idx].name,
+					         progs[idx].feat);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					// Required feature not present
+					should_disable = true;
+				} else {
+					// We satified requested feature
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "BPF program '%s' satisfied required feature [%d]",
+					         progs[idx].name,
+					         progs[idx].feat);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					chosen_idx = idx;
+				}
+			}
+
+			// Disable autoloading for all programs except chosen one
+			if(should_disable) {
+				snprintf(msg, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", progs[idx].name);
+				pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+				struct bpf_program *p =
+				        bpf_object__find_program_by_name(g_state.skel->obj, progs[idx].name);
+				if(p && bpf_program__set_autoload(p, false) == 0) {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "disabled BPF program '%s'",
+					         progs[idx].name);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+				} else {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "failed to disable prog '%s'",
+					         progs[idx].name);
+					pman_print_error(msg);
+				}
+			}
+		}
+
+		// In case we couldn't find any program satisfying required features, give an error.
+		// As of today, this will never happen, but better safe than sorry.
+		if(chosen_idx == -1 && progs[0].name != NULL) {
+			snprintf(msg,
+			         MAX_ERROR_MESSAGE_LEN,
+			         "no program satisfies required features for event %d",
+			         ev);
+			pman_print_error(msg);
+			errno = ENXIO;
+			return errno;
+		}
+
+		// Always move the selected program to index 0 to be easily accessed by maps.c
+		// If no programs are skipped, the following line expands to progs[0] = progs[0];
+		progs[0] = progs[chosen_idx];
 	}
 	return 0;
 }

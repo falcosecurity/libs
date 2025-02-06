@@ -1506,7 +1506,9 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 typedef struct {
 	bool only_port_range;
 	ppm_event_code evt_type;
-	long mmsg_index;
+	long mmsg_index;         // Only used by sendmmsg/recvmmsg to pass the current message index
+	unsigned long *mm_args;  // Only used by sendmmsg/recvmmsg to reduce stack size to avoid
+	                         // verifier issues
 } dynamic_snaplen_args;
 
 static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
@@ -1556,6 +1558,12 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 */
 	unsigned long args[5] = {0};
 	struct sockaddr *sockaddr = NULL;
+	union {
+		struct compat_msghdr compat_mh;
+		struct user_msghdr mh;
+		struct compat_mmsghdr compat_mmh;
+		struct mmsghdr mmh;
+	} msg_mh = {};
 
 	switch(input_args->evt_type) {
 	case PPME_SOCKET_SENDTO_X:
@@ -1568,43 +1576,43 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	case PPME_SOCKET_SENDMSG_X: {
 		extract__network_args(args, 3, regs);
 		if(bpf_in_ia32_syscall()) {
-			struct compat_msghdr compat_mh = {};
-			if(likely(bpf_probe_read_user(&compat_mh,
+			if(likely(bpf_probe_read_user(&msg_mh.compat_mh,
 			                              bpf_core_type_size(struct compat_msghdr),
 			                              (void *)args[1]) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(compat_mh.msg_name);
+				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mh.msg_name);
 			}
 			// in any case we break the switch.
 			break;
 		}
-
-		struct user_msghdr mh = {};
-		if(bpf_probe_read_user(&mh, bpf_core_type_size(struct user_msghdr), (void *)args[1]) == 0) {
-			sockaddr = (struct sockaddr *)mh.msg_name;
+		if(bpf_probe_read_user(&msg_mh.mh,
+		                       bpf_core_type_size(struct user_msghdr),
+		                       (void *)args[1]) == 0) {
+			sockaddr = (struct sockaddr *)msg_mh.mh.msg_name;
 		}
 	} break;
 
 	case PPME_SOCKET_RECVMMSG_X:
 	case PPME_SOCKET_SENDMMSG_X: {
-		extract__network_args(args, 3, regs);
+		// To avoid verifier stack size issues, sendmmsg and recvmmsg directly pass args
+		// in dynamic_snaplen_args.
+		// This also gives a small perf boost while using `bpf_loop` because we don't need
+		// to re-fetch first 3 syscall args at every iteration.
+		__builtin_memcpy(args, input_args->mm_args, 3 * sizeof(unsigned long));
 		if(bpf_in_ia32_syscall()) {
-			struct compat_mmsghdr compat_mmh = {};
 			struct compat_mmsghdr *mmh_ptr = (struct compat_mmsghdr *)args[1];
-			if(likely(bpf_probe_read_user(&compat_mmh,
+			if(likely(bpf_probe_read_user(&msg_mh.compat_mmh,
 			                              bpf_core_type_size(struct compat_mmsghdr),
 			                              (void *)(mmh_ptr + input_args->mmsg_index)) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(compat_mmh.msg_hdr.msg_name);
+				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mmh.msg_hdr.msg_name);
 			}
 			// in any case we break the switch.
 			break;
 		}
-
-		struct mmsghdr mmh = {};
 		struct mmsghdr *mmh_ptr = (struct mmsghdr *)args[1];
-		if(bpf_probe_read_user(&mmh,
+		if(bpf_probe_read_user(&msg_mh.mmh,
 		                       bpf_core_type_size(struct mmsghdr),
 		                       (void *)(mmh_ptr + input_args->mmsg_index)) == 0) {
-			sockaddr = (struct sockaddr *)mmh.msg_hdr.msg_name;
+			sockaddr = (struct sockaddr *)msg_mh.mmh.msg_hdr.msg_name;
 		}
 	} break;
 
@@ -1642,16 +1650,20 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		port_remote = ntohs(port_remote);
 
 		if(port_remote == 0 && sockaddr != NULL) {
+			union {
+				struct sockaddr_in sockaddr_in;
+				struct sockaddr_in6 sockaddr_in6;
+			} saddr_in = {};
 			if(socket_family == AF_INET) {
-				struct sockaddr_in sockaddr_in = {};
-				bpf_probe_read_user(&sockaddr_in, bpf_core_type_size(struct sockaddr_in), sockaddr);
-				port_remote = ntohs(sockaddr_in.sin_port);
+				bpf_probe_read_user(&saddr_in.sockaddr_in,
+				                    bpf_core_type_size(struct sockaddr_in),
+				                    sockaddr);
+				port_remote = ntohs(saddr_in.sockaddr_in.sin_port);
 			} else {
-				struct sockaddr_in6 sockaddr_in6 = {};
-				bpf_probe_read_user(&sockaddr_in6,
+				bpf_probe_read_user(&saddr_in.sockaddr_in6,
 				                    bpf_core_type_size(struct sockaddr_in6),
 				                    sockaddr);
-				port_remote = ntohs(sockaddr_in6.sin6_port);
+				port_remote = ntohs(saddr_in.sockaddr_in6.sin6_port);
 			}
 		}
 	}

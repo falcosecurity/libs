@@ -645,10 +645,10 @@ void scap_open_log_fn(const char* component,
                       const enum falcosecurity_log_severity sev) {
 	if(sev <= severity_level) {
 		if(component != NULL) {
-			printf("%s: %s", component, msg);
+			printf("%s: %s\n", component, msg);
 		} else {
 			// libbpf logs have no components
-			printf("%s", msg);
+			printf("%s\n", msg);
 		}
 	}
 }
