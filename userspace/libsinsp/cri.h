@@ -29,6 +29,7 @@ limitations under the License.
 #include <libsinsp/cri-v1.grpc.pb.h>
 #endif  // MINIMAL_BUILD
 
+#include <libsinsp/cri_settings.h>
 #include <libsinsp/container_info.h>
 #include <libsinsp/cgroup_limits.h>
 
@@ -40,57 +41,6 @@ limitations under the License.
 
 namespace libsinsp {
 namespace cri {
-
-class cri_settings {
-public:
-	cri_settings();
-	~cri_settings();
-	static cri_settings &get();
-
-	static const std::vector<std::string> &get_cri_unix_socket_paths() {
-		return get().m_cri_unix_socket_paths;
-	}
-
-	static void set_cri_unix_socket_paths(const std::vector<std::string> &v) {
-		get().m_cri_unix_socket_paths = v;
-	}
-
-	static const int64_t &get_cri_timeout() { return get().m_cri_timeout; }
-
-	static void set_cri_timeout(const int64_t &v) { get().m_cri_timeout = v; }
-
-	static const int64_t &get_cri_size_timeout() { return get().m_cri_size_timeout; }
-
-	static void set_cri_size_timeout(const int64_t &v) { get().m_cri_size_timeout = v; }
-
-	static const sinsp_container_type &get_cri_runtime_type() { return get().m_cri_runtime_type; }
-
-	static void set_cri_runtime_type(const sinsp_container_type &v) {
-		get().m_cri_runtime_type = v;
-	}
-
-	static const bool &get_cri_extra_queries() { return get().m_cri_extra_queries; }
-
-	static void set_cri_extra_queries(const bool &v) { get().m_cri_extra_queries = v; }
-
-	static void add_cri_unix_socket_path(const std::string &v) {
-		get().m_cri_unix_socket_paths.emplace_back(v);
-	}
-
-	static void clear_cri_unix_socket_paths() { get().m_cri_unix_socket_paths.clear(); }
-
-private:
-	static std::unique_ptr<cri_settings> s_instance;
-
-	cri_settings(const cri_settings &) = delete;
-	cri_settings &operator=(const cri_settings &) = delete;
-
-	std::vector<std::string> m_cri_unix_socket_paths;
-	int64_t m_cri_timeout;
-	int64_t m_cri_size_timeout;
-	sinsp_container_type m_cri_runtime_type;
-	bool m_cri_extra_queries;
-};
 
 class cri_api_v1alpha2 {
 public:

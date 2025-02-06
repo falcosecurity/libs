@@ -47,6 +47,10 @@ public:
 
 	bool lookup(const key_type& key, sinsp_container_info& value, const callback_handler& handler);
 
+	bool lookup_delayed(const key_type& key,
+	                    sinsp_container_info& value,
+	                    std::chrono::milliseconds delay);
+
 	bool lookup_sync(const key_type& key, sinsp_container_info& value);
 
 	void source_callback(const key_type& key, const sinsp_container_info& res);

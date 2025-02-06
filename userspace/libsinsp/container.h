@@ -27,6 +27,7 @@ limitations under the License.
 
 #include <libsinsp/event.h>
 #include <libsinsp/container_info.h>
+#include <libsinsp/cri_settings.h>
 
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
@@ -194,6 +195,7 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void add_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_retry_parameters(const ::libsinsp::cri::retry_parameters& v);
 	void set_cri_async(bool async);
 	void set_container_labels_max_len(uint32_t max_label_len);
 	sinsp* get_inspector() { return m_inspector; }
