@@ -251,7 +251,7 @@ jobs:
           diff -u expected_ldd_out.txt ldd_out.txt
 
   run-e2e-tests:
-    name: run-e2e-tests-${{ matrix.arch }}
+    name: run-e2e-tests-${{ matrix.arch }}-${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:

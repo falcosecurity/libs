@@ -9,7 +9,7 @@ containers = [
             'image': 'nginx:1.14-alpine',
         },
         'curl': {
-            'image': 'curlimages/curl:8.11.1',
+            'image': 'curlimages/curl:8.12.0',
             'args': ["sleep", "300"]
         }
     }

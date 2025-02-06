@@ -14,7 +14,7 @@ containers = [
         'http-hello': {
             'image': 'hashicorp/http-echo:1.0.0',
             'args': ['-text=hello'],
-            'user': '11:100'
+            'user': '65532:50'
         }
     }
 ]
@@ -32,7 +32,6 @@ def test_exec_in_container(sinsp, run_containers: dict):
 
     container_id = get_container_id(app_container)
 
-    app_container.exec_run("sleep 5")
     app_container.exec_run("sh -c ls")
 
     expected_events = [
@@ -49,16 +48,10 @@ def test_exec_in_container(sinsp, run_containers: dict):
             'evt.type': 'execve',
             'proc.exe': '/http-echo',
             'proc.cmdline': 'http-echo -text=hello',
-            'user.uid': 11,
-            'user.name': 'operator',
-            'group.gid': 100,
-            'group.name': 'users',
-        }, {
-            'container.id': container_id,
-            'evt.category': 'process',
-            'evt.type': 'execve',
-            'proc.exe': 'sleep',
-            'proc.cmdline': 'sleep 5'
+            'user.uid': 65532,
+            'user.name': 'nonroot',
+            'group.gid': 50,
+            'group.name': 'staff',
         }, {
             'container.id': container_id,
             'evt.category': 'process',
