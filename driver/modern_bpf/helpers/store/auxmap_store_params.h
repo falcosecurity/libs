@@ -676,7 +676,6 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	switch(socket_family) {
 	case AF_INET: {
 		struct inet_sock *inet = (struct inet_sock *)sk;
-		struct sockaddr_in usrsockaddr_in = {};
 
 		uint32_t ipv4_local = 0;
 		uint16_t port_local = 0;
@@ -691,6 +690,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		 * of an UDP connection). We fallback to the address from userspace when the kernel-provided
 		 * address is NULL */
 		if(port_remote == 0 && usrsockaddr != NULL) {
+			struct sockaddr_in usrsockaddr_in = {};
 			bpf_probe_read_user(&usrsockaddr_in,
 			                    bpf_core_type_size(struct sockaddr_in),
 			                    (void *)usrsockaddr);
@@ -725,7 +725,6 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 	case AF_INET6: {
 		struct inet_sock *inet = (struct inet_sock *)sk;
-		struct sockaddr_in6 usrsockaddr_in6 = {};
 
 		uint32_t ipv6_local[4] = {0, 0, 0, 0};
 		uint16_t port_local = 0;
@@ -741,6 +740,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		 * of an UDP connection). We fallback to the address from userspace when the kernel-provided
 		 * address is NULL */
 		if(port_remote == 0 && usrsockaddr != NULL) {
+			struct sockaddr_in6 usrsockaddr_in6 = {};
 			bpf_probe_read_user(&usrsockaddr_in6,
 			                    bpf_core_type_size(struct sockaddr_in6),
 			                    (void *)usrsockaddr);
