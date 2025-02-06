@@ -44,19 +44,19 @@ int32_t test_time_wait_socket_at_buffer_end(void) {
 	static char error[SCAP_LASTERR_SIZE];
 
 	// Calculate exact size needed for header + 100 entries + TIME_WAIT entry
-	static const size_t BUFFER_SIZE =
+	size_t buffer_size =
 	        strlen(SOCKET_HEADER) + (100 * strlen(SOCKET_ENTRY)) + strlen(TIME_WAIT_ENTRY);
-	char buffer[BUFFER_SIZE];
-	memset(buffer, 0, BUFFER_SIZE);
+	char buffer[buffer_size];
+	memset(buffer, 0, buffer_size);
 
 	int pos = 0;
-	pos += snprintf(buffer + pos, BUFFER_SIZE - pos, "%s", SOCKET_HEADER);
+	pos += snprintf(buffer + pos, buffer_size - pos, "%s", SOCKET_HEADER);
 
 	for(int i = 0; i < 100; i++) {
-		pos += snprintf(buffer + pos, BUFFER_SIZE - pos, "%s", SOCKET_ENTRY);
+		pos += snprintf(buffer + pos, buffer_size - pos, "%s", SOCKET_ENTRY);
 	}
 
-	snprintf(buffer + pos, BUFFER_SIZE - pos, "%s", TIME_WAIT_ENTRY);
+	snprintf(buffer + pos, buffer_size - pos, "%s", TIME_WAIT_ENTRY);
 
 	scap_fdinfo* sockets = NULL;
 	return scap_fd_read_ipv4_sockets_from_proc_fs(buffer, SCAP_L4_TCP, &sockets, error);
