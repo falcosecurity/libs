@@ -974,7 +974,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir,
 					break;
 				}
 
-				while(*scan_pos == ' ' && scan_pos < scan_end) {
+				while(scan_pos < scan_end && *scan_pos == ' ') {
 					scan_pos++;
 				}
 
