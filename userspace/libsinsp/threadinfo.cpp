@@ -30,7 +30,7 @@ limitations under the License.
 #include <libsinsp/user.h>
 
 constexpr static const char* s_thread_table_name = "threads";
-constexpr static const char* s_container_field_name = "container_id";
+constexpr static const char* s_container_id_field_name = "container_id";
 
 extern sinsp_evttables g_infotables;
 
@@ -47,12 +47,9 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src) {
 
 sinsp_threadinfo::sinsp_threadinfo(
         sinsp* inspector,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields,
-        const std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>*
-                accessors):
+        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         table_entry(dyn_fields),
         m_inspector(inspector),
-        m_accessors(accessors),
         m_fdtable(inspector),
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
@@ -477,17 +474,46 @@ std::string sinsp_threadinfo::get_exepath() const {
 std::string sinsp_threadinfo::get_container_id() {
 	std::string container_id;
 
-	if(m_accessors == nullptr) {
-		// Should never happen. Raise an abort in debug mode.
-		ASSERT(false);
-		return container_id;
-	}
-
-	if(m_accessors->count(s_container_field_name) > 0) {
-		const auto acc = m_accessors->at(s_container_field_name);
-		get_dynamic_field(acc, container_id);
+	const auto accessor =
+	        m_inspector->m_thread_manager->get_field_accessor(s_container_id_field_name);
+	if(accessor) {
+		get_dynamic_field(*accessor, container_id);
 	}
 	return container_id;
+}
+
+std::string sinsp_threadinfo::get_container_user() {
+	std::string user;
+
+	const auto container_id = get_container_id();
+	if(!container_id.empty()) {
+		auto table = m_inspector->m_thread_manager->get_table(
+		        sinsp_thread_manager::s_containers_table_name);
+		if(table != nullptr) {
+			auto fld = table->get_field<std::string>(
+			        sinsp_thread_manager::s_containers_table_field_user);
+			auto e = table->get_entry(container_id.c_str());
+			e.read_field(fld, user);
+		}
+	}
+	return user;
+}
+
+std::string sinsp_threadinfo::get_container_ip() {
+	std::string ip;
+
+	const auto container_id = get_container_id();
+	if(!container_id.empty()) {
+		auto table = m_inspector->m_thread_manager->get_table(
+		        sinsp_thread_manager::s_containers_table_name);
+		if(table != nullptr) {
+			auto fld = table->get_field<std::string>(
+			        sinsp_thread_manager::s_containers_table_field_ip);
+			auto e = table->get_entry(container_id.c_str());
+			e.read_field(fld, ip);
+		}
+	}
+	return ip;
 }
 
 void sinsp_threadinfo::set_user(uint32_t uid) {
@@ -1408,7 +1434,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 }
 
 std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const {
-	auto tinfo = new sinsp_threadinfo(m_inspector, dynamic_fields(), &m_foreign_fields_accessors);
+	auto tinfo = new sinsp_threadinfo(m_inspector, dynamic_fields());
 	return std::unique_ptr<sinsp_threadinfo>(tinfo);
 }
 
@@ -1722,13 +1748,21 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc() {
 
 void sinsp_thread_manager::load_foreign_fields_accessors() {
 	// Load "container_id" accessor
-	if(const auto dyn_field = dynamic_fields()->fields().find(s_container_field_name);
+	if(const auto dyn_field = dynamic_fields()->fields().find(s_container_id_field_name);
 	   dyn_field != dynamic_fields()->fields().end()) {
-		m_foreign_fields_accessors[s_container_field_name] =
-		        dyn_field->second.new_accessor<std::string>();
+		m_foreign_fields_accessors.emplace(s_container_id_field_name,
+		                                   dyn_field->second.new_accessor<std::string>());
 	}
 
-	// Add other accessors here
+	auto containers = dynamic_cast<libsinsp::state::base_table*>(
+	        m_inspector->get_table_registry()->get_table<std::string>(
+	                sinsp_thread_manager::s_containers_table_name));
+	if(containers != nullptr) {
+		m_foreign_tables.emplace(sinsp_thread_manager::s_containers_table_name,
+		                         sinsp_table<std::string>(this, containers));
+	}
+
+	// Add other accessors/tables here
 }
 
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo) {
@@ -2093,11 +2127,5 @@ void sinsp_thread_manager::set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tin
 void sinsp_thread_manager::set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const {
 	if(fdinfo.dynamic_fields() == nullptr) {
 		fdinfo.set_dynamic_fields(m_fdtable_dyn_fields);
-	}
-}
-
-void sinsp_thread_manager::set_tinfo_field_accessors(sinsp_threadinfo& tinfo) const {
-	if(tinfo.m_accessors == nullptr) {
-		tinfo.m_accessors = &m_foreign_fields_accessors;
 	}
 }
