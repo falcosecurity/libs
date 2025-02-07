@@ -37,6 +37,7 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/table_adapters.h>
 #include <libsinsp/event.h>
+#include <libsinsp/plugin.h>
 #include <libscap/scap_savefile_api.h>
 
 struct erase_fd_params {
@@ -66,10 +67,7 @@ class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
 	sinsp_threadinfo(sinsp* inspector = nullptr,
 	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                         dyn_fields = nullptr,
-	                 const std::map<std::string,
-	                                libsinsp::state::dynamic_struct::field_accessor<std::string>>*
-	                         accessors = nullptr);
+	                         dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
 
 	libsinsp::state::static_struct::field_infos static_fields() const override;
@@ -94,6 +92,20 @@ public:
 	  running, leveraging sinsp state table API.
 	*/
 	std::string get_container_id();
+
+	/*!
+	  \brief Given the container_id associated with this thread, feetches the container user from
+	  the containers table, created by the container plugins if running, leveraging sinsp state
+	  table API.
+	*/
+	std::string get_container_user();
+
+	/*!
+	  \brief Given the container_id associated with this thread, feetches the container ip from the
+	  containers table, created by the container plugins if running, leveraging sinsp state table
+	  API.
+	*/
+	std::string get_container_ip();
 
 	/*!
 	  \brief Return the full info about thread uid.
@@ -491,9 +503,6 @@ public:
 	//
 	sinsp* m_inspector;
 
-	const std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>*
-	        m_accessors;
-
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
@@ -684,7 +693,8 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
-class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t> {
+class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
+                                          public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(sinsp* inspector);
 	void clear();
@@ -695,7 +705,6 @@ public:
 
 	void set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const;
 	void set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const;
-	void set_tinfo_field_accessors(sinsp_threadinfo& tinfo) const;
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool from_scap_proctable);
@@ -807,6 +816,21 @@ public:
 		return false;
 	}
 
+	inline const libsinsp::state::dynamic_struct::field_accessor<std::string>* get_field_accessor(
+	        std::string field) {
+		if(m_foreign_fields_accessors.count(field) > 0) {
+			return &m_foreign_fields_accessors.at(field);
+		}
+		return nullptr;
+	}
+
+	inline sinsp_table<std::string>* get_table(std::string table) {
+		if(m_foreign_tables.count(table) > 0) {
+			return &m_foreign_tables.at(table);
+		}
+		return nullptr;
+	}
+
 	inline const std::shared_ptr<thread_group_info>& get_thread_group_info(int64_t pid) const {
 		auto tgroup = m_thread_groups.find(pid);
 		if(tgroup != m_thread_groups.end()) {
@@ -836,6 +860,10 @@ public:
 	inline void set_last_flush_time_ns(uint64_t v) { m_last_flush_time_ns = v; }
 
 	inline uint32_t get_max_thread_table_size() const { return m_max_thread_table_size; }
+
+	constexpr static const char* s_containers_table_name = "containers";
+	constexpr static const char* s_containers_table_field_user = "user";
+	constexpr static const char* s_containers_table_field_ip = "ip";
 
 private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
@@ -870,4 +898,6 @@ private:
 	// State table API field accessors to foreign keys written by plugins.
 	std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
 	        m_foreign_fields_accessors;
+	// State tables exposed by plugins
+	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
 };
