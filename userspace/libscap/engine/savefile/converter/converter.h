@@ -29,13 +29,19 @@ typedef struct ppm_evt_hdr scap_evt;
 // 50 consecutive conversions on the same event should be more than enough
 #define MAX_CONVERSION_BOUNDARY 50
 
-conversion_result scap_convert_event(scap_evt* new_evt, scap_evt* evt_to_convert, char* error);
+struct scap_convert_buffer;
+
+struct scap_convert_buffer* scap_convert_alloc_buffer();
+conversion_result scap_convert_event(struct scap_convert_buffer* buf,
+                                     scap_evt* new_evt,
+                                     scap_evt* evt_to_convert,
+                                     char* error);
+void scap_convert_free_buffer(struct scap_convert_buffer* buf);
 
 bool is_conversion_needed(scap_evt* evt_to_convert);
 
 // Only for testing purposes
-scap_evt* scap_retrieve_evt_from_converter_storage(uint64_t tid);
-void scap_clear_converter_storage();
+scap_evt* scap_retrieve_evt_from_converter_storage(struct scap_convert_buffer* buf, uint64_t tid);
 
 #ifdef __cplusplus
 };

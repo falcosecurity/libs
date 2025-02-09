@@ -34,8 +34,9 @@ static inline safe_scap_evt_t safe_scap_evt(scap_evt *evt) {
 	return safe_scap_evt_t{evt, free};
 }
 
-// use a shared pointer to store the events
-static std::unordered_map<uint64_t, safe_scap_evt_t> evt_storage = {};
+struct scap_convert_buffer {
+	std::unordered_map<uint64_t, safe_scap_evt_t> evt_storage = {};
+};
 
 static const char *get_event_name(ppm_event_code event_type) {
 	const struct ppm_event_info *event_info = &g_event_info[event_type];
@@ -50,19 +51,21 @@ static char get_direction_char(ppm_event_code event_type) {
 	}
 }
 
-static void clear_evt(uint64_t tid) {
+static void clear_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage, uint64_t tid) {
 	if(evt_storage.find(tid) != evt_storage.end()) {
 		evt_storage[tid].reset();
 	}
 }
 
-static void store_evt(uint64_t tid, scap_evt *evt) {
+static void store_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage,
+                      uint64_t tid,
+                      scap_evt *evt) {
 	// if there was a previous event for this tid, we can overwrite the pointer because it means we
 	// don't need it anymore. We need to keep the enter event until we retrieve it in the
 	// corresponding exit event, but if the same thread is doing another enter event it means the
 	// previous syscall is already completed.
 
-	clear_evt(tid);
+	clear_evt(evt_storage, tid);
 
 	scap_evt *tmp_evt = (scap_evt *)malloc(evt->len);
 	if(!tmp_evt) {
@@ -72,7 +75,8 @@ static void store_evt(uint64_t tid, scap_evt *evt) {
 	evt_storage[tid] = safe_scap_evt(tmp_evt);
 }
 
-static scap_evt *retrieve_evt(uint64_t tid) {
+static scap_evt *retrieve_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage,
+                              uint64_t tid) {
 	if(evt_storage.find(tid) != evt_storage.end()) {
 		return evt_storage[tid].get();
 	}
@@ -289,15 +293,19 @@ extern "C" bool is_conversion_needed(scap_evt *evt_to_convert) {
 	return false;
 }
 
-extern "C" scap_evt *scap_retrieve_evt_from_converter_storage(uint64_t tid) {
-	return retrieve_evt(tid);
+extern "C" scap_evt *scap_retrieve_evt_from_converter_storage(
+        std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage,
+        uint64_t tid) {
+	return retrieve_evt(evt_storage, tid);
 }
 
-extern "C" void scap_clear_converter_storage() {
+extern "C" void scap_clear_converter_storage(
+        std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage) {
 	evt_storage.clear();
 }
 
-static conversion_result convert_event(scap_evt *new_evt,
+static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage,
+                                       scap_evt *new_evt,
                                        scap_evt *evt_to_convert,
                                        const conversion_info &ci,
                                        char *error) {
@@ -326,7 +334,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 		return CONVERSION_SKIP;
 
 	case C_ACTION_STORE:
-		store_evt(evt_to_convert->tid, evt_to_convert);
+		store_evt(evt_storage, evt_to_convert->tid, evt_to_convert);
 		return CONVERSION_SKIP;
 
 	case C_ACTION_ADD_PARAMS:
@@ -368,7 +376,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 			break;
 
 		case C_INSTR_FROM_ENTER:
-			tmp_evt = retrieve_evt(evt_to_convert->tid);
+			tmp_evt = retrieve_evt(evt_storage, evt_to_convert->tid);
 			if(!tmp_evt) {
 				// It could be due to different reasons:
 				// - we dropped the enter event in the capture
@@ -430,7 +438,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 
 	if(PPME_IS_EXIT(evt_to_convert->type)) {
 		// We can free the enter event for this thread because we don't need it anymore.
-		clear_evt(evt_to_convert->tid);
+		clear_evt(evt_storage, evt_to_convert->tid);
 	}
 	new_evt->len = params_offset;
 
@@ -439,7 +447,12 @@ static conversion_result convert_event(scap_evt *new_evt,
 	return is_conversion_needed(new_evt) ? CONVERSION_CONTINUE : CONVERSION_COMPLETED;
 }
 
-extern "C" conversion_result scap_convert_event(scap_evt *new_evt,
+extern "C" struct scap_convert_buffer *scap_convert_alloc_buffer() {
+	return new scap_convert_buffer();
+}
+
+extern "C" conversion_result scap_convert_event(struct scap_convert_buffer *buf,
+                                                scap_evt *new_evt,
                                                 scap_evt *evt_to_convert,
                                                 char *error) {
 	// This should be checked by the caller but just double check here
@@ -464,5 +477,13 @@ extern "C" conversion_result scap_convert_event(scap_evt *new_evt,
 	}
 
 	// If we reached this point we have for sure an entry in the conversion table.
-	return convert_event(new_evt, evt_to_convert, g_conversion_table.at(conv_key), error);
+	return convert_event(buf->evt_storage,
+	                     new_evt,
+	                     evt_to_convert,
+	                     g_conversion_table.at(conv_key),
+	                     error);
+}
+
+extern "C" void scap_convert_free_buffer(struct scap_convert_buffer *buf) {
+	delete buf;
 }

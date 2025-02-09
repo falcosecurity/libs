@@ -113,4 +113,5 @@ struct savefile_engine {
 	// Used by the scap-file converter
 	char* m_new_evt;
 	char* m_to_convert_evt;
+	struct scap_convert_buffer* m_converter_buf;
 };

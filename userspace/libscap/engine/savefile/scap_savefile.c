@@ -2053,7 +2053,8 @@ static int32_t next(struct scap_engine_handle engine,
 	    conv_num++) {
 		// Before each conversion we move the current event into the storage
 		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
-		conv_res = scap_convert_event((scap_evt *)handle->m_new_evt,
+		conv_res = scap_convert_event(handle->m_converter_buf,
+		                              (scap_evt *)handle->m_new_evt,
 		                              (scap_evt *)handle->m_to_convert_evt,
 		                              handle->m_lasterr);
 		// At the end of the conversion in any case we swith to the new event pointer
@@ -2239,6 +2240,14 @@ static int32_t init(struct scap *main_handle, struct scap_open_args *oargs) {
 		}
 	}
 
+	handle->m_converter_buf = scap_convert_alloc_buffer();
+	if(!handle->m_converter_buf) {
+		snprintf(main_handle->m_lasterr,
+		         SCAP_LASTERR_SIZE,
+		         "error allocating the conversion buffer");
+		return SCAP_FAILURE;
+	}
+
 	return SCAP_SUCCESS;
 }
 
@@ -2266,6 +2275,11 @@ static int32_t scap_savefile_close(struct scap_engine_handle engine) {
 	if(handle->m_to_convert_evt) {
 		free(handle->m_to_convert_evt);
 		handle->m_to_convert_evt = NULL;
+	}
+
+	if(handle->m_converter_buf) {
+		scap_convert_free_buffer(handle->m_converter_buf);
+		handle->m_converter_buf = NULL;
 	}
 
 	return SCAP_SUCCESS;
