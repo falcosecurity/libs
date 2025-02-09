@@ -34,7 +34,7 @@ function(add_pkgconfig_library LIBDIRS_VAR LIBS_VAR lib ignored)
 					TARGET ${dep}
 					PROPERTY TYPE
 				)
-				if(${dep_target_type} STREQUAL "STATIC_LIBRARY")
+				if(NOT ${dep_target_type} STREQUAL "SHARED_LIBRARY")
 					continue()
 				endif()
 			else()
@@ -52,6 +52,27 @@ function(add_pkgconfig_library LIBDIRS_VAR LIBS_VAR lib ignored)
 			if(NOT TARGET ${dep})
 				get_filename_component(filename ${dep} NAME)
 				set(dep "\${libdir}/${LIBS_PACKAGE_NAME}/${filename}")
+			else()
+				get_property(
+					dep_target_type
+					TARGET ${dep}
+					PROPERTY TYPE
+				)
+				if(${dep_target_type} STREQUAL "OBJECT_LIBRARY")
+					# skip object libraries
+					continue()
+				endif()
+
+				# if the library is imported, use the IMPORTED_LOCATION instead
+				get_property(
+					dep_imported_location
+					TARGET ${dep}
+					PROPERTY IMPORTED_LOCATION
+				)
+				if(NOT ${dep_imported_location} STREQUAL "")
+					get_filename_component(filename ${dep_imported_location} NAME)
+					set(dep "\${libdir}/${LIBS_PACKAGE_NAME}/${filename}")
+				endif()
 			endif()
 		endif()
 

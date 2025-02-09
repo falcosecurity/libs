@@ -23,7 +23,7 @@ elseif(NOT USE_BUNDLED_LIBBPF)
 	find_path(LIBBPF_INCLUDE bpf/libbpf.h)
 	find_library(LIBBPF_LIB NAMES bpf)
 	if(LIBBPF_INCLUDE AND LIBBPF_LIB)
-		add_library(lbpf STATIC IMPORTED)
+		add_library(lbpf STATIC IMPORTED GLOBAL)
 		set_target_properties(lbpf PROPERTIES IMPORTED_LOCATION ${LIBBPF_LIB})
 		target_include_directories(lbpf INTERFACE $<BUILD_INTERFACE:${LIBBPF_INCLUDE}>)
 		target_link_libraries(lbpf INTERFACE elf ${ZLIB_LIB})
@@ -64,7 +64,7 @@ else()
 		BUILD_BYPRODUCTS ${LIBBPF_LIB}
 	)
 
-	add_library(lbpf STATIC IMPORTED)
+	add_library(lbpf STATIC IMPORTED GLOBAL)
 	set_target_properties(lbpf PROPERTIES IMPORTED_LOCATION ${LIBBPF_LIB})
 	file(MAKE_DIRECTORY ${LIBBPF_INCLUDE}) # necessary to make target_include_directories() work
 	target_include_directories(lbpf INTERFACE $<BUILD_INTERFACE:${LIBBPF_INCLUDE}>)
