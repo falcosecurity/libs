@@ -27,10 +27,13 @@ class convert_event_test : public testing::Test {
 	static constexpr uint16_t safe_margin = 100;
 
 protected:
-	virtual void TearDown() {
-		// At every iteration we want to clear the storage in the converter
-		scap_clear_converter_storage();
+	virtual void SetUp() {
+		m_converter_buf = scap_convert_alloc_buffer();
+		ASSERT_NE(m_converter_buf, nullptr);
 	}
+
+	virtual void TearDown() { scap_convert_free_buffer(m_converter_buf); }
+
 	safe_scap_evt_t create_safe_scap_event(uint64_t ts,
 	                                       uint64_t tid,
 	                                       ppm_event_code event_type,
@@ -54,7 +57,8 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, expected_evt->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(storage.get(), evt_to_convert.get(), error), expected_res)
+		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		          expected_res)
 		        << "Different conversion results: " << error;
 		if(!scap_compare_events(storage.get(), expected_evt.get(), error)) {
 			printf("\nExpected event:\n");
@@ -69,7 +73,8 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(storage.get(), evt_to_convert.get(), error), CONVERSION_ERROR)
+		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		          CONVERSION_ERROR)
 		        << "The conversion is not failed: " << error;
 	}
 	void assert_single_conversion_skip(safe_scap_evt_t evt_to_convert) {
@@ -77,7 +82,8 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(storage.get(), evt_to_convert.get(), error), CONVERSION_SKIP)
+		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		          CONVERSION_SKIP)
 		        << "The conversion is not skipped: " << error;
 	}
 	void assert_full_conversion(safe_scap_evt_t evt_to_convert, safe_scap_evt_t expected_evt) {
@@ -99,7 +105,8 @@ protected:
 		    conv_num++) {
 			// Copy the new event into the one to convert for the next conversion.
 			memcpy(to_convert_evt.get(), new_evt.get(), new_evt->len);
-			conv_res = scap_convert_event((scap_evt *)new_evt.get(),
+			conv_res = scap_convert_event(m_converter_buf,
+			                              (scap_evt *)new_evt.get(),
 			                              (scap_evt *)to_convert_evt.get(),
 			                              error);
 		}
@@ -128,7 +135,7 @@ protected:
 	void assert_event_storage_presence(safe_scap_evt_t expected_evt) {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		int64_t tid = expected_evt.get()->tid;
-		auto event = scap_retrieve_evt_from_converter_storage(tid);
+		auto event = scap_retrieve_evt_from_converter_storage(m_converter_buf, tid);
 		if(!event) {
 			FAIL() << "Event with tid " << tid << " not found in the storage";
 		}
@@ -136,4 +143,6 @@ protected:
 			FAIL() << "Different events: " << error;
 		}
 	}
+
+	struct scap_convert_buffer *m_converter_buf = nullptr;
 };
