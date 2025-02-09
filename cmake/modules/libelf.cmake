@@ -54,9 +54,9 @@ elseif(NOT USE_BUNDLED_LIBELF)
 	endif()
 
 	if(BUILD_SHARED_LIBS OR USE_SHARED_LIBELF)
-		add_library(elf SHARED IMPORTED)
+		add_library(elf SHARED IMPORTED GLOBAL)
 	else()
-		add_library(elf STATIC IMPORTED)
+		add_library(elf STATIC IMPORTED GLOBAL)
 	endif()
 
 	set_target_properties(elf PROPERTIES IMPORTED_LOCATION ${LIBELF_LIB})
