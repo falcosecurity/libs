@@ -275,7 +275,7 @@ if(NOT WIN32)
 				container_engine/containerd containerd_interface containers images descriptor
 			)
 
-			target_link_libraries(sinsp PRIVATE cri_v1alpha2 cri_v1 containerd_interface)
+			target_link_libraries(sinsp PUBLIC cri_v1alpha2 cri_v1 containerd_interface)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
