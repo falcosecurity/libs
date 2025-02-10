@@ -34,7 +34,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus) {
 
 	libs_metrics_collector.snapshot();
 	auto metrics_snapshot = libs_metrics_collector.get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 28);
+	ASSERT_EQ(metrics_snapshot.size(), 26);
 
 	/* Test prometheus_metrics_converter.convert_metric_to_text_prometheus */
 	std::string prometheus_text;
@@ -54,90 +54,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus) {
 		                                                                                 "falco");
 		std::cerr << prometheus_text;
 
-		if(strncmp(metric.name, "n_missing_container_images", strlen(metric.name)) == 0) {
-			// This resembles the Falco client use case
-
-			// Falco output_rule metrics prepends either `falco.` or `scap.` to a single metric, see
-			// https://falco.org/docs/metrics/ Use same strings for `prometheus_subsystem`, but
-			// instead of `.` we use `_` delimiter to conform with Prometheus naming conventions +
-			// append the unit
-			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(
-			        metric,
-			        "testns",
-			        "falco",
-			        {{"example_key1", "example1"}, {"example_key2", "example2"}});
-			prometheus_text_substring =
-			        R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
-# TYPE testns_falco_n_missing_container_images_total gauge
-testns_falco_n_missing_container_images_total{example_key1="example1",example_key2="example2"} 0
-)";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos)
-			        << "Substring not found in prometheus_text got\n"
-			        << prometheus_text;
-			// Test only one const_labels
-			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(
-			        metric,
-			        "testns",
-			        "falco",
-			        {{"example_key1", "example1"}});
-			prometheus_text_substring =
-			        R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
-# TYPE testns_falco_n_missing_container_images_total gauge
-testns_falco_n_missing_container_images_total{example_key1="example1"} 0
-)";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos)
-			        << "Substring not found in prometheus_text got\n"
-			        << prometheus_text;
-			// Test no const_labels
-			prometheus_text =
-			        prometheus_metrics_converter.convert_metric_to_text_prometheus(metric,
-			                                                                       "testns",
-			                                                                       "falco");
-			prometheus_text_substring =
-			        R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
-# TYPE testns_falco_n_missing_container_images_total gauge
-testns_falco_n_missing_container_images_total 0
-)";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos)
-			        << "Substring not found in prometheus_text got\n"
-			        << prometheus_text;
-			// Test no prometheus_subsytem
-			prometheus_text =
-			        prometheus_metrics_converter.convert_metric_to_text_prometheus(metric,
-			                                                                       "testns");
-			prometheus_text_substring =
-			        R"(# HELP testns_n_missing_container_images_total https://falco.org/docs/metrics/
-# TYPE testns_n_missing_container_images_total gauge
-testns_n_missing_container_images_total 0
-)";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos)
-			        << "Substring not found in prometheus_text got\n"
-			        << prometheus_text;
-			// Test no prometheus_namespace
-			prometheus_text =
-			        prometheus_metrics_converter.convert_metric_to_text_prometheus(metric);
-			prometheus_text_substring =
-			        R"(# HELP n_missing_container_images_total https://falco.org/docs/metrics/
-# TYPE n_missing_container_images_total gauge
-n_missing_container_images_total 0
-)";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos)
-			        << "Substring not found in prometheus_text got\n"
-			        << prometheus_text;
-			//  Test no prometheus_namespace, but prometheus_subsytem
-			prometheus_text =
-			        prometheus_metrics_converter.convert_metric_to_text_prometheus(metric,
-			                                                                       "",
-			                                                                       "falco");
-			prometheus_text_substring =
-			        R"(# HELP falco_n_missing_container_images_total https://falco.org/docs/metrics/
-# TYPE falco_n_missing_container_images_total gauge
-falco_n_missing_container_images_total 0
-)";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos)
-			        << "Substring not found in prometheus_text got\n"
-			        << prometheus_text;
-		} else if(strncmp(metric.name, "memory_rss_bytes", strlen(metric.name)) == 0) {
+		if(strncmp(metric.name, "memory_rss_bytes", strlen(metric.name)) == 0) {
 			// Test that libs native metric unit suffix was removed and replaced by the Prometheus
 			// specific unit suffix naming convention todo adjust once base units are implemented
 			prometheus_text =
@@ -162,7 +79,7 @@ testns_falco_memory_rss_bytes )";
 	        "n_cached_fd_lookups n_failed_fd_lookups n_added_fds n_removed_fds n_stored_evts "
 	        "n_store_evts_drops n_retrieved_evts n_retrieve_evts_drops n_noncached_thread_lookups "
 	        "n_cached_thread_lookups n_failed_thread_lookups n_added_threads n_removed_threads "
-	        "n_drops_full_threadtable n_missing_container_images n_containers");
+	        "n_drops_full_threadtable");
 
 	// Test global wrapper base metrics plus test invalid characters sanitization for the metric and
 	// label names (pseudo metrics)
@@ -352,7 +269,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule) {
 	libs_metrics_collector.snapshot();
 	libs_metrics_collector.snapshot();
 	metrics_snapshot = libs_metrics_collector.get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 28);
+	ASSERT_EQ(metrics_snapshot.size(), 26);
 
 	/* These names should always be available, note that we currently can't check for the merged
 	 * scap stats metrics here */
@@ -363,8 +280,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule) {
 	                                                         "n_fds",
 	                                                         "n_added_fds",
 	                                                         "n_added_threads",
-	                                                         "n_removed_threads",
-	                                                         "n_containers"};
+	                                                         "n_removed_threads"};
 
 	for(const auto& metric_name : minimal_metrics_names) {
 		size_t i = 0;
@@ -454,13 +370,13 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule) {
 	libs::metrics::libs_metrics_collector libs_metrics_collector6(&m_inspector, test_metrics_flags);
 	libs_metrics_collector6.snapshot();
 	metrics_snapshot = libs_metrics_collector6.get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 19);
+	ASSERT_EQ(metrics_snapshot.size(), 17);
 
 	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
 	libs::metrics::libs_metrics_collector libs_metrics_collector7(&m_inspector, test_metrics_flags);
 	libs_metrics_collector7.snapshot();
 	metrics_snapshot = libs_metrics_collector7.get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 28);
+	ASSERT_EQ(metrics_snapshot.size(), 26);
 }
 
 TEST(sinsp_libs_metrics, sinsp_libs_metrics_convert_units) {
