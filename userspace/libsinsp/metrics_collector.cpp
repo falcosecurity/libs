@@ -377,18 +377,6 @@ std::vector<metrics_v2> libs_state_counters::to_metrics() {
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
 	                                m_sinsp_stats_v2->m_n_drops_full_threadtable));
-	metrics.emplace_back(new_metric("n_missing_container_images",
-	                                METRICS_V2_STATE_COUNTERS,
-	                                METRIC_VALUE_TYPE_U32,
-	                                METRIC_VALUE_UNIT_COUNT,
-	                                METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
-	                                m_sinsp_stats_v2->m_n_missing_container_images));
-	metrics.emplace_back(new_metric("n_containers",
-	                                METRICS_V2_STATE_COUNTERS,
-	                                METRIC_VALUE_TYPE_U32,
-	                                METRIC_VALUE_UNIT_COUNT,
-	                                METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
-	                                m_sinsp_stats_v2->m_n_containers));
 	return metrics;
 }
 
