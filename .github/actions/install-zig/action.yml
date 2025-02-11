@@ -8,7 +8,7 @@ runs:
       shell: bash
       id: store
       env:
-        ZIG_VERSION: '0.14.0-dev.2591+5333d2443'
+        ZIG_VERSION: '0.14.0-dev.3188+34644511b'
       run: |
         echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
 
