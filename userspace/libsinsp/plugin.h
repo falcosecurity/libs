@@ -259,7 +259,7 @@ private:
 
 	/** Generic helpers **/
 	void validate_config(std::string& config);
-	bool resolve_dylib_symbols(std::string& errstr);
+	bool resolve_dylib_symbols(std::string& errstr, plugin_api_version_check check);
 	void resolve_dylib_field_arg(Json::Value root, filtercheck_field_info& tf);
 	void resolve_dylib_compatible_sources(const std::string& symbol,
 	                                      const char* (*get_sources)(),

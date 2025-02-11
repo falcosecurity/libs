@@ -86,12 +86,23 @@ void plugin_unload(plugin_handle_t* h);
 */
 bool plugin_is_loaded(const char* path);
 
+enum plugin_api_version_check {
+    PLUGIN_API_VERSION_CHECK_SEMVER = 0, ///< Semantic version check, for shared library plugins
+    PLUGIN_API_VERSION_CHECK_STRICT = 1, ///< Strict version check, for statically linked plugins
+};
+
 /*!
     \brief Returns true the API version required by the given plugin is
     compatible with the API version of the loader. Otherwise, returns false
     and fills the err string up to PLUGIN_MAX_ERRLEN chars.
+
+    Statically linked plugins have stricter version requirements, since they
+    rely on the layout of the `plugin_api` struct. So, when loading a statically
+    linked plugin, the `check` parameter needs to be PLUGIN_API_VERSION_CHECK_STRICT.
 */
-bool plugin_check_required_api_version(const plugin_handle_t* h, char* err);
+bool plugin_check_required_api_version(const plugin_handle_t* h,
+                                       char* err,
+                                       enum plugin_api_version_check check);
 
 /*!
     \brief Returns true if the given plugin handle implements all the

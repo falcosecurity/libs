@@ -98,7 +98,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	}
 
 	auto plugin = std::make_shared<sinsp_plugin>(handle, treg, tpool);
-	if(!plugin->resolve_dylib_symbols(errstr)) {
+	if(!plugin->resolve_dylib_symbols(errstr, PLUGIN_API_VERSION_CHECK_STRICT)) {
 		// plugin and handle get deleted here by shared_ptr
 		return nullptr;
 	}
@@ -119,7 +119,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	}
 
 	auto plugin = std::make_shared<sinsp_plugin>(handle, treg, tpool);
-	if(!plugin->resolve_dylib_symbols(errstr)) {
+	if(!plugin->resolve_dylib_symbols(errstr, PLUGIN_API_VERSION_CHECK_SEMVER)) {
 		// plugin and handle get deleted here by shared_ptr
 		return nullptr;
 	}
@@ -380,11 +380,11 @@ void sinsp_plugin::resolve_dylib_compatible_sources(const std::string& symbol,
 	}
 }
 
-bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
+bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr, plugin_api_version_check check) {
 	char err[PLUGIN_MAX_ERRLEN];
 
 	// Before doing anything else, check the required api version
-	if(!plugin_check_required_api_version(m_handle, err)) {
+	if(!plugin_check_required_api_version(m_handle, err, check)) {
 		errstr = err;
 		return false;
 	}

@@ -183,7 +183,9 @@ bool plugin_is_loaded(const char* path) {
 #endif
 }
 
-bool plugin_check_required_api_version(const plugin_handle_t* h, char* err) {
+bool plugin_check_required_api_version(const plugin_handle_t* h,
+                                       char* err,
+                                       enum plugin_api_version_check check) {
 	uint32_t major, minor, patch;
 	const char *ver, *failmsg;
 	if(h->api.get_required_api_version == NULL) {
@@ -202,12 +204,25 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err) {
 
 	failmsg = NULL;
 	/* The plugin requires a minimum framework version */
-	if(PLUGIN_API_VERSION_MAJOR != major) {
-		failmsg = "major versions disagree";
-	} else if(PLUGIN_API_VERSION_MINOR < minor) {
-		failmsg = "framework's minor is less than the requested one";
-	} else if(PLUGIN_API_VERSION_MINOR == minor && PLUGIN_API_VERSION_PATCH < patch) {
-		failmsg = "framework's patch is less than the requested one";
+	switch(check) {
+	case PLUGIN_API_VERSION_CHECK_SEMVER:
+		if(PLUGIN_API_VERSION_MAJOR != major) {
+			failmsg = "major versions disagree";
+		} else if(PLUGIN_API_VERSION_MINOR < minor) {
+			failmsg = "framework's minor is less than the requested one";
+		} else if(PLUGIN_API_VERSION_MINOR == minor && PLUGIN_API_VERSION_PATCH < patch) {
+			failmsg = "framework's patch is less than the requested one";
+		}
+		break;
+	case PLUGIN_API_VERSION_CHECK_STRICT:
+		if(PLUGIN_API_VERSION_MAJOR != major) {
+			failmsg = "major versions disagree";
+		} else if(PLUGIN_API_VERSION_MINOR != minor) {
+			failmsg = "minor versions disagree (must match exactly for static plugins)";
+		} else if(PLUGIN_API_VERSION_PATCH < patch) {
+			failmsg = "framework's patch is less than the requested one";
+		}
+		break;
 	}
 
 	if(failmsg != NULL) {
