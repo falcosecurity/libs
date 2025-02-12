@@ -95,7 +95,12 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val,
 
 			// parse the argument content, which can either be an index or a key
 			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX) {
-				extract_arg_index(val);
+				// Do NOT throw any exception if we want also try to
+				// parse the arg as key string,
+				// so that we support arguments that can be both index or key.
+				extract_arg_index(val,
+				                  !(m_info->m_fields[m_field_id].m_flags &
+				                    filtercheck_field_flags::EPF_ARG_KEY));
 			}
 			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY) {
 				extract_arg_key();
@@ -207,7 +212,7 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 	return true;
 }
 
-void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_name) {
+void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_name, bool required) {
 	int length = m_argstr.length();
 	bool is_valid = true;
 	std::string message = "";
@@ -239,8 +244,10 @@ void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_na
 			message = " has an invalid index argument not representable on 64 bit: ";
 		}
 	}
-	throw sinsp_exception(string("filter ") + string(full_field_name) + string(" ") +
-	                      m_field->m_name + message + m_argstr);
+	if(required) {
+		throw sinsp_exception(string("filter ") + string(full_field_name) + string(" ") +
+		                      m_field->m_name + message + m_argstr);
+	}
 }
 
 // extract_arg_key() extracts a valid string from the argument. If we pass
