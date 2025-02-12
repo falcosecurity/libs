@@ -66,7 +66,7 @@ private:
 	// format is valid, otherwise it throws an exception.
 	// `full_field_name` has the format "field[argument]" and it is necessary
 	// to throw an exception.
-	void extract_arg_index(std::string_view full_field_name);
+	void extract_arg_index(std::string_view full_field_name, bool required);
 
 	// extract_arg_key() extracts a valid string from the argument. If we pass
 	// a numeric argument, it will be converted to string.
