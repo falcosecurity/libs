@@ -74,7 +74,7 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 
 inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
         int64_t fd,
-        std::unique_ptr<sinsp_fdinfo> fdinfo) {
+        std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	if(fdinfo->dynamic_fields() != dynamic_fields()) {
 		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
 	}
@@ -207,7 +207,7 @@ sinsp_fdinfo* sinsp_fdtable::find(int64_t fd) {
 	return find_ref(fd).get();
 }
 
-sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo) {
+sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	return add_ref(fd, std::move(fdinfo)).get();
 }
 

@@ -790,7 +790,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
 	return mt;
 }
 
-sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo) {
+sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
 		return NULL;
