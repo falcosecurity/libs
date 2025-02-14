@@ -4614,11 +4614,11 @@ FILLER(sys_sendmmsg_x_failure, true) {
 	CHECK_RES(res);
 
 	/* Parameter 3: size (type: PT_UINT32) */
-	bpf_push_u32_to_ring(data, 0);
+	res = bpf_push_u32_to_ring(data, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: data (type: PT_BYTEBUF) */
-	bpf_push_empty_param(data);
+	res = bpf_push_empty_param(data);
 	CHECK_RES(res);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
