@@ -4,7 +4,12 @@ This directory contains a program that demonstrates how to use libsinsp for even
 
 ## Quick Start ##
 
-`sinsp-example` monitors the host and any running containers for system activity. By default, it prints events of all types and is very noisy. 
+`sinsp-example` monitors the host for system activity. By default, it prints events of all types and is very noisy.  
+To enable containers support, you need to load the `container` plugin, like:
+```
+sudo ./libsinsp/examples/sinsp-example -p "~/libcontainer.so" -m
+```
+
 
 To use filtering, specify a [filter](https://falco.org/docs/rules/supported-fields/#system-calls-source-syscall) using `-f`.
 
