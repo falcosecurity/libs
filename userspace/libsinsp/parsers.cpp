@@ -3088,7 +3088,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	// Populate the fd info class
 	//
-	auto fdi = m_fdinfo_factory.create();
+	std::shared_ptr fdi = m_fdinfo_factory.create();
 	if(*packed_data == PPM_AF_INET) {
 		set_ipv4_addresses_and_ports(fdi.get(), packed_data);
 		fdi->m_type = SCAP_FD_IPV4_SOCK;

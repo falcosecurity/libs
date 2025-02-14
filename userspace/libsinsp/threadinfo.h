@@ -522,7 +522,7 @@ public:
 	// return true if, based on the current inspector filter, this thread should be kept
 	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
-	sinsp_fdinfo* add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
+	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 	void add_fd_from_scap(scap_fdinfo* fdinfo);
 	void remove_fd(int64_t fd);
 	void update_cwd(std::string_view cwd);
