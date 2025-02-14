@@ -3127,9 +3127,14 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(get_observer()) {
-		m_post_process_cbs.emplace([fd, packed_data](sinsp_observer *observer, sinsp_evt *evt) {
-			observer->on_accept(evt, fd, packed_data, evt->get_fd_info());
-		});
+		m_post_process_cbs.emplace(
+		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
+			        auto fd_info = evt->get_fd_info();
+			        if(fd_info == nullptr) {
+				        fd_info = fdi.get();
+			        }
+			        observer->on_accept(evt, fd, packed_data, fd_info);
+		        });
 	}
 
 	//
