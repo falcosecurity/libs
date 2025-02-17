@@ -14,3 +14,12 @@ HAS_@CONFIGURE_MODULE@_OUT := $(subst @@NEWLINE@@,$(newline),$(HAS_@CONFIGURE_MO
 $(info [configure-kmod] Build output for HAS_@CONFIGURE_MODULE@:)
 $(info [configure-kmod] $(HAS_@CONFIGURE_MODULE@_OUT))
 endif
+
+ifeq ('@CONFIGURE_MODULE@','0__SANITY')
+    ifeq ($(HAS_@CONFIGURE_MODULE@),0)
+        $(info [configure-kmod] Build system is sane)
+    else
+        $(info [configure-kmod] Build system is broken, please see above errors)
+        $(error The build system is broken, please see above errors)
+    endif
+endif
