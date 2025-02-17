@@ -25,6 +25,7 @@ typedef void* library_handle_t;
 #endif
 
 #include <libscap/strl.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -144,6 +145,35 @@ plugin_handle_t* plugin_load_api(const plugin_api* api, char* err) {
 		return NULL;
 	}
 	ret->api = *api;
+
+	// todo: remove this if/when we get to API version 4
+	uint32_t major, minor, patch;
+	const char* ver;
+	if(api->get_required_api_version == NULL) {
+		strlcpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN);
+		return NULL;
+	}
+
+	ver = api->get_required_api_version();
+	if(sscanf(ver, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &major, &minor, &patch) != 3) {
+		snprintf(err,
+		         PLUGIN_MAX_ERRLEN,
+		         "plugin provided an invalid required API version: '%s'",
+		         ver);
+		return NULL;
+	}
+
+	// API 3.10 introduced dump_state in the middle of the plugin_api struct.
+	// Fix up older 3.x plugins by shifting the fields by one
+	if(major == 3 && minor < 10) {
+		size_t from_offset = offsetof(plugin_api, dump_state);
+		size_t to_offset = offsetof(plugin_api, set_config);
+		size_t size = sizeof(plugin_api) - to_offset;
+		char* api_ptr = (char*)&ret->api;
+		memmove(api_ptr + to_offset, api_ptr + from_offset, size);
+		ret->api.dump_state = NULL;
+	}
+
 	return ret;
 }
 
