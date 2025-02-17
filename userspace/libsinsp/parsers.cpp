@@ -3120,7 +3120,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	// Populate the fd info class
 	//
-	auto fdi = m_inspector->build_fdinfo();
+	std::shared_ptr fdi = m_inspector->build_fdinfo();
 	if(*packed_data == PPM_AF_INET) {
 		set_ipv4_addresses_and_ports(fdi.get(), packed_data);
 		fdi->m_type = SCAP_FD_IPV4_SOCK;
@@ -3160,8 +3160,12 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	if(m_inspector->get_observer()) {
 		m_inspector->m_post_process_cbs.emplace(
-		        [fd, packed_data](sinsp_observer *observer, sinsp_evt *evt) {
-			        observer->on_accept(evt, fd, packed_data, evt->get_fd_info());
+		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
+			        auto fd_info = evt->get_fd_info();
+			        if(fd_info == nullptr) {
+				        fd_info = fdi.get();
+			        }
+			        observer->on_accept(evt, fd, packed_data, fd_info);
 		        });
 	}
 
