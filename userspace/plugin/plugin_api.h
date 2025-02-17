@@ -1125,6 +1125,8 @@ typedef struct {
 	};
 } plugin_api;
 
+#include <plugin/plugin_abi.h>
+
 #ifdef __cplusplus
 }
 #endif
