@@ -15,7 +15,7 @@
 
 include(jsoncpp)
 
-add_executable(sinsp-example util.cpp test.cpp)
+add_executable(sinsp-example util.cpp test.cpp cpu_usage.cpp)
 
 target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}")
 
