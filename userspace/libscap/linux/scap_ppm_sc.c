@@ -1098,7 +1098,7 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name) {
 	const char *sc_name = name;
 
 	if(name == NULL) {
-		return -1;
+		return PPM_SC_UNKNOWN;
 	}
 
 	for(int i = start; i < max; i++) {
@@ -1109,7 +1109,7 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name) {
 			return i;
 		}
 	}
-	return -1;
+	return PPM_SC_UNKNOWN;
 }
 
 ppm_sc_code scap_native_id_to_ppm_sc(int native_id) {

@@ -73,7 +73,7 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
+          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On -DUSE_ASAN=On -DUSE_UBSAN=On ../
           make scap-open driver bpf libscap_test -j6
 
       - name: Run scap-open with modern bpf 🏎️

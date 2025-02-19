@@ -583,6 +583,15 @@ uint32_t scap_event_getlen(scap_evt* e);
 */
 uint64_t scap_event_get_ts(scap_evt* e);
 
+/**
+  \brief Get the number of parameters of an event
+
+  \param e pointer to an event returned by \ref scap_next.
+
+  \return The number of parameters in the event.
+*/
+uint32_t scap_event_get_nparams(const scap_evt* e);
+
 /*!
   \brief Get the number of events that have been captured from the given capture
   instance

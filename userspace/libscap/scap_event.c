@@ -60,6 +60,10 @@ uint64_t scap_event_get_ts(scap_evt *e) {
 	return e->ts;
 }
 
+uint32_t scap_event_get_nparams(const scap_evt* e) {
+	return e->nparams;
+}
+
 #ifdef PPM_ENABLE_SENTINEL
 uint32_t scap_event_get_sentinel_begin(scap_evt *e) {
 	return e->sentinel_begin;
