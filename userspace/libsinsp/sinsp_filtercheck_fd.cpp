@@ -530,6 +530,10 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		RETURN_EXTRACT_VAR(m_tinfo->m_lastevent_fd);
 	}
 
+	std::string container_id;
+	if(m_tinfo != NULL) {
+		container_id = m_tinfo->get_container_id();
+	}
 	switch(m_field_id) {
 	case TYPE_FDNAME:
 	case TYPE_CONTAINERNAME:
@@ -542,7 +546,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 				}
 				if(m_field_id == TYPE_CONTAINERNAME) {
 					ASSERT(m_tinfo != NULL);
-					m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+					m_tstr = container_id + ':' + m_tstr;
 				}
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
@@ -558,7 +562,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		if(m_field_id == TYPE_CONTAINERNAME) {
 			ASSERT(m_tinfo != NULL);
-			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			m_tstr = container_id + ':' + m_tstr;
 		}
 
 		if(sanitize_strings) {
@@ -603,7 +607,8 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(m_field_id == TYPE_CONTAINERDIRECTORY) {
-			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			ASSERT(m_tinfo != NULL);
+			m_tstr = container_id + ':' + m_tstr;
 		}
 
 		RETURN_EXTRACT_STRING(m_tstr);

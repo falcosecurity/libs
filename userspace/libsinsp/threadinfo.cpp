@@ -30,6 +30,7 @@ limitations under the License.
 #include <libsinsp/user.h>
 
 constexpr static const char* s_thread_table_name = "threads";
+constexpr static const char* s_container_id_field_name = "container_id";
 
 extern sinsp_evttables g_infotables;
 
@@ -75,7 +76,6 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_args_table_adapter.table_ptr(), "args", true);
 	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env", true);
 	define_static_field(ret, this, m_cgroups_table_adapter.table_ptr(), "cgroups", true);
-	define_static_field(ret, this, m_container_id, "container_id");
 	define_static_field(ret, this, m_flags, "flags");
 	define_static_field(ret, this, m_fdlimit, "fd_limit");
 	define_static_field(ret, this, m_uid, "uid");
@@ -146,7 +146,6 @@ void sinsp_threadinfo::init() {
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
-	m_category = CAT_NONE;
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
 	m_cap_effective = 0;
@@ -446,14 +445,10 @@ void sinsp_threadinfo::init(scap_threadinfo* pi) {
 	m_clone_ts = pi->clone_ts;
 	m_lastexec_ts = 0;
 	m_tty = pi->tty;
-	m_category = CAT_NONE;
 
 	set_cgroups(pi->cgroups.path, pi->cgroups.len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
-	m_inspector->m_container_manager.resolve_container(
-	        this,
-	        m_inspector->is_live() || m_inspector->is_syscall_plugin());
 
 	set_group(pi->gid);
 	set_user(pi->uid);
@@ -476,32 +471,79 @@ std::string sinsp_threadinfo::get_exepath() const {
 	return m_exepath;
 }
 
+std::string sinsp_threadinfo::get_container_id() {
+	std::string container_id;
+
+	const auto accessor =
+	        m_inspector->m_thread_manager->get_field_accessor(s_container_id_field_name);
+	if(accessor) {
+		get_dynamic_field(*accessor, container_id);
+	}
+	return container_id;
+}
+
+std::string sinsp_threadinfo::get_container_user() {
+	std::string user;
+
+	const auto container_id = get_container_id();
+	if(!container_id.empty()) {
+		auto table = m_inspector->m_thread_manager->get_table(
+		        sinsp_thread_manager::s_containers_table_name);
+		if(table != nullptr) {
+			auto fld = table->get_field<std::string>(
+			        sinsp_thread_manager::s_containers_table_field_user);
+			auto e = table->get_entry(container_id.c_str());
+			e.read_field(fld, user);
+		}
+	}
+	return user;
+}
+
+std::string sinsp_threadinfo::get_container_ip() {
+	std::string ip;
+
+	const auto container_id = get_container_id();
+	if(!container_id.empty()) {
+		auto table = m_inspector->m_thread_manager->get_table(
+		        sinsp_thread_manager::s_containers_table_name);
+		if(table != nullptr) {
+			auto fld = table->get_field<std::string>(
+			        sinsp_thread_manager::s_containers_table_field_ip);
+			auto e = table->get_entry(container_id.c_str());
+			e.read_field(fld, ip);
+		}
+	}
+	return ip;
+}
+
 void sinsp_threadinfo::set_user(uint32_t uid) {
+	const auto container_id = get_container_id();
 	m_uid = uid;
-	scap_userinfo* user = m_inspector->m_usergroup_manager->get_user(m_container_id, uid);
-	if(!user) {
-		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+	if(const scap_userinfo* user = m_inspector->m_usergroup_manager->get_user(container_id, uid);
+	   !user) {
+		const auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
 		// For uid 0 force set root related infos
 		if(uid == 0) {
 			m_inspector->m_usergroup_manager
-			        ->add_user(m_container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
+			        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
 		} else {
 			m_inspector->m_usergroup_manager
-			        ->add_user(m_container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
+			        ->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
 		}
 	}
 }
 
 void sinsp_threadinfo::set_group(uint32_t gid) {
+	const auto container_id = get_container_id();
 	m_gid = gid;
-	scap_groupinfo* group = m_inspector->m_usergroup_manager->get_group(m_container_id, gid);
-	if(!group) {
-		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+	if(const scap_groupinfo* group = m_inspector->m_usergroup_manager->get_group(container_id, gid);
+	   !group) {
+		const auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
 		// For gid 0 force set root related info
 		if(gid == 0) {
-			m_inspector->m_usergroup_manager->add_group(m_container_id, m_pid, gid, "root", notify);
+			m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
 		} else {
-			m_inspector->m_usergroup_manager->add_group(m_container_id, m_pid, gid, {}, notify);
+			m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
 		}
 	}
 }
@@ -510,8 +552,8 @@ void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
 	m_loginuid = loginuid;
 }
 
-scap_userinfo* sinsp_threadinfo::get_user() const {
-	auto user = m_inspector->m_usergroup_manager->get_user(m_container_id, m_uid);
+scap_userinfo* sinsp_threadinfo::get_user() {
+	auto user = m_inspector->m_usergroup_manager->get_user(get_container_id(), m_uid);
 	if(user != nullptr) {
 		return user;
 	}
@@ -524,8 +566,8 @@ scap_userinfo* sinsp_threadinfo::get_user() const {
 	return &usr;
 }
 
-scap_groupinfo* sinsp_threadinfo::get_group() const {
-	auto group = m_inspector->m_usergroup_manager->get_group(m_container_id, m_gid);
+scap_groupinfo* sinsp_threadinfo::get_group() {
+	auto group = m_inspector->m_usergroup_manager->get_group(get_container_id(), m_gid);
 	if(group != nullptr) {
 		return group;
 	}
@@ -535,8 +577,8 @@ scap_groupinfo* sinsp_threadinfo::get_group() const {
 	return &grp;
 }
 
-scap_userinfo* sinsp_threadinfo::get_loginuser() const {
-	auto user = m_inspector->m_usergroup_manager->get_user(m_container_id, m_loginuid);
+scap_userinfo* sinsp_threadinfo::get_loginuser() {
+	auto user = m_inspector->m_usergroup_manager->get_user(get_container_id(), m_loginuid);
 	if(user != nullptr) {
 		return user;
 	}
@@ -737,7 +779,6 @@ sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
 sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
-		ASSERT(false);
 		return NULL;
 	}
 	auto* res = fd_table_ptr->add(fd, std::move(fdinfo));
@@ -753,7 +794,6 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo>
 void sinsp_threadinfo::remove_fd(int64_t fd) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
-		ASSERT(false);
 		return;
 	}
 	fd_table_ptr->erase(fd);
@@ -762,7 +802,6 @@ void sinsp_threadinfo::remove_fd(int64_t fd) {
 bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor) {
 	sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
-		ASSERT(false);
 		return false;
 	}
 
@@ -772,7 +811,6 @@ bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor) 
 bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const {
 	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
-		ASSERT(false);
 		return false;
 	}
 
@@ -800,7 +838,6 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const {
 bool sinsp_threadinfo::uses_client_port(uint16_t number) const {
 	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
-		ASSERT(false);
 		return false;
 	}
 
@@ -1065,12 +1102,6 @@ void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_thread
 	} else {
 		cmdline = tinfo->m_cmd_line;
 	}
-}
-
-bool sinsp_threadinfo::is_health_probe() const {
-	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
-	        m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
-	        m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
 }
 
 std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
@@ -1708,6 +1739,25 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc() {
 		tinfo.fix_sockets_coming_from_proc();
 		return true;
 	});
+}
+
+void sinsp_thread_manager::load_foreign_fields_accessors() {
+	// Load "container_id" accessor
+	if(const auto dyn_field = dynamic_fields()->fields().find(s_container_id_field_name);
+	   dyn_field != dynamic_fields()->fields().end()) {
+		m_foreign_fields_accessors.emplace(s_container_id_field_name,
+		                                   dyn_field->second.new_accessor<std::string>());
+	}
+
+	auto containers = dynamic_cast<libsinsp::state::base_table*>(
+	        m_inspector->get_table_registry()->get_table<std::string>(
+	                sinsp_thread_manager::s_containers_table_name));
+	if(containers != nullptr) {
+		m_foreign_tables.emplace(sinsp_thread_manager::s_containers_table_name,
+		                         sinsp_table<std::string>(this, containers));
+	}
+
+	// Add other accessors/tables here
 }
 
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo) {
