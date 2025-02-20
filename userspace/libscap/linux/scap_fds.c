@@ -349,8 +349,7 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 		if(sockets == NULL) {
 			sockets = malloc(sizeof(struct scap_ns_socket_list));
 			if(sockets == NULL) {
-				snprintf(error, SCAP_LASTERR_SIZE, "sockets allocation error");
-				return SCAP_FAILURE;
+				return scap_errprintf(error, 0, "sockets allocation error");
 			}
 			sockets->net_ns = net_ns;
 			sockets->sockets = NULL;
@@ -358,15 +357,13 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 
 			HASH_ADD_INT64(*sockets_by_ns, net_ns, sockets);
 			if(uth_status != SCAP_SUCCESS) {
-				snprintf(error, SCAP_LASTERR_SIZE, "socket list allocation error");
 				free(sockets);
-				return SCAP_FAILURE;
+				return scap_errprintf(error, 0, "socket list allocation error");
 			}
 
 			if(scap_fd_read_sockets(procdir, sockets, fd_error) == SCAP_FAILURE) {
-				snprintf(error, SCAP_LASTERR_SIZE, "Cannot read sockets (%s)", fd_error);
 				sockets->sockets = NULL;
-				return SCAP_FAILURE;
+				return scap_errprintf(error, 0, "Cannot read sockets (%s)", fd_error);
 			}
 		}
 	}
@@ -436,9 +433,8 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(const char *filename,
 		}
 		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
 		if(fdinfo == NULL) {
-			snprintf(error, SCAP_LASTERR_SIZE, "fdinfo allocation error");
 			fclose(f);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "fdinfo allocation error");
 		}
 		fdinfo->type = SCAP_FD_UNIX_SOCK;
 
@@ -518,10 +514,9 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(const char *filename,
 
 		HASH_ADD_INT64((*sockets), ino, fdinfo);
 		if(uth_status != SCAP_SUCCESS) {
-			snprintf(error, SCAP_LASTERR_SIZE, "unix socket allocation error");
 			fclose(f);
 			free(fdinfo);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "unix socket allocation error");
 		}
 	}
 	fclose(f);
@@ -555,9 +550,8 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(const char *filename,
 		}
 		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
 		if(fdinfo == NULL) {
-			snprintf(error, SCAP_LASTERR_SIZE, "fdinfo allocation error");
 			fclose(f);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "fdinfo allocation error");
 		}
 		memset(fdinfo, 0, sizeof(scap_fdinfo));
 		fdinfo->type = SCAP_FD_UNIX_SOCK;
@@ -649,10 +643,9 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(const char *filename,
 
 		HASH_ADD_INT64((*sockets), ino, fdinfo);
 		if(uth_status != SCAP_SUCCESS) {
-			snprintf(error, SCAP_LASTERR_SIZE, "netlink socket allocation error");
 			fclose(f);
 			free(fdinfo);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "netlink socket allocation error");
 		}
 	}
 	fclose(f);
@@ -675,8 +668,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(const char *dir,
 
 	scan_buf = (char *)malloc(SOCKET_SCAN_BUFFER_SIZE);
 	if(scan_buf == NULL) {
-		snprintf(error, SCAP_LASTERR_SIZE, "scan_buf allocation error");
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "scan_buf allocation error");
 	}
 
 	f = fopen(dir, "r");
@@ -810,7 +802,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(const char *dir,
 
 			if(uth_status != SCAP_SUCCESS) {
 				uth_status = SCAP_FAILURE;
-				snprintf(error, SCAP_LASTERR_SIZE, "ipv4 socket allocation error");
+				scap_errprintf(error, 0, "ipv4 socket allocation error");
 				free(fdinfo);
 				break;
 			}
@@ -844,8 +836,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir,
 
 	scan_buf = (char *)malloc(SOCKET_SCAN_BUFFER_SIZE);
 	if(scan_buf == NULL) {
-		snprintf(error, SCAP_LASTERR_SIZE, "scan_buf allocation error");
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "scan_buf allocation error");
 	}
 
 	f = fopen(dir, "r");
@@ -1021,7 +1012,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir,
 
 			if(uth_status != SCAP_SUCCESS) {
 				uth_status = SCAP_FAILURE;
-				snprintf(error, SCAP_LASTERR_SIZE, "ipv6 socket allocation error");
+				return scap_errprintf(error, 0, "ipv6 socket allocation error");
 				break;
 			}
 
@@ -1056,40 +1047,35 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(filename, SCAP_L4_TCP, &sockets->sockets, err_buf) ==
 	   SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 tcp sockets (%s)", err_buf);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "Could not read ipv4 tcp sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(filename, SCAP_L4_UDP, &sockets->sockets, err_buf) ==
 	   SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 udp sockets (%s)", err_buf);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "Could not read ipv4 udp sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(filename, SCAP_L4_RAW, &sockets->sockets, err_buf) ==
 	   SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 raw sockets (%s)", err_buf);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "Could not read ipv4 raw sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sunix", netroot);
 	if(scap_fd_read_unix_sockets_from_proc_fs(filename, &sockets->sockets, err_buf) ==
 	   SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not read unix sockets (%s)", err_buf);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "Could not read unix sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%snetlink", netroot);
 	if(scap_fd_read_netlink_sockets_from_proc_fs(filename, &sockets->sockets, err_buf) ==
 	   SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not read netlink sockets (%s)", err_buf);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "Could not read netlink sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp6", netroot);
@@ -1100,8 +1086,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 		                                          &sockets->sockets,
 		                                          err_buf) == SCAP_FAILURE) {
 			scap_fd_free_table(&sockets->sockets);
-			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 tcp sockets (%s)", err_buf);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "Could not read ipv6 tcp sockets (%s)", err_buf);
 		}
 
 		snprintf(filename, sizeof(filename), "%sudp6", netroot);
@@ -1110,8 +1095,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 		                                          &sockets->sockets,
 		                                          err_buf) == SCAP_FAILURE) {
 			scap_fd_free_table(&sockets->sockets);
-			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 udp sockets (%s)", err_buf);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "Could not read ipv6 udp sockets (%s)", err_buf);
 		}
 
 		snprintf(filename, sizeof(filename), "%sraw6", netroot);
@@ -1120,8 +1104,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 		                                          &sockets->sockets,
 		                                          err_buf) == SCAP_FAILURE) {
 			scap_fd_free_table(&sockets->sockets);
-			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 raw sockets (%s)", err_buf);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "Could not read ipv6 raw sockets (%s)", err_buf);
 		}
 	}
 
@@ -1226,7 +1209,7 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
 	snprintf(fd_dir_name, sizeof(fd_dir_name), "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
 	if(dir_p == NULL) {
-		snprintf(error, SCAP_LASTERR_SIZE, "error opening the directory %s", fd_dir_name);
+		scap_errprintf(error, 0, "error opening the directory %s", fd_dir_name);
 		return SCAP_NOTFOUND;
 	}
 
