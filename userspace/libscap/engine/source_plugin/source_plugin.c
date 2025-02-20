@@ -30,6 +30,7 @@ limitations under the License.
 #include <libscap/scap-int.h>
 #include <libscap/strl.h>
 #include <libscap/scap_gettimeofday.h>
+#include <libscap/strerror.h>
 
 static const char* const source_plugin_counters_stats_names[] = {
         [N_EVTS] = "n_evts",
@@ -131,7 +132,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs) {
 
 	if(rc != SCAP_SUCCESS) {
 		const char* errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
+		scap_errprintf(handle->m_lasterr, 0, "%s", errstr);
 	}
 
 	return rc;
@@ -163,7 +164,7 @@ static int32_t next(struct scap_engine_handle engine,
 			   handle->m_input_plugin_last_batch_res != SCAP_EOF) {
 				const char* errstr =
 				        handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-				strlcpy(lasterr, errstr, SCAP_LASTERR_SIZE);
+				scap_errprintf(lasterr, 0, "%s", errstr);
 			}
 			int32_t tres = handle->m_input_plugin_last_batch_res;
 			handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
@@ -179,10 +180,10 @@ static int32_t next(struct scap_engine_handle engine,
 
 		if(handle->m_input_plugin_batch_nevts == 0) {
 			if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS) {
-				snprintf(lasterr,
-				         SCAP_LASTERR_SIZE,
-				         "unexpected 0 size event returned by plugin %s",
-				         handle->m_input_plugin->name);
+				scap_errprintf(lasterr,
+				               0,
+				               "unexpected 0 size event returned by plugin %s",
+				               handle->m_input_plugin->name);
 				ASSERT(false);
 				return SCAP_FAILURE;
 			} else {
@@ -190,7 +191,7 @@ static int32_t next(struct scap_engine_handle engine,
 				   handle->m_input_plugin_last_batch_res != SCAP_EOF) {
 					const char* errstr =
 					        handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-					snprintf(lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
+					scap_errprintf(lasterr, 0, "%s", errstr);
 				}
 				return handle->m_input_plugin_last_batch_res;
 			}
@@ -216,11 +217,10 @@ static int32_t next(struct scap_engine_handle engine,
 		 * PPME_PLUGINEVENT_E has EF_LARGE_PAYLOAD flag!
 		 */
 		if(scap_event_get_type(evt) != PPME_PLUGINEVENT_E || scap_event_get_nparams(evt) != 2) {
-			snprintf(lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "malformed plugin event produced by plugin: '%s'",
-			         handle->m_input_plugin->name);
-			return SCAP_FAILURE;
+			return scap_errprintf(lasterr,
+			                      0,
+			                      "malformed plugin event produced by plugin: '%s'",
+			                      handle->m_input_plugin->name);
 		}
 
 		// forcely setting plugin ID with the one of the open plugin
@@ -228,25 +228,24 @@ static int32_t next(struct scap_engine_handle engine,
 			plugin_id = handle->m_input_plugin->id;
 			memcpy(pplugin_id, &plugin_id, sizeof(plugin_id));
 		} else if(plugin_id != handle->m_input_plugin->id) {
-			snprintf(lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "unexpected plugin ID in plugin event: plugin='%s', expected_id=%d, "
-			         "actual_id=%d",
-			         handle->m_input_plugin->name,
-			         handle->m_input_plugin->id,
-			         plugin_id);
-			return SCAP_FAILURE;
+			return scap_errprintf(
+			        lasterr,
+			        0,
+			        "unexpected plugin ID in plugin event: plugin='%s', expected_id=%d, "
+			        "actual_id=%d",
+			        handle->m_input_plugin->name,
+			        handle->m_input_plugin->id,
+			        plugin_id);
 		}
 	}
 
 	if(scap_event_get_type(evt) == PPME_PLUGINEVENT_E) {
 		// a zero plugin ID is not allowed for PPME_PLUGINEVENT_E
 		if(plugin_id == 0) {
-			snprintf(lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "malformed plugin event produced by plugin (no ID): '%s'",
-			         handle->m_input_plugin->name);
-			return SCAP_FAILURE;
+			return scap_errprintf(lasterr,
+			                      0,
+			                      "malformed plugin event produced by plugin (no ID): '%s'",
+			                      handle->m_input_plugin->name);
 		}
 
 		// plugin events have no thread associated
