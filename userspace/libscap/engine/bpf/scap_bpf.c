@@ -718,21 +718,21 @@ static int32_t load_bpf_file(struct bpf_engine *handle) {
 			symbols = data;
 		} else if(strcmp(shname, "kernel_version") == 0) {
 			if(strcmp(osname.release, data->d_buf)) {
-				snprintf(handle->m_lasterr,
-				         SCAP_LASTERR_SIZE,
-				         "BPF probe is compiled for %s, but running version is %s",
-				         (char *)data->d_buf,
-				         osname.release);
+				scap_errprintf(handle->m_lasterr,
+				               0,
+				               "BPF probe is compiled for %s, but running version is %s",
+				               (char *)data->d_buf,
+				               osname.release);
 				goto end;
 			}
 		} else if(strcmp(shname, "license") == 0) {
 			license = data->d_buf;
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe license is %s", license);
+			scap_errprintf(handle->m_lasterr, 0, "BPF probe license is %s", license);
 		}
 	}
 
 	if(!symbols) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing SHT_SYMTAB section");
+		scap_errprintf(handle->m_lasterr, 0, "missing SHT_SYMTAB section");
 		goto end;
 	}
 
@@ -1356,8 +1356,8 @@ static int32_t set_runtime_params(struct bpf_engine *handle) {
 
 	FILE *f = fopen("/proc/sys/net/core/bpf_jit_enable", "w");
 	if(!f) {
-		// snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open
-		// /proc/sys/net/core/bpf_jit_enable"); return SCAP_FAILURE;
+		// return scap_errprintf(handle->m_lasterr, 0, "Can't open
+		// /proc/sys/net/core/bpf_jit_enable");
 
 		// Not every kernel has BPF_JIT enabled. Fix this after COS changes.
 		return SCAP_SUCCESS;
@@ -1875,13 +1875,6 @@ static int32_t next(struct scap_engine_handle engine,
 	return ringbuffer_next(&HANDLE(engine)->m_dev_set, pevent, pdevid, pflags);
 }
 
-static int32_t unsupported_config(struct scap_engine_handle engine, const char *msg) {
-	struct bpf_engine *handle = engine.m_handle;
-
-	strlcpy(handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
-	return SCAP_FAILURE;
-}
-
 static int32_t scap_bpf_handle_dropfailed(struct scap_engine_handle engine, bool drop_failed) {
 	struct bpf_engine *handle = engine.m_handle;
 	struct scap_bpf_settings settings;
@@ -1943,9 +1936,13 @@ static int32_t configure(struct scap_engine_handle engine,
 	case SCAP_STATSD_PORT:
 		return scap_bpf_set_statsd_port(engine, arg1);
 	default: {
-		char msg[SCAP_LASTERR_SIZE];
-		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
-		return unsupported_config(engine, msg);
+		struct bpf_engine *handle = engine.m_handle;
+		return scap_errprintf(handle->m_lasterr,
+		                      0,
+		                      "Unsupported setting %d (args %lu, %lu)",
+		                      setting,
+		                      arg1,
+		                      arg2);
 	}
 	}
 }
@@ -2000,12 +1997,12 @@ static int32_t load_api_versions(struct bpf_engine *handle) {
 	}
 
 	if(handle->m_api_version == 0) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing api_version section");
+		scap_errprintf(handle->m_lasterr, 0, "missing api_version section");
 		goto end;
 	}
 
 	if(handle->m_schema_version == 0) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing schema_version section");
+		scap_errprintf(handle->m_lasterr, 0, "missing schema_version section");
 		goto end;
 	}
 	return SCAP_SUCCESS;

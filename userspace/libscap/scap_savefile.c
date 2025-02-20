@@ -35,6 +35,7 @@ struct iovec {
 #include <libscap/scap_savefile_api.h>
 #include <libscap/scap_savefile.h>
 #include <libscap/strl.h>
+#include <libscap/strerror.h>
 
 const char *scap_dump_getlasterr(scap_dumper_t *d) {
 	return d ? d->m_lasterr : "null dumper";
@@ -201,8 +202,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 	   scap_dump_write(d, &(fdi->fd), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	   scap_dump_write(d, &(fdi->ino), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	   scap_dump_write(d, &(type), sizeof(uint8_t)) != sizeof(uint8_t)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi1)");
 	}
 
 	switch(fdi->type) {
@@ -212,8 +212,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		   scap_dump_write(d, &(fdi->info.ipv4info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   scap_dump_write(d, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   scap_dump_write(d, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi2)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi2)");
 		}
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
@@ -223,8 +222,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		           sizeof(uint16_t) ||
 		   scap_dump_write(d, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) !=
 		           sizeof(uint8_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi3)");
 		}
 		break;
 	case SCAP_FD_IPV6_SOCK:
@@ -235,7 +233,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		   scap_dump_write(d, &(fdi->info.ipv6info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   scap_dump_write(d, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   scap_dump_write(d, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi7)");
+			scap_errprintf(d->m_lasterr, 0, "error writing to file (fi7)");
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
@@ -245,7 +243,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		           sizeof(uint16_t) ||
 		   scap_dump_write(d, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) !=
 		           sizeof(uint8_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi8)");
+			scap_errprintf(d->m_lasterr, 0, "error writing to file (fi8)");
 		}
 		break;
 	case SCAP_FD_UNIX_SOCK:
@@ -253,31 +251,26 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		           sizeof(uint64_t) ||
 		   scap_dump_write(d, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) !=
 		           sizeof(uint64_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi4)");
 		}
 		stlen = (uint16_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   (stlen > 0 && scap_dump_write(d, fdi->info.unix_socket_info.fname, stlen) != stlen)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi5)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi5)");
 		}
 		break;
 	case SCAP_FD_FILE_V2:
 		if(scap_dump_write(d, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) !=
 		   sizeof(uint32_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi1)");
 		}
 		stlen = (uint16_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   (stlen > 0 && scap_dump_write(d, fdi->info.regularinfo.fname, stlen) != stlen)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi1)");
 		}
 		if(scap_dump_write(d, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (dev)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (dev)");
 		}
 		break;
 	case SCAP_FD_FIFO:
@@ -298,8 +291,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		stlen = (uint16_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   (stlen > 0 && scap_dump_write(d, fdi->info.fname, stlen) != stlen)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi6)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (fi6)");
 		}
 		break;
 	case SCAP_FD_UNKNOWN:
@@ -307,7 +299,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 		ASSERT(false);
 		break;
 	default:
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "Unknown fdi type %d", fdi->type);
+		scap_errprintf(d->m_lasterr, 0, "Unknown fdi type %d", fdi->type);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -325,8 +317,7 @@ int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo) {
 
 	uint32_t *lengths = calloc(HASH_COUNT(tinfo->fdlist), sizeof(uint32_t));
 	if(lengths == NULL) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_proc_fds memory allocation failure");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "scap_write_proc_fds memory allocation failure");
 	}
 
 	//
@@ -349,8 +340,7 @@ int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo) {
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh)) {
 		free(lengths);
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (fd1)");
 	}
 
 	//
@@ -358,8 +348,7 @@ int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo) {
 	//
 	if(scap_dump_write(d, &tinfo->tid, sizeof(tinfo->tid)) != sizeof(tinfo->tid)) {
 		free(lengths);
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd2)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (fd2)");
 	}
 
 	//
@@ -380,8 +369,7 @@ int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo) {
 	// Add the padding
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd3)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (fd3)");
 	}
 
 	//
@@ -389,8 +377,7 @@ int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo) {
 	//
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd4)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (fd4)");
 	}
 
 	return SCAP_SUCCESS;
@@ -438,8 +425,7 @@ static int32_t scap_write_proclist_header(scap_dumper_t *d, uint32_t totlen) {
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (1)");
 	}
 
 	return SCAP_SUCCESS;
@@ -459,8 +445,7 @@ static int32_t scap_write_proclist_trailer(scap_dumper_t *d, uint32_t totlen) {
 	// Blocks need to be 4-byte padded
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (3)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (3)");
 	}
 
 	//
@@ -468,8 +453,7 @@ static int32_t scap_write_proclist_trailer(scap_dumper_t *d, uint32_t totlen) {
 	//
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (4)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (4)");
 	}
 
 	return SCAP_SUCCESS;
@@ -656,8 +640,7 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d,
 	   scap_dump_write(d, &(tinfo->exe_from_memfd), sizeof(uint8_t)) != sizeof(uint8_t) ||
 	   scap_dump_write(d, &(tinfo->exe_lower_layer), sizeof(uint8_t)) != sizeof(uint8_t) ||
 	   scap_dump_write(d, &(tinfo->pgid), sizeof(int64_t)) != sizeof(int64_t)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (2)");
 	}
 
 	return SCAP_SUCCESS;
@@ -718,8 +701,7 @@ static int32_t scap_write_machine_info(scap_dumper_t *d, scap_machine_info *mach
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
 	   scap_dump_write(d, machine_info, sizeof(*machine_info)) != sizeof(*machine_info) ||
 	   scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (MI1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (MI1)");
 	}
 
 	return SCAP_SUCCESS;
@@ -756,8 +738,7 @@ static int32_t scap_write_iflist(scap_dumper_t *d, scap_addrlist *addrlist) {
 	                                                 addrlist->totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF1)");
 	}
 
 	//
@@ -776,8 +757,7 @@ static int32_t scap_write_iflist(scap_dumper_t *d, scap_addrlist *addrlist) {
 		   scap_dump_write(d, &(entry->bcast), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		   scap_dump_write(d, &(entry->linkspeed), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		   scap_dump_write(d, &(entry->ifname), entry->ifnamelen) != entry->ifnamelen) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF2)");
 		}
 
 		totlen += sizeof(uint32_t) + entrylen;
@@ -799,8 +779,7 @@ static int32_t scap_write_iflist(scap_dumper_t *d, scap_addrlist *addrlist) {
 		   scap_dump_write(d, &(entry->bcast), SCAP_IPV6_ADDR_LEN) != SCAP_IPV6_ADDR_LEN ||
 		   scap_dump_write(d, &(entry->linkspeed), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		   scap_dump_write(d, &(entry->ifname), entry->ifnamelen) != entry->ifnamelen) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF2)");
 		}
 
 		totlen += sizeof(uint32_t) + entrylen;
@@ -810,8 +789,7 @@ static int32_t scap_write_iflist(scap_dumper_t *d, scap_addrlist *addrlist) {
 	// Blocks need to be 4-byte padded
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF3)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF3)");
 	}
 
 	//
@@ -819,8 +797,7 @@ static int32_t scap_write_iflist(scap_dumper_t *d, scap_addrlist *addrlist) {
 	//
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF4)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF4)");
 	}
 
 	return SCAP_SUCCESS;
@@ -852,10 +829,7 @@ static int32_t scap_write_userlist(scap_dumper_t *d, struct scap_userlist *userl
 
 	uint32_t *lengths = calloc(userlist->nusers + userlist->ngroups, sizeof(uint32_t));
 	if(lengths == NULL) {
-		snprintf(d->m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "scap_write_userlist memory allocation failure (1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "scap_write_userlist memory allocation failure (1)");
 	}
 
 	//
@@ -896,8 +870,7 @@ static int32_t scap_write_userlist(scap_dumper_t *d, struct scap_userlist *userl
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh)) {
 		free(lengths);
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF1)");
 	}
 
 	//
@@ -922,8 +895,7 @@ static int32_t scap_write_userlist(scap_dumper_t *d, struct scap_userlist *userl
 		   scap_dump_write(d, &shelllen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   scap_dump_write(d, info->shell, shelllen) != shelllen) {
 			free(lengths);
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U1)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (U1)");
 		}
 	}
 
@@ -943,8 +915,7 @@ static int32_t scap_write_userlist(scap_dumper_t *d, struct scap_userlist *userl
 		   scap_dump_write(d, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		   scap_dump_write(d, info->name, namelen) != namelen) {
 			free(lengths);
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U2)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (U2)");
 		}
 	}
 
@@ -954,8 +925,7 @@ static int32_t scap_write_userlist(scap_dumper_t *d, struct scap_userlist *userl
 	// Blocks need to be 4-byte padded
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF3)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF3)");
 	}
 
 	//
@@ -963,8 +933,7 @@ static int32_t scap_write_userlist(scap_dumper_t *d, struct scap_userlist *userl
 	//
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF4)");
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file (IF4)");
 	}
 
 	return SCAP_SUCCESS;
@@ -996,8 +965,7 @@ static int32_t scap_setup_dump(scap_dumper_t *d,
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
 	   scap_dump_write(d, &sh, sizeof(sh)) != sizeof(sh) ||
 	   scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file %s  (5)", fname);
-		return SCAP_FAILURE;
+		return scap_errprintf(d->m_lasterr, 0, "error writing to file %s  (5)", fname);
 	}
 
 	if(platform) {
@@ -1056,7 +1024,7 @@ static scap_dumper_t *scap_dump_open_gzfile(struct scap_platform *platform,
 	res->m_targetbufend = NULL;
 
 	if(scap_setup_dump(res, platform, fname) != SCAP_SUCCESS) {
-		strlcpy(lasterr, res->m_lasterr, SCAP_LASTERR_SIZE);
+		scap_errprintf(lasterr, 0, "%s", res->m_lasterr);
 		free(res);
 		res = NULL;
 	}
@@ -1084,7 +1052,7 @@ scap_dumper_t *scap_dump_open(struct scap_platform *platform,
 		break;
 	default:
 		ASSERT(false);
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "invalid compression mode");
+		scap_errprintf(lasterr, 0, "invalid compression mode");
 		return NULL;
 	}
 
@@ -1109,7 +1077,7 @@ scap_dumper_t *scap_dump_open(struct scap_platform *platform,
 		}
 #endif
 
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
+		scap_errprintf(lasterr, 0, "can't open %s", fname);
 		return NULL;
 	}
 
@@ -1134,12 +1102,12 @@ scap_dumper_t *scap_dump_open_fd(struct scap_platform *platform,
 		break;
 	default:
 		ASSERT(false);
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "invalid compression mode");
+		scap_errprintf(lasterr, 0, "invalid compression mode");
 		return NULL;
 	}
 
 	if(f == NULL) {
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "can't open fd %d", fd);
+		scap_errprintf(lasterr, 0, "can't open fd %d", fd);
 		return NULL;
 	}
 
@@ -1155,7 +1123,7 @@ scap_dumper_t *scap_memory_dump_open(struct scap_platform *platform,
                                      char *lasterr) {
 	scap_dumper_t *res = (scap_dumper_t *)malloc(sizeof(scap_dumper_t));
 	if(res == NULL) {
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "scap_dump_memory_open memory allocation failure (1)");
+		scap_errprintf(lasterr, 0, "scap_dump_memory_open memory allocation failure (1)");
 		return NULL;
 	}
 
@@ -1166,7 +1134,7 @@ scap_dumper_t *scap_memory_dump_open(struct scap_platform *platform,
 	res->m_targetbufend = targetbuf + targetbufsize;
 
 	if(scap_setup_dump(res, platform, "") != SCAP_SUCCESS) {
-		strlcpy(lasterr, res->m_lasterr, SCAP_LASTERR_SIZE);
+		scap_errprintf(lasterr, 0, "%s", res->m_lasterr);
 		free(res);
 		res = NULL;
 	}
@@ -1253,8 +1221,7 @@ int32_t scap_dump(scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags)
 		   scap_dump_write(d, e, e->len) != e->len ||
 		   scap_write_padding(d, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
 		   scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (6)");
 		}
 	} else {
 		//
@@ -1271,8 +1238,7 @@ int32_t scap_dump(scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags)
 		   scap_dump_write(d, e, e->len) != e->len ||
 		   scap_write_padding(d, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
 		   scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt)) {
-			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (7)");
-			return SCAP_FAILURE;
+			return scap_errprintf(d->m_lasterr, 0, "error writing to file (7)");
 		}
 	}
 

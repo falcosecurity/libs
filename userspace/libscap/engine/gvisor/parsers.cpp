@@ -61,6 +61,8 @@ limitations under the License.
 #include "pkg/sentry/seccheck/points/sentry.pb.h"
 #include "pkg/sentry/seccheck/points/container.pb.h"
 
+#include <libscap/strerror.h>
+
 namespace scap_gvisor {
 namespace parsers {
 
@@ -87,7 +89,7 @@ static void fill_context_data(scap_evt *evt, T &gvisor_evt, uint32_t id) {
 }
 
 static int32_t process_unhandled_syscall(uint64_t sysno, char *error_buf) {
-	snprintf(error_buf, SCAP_LASTERR_SIZE, "Unhandled syscall: %s", std::to_string(sysno).c_str());
+	scap_errprintf(error_buf, 0, "Unhandled syscall: %s", std::to_string(sysno).c_str());
 	return SCAP_NOT_SUPPORTED;
 }
 

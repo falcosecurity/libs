@@ -27,6 +27,7 @@ limitations under the License.
 #include <stdexcept>
 #include <memory>
 #include <libscap/scap-int.h>
+#include <libscap/strerror.h>
 
 typedef std::shared_ptr<scap_evt> safe_scap_evt_t;
 
@@ -311,10 +312,10 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
                                        char *error) {
 	// todo!: add the support for large payload events if we need to handle at least one of them.
 	if(is_large_payload(evt_to_convert)) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "The event '%d' has a large payload. We don't support it yet.",
-		         evt_to_convert->type);
+		scap_errprintf(error,
+		               0,
+		               "The event '%d' has a large payload. We don't support it yet.",
+		               evt_to_convert->type);
 		return CONVERSION_ERROR;
 	}
 
@@ -353,7 +354,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 		break;
 
 	default:
-		snprintf(error, SCAP_LASTERR_SIZE, "Unhandled conversion action '%d'.", ci.m_action);
+		scap_errprintf(error, 0, "Unhandled conversion action '%d'.", ci.m_action);
 		return CONVERSION_ERROR;
 	}
 
@@ -389,13 +390,14 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 			// todo!: undestand if we can pretend this is an error or it is a normal situation.
 			if(tmp_evt->type != evt_to_convert->type - 1) {
-				snprintf(error,
-				         SCAP_LASTERR_SIZE,
-				         "The enter event for '%s_%c' is not the right one! Event found '%s_%c'.",
-				         get_event_name((ppm_event_code)evt_to_convert->type),
-				         get_direction_char((ppm_event_code)evt_to_convert->type),
-				         get_event_name((ppm_event_code)tmp_evt->type),
-				         get_direction_char((ppm_event_code)tmp_evt->type));
+				scap_errprintf(
+				        error,
+				        0,
+				        "The enter event for '%s_%c' is not the right one! Event found '%s_%c'.",
+				        get_event_name((ppm_event_code)evt_to_convert->type),
+				        get_direction_char((ppm_event_code)evt_to_convert->type),
+				        get_event_name((ppm_event_code)tmp_evt->type),
+				        get_direction_char((ppm_event_code)tmp_evt->type));
 				return CONVERSION_ERROR;
 			}
 			break;
@@ -405,23 +407,24 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 			if(tmp_evt->nparams <= ci.m_instrs[i].param_num) {
 				// todo!: this sounds like an error but let's see in the future. At the moment we
 				// fail
-				snprintf(error,
-				         SCAP_LASTERR_SIZE,
-				         "We want to take parameter '%d' from event '%d' but this event has only "
-				         "'%d' parameters!",
-				         ci.m_instrs[i].param_num,
-				         tmp_evt->type,
-				         tmp_evt->nparams);
+				scap_errprintf(
+				        error,
+				        0,
+				        "We want to take parameter '%d' from event '%d' but this event has only "
+				        "'%d' parameters!",
+				        ci.m_instrs[i].param_num,
+				        tmp_evt->type,
+				        tmp_evt->nparams);
 				return CONVERSION_ERROR;
 			}
 			break;
 
 		default:
-			snprintf(error,
-			         SCAP_LASTERR_SIZE,
-			         "Unknown instruction (flags: %d, param_num: %d).",
-			         ci.m_instrs[i].flags,
-			         ci.m_instrs[i].param_num);
+			scap_errprintf(error,
+			               0,
+			               "Unknown instruction (flags: %d, param_num: %d).",
+			               ci.m_instrs[i].flags,
+			               ci.m_instrs[i].param_num);
 			return CONVERSION_ERROR;
 		}
 
@@ -457,22 +460,23 @@ extern "C" conversion_result scap_convert_event(struct scap_convert_buffer *buf,
                                                 char *error) {
 	// This should be checked by the caller but just double check here
 	if(!is_conversion_needed(evt_to_convert)) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Conversion not needed for event type '%d' nparams '%d'. Please double check",
-		         evt_to_convert->type,
-		         evt_to_convert->nparams);
+		scap_errprintf(
+		        error,
+		        0,
+		        "Conversion not needed for event type '%d' nparams '%d'. Please double check",
+		        evt_to_convert->type,
+		        evt_to_convert->nparams);
 		return CONVERSION_ERROR;
 	}
 
 	// If we need a conversion but we don't have an entry in the table we have an error.
 	auto conv_key = conversion_key{evt_to_convert->type, (uint8_t)evt_to_convert->nparams};
 	if(g_conversion_table.find(conv_key) == g_conversion_table.end()) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Event '%d' has '%d' parameters, but we don't handle it in the table.",
-		         evt_to_convert->type,
-		         evt_to_convert->nparams);
+		scap_errprintf(error,
+		               0,
+		               "Event '%d' has '%d' parameters, but we don't handle it in the table.",
+		               evt_to_convert->type,
+		               evt_to_convert->nparams);
 		return CONVERSION_ERROR;
 	}
 

@@ -125,11 +125,13 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine,
 		pman_set_statsd_port(arg1);
 		break;
 	default: {
-		char msg[SCAP_LASTERR_SIZE];
-		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
 		struct modern_bpf_engine* handle = engine.m_handle;
-		strlcpy(handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr,
+		                      0,
+		                      "Unsupported setting %d (args %lu, %lu)",
+		                      setting,
+		                      arg1,
+		                      arg2);
 	}
 	}
 
@@ -253,8 +255,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs) {
 	                   params->buffer_bytes_dim,
 	                   params->cpus_for_each_buffer,
 	                   params->allocate_online_only)) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "unable to configure the libpman state.");
 	}
 
 	/* Set an initial sleep time in case of timeouts. */

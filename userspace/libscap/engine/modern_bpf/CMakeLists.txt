@@ -55,6 +55,7 @@ add_subdirectory(${LIBS_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
 
 add_library(scap_engine_modern_bpf scap_modern_bpf.c)
 
-target_link_libraries(scap_engine_modern_bpf PRIVATE pman scap_engine_util scap_engine_noop)
-
+target_link_libraries(
+	scap_engine_modern_bpf PRIVATE pman scap_engine_util scap_engine_noop scap_error
+)
 set_scap_target_properties(scap_engine_modern_bpf)
