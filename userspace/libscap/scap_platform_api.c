@@ -20,9 +20,9 @@ limitations under the License.
 
 #include <libscap/scap_platform_api.h>
 #include <libscap/scap_platform_impl.h>
-
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>
+#include <libscap/strerror.h>
 
 scap_addrlist* scap_get_ifaddr_list(struct scap_platform* platform) {
 	if(platform) {
@@ -135,7 +135,7 @@ struct ppm_proclist_info* scap_get_threadlist(struct scap_platform* platform, ch
 		return NULL;
 	}
 
-	snprintf(error, SCAP_LASTERR_SIZE, "operation not supported");
+	scap_err_opnotsup(error);
 	return NULL;
 }
 
@@ -146,8 +146,7 @@ int32_t scap_get_fdlist(struct scap_platform* platform,
 		return platform->m_vtable->get_fdlist(platform, tinfo, error);
 	}
 
-	snprintf(error, SCAP_LASTERR_SIZE, "operation not supported");
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(error);
 }
 
 int32_t scap_get_fdinfo(struct scap_platform* platform,
@@ -158,6 +157,5 @@ int32_t scap_get_fdinfo(struct scap_platform* platform,
 		return platform->m_vtable->get_fdinfo(platform, tinfo, fd, error);
 	}
 
-	snprintf(error, SCAP_LASTERR_SIZE, "operation not supported");
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(error);
 }

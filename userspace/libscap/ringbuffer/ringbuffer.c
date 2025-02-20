@@ -23,6 +23,7 @@ limitations under the License.
 #include <unistd.h>
 #include <libscap/scap.h>
 #include <driver/ppm_ringbuffer.h>
+#include <libscap/strerror.h>
 
 int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim) {
 	/* If you face some memory allocation issues, please remember that:
@@ -47,22 +48,20 @@ int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim) {
 	unsigned long page_size = sysconf(_SC_PAGESIZE);
 	if(page_size == SCAP_FAILURE) {
 		if(last_err != NULL) {
-			snprintf(last_err,
-			         SCAP_LASTERR_SIZE,
-			         "unable to get the system page size: %s",
-			         strerror(errno));
+			scap_errprintf(last_err, errno, "unable to get the system page size");
 		}
 		return SCAP_FAILURE;
 	}
 
 	if(!validate_buffer_bytes_dim(buf_bytes_dim, page_size)) {
 		if(last_err != NULL) {
-			snprintf(last_err,
-			         SCAP_LASTERR_SIZE,
-			         "the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use "
-			         "a power of 2 and a multiple of the actual page_size (%lu)!",
-			         buf_bytes_dim,
-			         page_size);
+			scap_errprintf(
+			        last_err,
+			        0,
+			        "the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use "
+			        "a power of 2 and a multiple of the actual page_size (%lu)!",
+			        buf_bytes_dim,
+			        page_size);
 		}
 		return SCAP_FAILURE;
 	}

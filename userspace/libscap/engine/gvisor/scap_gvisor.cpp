@@ -31,6 +31,7 @@ limitations under the License.
 #include <libscap/engine/gvisor/gvisor.h>
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
+#include <libscap/strerror.h>
 #include <libscap/strl.h>
 #include <libscap/engine/gvisor/scap_gvisor_stats.h>
 
@@ -113,8 +114,7 @@ int32_t engine::init(std::string config_path,
 	}
 
 	if(platform == nullptr) {
-		strlcpy(m_lasterr, "A platform is required for gVisor", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, 0, "A platform is required for gVisor");
 	}
 	m_platform = platform;
 
@@ -122,37 +122,34 @@ int32_t engine::init(std::string config_path,
 
 	std::ifstream config_file(config_path);
 	if(config_file.fail()) {
-		snprintf(m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "Could not open gVisor configuration file %s",
-		         config_path.c_str());
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr,
+		                      0,
+		                      "Could not open gVisor configuration file %s",
+		                      config_path.c_str());
 	}
 	std::stringstream config_buf;
 	config_buf << config_file.rdbuf();
 
 	parsers::config_result config_result = parsers::parse_config(config_buf.str());
 	if(config_result.status != SCAP_SUCCESS) {
-		snprintf(m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "Could not parse gVisor configuration file %s : %s",
-		         config_path.c_str(),
-		         config_result.error.c_str());
+		scap_errprintf(m_lasterr,
+		               0,
+		               "Could not parse gVisor configuration file %s : %s",
+		               config_path.c_str(),
+		               config_result.error.c_str());
 		return config_result.status;
 	}
 
 	// Check if runsc is installed in the system
 	runsc::result version = runsc::version();
 	if(version.error) {
-		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, 0, "Cannot find runsc binary");
 	}
 
 	// Initialize the listen fd
 	m_socket_path = config_result.socket_path;
 	if(m_socket_path.empty()) {
-		strlcpy(m_lasterr, "Empty gVisor socket path", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, 0, "Empty gVisor socket path");
 	}
 
 	m_no_events = no_events;
@@ -164,8 +161,7 @@ int32_t engine::init(std::string config_path,
 
 	int sock = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if(sock == -1) {
-		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create unix socket: %s", strerror(errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, errno, "Cannot create unix socket");
 	}
 	sockaddr_un address;
 	memset(&address, 0, sizeof(address));
@@ -175,7 +171,7 @@ int32_t engine::init(std::string config_path,
 	unsigned long old_umask = umask(0);
 	int ret = bind(sock, (sockaddr *)&address, sizeof(address));
 	if(ret == -1) {
-		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot bind unix socket: %s", strerror(errno));
+		scap_errprintf(m_lasterr, errno, "Cannot bind unix socket");
 		umask(old_umask);
 		return SCAP_FAILURE;
 	}
@@ -183,11 +179,7 @@ int32_t engine::init(std::string config_path,
 	ret = listen(sock, listen_backlog_size);
 	if(ret == -1) {
 		umask(old_umask);
-		snprintf(m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "Cannot listen on gvisor unix socket: %s",
-		         strerror(errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, errno, "Cannot listen on gvisor unix socket");
 	}
 
 	umask(old_umask);
@@ -196,8 +188,7 @@ int32_t engine::init(std::string config_path,
 	// Initialize the epoll fd
 	m_epollfd = epoll_create(1);
 	if(m_epollfd == -1) {
-		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create epollfd socket: %s", strerror(errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, errno, "Cannot create epollfd socket");
 	}
 
 	return SCAP_SUCCESS;
@@ -279,8 +270,7 @@ int32_t engine::start_capture() {
 	//
 	runsc::result exisiting_sandboxes_res = runsc::list(m_root_path);
 	if(exisiting_sandboxes_res.error) {
-		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, 0, "Error listing running sandboxes");
 	}
 	std::vector<std::string> &existing_sandboxes = exisiting_sandboxes_res.output;
 
@@ -303,8 +293,7 @@ int32_t engine::start_capture() {
 	// Catch all sandboxes that might have been created in the meantime
 	runsc::result new_sandboxes_res = runsc::list(m_root_path);
 	if(new_sandboxes_res.error) {
-		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, 0, "Error listing running sandboxes");
 	}
 	std::vector<std::string> &new_sandboxes = new_sandboxes_res.output;
 
@@ -342,19 +331,17 @@ int32_t engine::stop_capture() {
 
 	runsc::result sandboxes_res = runsc::list(m_root_path);
 	if(sandboxes_res.error) {
-		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, 0, "Error listing running sandboxes");
 	}
 	std::vector<std::string> &sandboxes = sandboxes_res.output;
 	for(const auto &sandbox : sandboxes) {
 		// todo(loresuso): change session name when gVisor will support it
 		runsc::result trace_delete_res = runsc::trace_delete(m_root_path, "Default", sandbox);
 		if(trace_delete_res.error) {
-			snprintf(m_lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "Cannot delete session for sandbox %s",
-			         sandbox.c_str());
-			return SCAP_FAILURE;
+			return scap_errprintf(m_lasterr,
+			                      0,
+			                      "Cannot delete session for sandbox %s",
+			                      sandbox.c_str());
 		}
 	}
 
@@ -414,11 +401,7 @@ int32_t engine::process_message_from_fd(int fd) {
 
 	ssize_t nbytes = read(fd, message, max_message_size);
 	if(nbytes == -1) {
-		snprintf(m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "Error reading from gvisor client: %s",
-		         strerror(errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(m_lasterr, errno, "Error reading from gvisor client");
 	} else if(nbytes == 0) {
 		return SCAP_EOF;
 	}
@@ -430,21 +413,20 @@ int32_t engine::process_message_from_fd(int fd) {
 	if(m_sandbox_data.count(fd) != 1) {
 		m_sandbox_data.emplace(fd, sandbox_entry{});
 		if(m_sandbox_data[fd].expand_buffer(initial_event_buffer_size) == SCAP_FAILURE) {
-			snprintf(m_lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "could not initialize %zu bytes for gvisor sandbox on fd %d",
-			         initial_event_buffer_size,
-			         fd);
-			return SCAP_FAILURE;
+			return scap_errprintf(m_lasterr,
+			                      0,
+			                      "could not initialize %zu bytes for gvisor sandbox on fd %d",
+			                      initial_event_buffer_size,
+			                      fd);
 		}
 
 		std::string container_id = parsers::parse_container_id(gvisor_msg);
 		if(container_id == "") {
-			snprintf(m_lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "could not initialize sandbox on fd %d: could not parse container ID",
-			         fd);
-			return SCAP_FAILURE;
+			return scap_errprintf(
+			        m_lasterr,
+			        0,
+			        "could not initialize sandbox on fd %d: could not parse container ID",
+			        fd);
 		}
 
 		m_sandbox_data[fd].m_container_id = container_id;
@@ -456,22 +438,21 @@ int32_t engine::process_message_from_fd(int fd) {
 	        parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
 	if(parse_result.status == SCAP_INPUT_TOO_SMALL) {
 		if(m_sandbox_data[fd].expand_buffer(parse_result.size) == SCAP_FAILURE) {
-			snprintf(m_lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "Cannot realloc gvisor buffer to %zu",
-			         parse_result.size);
-			return SCAP_FAILURE;
+			return scap_errprintf(m_lasterr,
+			                      0,
+			                      "Cannot realloc gvisor buffer to %zu",
+			                      parse_result.size);
 		}
 		parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
 	}
 
 	if(parse_result.status == SCAP_NOT_SUPPORTED) {
-		strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
+		scap_errprintf(m_lasterr, 0, "%s", parse_result.error.c_str());
 		return SCAP_NOT_SUPPORTED;
 	}
 
 	if(parse_result.status == SCAP_FAILURE) {
-		strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
+		scap_errprintf(m_lasterr, 0, "%s", parse_result.error.c_str());
 		return SCAP_ILLEGAL_INPUT;
 	}
 
@@ -520,7 +501,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags) {
 
 	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, m_epoll_timeout);
 	if(nfds < 0) {
-		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll_wait error: %s", strerror(errno));
+		scap_errprintf(m_lasterr, errno, "epoll_wait error");
 		if(errno == EINTR) {
 			// Syscall interrupted.
 			return SCAP_TIMEOUT;
@@ -559,8 +540,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags) {
 			int socket_error = 0;
 			socklen_t len = sizeof(socket_error);
 			if(getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &len)) {
-				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll error: %s", strerror(socket_error));
-				return SCAP_FAILURE;
+				return scap_errprintf(m_lasterr, socket_error, "epoll error");
 			}
 		}
 	}

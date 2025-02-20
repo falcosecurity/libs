@@ -27,6 +27,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <libscap/strerror.h>
 
 #define SECOND_TO_NS 1000000000ULL
 
@@ -134,9 +135,7 @@ int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	if(snprintf(filename, sizeof(filename), "%s/proc/", scap_get_host_root()) < 0) {
 		if(lasterr != NULL) {
-			snprintf(lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "unable to build the `/proc` path with 'snprintf'\n");
+			scap_errprintf(lasterr, 0, "unable to build the `/proc` path with 'snprintf'\n");
 		}
 		return SCAP_FAILURE;
 	}
@@ -144,11 +143,11 @@ int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 	struct stat targetstat = {0};
 	if(stat(filename, &targetstat) != 0) {
 		if(lasterr != NULL) {
-			snprintf(lasterr,
-			         SCAP_LASTERR_SIZE,
-			         "the directory '%s' doesn't exist on the system. Check the usage of the "
-			         "'HOST_ROOT' env variable.",
-			         filename);
+			scap_errprintf(lasterr,
+			               0,
+			               "the directory '%s' doesn't exist on the system. Check the usage of the "
+			               "'HOST_ROOT' env variable.",
+			               filename);
 		}
 		return SCAP_FAILURE;
 	}

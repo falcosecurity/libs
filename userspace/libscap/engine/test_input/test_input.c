@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <libscap/strerror.h>
 
 struct scap;
 struct scap_test_input_data;
@@ -74,8 +75,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs) {
 	engine->m_data = params->test_input_data;
 
 	if(engine->m_data == NULL) {
-		strlcpy(engine->m_lasterr, "No test input data provided", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return scap_errprintf(engine->m_lasterr, 0, "No test input data provided");
 	}
 
 	return SCAP_SUCCESS;

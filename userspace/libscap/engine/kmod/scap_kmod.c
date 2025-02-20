@@ -898,13 +898,6 @@ int32_t scap_kmod_set_statsd_port(struct scap_engine_handle engine, const uint16
 	return SCAP_SUCCESS;
 }
 
-static int32_t unsupported_config(struct scap_engine_handle engine, const char *msg) {
-	struct kmod_engine *handle = engine.m_handle;
-
-	strlcpy(handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
-	return SCAP_FAILURE;
-}
-
 static int32_t configure(struct scap_engine_handle engine,
                          enum scap_setting setting,
                          unsigned long arg1,
@@ -929,9 +922,12 @@ static int32_t configure(struct scap_engine_handle engine,
 	case SCAP_STATSD_PORT:
 		return scap_kmod_set_statsd_port(engine, arg1);
 	default: {
-		char msg[256];
-		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
-		return unsupported_config(engine, msg);
+		return scap_errprintf(HANDLE(engine)->m_lasterr,
+		                      0,
+		                      "Unsupported setting %d (args %lu, %lu)",
+		                      setting,
+		                      arg1,
+		                      arg2);
 	}
 	}
 }
