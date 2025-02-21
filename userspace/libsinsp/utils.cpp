@@ -25,10 +25,6 @@ limitations under the License.
 #include <libsinsp/filterchecks.h>
 #include <libscap/strl.h>
 
-#if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include <curl/curl.h>
-#endif
-
 #ifndef _WIN32
 #include <climits>
 #include <cstdlib>
@@ -785,60 +781,6 @@ bool sinsp_utils::glob_match(const char* pattern,
 	int flags = case_insensitive ? FNM_CASEFOLD : 0;
 	return fnmatch(pattern, string, flags) == 0;
 #endif
-}
-
-void sinsp_utils::split_container_image(const std::string& image,
-                                        std::string& hostname,
-                                        std::string& port,
-                                        std::string& name,
-                                        std::string& tag,
-                                        std::string& digest,
-                                        bool split_repo) {
-	auto split = [](const std::string& src,
-	                std::string& part1,
-	                std::string& part2,
-	                const std::string& sep) {
-		size_t pos = src.find(sep);
-		if(pos != std::string::npos) {
-			part1 = src.substr(0, pos);
-			part2 = src.substr(pos + 1);
-			return true;
-		}
-		return false;
-	};
-
-	std::string hostport, rem, rem2, repo;
-
-	hostname = port = name = tag = digest = "";
-
-	if(split(image, hostport, rem, "/")) {
-		repo = hostport + "/";
-		if(!split(hostport, hostname, port, ":")) {
-			hostname = hostport;
-			port = "";
-		}
-	} else {
-		hostname = "";
-		port = "";
-		rem = image;
-	}
-
-	if(split(rem, rem2, digest, "@")) {
-		if(!split(rem2, name, tag, ":")) {
-			name = rem2;
-			tag = "";
-		}
-	} else {
-		digest = "";
-		if(!split(rem, name, tag, ":")) {
-			name = rem;
-			tag = "";
-		}
-	}
-
-	if(!split_repo) {
-		name = repo + name;
-	}
 }
 
 static int32_t gmt2local(time_t t) {

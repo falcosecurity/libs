@@ -19,9 +19,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(WIN32)
-	set(CMAKE_CXX_FLAGS
-		"-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17"
-	)
+	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi /std:c++17")
 	set(CMAKE_CXX_FLAGS_DEBUG ${FALCOSECURITY_LIBS_DEBUG_FLAGS})
 	set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -40,10 +38,6 @@ if(NOT WIN32)
 	file(GLOB_RECURSE SINSP_CLASSES_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/classes/*.cpp)
 
 	file(GLOB_RECURSE SINSP_FILTERCHECKS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/filterchecks/*.cpp)
-
-	file(GLOB_RECURSE SINSP_CONTAINER_ENGINE_SUITE
-		 ${CMAKE_CURRENT_SOURCE_DIR}/container_engine/*.cpp
-	)
 endif()
 
 option(SCAP_FILES_SUITE_ENABLE "Enable scap-file tests in sinsp" "ON")
@@ -76,7 +70,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	ast_exprs.ut.cpp
 	test_utils.cpp
 	sinsp_with_test_input.cpp
-	cgroup_list_counter.ut.cpp
 	events_evt.ut.cpp
 	events_file.ut.cpp
 	events_fspath.ut.cpp
@@ -123,7 +116,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	"${SINSP_FILTERCHECKS_SUITE}"
 	"${SCAP_FILES_SUITE}"
 	"${TEST_HELPERS}"
-	"${SINSP_CONTAINER_ENGINE_SUITE}"
 )
 
 if(WIN32)
@@ -146,16 +138,12 @@ elseif(APPLE OR EMSCRIPTEN)
 	)
 endif()
 
-if(NOT MINIMAL_BUILD)
-	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
-endif()
-
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(
 		APPEND
 		LIBSINSP_UNIT_TESTS_SOURCES
-		async_key_value_source.ut.cpp
 		filter_ppm_codes.ut.cpp
+		procfs_utils.ut.cpp
 		public_sinsp_API/events_set.cpp
 		public_sinsp_API/interesting_syscalls.cpp
 		public_sinsp_API/ppm_sc_codes.cpp
@@ -191,13 +179,7 @@ target_include_directories(
 )
 
 target_link_libraries(
-	unit-test-libsinsp
-	sinsp
-	"${GRPCPP_LIB}"
-	"${GTEST_LIB}"
-	"${GTEST_MAIN_LIB}"
-	"${TBB_LIB}"
-	"${JSONCPP_LIB}"
+	unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${TBB_LIB}" "${JSONCPP_LIB}"
 )
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`

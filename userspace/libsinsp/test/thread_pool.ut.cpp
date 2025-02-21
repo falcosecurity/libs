@@ -16,6 +16,7 @@ limitations under the License.
 
 */
 
+#include <thread>
 #include <gtest/gtest.h>
 #include <sinsp_with_test_input.h>
 

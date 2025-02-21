@@ -138,22 +138,22 @@ TEST_F(sinsp_with_test_input, event_sources) {
 	ASSERT_FALSE(field_has_value(evt, "evt.asynctype"));
 
 	// metaevents have the "syscall" event source
-	std::shared_ptr<sinsp_container_info> container = std::make_shared<sinsp_container_info>();
-	container->m_type = CT_CONTAINERD;
-	container->m_id = "3ad7b26ded6d";
-	container->set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-	std::string container_json = m_inspector.m_container_manager.container_to_json(*container);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           -1,
-	                           PPME_CONTAINER_JSON_2_E,
-	                           1,
-	                           container_json.c_str());
-	ASSERT_EQ(evt->get_type(), PPME_CONTAINER_JSON_2_E);
+	                           PPME_USER_ADDED_E,
+	                           6,
+	                           0,
+	                           0,
+	                           "root",
+	                           "/root",
+	                           "/bin/bash",
+	                           "foo");
+	ASSERT_EQ(evt->get_type(), PPME_USER_ADDED_E);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "true");
-	ASSERT_EQ(get_field_as_string(evt, "evt.asynctype"), "container");
+	ASSERT_EQ(get_field_as_string(evt, "evt.asynctype"), "useradded");
 
 	// events coming from unknown plugins should have no event source
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint32_t)1, plugindata);

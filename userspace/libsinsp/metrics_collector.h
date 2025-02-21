@@ -53,15 +53,6 @@ struct sinsp_stats_v2 {
 	uint64_t m_n_removed_threads;
 	///@)
 	uint32_t m_n_drops_full_threadtable;  ///< Number of drops due to full threadtable, unit: count.
-	uint32_t
-	        m_n_missing_container_images;  ///<  Number of cached containers (cgroups) without
-	                                       ///<  container info such as image, hijacked
-	                                       ///<  sinsp_container_manager::remove_inactive_containers()
-	                                       ///<  -> every flush snapshot update, unit: count.
-	uint32_t m_n_containers;  ///<  Number of containers (cgroups) currently cached by
-	                          ///<  sinsp_container_manager, hijacked
-	                          ///<  sinsp_container_manager::remove_inactive_containers() -> every
-	                          ///<  flush snapshot update, unit: count.
 };
 
 namespace libs::metrics {

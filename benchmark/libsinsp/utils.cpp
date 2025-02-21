@@ -53,19 +53,3 @@ static void BM_sinsp_concatenate_paths_absolute_path(benchmark::State& state) {
 	}
 }
 BENCHMARK(BM_sinsp_concatenate_paths_absolute_path);
-
-static void BM_sinsp_split_container_image(benchmark::State& state) {
-	for(auto _ : state) {
-		std::string container_image =
-		        "localhost:12345/library/"
-		        "busybox:1.27.2@sha256:da39a3ee5e6b4b0d3255bfef95601890afd80709";
-		std::string hostname, port, name, tag, digest;
-		sinsp_utils::split_container_image(container_image, hostname, port, name, tag, digest);
-		benchmark::DoNotOptimize(hostname);
-		benchmark::DoNotOptimize(port);
-		benchmark::DoNotOptimize(name);
-		benchmark::DoNotOptimize(tag);
-		benchmark::DoNotOptimize(digest);
-	}
-}
-BENCHMARK(BM_sinsp_split_container_image);

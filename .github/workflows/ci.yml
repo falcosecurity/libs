@@ -21,14 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        name: [system_deps, bundled_deps, system_deps_minimal, sanitizers, zig]
+        name: [system_deps, bundled_deps, sanitizers, zig]
         include:
           - name: system_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
-          - name: system_deps_minimal
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
@@ -38,7 +36,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
+          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
 
       - name: Install a recent version of CMake ⛓️
         run: |
@@ -128,13 +126,13 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
           sudo .github/install-deps.sh
 
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_THREAD_POOL=ON ../
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_THREAD_POOL=ON ../
           make -j4
           make run-unit-tests
 
@@ -174,7 +172,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON -DENABLE_THREAD_POOL=ON ..
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DENABLE_THREAD_POOL=ON ..
           cmake --build . --config Release --parallel 4 && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
   build-shared-libs-macos-amd64:
@@ -193,7 +191,7 @@ jobs:
       - name: Build 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_BS_THREADPOOL=ON -DENABLE_THREAD_POOL=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=ON -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_BS_THREADPOOL=ON -DENABLE_THREAD_POOL=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
           cmake --build . --config Release --parallel $(getconf _NPROCESSORS_ONLN)
 
       - name: Install
@@ -281,18 +279,14 @@ jobs:
             libtool \
             libelf-dev \
             wget \
-            libc-ares-dev \
             libbpf-dev \
             libcap-dev \
-            libcurl4-openssl-dev \
-            libssl-dev \
             libtbb-dev \
             libjq-dev \
             libjsoncpp-dev \
-            libgrpc++-dev \
-            protobuf-compiler-grpc \
             libgtest-dev \
             libprotobuf-dev \
+            protobuf-compiler \
             "linux-headers-$(uname -r)"
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
           sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
@@ -323,10 +317,11 @@ jobs:
           cmake -DBUILD_BPF=ON \
                 -DBUILD_LIBSCAP_MODERN_BPF=ON \
                 -DBUILD_LIBSCAP_GVISOR=OFF \
+                -DENABLE_E2E_TESTS=ON \
                 ${{ matrix.cmake_opts }} \
                 -DUSE_BUNDLED_LIBBPF=ON \
                 ..
-          make -j$(nproc) sinsp-example driver bpf
+          make -j$(nproc) sinsp-example driver bpf container_plugin
           sudo -E make e2e-install-deps
           sudo -E ../test/e2e/scripts/run_tests.sh
 

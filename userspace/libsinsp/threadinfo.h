@@ -37,6 +37,7 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/table_adapters.h>
 #include <libsinsp/event.h>
+#include <libsinsp/plugin.h>
 #include <libscap/scap_savefile_api.h>
 
 struct erase_fd_params {
@@ -87,19 +88,39 @@ public:
 	std::string get_exepath() const;
 
 	/*!
+	  \brief Return the container_id associated with this thread, if the container plugins is
+	  running, leveraging sinsp state table API.
+	*/
+	std::string get_container_id();
+
+	/*!
+	  \brief Given the container_id associated with this thread, feetches the container user from
+	  the containers table, created by the container plugins if running, leveraging sinsp state
+	  table API.
+	*/
+	std::string get_container_user();
+
+	/*!
+	  \brief Given the container_id associated with this thread, feetches the container ip from the
+	  containers table, created by the container plugins if running, leveraging sinsp state table
+	  API.
+	*/
+	std::string get_container_ip();
+
+	/*!
 	  \brief Return the full info about thread uid.
 	*/
-	scap_userinfo* get_user() const;
+	scap_userinfo* get_user();
 
 	/*!
 	  \brief Return the full info about thread gid.
 	*/
-	scap_groupinfo* get_group() const;
+	scap_groupinfo* get_group();
 
 	/*!
 	  \brief Return the full info about thread loginuid.
 	*/
-	scap_userinfo* get_loginuser() const;
+	scap_userinfo* get_loginuser();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -377,10 +398,6 @@ public:
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
 
-	// Return true if this thread is a part of a healthcheck,
-	// readiness probe, or liveness probe.
-	bool is_health_probe() const;
-
 	/*!
 	  \brief Translate a directory's file descriptor into its path
 	  \param dir_fd  A file descriptor for a directory
@@ -415,7 +432,6 @@ public:
 	std::vector<std::string> m_args;  ///< Command line arguments (e.g. "-d1")
 	std::vector<std::string> m_env;   ///< Environment variables
 	cgroups_t m_cgroups;              ///< subsystem-cgroup pairs
-	std::string m_container_id;       ///< heuristic-based container id
 	uint32_t m_flags;   ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid;     ///< uid
@@ -452,24 +468,6 @@ public:
 	std::string m_cmd_line;
 	bool m_filtered_out;  ///< True if this thread is filtered out by the inspector filter from
 	                      ///< saving to a capture
-
-	// In some cases, a threadinfo has a category that identifies
-	// why it was run. Descriptions:
-	// CAT_NONE: no specific category
-	// CAT_CONTAINER: a process run in a container and *not* any
-	//                of the following more specific categories.
-	// CAT_HEALTHCHECK: part of a container healthcheck
-	// CAT_LIVENESS_PROBE: part of a k8s liveness probe
-	// CAT_READINESS_PROBE: part of a k8s readiness probe
-	enum command_category {
-		CAT_NONE = 0,
-		CAT_CONTAINER,
-		CAT_HEALTHCHECK,
-		CAT_LIVENESS_PROBE,
-		CAT_READINESS_PROBE
-	};
-
-	command_category m_category;
 
 	//
 	// State for multi-event processing
@@ -695,7 +693,8 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
-class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t> {
+class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
+                                          public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(sinsp* inspector);
 	void clear();
@@ -716,6 +715,7 @@ public:
 	inline bool remove_inactive_threads();
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
 	void fix_sockets_coming_from_proc();
+	void load_foreign_fields_accessors();
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
 	/*!
@@ -816,6 +816,21 @@ public:
 		return false;
 	}
 
+	inline const libsinsp::state::dynamic_struct::field_accessor<std::string>* get_field_accessor(
+	        std::string field) {
+		if(m_foreign_fields_accessors.count(field) > 0) {
+			return &m_foreign_fields_accessors.at(field);
+		}
+		return nullptr;
+	}
+
+	inline sinsp_table<std::string>* get_table(std::string table) {
+		if(m_foreign_tables.count(table) > 0) {
+			return &m_foreign_tables.at(table);
+		}
+		return nullptr;
+	}
+
 	inline const std::shared_ptr<thread_group_info>& get_thread_group_info(int64_t pid) const {
 		auto tgroup = m_thread_groups.find(pid);
 		if(tgroup != m_thread_groups.end()) {
@@ -846,6 +861,10 @@ public:
 
 	inline uint32_t get_max_thread_table_size() const { return m_max_thread_table_size; }
 
+	constexpr static const char* s_containers_table_name = "containers";
+	constexpr static const char* s_containers_table_field_user = "user";
+	constexpr static const char* s_containers_table_field_ip = "ip";
+
 private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
@@ -875,4 +894,10 @@ private:
 	        m_nullptr_tinfo_ret;  // needed for returning a reference
 	const std::shared_ptr<thread_group_info>
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
+
+	// State table API field accessors to foreign keys written by plugins.
+	std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
+	        m_foreign_fields_accessors;
+	// State tables exposed by plugins
+	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
 };
