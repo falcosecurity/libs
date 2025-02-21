@@ -115,6 +115,10 @@ target_include_directories(
 
 target_link_libraries(scap PUBLIC scap_event_schema)
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin")
+	target_link_libraries(scap_event_schema driver_event_schema scap_error)
+endif()
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 	include(FindMakedev)
@@ -123,8 +127,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap PUBLIC scap_platform)
 
 	add_library(driver_event_schema STATIC ${LIBS_DIR}/driver/fillers_table.c)
-
-	target_link_libraries(scap_event_schema driver_event_schema)
 
 	add_library(
 		scap_engine_util STATIC scap_engine_util.c ringbuffer/devset.c ringbuffer/ringbuffer.c

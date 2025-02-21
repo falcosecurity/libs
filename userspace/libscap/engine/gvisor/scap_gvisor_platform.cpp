@@ -19,6 +19,7 @@ limitations under the License.
 #include <algorithm>
 #include <set>
 #include <string>
+#include <libscap/strerror.h>
 
 #include <libscap/engine/gvisor/gvisor.h>
 
@@ -52,7 +53,7 @@ uint32_t platform::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos) 
 			if(res.status != SCAP_SUCCESS) {
 				*tinfos = NULL;
 				*n = 0;
-				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "%s", res.error.c_str());
+				scap_errprintf(m_lasterr, 0, "%s", res.error.c_str());
 				return res.status;
 			}
 
