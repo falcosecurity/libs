@@ -385,7 +385,7 @@ public:
 
 	sinsp_fdinfo* find(int64_t fd);
 
-	sinsp_fdinfo* add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
+	sinsp_fdinfo* add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
@@ -444,7 +444,7 @@ public:
 		}
 		entry.release();
 
-		return add_ref(key, std::unique_ptr<sinsp_fdinfo>(fdinfo));
+		return add_ref(key, std::shared_ptr<sinsp_fdinfo>(fdinfo));
 	}
 
 	bool erase_entry(const int64_t& key) override { return erase(key); }
@@ -465,5 +465,6 @@ private:
 private:
 	inline void lookup_device(sinsp_fdinfo* fdi, uint64_t fd);
 	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);
-	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
+	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd,
+	                                             std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 };
