@@ -220,38 +220,28 @@ void sinsp_fdinfo::add_filename(std::string_view fullpath) {
 	m_name = std::string(fullpath);
 }
 
-bool sinsp_fdinfo::set_net_role_by_guessing(sinsp* inspector,
-                                            sinsp_threadinfo* ptinfo,
-                                            sinsp_fdinfo* pfdinfo,
-                                            bool incoming) {
+void sinsp_fdinfo::set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, const bool incoming) {
 	//
 	// If this process owns the port, mark it as server, otherwise mark it as client
 	//
-	if(ptinfo->is_bound_to_port(pfdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport)) {
-		if(ptinfo->uses_client_port(pfdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport)) {
-			goto wildass_guess;
-		}
-
-		pfdinfo->set_role_server();
-		return true;
-	} else {
-		pfdinfo->set_role_client();
-		return true;
+	if(!ptinfo.is_bound_to_port(m_sockinfo.m_ipv4info.m_fields.m_dport)) {
+		set_role_client();
+		return;
 	}
 
-wildass_guess:
-	if(!(pfdinfo->m_flags & (sinsp_fdinfo::FLAGS_ROLE_CLIENT | sinsp_fdinfo::FLAGS_ROLE_SERVER))) {
-		//
-		// We just assume that a server usually starts with a read and a client with a write
-		//
+	if(!ptinfo.uses_client_port(m_sockinfo.m_ipv4info.m_fields.m_sport)) {
+		set_role_server();
+		return;
+	}
+
+	if(!(m_flags & (sinsp_fdinfo::FLAGS_ROLE_CLIENT | sinsp_fdinfo::FLAGS_ROLE_SERVER))) {
+		// We just assume that a server usually starts with a read and a client with a write.
 		if(incoming) {
-			pfdinfo->set_role_server();
+			set_role_server();
 		} else {
-			pfdinfo->set_role_client();
+			set_role_client();
 		}
 	}
-
-	return true;
 }
 
 scap_l4_proto sinsp_fdinfo::get_l4proto() const {
