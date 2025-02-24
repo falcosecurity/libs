@@ -284,10 +284,7 @@ public:
 
 	inline void set_role_client() { m_flags |= FLAGS_ROLE_CLIENT; }
 
-	bool set_net_role_by_guessing(sinsp* inspector,
-	                              sinsp_threadinfo* ptinfo,
-	                              sinsp_fdinfo* pfdinfo,
-	                              bool incoming);
+	void set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, bool incoming);
 
 	inline void reset_flags() { m_flags = FLAGS_NONE; }
 

@@ -3819,10 +3819,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 
 					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
 						if(evt->get_fd_info()->is_role_none()) {
-							evt->get_fd_info()->set_net_role_by_guessing(m_inspector,
-							                                             evt->get_tinfo(),
-							                                             evt->get_fd_info(),
-							                                             true);
+							evt->get_fd_info()->set_net_role_by_guessing(*evt->get_tinfo(), true);
 						}
 
 						if(evt->get_fd_info()->is_role_client()) {
@@ -3926,10 +3923,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 
 					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
 						if(evt->get_fd_info()->is_role_none()) {
-							evt->get_fd_info()->set_net_role_by_guessing(m_inspector,
-							                                             evt->get_tinfo(),
-							                                             evt->get_fd_info(),
-							                                             false);
+							evt->get_fd_info()->set_net_role_by_guessing(*evt->get_tinfo(), false);
 						}
 
 						if(evt->get_fd_info()->is_role_server()) {
