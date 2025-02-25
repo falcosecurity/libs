@@ -19,15 +19,15 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 
-sinsp_network_interfaces::sinsp_network_interfaces() {
+sinsp_network_interfaces::sinsp_network_interfaces(): m_ipv6_loopback_addr{} {
 	if(inet_pton(AF_INET6, "::1", m_ipv6_loopback_addr.m_b) != 1) {
 		throw sinsp_exception("Could not convert ipv6 loopback address ::1 to ipv6addr struct");
 	}
 }
 
-sinsp_ipv4_ifinfo::sinsp_ipv4_ifinfo(uint32_t addr,
-                                     uint32_t netmask,
-                                     uint32_t bcast,
+sinsp_ipv4_ifinfo::sinsp_ipv4_ifinfo(const uint32_t addr,
+                                     const uint32_t netmask,
+                                     const uint32_t bcast,
                                      const char* name) {
 	m_addr = addr;
 	m_netmask = netmask;
@@ -36,7 +36,7 @@ sinsp_ipv4_ifinfo::sinsp_ipv4_ifinfo(uint32_t addr,
 }
 
 void sinsp_ipv4_ifinfo::convert_to_string(char* dest, size_t len, const uint32_t addr) {
-	uint32_t addr_network_byte_order = htonl(addr);
+	const uint32_t addr_network_byte_order = htonl(addr);
 	snprintf(dest,
 	         len,
 	         "%d.%d.%d.%d",
@@ -95,25 +95,25 @@ std::string sinsp_ipv6_ifinfo::addr_to_string() const {
 	return oss.str();
 }
 
-uint32_t sinsp_network_interfaces::infer_ipv4_address(uint32_t destination_address) {
-	std::vector<sinsp_ipv4_ifinfo>::iterator it;
+uint32_t sinsp_network_interfaces::infer_ipv4_address(const uint32_t destination_address) const {
+	std::vector<sinsp_ipv4_ifinfo>::const_iterator it;
 
 	// first try to find exact match
-	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++) {
+	for(it = m_ipv4_interfaces.cbegin(); it != m_ipv4_interfaces.cend(); ++it) {
 		if(it->m_addr == destination_address) {
 			return it->m_addr;
 		}
 	}
 
 	// try to find an interface for the same subnet
-	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++) {
+	for(it = m_ipv4_interfaces.cbegin(); it != m_ipv4_interfaces.cend(); ++it) {
 		if((it->m_addr & it->m_netmask) == (destination_address & it->m_netmask)) {
 			return it->m_addr;
 		}
 	}
 
 	// otherwise take the first non loopback interface
-	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++) {
+	for(it = m_ipv4_interfaces.cbegin(); it != m_ipv4_interfaces.cend(); ++it) {
 		if(it->m_addr != ntohl(INADDR_LOOPBACK)) {
 			return it->m_addr;
 		}
@@ -121,83 +121,75 @@ uint32_t sinsp_network_interfaces::infer_ipv4_address(uint32_t destination_addre
 	return 0;
 }
 
-void sinsp_network_interfaces::update_fd(sinsp_fdinfo& fd) {
-	ipv4tuple* pipv4info = &(fd.m_sockinfo.m_ipv4info);
-	ipv6tuple* pipv6info = &(fd.m_sockinfo.m_ipv6info);
+void sinsp_network_interfaces::update_fd(sinsp_fdinfo& fd) const {
+	ipv4tuple* pipv4info = &fd.m_sockinfo.m_ipv4info;
+	ipv6tuple* pipv6info = &fd.m_sockinfo.m_ipv6info;
 
-	//
-	// only handle ipv4/ipv6 udp sockets
-	//
+	// Only handle ipv4/ipv6 sockets.
 	if(fd.m_type != SCAP_FD_IPV4_SOCK && fd.m_type != SCAP_FD_IPV6_SOCK) {
 		return;
 	}
 
+	// Handle IPv4 sockets.
 	if(fd.m_type == SCAP_FD_IPV4_SOCK) {
-		if(0 != pipv4info->m_fields.m_sip && 0 != pipv4info->m_fields.m_dip) {
+		if(pipv4info->m_fields.m_sip != 0 && pipv4info->m_fields.m_dip != 0) {
 			return;
 		}
-		if(0 == pipv4info->m_fields.m_sip) {
-			uint32_t newaddr;
-			newaddr = infer_ipv4_address(pipv4info->m_fields.m_dip);
 
-			if(newaddr == pipv4info->m_fields.m_dip) {
-				if(pipv4info->m_fields.m_sport == pipv4info->m_fields.m_dport) {
-					return;
-				}
+		if(pipv4info->m_fields.m_sip == 0) {
+			const uint32_t newaddr = infer_ipv4_address(pipv4info->m_fields.m_dip);
+			if(newaddr == pipv4info->m_fields.m_dip &&
+			   pipv4info->m_fields.m_sport == pipv4info->m_fields.m_dport) {
+				return;
 			}
 
 			pipv4info->m_fields.m_sip = newaddr;
 		} else {
-			uint32_t newaddr;
-			newaddr = infer_ipv4_address(pipv4info->m_fields.m_sip);
-
-			if(newaddr == pipv4info->m_fields.m_sip) {
-				if(pipv4info->m_fields.m_sport == pipv4info->m_fields.m_dport) {
-					return;
-				}
+			const uint32_t newaddr = infer_ipv4_address(pipv4info->m_fields.m_sip);
+			if(newaddr == pipv4info->m_fields.m_sip &&
+			   pipv4info->m_fields.m_sport == pipv4info->m_fields.m_dport) {
+				return;
 			}
 
 			pipv4info->m_fields.m_dip = newaddr;
 		}
-	} else if(fd.m_type == SCAP_FD_IPV6_SOCK) {
-		if(ipv6addr::empty_address != pipv6info->m_fields.m_sip &&
-		   ipv6addr::empty_address != pipv6info->m_fields.m_dip) {
+		return;
+	}
+
+	// Handle IPv6 sockets.
+	if(pipv6info->m_fields.m_sip != ipv6addr::empty_address &&
+	   pipv6info->m_fields.m_dip != ipv6addr::empty_address) {
+		return;
+	}
+
+	if(pipv6info->m_fields.m_sip == ipv6addr::empty_address) {
+		const ipv6addr newaddr = infer_ipv6_address(pipv6info->m_fields.m_dip);
+		if(newaddr == pipv6info->m_fields.m_dip &&
+		   pipv6info->m_fields.m_sport == pipv6info->m_fields.m_dport) {
 			return;
 		}
-		if(ipv6addr::empty_address == pipv6info->m_fields.m_sip) {
-			ipv6addr newaddr;
-			newaddr = infer_ipv6_address(pipv6info->m_fields.m_dip);
 
-			if(newaddr == pipv6info->m_fields.m_dip) {
-				if(pipv6info->m_fields.m_sport == pipv6info->m_fields.m_dport) {
-					return;
-				}
-			}
-
-			pipv6info->m_fields.m_sip = newaddr;
-		} else {
-			ipv6addr newaddr;
-			newaddr = infer_ipv6_address(pipv6info->m_fields.m_sip);
-
-			if(newaddr == pipv6info->m_fields.m_sip) {
-				if(pipv6info->m_fields.m_sport == pipv6info->m_fields.m_dport) {
-					return;
-				}
-			}
-
-			pipv6info->m_fields.m_dip = newaddr;
-		}
+		pipv6info->m_fields.m_sip = newaddr;
+		return;
 	}
+
+	const ipv6addr newaddr = infer_ipv6_address(pipv6info->m_fields.m_sip);
+	if(newaddr == pipv6info->m_fields.m_sip &&
+	   pipv6info->m_fields.m_sport == pipv6info->m_fields.m_dport) {
+		return;
+	}
+
+	pipv6info->m_fields.m_dip = newaddr;
 }
 
-bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr) const {
+bool sinsp_network_interfaces::is_ipv4addr_in_subnet(const uint32_t addr) const {
 	//
 	// Accept everything that comes from private internets:
 	// - 10.0.0.0/8
 	// - 192.168.0.0/16
 	// - 172.16.0.0/12
 	//
-	uint32_t addr_network_byte_order = htonl(addr);
+	const uint32_t addr_network_byte_order = htonl(addr);
 	if((addr_network_byte_order & 0xff000000) == 0x0a000000 ||
 	   (addr_network_byte_order & 0xffff0000) == 0xc0a80000 ||
 	   (addr_network_byte_order & 0xff3f0000) == 0xac100000) {
@@ -214,10 +206,10 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr) const {
 	return false;
 }
 
-bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr,
+bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(const uint32_t addr,
                                                             sinsp_threadinfo* tinfo) const {
 	if(!tinfo->get_container_id().empty()) {
-		auto ip = tinfo->get_container_ip();
+		const auto ip = tinfo->get_container_ip();
 		if(!ip.empty()) {
 			struct in_addr in;
 			if(inet_pton(AF_INET, ip.c_str(), &in)) {
@@ -265,7 +257,8 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr,
 	return false;
 }
 
-void sinsp_network_interfaces::import_ipv4_ifaddr_list(uint32_t count, scap_ifinfo_ipv4* plist) {
+void sinsp_network_interfaces::import_ipv4_ifaddr_list(const uint32_t count,
+                                                       const scap_ifinfo_ipv4* plist) {
 	if(count == 0) {
 		return;
 	}
@@ -280,25 +273,25 @@ void sinsp_network_interfaces::import_ipv4_ifaddr_list(uint32_t count, scap_ifin
 	}
 }
 
-ipv6addr sinsp_network_interfaces::infer_ipv6_address(ipv6addr& destination_address) {
-	std::vector<sinsp_ipv6_ifinfo>::iterator it;
+ipv6addr sinsp_network_interfaces::infer_ipv6_address(const ipv6addr& destination_address) const {
+	std::vector<sinsp_ipv6_ifinfo>::const_iterator it;
 
 	// first try to find exact match
-	for(it = m_ipv6_interfaces.begin(); it != m_ipv6_interfaces.end(); it++) {
+	for(it = m_ipv6_interfaces.cbegin(); it != m_ipv6_interfaces.cend(); ++it) {
 		if(destination_address == it->m_net) {
 			return it->m_net;
 		}
 	}
 
 	// try to find an interface for the same subnet
-	for(it = m_ipv6_interfaces.begin(); it != m_ipv6_interfaces.end(); it++) {
+	for(it = m_ipv6_interfaces.cbegin(); it != m_ipv6_interfaces.cend(); ++it) {
 		if(it->m_net.in_subnet(destination_address)) {
 			return it->m_net;
 		}
 	}
 
 	// otherwise take the first non loopback interface
-	for(it = m_ipv6_interfaces.begin(); it != m_ipv6_interfaces.end(); it++) {
+	for(it = m_ipv6_interfaces.cbegin(); it != m_ipv6_interfaces.cend(); ++it) {
 		if(it->m_net != m_ipv6_loopback_addr) {
 			return it->m_net;
 		}
@@ -307,7 +300,7 @@ ipv6addr sinsp_network_interfaces::infer_ipv6_address(ipv6addr& destination_addr
 	return ipv6addr::empty_address;
 }
 
-bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(ipv6addr& addr,
+bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(const ipv6addr& addr,
                                                             sinsp_threadinfo* tinfo) const {
 	if(!tinfo->get_container_id().empty()) {
 		// For now, not supporting ipv6 networking for containers. So always return false;
@@ -324,7 +317,8 @@ bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(ipv6addr& addr,
 	return false;
 }
 
-void sinsp_network_interfaces::import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist) {
+void sinsp_network_interfaces::import_ipv6_ifaddr_list(const uint32_t count,
+                                                       const scap_ifinfo_ipv6* plist) {
 	if(count == 0) {
 		return;
 	}
@@ -342,8 +336,8 @@ void sinsp_network_interfaces::import_ipv6_ifaddr_list(uint32_t count, scap_ifin
 	}
 }
 
-void sinsp_network_interfaces::import_interfaces(scap_addrlist* paddrlist) {
-	if(NULL != paddrlist) {
+void sinsp_network_interfaces::import_interfaces(const scap_addrlist* paddrlist) {
+	if(paddrlist != nullptr) {
 		clear();
 		import_ipv4_ifaddr_list(paddrlist->n_v4_addrs, paddrlist->v4list);
 		import_ipv6_ifaddr_list(paddrlist->n_v6_addrs, paddrlist->v6list);
