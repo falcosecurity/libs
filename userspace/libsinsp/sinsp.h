@@ -73,6 +73,7 @@ limitations under the License.
 #include <libsinsp/threadinfo.h>
 #include <libsinsp/tuples.h>
 #include <libsinsp/utils.h>
+#include <libsinsp/sinsp_mode.h>
 
 #include <list>
 #include <map>
@@ -105,39 +106,6 @@ class sinsp_usergroup_manager;
 */
 #define DEFAULT_OUTPUT_STR \
 	"*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
-
-/*!
-  \brief Sinsp possible modes
-*/
-enum sinsp_mode_t {
-	/*!
-	 * Default value that mostly exists so that sinsp can have a valid value
-	 * before it is initialized.
-	 */
-	SINSP_MODE_NONE = 0,
-	/*!
-	 * Read system call data from a capture file.
-	 */
-	SINSP_MODE_CAPTURE,
-	/*!
-	 * Read system call data from the underlying operating system.
-	 */
-	SINSP_MODE_LIVE,
-	/*!
-	 * Do not read system call data. If next is called, a dummy event is
-	 * returned.
-	 */
-	SINSP_MODE_NODRIVER,
-	/*!
-	 * Do not read system call data. Events come from the configured input plugin.
-	 */
-	SINSP_MODE_PLUGIN,
-	/*!
-	 * Read system call and event data from the test event generator.
-	 * Do not attempt to query the underlying system.
-	 */
-	SINSP_MODE_TEST,
-};
 
 /**
  * @brief Possible platforms to use with plugins
@@ -572,34 +540,34 @@ public:
 	/*!
 	  \brief Returns true if the current capture is happening from a scap file
 	*/
-	inline bool is_capture() const { return m_mode == SINSP_MODE_CAPTURE; }
+	inline bool is_capture() const { return m_mode.is_capture(); }
 
 	/*!
 	  \brief Returns true if the current capture is offline
 	*/
-	inline bool is_offline() const { return is_capture() || m_mode == SINSP_MODE_TEST; }
+	inline bool is_offline() const { return m_mode.is_offline(); }
 
 	/*!
 	  \brief Returns true if the current capture is live
 	*/
-	inline bool is_live() const { return m_mode == SINSP_MODE_LIVE; }
+	inline bool is_live() const { return m_mode.is_live(); }
 
 	/*!
 	  \brief Returns true if the kernel module is not loaded
 	*/
-	inline bool is_nodriver() const { return m_mode == SINSP_MODE_NODRIVER; }
+	inline bool is_nodriver() const { return m_mode.is_nodriver(); }
 
 	/*!
 	  \brief Returns true if the current capture has a plugin producing events.
 	*/
-	inline bool is_plugin() const {
-		return m_mode == SINSP_MODE_PLUGIN && m_input_plugin != nullptr;
-	}
+	inline bool is_plugin() const { return m_mode.is_plugin() && m_input_plugin != nullptr; }
 
 	/*!
 	  \brief Returns true if the current capture has a plugin producing syscall events.
 	*/
-	inline bool is_syscall_plugin() const { return is_plugin() && m_input_plugin->id() == 0; }
+	inline bool is_syscall_plugin() const {
+		return m_mode.is_plugin() && m_input_plugin->id() == 0;
+	}
 
 	/*!
 	  \brief Returns the framework plugin api version as a string with static storage
@@ -966,7 +934,7 @@ private:
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
 	uint64_t m_nevts;
 	int64_t m_filesize;
-	sinsp_mode_t m_mode = SINSP_MODE_NONE;
+	sinsp_mode m_mode = SINSP_MODE_NONE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
