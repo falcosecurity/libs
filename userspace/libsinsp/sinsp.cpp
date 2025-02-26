@@ -28,6 +28,8 @@ limitations under the License.
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_manager.h>
 #include <libsinsp/plugin_filtercheck.h>
+#include <libsinsp/sinsp_fdinfo_factory.h>
+#include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
@@ -151,9 +153,9 @@ sinsp::sinsp(bool with_metrics):
 	m_h = NULL;
 	m_parser = NULL;
 	m_is_dumping = false;
-	m_parser = std::make_unique<sinsp_parser>(this);
-	m_thread_manager = std::make_unique<sinsp_thread_manager>(this);
-	m_usergroup_manager = std::make_unique<sinsp_usergroup_manager>(this);
+	m_parser_tmp_evt = sinsp_evt{this};
+	m_thread_manager = std::make_shared<sinsp_thread_manager>(this);
+	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
@@ -190,6 +192,27 @@ sinsp::sinsp(bool with_metrics):
 	m_plugin_parsers.clear();
 	m_event_sources.push_back(sinsp_syscall_event_source_name);
 	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
+
+	m_parser = std::make_unique<sinsp_parser>(
+	        m_mode,
+	        &m_machine_info,
+	        m_event_sources,
+	        m_network_interfaces,
+	        m_hostname_and_port_resolution_enabled,
+	        sinsp_threadinfo_factory{this, m_thread_manager, &m_external_event_processor},
+	        sinsp_fdinfo_factory{this, m_thread_manager, &m_external_event_processor},
+	        m_input_plugin,
+	        m_plugin_manager,
+	        m_thread_manager,
+	        m_usergroup_manager,
+	        m_sinsp_stats_v2,
+	        m_tid_to_remove,
+	        m_tid_of_fd_to_remove,
+	        m_fds_to_remove,
+	        &m_observer,
+	        m_post_process_cbs,
+	        m_parser_tmp_evt,
+	        &m_platform);
 
 	// create state tables registry
 	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
