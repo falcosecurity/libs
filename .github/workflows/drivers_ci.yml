@@ -170,7 +170,7 @@ jobs:
 
       - name: Build and test drivers on ppc64le node via ssh
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
+        uses: appleboy/ssh-action@8faa84277b88b6cd1455986f459aa66cf72bc8a3 # v1.2.1
         with:
           host: ${{ secrets.PPC64LE_HOST }}
           username: ${{ secrets.PPC64LE_USERNAME }}
@@ -253,7 +253,7 @@ jobs:
           make ProbeSkeleton -j6
 
       - name: Upload skeleton
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: bpf_probe_x86_64.skel.h
           path: skeleton-build/skel_dir/bpf_probe.skel.h
@@ -278,7 +278,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download skeleton
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: bpf_probe_x86_64.skel.h
           path: /tmp
@@ -320,13 +320,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download X64 matrix
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: matrix_X64
           path: matrix_X64
 
       - name: Download ARM64 matrix
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: matrix_ARM64
           path: matrix_ARM64
@@ -346,7 +346,7 @@ jobs:
           echo ""
 
       - name: Upload PR info as artifact
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: pr-kernel-testing
           path: pr/
