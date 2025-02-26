@@ -954,6 +954,8 @@ private:
 	uint64_t m_lastevent_ts;
 	// the parsing engine
 	std::unique_ptr<sinsp_parser> m_parser;
+	// temporary storage for the parser event to avoid memory allocation
+	sinsp_evt m_parser_tmp_evt;
 	// the statistics analysis engine
 	std::unique_ptr<sinsp_dumper> m_dumper;
 	bool m_is_dumping;
@@ -971,8 +973,8 @@ private:
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 public:
-	std::unique_ptr<sinsp_thread_manager> m_thread_manager;
-	std::unique_ptr<sinsp_usergroup_manager> m_usergroup_manager;
+	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
+	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	uint64_t m_firstevent_ts;
 	std::unique_ptr<sinsp_filter> m_filter;

@@ -20,14 +20,39 @@ limitations under the License.
 // Public definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_syslog.h>
 #include <libsinsp/fdinfo.h>
+#include <libsinsp/sinsp_fdinfo_factory.h>
+#include <libsinsp/sinsp_threadinfo_factory.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/sinsp_observer.h>
+#include <libsinsp/sinsp_mode.h>
+#include <libsinsp/user.h>
+#include <libsinsp/threadinfo.h>
 #include <memory>
 
 class sinsp_parser {
 public:
-	sinsp_parser(sinsp* inspector);
+	sinsp_parser(const sinsp_mode& mode,
+	             const scap_machine_info** machine_info,
+	             const std::vector<std::string>& event_sources,
+	             const sinsp_network_interfaces& network_interfaces,
+	             const bool& hostname_and_port_resolution_enabled,
+	             const sinsp_threadinfo_factory& threadinfo_factory,
+	             const sinsp_fdinfo_factory& fdinfo_factory,
+	             const std::shared_ptr<const sinsp_plugin>& input_plugin,
+	             const std::shared_ptr<sinsp_plugin_manager>& plugin_manager,
+	             const std::shared_ptr<sinsp_thread_manager>& thread_manager,
+	             const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
+	             const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
+	             int64_t& tid_to_remove,
+	             int64_t& tid_of_fd_to_remove,
+	             std::vector<int64_t>& fds_to_remove,
+	             sinsp_observer* const* observer,
+	             std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>>&
+	                     post_process_cbs,
+	             sinsp_evt& tmp_evt,
+	             scap_platform* const* scap_platform);
 	~sinsp_parser();
 
 	//
@@ -160,17 +185,41 @@ private:
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
 
-	//
-	// Pointers to inspector context
-	//
-	sinsp* m_inspector;
+	const scap_machine_info* get_machine_info() const { return *m_machine_info; }
 
+	sinsp_observer* get_observer() const { return *m_observer; }
+
+	scap_platform* get_scap_platform() const { return *m_scap_platform; }
+
+	bool is_syscall_plugin_enabled() const {
+		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
+	}
+
+	// TODO(ekoops): replace references and pointers with owned resources as we determine they
+	//   cannot change at runtime and/or are used only by the parser.
+	// The following fields are externally provided and access to them is expected to be read-only.
+	const sinsp_mode& m_sinsp_mode;
+	const scap_machine_info** m_machine_info;
+	const std::vector<std::string>& m_event_sources;
+	const sinsp_network_interfaces& m_network_interfaces;
+	const bool& m_hostname_and_port_resolution_enabled;
+	const sinsp_threadinfo_factory m_threadinfo_factory;
+	const sinsp_fdinfo_factory m_fdinfo_factory;
+	const std::shared_ptr<const sinsp_plugin> m_input_plugin;
+
+	// The following fields are externally provided and expected to be populated/updated by the
+	// parser.
+	std::shared_ptr<sinsp_plugin_manager> m_plugin_manager;
+	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
+	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-
-	//
-	// Temporary storage to avoid memory allocation
-	//
-	sinsp_evt m_tmp_evt;
+	int64_t& m_tid_to_remove;
+	int64_t& m_tid_of_fd_to_remove;
+	std::vector<int64_t>& m_fds_to_remove;
+	sinsp_observer* const* m_observer;
+	std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>>& m_post_process_cbs;
+	sinsp_evt& m_tmp_evt;  // Temporary storage to avoid memory allocation
+	scap_platform* const* m_scap_platform;
 
 	bool m_track_connection_status = false;
 

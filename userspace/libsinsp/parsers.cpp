@@ -34,23 +34,51 @@ limitations under the License.
 #include <libsinsp/parsers.h>
 #include <libsinsp/sinsp_errno.h>
 #include <libsinsp/filter.h>
-#include <libsinsp/filterchecks.h>
 #include <libscap/strl.h>
 #include <libsinsp/plugin_manager.h>
 #include <libsinsp/sinsp_observer.h>
-#include <libsinsp/sinsp_int.h>
 #include <libsinsp/user.h>
 
-sinsp_parser::sinsp_parser(sinsp *inspector):
-        m_inspector(inspector),
-        m_tmp_evt(m_inspector),
-        m_syscall_event_source_idx(sinsp_no_event_source_idx) {
-	if(m_inspector != nullptr) {
-		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
-	} else {
-		m_sinsp_stats_v2 = nullptr;
-	}
-}
+sinsp_parser::sinsp_parser(
+        const sinsp_mode &sinsp_mode,
+        const scap_machine_info **machine_info,
+        const std::vector<std::string> &event_sources,
+        const sinsp_network_interfaces &network_interfaces,
+        const bool &hostname_and_port_resolution_enabled,
+        const sinsp_threadinfo_factory &threadinfo_factory,
+        const sinsp_fdinfo_factory &fdinfo_factory,
+        const std::shared_ptr<const sinsp_plugin> &input_plugin,
+        const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
+        const std::shared_ptr<sinsp_thread_manager> &thread_manager,
+        const std::shared_ptr<sinsp_usergroup_manager> &usergroup_manager,
+        const std::shared_ptr<sinsp_stats_v2> &sinsp_stats_v2,
+        int64_t &tid_to_remove,
+        int64_t &tid_of_fd_to_remove,
+        std::vector<int64_t> &fds_to_remove,
+        sinsp_observer *const *observer,
+        std::queue<std::function<void(sinsp_observer *observer, sinsp_evt *evt)>> &post_process_cbs,
+        sinsp_evt &tmp_evt,
+        scap_platform *const *scap_platform):
+        m_sinsp_mode{sinsp_mode},
+        m_machine_info{machine_info},
+        m_event_sources{event_sources},
+        m_network_interfaces{network_interfaces},
+        m_hostname_and_port_resolution_enabled{hostname_and_port_resolution_enabled},
+        m_threadinfo_factory{threadinfo_factory},
+        m_fdinfo_factory{fdinfo_factory},
+        m_input_plugin{input_plugin},
+        m_plugin_manager{plugin_manager},
+        m_thread_manager{thread_manager},
+        m_usergroup_manager{usergroup_manager},
+        m_sinsp_stats_v2{sinsp_stats_v2},
+        m_tid_to_remove{tid_to_remove},
+        m_tid_of_fd_to_remove{tid_of_fd_to_remove},
+        m_fds_to_remove{fds_to_remove},
+        m_observer{observer},
+        m_post_process_cbs{post_process_cbs},
+        m_tmp_evt{tmp_evt},
+        m_scap_platform{scap_platform},
+        m_syscall_event_source_idx{sinsp_no_event_source_idx} {}
 
 sinsp_parser::~sinsp_parser() {
 	while(!m_tmp_events_buffer.empty()) {
@@ -437,13 +465,13 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 
 	if(plugin_id != 0) {
 		bool pfound = false;
-		auto srcidx = m_inspector->get_plugin_manager()->source_idx_by_plugin_id(plugin_id, pfound);
+		auto srcidx = m_plugin_manager->source_idx_by_plugin_id(plugin_id, pfound);
 		if(!pfound) {
 			evt->set_source_idx(sinsp_no_event_source_idx);
 			evt->set_source_name(sinsp_no_event_source_name);
 		} else {
 			evt->set_source_idx(srcidx);
-			evt->set_source_name(m_inspector->event_sources()[srcidx].c_str());
+			evt->set_source_name(m_event_sources[srcidx].c_str());
 		}
 	} else {
 		// every other event falls under the "syscall" event source umbrella
@@ -455,8 +483,8 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 			// that knowledge down to this level, so we search for it
 			// in order to be resilient to future changes.
 			// The search happens only once.
-			for(size_t i = 0; i < m_inspector->event_sources().size(); i++) {
-				if(m_inspector->event_sources()[i] == sinsp_syscall_event_source_name) {
+			for(size_t i = 0; i < m_event_sources.size(); i++) {
+				if(m_event_sources[i] == sinsp_syscall_event_source_name) {
 					m_syscall_event_source_idx = i;
 					break;
 				}
@@ -480,7 +508,7 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 	if(eflags & EF_SKIPPARSERESET) {
 		if(etype == PPME_PROCINFO_E) {
 			evt->set_tinfo(
-			        m_inspector->get_thread_ref(evt->get_scap_evt()->tid, false, false).get());
+			        m_thread_manager->get_thread_ref(evt->get_scap_evt()->tid, false, false).get());
 		} else {
 			evt->set_tinfo(NULL);
 		}
@@ -523,7 +551,7 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		return true;
 	} else {
 		evt->set_tinfo(
-		        m_inspector->get_thread_ref(evt->get_scap_evt()->tid, query_os, false).get());
+		        m_thread_manager->get_thread_ref(evt->get_scap_evt()->tid, query_os, false).get());
 	}
 
 	if(etype == PPME_SCHEDSWITCH_6_E) {
@@ -634,8 +662,8 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				return false;
 			}
 
-			if(evt->get_errorcode() != 0 && m_inspector->get_observer()) {
-				m_inspector->get_observer()->on_error(evt);
+			if(evt->get_errorcode() != 0 && get_observer()) {
+				get_observer()->on_error(evt);
 			}
 
 			if(evt->get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) {
@@ -801,7 +829,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	 * ===========================*/
 
 	/* Let's see if we have some info regarding the caller */
-	auto caller_tinfo = m_inspector->get_thread_ref(caller_tid, true);
+	auto caller_tinfo = m_thread_manager->get_thread_ref(caller_tid, true);
 
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
@@ -854,7 +882,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 		}
 
 		/* Create thread groups and parenting relationships */
-		m_inspector->m_thread_manager->create_thread_dependencies(caller_tinfo);
+		m_thread_manager->create_thread_dependencies(caller_tinfo);
 	}
 
 	/* Update the evt->get_tinfo() of the caller. */
@@ -931,7 +959,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 
 	/* See if the child is already there, if yes and it is valid we return immediately */
 	sinsp_threadinfo *existing_child_tinfo =
-	        m_inspector->get_thread_ref(child_tid, false, true).get();
+	        m_thread_manager->get_thread_ref(child_tid, false, true).get();
 	if(existing_child_tinfo != nullptr) {
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
@@ -941,7 +969,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 		if(existing_child_tinfo->m_flags & PPM_CL_CLONE_INVERTED) {
 			return;
 		} else {
-			m_inspector->remove_thread(child_tid);
+			m_thread_manager->remove_thread(child_tid);
 			tid_collision = child_tid;
 		}
 	}
@@ -955,7 +983,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	/* Allocate the new thread info and initialize it.
 	 * We avoid `malloc` here and get the item from a preallocated list.
 	 */
-	auto child_tinfo = m_inspector->build_threadinfo();
+	auto child_tinfo = m_threadinfo_factory.create();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
@@ -1184,7 +1212,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	child_tinfo->m_clone_ts = evt->get_ts();
 
 	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
-	child_tinfo->m_pidns_init_start_ts = m_inspector->get_machine_info()->boot_ts_epoch;
+	child_tinfo->m_pidns_init_start_ts = get_machine_info()->boot_ts_epoch;
 
 	/* Take some further info from the caller */
 	if(valid_caller) {
@@ -1241,7 +1269,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 
 	/* Until we use the shared pointer we need it here, after we can move it at the end */
-	auto new_child = m_inspector->add_thread(std::move(child_tinfo));
+	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), false);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		return;
@@ -1250,8 +1278,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->m_post_process_cbs.emplace(
+	if(get_observer()) {
+		m_post_process_cbs.emplace(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
 		        });
@@ -1298,7 +1326,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 		}
 
 		/* The info is too old, we remove it and create a new one */
-		m_inspector->remove_thread(child_tid);
+		m_thread_manager->remove_thread(child_tid);
 		tid_collision = child_tid;
 		evt->set_tinfo(nullptr);
 	}
@@ -1319,7 +1347,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	/* Allocate the new thread info and initialize it.
 	 * We must avoid `malloc` here and get the item from a preallocated list.
 	 */
-	auto child_tinfo = m_inspector->build_threadinfo();
+	auto child_tinfo = m_threadinfo_factory.create();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
@@ -1423,7 +1451,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
 	}
 
-	auto lookup_tinfo = m_inspector->get_thread_ref(lookup_tid, true);
+	auto lookup_tinfo = m_thread_manager->get_thread_ref(lookup_tid, true);
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
 	 * `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
@@ -1457,7 +1485,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 			lookup_tinfo->m_vtid = lookup_tinfo->m_vpid;
 
 			/* Create thread groups and parenting relationships */
-			m_inspector->m_thread_manager->create_thread_dependencies(lookup_tinfo);
+			m_thread_manager->create_thread_dependencies(lookup_tinfo);
 		}
 	}
 
@@ -1709,17 +1737,17 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 		if(child_tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS ||
 		   child_tinfo->m_flags & PPM_CL_CLONE_NEWPID ||
 		   child_tinfo->m_tid != child_tinfo->m_vtid) {
-			child_tinfo->m_pidns_init_start_ts = evt->get_param(20)->as<uint64_t>() +
-			                                     m_inspector->get_machine_info()->boot_ts_epoch;
+			child_tinfo->m_pidns_init_start_ts =
+			        evt->get_param(20)->as<uint64_t>() + get_machine_info()->boot_ts_epoch;
 		} else {
-			child_tinfo->m_pidns_init_start_ts = m_inspector->get_machine_info()->boot_ts_epoch;
+			child_tinfo->m_pidns_init_start_ts = get_machine_info()->boot_ts_epoch;
 		}
 	}
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
 	/* Add the new thread to the table */
-	auto new_child = m_inspector->add_thread(std::move(child_tinfo));
+	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), false);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		evt->set_tinfo(nullptr);
@@ -1735,8 +1763,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->m_post_process_cbs.emplace(
+	if(get_observer()) {
+		m_post_process_cbs.emplace(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
 		        });
@@ -1864,9 +1892,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 			evt->get_tinfo()->m_vpid = evt->get_tinfo()->m_pid;
 		}
 
-		auto tinfo = m_inspector->get_thread_ref(evt->get_tinfo()->m_tid, false);
+		auto tinfo = m_thread_manager->get_thread_ref(evt->get_tinfo()->m_tid, false);
 		/* Create thread groups and parenting relationships */
-		m_inspector->m_thread_manager->create_thread_dependencies(tinfo);
+		m_thread_manager->create_thread_dependencies(tinfo);
 	}
 
 	// Get the fdlimit
@@ -2189,8 +2217,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->m_post_process_cbs.emplace(
+	if(get_observer()) {
+		m_post_process_cbs.emplace(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_execve(evt); });
 	}
 
@@ -2222,7 +2250,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 			   thread_ptr->m_tid == evt->get_tinfo()->m_tid) {
 				continue;
 			}
-			m_inspector->remove_thread(thread_ptr->m_tid);
+			m_thread_manager->remove_thread(thread_ptr->m_tid);
 		}
 	}
 }
@@ -2448,7 +2476,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
 		//
 		// Populate the new fdi
 		//
-		auto fdi = m_inspector->build_fdinfo();
+		auto fdi = m_fdinfo_factory.create();
 		if(flags & PPM_O_DIRECTORY) {
 			fdi->m_type = SCAP_FD_DIRECTORY;
 		} else {
@@ -2474,8 +2502,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
 		evt->set_fd_info(evt->get_tinfo()->add_fd(fd, std::move(fdi)));
 	}
 
-	if(m_inspector->get_observer() && !(flags & PPM_O_DIRECTORY)) {
-		m_inspector->get_observer()->on_file_open(evt, fullpath, flags);
+	if(get_observer() && !(flags & PPM_O_DIRECTORY)) {
+		get_observer()->on_file_open(evt, fullpath, flags);
 	}
 }
 
@@ -2505,7 +2533,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt,
 	//
 	// Populate the new fdi
 	//
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	memset(&(fdi->m_sockinfo.m_ipv4info), 0, sizeof(fdi->m_sockinfo.m_ipv4info));
 	fdi->m_type = SCAP_FD_UNKNOWN;
 	fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
@@ -2742,8 +2770,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->m_post_process_cbs.emplace(
+	if(get_observer()) {
+		m_post_process_cbs.emplace(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_bind(evt); });
 	}
 }
@@ -2781,7 +2809,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt) {
 		                             evt->get_fd_info()->m_type,
 		                             &evt->get_paramstr_storage()[0],
 		                             (uint32_t)evt->get_paramstr_storage().size(),
-		                             m_inspector->is_hostname_and_port_resolution_enabled());
+		                             m_hostname_and_port_resolution_enabled);
 
 		evt->get_fd_info()->m_name = &evt->get_paramstr_storage()[0];
 		return;
@@ -2837,8 +2865,8 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt) {
 	//
 	// If there's a listener callback and we're tracking connection status, invoke it
 	//
-	if(m_track_connection_status && m_inspector->get_observer()) {
-		m_inspector->get_observer()->on_connect(evt, packed_data);
+	if(m_track_connection_status && get_observer()) {
+		get_observer()->on_connect(evt, packed_data);
 	}
 }
 
@@ -2868,16 +2896,14 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
 
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
 				evt->get_fd_info()->m_type = SCAP_FD_IPV6_SOCK;
-				changed =
-				        m_inspector->get_parser()->set_ipv6_addresses_and_ports(evt->get_fd_info(),
-				                                                                packed_data,
-				                                                                overwrite_dest);
+				changed = set_ipv6_addresses_and_ports(evt->get_fd_info(),
+				                                       packed_data,
+				                                       overwrite_dest);
 			} else {
 				evt->get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-				changed = m_inspector->get_parser()->set_ipv4_mapped_ipv6_addresses_and_ports(
-				        evt->get_fd_info(),
-				        packed_data,
-				        overwrite_dest);
+				changed = set_ipv4_mapped_ipv6_addresses_and_ports(evt->get_fd_info(),
+				                                                   packed_data,
+				                                                   overwrite_dest);
 			}
 		} else {
 			evt->get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
@@ -2885,9 +2911,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
 			//
 			// Update the FD info with this tuple
 			//
-			changed = m_inspector->get_parser()->set_ipv4_addresses_and_ports(evt->get_fd_info(),
-			                                                                  packed_data,
-			                                                                  overwrite_dest);
+			changed = set_ipv4_addresses_and_ports(evt->get_fd_info(), packed_data, overwrite_dest);
 		}
 
 		if(changed && evt->get_fd_info()->is_role_server() && evt->get_fd_info()->is_udp_socket()) {
@@ -2902,7 +2926,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
 		                             evt->get_fd_info()->m_type,
 		                             &evt->get_paramstr_storage()[0],
 		                             (uint32_t)evt->get_paramstr_storage().size(),
-		                             m_inspector->is_hostname_and_port_resolution_enabled());
+		                             m_hostname_and_port_resolution_enabled);
 
 		evt->get_fd_info()->m_name = &evt->get_paramstr_storage()[0];
 	} else {
@@ -3008,11 +3032,10 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->m_post_process_cbs.emplace(
-		        [packed_data](sinsp_observer *observer, sinsp_evt *evt) {
-			        observer->on_connect(evt, packed_data);
-		        });
+	if(get_observer()) {
+		m_post_process_cbs.emplace([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
+			observer->on_connect(evt, packed_data);
+		});
 	}
 }
 
@@ -3065,7 +3088,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	// Populate the fd info class
 	//
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	if(*packed_data == PPM_AF_INET) {
 		set_ipv4_addresses_and_ports(fdi.get(), packed_data);
 		fdi->m_type = SCAP_FD_IPV4_SOCK;
@@ -3103,11 +3126,10 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->m_post_process_cbs.emplace(
-		        [fd, packed_data](sinsp_observer *observer, sinsp_evt *evt) {
-			        observer->on_accept(evt, fd, packed_data, evt->get_fd_info());
-		        });
+	if(get_observer()) {
+		m_post_process_cbs.emplace([fd, packed_data](sinsp_observer *observer, sinsp_evt *evt) {
+			observer->on_accept(evt, fd, packed_data, evt->get_fd_info());
+		});
 	}
 
 	//
@@ -3163,16 +3185,16 @@ void sinsp_parser::erase_fd(erase_fd_params *params) {
 	// Schedule the fd for removal
 	//
 	if(params->m_remove_from_table) {
-		m_inspector->set_tid_of_fd_to_remove(params->m_tinfo->m_tid);
-		m_inspector->get_fds_to_remove().push_back(params->m_fd);
+		m_tid_of_fd_to_remove = params->m_tinfo->m_tid;
+		m_fds_to_remove.push_back(params->m_fd);
 	}
 
 	//
 	// If there's a listener, invoke the callback
 	// note: we avoid postponing this to avoid the risk of use-after-free
 	//
-	if(m_inspector->get_observer()) {
-		m_inspector->get_observer()->on_erase_fd(params);
+	if(get_observer()) {
+		get_observer()->on_erase_fd(params);
 	}
 }
 
@@ -3246,7 +3268,7 @@ void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t fd, uint64_t ino, uint32_t o
 	//
 	// Populate the new fdi
 	//
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	fdi->m_type = SCAP_FD_FIFO;
 	fdi->m_ino = ino;
 	fdi->m_openflags = openflags;
@@ -3293,7 +3315,7 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt) {
 
 	peer_address = evt->get_param(4)->as<uint64_t>();
 
-	auto fdi1 = m_inspector->build_fdinfo();
+	auto fdi1 = m_fdinfo_factory.create();
 	fdi1->m_type = SCAP_FD_UNIX_SOCK;
 	fdi1->m_sockinfo.m_unixinfo.m_fields.m_source = source_address;
 	fdi1->m_sockinfo.m_unixinfo.m_fields.m_dest = peer_address;
@@ -3354,7 +3376,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt) {
 	/* [Store the tid to remove]
 	 * We set the current tid to remove. We don't remove it here so we can parse the event
 	 */
-	m_inspector->set_tid_to_remove(evt->get_tid());
+	m_tid_to_remove = evt->get_tid();
 
 	/* If this thread has no children we don't send the reaper info from the kernel,
 	 * so we do nothing.
@@ -3567,7 +3589,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, const sinsp_evt_param *parinfo) {
 	//
 	// If this is an incomplete tuple, patch it using interface info
 	//
-	m_inspector->get_ifaddr_list().update_fd(*evt->get_fd_info());
+	m_network_interfaces.update_fd(*evt->get_fd_info());
 
 	return true;
 }
@@ -3659,8 +3681,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
                                                              scap_threadinfo *scap_tinfo,
                                                              char *error) const {
 	for(int i = 0; i < fds_len; i++) {
-		if(scap_get_fdinfo(m_inspector->get_scap_platform(), scap_tinfo, fds[i], error) !=
-		   SCAP_SUCCESS) {
+		if(scap_get_fdinfo(get_scap_platform(), scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
 			libsinsp_logger()->format(
 			        sinsp_logger::SEV_DEBUG,
 			        "scap_get_fdinfo failed: %s, proc table will not be updated with new fd.",
@@ -3685,7 +3706,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 		char error[SCAP_LASTERR_SIZE];
 		scap_threadinfo scap_tinfo{};
 		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
-		m_inspector->m_thread_manager->thread_to_scap(*evt->get_tinfo(), &scap_tinfo);
+		m_thread_manager->thread_to_scap(*evt->get_tinfo(), &scap_tinfo);
 #define SCM_MAX_FD 253  // Taken from kernel.
 		int fds[SCM_MAX_FD];
 		size_t cmsg_len;
@@ -3771,12 +3792,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 							swap_addresses(evt->get_fd_info());
 						}
 
-						sinsp_utils::sockinfo_to_str(
-						        &evt->get_fd_info()->m_sockinfo,
-						        fdtype,
-						        &evt->get_paramstr_storage()[0],
-						        (uint32_t)evt->get_paramstr_storage().size(),
-						        m_inspector->is_hostname_and_port_resolution_enabled());
+						sinsp_utils::sockinfo_to_str(&evt->get_fd_info()->m_sockinfo,
+						                             fdtype,
+						                             &evt->get_paramstr_storage()[0],
+						                             (uint32_t)evt->get_paramstr_storage().size(),
+						                             m_hostname_and_port_resolution_enabled);
 
 						evt->get_fd_info()->m_name = &evt->get_paramstr_storage()[0];
 					} else {
@@ -3804,8 +3824,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
-			if(m_inspector->get_observer()) {
-				m_inspector->m_post_process_cbs.emplace(
+			if(get_observer()) {
+				m_post_process_cbs.emplace(
 				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_read(evt,
 					                          tid,
@@ -3875,12 +3895,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 							swap_addresses(evt->get_fd_info());
 						}
 
-						sinsp_utils::sockinfo_to_str(
-						        &evt->get_fd_info()->m_sockinfo,
-						        fdtype,
-						        &evt->get_paramstr_storage()[0],
-						        (uint32_t)evt->get_paramstr_storage().size(),
-						        m_inspector->is_hostname_and_port_resolution_enabled());
+						sinsp_utils::sockinfo_to_str(&evt->get_fd_info()->m_sockinfo,
+						                             fdtype,
+						                             &evt->get_paramstr_storage()[0],
+						                             (uint32_t)evt->get_paramstr_storage().size(),
+						                             m_hostname_and_port_resolution_enabled);
 
 						evt->get_fd_info()->m_name = &evt->get_paramstr_storage()[0];
 					} else {
@@ -3906,8 +3925,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
-			if(m_inspector->get_observer()) {
-				m_inspector->m_post_process_cbs.emplace(
+			if(get_observer()) {
+				m_post_process_cbs.emplace(
 				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_write(evt,
 					                           tid,
@@ -3931,11 +3950,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
-			if(m_inspector->get_observer()) {
-				m_inspector->m_post_process_cbs.emplace(
-				        [](sinsp_observer *observer, sinsp_evt *evt) {
-					        observer->on_socket_status_changed(evt);
-				        });
+			if(get_observer()) {
+				m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
+					observer->on_socket_status_changed(evt);
+				});
 			}
 		}
 	}
@@ -3971,11 +3989,10 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) {
 		//
 		// If there's a listener, add a callback to later invoke it.
 		//
-		if(m_inspector->get_observer()) {
-			m_inspector->m_post_process_cbs.emplace(
-			        [fdin, retval](sinsp_observer *observer, sinsp_evt *evt) {
-				        observer->on_sendfile(evt, fdin, (uint32_t)retval);
-			        });
+		if(get_observer()) {
+			m_post_process_cbs.emplace([fdin, retval](sinsp_observer *observer, sinsp_evt *evt) {
+				observer->on_sendfile(evt, fdin, (uint32_t)retval);
+			});
 		}
 	}
 }
@@ -4002,7 +4019,7 @@ void sinsp_parser::parse_eventfd_exit(sinsp_evt *evt) {
 	//
 	// Populate the new fdi
 	//
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	fdi->m_type = SCAP_FD_EVENT;
 
 	if(evt->get_type() == PPME_SYSCALL_EVENTFD2_X) {
@@ -4134,8 +4151,8 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) {
 		//
 		// If there's a listener, add a callback to later invoke it.
 		//
-		if(m_inspector->get_observer()) {
-			m_inspector->m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
+		if(get_observer()) {
+			m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_socket_shutdown(evt);
 			});
 		}
@@ -4253,7 +4270,7 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt *evt, scap_fd_type type)
 	//
 	// Populate the new fdi
 	//
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	fdi->m_type = type;
 
 	if(evt->get_type() == PPME_SYSCALL_INOTIFY_INIT1_X) {
@@ -4364,7 +4381,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt) {
 					tid = evt->get_tid();
 				}
 
-				sinsp_threadinfo *ptinfo = m_inspector->get_thread_ref(tid, true, true).get();
+				sinsp_threadinfo *ptinfo = m_thread_manager->get_thread_ref(tid, true, true).get();
 				/* If the thread info is invalid we cannot recover the main thread because we don't
 				 * even have the `pid` of the thread.
 				 */
@@ -4606,10 +4623,9 @@ void sinsp_parser::parse_user_evt(sinsp_evt *evt) {
 	container_id = evt->get_param(5)->as<std::string_view>();
 
 	if(evt->get_scap_evt()->type == PPME_USER_ADDED_E) {
-		m_inspector->m_usergroup_manager
-		        ->add_user(std::string(container_id), -1, uid, gid, name, home, shell);
+		m_usergroup_manager->add_user(std::string(container_id), -1, uid, gid, name, home, shell);
 	} else {
-		m_inspector->m_usergroup_manager->rm_user(std::string(container_id), uid);
+		m_usergroup_manager->rm_user(std::string(container_id), uid);
 	}
 }
 
@@ -4620,14 +4636,14 @@ void sinsp_parser::parse_group_evt(sinsp_evt *evt) {
 	std::string_view container_id = evt->get_param(2)->as<std::string_view>();
 
 	if(evt->get_scap_evt()->type == PPME_GROUP_ADDED_E) {
-		m_inspector->m_usergroup_manager->add_group(container_id.data(), -1, gid, name.data());
+		m_usergroup_manager->add_group(container_id.data(), -1, gid, name.data());
 	} else {
-		m_inspector->m_usergroup_manager->rm_group(container_id.data(), gid);
+		m_usergroup_manager->rm_group(container_id.data(), gid);
 	}
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt) {
-	if(m_inspector->is_live() || m_inspector->is_syscall_plugin()) {
+	if(m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) {
 		throw sinsp_exception("CPU " + evt->get_param_value_str("cpu") +
 		                      " configuration change detected. Aborting.");
 	}
@@ -4776,8 +4792,8 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) {
 		//
 		// If there's a listener, add a callback to later invoke it.
 		//
-		if(m_inspector->get_observer()) {
-			m_inspector->m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
+		if(get_observer()) {
+			m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_socket_status_changed(evt);
 			});
 		}
@@ -4849,7 +4865,7 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt) {
 }
 
 void sinsp_parser::free_event_buffer(uint8_t *ptr) {
-	if(m_tmp_events_buffer.size() < m_inspector->m_thread_manager->get_threads()->size()) {
+	if(m_tmp_events_buffer.size() < m_thread_manager->get_threads()->size()) {
 		m_tmp_events_buffer.push(ptr);
 	} else {
 		free(ptr);
@@ -4877,7 +4893,7 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type) {
 	/* flags */
 	flags = evt->get_param(2)->as<uint32_t>();
 
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	if(fd >= 0) {
 		fdi->m_type = type;
 		fdi->add_filename(name);
@@ -4906,7 +4922,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt) {
 	/* flags */
 	flags = evt->get_param(2)->as<uint32_t>();
 
-	auto fdi = m_inspector->build_fdinfo();
+	auto fdi = m_fdinfo_factory.create();
 	if(fd >= 0) {
 		// note: approximating equivalent filename as in:
 		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
@@ -4948,7 +4964,7 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt) {
 		return;
 	}
 
-	auto pidfd_tinfo = m_inspector->get_thread_ref(pidfd_fdinfo->m_pid);
+	auto pidfd_tinfo = m_thread_manager->get_thread_ref(pidfd_fdinfo->m_pid);
 	if(pidfd_tinfo == nullptr) {
 		return;
 	}
