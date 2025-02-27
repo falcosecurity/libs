@@ -321,7 +321,7 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 
 		m_last_accessed_fd = fd;
 		m_last_accessed_fdinfo = fdit->second;
-		lookup_device(m_last_accessed_fdinfo.get(), fd);
+		lookup_device(*m_last_accessed_fdinfo);
 		return m_last_accessed_fdinfo;
 	}
 }
@@ -438,21 +438,21 @@ void sinsp_fdtable::reset_cache() {
 	m_last_accessed_fd = -1;
 }
 
-void sinsp_fdtable::lookup_device(sinsp_fdinfo* fdi, uint64_t fd) {
+void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #ifndef _WIN32
 	if(m_inspector == nullptr || m_inspector->is_offline() ||
 	   (m_inspector->is_plugin() && !m_inspector->is_syscall_plugin())) {
 		return;
 	}
 
-	if(m_tid != 0 && m_tid != (uint64_t)-1 && fdi->is_file() && fdi->m_dev == 0 &&
-	   fdi->m_mount_id != 0) {
+	if(m_tid != 0 && m_tid != static_cast<uint64_t>(-1) && fdi.is_file() && fdi.m_dev == 0 &&
+	   fdi.m_mount_id != 0) {
 		char procdir[SCAP_MAX_PATH_SIZE];
 		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
-		fdi->m_dev = scap_get_device_by_mount_id(m_inspector->get_scap_platform(),
-		                                         procdir,
-		                                         fdi->m_mount_id);
-		fdi->m_mount_id = 0;  // don't try again
+		fdi.m_dev = scap_get_device_by_mount_id(m_inspector->get_scap_platform(),
+		                                        procdir,
+		                                        fdi.m_mount_id);
+		fdi.m_mount_id = 0;  // don't try again
 	}
 #endif  // _WIN32
 }
