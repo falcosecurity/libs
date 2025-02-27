@@ -46,6 +46,7 @@ add_library(
 	dns_manager.cpp
 	dumper.cpp
 	fdinfo.cpp
+	fdtable.cpp
 	filter.cpp
 	sinsp_filter_transformers/sinsp_filter_transformer.cpp
 	sinsp_filter_transformers/sinsp_filter_transformer_base64.cpp
