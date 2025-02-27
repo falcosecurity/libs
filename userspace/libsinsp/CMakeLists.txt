@@ -108,7 +108,7 @@ if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
-	target_sources(sinsp PRIVATE procfs_utils.cpp sinsp_cgroup.cpp)
+	target_sources(sinsp PRIVATE procfs_utils.cpp)
 endif()
 
 target_include_directories(
