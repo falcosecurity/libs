@@ -13,29 +13,27 @@
 # the License.
 #
 
-set(CONTAINER_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/container_plugin-prefix/src/libcontainer.so")
+set(CONTAINER_LIBRARY
+	"${CMAKE_CURRENT_BINARY_DIR}/container_plugin-prefix/src/container_plugin/libcontainer.so"
+)
 if(NOT CONTAINER_VERSION)
-	set(CONTAINER_VERSION "0.1.0-rc2")
+	set(CONTAINER_VERSION "0.1.0-rc3")
 endif()
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 	if(NOT CONTAINER_HASH)
-		set(CONTAINER_HASH "d7b7a1d35dcefb45cd9737ab4a3d6e259522637a009e3d6cb0ff729ab1c34685")
+		set(CONTAINER_HASH "059e8a1f7018d7ead97abc46566a82d8250c03e520d6e8858828bd07c3cb5af7")
 	endif()
-	set(CONTAINER_ARCH "amd64")
 else() # arm64
 	if(NOT CONTAINER_HASH)
-		set(CONTAINER_HASH "fd569320a17c22310c55e820ae26b413ba0404d476bfb90a42be67b6be9d939b")
+		set(CONTAINER_HASH "5b7892ac01ed109f3da86a3b1603d14d41363755f2362d82946df512e88768cf")
 	endif()
-	set(CONTAINER_ARCH "arm64")
 endif()
 if(NOT TARGET container_plugin)
 	message(STATUS "Fetching container plugin ${CONTAINER_VERSION} in '${CONTAINER_LIBRARY}'")
 	ExternalProject_Add(
 		container_plugin
-		URL "https://github.com/FedeDP/container_plugin/releases/download/${CONTAINER_VERSION}/libcontainer_${CONTAINER_ARCH}.so"
+		URL "https://github.com/FedeDP/container_plugin/releases/download/${CONTAINER_VERSION}/container-${CONTAINER_VERSION}-linux-${CMAKE_HOST_SYSTEM_PROCESSOR}.tar.gz"
 		URL_HASH "SHA256=${CONTAINER_HASH}"
-		DOWNLOAD_NAME "libcontainer.so"
-		DOWNLOAD_NO_EXTRACT 1
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND ""
 		INSTALL_COMMAND ""
