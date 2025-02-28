@@ -361,7 +361,7 @@ TEST(thread_manager, table_access) {
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo().static_fields());
+	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo::get_static_fields());
 	ASSERT_NE(table->dynamic_fields(), nullptr);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 	ASSERT_EQ(table->entries_count(), 0);

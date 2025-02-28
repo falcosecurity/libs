@@ -59,6 +59,10 @@ sinsp_threadinfo::sinsp_threadinfo(
 }
 
 libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() const {
+	return get_static_fields();
+}
+
+libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields() {
 	using self = sinsp_threadinfo;
 
 	libsinsp::state::static_struct::field_infos ret;
@@ -1337,7 +1341,7 @@ static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
 	}
 }
 
-static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields();
+static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
