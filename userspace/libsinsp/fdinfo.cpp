@@ -134,73 +134,73 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const 
 	// of the targeted architecture
 	auto is_big_endian = htonl(12) == 12;  // the chosen number does not matter
 	size_t type_byte_offset = is_big_endian ? (sizeof(scap_fd_type) - 1) : 0;
-	define_static_field(ret, this, ((uint8_t*)(&m_type))[type_byte_offset], "type");
+	define_static_field(ret, this, &((uint8_t*)(&m_type))[type_byte_offset], "type");
 
 	// the rest fo the fields are more trivial to expose
-	define_static_field(ret, this, m_openflags, "open_flags");
-	define_static_field(ret, this, m_name, "name");
-	define_static_field(ret, this, m_name_raw, "name_raw");
-	define_static_field(ret, this, m_oldname, "old_name");
-	define_static_field(ret, this, m_flags, "flags");
-	define_static_field(ret, this, m_dev, "dev");
-	define_static_field(ret, this, m_mount_id, "mount_id");
-	define_static_field(ret, this, m_ino, "ino");
-	define_static_field(ret, this, m_pid, "pid");
-	define_static_field(ret, this, m_fd, "fd");
+	define_static_field(ret, this, &m_openflags, "open_flags");
+	define_static_field(ret, this, &m_name, "name");
+	define_static_field(ret, this, &m_name_raw, "name_raw");
+	define_static_field(ret, this, &m_oldname, "old_name");
+	define_static_field(ret, this, &m_flags, "flags");
+	define_static_field(ret, this, &m_dev, "dev");
+	define_static_field(ret, this, &m_mount_id, "mount_id");
+	define_static_field(ret, this, &m_ino, "ino");
+	define_static_field(ret, this, &m_pid, "pid");
+	define_static_field(ret, this, &m_fd, "fd");
 
 	// in this case we have a union, so many of the following exposed fields
 	// will point to the same memory areas, but this should not be an issue
-	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sip, "socket_ipv4_src_ip");
-	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dip, "socket_ipv4_dest_dip");
-	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sport, "socket_ipv4_src_port");
-	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dport, "socket_ipv4_dst_port");
+	define_static_field(ret, this, &m_sockinfo.m_ipv4info.m_fields.m_sip, "socket_ipv4_src_ip");
+	define_static_field(ret, this, &m_sockinfo.m_ipv4info.m_fields.m_dip, "socket_ipv4_dest_dip");
+	define_static_field(ret, this, &m_sockinfo.m_ipv4info.m_fields.m_sport, "socket_ipv4_src_port");
+	define_static_field(ret, this, &m_sockinfo.m_ipv4info.m_fields.m_dport, "socket_ipv4_dst_port");
 	define_static_field(ret,
 	                    this,
-	                    m_sockinfo.m_ipv4info.m_fields.m_l4proto,
+	                    &m_sockinfo.m_ipv4info.m_fields.m_l4proto,
 	                    "socket_ipv4_l4_proto");
 	define_static_field(ret,
 	                    this,
-	                    ((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_sip)[0],
+	                    &((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_sip)[0],
 	                    "socket_ipv6_src_ip_low");
 	define_static_field(ret,
 	                    this,
-	                    ((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_sip)[1],
+	                    &((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_sip)[1],
 	                    "socket_ipv6_src_ip_high");
 	define_static_field(ret,
 	                    this,
-	                    ((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_dip)[0],
+	                    &((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_dip)[0],
 	                    "socket_ipv6_dest_ip_low");
 	define_static_field(ret,
 	                    this,
-	                    ((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_dip)[1],
+	                    &((uint64_t*)&m_sockinfo.m_ipv6info.m_fields.m_dip)[1],
 	                    "socket_ipv6_dest_ip_high");
-	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_sport, "socket_ipv6_src_port");
-	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_dport, "socket_ipv6_dst_port");
+	define_static_field(ret, this, &m_sockinfo.m_ipv6info.m_fields.m_sport, "socket_ipv6_src_port");
+	define_static_field(ret, this, &m_sockinfo.m_ipv6info.m_fields.m_dport, "socket_ipv6_dst_port");
 	define_static_field(ret,
 	                    this,
-	                    m_sockinfo.m_ipv6info.m_fields.m_l4proto,
+	                    &m_sockinfo.m_ipv6info.m_fields.m_l4proto,
 	                    "socket_ipv6_l4_proto");
-	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_ip, "socket_ipv4_server_ip");
-	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_port, "socket_ipv4_server_port");
+	define_static_field(ret, this, &m_sockinfo.m_ipv4serverinfo.m_ip, "socket_ipv4_server_ip");
+	define_static_field(ret, this, &m_sockinfo.m_ipv4serverinfo.m_port, "socket_ipv4_server_port");
 	define_static_field(ret,
 	                    this,
-	                    m_sockinfo.m_ipv4serverinfo.m_l4proto,
+	                    &m_sockinfo.m_ipv4serverinfo.m_l4proto,
 	                    "socket_ipv4_server_l4_proto");
 	define_static_field(ret,
 	                    this,
-	                    ((uint64_t*)&m_sockinfo.m_ipv6serverinfo.m_ip)[0],
+	                    &((uint64_t*)&m_sockinfo.m_ipv6serverinfo.m_ip)[0],
 	                    "socket_ipv6_server_ip_low");
 	define_static_field(ret,
 	                    this,
-	                    ((uint64_t*)&m_sockinfo.m_ipv6serverinfo.m_ip)[1],
+	                    &((uint64_t*)&m_sockinfo.m_ipv6serverinfo.m_ip)[1],
 	                    "socket_ipv6_server_ip_high");
-	define_static_field(ret, this, m_sockinfo.m_ipv6serverinfo.m_port, "socket_ipv6_server_port");
+	define_static_field(ret, this, &m_sockinfo.m_ipv6serverinfo.m_port, "socket_ipv6_server_port");
 	define_static_field(ret,
 	                    this,
-	                    m_sockinfo.m_ipv6serverinfo.m_l4proto,
+	                    &m_sockinfo.m_ipv6serverinfo.m_l4proto,
 	                    "socket_ipv6_server_l4_proto");
-	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_source, "socket_unix_src");
-	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_dest, "socket_unix_dest");
+	define_static_field(ret, this, &m_sockinfo.m_unixinfo.m_fields.m_source, "socket_unix_src");
+	define_static_field(ret, this, &m_sockinfo.m_unixinfo.m_fields.m_dest, "socket_unix_dest");
 
 	return ret;
 }
