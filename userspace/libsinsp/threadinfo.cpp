@@ -60,6 +60,10 @@ sinsp_threadinfo::sinsp_threadinfo(
 
 #include <libsinsp/state/table.h>
 libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() const {
+	return get_static_fields();
+}
+
+libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields() {
 	using T = sinsp_threadinfo;
 #define TABLE_ADAPTER_TABLE_OFFSET(table_adapter_type) \
 	reinterpret_cast<size_t>(                          \
@@ -1343,7 +1347,7 @@ static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
 	}
 }
 
-static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields();
+static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
