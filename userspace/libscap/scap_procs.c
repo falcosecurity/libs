@@ -114,15 +114,13 @@ int32_t default_proc_entry_callback(void* context,
 
 		scap_fdinfo* new_fdi = malloc(sizeof(*new_fdi));
 		if(new_fdi == NULL) {
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "process table allocation error (1)");
 		}
 		*new_fdi = *fdinfo;
 
 		HASH_ADD_INT64(tinfo->fdlist, fd, new_fdi);
 		if(uth_status != SCAP_SUCCESS) {
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "process table allocation error (2)");
 		}
 	} else {
 		// add a thread
@@ -138,9 +136,8 @@ int32_t default_proc_entry_callback(void* context,
 		int32_t uth_status = SCAP_SUCCESS;
 		HASH_ADD_INT64(proclist->m_proclist, tid, heap_tinfo);
 		if(uth_status != SCAP_SUCCESS) {
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
 			free(heap_tinfo);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, 0, "process table allocation error (2)");
 		}
 
 		if(new_tinfo) {
@@ -169,7 +166,7 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info** proclist_p,
 	uint32_t memsize;
 
 	if(n_entries >= SCAP_DRIVER_PROCINFO_MAX_SIZE) {
-		snprintf(error, SCAP_LASTERR_SIZE, "driver process list too big");
+		scap_errprintf(error, 0, "driver process list too big");
 		return false;
 	}
 
@@ -179,7 +176,7 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info** proclist_p,
 	if(procinfo == NULL) {
 		free(*proclist_p);
 		*proclist_p = NULL;
-		snprintf(error, SCAP_LASTERR_SIZE, "driver process list allocation error");
+		scap_errprintf(error, 0, "driver process list allocation error");
 		return false;
 	}
 
