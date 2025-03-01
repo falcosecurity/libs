@@ -44,8 +44,16 @@ set(LIBSCAP_TESTS_LIBRARIES "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${CMAKE_THREAD_L
 set(LIBSCAP_TESTS_DEPENDENCIES gtest scap)
 
 # Test suite asserting against pure userspace components
-file(GLOB_RECURSE USERSPACE_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.cpp")
+file(GLOB_RECURSE USERSPACE_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.cpp"
+	 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.c"
+)
 set(LIBSCAP_TESTS_SOURCES ${USERSPACE_TEST_SUITE})
+
+set_source_files_properties(
+	${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/linux/scap_fds_impl.c
+	PROPERTIES COMPILE_FLAGS "-D_GNU_SOURCE -include sys/sysmacros.h" COMPILE_DEFINITIONS
+																	  "HAVE_SYS_SYSMACROS_H"
+)
 
 # Helpers are not engine-specific so we always include them
 file(GLOB_RECURSE LIBSCAP_TESTS_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers/*cpp")
@@ -112,3 +120,5 @@ add_executable(libscap_test ${LIBSCAP_TESTS_SOURCES})
 target_include_directories(libscap_test ${LIBSCAP_TESTS_INCLUDE})
 target_link_libraries(libscap_test ${LIBSCAP_TESTS_LIBRARIES})
 add_dependencies(libscap_test ${LIBSCAP_TESTS_DEPENDENCIES})
+
+target_compile_definitions(libscap_test PRIVATE -D_GNU_SOURCE)
