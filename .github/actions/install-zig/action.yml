@@ -8,23 +8,11 @@ runs:
       shell: bash
       id: store
       env:
-        ZIG_VERSION: '0.14.0-dev.3188+34644511b'
+        ZIG_VERSION: '0.14.0'
       run: |
         echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
 
-    # TODO: this is only needed because we are using a development version of zig,
-    # since we need https://github.com/ziglang/zig/pull/21253 to be included.
-    # Development versions of zig are not kept alive forever, but get overridden.
-    # We cache it to keep it alive.
-    - name: Download zig (cached)
-      id: cache-zig
-      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-      with:
-        path: zig
-        key: zig-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.zig_version }}
-
     - name: Download zig
-      if: steps.cache-zig.outputs.cache-hit != 'true'
       shell: bash
       run: |
         curl -L -o zig.tar.xz https://ziglang.org/builds/zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}.tar.xz
