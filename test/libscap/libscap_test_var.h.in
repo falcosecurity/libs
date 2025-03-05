@@ -8,3 +8,6 @@
 
 // Absolute path to the bpf probe .o file
 #define LIBSCAP_TEST_BPF_PROBE_PATH "${CMAKE_BINARY_DIR}/driver/bpf/probe.o"
+
+// Absolute path to the test data directory
+#define LIBSCAP_TEST_DATA_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/linux"
