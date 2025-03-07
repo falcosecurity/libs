@@ -17,11 +17,12 @@ limitations under the License.
 
 */
 
+#include <test_utils.h>
 #include <scap_files/scap_file_test.h>
 
 // Use `sudo sysdig -r <scap-file> -S -q` to check the number of events in the scap file.
 // When you find a specific event to assert use
-// `sudo sysdig -r <> -d "evt.num =<>" -p "ts=%evt.rawtime,tid=%thread.tid,args=%evt.arg.args"`
+// `sudo sysdig -r <> -d "evt.num=<>" -p "ts=%evt.rawtime, tid=%thread.tid, args=%evt.args"`
 
 ////////////////////////////
 // READ
@@ -201,6 +202,64 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// ACCEPT
+////////////////////////////
+
+TEST_F(scap_file_test, accept_e_same_number_of_events) {
+	open_filename("scap_2013.scap");
+	assert_num_event_type(PPME_SOCKET_ACCEPT_E, 3817);
+}
+
+TEST_F(scap_file_test, accept_x_same_number_of_events) {
+	open_filename("scap_2013.scap");
+	assert_num_event_type(PPME_SOCKET_ACCEPT_5_X, 3816);
+}
+
+// Compile out this test if test_utils helpers are not defined.
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+TEST_F(scap_file_test, accept_x_check_final_converted_event) {
+	open_filename("scap_2013.scap");
+
+	// Inside the scap-file the event `519217` is the following:
+	// - type=PPME_SOCKET_ACCEPT_X,
+	// - ts=1380933088302022447
+	// - tid=43625
+	// - args=fd=13(<4t>127.0.0.1:38873->127.0.0.1:80) tuple=127.0.0.1:38873->127.0.0.1:80
+	// queuepct=37 queuepct=37
+	//
+	// And its corresponding enter event `519211` is the following:
+	// - type=PPME_SOCKET_ACCEPT_E
+	// - ts=1380933088302013474
+	// - tid=43625
+	// - args=
+	//
+	// Let's see the new PPME_SOCKET_ACCEPT_5_X event!
+
+	uint64_t ts = 1380933088302022447;
+	int64_t tid = 43625;
+	int64_t fd = 13;
+	sockaddr_in client_sockaddr = test_utils::fill_sockaddr_in(38873, "127.0.0.1");
+	sockaddr_in server_sockaddr = test_utils::fill_sockaddr_in(80, "127.0.0.1");
+	const std::vector<uint8_t> tuple =
+	        test_utils::pack_socktuple(reinterpret_cast<struct sockaddr *>(&client_sockaddr),
+	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
+	int32_t queuepct = 37;
+	int32_t queuelen = 0;
+	int32_t queuemax = 0;
+	assert_event_presence(
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT_5_X,
+	                               5,
+	                               fd,
+	                               scap_const_sized_buffer{tuple.data(), tuple.size()},
+	                               queuepct,
+	                               queuelen,
+	                               queuemax));
+}
+#endif
+
+////////////////////////////
 // WRITE
 ////////////////////////////
 
@@ -245,3 +304,58 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with PWRITE events. Add it if we face a failure.
+
+////////////////////////////
+// SEND
+////////////////////////////
+
+// We don't have scap-files with SEND events. Add it if we face a failure.
+
+////////////////////////////
+// SENDTO
+////////////////////////////
+
+TEST_F(scap_file_test, sendto_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SENDTO_E, 162);
+}
+
+TEST_F(scap_file_test, sendto_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SENDTO_X, 162);
+}
+
+TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `857230` is the following:
+	// - type=PPME_SOCKET_SENDTO_X
+	// - ts=1687966733172651252
+	// - tid=114093
+	// - args=res=17 data="\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0"
+	//
+	// And its corresponding enter event `857231` is the following:
+	// - type=PPME_SOCKET_SENDTO_E
+	// - ts=1687966733172634128
+	// - tid=114093
+	// - args=fd=22(<n>) size=17 tuple=NULL
+	//
+	// Let's see the new PPME_SOCKET_SENDTO_X event!
+
+	uint64_t ts = 1687966733172651252;
+	int64_t tid = 114093;
+	int64_t res = 17;
+
+	constexpr char data[] = "\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0";
+	constexpr uint32_t size = sizeof(data);
+	int64_t fd = 22;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SOCKET_SENDTO_X,
+	                                             5,
+	                                             res,
+	                                             scap_const_sized_buffer{data, size},
+	                                             fd,
+	                                             size,
+	                                             scap_const_sized_buffer{nullptr, 0}));
+}
