@@ -584,6 +584,12 @@ public:
 
 	void set_exepath(std::string&& exepath);
 
+	/*!
+	  \brief A static version of static_fields()
+	  \return The group of field infos available.
+	 */
+	static static_struct::field_infos get_static_fields();
+
 private:
 	sinsp_threadinfo* get_cwd_root();
 	bool set_env_from_proc();

@@ -210,25 +210,25 @@ protected:
 	 * An exception is thrown if two fields are defined with the same name.
 	 *
 	 * @tparam T Type of the field.
-	 * @param thisptr "this" pointer of the struct containing the field,
-	 * which is used to compute the field's memory offset in other instances
-	 * of the same struct.
-	 * @param v Reference to the field of which info is defined.
+	 * @param thisptr "this" pointer of the struct containing the field, which is used to compute
+	 * the field's memory offset in other instances of the same struct.
+	 * @param v Pointer to the field of which info is defined, only used to compute the field's
+	 * memory and infer the field type.
 	 * @param name Display name of the field.
 	 */
 	template<typename T>
-	inline const field_info& define_static_field(field_infos& fields,
-	                                             const void* thisptr,
-	                                             const T& v,
-	                                             const std::string& name,
-	                                             bool readonly = false) const {
+	constexpr static const field_info& define_static_field(field_infos& fields,
+	                                                       const void* thisptr,
+	                                                       const T* v,
+	                                                       const std::string& name,
+	                                                       bool readonly = false) {
 		const auto& it = fields.find(name);
 		if(it != fields.end()) {
 			throw sinsp_exception("multiple definitions of static field in struct: " + name);
 		}
 
 		// todo(jasondellaluce): add extra safety boundary checks here
-		size_t offset = (size_t)(((uintptr_t)&v) - (uintptr_t)thisptr);
+		size_t offset = (size_t)(((uintptr_t)v) - (uintptr_t)thisptr);
 		fields.insert({name, field_info::_build<T>(name, offset, readonly)});
 		return fields.at(name);
 	}
