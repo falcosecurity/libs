@@ -29,7 +29,7 @@ extern "C" {
 //
 // todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
-#define PLUGIN_API_VERSION_MINOR 10
+#define PLUGIN_API_VERSION_MINOR 11
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
@@ -370,6 +370,14 @@ typedef struct ss_plugin_field_extract_input {
 	//
 	// Vtable for controlling a state table for read operations.
 	ss_plugin_table_reader_vtable_ext* table_reader_ext;
+
+	// If true, signal that the framework wants offsets to be computed.
+	ss_plugin_bool request_offsets;
+
+	// An array of ss_plugin_extract_field_offsets structs. Optional.
+	// The array should be allocated only if `request_offsets` is true.
+	// Indexed as `fields`.
+	ss_plugin_extract_field_offsets* field_offsets;
 } ss_plugin_field_extract_input;
 
 // Input passed to the plugin when parsing an event for the event parsing

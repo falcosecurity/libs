@@ -982,9 +982,10 @@ std::unique_ptr<sinsp_filter_check> sinsp_plugin::new_filtercheck(
 	return std::make_unique<sinsp_filter_check_plugin>(plugin);
 }
 
-bool sinsp_plugin::extract_fields(sinsp_evt* evt,
-                                  uint32_t num_fields,
-                                  ss_plugin_extract_field* fields) {
+bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
+                                              uint32_t num_fields,
+                                              ss_plugin_extract_field* fields,
+                                              ss_plugin_extract_field_offsets* field_offsets) {
 	if(!m_inited) {
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
@@ -1001,6 +1002,12 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt,
 	in.owner = (ss_plugin_owner_t*)this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.table_reader_ext = &table_reader_ext;
+	in.field_offsets = field_offsets;
+	if(in.field_offsets) {
+		in.request_offsets = true;
+	} else {
+		in.request_offsets = false;
+	}
 	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
 	auto res = m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
 
@@ -1009,6 +1016,12 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt,
 	clear_accessed_entries();
 
 	return res;
+}
+
+bool sinsp_plugin::extract_fields(sinsp_evt* evt,
+                                  uint32_t num_fields,
+                                  ss_plugin_extract_field* fields) {
+	return extract_fields_and_offsets(evt, num_fields, fields, nullptr);
 }
 
 /** End of Field Extraction CAP **/
