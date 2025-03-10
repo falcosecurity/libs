@@ -40,3 +40,5 @@ int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...);
 #ifdef __cplusplus
 };
 #endif
+
+#define scap_err_opnotsup(error) scap_errprintf(error, 0, "operation not supported")

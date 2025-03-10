@@ -24,6 +24,7 @@ limitations under the License.
 #include <driver/ppm_ringbuffer.h>
 #include <libscap/scap_barrier.h>
 #include <libscap/scap_sleep.h>
+#include <libscap/strerror.h>
 
 /* Check buffer dimension in bytes.
  * Our 2 eBPF probes require that this number is a power of 2! Right now we force this
@@ -256,7 +257,7 @@ static inline int32_t ringbuffer_next(struct scap_device_set* devset,
 			/* if the event length is greater than the remaining size in our block there is
 			 * something wrong! */
 			if(pe->len > dev->m_sn_len) {
-				snprintf(devset->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
+				scap_errprintf(devset->m_lasterr, 0, "scap_next buffer corruption");
 				dump_ringbuffer(dev);
 
 				/* if you get the following assertion, first recompile the driver and `libscap` */
