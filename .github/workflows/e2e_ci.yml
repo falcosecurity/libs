@@ -65,7 +65,7 @@ jobs:
           sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@054db53350805f83040bf3e6e9b8cf5a139aa7c9 # v0.0.7
+        uses: mozilla-actions/sccache-action@65101d47ea8028ed0c98a1cdea8dd9182e9b5133 # v0.0.8
 
       - name: Build e2e tests 🏗️
         env:
@@ -91,7 +91,7 @@ jobs:
           cd ..
 
       - name: Cache build
-        uses: actions/cache/save@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
+        uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         if: always()
         id: cache
         with:
@@ -115,7 +115,7 @@ jobs:
 
       - name: Restore build
         id: cache
-        uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: build
           key: build-e2e-${{ matrix.arch }}-${{ github.run_id }}
