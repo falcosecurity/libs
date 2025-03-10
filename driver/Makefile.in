@@ -29,7 +29,15 @@ install: all
 
 else
 
-KERNELDIR 	?= $(CURDIR)
+KERNELRELEASE ?= $(shell uname -r)
+KERNEL_VERSION_MAJOR := $(shell echo $(KERNELRELEASE) | cut -d. -f1)
+KERNEL_VERSION_MINOR := $(shell echo $(KERNELRELEASE) | cut -d. -f2)
+
+ifeq ($(shell [ $(KERNEL_VERSION_MAJOR) -gt 6 -o \( $(KERNEL_VERSION_MAJOR) -eq 6 -a $(KERNEL_VERSION_MINOR) -ge 13 \) ] && echo y),y)
+KERNELDIR ?= $(srctree)
+else
+KERNELDIR ?= $(CURDIR)
+endif
 #
 # Get the path of the module sources
 #
