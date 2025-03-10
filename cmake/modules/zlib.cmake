@@ -45,7 +45,8 @@ else()
 		"${ZLIB_INCLUDE}/zutil.h"
 	)
 	if(NOT TARGET zlib)
-		if(CMAKE_BUILD_TYPE STREQUAL "Release")
+		# Match both release and relwithdebinfo builds
+		if(CMAKE_BUILD_TYPE MATCHES "[R,r]el*")
 			set(ZLIB_CFLAGS "-O3")
 		else()
 			set(ZLIB_CFLAGS "-g")
