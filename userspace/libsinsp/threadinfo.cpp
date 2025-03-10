@@ -58,35 +58,60 @@ sinsp_threadinfo::sinsp_threadinfo(
 	init();
 }
 
+#include <libsinsp/state/table.h>
 libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() const {
+	return get_static_fields();
+}
+
+libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields() {
+	using T = sinsp_threadinfo;
+#define TABLE_ADAPTER_TABLE_OFFSET(table_adapter_type) \
+	reinterpret_cast<size_t>(                          \
+	        static_cast<libsinsp::state::base_table*>(static_cast<table_adapter_type*>(0)))
+
 	libsinsp::state::static_struct::field_infos ret;
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
-	define_static_field(ret, this, m_tid, "tid");
-	define_static_field(ret, this, m_pid, "pid");
-	define_static_field(ret, this, m_ptid, "ptid");
-	define_static_field(ret, this, m_reaper_tid, "reaper_tid");
-	define_static_field(ret, this, m_sid, "sid");
-	define_static_field(ret, this, m_comm, "comm");
-	define_static_field(ret, this, m_exe, "exe");
-	define_static_field(ret, this, m_exepath, "exe_path");
-	define_static_field(ret, this, m_exe_writable, "exe_writable");
-	define_static_field(ret, this, m_exe_upper_layer, "exe_upper_layer");
-	define_static_field(ret, this, m_exe_lower_layer, "exe_lower_layer");
-	define_static_field(ret, this, m_exe_from_memfd, "exe_from_memfd");
-	define_static_field(ret, this, m_args_table_adapter.table_ptr(), "args", true);
-	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env", true);
-	define_static_field(ret, this, m_cgroups_table_adapter.table_ptr(), "cgroups", true);
-	define_static_field(ret, this, m_flags, "flags");
-	define_static_field(ret, this, m_fdlimit, "fd_limit");
-	define_static_field(ret, this, m_uid, "uid");
-	define_static_field(ret, this, m_gid, "gid");
-	define_static_field(ret, this, m_loginuid, "loginuid");
+	DEFINE_STATIC_FIELD(ret, T, m_pid, "tid");
+	DEFINE_STATIC_FIELD(ret, T, m_pid, "pid");
+	DEFINE_STATIC_FIELD(ret, T, m_ptid, "ptid");
+	DEFINE_STATIC_FIELD(ret, T, m_reaper_tid, "reaper_tid");
+	DEFINE_STATIC_FIELD(ret, T, m_sid, "sid");
+	DEFINE_STATIC_FIELD(ret, T, m_comm, "comm");
+	DEFINE_STATIC_FIELD(ret, T, m_exe, "exe");
+	DEFINE_STATIC_FIELD(ret, T, m_exepath, "exe_path");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_writable, "exe_writable");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_upper_layer, "exe_upper_layer");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_lower_layer, "exe_lower_layer");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_from_memfd, "exe_from_memfd");
+	define_static_field<libsinsp::state::base_table*>(
+	        ret,
+	        OFFSETOF(T, m_args_table_adapter) +
+	                TABLE_ADAPTER_TABLE_OFFSET(decltype(m_args_table_adapter)),
+	        "args",
+	        true);
+	define_static_field<libsinsp::state::base_table*>(
+	        ret,
+	        OFFSETOF(T, m_env_table_adapter) +
+	                TABLE_ADAPTER_TABLE_OFFSET(decltype(m_env_table_adapter)),
+	        "env",
+	        true);
+	define_static_field<libsinsp::state::base_table*>(
+	        ret,
+	        OFFSETOF(T, m_cgroups_table_adapter) +
+	                TABLE_ADAPTER_TABLE_OFFSET(decltype(m_cgroups_table_adapter)),
+	        "cgroups",
+	        true);
+	DEFINE_STATIC_FIELD(ret, T, m_flags, "flags");
+	DEFINE_STATIC_FIELD(ret, T, m_fdlimit, "fd_limit");
+	DEFINE_STATIC_FIELD(ret, T, m_uid, "uid");
+	DEFINE_STATIC_FIELD(ret, T, m_gid, "gid");
+	DEFINE_STATIC_FIELD(ret, T, m_loginuid, "loginuid");
 	// m_cap_permitted
 	// m_cap_effective
 	// m_cap_inheritable
-	define_static_field(ret, this, m_exe_ino, "exe_ino");
-	define_static_field(ret, this, m_exe_ino_ctime, "exe_ino_ctime");
-	define_static_field(ret, this, m_exe_ino_mtime, "exe_ino_mtime");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_ino, "exe_ino");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_ino_ctime, "exe_ino_ctime");
+	DEFINE_STATIC_FIELD(ret, T, m_exe_ino_mtime, "exe_ino_mtime");
 	// m_exe_ino_ctime_duration_clone_ts
 	// m_exe_ino_ctime_duration_pidns_start
 	// m_vmsize_kb
@@ -94,19 +119,19 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	// m_vmswap_kb
 	// m_pfmajor
 	// m_pfminor
-	define_static_field(ret, this, m_vtid, "vtid");
-	define_static_field(ret, this, m_vpid, "vpid");
-	define_static_field(ret, this, m_vpgid, "vpgid");
-	define_static_field(ret, this, m_pgid, "pgid");
-	define_static_field(ret, this, m_pidns_init_start_ts, "pidns_init_start_ts");
-	define_static_field(ret, this, m_root, "root");
-	define_static_field(ret, this, m_tty, "tty");
+	DEFINE_STATIC_FIELD(ret, T, m_vtid, "vtid");
+	DEFINE_STATIC_FIELD(ret, T, m_vpid, "vpid");
+	DEFINE_STATIC_FIELD(ret, T, m_vpgid, "vpgid");
+	DEFINE_STATIC_FIELD(ret, T, m_pgid, "pgid");
+	DEFINE_STATIC_FIELD(ret, T, m_pidns_init_start_ts, "pidns_init_start_ts");
+	DEFINE_STATIC_FIELD(ret, T, m_root, "root");
+	DEFINE_STATIC_FIELD(ret, T, m_tty, "tty");
 	// m_category
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
-	define_static_field(ret, this, m_main_fdtable, "file_descriptors", true);
-	define_static_field(ret, this, m_cwd, "cwd", true);
+	DEFINE_STATIC_FIELD_READONLY(ret, T, m_main_fdtable, "file_descriptors", true);
+	DEFINE_STATIC_FIELD_READONLY(ret, T, m_cwd, "cwd", true);
 	// m_parent_loop_detected
 	return ret;
 }
@@ -1322,7 +1347,7 @@ static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
 	}
 }
 
-static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields();
+static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
