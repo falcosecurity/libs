@@ -58,8 +58,9 @@ else()
 		else()
 			set(PROTOBUF_PIC_OPTION "--with-pic=yes")
 		endif()
-		if(CMAKE_BUILD_TYPE STREQUAL "Release")
-			set(PROTOBUF_CXXFLAGS "-O2 -std=c++11 -DNDEBUG")
+		# Match both release and relwithdebinfo builds
+		if(CMAKE_BUILD_TYPE MATCHES "[R,r]el*")
+			set(PROTOBUF_CXXFLAGS "-O3 -std=c++11 -DNDEBUG")
 		else()
 			set(PROTOBUF_CXXFLAGS "-g -std=c++11")
 		endif()
@@ -72,8 +73,8 @@ else()
 			URL_HASH "SHA256=e51cc8fc496f893e2a48beb417730ab6cbcb251142ad8b2cd1951faa5c76fe3d"
 			# TODO what if using system zlib?
 			CONFIGURE_COMMAND
-				CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure
-				CXXFLAGS=${PROTOBUF_CXXFLAGS} --with-zlib ${PROTOBUF_CONFIGURE_FLAGS}
+				./configure CXXFLAGS=${PROTOBUF_CXXFLAGS} --with-zlib-include=${ZLIB_INCLUDE}
+				--with-zlib-lib=${ZLIB_SRC} --with-zlib ${PROTOBUF_CONFIGURE_FLAGS}
 				${PROTOBUF_PIC_OPTION} --prefix=${PROTOBUF_INSTALL_DIR}
 			BUILD_COMMAND make
 			BUILD_IN_SOURCE 1

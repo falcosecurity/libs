@@ -55,6 +55,7 @@ else()
 						   -DRE2_BUILD_TESTING=OFF
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 			)
 		else()
 			# CMake 3.29.1 removed the support for the `PACKAGE_PREFIX_DIR` variable. The patch
@@ -74,6 +75,7 @@ else()
 						   -DRE2_BUILD_TESTING=OFF
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 			)
 		endif()
 	else()
@@ -95,6 +97,7 @@ else()
 						   -DRE2_BUILD_TESTING=OFF
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 			)
 		else()
 			ExternalProject_Add(
@@ -111,6 +114,7 @@ else()
 						   -DRE2_BUILD_TESTING=OFF
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 			)
 		endif()
 	endif()

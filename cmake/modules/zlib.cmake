@@ -45,9 +45,14 @@ else()
 		"${ZLIB_INCLUDE}/zutil.h"
 	)
 	if(NOT TARGET zlib)
-		set(ZLIB_CFLAGS)
+		# Match both release and relwithdebinfo builds
+		if(CMAKE_BUILD_TYPE MATCHES "[R,r]el*")
+			set(ZLIB_CFLAGS "-O3")
+		else()
+			set(ZLIB_CFLAGS "-g")
+		endif()
 		if(ENABLE_PIC)
-			set(ZLIB_CFLAGS -fPIC)
+			set(ZLIB_CFLAGS "${ZLIB_CFLAGS} -fPIC")
 		endif()
 
 		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
