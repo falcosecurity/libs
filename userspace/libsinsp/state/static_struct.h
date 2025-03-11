@@ -210,25 +210,22 @@ protected:
 	 * An exception is thrown if two fields are defined with the same name.
 	 *
 	 * @tparam T Type of the field.
-	 * @param thisptr "this" pointer of the struct containing the field,
-	 * which is used to compute the field's memory offset in other instances
-	 * of the same struct.
-	 * @param v Reference to the field of which info is defined.
+	 * @param fields Fields group to which to add the new field.
+	 * @param offset Field's memory offset in instances of the class/struct.
 	 * @param name Display name of the field.
+	 * @param readonly Read-only field annotation.
 	 */
 	template<typename T>
-	inline const field_info& define_static_field(field_infos& fields,
-	                                             const void* thisptr,
-	                                             const T& v,
-	                                             const std::string& name,
-	                                             bool readonly = false) const {
+	constexpr static const field_info& define_static_field(field_infos& fields,
+	                                                       const size_t offset,
+	                                                       const std::string& name,
+	                                                       const bool readonly = false) {
 		const auto& it = fields.find(name);
 		if(it != fields.end()) {
 			throw sinsp_exception("multiple definitions of static field in struct: " + name);
 		}
 
 		// todo(jasondellaluce): add extra safety boundary checks here
-		size_t offset = (size_t)(((uintptr_t)&v) - (uintptr_t)thisptr);
 		fields.insert({name, field_info::_build<T>(name, offset, readonly)});
 		return fields.at(name);
 	}
@@ -236,6 +233,29 @@ protected:
 
 };  // namespace state
 };  // namespace libsinsp
+
+// This `offsetof` custom definition prevents the compiler from complaining about "offsetof"-ing on
+// non-standard-layout types (e.g.: `warning: ‘offsetof’ within non-standard-layout type ‘X’ is
+// conditionally-supported)`.
+#define OFFSETOF_STATIC_FIELD(type, member) reinterpret_cast<size_t>(&static_cast<type*>(0)->member)
+
+// DEFINE_STATIC_FIELD macro is a wrapper around static_struct::define_static_field helping to
+// extract the field type and field offset.
+#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name)      \
+	define_static_field<decltype(static_cast<container_type*>(0)->container_field)>( \
+	        field_infos,                                                             \
+	        OFFSETOF_STATIC_FIELD(container_type, container_field),                  \
+	        name);
+
+// DEFINE_STATIC_FIELD_READONLY macro is a wrapper around static_struct::define_static_field helping
+// to extract the field type and field offset. The defined field is set to guarantee read-only
+// access.
+#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name) \
+	define_static_field<decltype(static_cast<container_type*>(0)->container_field)>(     \
+	        field_infos,                                                                 \
+	        OFFSETOF_STATIC_FIELD(container_type, container_field),                      \
+	        name,                                                                        \
+	        true);
 
 // specializations for strings
 template<>
