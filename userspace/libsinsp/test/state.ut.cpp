@@ -34,8 +34,8 @@ TEST(static_struct, defs_and_access) {
 	struct err_multidef_struct : public libsinsp::state::static_struct {
 		libsinsp::state::static_struct::field_infos static_fields() const override {
 			libsinsp::state::static_struct::field_infos ret;
-			define_static_field(ret, this, m_num, "num");
-			define_static_field(ret, this, m_num, "num");
+			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
+			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
 			return ret;
 		}
 
@@ -46,8 +46,8 @@ TEST(static_struct, defs_and_access) {
 	public:
 		libsinsp::state::static_struct::field_infos static_fields() const override {
 			libsinsp::state::static_struct::field_infos ret;
-			define_static_field(ret, this, m_num, "num");
-			define_static_field(ret, this, m_str, "str", true);
+			DEFINE_STATIC_FIELD(ret, sample_struct, m_num, "num");
+			DEFINE_STATIC_FIELD_READONLY(ret, sample_struct, m_str, "str");
 			return ret;
 		}
 
@@ -65,7 +65,7 @@ TEST(static_struct, defs_and_access) {
 	public:
 		libsinsp::state::static_struct::field_infos static_fields() const override {
 			libsinsp::state::static_struct::field_infos ret;
-			define_static_field(ret, this, m_num, "num");
+			DEFINE_STATIC_FIELD(ret, sample_struct2, m_num, "num");
 			return ret;
 		}
 
