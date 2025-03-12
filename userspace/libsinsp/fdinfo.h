@@ -339,6 +339,12 @@ public:
 
 	inline void set_overlay_lower() { m_flags |= FLAGS_OVERLAY_LOWER; }
 
+	/*!
+	  \brief A static version of static_fields()
+	  \return The group of field infos available.
+	 */
+	static static_struct::field_infos get_static_fields();
+
 	scap_fd_type m_type =
 	        SCAP_FD_UNINITIALIZED;  ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags = 0;  ///< If this FD is a file, the flags that were used when opening it.
