@@ -161,8 +161,7 @@ private:
 	// Process file descriptors extracted from recvmsg ancillary data.
 	inline void process_recvmsg_ancillary_data_fds(int const* fds,
 	                                               size_t fds_len,
-	                                               scap_threadinfo* scap_tinfo,
-	                                               char* error) const;
+	                                               scap_threadinfo* scap_tinfo) const;
 	// Process recvmsg ancillary data.
 	inline void process_recvmsg_ancillary_data(sinsp_evt* evt,
 	                                           sinsp_evt_param const* parinfo) const;
