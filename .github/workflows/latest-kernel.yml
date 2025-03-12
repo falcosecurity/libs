@@ -54,50 +54,38 @@ jobs:
     outputs:
       build: ${{ steps.build.outcome }}
     runs-on: 'ubuntu-latest'
+    container:
+      image: falcosecurity/driverkit:latest
     steps:
       - name: Download driverkit config
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: driverkit_config.yaml
 
-      - name: Download latest driverkit artifact
-        uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
-        with:
-          name: driverkit-amd64
-          workflow: release.yml
-          repo: falcosecurity/driverkit
-
       - name: Test drivers build
         id: build
         run: |
           echo "Testing build of drivers against: ${{ needs.compute-latest-version.outputs.latest_vers }}"
-          chmod +x driverkit
-          ./driverkit docker -c dk.yaml -l debug --timeout 300
+          driverkit docker -c dk.yaml -l debug --timeout 300
 
   build-latest-kernel-arm64:
     needs: 'compute-latest-version'
     outputs:
       build: ${{ steps.build.outcome }}
     runs-on: 'ubuntu-22.04-arm'
+    container:
+      image: falcosecurity/driverkit:latest
     steps:
       - name: Download driverkit config
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: driverkit_config.yaml
 
-      - name: Download latest driverkit artifact
-        uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
-        with:
-          name: driverkit-arm64
-          workflow: release.yml
-          repo: falcosecurity/driverkit
-
       - name: Test drivers build
         id: build
         run: |
           echo "Testing build of drivers against: ${{ needs.compute-latest-version.outputs.latest_vers }}"
-          chmod +x driverkit
-          ./driverkit docker -c dk.yaml -l debug --timeout 300
+          driverkit docker -c dk.yaml -l debug --timeout 300
 
   badge-latest-kernel:
     if: always() && github.event_name == 'schedule'
