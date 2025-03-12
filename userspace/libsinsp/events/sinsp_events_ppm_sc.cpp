@@ -237,7 +237,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sc_names_to_sc_set(
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	for(const auto& name : syscalls) {
 		auto ppm_sc = scap_ppm_sc_from_name(name.c_str());
-		if(static_cast<int>(ppm_sc) != -1) {
+		if(ppm_sc != PPM_SC_UNKNOWN) {
 			ppm_sc_set.insert(ppm_sc);
 		}
 	}

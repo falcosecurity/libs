@@ -63,11 +63,11 @@ void check_event_is_not_overwritten(scap_t *h) {
 	iterations = 0;
 
 	/* We save some event info to check if they are still valid after some new events */
-	uint64_t prev_ts = evt->ts;
-	uint64_t prev_tid = evt->tid;
-	uint32_t prev_len = evt->len;
-	uint16_t prev_type = evt->type;
-	uint32_t prev_nparams = evt->nparams;
+	uint64_t prev_ts = scap_event_get_ts(evt);
+	uint64_t prev_tid = scap_event_get_tid(evt);
+	uint32_t prev_len = scap_event_getlen(evt);
+	uint16_t prev_type = scap_event_get_type(evt);
+	uint32_t prev_nparams = scap_event_get_nparams(evt);
 
 	/* Start again the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)
@@ -86,11 +86,11 @@ void check_event_is_not_overwritten(scap_t *h) {
 	}
 
 	/* We check if the previously collected event is still valid */
-	ASSERT_EQ(prev_ts, evt->ts) << "different timestamp" << std::endl;
-	ASSERT_EQ(prev_tid, evt->tid) << "different thread id" << std::endl;
-	ASSERT_EQ(prev_len, evt->len) << "different event len" << std::endl;
-	ASSERT_EQ(prev_type, evt->type) << "different event type" << std::endl;
-	ASSERT_EQ(prev_nparams, evt->nparams) << "different num params" << std::endl;
+	ASSERT_EQ(prev_ts, scap_event_get_ts(evt)) << "different timestamp" << std::endl;
+	ASSERT_EQ(prev_tid, scap_event_get_tid(evt)) << "different thread id" << std::endl;
+	ASSERT_EQ(prev_len, scap_event_getlen(evt)) << "different event len" << std::endl;
+	ASSERT_EQ(prev_type, scap_event_get_type(evt)) << "different event type" << std::endl;
+	ASSERT_EQ(prev_nparams, scap_event_get_nparams(evt)) << "different num params" << std::endl;
 }
 
 #if defined(__NR_close) && defined(__NR_openat) && defined(__NR_listen) &&           \
@@ -183,7 +183,8 @@ void check_event_order(scap_t *h) {
 			ret = scap_next(h, &evt, &buffer_id, &flags);
 			if(ret == SCAP_SUCCESS) {
 				timeouts = 0;
-				if(evt->tid == actual_pid && evt->type == events_to_assert[i]) {
+				if(scap_event_get_tid(evt) == actual_pid &&
+				   scap_event_get_type(evt) == events_to_assert[i]) {
 					/* We found our event */
 					break;
 				}

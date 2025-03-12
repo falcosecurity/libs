@@ -215,7 +215,7 @@ static int32_t next(struct scap_engine_handle engine,
 		 * Note: we need to use 4B for len_id too because the
 		 * PPME_PLUGINEVENT_E has EF_LARGE_PAYLOAD flag!
 		 */
-		if(evt->type != PPME_PLUGINEVENT_E || evt->nparams != 2) {
+		if(scap_event_get_type(evt) != PPME_PLUGINEVENT_E || scap_event_get_nparams(evt) != 2) {
 			snprintf(lasterr,
 			         SCAP_LASTERR_SIZE,
 			         "malformed plugin event produced by plugin: '%s'",
@@ -239,7 +239,7 @@ static int32_t next(struct scap_engine_handle engine,
 		}
 	}
 
-	if(evt->type == PPME_PLUGINEVENT_E) {
+	if(scap_event_get_type(evt) == PPME_PLUGINEVENT_E) {
 		// a zero plugin ID is not allowed for PPME_PLUGINEVENT_E
 		if(plugin_id == 0) {
 			snprintf(lasterr,
@@ -250,12 +250,14 @@ static int32_t next(struct scap_engine_handle engine,
 		}
 
 		// plugin events have no thread associated
-		evt->tid = (uint64_t)-1;
+		const uint64_t val = -1;
+		memcpy(&evt->tid, &val, sizeof(val));
 	}
 
 	// automatically set timestamp if none was specified
-	if(evt->ts == UINT64_MAX) {
-		evt->ts = get_timestamp_ns();
+	if(scap_event_get_ts(evt) == UINT64_MAX) {
+		const uint64_t val = get_timestamp_ns();
+		memcpy(&evt->ts, &val, sizeof(val));
 	}
 
 	*pevent = evt;

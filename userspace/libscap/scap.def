@@ -9,6 +9,9 @@ EXPORTS
 		scap_next
 		scap_event_getlen
 		scap_event_get_ts
+		scap_event_get_type
+		scap_event_get_tid
+		scap_event_get_nparams
 		scap_dump_open
 		scap_dump_open_fd
 		scap_dump_close

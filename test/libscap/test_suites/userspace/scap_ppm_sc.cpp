@@ -146,15 +146,15 @@ TEST(scap_ppm_sc, scap_get_ppm_sc_from_events) {
 }
 
 TEST(scap_ppm_sc, scap_ppm_sc_from_name) {
-	ASSERT_EQ(scap_ppm_sc_from_name(NULL), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name(""), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name(" "), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name("_"), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name("_______"), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name("ALARM"), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name(" alarm"), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name(" alarm "), -1);
-	ASSERT_EQ(scap_ppm_sc_from_name("alarm "), -1);
+	ASSERT_EQ(scap_ppm_sc_from_name(NULL), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name(""), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name(" "), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name("_"), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name("_______"), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name("ALARM"), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name(" alarm"), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name(" alarm "), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_ppm_sc_from_name("alarm "), PPM_SC_UNKNOWN);
 	ASSERT_EQ(scap_ppm_sc_from_name("alarm"), PPM_SC_ALARM);
 }
 

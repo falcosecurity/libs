@@ -104,7 +104,7 @@ TEST(scap_event, empty_clone) {
 	ASSERT_NE(maybe_evt, nullptr);
 	std::unique_ptr<scap_evt, decltype(free) *> evt{maybe_evt, free};
 
-	EXPECT_EQ(evt->nparams, 0);
+	EXPECT_EQ(scap_event_get_nparams(evt.get()), 0);
 
 	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
 	uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
@@ -119,7 +119,7 @@ TEST(scap_event, int_args) {
 	ASSERT_NE(maybe_evt, nullptr);
 	std::unique_ptr<scap_evt, decltype(free) *> evt{maybe_evt, free};
 
-	EXPECT_EQ(evt->nparams, 2);
+	EXPECT_EQ(scap_event_get_nparams(evt.get()), 2);
 
 	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
 	uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
@@ -144,7 +144,7 @@ TEST(scap_event, empty_buffers) {
 	ASSERT_NE(maybe_evt, nullptr);
 	std::unique_ptr<scap_evt, decltype(free) *> evt{maybe_evt, free};
 
-	EXPECT_EQ(evt->nparams, 2);
+	EXPECT_EQ(scap_event_get_nparams(evt.get()), 2);
 
 	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
 	uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
@@ -194,11 +194,11 @@ TEST(scap_event, test_scap_create_event) {
 	}
 	uint16_t total_evt_len = 78;
 	// Assert header
-	ASSERT_EQ(evt->ts, ts);
-	ASSERT_EQ(evt->tid, tid);
-	ASSERT_EQ(evt->type, PPME_SYSCALL_OPEN_X);
-	ASSERT_EQ(evt->len, total_evt_len);
-	ASSERT_EQ(evt->nparams, 6);
+	ASSERT_EQ(scap_event_get_ts(evt), ts);
+	ASSERT_EQ(scap_event_get_tid(evt), tid);
+	ASSERT_EQ(scap_event_get_type(evt), PPME_SYSCALL_OPEN_X);
+	ASSERT_EQ(scap_event_getlen(evt), total_evt_len);
+	ASSERT_EQ(scap_event_get_nparams(evt), 6);
 	// Assert len array
 	uint16_t *lens16 = (uint16_t *)((char *)evt + sizeof(scap_evt));
 	ASSERT_EQ(lens16[0], 8);
@@ -209,16 +209,26 @@ TEST(scap_event, test_scap_create_event) {
 	ASSERT_EQ(lens16[5], 8);
 	// Assert parameters
 	char *val = ((char *)evt + sizeof(scap_evt) + 6 * sizeof(uint16_t));
-	ASSERT_EQ(*(int32_t *)val, fd);
+	int64_t fd_param;
+	memcpy(&fd_param, val, sizeof(fd_param));
+	ASSERT_EQ(fd_param, fd);
 	val += 8;
 	ASSERT_STREQ(val, name);
 	val += 12;
-	ASSERT_EQ(*(uint32_t *)val, flags);
+	uint32_t flags_param;
+	memcpy(&flags_param, val, sizeof(flags_param));
+	ASSERT_EQ(flags_param, flags);
 	val += 4;
-	ASSERT_EQ(*(uint32_t *)val, mode);
+	uint32_t mode_param;
+	memcpy(&mode_param, val, sizeof(mode_param));
+	ASSERT_EQ(mode_param, mode);
 	val += 4;
-	ASSERT_EQ(*(uint32_t *)val, dev);
+	uint32_t dev_param;
+	memcpy(&dev_param, val, sizeof(dev_param));
+	ASSERT_EQ(dev_param, dev);
 	val += 4;
-	ASSERT_EQ(*(uint64_t *)val, ino);
+	uint32_t ino_param;
+	memcpy(&ino_param, val, sizeof(ino_param));
+	ASSERT_EQ(ino_param, ino);
 	free(evt);
 }
