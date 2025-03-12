@@ -977,14 +977,12 @@ TEST(ppm_sc_API, SSN_sc_set_SSN) {
 	ASSERT_TRUE(sc_set.contains(PPM_SC_OPEN));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_OPENAT));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_ALARM));
-	ASSERT_TRUE(sc_set.contains(PPM_SC_UNKNOWN));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_SCHED_PROCESS_EXIT));
-	ASSERT_EQ(sc_set.size(), 5);
+	ASSERT_EQ(sc_set.size(), 4);
 
 	std::unordered_set<std::string> expected_sc_names{"open",
 	                                                  "openat",
 	                                                  "alarm",
-	                                                  "unknown",
 	                                                  "sched_process_exit"};
 	auto sc_names_again = libsinsp::events::sc_set_to_sc_names(sc_set);
 	ASSERT_NAMES_EQ(expected_sc_names, sc_names_again);

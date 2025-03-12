@@ -56,8 +56,20 @@ uint64_t scap_event_get_num(scap_t *handle) {
 	return handle->m_evtcnt;
 }
 
+uint16_t scap_event_get_type(scap_evt *e) {
+	return e->type;
+}
+
 uint64_t scap_event_get_ts(scap_evt *e) {
 	return e->ts;
+}
+
+uint64_t scap_event_get_tid(scap_evt *e) {
+	return e->tid;
+}
+
+uint32_t scap_event_get_nparams(scap_evt *e) {
+	return e->nparams;
 }
 
 #ifdef PPM_ENABLE_SENTINEL

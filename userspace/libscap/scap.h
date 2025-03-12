@@ -575,6 +575,15 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid, uint32_t*
 uint32_t scap_event_getlen(scap_evt* e);
 
 /*!
+  \brief Get the type of an event
+
+  \param e pointer to an event returned by \ref scap_next.
+
+  \return The event type.
+*/
+uint16_t scap_event_get_type(scap_evt* e);
+
+/*!
   \brief Get the timestamp of an event
 
   \param e pointer to an event returned by \ref scap_next.
@@ -582,6 +591,24 @@ uint32_t scap_event_getlen(scap_evt* e);
   \return The event timestamp, in nanoseconds since epoch.
 */
 uint64_t scap_event_get_ts(scap_evt* e);
+
+/*!
+  \brief Get the tid of an event
+
+  \param e pointer to an event returned by \ref scap_next.
+
+  \return The event tid.
+*/
+uint64_t scap_event_get_tid(scap_evt* e);
+
+/*!
+  \brief Get the number of params of an event
+
+  \param e pointer to an event returned by \ref scap_next.
+
+  \return The event nparams.
+*/
+uint32_t scap_event_get_nparams(scap_evt* e);
 
 /*!
   \brief Get the number of events that have been captured from the given capture
