@@ -98,14 +98,7 @@ void sinsp_logger::add_encoded_severity() {
 }
 
 void sinsp_logger::add_callback_log(const sinsp_logger_callback callback) {
-	const sinsp_logger_callback old_cb = m_callback.exchange(callback);
-
-	ASSERT(old_cb == nullptr);
-
-	// For release builds, the compiler doesn't see that old_cb is used,
-	// so do something that will satisfy the compiler
-	static_cast<void>(old_cb);
-
+	m_callback = callback;
 	m_flags |= sinsp_logger::OT_CALLBACK;
 }
 
