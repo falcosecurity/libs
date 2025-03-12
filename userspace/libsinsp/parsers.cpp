@@ -3676,6 +3676,8 @@ static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
 
 #define PPM_CMSG_DATA(cmsg) ((char *)((ppm_cmsghdr *)(cmsg) + 1))
 
+#define PPM_CMSG_LEN(len) (PPM_CMSG_ALIGN(sizeof(ppm_cmsghdr)) + (len))
+
 inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
                                                              size_t const fds_len,
                                                              scap_threadinfo *scap_tinfo,
@@ -3711,7 +3713,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 		int fds[SCM_MAX_FD];
 		size_t cmsg_len;
 		PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_len, cmsg_len);
-		unsigned long const data_size = cmsg_len - CMSG_LEN(0);
+		unsigned long const data_size = cmsg_len - PPM_CMSG_LEN(0);
 		unsigned long const fds_len = data_size / sizeof(int);
 		// Guard against malformed event, by checking that data size is a multiple of
 		// sizeof(int) (file descriptor size) and the control message doesn't contain more
