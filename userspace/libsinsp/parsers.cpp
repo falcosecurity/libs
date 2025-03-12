@@ -3678,8 +3678,8 @@ static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
 
 inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
                                                              size_t const fds_len,
-                                                             scap_threadinfo *scap_tinfo,
-                                                             char *error) const {
+                                                             scap_threadinfo *scap_tinfo) const {
+	char error[SCAP_LASTERR_SIZE];
 	for(int i = 0; i < fds_len; i++) {
 		if(scap_get_fdinfo(get_scap_platform(), scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
 			libsinsp_logger()->format(
@@ -3702,26 +3702,25 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 		if(cmsg_type != SCM_RIGHTS) {
 			continue;
 		}
-		// Found SCM_RIGHT control message. Process it.
-		char error[SCAP_LASTERR_SIZE];
-		scap_threadinfo scap_tinfo{};
-		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
-		m_thread_manager->thread_to_scap(*evt->get_tinfo(), &scap_tinfo);
-#define SCM_MAX_FD 253  // Taken from kernel.
-		int fds[SCM_MAX_FD];
+		// Found SCM_RIGHTS control message. Process it.
 		size_t cmsg_len;
 		PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_len, cmsg_len);
 		unsigned long const data_size = cmsg_len - CMSG_LEN(0);
 		unsigned long const fds_len = data_size / sizeof(int);
+#define SCM_MAX_FD 253  // Taken from kernel.
 		// Guard against malformed event, by checking that data size is a multiple of
 		// sizeof(int) (file descriptor size) and the control message doesn't contain more
 		// data than allowed by kernel constraints.
 		if(data_size % sizeof(int) || fds_len > SCM_MAX_FD) {
 			continue;
 		}
+		scap_threadinfo scap_tinfo{};
+		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
+		m_thread_manager->thread_to_scap(*evt->get_tinfo(), &scap_tinfo);
+		int fds[SCM_MAX_FD];
 #undef SCM_MAX_FD
 		memcpy(&fds, PPM_CMSG_DATA(cmsg), data_size);
-		process_recvmsg_ancillary_data_fds(fds, fds_len, &scap_tinfo, error);
+		process_recvmsg_ancillary_data_fds(fds, fds_len, &scap_tinfo);
 	}
 }
 #endif  // _WIN32
