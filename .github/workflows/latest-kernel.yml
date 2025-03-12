@@ -61,11 +61,14 @@ jobs:
           name: driverkit_config.yaml
 
       - name: Download latest driverkit artifact
-        uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
+        uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # v1.12
         with:
-          name: driverkit-amd64
-          workflow: release.yml
-          repo: falcosecurity/driverkit
+          fileName: driverkit_*_linux_amd64.tar.gz
+          latest: true
+          repository: falcosecurity/driverkit
+          tarBall: false
+          zipBall: false
+          extract: true
 
       - name: Test drivers build
         id: build
@@ -86,11 +89,14 @@ jobs:
           name: driverkit_config.yaml
 
       - name: Download latest driverkit artifact
-        uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
+        uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # v1.12
         with:
-          name: driverkit-arm64
-          workflow: release.yml
-          repo: falcosecurity/driverkit
+          fileName:  driverkit_*_linux_arm64.tar.gz
+          latest: true
+          repository: falcosecurity/driverkit
+          tarBall: false
+          zipBall: false
+          extract: true
 
       - name: Test drivers build
         id: build
