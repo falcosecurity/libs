@@ -19,7 +19,10 @@ limitations under the License.
 #include <helpers/threads_helpers.h>
 
 TEST(sinsp_thread_manager, remove_non_existing_thread) {
-	sinsp_thread_manager manager(nullptr);
+	sinsp m_inspector;
+	sinsp_thread_manager manager(m_inspector.get_fdinfo_factory(),
+	                             &m_inspector,
+	                             m_inspector.get_fdtable_dyn_fields());
 
 	int64_t unknown_tid = 100;
 	/* it should do nothing, here we are only checking that nothing will crash */
@@ -28,12 +31,16 @@ TEST(sinsp_thread_manager, remove_non_existing_thread) {
 }
 
 TEST(sinsp_thread_manager, thread_group_manager) {
-	sinsp_thread_manager manager(nullptr);
+	sinsp m_inspector;
+	const auto fdinfo_factory = m_inspector.get_fdinfo_factory();
+	sinsp_thread_manager manager(fdinfo_factory,
+	                             &m_inspector,
+	                             m_inspector.get_fdtable_dyn_fields());
 
 	/* We don't have thread group info here */
 	ASSERT_FALSE(manager.get_thread_group_info(8).get());
 
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo->m_pid = 12;
 	auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
 
@@ -55,7 +62,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer) {
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(m_inspector.get_fdinfo_factory());
 	tinfo.reset();
 
 	/* The thread info is nullptr */
@@ -69,7 +76,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo) {
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(m_inspector.get_fdinfo_factory());
 	tinfo->m_tid = 4;
 	tinfo->m_pid = -1;
 	tinfo->m_ptid = 1;
@@ -86,7 +93,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there) {
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(m_inspector.get_fdinfo_factory());
 	tinfo->m_tid = 4;
 	tinfo->m_pid = 4;
 	tinfo->m_ptid = 1;
@@ -106,7 +113,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo) {
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(m_inspector.get_fdinfo_factory());
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51000;
 	tinfo->m_ptid = 51001; /* we won't find it in the table, so we will default to 0 */
@@ -126,7 +133,8 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	const auto fdinfo_factory = m_inspector.get_fdinfo_factory();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51003;
 	tinfo->m_ptid = 51004; /* we won't find it in the table, so we will default to 1 */
@@ -136,7 +144,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
 		m_inspector.m_thread_manager->set_thread_group_info(tinfo->m_pid, tginfo);
 	}
 
-	auto other_tinfo = std::make_shared<sinsp_threadinfo>();
+	auto other_tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	other_tinfo->m_tid = 51003;
 	other_tinfo->m_pid = 51003;
 	other_tinfo->m_ptid = 51004;
@@ -149,7 +157,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_valid_pare
 	DEFAULT_TREE
 
 	/* new thread will be a child of p6_t1 */
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(m_inspector.get_fdinfo_factory());
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51003;
 	tinfo->m_ptid = p6_t1_tid;
@@ -164,7 +172,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 	DEFAULT_TREE
 
 	/* new thread will be a child of p6_t1 */
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(m_inspector.get_fdinfo_factory());
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51003;
 	tinfo->m_ptid = 8000;
@@ -176,7 +184,10 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 }
 
 TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
-	sinsp_thread_manager manager(nullptr);
+	sinsp m_inspector;
+	sinsp_thread_manager manager(m_inspector.get_fdinfo_factory(),
+	                             &m_inspector,
+	                             m_inspector.get_fdtable_dyn_fields());
 	EXPECT_THROW(manager.find_new_reaper(nullptr), sinsp_exception);
 }
 

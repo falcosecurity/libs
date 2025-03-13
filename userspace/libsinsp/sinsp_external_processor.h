@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <libsinsp/event.h>
+
 /**
  * This api defines a relationship between libsinsp and an external event processor.
  * Such external processors should derive from event_processor and register themselves with

@@ -481,13 +481,6 @@ public:
 		return ret;
 	}
 
-	inline std::unique_ptr<sinsp_fdinfo> build_fdinfo() {
-		auto ret = m_external_event_processor ? m_external_event_processor->build_fdinfo(this)
-		                                      : m_thread_manager->new_fdinfo();
-		m_thread_manager->set_fdinfo_shared_dynamic_fields(*ret);
-		return ret;
-	}
-
 	/*!
 	  \brief registers external event processor.
 	  After this, callbacks on libsinsp::event_processor will happen at
@@ -972,7 +965,16 @@ private:
 
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
+	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
+	const sinsp_fdinfo_factory m_fdinfo_factory;
+
 public:
+	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_fdtable_dyn_fields() const {
+		return m_fdtable_dyn_fields;
+	}
+
+	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
+
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
