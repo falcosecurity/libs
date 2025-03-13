@@ -28,3 +28,4 @@ cscope.out
 tags
 third_party
 *.vagrant*
+.DS_Store
