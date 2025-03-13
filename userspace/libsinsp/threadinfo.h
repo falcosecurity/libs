@@ -65,7 +65,8 @@ struct erase_fd_params {
 */
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
-	sinsp_threadinfo(sinsp* inspector = nullptr,
+	sinsp_threadinfo(const sinsp_fdinfo_factory& fdinfo_factory,
+	                 sinsp* inspector = nullptr,
 	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                         dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
@@ -609,6 +610,7 @@ private:
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
+	const sinsp_fdinfo_factory& m_fdinfo_factory;
 	sinsp_fdtable m_fdtable;  // The fd table of this thread
 	const libsinsp::state::base_table*
 	        m_main_fdtable;     // Points to the base fd table of the current main thread
@@ -702,15 +704,15 @@ protected:
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
                                           public libsinsp::state::sinsp_table_owner {
 public:
-	sinsp_thread_manager(sinsp* inspector);
+	sinsp_thread_manager(const sinsp_fdinfo_factory& fdinfo_factory,
+	                     sinsp* inspector,
+	                     const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                             fdtable_dyn_fields);
 	void clear();
 
 	std::unique_ptr<sinsp_threadinfo> new_threadinfo() const;
 
-	std::unique_ptr<sinsp_fdinfo> new_fdinfo() const;
-
 	void set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const;
-	void set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const;
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool from_scap_proctable);
@@ -875,6 +877,7 @@ private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 
+	const sinsp_fdinfo_factory& m_fdinfo_factory;
 	sinsp* m_inspector;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 

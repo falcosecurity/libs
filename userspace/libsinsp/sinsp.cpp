@@ -146,6 +146,8 @@ sinsp::sinsp(bool with_metrics):
         m_evt(this),
         m_lastevent_ts(0),
         m_host_root(scap_get_host_root()),
+        m_fdtable_dyn_fields{std::make_shared<libsinsp::state::dynamic_struct::field_infos>()},
+        m_fdinfo_factory{this, &m_external_event_processor, m_fdtable_dyn_fields},
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
 	++instance_count;
@@ -154,7 +156,8 @@ sinsp::sinsp(bool with_metrics):
 	m_parser = NULL;
 	m_is_dumping = false;
 	m_parser_tmp_evt = sinsp_evt{this};
-	m_thread_manager = std::make_shared<sinsp_thread_manager>(this);
+	m_thread_manager =
+	        std::make_shared<sinsp_thread_manager>(m_fdinfo_factory, this, m_fdtable_dyn_fields);
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -200,7 +203,7 @@ sinsp::sinsp(bool with_metrics):
 	        m_network_interfaces,
 	        m_hostname_and_port_resolution_enabled,
 	        sinsp_threadinfo_factory{this, m_thread_manager, &m_external_event_processor},
-	        sinsp_fdinfo_factory{this, m_thread_manager, &m_external_event_processor},
+	        m_fdinfo_factory,
 	        m_input_plugin,
 	        m_plugin_manager,
 	        m_thread_manager,
@@ -1895,11 +1898,11 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 }
 
 std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(sinsp* inspector) {
-	return std::make_unique<sinsp_threadinfo>(inspector);
+	return std::make_unique<sinsp_threadinfo>(inspector->get_fdinfo_factory(), inspector);
 }
 
 std::unique_ptr<sinsp_fdinfo> libsinsp::event_processor::build_fdinfo(sinsp* inspector) {
-	return std::make_unique<sinsp_fdinfo>();
+	return std::make_unique<sinsp_fdinfo>(inspector->get_fdtable_dyn_fields());
 }
 
 void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt) {

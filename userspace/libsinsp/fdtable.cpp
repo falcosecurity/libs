@@ -26,8 +26,9 @@ limitations under the License.
 
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
-sinsp_fdtable::sinsp_fdtable(sinsp* inspector):
-        built_in_table("file_descriptors", &s_fdtable_static_fields) {
+sinsp_fdtable::sinsp_fdtable(const sinsp_fdinfo_factory& fdinfo_factory, sinsp* inspector):
+        built_in_table("file_descriptors", &s_fdtable_static_fields),
+        m_fdinfo_factory{fdinfo_factory} {
 	m_tid = 0;
 	m_inspector = inspector;
 	if(m_inspector != nullptr) {
@@ -211,7 +212,7 @@ sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinf
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
-	return m_inspector->build_fdinfo();
+	return m_fdinfo_factory.create();
 };
 
 std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key) {
