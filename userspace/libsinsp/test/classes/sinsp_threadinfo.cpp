@@ -19,7 +19,9 @@ limitations under the License.
 #include <helpers/threads_helpers.h>
 
 TEST(sinsp_threadinfo, get_main_thread) {
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	const sinsp inspector;
+	const auto fdinfo_factory = inspector.get_fdinfo_factory();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo->m_tid = 23;
 	tinfo->m_pid = 23;
 
@@ -39,7 +41,7 @@ TEST(sinsp_threadinfo, get_main_thread) {
 	tinfo->m_tginfo = tginfo;
 	ASSERT_EQ(tinfo->get_main_thread(), nullptr);
 
-	auto main_tinfo = std::make_shared<sinsp_threadinfo>();
+	auto main_tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	main_tinfo->m_tid = 23;
 	main_tinfo->m_pid = 23;
 
@@ -53,7 +55,9 @@ TEST(sinsp_threadinfo, get_main_thread) {
 }
 
 TEST(sinsp_threadinfo, get_num_threads) {
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	const sinsp inspector;
+	const auto fdinfo_factory = inspector.get_fdinfo_factory();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo->m_tid = 25;
 	tinfo->m_pid = 23;
 
@@ -67,7 +71,7 @@ TEST(sinsp_threadinfo, get_num_threads) {
 	ASSERT_EQ(tinfo->get_num_threads(), 1);
 	ASSERT_EQ(tinfo->get_num_not_leader_threads(), 1);
 
-	auto main_tinfo = std::make_shared<sinsp_threadinfo>();
+	auto main_tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	main_tinfo->m_tid = 23;
 	main_tinfo->m_pid = 23;
 
@@ -130,7 +134,8 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr) {
 }
 
 TEST(sinsp_threadinfo, set_exepath) {
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	const sinsp inspector;
+	auto tinfo = std::make_shared<sinsp_threadinfo>(inspector.get_fdinfo_factory());
 
 	{
 		// Nothing changes

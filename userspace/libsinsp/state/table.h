@@ -215,12 +215,17 @@ public:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
-	inline built_in_table(const std::string& name, const static_struct::field_infos* static_fields):
+	inline built_in_table(const std::string& name,
+	                      const static_struct::field_infos* static_fields,
+	                      const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                              dynamic_fields = nullptr):
 	        table<KeyType>::table(),
 	        m_this_ptr(this),
 	        m_name(name),
 	        m_static_fields(static_fields),
-	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
+	        m_dynamic_fields(dynamic_fields != nullptr
+	                                 ? dynamic_fields
+	                                 : std::make_shared<dynamic_struct::field_infos>()) {}
 	inline built_in_table(const std::string& name):
 	        table<KeyType>::table(),
 	        m_this_ptr(this),

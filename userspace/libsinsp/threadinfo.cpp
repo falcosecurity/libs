@@ -46,11 +46,13 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src) {
 ///////////////////////////////////////////////////////////////////////////////
 
 sinsp_threadinfo::sinsp_threadinfo(
+        const sinsp_fdinfo_factory& fdinfo_factory,
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         table_entry(dyn_fields),
         m_inspector(inspector),
-        m_fdtable(inspector),
+        m_fdinfo_factory{fdinfo_factory},
+        m_fdtable{fdinfo_factory, inspector},
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
@@ -218,7 +220,7 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc() {
 }
 
 void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
-	auto newfdi = m_inspector->build_fdinfo();
+	auto newfdi = m_fdinfo_factory.create();
 	bool do_add = true;
 
 	newfdi->m_type = fdi->type;
@@ -1346,10 +1348,14 @@ static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fiel
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector):
+sinsp_thread_manager::sinsp_thread_manager(
+        const sinsp_fdinfo_factory& fdinfo_factory,
+        sinsp* inspector,
+        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields):
         built_in_table(s_thread_table_name, &s_threadinfo_static_fields),
+        m_fdinfo_factory{fdinfo_factory},
         m_max_thread_table_size(m_thread_table_default_size),
-        m_fdtable_dyn_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>()) {
+        m_fdtable_dyn_fields{fdtable_dyn_fields} {
 	m_inspector = inspector;
 	if(m_inspector != nullptr) {
 		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
@@ -1448,12 +1454,8 @@ void sinsp_thread_manager::create_thread_dependencies(
 }
 
 std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const {
-	auto tinfo = new sinsp_threadinfo(m_inspector, dynamic_fields());
+	auto tinfo = new sinsp_threadinfo(m_fdinfo_factory, m_inspector, dynamic_fields());
 	return std::unique_ptr<sinsp_threadinfo>(tinfo);
-}
-
-std::unique_ptr<sinsp_fdinfo> sinsp_thread_manager::new_fdinfo() const {
-	return sinsp_fdtable(m_inspector).new_fdinfo();
 }
 
 /* Can be called when:
@@ -2136,10 +2138,4 @@ void sinsp_thread_manager::set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tin
 		tinfo.set_dynamic_fields(dynamic_fields());
 	}
 	tinfo.get_fdtable().set_dynamic_fields(m_fdtable_dyn_fields);
-}
-
-void sinsp_thread_manager::set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const {
-	if(fdinfo.dynamic_fields() == nullptr) {
-		fdinfo.set_dynamic_fields(m_fdtable_dyn_fields);
-	}
 }
