@@ -42,6 +42,7 @@ struct iovec {
 #include <libscap/engine/noop/noop.h>
 #include <libscap/strl.h>
 #include <libscap/engine/savefile/converter/converter.h>
+#include <libscap/strerror.h>
 
 //
 // Read the section header block
@@ -1605,19 +1606,57 @@ static int32_t scap_read_fdlist(scap_reader_t *r,
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_read_section_header(scap_reader_t *r, char *error) {
+#define MIN_BLOCK_SIZE ((sizeof(block_header) + sizeof(uint32_t)))
+#define MIN_SECTION_HEADER_SIZE (MIN_BLOCK_SIZE + sizeof(section_header_block))
+
+static int32_t scap_read_section_header(scap_reader_t *r,
+                                        uint32_t block_total_length,
+                                        char *error) {
 	section_header_block sh;
 	uint32_t bt;
 
 	//
 	// Read the section header block
 	//
-	if(r->read(r, &sh, sizeof(sh)) != sizeof(sh) || r->read(r, &bt, sizeof(bt)) != sizeof(bt)) {
+	if(r->read(r, &sh, sizeof(sh)) != sizeof(sh)) {
+		scap_errprintf(error, 0, "error reading from file (1)");
+		return SCAP_FAILURE;
+	}
+
+	if(block_total_length < MIN_SECTION_HEADER_SIZE) {
+		scap_errprintf(error,
+		               0,
+		               "scap_read_section_header block length %u less than %u",
+		               block_total_length,
+		               (int)MIN_SECTION_HEADER_SIZE);
+		return SCAP_FAILURE;
+	}
+
+	//
+	// See if we have a pcapng option block:
+	// https://ietf-opsawg-wg.github.io/draft-ietf-opsawg-pcap/draft-ietf-opsawg-pcapng.html#name-options
+	// It might be useful to look for comment blocks (opt_comment) and expose them
+	// somewhere in the API.
+	//
+	int64_t options_len = block_total_length - MIN_SECTION_HEADER_SIZE;
+	if(options_len) {
+		if(r->seek(r, options_len, SEEK_CUR) == -1) {
+			scap_errprintf(error, 0, "error skipping section header options");
+			return SCAP_FAILURE;
+		}
+	}
+
+	if(r->read(r, &bt, sizeof(bt)) != sizeof(bt)) {
 		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
 	}
 
-	if(sh.byte_order_magic != 0x1a2b3c4d) {
+	//
+	// According to the "Data format / Endianness" section of the pcapng
+	// spec we should catch the byte-swapped SHB_MAGIC value (0x4D3C2B1A)
+	// here and swap our inputs accordingly.
+	//
+	if(sh.byte_order_magic != SHB_MAGIC) {
 		snprintf(error, SCAP_LASTERR_SIZE, "invalid magic number");
 		return SCAP_FAILURE;
 	}
@@ -1663,7 +1702,7 @@ static int32_t scap_read_init(struct savefile_engine *handle,
 		return SCAP_FAILURE;
 	}
 
-	if((rc = scap_read_section_header(r, error)) != SCAP_SUCCESS) {
+	if((rc = scap_read_section_header(r, bh.block_total_length, error)) != SCAP_SUCCESS) {
 		return rc;
 	}
 
@@ -1973,7 +2012,7 @@ static int32_t next_event_from_file(struct savefile_engine *handle,
 			}
 
 			//
-			// The number of parameters needs to be calculated based on the block len.
+			// The number of parameters needs to be calculated based on the event len.
 			// Use the current number of parameters as starting point and decrease it
 			// until size matches.
 			//
@@ -2011,6 +2050,12 @@ static int32_t next_event_from_file(struct savefile_engine *handle,
 				return SCAP_FAILURE;
 			}
 			(*pevent)->nparams = nparams;
+
+			//
+			// It might be useful to look for pcpang comment blocks here and add them to
+			// the event. To do so we'd have to check to see if the block data len exceeds
+			// (*pevent)->len and parse the excess as block options.
+			//
 		}
 
 		break;
