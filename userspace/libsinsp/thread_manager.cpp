@@ -107,15 +107,14 @@ static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
 
 static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
-///////////////////////////////////////////////////////////////////////////////
-// sinsp_thread_manager implementation
-///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(
-        const sinsp_fdinfo_factory& fdinfo_factory,
+        const sinsp_threadinfo_factory& threadinfo_factory,
         sinsp* inspector,
+        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+                thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields):
-        built_in_table(s_thread_table_name, &s_threadinfo_static_fields),
-        m_fdinfo_factory{fdinfo_factory},
+        built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
+        m_threadinfo_factory{threadinfo_factory},
         m_max_thread_table_size(m_thread_table_default_size),
         m_fdtable_dyn_fields{fdtable_dyn_fields} {
 	m_inspector = inspector;
@@ -213,11 +212,6 @@ void sinsp_thread_manager::create_thread_dependencies(
 		return;
 	}
 	parent_thread->add_child(tinfo);
-}
-
-std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const {
-	auto tinfo = new sinsp_threadinfo(m_fdinfo_factory, m_inspector, dynamic_fields());
-	return std::unique_ptr<sinsp_threadinfo>(tinfo);
 }
 
 /* Can be called when:
@@ -782,7 +776,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
 		scap_proc.ptid = -1;
 
 		// unfortunately, sinsp owns the threade factory
-		auto newti = m_inspector->build_threadinfo();
+		auto newti = m_threadinfo_factory.create();
 
 		if(main_thread) {
 			m_n_main_thread_lookups++;
@@ -892,12 +886,5 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const {
-	return m_inspector->build_threadinfo();
-}
-
-void sinsp_thread_manager::set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const {
-	if(tinfo.dynamic_fields() == nullptr) {
-		tinfo.set_dynamic_fields(dynamic_fields());
-	}
-	tinfo.get_fdtable().set_dynamic_fields(m_fdtable_dyn_fields);
+	return m_threadinfo_factory.create();
 }

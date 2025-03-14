@@ -31,11 +31,12 @@ using namespace std;
 class thread_state_test : public ::testing::Test {
 protected:
 	virtual void SetUp() {
+		const auto& threadinfo_factory = m_inspector.get_threadinfo_factory();
 		// Each entry in the vector has a parent of the previous
 		// entry. The first entry has a parent of 1.
 		for(int64_t pid = 100, i = 0; i < m_max; pid++, i++) {
 			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid);
-			std::unique_ptr<sinsp_threadinfo> thr = m_inspector.build_threadinfo();
+			std::unique_ptr<sinsp_threadinfo> thr = threadinfo_factory.create();
 			thr->init();
 			thr->m_tid = pid;
 			thr->m_ptid = ppid;
