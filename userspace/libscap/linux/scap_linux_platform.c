@@ -31,6 +31,7 @@ limitations under the License.
 #include <sys/utsname.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <libscap/strerror.h>
 
 static int32_t scap_linux_close_platform(struct scap_platform* platform) {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
@@ -95,11 +96,12 @@ int32_t scap_linux_init_platform(struct scap_platform* platform,
 	char proc_scan_err[SCAP_LASTERR_SIZE];
 	rc = scap_linux_refresh_proc_table(platform, &platform->m_proclist);
 	if(rc != SCAP_SUCCESS) {
-		snprintf(linux_platform->m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "scap_open_live_int() error creating the process list: %s. Make sure you have "
-		         "root credentials.",
-		         proc_scan_err);
+		scap_errprintf(
+		        linux_platform->m_lasterr,
+		        0,
+		        "scap_open_live_int() error creating the process list: %s. Make sure you have "
+		        "root credentials.",
+		        proc_scan_err);
 		scap_linux_free_platform(platform);
 		return rc;
 	}

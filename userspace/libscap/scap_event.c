@@ -26,6 +26,8 @@ limitations under the License.
 #include <netinet/in.h>
 #endif  // _WIN32
 
+#include <libscap/strerror.h>
+
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>
 
@@ -278,12 +280,11 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 		case PT_MAX:
 			break;  // Nothing to do
 		default:    // Unsupported event
-			snprintf(error,
-			         SCAP_LASTERR_SIZE,
-			         "event param %d (param type %d) is unsupported",
-			         i,
-			         pi->type);
-			return SCAP_FAILURE;
+			return scap_errprintf(error,
+			                      0,
+			                      "event param %d (param type %d) is unsupported",
+			                      i,
+			                      pi->type);
 		}
 
 		uint16_t param_size_16;
@@ -293,15 +294,14 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 		case sizeof(uint16_t):
 			param_size_16 = (uint16_t)(param.size & 0xffff);
 			if(param_size_16 != param.size) {
-				snprintf(
+				return scap_errprintf(
 				        error,
-				        SCAP_LASTERR_SIZE,
+				        0,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
 				        param.size,
 				        event->type,
 				        len_size);
-				return SCAP_FAILURE;
 			}
 			if(scap_buffer_can_fit(event_buf, len)) {
 				scap_event_set_param_length_regular(event, i, param_size_16);
@@ -310,15 +310,14 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 		case sizeof(uint32_t):
 			param_size_32 = (uint32_t)(param.size & 0xffffffff);
 			if(param_size_32 != param.size) {
-				snprintf(
+				return scap_errprintf(
 				        error,
-				        SCAP_LASTERR_SIZE,
+				        0,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
 				        param.size,
 				        event->type,
 				        len_size);
-				return SCAP_FAILURE;
 			}
 			if(scap_buffer_can_fit(event_buf, len)) {
 				scap_event_set_param_length_large(event, i, param_size_32);
@@ -326,13 +325,12 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			break;
 		default:
 			ASSERT(false);
-			snprintf(error,
-			         SCAP_LASTERR_SIZE,
-			         "unexpected param %d length %zu for event with type %d",
-			         i,
-			         len_size,
-			         event->type);
-			return SCAP_FAILURE;
+			return scap_errprintf(error,
+			                      0,
+			                      "unexpected param %d length %zu for event with type %d",
+			                      i,
+			                      len_size,
+			                      event->type);
 		}
 
 		if(scap_buffer_can_fit(event_buf, len + param.size) && param.size != 0) {
@@ -355,11 +353,11 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 
 	// we were not able to write the event to the buffer
 	if(!scap_buffer_can_fit(event_buf, len)) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Could not encode event of size %zu into supplied buffer sized %zu.",
-		         len,
-		         event_buf.size);
+		scap_errprintf(error,
+		               0,
+		               "Could not encode event of size %zu into supplied buffer sized %zu.",
+		               len,
+		               event_buf.size);
 		return SCAP_INPUT_TOO_SMALL;
 	}
 
@@ -376,43 +374,43 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 	//////////////////////////////
 	// `UINT64_MAX - 1` can be used to skip the comparison
 	if(expected->ts != (UINT64_MAX - 1) && curr->ts != expected->ts) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Event timestamp mismatch. Current (%ld) != expected (%ld)",
-		         curr->ts,
-		         expected->ts);
+		scap_errprintf(error,
+		               0,
+		               "Event timestamp mismatch. Current (%ld) != expected (%ld)",
+		               curr->ts,
+		               expected->ts);
 		return false;
 	}
 	if(curr->tid != expected->tid) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Event tid mismatch. Current (%ld) != expected (%ld)",
-		         curr->tid,
-		         expected->tid);
+		scap_errprintf(error,
+		               0,
+		               "Event tid mismatch. Current (%ld) != expected (%ld)",
+		               curr->tid,
+		               expected->tid);
 		return false;
 	}
 	if(curr->type != expected->type) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Event type mismatch. Current (%d) != expected (%d)",
-		         curr->type,
-		         expected->type);
+		scap_errprintf(error,
+		               0,
+		               "Event type mismatch. Current (%d) != expected (%d)",
+		               curr->type,
+		               expected->type);
 		return false;
 	}
 	if(curr->nparams != expected->nparams) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Event nparams mismatch. Current (%d) != expected (%d)",
-		         curr->nparams,
-		         expected->nparams);
+		scap_errprintf(error,
+		               0,
+		               "Event nparams mismatch. Current (%d) != expected (%d)",
+		               curr->nparams,
+		               expected->nparams);
 		return false;
 	}
 	if(curr->len != expected->len) {
-		snprintf(error,
-		         SCAP_LASTERR_SIZE,
-		         "Event len mismatch. Current (%d) != expected (%d)",
-		         curr->len,
-		         expected->len);
+		scap_errprintf(error,
+		               0,
+		               "Event len mismatch. Current (%d) != expected (%d)",
+		               curr->len,
+		               expected->len);
 		return false;
 	}
 	//////////////////////////////
@@ -428,12 +426,12 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 		       (char *)expected + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
 		       sizeof(uint16_t));
 		if(curr_param_len != expected_param_len) {
-			snprintf(error,
-			         SCAP_LASTERR_SIZE,
-			         "Param %d length mismatch. Current (%d) != expected (%d)",
-			         i,
-			         curr_param_len,
-			         expected_param_len);
+			scap_errprintf(error,
+			               0,
+			               "Param %d length mismatch. Current (%d) != expected (%d)",
+			               i,
+			               curr_param_len,
+			               expected_param_len);
 			return false;
 		}
 	}
@@ -450,7 +448,7 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 		       sizeof(uint16_t));
 		// todo!: we can improve this by printing the parameter for the specific type.
 		if(memcmp(curr_pos, expected_pos, curr_param_len) != 0) {
-			snprintf(error, SCAP_LASTERR_SIZE, "Param %d mismatch. Current != expected", i);
+			scap_errprintf(error, 0, "Param %d mismatch. Current != expected", i);
 			return false;
 		}
 		curr_pos += curr_param_len;
@@ -476,7 +474,7 @@ scap_evt *scap_create_event_v(char *error,
 	event_buf.buf = malloc(event_size);
 	event_buf.size = event_size;
 	if(event_buf.buf == NULL) {
-		snprintf(error, SCAP_LASTERR_SIZE, "cannot alloc %ld bytes.", event_size);
+		scap_errprintf(error, 0, "cannot alloc %ld bytes.", event_size);
 		goto error;
 	}
 	ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args2);
