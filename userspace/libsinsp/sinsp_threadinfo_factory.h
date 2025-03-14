@@ -17,33 +17,48 @@ limitations under the License.
 */
 
 #pragma once
-#include <libsinsp/thread_manager.h>
 #include <libsinsp/sinsp_external_processor.h>
+#include <libsinsp/threadinfo.h>
 
 /*!
-  \brief Factory hiding sinsp_fdinfo creation details.
+  \brief Factory hiding sinsp_threadinfo creation details.
 */
 class sinsp_threadinfo_factory {
 	sinsp* m_sinsp;
-	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	libsinsp::event_processor** m_external_event_processor;
+	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&m_thread_manager_dyn_fields,
+	        m_fdtable_dyn_fields;
+	const sinsp_fdinfo_factory& m_fdinfo_factory;
 
 	libsinsp::event_processor* get_external_event_processor() const {
 		return *m_external_event_processor;
 	}
 
 public:
-	sinsp_threadinfo_factory(sinsp* sinsp,
-	                         const std::shared_ptr<sinsp_thread_manager>& thread_manager,
-	                         libsinsp::event_processor** external_event_processor):
+	sinsp_threadinfo_factory(
+	        sinsp* sinsp,
+	        libsinsp::event_processor** external_event_processor,
+	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                thread_manager_dyn_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+	        const sinsp_fdinfo_factory& fdinfo_factory):
 	        m_sinsp{sinsp},
-	        m_thread_manager{thread_manager},
-	        m_external_event_processor{external_event_processor} {}
+	        m_external_event_processor{external_event_processor},
+	        m_thread_manager_dyn_fields{thread_manager_dyn_fields},
+	        m_fdtable_dyn_fields{fdtable_dyn_fields},
+	        m_fdinfo_factory{fdinfo_factory} {}
 	std::unique_ptr<sinsp_threadinfo> create() const {
 		const auto external_event_processor = get_external_event_processor();
-		auto ret = external_event_processor ? external_event_processor->build_threadinfo(m_sinsp)
-		                                    : m_thread_manager->new_threadinfo();
-		m_thread_manager->set_tinfo_shared_dynamic_fields(*ret);
-		return ret;
+		std::unique_ptr<sinsp_threadinfo> tinfo =
+		        external_event_processor
+		                ? external_event_processor->build_threadinfo(m_sinsp)
+		                : std::make_unique<sinsp_threadinfo>(m_fdinfo_factory,
+		                                                     m_sinsp,
+		                                                     m_thread_manager_dyn_fields);
+		if(tinfo->dynamic_fields() == nullptr) {
+			tinfo->set_dynamic_fields(m_thread_manager_dyn_fields);
+		}
+		tinfo->get_fdtable().set_dynamic_fields(m_fdtable_dyn_fields);
+		return tinfo;
 	}
 };

@@ -23,13 +23,15 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <set>
+
+#include <libscap/scap_savefile_api.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/state/table.h>
 #include <libsinsp/event.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/threadinfo.h>
 #include <libsinsp/thread_group_info.h>
-#include <libscap/scap_savefile_api.h>
+#include <libsinsp/sinsp_threadinfo_factory.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
@@ -37,15 +39,13 @@ limitations under the License.
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
                                           public libsinsp::state::sinsp_table_owner {
 public:
-	sinsp_thread_manager(const sinsp_fdinfo_factory& fdinfo_factory,
+	sinsp_thread_manager(const sinsp_threadinfo_factory& threadinfo_factory,
 	                     sinsp* inspector,
+	                     const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                             thread_manager_dyn_fields,
 	                     const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                             fdtable_dyn_fields);
 	void clear();
-
-	std::unique_ptr<sinsp_threadinfo> new_threadinfo() const;
-
-	void set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const;
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool from_scap_proctable);
@@ -212,7 +212,7 @@ private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
+	const sinsp_threadinfo_factory& m_threadinfo_factory;
 	sinsp* m_inspector;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 

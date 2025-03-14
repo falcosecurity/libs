@@ -47,7 +47,6 @@ limitations under the License.
 #include <libsinsp/capture_stats_source.h>
 #include <libsinsp/dumper.h>
 #include <libsinsp/event.h>
-#include <libsinsp/fdinfo.h>
 #include <libsinsp/filter.h>
 #include <libsinsp/ifinfo.h>
 #include <libsinsp/eventformatter.h>
@@ -74,6 +73,8 @@ limitations under the License.
 #include <libsinsp/tuples.h>
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_mode.h>
+#include <libsinsp/sinsp_threadinfo_factory.h>
+#include <libsinsp/sinsp_fdinfo_factory.h>
 
 #include <list>
 #include <map>
@@ -473,13 +474,6 @@ public:
 	                                              int32_t* rc) const override;
 
 	libsinsp::event_processor* m_external_event_processor;
-
-	inline std::unique_ptr<sinsp_threadinfo> build_threadinfo() {
-		auto ret = m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
-		                                      : m_thread_manager->new_threadinfo();
-		m_thread_manager->set_tinfo_shared_dynamic_fields(*ret);
-		return ret;
-	}
 
 	/*!
 	  \brief registers external event processor.
@@ -976,15 +970,24 @@ private:
 	//
 	std::string m_input_plugin_open_params;
 
+	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_thread_manager_dyn_fields;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
+	const sinsp_threadinfo_factory m_threadinfo_factory;
 
 public:
+	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_thread_manager_dyn_fields()
+	        const {
+		return m_thread_manager_dyn_fields;
+	}
+
 	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_fdtable_dyn_fields() const {
 		return m_fdtable_dyn_fields;
 	}
 
 	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
+
+	const sinsp_threadinfo_factory& get_threadinfo_factory() const { return m_threadinfo_factory; }
 
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
