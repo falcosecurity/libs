@@ -70,7 +70,7 @@ limitations under the License.
 #include <libsinsp/sinsp_suppress.h>
 #include <libsinsp/state/table_registry.h>
 #include <libsinsp/metrics_collector.h>
-#include <libsinsp/threadinfo.h>
+#include <libsinsp/thread_manager.h>
 #include <libsinsp/tuples.h>
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_mode.h>
