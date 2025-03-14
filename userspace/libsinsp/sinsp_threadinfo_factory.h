@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #pragma once
-#include <libsinsp/threadinfo.h>
+#include <libsinsp/thread_manager.h>
 #include <libsinsp/sinsp_external_processor.h>
 
 /*!

@@ -84,6 +84,7 @@ add_library(
 	prefix_search.cpp
 	sinsp_syslog.cpp
 	threadinfo.cpp
+	thread_manager.cpp
 	tuples.cpp
 	sinsp.cpp
 	token_bucket.cpp
