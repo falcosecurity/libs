@@ -77,6 +77,8 @@ static ss_plugin_rc mock_plugin_next_batch(ss_plugin_t* s,
 
 static void set_mock_plugin_api(plugin_api& api) {
 	memset(&api, 0, sizeof(plugin_api));
+	api.static_plugin_abi_version = PLUGIN_ABI_VERSION;
+	api.static_plugin_api_size = sizeof(plugin_api);
 	api.get_required_api_version = mock_plugin_get_required_api_version;
 	api.get_version = mock_plugin_get_version;
 	api.get_description = mock_plugin_get_description;
