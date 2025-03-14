@@ -21,13 +21,15 @@ limitations under the License.
 /*=============================== THREAD-GROUP-INFO ===========================*/
 
 TEST(thread_group_info, create_thread_group_info) {
-	std::shared_ptr<sinsp_threadinfo> tinfo = std::make_shared<sinsp_threadinfo>();
+	const sinsp inspector;
+	const auto fdinfo_factory = inspector.get_fdinfo_factory();
+	std::shared_ptr<sinsp_threadinfo> tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo.reset();
 
 	/* This will throw an exception since tinfo is expired */
 	EXPECT_THROW(thread_group_info(34, true, tinfo), sinsp_exception);
 
-	tinfo = std::make_shared<sinsp_threadinfo>();
+	tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo->m_tid = 23;
 	tinfo->m_pid = 23;
 
@@ -51,7 +53,9 @@ TEST(thread_group_info, create_thread_group_info) {
 }
 
 TEST(thread_group_info, populate_thread_group_info) {
-	auto tinfo = std::make_shared<sinsp_threadinfo>();
+	const sinsp inspector;
+	const auto fdinfo_factory = inspector.get_fdinfo_factory();
+	auto tinfo = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tinfo->m_tid = 23;
 	tinfo->m_pid = 23;
 
@@ -64,12 +68,12 @@ TEST(thread_group_info, populate_thread_group_info) {
 	tginfo.decrement_thread_count();
 	EXPECT_EQ(tginfo.get_thread_count(), 2);
 
-	auto tinfo1 = std::make_shared<sinsp_threadinfo>();
+	auto tinfo1 = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tginfo.add_thread_to_group(tinfo1, true);
 	ASSERT_EQ(tginfo.get_first_thread(), tinfo1.get());
 	EXPECT_EQ(tginfo.get_thread_count(), 3);
 
-	auto tinfo2 = std::make_shared<sinsp_threadinfo>();
+	auto tinfo2 = std::make_shared<sinsp_threadinfo>(fdinfo_factory);
 	tginfo.add_thread_to_group(tinfo2, false);
 	ASSERT_EQ(tginfo.get_first_thread(), tinfo1.get());
 	ASSERT_EQ(tginfo.get_thread_list().back().lock().get(), tinfo2.get());

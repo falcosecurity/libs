@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libsinsp/state/table.h>
 #include <libsinsp/fdinfo.h>
+#include <libsinsp/sinsp_fdinfo_factory.h>
 
 // Forward declare sinsp_stats_v2 to avoid including metrics_collector.h here.
 struct sinsp_stats_v2;
@@ -33,9 +34,7 @@ public:
 
 	typedef std::function<bool(int64_t, const sinsp_fdinfo&)> fdtable_const_visitor_t;
 
-	sinsp_fdtable(sinsp* inspector);
-
-	inline std::unique_ptr<sinsp_fdinfo> new_fdinfo() const { return sinsp_fdinfo{}.clone(); }
+	sinsp_fdtable(const sinsp_fdinfo_factory& fdinfo_factory, sinsp* inspector);
 
 	sinsp_fdinfo* find(int64_t fd);
 
@@ -115,6 +114,8 @@ private:
 	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
 	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
+
+	const sinsp_fdinfo_factory& m_fdinfo_factory;
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
 	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);

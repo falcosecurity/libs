@@ -47,7 +47,8 @@ static void run_test(test_type ttype,
                      std::vector<std::string>& vals,
                      std::vector<std::string>& expected,
                      std::string expectedrem) {
-	sinsp_threadinfo ti(nullptr);
+	const sinsp inspector;
+	sinsp_threadinfo ti{inspector.get_fdinfo_factory()};
 	struct iovec* iov;
 	int iovcnt;
 	std::string rem;
