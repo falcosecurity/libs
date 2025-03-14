@@ -24,7 +24,7 @@ limitations under the License.
 #include <libscap/scap-int.h>
 #include <libsinsp/fdtable.h>
 
-static const auto s_fdtable_static_fields = sinsp_fdinfo().static_fields();
+static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
 sinsp_fdtable::sinsp_fdtable(sinsp* inspector):
         built_in_table("file_descriptors", &s_fdtable_static_fields) {
