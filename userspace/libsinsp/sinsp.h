@@ -972,6 +972,17 @@ private:
 
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
+	//
+	// The ID of the plugin to use as event input, or zero
+	// if no source plugin should be used as source
+	//
+	std::shared_ptr<sinsp_plugin> m_input_plugin;
+	//
+	// String with the parameters for the plugin to be used as input.
+	// These parameters will be passed to the open function of the plugin.
+	//
+	std::string m_input_plugin_open_params;
+
 public:
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
@@ -1111,16 +1122,6 @@ public:
 	//
 	// The event sources available in the inspector
 	std::vector<std::string> m_event_sources;
-	//
-	// The ID of the plugin to use as event input, or zero
-	// if no source plugin should be used as source
-	//
-	std::shared_ptr<sinsp_plugin> m_input_plugin;
-	//
-	// String with the parameters for the plugin to be used as input.
-	// These parameters will be passed to the open function of the plugin.
-	//
-	std::string m_input_plugin_open_params;
 	//
 	// An instance of scap_evt to be used during the next call to sinsp::next().
 	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
