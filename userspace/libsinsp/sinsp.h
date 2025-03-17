@@ -73,8 +73,9 @@ limitations under the License.
 #include <libsinsp/tuples.h>
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_mode.h>
-#include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/sinsp_fdinfo_factory.h>
+#include <libsinsp/sinsp_fdtable_factory.h>
+#include <libsinsp/sinsp_threadinfo_factory.h>
 
 #include <list>
 #include <map>
@@ -973,6 +974,7 @@ private:
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_thread_manager_dyn_fields;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
+	const sinsp_fdtable_factory m_fdtable_factory;
 	const sinsp_threadinfo_factory m_threadinfo_factory;
 
 public:
@@ -986,6 +988,8 @@ public:
 	}
 
 	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
+
+	const sinsp_fdtable_factory& get_fdtable_factory() const { return m_fdtable_factory; }
 
 	const sinsp_threadinfo_factory& get_threadinfo_factory() const { return m_threadinfo_factory; }
 
@@ -1015,7 +1019,7 @@ public:
 	//
 	// Some thread table limits
 	//
-	uint32_t m_max_fdtable_size;
+	static constexpr uint32_t s_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	bool m_auto_threads_purging = true;
 	uint64_t m_thread_timeout_ns = (uint64_t)1800 * ONE_SECOND_IN_NS;
 	uint64_t m_threads_purging_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;

@@ -31,6 +31,7 @@ struct iovec {
 
 #include <functional>
 #include <memory>
+#include <sinsp_fdtable_factory.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/state/table.h>
@@ -64,6 +65,7 @@ struct erase_fd_params {
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
 	sinsp_threadinfo(const sinsp_fdinfo_factory& fdinfo_factory,
+	                 const sinsp_fdtable_factory& fdtable_factory,
 	                 sinsp* inspector = nullptr,
 	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                         dyn_fields = nullptr);

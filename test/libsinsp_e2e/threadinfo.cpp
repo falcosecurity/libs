@@ -48,7 +48,7 @@ static void run_test(test_type ttype,
                      std::vector<std::string>& expected,
                      std::string expectedrem) {
 	const sinsp inspector;
-	sinsp_threadinfo ti{inspector.get_fdinfo_factory()};
+	const auto ti = inspector.get_threadinfo_factory().create();
 	struct iovec* iov;
 	int iovcnt;
 	std::string rem;
@@ -57,31 +57,31 @@ static void run_test(test_type ttype,
 	for(auto& val : vals) {
 		switch(ttype) {
 		case TEST_ARGS:
-			ti.m_args.push_back(val.c_str());
+			ti->m_args.push_back(val.c_str());
 			break;
 		case TEST_ENV:
-			ti.m_env.push_back(val.c_str());
+			ti->m_env.push_back(val.c_str());
 			break;
 		case TEST_CGROUPS:
 			size_t pos = val.find("=");
 			ASSERT_NE(pos, std::string::npos);
-			auto cgroups = ti.cgroups();
+			auto cgroups = ti->cgroups();
 			cgroups.emplace_back(val.substr(0, pos), val.substr(pos + 1));
-			ti.set_cgroups(cgroups);
+			ti->set_cgroups(cgroups);
 			break;
 		}
 	}
 
 	switch(ttype) {
 	case TEST_ARGS:
-		ti.args_to_iovec(&iov, &iovcnt, rem);
+		ti->args_to_iovec(&iov, &iovcnt, rem);
 		break;
 	case TEST_ENV:
-		ti.env_to_iovec(&iov, &iovcnt, rem);
+		ti->env_to_iovec(&iov, &iovcnt, rem);
 		break;
 	case TEST_CGROUPS:
-		cg = ti.cgroups();
-		ti.cgroups_to_iovec(&iov, &iovcnt, rem, cg);
+		cg = ti->cgroups();
+		ti->cgroups_to_iovec(&iov, &iovcnt, rem, cg);
 		break;
 	};
 
