@@ -74,7 +74,7 @@ jobs:
 
       - name: Test sinsp-example and .scap files
         run: |
-          make sinsp-example
+          cd build && make sinsp-example
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google.txt
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google_comments.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_comments.txt
           diff -u /tmp/curl_google.txt /tmp/curl_google_comments.txt
