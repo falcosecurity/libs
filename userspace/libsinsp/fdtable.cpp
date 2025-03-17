@@ -19,23 +19,26 @@ limitations under the License.
 #ifndef _WIN32
 #include <algorithm>
 #endif
-#include <libsinsp/sinsp.h>
+#include <libsinsp/fdtable.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
-#include <libsinsp/fdtable.h>
 
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
-sinsp_fdtable::sinsp_fdtable(const sinsp_fdinfo_factory& fdinfo_factory, sinsp* inspector):
-        built_in_table("file_descriptors", &s_fdtable_static_fields),
-        m_fdinfo_factory{fdinfo_factory} {
-	m_tid = 0;
-	m_inspector = inspector;
-	if(m_inspector != nullptr) {
-		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
-	} else {
-		m_sinsp_stats_v2 = nullptr;
-	}
+sinsp_fdtable::sinsp_fdtable(const sinsp_mode& sinsp_mode,
+                             const uint32_t max_table_size,
+                             const sinsp_fdinfo_factory& fdinfo_factory,
+                             const std::shared_ptr<const sinsp_plugin>& input_plugin,
+                             const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
+                             scap_platform* const* scap_platform):
+        built_in_table{"file_descriptors", &s_fdtable_static_fields},
+        m_sinsp_mode{sinsp_mode},
+        m_max_table_size{max_table_size},
+        m_fdinfo_factory{fdinfo_factory},
+        m_input_plugin{input_plugin},
+        m_sinsp_stats_v2{sinsp_stats_v2},
+        m_scap_platform{scap_platform},
+        m_tid{0} {
 	reset_cache();
 }
 
@@ -92,7 +95,7 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 	//   b. table size is over the limit, discard the fd
 	// 2. fd is already in the table, replace it
 	if(it == m_table.end()) {
-		if(m_table.size() < m_inspector->m_max_fdtable_size) {
+		if(m_table.size() < m_max_table_size) {
 			//
 			// No entry in the table, this is the normal case
 			//
@@ -186,8 +189,7 @@ void sinsp_fdtable::reset_cache() {
 
 void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #ifndef _WIN32
-	if(m_inspector == nullptr || m_inspector->is_offline() ||
-	   (m_inspector->is_plugin() && !m_inspector->is_syscall_plugin())) {
+	if(m_sinsp_mode.is_offline() || (m_sinsp_mode.is_plugin() && !is_syscall_plugin_enabled())) {
 		return;
 	}
 
@@ -195,19 +197,17 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 	   fdi.m_mount_id != 0) {
 		char procdir[SCAP_MAX_PATH_SIZE];
 		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
-		fdi.m_dev = scap_get_device_by_mount_id(m_inspector->get_scap_platform(),
-		                                        procdir,
-		                                        fdi.m_mount_id);
+		fdi.m_dev = scap_get_device_by_mount_id(get_scap_platform(), procdir, fdi.m_mount_id);
 		fdi.m_mount_id = 0;  // don't try again
 	}
 #endif  // _WIN32
 }
 
-sinsp_fdinfo* sinsp_fdtable::find(int64_t fd) {
+sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) {
 	return find_ref(fd).get();
 }
 
-sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
+sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	return add_ref(fd, std::move(fdinfo)).get();
 }
 

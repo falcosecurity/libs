@@ -150,11 +150,18 @@ sinsp::sinsp(bool with_metrics):
                 std::make_shared<libsinsp::state::dynamic_struct::field_infos>()},
         m_fdtable_dyn_fields{std::make_shared<libsinsp::state::dynamic_struct::field_infos>()},
         m_fdinfo_factory{this, &m_external_event_processor, m_fdtable_dyn_fields},
+        m_fdtable_factory{m_mode,
+                          s_max_fdtable_size,
+                          m_fdinfo_factory,
+                          m_input_plugin,
+                          m_sinsp_stats_v2,
+                          &m_platform},
         m_threadinfo_factory{this,
                              &m_external_event_processor,
                              m_thread_manager_dyn_fields,
                              m_fdtable_dyn_fields,
-                             m_fdinfo_factory},
+                             m_fdinfo_factory,
+                             m_fdtable_factory},
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
 	++instance_count;
@@ -168,7 +175,6 @@ sinsp::sinsp(bool with_metrics):
 	                                                          m_thread_manager_dyn_fields,
 	                                                          m_fdtable_dyn_fields);
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this);
-	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
 	m_machine_info = NULL;
@@ -1907,6 +1913,7 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 
 std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(sinsp* inspector) {
 	return std::make_unique<sinsp_threadinfo>(inspector->get_fdinfo_factory(),
+	                                          inspector->get_fdtable_factory(),
 	                                          inspector,
 	                                          inspector->get_thread_manager_dyn_fields());
 }

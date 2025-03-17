@@ -55,7 +55,6 @@ limitations under the License.
 #define CHAR_FD_MEMFD 'm'
 #define CHAR_FD_PIDFD 'P'
 
-class sinsp;
 class sinsp_threadinfo;
 
 /** @defgroup state State management
