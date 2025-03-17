@@ -204,7 +204,7 @@ private:
 	const bool& m_hostname_and_port_resolution_enabled;
 	const sinsp_threadinfo_factory m_threadinfo_factory;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
-	const std::shared_ptr<const sinsp_plugin> m_input_plugin;
+	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
 
 	// The following fields are externally provided and expected to be populated/updated by the
 	// parser.
