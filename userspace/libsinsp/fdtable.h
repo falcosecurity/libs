@@ -20,7 +20,9 @@ limitations under the License.
 
 #include <libsinsp/state/table.h>
 #include <libsinsp/fdinfo.h>
+#include <libsinsp/plugin.h>
 #include <libsinsp/sinsp_fdinfo_factory.h>
+#include <libsinsp/sinsp_mode.h>
 
 // Forward declare sinsp_stats_v2 to avoid including metrics_collector.h here.
 struct sinsp_stats_v2;
@@ -34,7 +36,12 @@ public:
 
 	typedef std::function<bool(int64_t, const sinsp_fdinfo&)> fdtable_const_visitor_t;
 
-	sinsp_fdtable(const sinsp_fdinfo_factory& fdinfo_factory, sinsp* inspector);
+	sinsp_fdtable(const sinsp_mode& mode,
+	              uint32_t max_table_size,
+	              const sinsp_fdinfo_factory& fdinfo_factory,
+	              const std::shared_ptr<const sinsp_plugin>& input_plugin,
+	              const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
+	              scap_platform* const* scap_platform);
 
 	sinsp_fdinfo* find(int64_t fd);
 
@@ -103,9 +110,18 @@ public:
 	bool erase_entry(const int64_t& key) override { return erase(key); }
 
 private:
-	sinsp* m_inspector;
 	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+
+	// The following fields are externally provided and access to them is expected to be read-only.
+	const sinsp_mode& m_sinsp_mode;
+	const uint32_t m_max_table_size;
+	const sinsp_fdinfo_factory m_fdinfo_factory;
+	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
+
+	// The following fields are externally provided and expected to be populated/updated by the
+	// fdtable.
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
+	scap_platform* const* m_scap_platform;
 
 	//
 	// Simple fd cache
@@ -115,7 +131,11 @@ private:
 	uint64_t m_tid;
 	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
 
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
+	scap_platform* get_scap_platform() const { return *m_scap_platform; }
+
+	bool is_syscall_plugin_enabled() const {
+		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
+	}
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
 	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);

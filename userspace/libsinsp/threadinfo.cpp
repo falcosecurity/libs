@@ -40,12 +40,13 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src) {
 
 sinsp_threadinfo::sinsp_threadinfo(
         const sinsp_fdinfo_factory& fdinfo_factory,
+        const sinsp_fdtable_factory& fdtable_factory,
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         table_entry(dyn_fields),
         m_inspector(inspector),
         m_fdinfo_factory{fdinfo_factory},
-        m_fdtable{fdinfo_factory, inspector},
+        m_fdtable{fdtable_factory.create()},
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
