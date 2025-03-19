@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <libscap/strerror.h>
 
 struct noop_engine {
 	char* m_lasterr;
@@ -60,11 +61,6 @@ int32_t noop_stop_capture(struct scap_engine_handle engine) {
 	return SCAP_SUCCESS;
 }
 
-int32_t unimplemented_op(char* err, size_t err_size) {
-	strlcpy(err, "Operation not implemented", err_size);
-	return SCAP_FAILURE;
-}
-
 int32_t noop_configure(struct scap_engine_handle engine,
                        enum scap_setting setting,
                        unsigned long arg1,
@@ -74,7 +70,7 @@ int32_t noop_configure(struct scap_engine_handle engine,
 	if(setting == SCAP_SAMPLING_RATIO && arg2 == 0) {
 		return SCAP_SUCCESS;
 	}
-	return unimplemented_op(HANDLE(engine)->m_lasterr, SCAP_LASTERR_SIZE);
+	return scap_errprintf(HANDLE(engine)->m_lasterr, 0, "Operation not implemented");
 }
 
 int32_t noop_get_stats(struct scap_engine_handle engine, scap_stats* stats) {
