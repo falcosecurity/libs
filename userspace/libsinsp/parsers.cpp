@@ -3714,7 +3714,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 		// sizeof(int) (file descriptor size) and the control message doesn't contain more
 		// data than allowed by kernel constraints.
 		if(data_size % sizeof(int) || fds_len > SCM_MAX_FD) {
-			continue;
+			break;
 		}
 		scap_threadinfo scap_tinfo{};
 		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
