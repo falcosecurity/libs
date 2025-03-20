@@ -1,4 +1,4 @@
-prefix=${pcfiledir}/../..
+prefix=${pcfiledir}/@PKGCONFIG_RELATIVE_PREFIX@
 libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
 includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
 
