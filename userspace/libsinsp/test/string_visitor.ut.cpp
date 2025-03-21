@@ -268,6 +268,14 @@ TEST_F(string_visitor_test, complex) {
 	unidirectional(complex_filter, out);
 }
 
+TEST_F(string_visitor_test, value_with_equals) {
+	std::string in =
+	        "(spawned_process and proc.name in (commands) and not "
+	        "(proc.cmdline contains \"--ends-with=\"))";
+
+	bidirectional(in);
+}
+
 TEST_F(string_visitor_test, complex_bidirectional) {
 	bidirectional(complex_filter);
 }
