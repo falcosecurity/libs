@@ -52,6 +52,10 @@ std::string escape_str(const std::string& str) {
 			should_escape = true;
 			res += ' ';
 			break;
+		case '=':
+			should_escape = true;
+			res += '=';
+			break;
 		case '\\':
 			should_escape = true;
 			res += "\\\\";
