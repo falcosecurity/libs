@@ -155,6 +155,10 @@ typedef struct ss_plugin_byte_buffer {
 // flist: whether the field can extract lists of values or not.
 //   Could be derived from the field name alone, but including it
 //   here can prevent a second lookup of field names.
+// extract_offets: set to true to request the start and end of the field
+//   in the event or log data. Callers can additionally set start_offset
+//   and end_offset to an invalid combination, e.g. {1,0} in order to
+//   test whether or not
 // The following should be filled in by the extraction function:
 // - res: this union should be filled with a pointer to an array of values.
 //   The array represent the list of extracted values for this field from a given event.
@@ -166,6 +170,10 @@ typedef struct ss_plugin_byte_buffer {
 //   If the field is a list type, then res_len can must be any value from 0 to N, depending
 //   on how many values can be extracted from a given event.
 //   Setting res_len to 0 means that no value of this field can be extracted from a given event.
+// - start_offset, end_offset: optional. if extract_offsets is set, these should be set
+//   to the zero-indexed start and end offsets of the field in the event or log data.
+//   {0,0} can be used to indicate that there are no valid offsets, e.g. if the field
+//   was generated from other data.
 typedef struct ss_plugin_extract_field {
 	// NOTE: For a given architecture, this has always the same size which
 	// is sizeof(uintptr_t). Adding new value types will not create breaking
@@ -189,7 +197,11 @@ typedef struct ss_plugin_extract_field {
 	uint64_t arg_index;
 	ss_plugin_bool arg_present;
 	uint32_t ftype;
+	// todo: Should these be merged into a "flags" field?
 	ss_plugin_bool flist;
+	ss_plugin_bool extract_offsets;
+	uint32_t start_offset;
+	uint32_t end_offset;
 } ss_plugin_extract_field;
 
 // Opaque a pointer to a state table. The falcosecurity libs define stateful
