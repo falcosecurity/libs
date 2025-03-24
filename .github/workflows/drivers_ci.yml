@@ -253,7 +253,7 @@ jobs:
           make ProbeSkeleton -j6
 
       - name: Upload skeleton
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bpf_probe_x86_64.skel.h
           path: skeleton-build/skel_dir/bpf_probe.skel.h
@@ -278,7 +278,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download skeleton
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: bpf_probe_x86_64.skel.h
           path: /tmp
@@ -320,13 +320,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download X64 matrix
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: matrix_X64
           path: matrix_X64
 
       - name: Download ARM64 matrix
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: matrix_ARM64
           path: matrix_ARM64
@@ -346,7 +346,7 @@ jobs:
           echo ""
 
       - name: Upload PR info as artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pr-kernel-testing
           path: pr/
