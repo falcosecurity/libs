@@ -371,12 +371,8 @@ typedef struct ss_plugin_field_extract_input {
 	// Vtable for controlling a state table for read operations.
 	ss_plugin_table_reader_vtable_ext* table_reader_ext;
 
-	// If true, signal that the framework wants offsets to be computed.
-	ss_plugin_bool request_offsets;
-
-	// An array of ss_plugin_extract_field_offsets structs. Optional.
-	// The array should be allocated only if `request_offsets` is true.
-	// Indexed as `fields`.
+	// An array of ss_plugin_extract_field_offsets structs. This member
+	// is optional, and might be ignored by extractors.
 	ss_plugin_extract_field_offsets* field_offsets;
 } ss_plugin_field_extract_input;
 

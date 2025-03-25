@@ -1003,11 +1003,6 @@ bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.table_reader_ext = &table_reader_ext;
 	in.field_offsets = field_offsets;
-	if(in.field_offsets) {
-		in.request_offsets = true;
-	} else {
-		in.request_offsets = false;
-	}
 	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
 	auto res = m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
 
