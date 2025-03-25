@@ -53,7 +53,7 @@ limitations under the License.
  * big enough to prevent the queue to ever fill-up in standard circumstances,
  * while at the same time avoiding it growing uncontrollably in case of anomalies.
  */
-#define DEFAULT_ASYNC_EVENT_QUEUE_SIZE 1000
+#define DEFAULT_ASYNC_EVENT_QUEUE_SIZE 4096
 
 // Small sinsp event filter wrapper logic
 // that uses RAII to eventually filter out events.
