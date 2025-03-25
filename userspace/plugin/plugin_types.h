@@ -130,10 +130,12 @@ typedef struct ss_plugin_byte_buffer {
 
 // Used in extract_fields_and_offsets to receive field offsets along
 // with field data.
-// Extraction functions should be set these to the zero-indexed start
-// and end offsets of the field in the event or log data. 0..0 can be
-// used to indicate that there are no valid offsets, e.g. if the field
-// was generated or computed from other data.
+// Extraction functions might not support offsets. In order to detect
+// this, callers can initialize this to an invalid pair, such as 1..0.
+// Extraction functions that support offsets should be set these to the
+// zero-indexed start and end offsets of the field in the event or log
+// data. 0..0 can be used to indicate that there are no valid offsets,
+// e.g. if the field was generated or computed from other data.
 typedef struct ss_plugin_extract_field_offsets {
 	uint32_t start_offset;
 	uint32_t end_offset;
