@@ -28,7 +28,7 @@ clean:
 
 else
 
-KERNELDIR 	?= $(CURDIR)
+KERNELDIR 	?= $(realpath $(objtree))
 #
 # Get the path of the module sources
 #
