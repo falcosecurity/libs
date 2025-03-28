@@ -43,6 +43,9 @@ extern "C" {
 
 using namespace std;
 
+// Utility function to calculate CPU usage
+int get_cpu_usage_percent();
+
 // Functions used for dumping to stdout
 void raw_dump(sinsp&, sinsp_evt* ev);
 void formatted_dump(sinsp&, sinsp_evt* ev);
@@ -56,6 +59,7 @@ static bool ppm_sc_modifies_state = false;
 static bool ppm_sc_repair_state = false;
 static bool ppm_sc_state_remove_io_sc = false;
 static bool enable_glogger = false;
+static bool perftest = false;
 static string engine_string;
 static string filter_string = "";
 static string file_path = "";
@@ -124,6 +128,7 @@ Options:
   -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option, used for e2e testing of sinsp state.
   -g, --enable-glogger                       Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust the test binary source and re-compile.
   -r, --raw                                  raw event ouput
+  -t, --perftest                             Run in performance test mode
 )";
 	cout << usage << endl;
 }
@@ -159,6 +164,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	                                       {"enable-glogger", no_argument, 0, 'g'},
 	                                       {"raw", no_argument, 0, 'r'},
 	                                       {"gvisor", optional_argument, 0, 'G'},
+										   {"perftest", no_argument, 0, 't'},
 	                                       {0, 0, 0, 0}};
 
 	bool format_set = false;
@@ -166,7 +172,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	int long_index = 0;
 	while((op = getopt_long(argc,
 	                        argv,
-	                        "hf:jab:mks:p:d:o:En:zxqgrG::",
+	                        "hf:jab:mks:p:d:o:En:zxqgrtG::",
 	                        long_options,
 	                        &long_index)) != -1) {
 		switch(op) {
@@ -267,6 +273,10 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			break;
 		case 'r':
 			dump = raw_dump;
+			break;
+		case 't':
+			perftest = true;
+			break;
 		default:
 			break;
 		}
@@ -509,6 +519,7 @@ int main(int argc, char** argv) {
 	open_engine(inspector, events_sc_codes);
 
 	std::cout << "-- Start capture" << std::endl;
+	double max_throughput = 0.0;
 
 	inspector.start_capture();
 
@@ -522,16 +533,36 @@ int main(int argc, char** argv) {
 	        std::make_unique<sinsp_evt_formatter>(&inspector, plugin_output, *filter_list.get());
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-	uint64_t num_events = 0;
+	uint64_t num_events = 0, last_events = 0;
+	uint64_t last_ts_ns = 0;
+	uint64_t cpu_total = 0;
+	uint64_t num_samples = 0;
 	while(!g_interrupted && num_events < max_events) {
 		sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg) {
 			cout << "[ERROR] " << error_msg << endl;
 		});
 		if(ev != nullptr) {
+			uint64_t ts_ns = ev->get_ts();
 			sinsp_threadinfo* thread = ev->get_thread_info();
-			if(!thread || g_all_threads || thread->is_main_thread()) {
+			++num_events;
+			uint64_t evt_diff = num_events - last_events;
+			if(perftest) {
+				// Perftest mode does not print individual events but instead prints a running throughput every second
+				if(ts_ns - last_ts_ns > 1'000'000'000) {
+					int cpu_usage = get_cpu_usage_percent();
+					cpu_total += cpu_usage;
+					++num_samples;
+					long double curr_throughput = evt_diff / (long double)1000;
+					std::cout << "Events: " << (num_events - last_events) << " Events/ms: " << curr_throughput
+					          << " CPU: " << cpu_usage << "%                      \r" << std::flush;
+					if(curr_throughput > max_throughput) {
+						max_throughput = curr_throughput;
+					}
+					last_ts_ns = ts_ns;
+					last_events = num_events;
+				}
+			} else if(!thread || g_all_threads || thread->is_main_thread()) {
 				dump(inspector, ev);
-				num_events++;
 			}
 		}
 	}
@@ -541,11 +572,17 @@ int main(int argc, char** argv) {
 
 	inspector.stop_capture();
 
-	std::cout << "-- Stop capture" << std::endl;
+	std::cout << "-- Stop capture                                                                    " << std::endl;
 	std::cout << "Retrieved events: " << std::to_string(num_events) << std::endl;
 	std::cout << "Time spent: " << duration << "ms" << std::endl;
 	if(duration > 0) {
 		std::cout << "Events/ms: " << num_events / (long double)duration << std::endl;
+	}
+	if (max_throughput > 0) {
+		std::cout << "Max throughput observed: " << max_throughput << " events / ms" << std::endl;
+	}
+	if (num_samples > 0) {
+		std::cout << "Average CPU usage: " << cpu_total / num_samples << "%" << std::endl;
 	}
 
 	return 0;
