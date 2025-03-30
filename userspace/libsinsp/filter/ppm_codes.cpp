@@ -149,7 +149,8 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 				e->right->accept(this);
 				if(m_last_node_is_field_or_transformer) {
 					throw sinsp_exception(
-					        "right-hand field comparisons on `evt.type` checks are not supported "
+					        "right-hand field comparisons on `evt.type`/`syscall.type` checks are "
+					        "not supported "
 					        "by event code search");
 				}
 				if(e->op == "!=") {
@@ -208,7 +209,8 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 	void visit(const libsinsp::filter::ast::field_expr* e) override {
 		m_last_node_has_codes = false;
 		m_last_node_is_field_or_transformer = true;
-		m_last_node_is_evttype_field = e->field == "evt.type" && e->arg.empty();
+		m_last_node_is_evttype_field =
+		        (e->field == "evt.type" || e->field == "syscall.type") && e->arg.empty();
 		m_last_node_codes = all_codes_set();
 		try_inversion(m_last_node_codes);
 	}
@@ -217,7 +219,8 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 		e->value->accept(this);
 		if(m_last_node_is_evttype_field) {
 			throw sinsp_exception(
-			        "event code search does not support `evt.type` checks with transformers");
+			        "event code search does not support `evt.type`/`syscall.type` checks with "
+			        "transformers");
 		}
 		m_last_node_is_field_or_transformer = true;
 	}
