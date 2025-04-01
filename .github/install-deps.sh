@@ -37,6 +37,7 @@ cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -Dvalijson_BUILD_TESTS=OFF \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     ../
 
 make install -j
