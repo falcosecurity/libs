@@ -978,7 +978,7 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
 
 /*
  * Convert a connection tuple into our tuple representation and copy it to
- * targetbuf
+ * targetbuf. Return the tuple size in case of success; 0 otherwise.
  */
 uint16_t fd_to_socktuple(int fd,
                          struct sockaddr *usrsockaddr,
