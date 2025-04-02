@@ -947,12 +947,17 @@ bool sinsp_filter_check::compare_rhs(cmpop op,
 
 bool sinsp_filter_check::extract_nocache(sinsp_evt* evt,
                                          std::vector<extract_value_t>& values,
+                                         std::vector<extract_offset_t>* offsets,
                                          bool sanitize_strings) {
 	values.clear();
 	extract_value_t val;
 	val.ptr = extract_single(evt, &val.len, sanitize_strings);
 	if(val.ptr != NULL) {
 		values.push_back(val);
+		if(offsets) {
+			extract_offset_t offset = {1, 0};
+			offsets->push_back(offset);
+		}
 		return true;
 	}
 	return false;
@@ -965,6 +970,20 @@ uint8_t* sinsp_filter_check::extract_single(sinsp_evt* evt, uint32_t* len, bool 
 bool sinsp_filter_check::extract(sinsp_evt* evt,
                                  std::vector<extract_value_t>& values,
                                  bool sanitize_strings) {
+	return extract_with_offsets(evt, values, nullptr, sanitize_strings);
+}
+
+bool sinsp_filter_check::extract_with_offsets(sinsp_evt* evt,
+                                              std::vector<extract_value_t>& values,
+                                              std::vector<extract_offset_t>& offsets,
+                                              bool sanitize_strings) {
+	return extract_with_offsets(evt, values, &offsets, sanitize_strings);
+}
+
+bool sinsp_filter_check::extract_with_offsets(sinsp_evt* evt,
+                                              std::vector<extract_value_t>& values,
+                                              std::vector<extract_offset_t>* offsets,
+                                              bool sanitize_strings) {
 	if(m_cache_metrics != NULL) {
 		m_cache_metrics->m_num_extract++;
 	}
@@ -972,7 +991,8 @@ bool sinsp_filter_check::extract(sinsp_evt* evt,
 	// no cache is installed, so just default to non-cached extraction
 	if(!m_extract_cache) {
 		// extract values and apply transformers on top of them
-		return extract_nocache(evt, values, sanitize_strings) && apply_transformers(values);
+		return extract_nocache(evt, values, offsets, sanitize_strings) &&
+		       apply_transformers(values);
 	}
 
 	// cache is not valid for this event, so we perform a non-cached extraction
@@ -982,7 +1002,8 @@ bool sinsp_filter_check::extract(sinsp_evt* evt,
 		// gains -- we rely on each filtercheck to keep owning the result values
 		// across different extractions
 		bool deepcopy = false;
-		auto res = extract_nocache(evt, values, sanitize_strings) && apply_transformers(values);
+		auto res = extract_nocache(evt, values, offsets, sanitize_strings) &&
+		           apply_transformers(values);
 		m_extract_cache->update(evt, res, values, deepcopy);
 		return res;
 	}

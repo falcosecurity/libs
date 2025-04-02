@@ -667,6 +667,42 @@ std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt,
 	return result;
 }
 
+extract_offset_t sinsp_with_test_input::get_field_offsets(sinsp_evt* evt,
+                                                          std::string_view field_name,
+                                                          filter_check_list& flist) {
+	if(evt == nullptr) {
+		throw sinsp_exception("The event class is NULL");
+	}
+
+	std::unique_ptr<sinsp_filter_check> chk(
+	        flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
+	if(chk == nullptr) {
+		throw sinsp_exception("The field " + std::string(field_name) + " is not a valid field.");
+	}
+	// we created a filter check starting from the field name so if we arrive here we will find it
+	// for sure
+	chk->parse_field_name(field_name, true, false);
+	std::vector<extract_value_t> values;
+	std::vector<extract_offset_t> offsets;
+	chk->extract_with_offsets(evt, values, offsets);
+	if(offsets.size() == 0) {
+		throw sinsp_exception("Unable to extract offsets for " + std::string(field_name));
+	}
+	return offsets.at(0);
+}
+
+uint32_t sinsp_with_test_input::get_field_start_offset(sinsp_evt* evt,
+                                                       std::string_view field_name,
+                                                       filter_check_list& flist) {
+	return get_field_offsets(evt, field_name, flist).start;
+}
+
+uint32_t sinsp_with_test_input::get_field_end_offset(sinsp_evt* evt,
+                                                     std::string_view field_name,
+                                                     filter_check_list& flist) {
+	return get_field_offsets(evt, field_name, flist).end;
+}
+
 bool sinsp_with_test_input::eval_filter(sinsp_evt* evt,
                                         std::string_view filter_str,
                                         std::shared_ptr<sinsp_filter_cache_factory> cachef) {

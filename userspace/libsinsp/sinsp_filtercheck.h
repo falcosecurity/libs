@@ -146,6 +146,21 @@ public:
 	bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
+	// Extract a field from the event along with its offsets. If sanitize_strings
+	// is true, any string values are sanitized to remove nonprintable characters.
+	// By default, this fills the value and offset vectors with only one value,
+	// retrieved by calling the single-result extract method.
+	// If a NULL value is returned by extract, the vector is emptied.
+	// Subclasses are meant to either override this, or the single-valued extract method.
+	//
+	// \param values [out] the values extracted from the filter check
+	// \param offsets [out] the field offsets extracted from the filter check
+	bool extract_with_offsets(sinsp_evt*,
+	                          std::vector<extract_value_t>& values,
+	                          std::vector<extract_offset_t>& offsets,
+	                          bool sanitize_strings = true);
+
+	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
 	virtual bool compare(sinsp_evt*);
@@ -190,6 +205,12 @@ protected:
 	                                  uint8_t* storage,
 	                                  uint32_t storage_len);
 
+	// Common implementation of extract and the public version of extract_with_offsets.
+	bool extract_with_offsets(sinsp_evt*,
+	                          std::vector<extract_value_t>& values,
+	                          std::vector<extract_offset_t>* offsets,
+	                          bool sanitize_strings = true);
+
 	// This is a single-value version of extract for subclasses non supporting extracting
 	// multiple values. By default, this returns NULL.
 	// Subclasses are meant to either override this, or the multi-valued extract method.
@@ -197,6 +218,7 @@ protected:
 	// \param values [out] the values extracted from the filter check
 	virtual bool extract_nocache(sinsp_evt* evt,
 	                             std::vector<extract_value_t>& values,
+	                             std::vector<extract_offset_t>* offsets,
 	                             bool sanitize_strings = true);
 	// \param len [out] length in bytes for the returned value
 	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true);

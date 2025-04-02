@@ -58,7 +58,10 @@ public:
 		throw sinsp_exception("unexpected right-hand side filter comparison");
 	}
 
-	inline bool extract_nocache(sinsp_evt* e, vector<extract_value_t>& v, bool) override {
+	inline bool extract_nocache(sinsp_evt* e,
+	                            vector<extract_value_t>& v,
+	                            vector<extract_offset_t>*,
+	                            bool) override {
 		return false;
 	}
 
