@@ -35,6 +35,14 @@ struct extract_value_t {
 };
 
 /**
+ * @brief Represents a field offset extracted when evaluating a filter
+ */
+struct extract_offset_t {
+	uint32_t start = 1;
+	uint32_t end = 0;
+};
+
+/**
  * @brief Represents a cache value storage for value extraction in filters
  */
 class sinsp_filter_extract_cache {
@@ -75,6 +83,8 @@ public:
 
 	inline bool result() const { return m_result; }
 
+	inline const std::vector<extract_offset_t>& offsets() const { return m_offsets; }
+
 private:
 	template<typename T>
 	static inline void resize_if_smaller(T& v, size_t len) {
@@ -87,6 +97,7 @@ private:
 	bool m_result = false;
 	std::vector<extract_value_t> m_values;
 	std::vector<std::vector<uint8_t>> m_storage;
+	std::vector<extract_offset_t> m_offsets;
 };
 
 /**

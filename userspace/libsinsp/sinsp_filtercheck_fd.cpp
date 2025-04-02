@@ -20,6 +20,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/dns_manager.h>
+#include "filter_cache.h"
 
 using namespace std;
 
@@ -470,6 +471,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 
 bool sinsp_filter_check_fd::extract_nocache(sinsp_evt *evt,
                                             std::vector<extract_value_t> &values,
+                                            std::vector<extract_offset_t> *,
                                             bool sanitize_strings) {
 	values.clear();
 
@@ -510,7 +512,7 @@ bool sinsp_filter_check_fd::extract_nocache(sinsp_evt *evt,
 		return true;
 	}
 
-	return sinsp_filter_check::extract_nocache(evt, values, sanitize_strings);
+	return sinsp_filter_check::extract_nocache(evt, values, nullptr, sanitize_strings);
 }
 
 uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,

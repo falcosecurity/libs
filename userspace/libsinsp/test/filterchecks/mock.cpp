@@ -73,6 +73,7 @@ public:
 protected:
 	bool extract_nocache(sinsp_evt* evt,
 	                     std::vector<extract_value_t>& values,
+	                     std::vector<extract_offset_t>*,
 	                     bool sanitize_strings) override {
 		static const char* list_value_1 = "value1";
 		static const char* list_value_2 = "charbuf";
@@ -91,7 +92,7 @@ protected:
 			values.push_back(val2);
 			return true;
 		}
-		return sinsp_filter_check::extract_nocache(evt, values, sanitize_strings);
+		return sinsp_filter_check::extract_nocache(evt, values, nullptr, sanitize_strings);
 	}
 
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override {

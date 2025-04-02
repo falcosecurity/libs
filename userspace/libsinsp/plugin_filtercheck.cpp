@@ -127,6 +127,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new() {
 
 bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
                                                 std::vector<extract_value_t>& values,
+                                                std::vector<extract_offset_t>* offsets,
                                                 bool sanitize_strings) {
 	// reject the event if it comes from an unknown event source
 	if(evt->get_source_idx() == sinsp_no_event_source_idx) {
@@ -169,7 +170,15 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 	efield.arg_present = m_arg_present;
 	efield.ftype = type;
 	efield.flist = m_info->m_fields[m_field_id].m_flags & EPF_IS_LIST;
-	if(!m_eplugin->extract_fields(evt, num_fields, &efield) || efield.res_len == 0) {
+	ss_plugin_extract_field_offsets eoffset;
+	ss_plugin_extract_field_offsets* eoptr = nullptr;
+	if(offsets) {
+		eoffset.start_offset = 1;
+		eoffset.end_offset = 0;
+		eoptr = &eoffset;
+	}
+	if(!m_eplugin->extract_fields_and_offsets(evt, num_fields, &efield, eoptr) ||
+	   efield.res_len == 0) {
 		return false;
 	}
 
@@ -207,6 +216,11 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 			break;
 		}
 		values.push_back(res);
+	}
+
+	if(offsets) {
+		extract_offset_t res_offset = {eoffset.start_offset, eoffset.end_offset};
+		offsets->push_back(res_offset);
 	}
 
 	return true;
