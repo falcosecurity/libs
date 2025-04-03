@@ -955,8 +955,7 @@ bool sinsp_filter_check::extract_nocache(sinsp_evt* evt,
 	if(val.ptr != NULL) {
 		values.push_back(val);
 		if(offsets) {
-			extract_offset_t offset = {1, 0};
-			offsets->push_back(offset);
+			offsets->emplace_back(extract_offset_t{1, 0});
 		}
 		return true;
 	}
