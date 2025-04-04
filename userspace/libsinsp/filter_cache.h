@@ -38,8 +38,8 @@ struct extract_value_t {
  * @brief Represents a field offset extracted when evaluating a filter
  */
 struct extract_offset_t {
-	uint32_t start = 1;
-	uint32_t end = 0;
+	uint32_t start = UINT32_MAX;
+	uint32_t length = UINT32_MAX;
 };
 
 /**
