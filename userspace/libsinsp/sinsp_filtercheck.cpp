@@ -950,12 +950,15 @@ bool sinsp_filter_check::extract_nocache(sinsp_evt* evt,
                                          std::vector<extract_offset_t>* offsets,
                                          bool sanitize_strings) {
 	values.clear();
+	if(offsets) {
+		offsets->clear();
+	}
 	extract_value_t val;
 	val.ptr = extract_single(evt, &val.len, sanitize_strings);
 	if(val.ptr != NULL) {
 		values.push_back(val);
 		if(offsets) {
-			offsets->emplace_back(extract_offset_t{1, 0});
+			offsets->emplace_back(extract_offset_t{UINT32_MAX, UINT32_MAX});
 		}
 		return true;
 	}

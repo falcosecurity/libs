@@ -150,7 +150,7 @@ public:
 	// is true, any string values are sanitized to remove nonprintable characters.
 	// By default, this fills the value and offset vectors with only one value,
 	// retrieved by calling the single-result extract method.
-	// If a NULL value is returned by extract, the vector is emptied.
+	// If a NULL value is returned by extract, the vectors are emptied.
 	// Subclasses are meant to either override this, or the single-valued extract method.
 	//
 	// \param values [out] the values extracted from the filter check

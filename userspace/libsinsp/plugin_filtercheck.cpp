@@ -173,8 +173,8 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 	ss_plugin_extract_field_offsets eoffset;
 	ss_plugin_extract_field_offsets* eoptr = nullptr;
 	if(offsets) {
-		eoffset.start_offset = 1;
-		eoffset.end_offset = 0;
+		eoffset.start = UINT32_MAX;
+		eoffset.length = UINT32_MAX;
 		eoptr = &eoffset;
 	}
 	if(!m_eplugin->extract_fields_and_offsets(evt, num_fields, &efield, eoptr) ||
@@ -219,7 +219,7 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 	}
 
 	if(offsets) {
-		extract_offset_t res_offset = {eoffset.start_offset, eoffset.end_offset};
+		extract_offset_t res_offset = {eoffset.start, eoffset.length};
 		offsets->push_back(res_offset);
 	}
 

@@ -376,8 +376,8 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	ASSERT_FALSE(field_has_value(evt, "fd.name", filterlist));
 	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname", filterlist), src_pl->name());
 	ASSERT_EQ(get_field_as_string(evt, "sample.hello", filterlist), "hello world");
-	ASSERT_EQ(get_field_start_offset(evt, "sample.hello", filterlist), 0);
-	ASSERT_EQ(get_field_end_offset(evt, "sample.hello", filterlist), 11);
+	ASSERT_EQ(get_field_offset_start(evt, "sample.hello", filterlist), 0);
+	ASSERT_EQ(get_field_offset_length(evt, "sample.hello", filterlist), 11);
 	ASSERT_EQ(next_event(), nullptr);  // EOF is expected
 }
 
