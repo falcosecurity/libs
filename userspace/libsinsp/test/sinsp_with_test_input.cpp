@@ -691,16 +691,16 @@ extract_offset_t sinsp_with_test_input::get_field_offsets(sinsp_evt* evt,
 	return offsets.at(0);
 }
 
-uint32_t sinsp_with_test_input::get_field_start_offset(sinsp_evt* evt,
+uint32_t sinsp_with_test_input::get_field_offset_start(sinsp_evt* evt,
                                                        std::string_view field_name,
                                                        filter_check_list& flist) {
 	return get_field_offsets(evt, field_name, flist).start;
 }
 
-uint32_t sinsp_with_test_input::get_field_end_offset(sinsp_evt* evt,
-                                                     std::string_view field_name,
-                                                     filter_check_list& flist) {
-	return get_field_offsets(evt, field_name, flist).end;
+uint32_t sinsp_with_test_input::get_field_offset_length(sinsp_evt* evt,
+                                                        std::string_view field_name,
+                                                        filter_check_list& flist) {
+	return get_field_offsets(evt, field_name, flist).length;
 }
 
 bool sinsp_with_test_input::eval_filter(sinsp_evt* evt,
