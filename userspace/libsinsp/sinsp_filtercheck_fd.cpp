@@ -20,7 +20,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/dns_manager.h>
-#include "filter_cache.h"
+#include <libsinsp/filter_cache.h>
 
 using namespace std;
 
