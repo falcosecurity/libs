@@ -3856,16 +3856,18 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			// accordingly via procfs scan.
 			//
 #ifndef _WIN32
-			int32_t cmparam = -1;
-			if(etype == PPME_SOCKET_RECVMSG_X && evt->get_num_params() >= 5) {
-				cmparam = 4;
-			} else if(etype == PPME_SOCKET_RECVMMSG_X && evt->get_num_params() >= 6) {
-				cmparam = 5;
-			}
+			if(evt->get_fd_info()->is_unix_socket()) {
+				int32_t cmparam = -1;
+				if(etype == PPME_SOCKET_RECVMSG_X && evt->get_num_params() >= 5) {
+					cmparam = 4;
+				} else if(etype == PPME_SOCKET_RECVMMSG_X && evt->get_num_params() >= 6) {
+					cmparam = 5;
+				}
 
-			if(cmparam != -1) {
-				parinfo = evt->get_param(cmparam);
-				process_recvmsg_ancillary_data(evt, parinfo);
+				if(cmparam != -1) {
+					parinfo = evt->get_param(cmparam);
+					process_recvmsg_ancillary_data(evt, parinfo);
+				}
 			}
 #endif
 
