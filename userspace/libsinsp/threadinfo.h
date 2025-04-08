@@ -39,6 +39,9 @@ struct iovec {
 #include <libsinsp/event.h>
 #include <libscap/scap_savefile_api.h>
 
+// Forward declare sinsp_thread_manager to avoid cyclic dependency.
+class sinsp_thread_manager;
+
 struct erase_fd_params {
 	bool m_remove_from_table;
 	int64_t m_fd;
@@ -412,6 +415,11 @@ public:
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	const cgroups_t& cgroups() const;
+
+	/*!
+	  \brief Return the thread manager associated with this thread.
+	*/
+	std::shared_ptr<sinsp_thread_manager> get_thread_manager() const;
 
 	//
 	// Core state

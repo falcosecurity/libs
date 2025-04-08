@@ -18,7 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/settings.h>
 #include <libsinsp/sinsp_public.h>
 #include <libsinsp/tuples.h>
 #include <libsinsp/fdinfo.h>
