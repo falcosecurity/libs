@@ -96,7 +96,10 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	                              (struct sockaddr *)mmh.msg_hdr.msg_name);
 
 	/* Parameter 6: msg_control (type: PT_BYTEBUF) */
-	if(mmh.msg_hdr.msg_control != NULL) {
+	/* We are limited to UINT16_MAX bytes of control data due to the size parameter in
+	 * auxmap__store_bytebuf_param. */
+	if(mmh.msg_hdr.msg_control != NULL && mmh.msg_hdr.msg_controllen > 0 &&
+	   mmh.msg_hdr.msg_controllen <= 0xFFFF) {
 		auxmap__store_bytebuf_param(auxmap,
 		                            (unsigned long)mmh.msg_hdr.msg_control,
 		                            mmh.msg_hdr.msg_controllen,

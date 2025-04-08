@@ -87,7 +87,10 @@ int BPF_PROG(recvmsg_x, struct pt_regs *regs, long ret) {
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, msghhdr.msg_name);
 
 		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
-		if(msghhdr.msg_control != NULL) {
+		/* We are limited to UINT16_MAX bytes of control data due to the size parameter in
+		 * auxmap__store_bytebuf_param. */
+		if(msghhdr.msg_control != NULL && msghhdr.msg_controllen > 0 &&
+		   msghhdr.msg_controllen <= 0xFFFF) {
 			auxmap__store_bytebuf_param(auxmap,
 			                            (unsigned long)msghhdr.msg_control,
 			                            msghhdr.msg_controllen,
