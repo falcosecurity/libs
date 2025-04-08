@@ -3704,6 +3704,13 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 	size_t const msg_ctrllen = parinfo->m_len;
 	for(ppm_cmsghdr *cmsg = PPM_CMSG_FIRSTHDR(msg_ctrl, msg_ctrllen); cmsg != nullptr;
 	    cmsg = PPM_CMSG_NXTHDR(msg_ctrl, msg_ctrllen, cmsg)) {
+		// Check for malformed control message buffer:
+		if(reinterpret_cast<const char *>(cmsg) < msg_ctrl ||
+		   reinterpret_cast<const char *>(cmsg) > msg_ctrl + msg_ctrllen) {
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+			                          "Malformed ancillary data, skipping.");
+			break;
+		}
 		int cmsg_type;
 		PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_type, cmsg_type);
 		if(cmsg_type != SCM_RIGHTS) {
