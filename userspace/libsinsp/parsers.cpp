@@ -3706,7 +3706,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 	    cmsg = PPM_CMSG_NXTHDR(msg_ctrl, msg_ctrllen, cmsg)) {
 		// Check for malformed control message buffer:
 		if(reinterpret_cast<const char *>(cmsg) < msg_ctrl ||
-		   reinterpret_cast<const char *>(cmsg) > msg_ctrl + msg_ctrllen) {
+		   reinterpret_cast<const char *>(cmsg) >= msg_ctrl + msg_ctrllen) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Malformed ancillary data, skipping.");
 			break;
