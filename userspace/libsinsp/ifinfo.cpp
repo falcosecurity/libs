@@ -16,7 +16,6 @@ limitations under the License.
 
 */
 
-#include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 
 sinsp_network_interfaces::sinsp_network_interfaces(): m_ipv6_loopback_addr{} {
@@ -218,8 +217,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(const uint32_t addr,
 				}
 			}
 		} else {
-			auto inspector = tinfo->m_inspector;
-			auto table = inspector->m_thread_manager->get_table(
+			const auto table = tinfo->get_thread_manager()->get_table(
 			        sinsp_thread_manager::s_containers_table_name);
 			if(table != nullptr) {
 				bool found = false;
