@@ -162,6 +162,7 @@ sinsp::sinsp(bool with_metrics):
                              m_fdtable_dyn_fields,
                              m_fdinfo_factory,
                              m_fdtable_factory},
+        m_table_registry{std::make_shared<libsinsp::state::table_registry>()},
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
 	++instance_count;
@@ -174,6 +175,8 @@ sinsp::sinsp(bool with_metrics):
 	                                                          this,
 	                                                          m_thread_manager_dyn_fields,
 	                                                          m_fdtable_dyn_fields);
+	// Add thread manager table to state tables registry.
+	m_table_registry->add_table(m_thread_manager.get());
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this);
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
@@ -230,10 +233,6 @@ sinsp::sinsp(bool with_metrics):
 	                                          m_post_process_cbs,
 	                                          m_parser_tmp_evt,
 	                                          &m_platform);
-
-	// create state tables registry
-	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
-	m_table_registry->add_table(m_thread_manager.get());
 
 #if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
 	m_thread_pool = std::make_shared<sinsp_thread_pool_bs>();
