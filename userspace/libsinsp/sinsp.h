@@ -961,6 +961,11 @@ private:
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 	//
+	// Account host bound server ports (needed for patching connections direction).
+	//
+	std::set<uint16_t> m_bound_server_ports;
+
+	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//
@@ -975,7 +980,10 @@ private:
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	const sinsp_fdtable_factory m_fdtable_factory;
-	const sinsp_threadinfo_factory m_threadinfo_factory;
+	// TODO(ekoops): restore constness once we find a way to remove the circular dependency
+	//   between `sinsp_thread_manager` and `sinsp_threadinfo_factory` without providing the
+	//   additional `sinsp_threadinfo_factory::set_thread_manager method`.
+	sinsp_threadinfo_factory m_threadinfo_factory;
 	// A registry that manages the state tables of this inspector.
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
@@ -999,7 +1007,7 @@ public:
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	uint64_t m_firstevent_ts;
-	std::unique_ptr<sinsp_filter> m_filter;
+	std::shared_ptr<sinsp_filter> m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 

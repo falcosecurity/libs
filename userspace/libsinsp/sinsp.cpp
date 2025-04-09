@@ -165,6 +165,9 @@ sinsp::sinsp(bool with_metrics):
                 m_fdtable_factory,
                 m_input_plugin,
                 m_large_envs_enabled,
+                m_usergroup_manager,
+                m_bound_server_ports,
+                m_filter,
                 m_external_event_processor,
                 m_thread_manager_dyn_fields,
                 m_fdtable_dyn_fields,
@@ -182,6 +185,8 @@ sinsp::sinsp(bool with_metrics):
 	                                                          this,
 	                                                          m_thread_manager_dyn_fields,
 	                                                          m_fdtable_dyn_fields);
+	sinsp_threadinfo_factory::set_thread_manager_attorney::set(m_threadinfo_factory,
+	                                                           &m_thread_manager);
 	// Add thread manager table to state tables registry.
 	m_table_registry->add_table(m_thread_manager.get());
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this);
