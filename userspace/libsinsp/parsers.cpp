@@ -41,7 +41,7 @@ limitations under the License.
 
 sinsp_parser::sinsp_parser(
         const sinsp_mode &sinsp_mode,
-        const scap_machine_info **machine_info,
+        const scap_machine_info *const &machine_info,
         const std::vector<std::string> &event_sources,
         const sinsp_network_interfaces &network_interfaces,
         const bool &hostname_and_port_resolution_enabled,
@@ -55,10 +55,10 @@ sinsp_parser::sinsp_parser(
         int64_t &tid_to_remove,
         int64_t &tid_of_fd_to_remove,
         std::vector<int64_t> &fds_to_remove,
-        sinsp_observer *const *observer,
+        sinsp_observer *const &observer,
         std::queue<std::function<void(sinsp_observer *observer, sinsp_evt *evt)>> &post_process_cbs,
         sinsp_evt &tmp_evt,
-        scap_platform *const *scap_platform):
+        scap_platform *const &scap_platform):
         m_sinsp_mode{sinsp_mode},
         m_machine_info{machine_info},
         m_event_sources{event_sources},
@@ -662,8 +662,8 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				return false;
 			}
 
-			if(evt->get_errorcode() != 0 && get_observer()) {
-				get_observer()->on_error(evt);
+			if(evt->get_errorcode() != 0 && m_observer) {
+				m_observer->on_error(evt);
 			}
 
 			if(evt->get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) {
@@ -1212,7 +1212,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	child_tinfo->m_clone_ts = evt->get_ts();
 
 	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
-	child_tinfo->m_pidns_init_start_ts = get_machine_info()->boot_ts_epoch;
+	child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
 
 	/* Take some further info from the caller */
 	if(valid_caller) {
@@ -1278,7 +1278,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(get_observer()) {
+	if(m_observer) {
 		m_post_process_cbs.emplace(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
@@ -1738,9 +1738,9 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 		   child_tinfo->m_flags & PPM_CL_CLONE_NEWPID ||
 		   child_tinfo->m_tid != child_tinfo->m_vtid) {
 			child_tinfo->m_pidns_init_start_ts =
-			        evt->get_param(20)->as<uint64_t>() + get_machine_info()->boot_ts_epoch;
+			        evt->get_param(20)->as<uint64_t>() + m_machine_info->boot_ts_epoch;
 		} else {
-			child_tinfo->m_pidns_init_start_ts = get_machine_info()->boot_ts_epoch;
+			child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
 		}
 	}
 
@@ -1763,7 +1763,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(get_observer()) {
+	if(m_observer) {
 		m_post_process_cbs.emplace(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
@@ -2217,7 +2217,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(get_observer()) {
+	if(m_observer) {
 		m_post_process_cbs.emplace(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_execve(evt); });
 	}
@@ -2502,8 +2502,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
 		evt->set_fd_info(evt->get_tinfo()->add_fd(fd, std::move(fdi)));
 	}
 
-	if(get_observer() && !(flags & PPM_O_DIRECTORY)) {
-		get_observer()->on_file_open(evt, fullpath, flags);
+	if(m_observer && !(flags & PPM_O_DIRECTORY)) {
+		m_observer->on_file_open(evt, fullpath, flags);
 	}
 }
 
@@ -2770,7 +2770,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(get_observer()) {
+	if(m_observer) {
 		m_post_process_cbs.emplace(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_bind(evt); });
 	}
@@ -2865,8 +2865,8 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt) {
 	//
 	// If there's a listener callback and we're tracking connection status, invoke it
 	//
-	if(m_track_connection_status && get_observer()) {
-		get_observer()->on_connect(evt, packed_data);
+	if(m_track_connection_status && m_observer) {
+		m_observer->on_connect(evt, packed_data);
 	}
 }
 
@@ -3032,7 +3032,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(get_observer()) {
+	if(m_observer) {
 		m_post_process_cbs.emplace([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_connect(evt, packed_data);
 		});
@@ -3126,7 +3126,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(get_observer()) {
+	if(m_observer) {
 		m_post_process_cbs.emplace(
 		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
 			        auto fd_info = evt->get_fd_info();
@@ -3198,8 +3198,8 @@ void sinsp_parser::erase_fd(erase_fd_params *params) {
 	// If there's a listener, invoke the callback
 	// note: we avoid postponing this to avoid the risk of use-after-free
 	//
-	if(get_observer()) {
-		get_observer()->on_erase_fd(params);
+	if(m_observer) {
+		m_observer->on_erase_fd(params);
 	}
 }
 
@@ -3688,7 +3688,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
                                                              scap_threadinfo *scap_tinfo) const {
 	char error[SCAP_LASTERR_SIZE];
 	for(int i = 0; i < fds_len; i++) {
-		if(scap_get_fdinfo(get_scap_platform(), scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
+		if(scap_get_fdinfo(m_scap_platform, scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
 			libsinsp_logger()->format(
 			        sinsp_logger::SEV_DEBUG,
 			        "scap_get_fdinfo failed: %s, proc table will not be updated with new fd.",
@@ -3837,7 +3837,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
-			if(get_observer()) {
+			if(m_observer) {
 				m_post_process_cbs.emplace(
 				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_read(evt,
@@ -3940,7 +3940,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
-			if(get_observer()) {
+			if(m_observer) {
 				m_post_process_cbs.emplace(
 				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_write(evt,
@@ -3965,7 +3965,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
-			if(get_observer()) {
+			if(m_observer) {
 				m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
 					observer->on_socket_status_changed(evt);
 				});
@@ -4004,7 +4004,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) {
 		//
 		// If there's a listener, add a callback to later invoke it.
 		//
-		if(get_observer()) {
+		if(m_observer) {
 			m_post_process_cbs.emplace([fdin, retval](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_sendfile(evt, fdin, (uint32_t)retval);
 			});
@@ -4166,7 +4166,7 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) {
 		//
 		// If there's a listener, add a callback to later invoke it.
 		//
-		if(get_observer()) {
+		if(m_observer) {
 			m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_socket_shutdown(evt);
 			});
@@ -4807,7 +4807,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) {
 		//
 		// If there's a listener, add a callback to later invoke it.
 		//
-		if(get_observer()) {
+		if(m_observer) {
 			m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_socket_status_changed(evt);
 			});

@@ -32,7 +32,7 @@ class sinsp_fdtable_factory {
 	const sinsp_fdinfo_factory& m_fdinfo_factory;
 	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
 	const std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	scap_platform* const* m_scap_platform;
+	scap_platform* const& m_scap_platform;
 
 public:
 	sinsp_fdtable_factory(const sinsp_mode& sinsp_mode,
@@ -40,7 +40,7 @@ public:
 	                      const sinsp_fdinfo_factory& fdinfo_factory,
 	                      const std::shared_ptr<const sinsp_plugin>& input_plugin,
 	                      const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-	                      scap_platform* const* scap_platform):
+	                      scap_platform* const& scap_platform):
 	        m_sinsp_mode{sinsp_mode},
 	        m_max_table_size{max_table_size},
 	        m_fdinfo_factory{fdinfo_factory},
