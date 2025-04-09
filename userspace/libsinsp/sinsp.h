@@ -976,6 +976,8 @@ private:
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	const sinsp_fdtable_factory m_fdtable_factory;
 	const sinsp_threadinfo_factory m_threadinfo_factory;
+	// A registry that manages the state tables of this inspector.
+	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
 public:
 	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_thread_manager_dyn_fields()
@@ -1142,10 +1144,6 @@ public:
 	// information of the replayed scap event.
 	uint16_t m_replay_scap_cpuid;
 	uint32_t m_replay_scap_flags;
-
-	//
-	// A registry that managers the state tables of this inspector
-	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
 	sinsp_observer* m_observer{nullptr};
 
