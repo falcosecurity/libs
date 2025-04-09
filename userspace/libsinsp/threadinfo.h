@@ -37,6 +37,7 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/table_adapters.h>
 #include <libsinsp/event.h>
+#include <libsinsp/ifinfo.h>
 #include <libscap/scap_savefile_api.h>
 
 // Forward declare sinsp_thread_manager to avoid cyclic dependency.
@@ -67,7 +68,8 @@ struct erase_fd_params {
 */
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
-	sinsp_threadinfo(const sinsp_fdinfo_factory& fdinfo_factory,
+	sinsp_threadinfo(const sinsp_network_interfaces& network_interfaces,
+	                 const sinsp_fdinfo_factory& fdinfo_factory,
 	                 const sinsp_fdtable_factory& fdtable_factory,
 	                 sinsp* inspector = nullptr,
 	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
@@ -627,11 +629,14 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
+	// The following fields are externally provided and access to them is expected to be read-only.
+	const sinsp_network_interfaces& m_network_interfaces;
+	const sinsp_fdinfo_factory& m_fdinfo_factory;
+
 	//
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
 	sinsp_fdtable m_fdtable;  // The fd table of this thread
 	const libsinsp::state::base_table*
 	        m_main_fdtable;     // Points to the base fd table of the current main thread

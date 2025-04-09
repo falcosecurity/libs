@@ -39,13 +39,15 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 }
 
 sinsp_threadinfo::sinsp_threadinfo(
+        const sinsp_network_interfaces& network_interfaces,
         const sinsp_fdinfo_factory& fdinfo_factory,
         const sinsp_fdtable_factory& fdtable_factory,
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         table_entry(dyn_fields),
-        m_inspector(inspector),
+        m_network_interfaces{network_interfaces},
         m_fdinfo_factory{fdinfo_factory},
+        m_inspector(inspector),
         m_fdtable{fdtable_factory.create()},
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
@@ -230,7 +232,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 		if(fdi.info.ipv4info.l4proto == SCAP_L4_TCP) {
 			newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 		}
-		m_inspector->get_ifaddr_list().update_fd(*newfdi);
+		m_network_interfaces.update_fd(*newfdi);
 		newfdi->m_name =
 		        ipv4tuple_to_string(newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 		break;
@@ -258,7 +260,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 			if(fdi.info.ipv6info.l4proto == SCAP_L4_TCP) {
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			m_inspector->get_ifaddr_list().update_fd(*newfdi);
+			m_network_interfaces.update_fd(*newfdi);
 			newfdi->m_name =
 			        ipv4tuple_to_string(newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 		} else {
