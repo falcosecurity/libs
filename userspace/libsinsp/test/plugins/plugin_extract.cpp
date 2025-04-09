@@ -133,15 +133,18 @@ ss_plugin_rc plugin_extract_fields(ss_plugin_t* s,
 	for(uint32_t i = 0; i < in->num_fields; i++) {
 		switch(in->fields[i].field_id) {
 		case 0:  // test.hello
+		{
 			ps->strstorage = "hello world";
 			ps->strptr = ps->strstorage.c_str();
+			static uint32_t res_start = 0;
+			static uint32_t res_length = ps->strstorage.size();
 			in->fields[i].res.str = &ps->strptr;
 			in->fields[i].res_len = 1;
-			if(in->field_offsets) {
-				in->field_offsets[i].start = 0;
-				in->field_offsets[i].length = ps->strstorage.size();
+			if(in->value_offsets) {
+				in->value_offsets[i].start = &res_start;
+				in->value_offsets[i].length = &res_length;
 			}
-			break;
+		} break;
 		default:
 			in->fields[i].res_len = 0;
 			return SS_PLUGIN_FAILURE;

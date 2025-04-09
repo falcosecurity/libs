@@ -300,9 +300,18 @@ protected:
 	bool field_has_value(sinsp_evt*, std::string_view field_name, filter_check_list&);
 	std::string get_field_as_string(sinsp_evt*, std::string_view field_name);
 	std::string get_field_as_string(sinsp_evt*, std::string_view field_name, filter_check_list&);
-	extract_offset_t get_field_offsets(sinsp_evt*, std::string_view field_name, filter_check_list&);
-	uint32_t get_field_offset_start(sinsp_evt*, std::string_view field_name, filter_check_list&);
-	uint32_t get_field_offset_length(sinsp_evt*, std::string_view field_name, filter_check_list&);
+	extract_offset_t get_value_offsets(sinsp_evt*,
+	                                   std::string_view field_name,
+	                                   filter_check_list&,
+	                                   size_t val_idx);
+	uint32_t get_value_offset_start(sinsp_evt*,
+	                                std::string_view field_name,
+	                                filter_check_list&,
+	                                size_t val_idx);
+	uint32_t get_value_offset_length(sinsp_evt*,
+	                                 std::string_view field_name,
+	                                 filter_check_list&,
+	                                 size_t val_idx);
 	bool eval_filter(sinsp_evt* evt,
 	                 std::string_view filter_str,
 	                 std::shared_ptr<sinsp_filter_cache_factory> cachef = nullptr);
