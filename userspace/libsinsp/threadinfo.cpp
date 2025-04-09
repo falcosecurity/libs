@@ -39,13 +39,23 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src) {
 }
 
 sinsp_threadinfo::sinsp_threadinfo(
+        const sinsp_mode& mode,
+        const sinsp_network_interfaces& network_interfaces,
+        const bool& hostname_and_port_resolution_enabled,
         const sinsp_fdinfo_factory& fdinfo_factory,
         const sinsp_fdtable_factory& fdtable_factory,
+        const std::shared_ptr<const sinsp_plugin>& input_plugin,
+        const bool& large_envs_enabled,
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         table_entry(dyn_fields),
-        m_inspector(inspector),
+        m_sinsp_mode{mode},
+        m_network_interfaces{network_interfaces},
+        m_hostname_and_port_resolution_enabled{hostname_and_port_resolution_enabled},
         m_fdinfo_factory{fdinfo_factory},
+        m_input_plugin{input_plugin},
+        m_large_envs_enabled{large_envs_enabled},
+        m_inspector(inspector),
         m_fdtable{fdtable_factory.create()},
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
@@ -200,9 +210,8 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc() {
 				        fdi.m_sockinfo.m_ipv4info.m_fields.m_dport;
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
-				fdi.m_name =
-				        ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info,
-				                            m_inspector->is_hostname_and_port_resolution_enabled());
+				fdi.m_name = ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info,
+				                                 m_hostname_and_port_resolution_enabled);
 
 				fdi.set_role_server();
 			} else {
@@ -234,18 +243,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
 		if(fdi->info.ipv4info.l4proto == SCAP_L4_TCP) {
 			newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 		}
-		m_inspector->get_ifaddr_list().update_fd(*newfdi);
-		newfdi->m_name =
-		        ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info,
-		                            m_inspector->is_hostname_and_port_resolution_enabled());
+		m_network_interfaces.update_fd(*newfdi);
+		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info,
+		                                     m_hostname_and_port_resolution_enabled);
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
-		newfdi->m_name =
-		        ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo,
-		                                 m_inspector->is_hostname_and_port_resolution_enabled());
+		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo,
+		                                          m_hostname_and_port_resolution_enabled);
 
 		//
 		// We keep note of all the host bound server ports.
@@ -272,10 +279,9 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
 			if(fdi->info.ipv6info.l4proto == SCAP_L4_TCP) {
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			m_inspector->get_ifaddr_list().update_fd(*newfdi);
-			newfdi->m_name =
-			        ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info,
-			                            m_inspector->is_hostname_and_port_resolution_enabled());
+			m_network_interfaces.update_fd(*newfdi);
+			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info,
+			                                     m_hostname_and_port_resolution_enabled);
 		} else {
 			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b,
 			                  fdi->info.ipv6info.sip);
@@ -287,9 +293,8 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
 			if(fdi->info.ipv6info.l4proto == SCAP_L4_TCP) {
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			newfdi->m_name =
-			        ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info,
-			                            m_inspector->is_hostname_and_port_resolution_enabled());
+			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info,
+			                                     m_hostname_and_port_resolution_enabled);
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
@@ -297,9 +302,8 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
 		                  fdi->info.ipv6serverinfo.ip);
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
-		newfdi->m_name =
-		        ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo,
-		                                 m_inspector->is_hostname_and_port_resolution_enabled());
+		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo,
+		                                          m_hostname_and_port_resolution_enabled);
 
 		//
 		// We keep note of all the host bound server ports.
@@ -356,7 +360,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
 	}
 
 	auto addedfdi = m_fdtable.add(fdi->fd, std::move(newfdi));
-	if(m_inspector->m_filter != nullptr && m_inspector->is_capture()) {
+	if(m_inspector->m_filter != nullptr && m_sinsp_mode.is_capture()) {
 		// in case the inspector is configured with an internal filter, we can
 		// filter-out thread infos (and their fd infos) to not dump them in
 		// captures unless actually used. Here, we simulate an internal event
@@ -540,7 +544,7 @@ void sinsp_threadinfo::set_user(uint32_t uid) {
 	m_uid = uid;
 	if(const scap_userinfo* user = m_inspector->m_usergroup_manager->get_user(container_id, uid);
 	   !user) {
-		const auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		const auto notify = m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
 		// For uid 0 force set root related infos
 		if(uid == 0) {
 			m_inspector->m_usergroup_manager
@@ -557,7 +561,7 @@ void sinsp_threadinfo::set_group(uint32_t gid) {
 	m_gid = gid;
 	if(const scap_groupinfo* group = m_inspector->m_usergroup_manager->get_group(container_id, gid);
 	   !group) {
-		const auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		const auto notify = m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
 		// For gid 0 force set root related info
 		if(gid == 0) {
 			m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
@@ -630,7 +634,7 @@ void sinsp_threadinfo::set_args(const std::vector<std::string>& args) {
 }
 
 void sinsp_threadinfo::set_env(const char* env, size_t len) {
-	if(len == SCAP_MAX_ENV_SIZE && m_inspector->large_envs_enabled()) {
+	if(len == SCAP_MAX_ENV_SIZE && is_large_envs_enabled()) {
 		// the environment is possibly truncated, try to read from /proc
 		// this may fail for short-lived processes
 		if(set_env_from_proc()) {

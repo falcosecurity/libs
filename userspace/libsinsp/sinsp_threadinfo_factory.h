@@ -20,40 +20,83 @@ limitations under the License.
 #include <libsinsp/sinsp_external_processor.h>
 #include <libsinsp/threadinfo.h>
 
+class sinsp;
+
 /*!
   \brief Factory hiding sinsp_threadinfo creation details.
 */
 class sinsp_threadinfo_factory {
 	sinsp* m_sinsp;
+	const sinsp_mode& m_mode;
+	const sinsp_network_interfaces& m_network_interfaces;
+	const bool& m_hostname_and_port_resolution_enabled;
+	const sinsp_fdinfo_factory& m_fdinfo_factory;
+	const sinsp_fdtable_factory& m_fdtable_factory;
+	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
+	const bool& m_large_envs_enabled;
+
 	libsinsp::event_processor* const& m_external_event_processor;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&m_thread_manager_dyn_fields,
 	        m_fdtable_dyn_fields;
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
-	const sinsp_fdtable_factory& m_fdtable_factory;
+
+	// `create_unique` is only provided in order to let an external event processor create a
+	// threadinfo without tracking all the needed dependencies and, at the same time, avoiding code
+	// repetition. The access is granted through the
+	// `sinsp_threadinfo_factory::create_unique_attorney` class (see its definition for more
+	// details).
+	std::unique_ptr<sinsp_threadinfo> create_unique() const {
+		return std::make_unique<sinsp_threadinfo>(m_mode,
+		                                          m_network_interfaces,
+		                                          m_hostname_and_port_resolution_enabled,
+		                                          m_fdinfo_factory,
+		                                          m_fdtable_factory,
+		                                          m_input_plugin,
+		                                          m_large_envs_enabled,
+		                                          m_sinsp,
+		                                          m_thread_manager_dyn_fields);
+	}
 
 public:
-	sinsp_threadinfo_factory(
-	        sinsp* sinsp,
-	        libsinsp::event_processor* const& external_event_processor,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                thread_manager_dyn_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
-	        const sinsp_fdinfo_factory& fdinfo_factory,
-	        const sinsp_fdtable_factory& fdtable_factory):
+	/*!
+	  \brief This class follows the attorney-client idiom to limit the access to
+	  `sinsp_threadinfo_factory::create_unique()` only to `libsinsp::event_processor`.
+	*/
+	class create_unique_attorney {
+		static std::unique_ptr<sinsp_threadinfo> create(sinsp_threadinfo_factory const& factory) {
+			return factory.create_unique();
+		}
+		friend libsinsp::event_processor;
+	};
+
+	sinsp_threadinfo_factory(sinsp* sinsp,
+	                         const sinsp_mode& mode,
+	                         const sinsp_network_interfaces& network_interfaces,
+	                         const bool& hostname_and_port_resolution_enabled,
+	                         const sinsp_fdinfo_factory& fdinfo_factory,
+	                         const sinsp_fdtable_factory& fdtable_factory,
+	                         const std::shared_ptr<const sinsp_plugin>& input_plugin,
+	                         const bool& large_envs_enabled,
+	                         libsinsp::event_processor* const& external_event_processor,
+	                         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                                 thread_manager_dyn_fields,
+	                         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                                 fdtable_dyn_fields):
 	        m_sinsp{sinsp},
+	        m_mode{mode},
+	        m_network_interfaces{network_interfaces},
+	        m_hostname_and_port_resolution_enabled{hostname_and_port_resolution_enabled},
+	        m_fdinfo_factory{fdinfo_factory},
+	        m_fdtable_factory{fdtable_factory},
+	        m_input_plugin{input_plugin},
+	        m_large_envs_enabled{large_envs_enabled},
 	        m_external_event_processor{external_event_processor},
 	        m_thread_manager_dyn_fields{thread_manager_dyn_fields},
-	        m_fdtable_dyn_fields{fdtable_dyn_fields},
-	        m_fdinfo_factory{fdinfo_factory},
-	        m_fdtable_factory{fdtable_factory} {}
+	        m_fdtable_dyn_fields{fdtable_dyn_fields} {}
+
 	std::unique_ptr<sinsp_threadinfo> create() const {
 		std::unique_ptr<sinsp_threadinfo> tinfo =
-		        m_external_event_processor
-		                ? m_external_event_processor->build_threadinfo(m_sinsp)
-		                : std::make_unique<sinsp_threadinfo>(m_fdinfo_factory,
-		                                                     m_fdtable_factory,
-		                                                     m_sinsp,
-		                                                     m_thread_manager_dyn_fields);
+		        m_external_event_processor ? m_external_event_processor->build_threadinfo(m_sinsp)
+		                                   : create_unique();
 		if(tinfo->dynamic_fields() == nullptr) {
 			tinfo->set_dynamic_fields(m_thread_manager_dyn_fields);
 		}
@@ -65,6 +108,14 @@ public:
 		// create_shared is currently used in contexts not handled by any external event processor,
 		// nor by any component needing dynamic fields to be initialized: for these reasons, for the
 		// moment, it is just a simplified (shared) version of what `create` does.
-		return std::make_shared<sinsp_threadinfo>(m_fdinfo_factory, m_fdtable_factory);
+		return std::make_shared<sinsp_threadinfo>(m_mode,
+		                                          m_network_interfaces,
+		                                          m_hostname_and_port_resolution_enabled,
+		                                          m_fdinfo_factory,
+		                                          m_fdtable_factory,
+		                                          m_input_plugin,
+		                                          m_large_envs_enabled,
+		                                          m_sinsp,
+		                                          m_thread_manager_dyn_fields);
 	}
 };
