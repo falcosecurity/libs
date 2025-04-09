@@ -601,7 +601,18 @@ static inline toT flt_cast(const void* ptr, uint32_t len) {
 		shift = len - sizeof(fromT);
 	}
 #endif
-	memcpy(&val, (uint8_t*)ptr + shift, sizeof(fromT));
+
+	/*
+	 * Another fix for `evt.rawarg.*` fields:
+	 * it can happen that we evaluated eg: `evt.rawarg.flags` to be uin16_t at filter compile time,
+	 * but then when we extract from event, we expect an uint32_t.
+	 * Without this check, we would try to copy 4B of data while our ptr only holds 2B of data.
+	 */
+	size_t size = sizeof(fromT);
+	if(len > 0 && len < size) {
+		size = len;
+	}
+	memcpy(&val, (uint8_t*)ptr + shift, size);
 
 	return static_cast<toT>(val);
 }
