@@ -34,7 +34,7 @@ limitations under the License.
 class sinsp_parser {
 public:
 	sinsp_parser(const sinsp_mode& mode,
-	             const scap_machine_info** machine_info,
+	             const scap_machine_info* const& machine_info,
 	             const std::vector<std::string>& event_sources,
 	             const sinsp_network_interfaces& network_interfaces,
 	             const bool& hostname_and_port_resolution_enabled,
@@ -48,11 +48,11 @@ public:
 	             int64_t& tid_to_remove,
 	             int64_t& tid_of_fd_to_remove,
 	             std::vector<int64_t>& fds_to_remove,
-	             sinsp_observer* const* observer,
+	             sinsp_observer* const& observer,
 	             std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>>&
 	                     post_process_cbs,
 	             sinsp_evt& tmp_evt,
-	             scap_platform* const* scap_platform);
+	             scap_platform* const& scap_platform);
 	~sinsp_parser();
 
 	//
@@ -184,12 +184,6 @@ private:
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
 
-	const scap_machine_info* get_machine_info() const { return *m_machine_info; }
-
-	sinsp_observer* get_observer() const { return *m_observer; }
-
-	scap_platform* get_scap_platform() const { return *m_scap_platform; }
-
 	bool is_syscall_plugin_enabled() const {
 		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
 	}
@@ -198,7 +192,7 @@ private:
 	//   cannot change at runtime and/or are used only by the parser.
 	// The following fields are externally provided and access to them is expected to be read-only.
 	const sinsp_mode& m_sinsp_mode;
-	const scap_machine_info** m_machine_info;
+	const scap_machine_info* const& m_machine_info;
 	const std::vector<std::string>& m_event_sources;
 	const sinsp_network_interfaces& m_network_interfaces;
 	const bool& m_hostname_and_port_resolution_enabled;
@@ -215,10 +209,10 @@ private:
 	int64_t& m_tid_to_remove;
 	int64_t& m_tid_of_fd_to_remove;
 	std::vector<int64_t>& m_fds_to_remove;
-	sinsp_observer* const* m_observer;
+	sinsp_observer* const& m_observer;
 	std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>>& m_post_process_cbs;
 	sinsp_evt& m_tmp_evt;  // Temporary storage to avoid memory allocation
-	scap_platform* const* m_scap_platform;
+	scap_platform* const& m_scap_platform;
 
 	bool m_track_connection_status = false;
 

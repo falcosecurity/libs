@@ -25,20 +25,16 @@ limitations under the License.
 */
 class sinsp_threadinfo_factory {
 	sinsp* m_sinsp;
-	libsinsp::event_processor** m_external_event_processor;
+	libsinsp::event_processor* const& m_external_event_processor;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&m_thread_manager_dyn_fields,
 	        m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory& m_fdinfo_factory;
 	const sinsp_fdtable_factory& m_fdtable_factory;
 
-	libsinsp::event_processor* get_external_event_processor() const {
-		return *m_external_event_processor;
-	}
-
 public:
 	sinsp_threadinfo_factory(
 	        sinsp* sinsp,
-	        libsinsp::event_processor** external_event_processor,
+	        libsinsp::event_processor* const& external_event_processor,
 	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                thread_manager_dyn_fields,
 	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
@@ -51,10 +47,9 @@ public:
 	        m_fdinfo_factory{fdinfo_factory},
 	        m_fdtable_factory{fdtable_factory} {}
 	std::unique_ptr<sinsp_threadinfo> create() const {
-		const auto external_event_processor = get_external_event_processor();
 		std::unique_ptr<sinsp_threadinfo> tinfo =
-		        external_event_processor
-		                ? external_event_processor->build_threadinfo(m_sinsp)
+		        m_external_event_processor
+		                ? m_external_event_processor->build_threadinfo(m_sinsp)
 		                : std::make_unique<sinsp_threadinfo>(m_fdinfo_factory,
 		                                                     m_fdtable_factory,
 		                                                     m_sinsp,

@@ -41,7 +41,7 @@ public:
 	              const sinsp_fdinfo_factory& fdinfo_factory,
 	              const std::shared_ptr<const sinsp_plugin>& input_plugin,
 	              const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-	              scap_platform* const* scap_platform);
+	              scap_platform* const& scap_platform);
 
 	sinsp_fdinfo* find(int64_t fd);
 
@@ -121,7 +121,7 @@ private:
 	// The following fields are externally provided and expected to be populated/updated by the
 	// fdtable.
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	scap_platform* const* m_scap_platform;
+	scap_platform* const& m_scap_platform;
 
 	//
 	// Simple fd cache
@@ -130,8 +130,6 @@ private:
 	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
 	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
-
-	scap_platform* get_scap_platform() const { return *m_scap_platform; }
 
 	bool is_syscall_plugin_enabled() const {
 		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;

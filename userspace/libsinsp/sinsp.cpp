@@ -155,9 +155,9 @@ sinsp::sinsp(bool with_metrics):
                           m_fdinfo_factory,
                           m_input_plugin,
                           m_sinsp_stats_v2,
-                          &m_platform},
+                          m_platform},
         m_threadinfo_factory{this,
-                             &m_external_event_processor,
+                             m_external_event_processor,
                              m_thread_manager_dyn_fields,
                              m_fdtable_dyn_fields,
                              m_fdinfo_factory,
@@ -212,7 +212,7 @@ sinsp::sinsp(bool with_metrics):
 	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
 
 	m_parser = std::make_unique<sinsp_parser>(m_mode,
-	                                          &m_machine_info,
+	                                          m_machine_info,
 	                                          m_event_sources,
 	                                          m_network_interfaces,
 	                                          m_hostname_and_port_resolution_enabled,
@@ -226,10 +226,10 @@ sinsp::sinsp(bool with_metrics):
 	                                          m_tid_to_remove,
 	                                          m_tid_of_fd_to_remove,
 	                                          m_fds_to_remove,
-	                                          &m_observer,
+	                                          m_observer,
 	                                          m_post_process_cbs,
 	                                          m_parser_tmp_evt,
-	                                          &m_platform);
+	                                          m_platform);
 
 	// create state tables registry
 	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
