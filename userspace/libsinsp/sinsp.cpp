@@ -158,12 +158,15 @@ sinsp::sinsp(bool with_metrics):
                                            m_sinsp_stats_v2,
                                            m_platform})},
         m_fdtable_factory{m_fdtable_ctor_params},
-        m_threadinfo_factory{this,
-                             m_external_event_processor,
-                             m_thread_manager_dyn_fields,
-                             m_fdtable_dyn_fields,
-                             m_fdinfo_factory,
-                             m_fdtable_factory},
+        m_threadinfo_factory{
+                this,
+                m_network_interfaces,
+                m_fdinfo_factory,
+                m_fdtable_factory,
+                m_external_event_processor,
+                m_thread_manager_dyn_fields,
+                m_fdtable_dyn_fields,
+        },
         m_table_registry{std::make_shared<libsinsp::state::table_registry>()},
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
@@ -1969,10 +1972,8 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 }
 
 std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(sinsp* inspector) {
-	return std::make_unique<sinsp_threadinfo>(inspector->get_fdinfo_factory(),
-	                                          inspector->get_fdtable_factory(),
-	                                          inspector,
-	                                          inspector->get_thread_manager_dyn_fields());
+	return sinsp_threadinfo_factory::create_unique_attorney::create(
+	        inspector->get_threadinfo_factory());
 }
 
 std::unique_ptr<sinsp_fdinfo> libsinsp::event_processor::build_fdinfo(sinsp* inspector) {
