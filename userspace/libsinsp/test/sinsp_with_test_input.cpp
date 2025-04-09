@@ -667,9 +667,10 @@ std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt,
 	return result;
 }
 
-extract_offset_t sinsp_with_test_input::get_field_offsets(sinsp_evt* evt,
+extract_offset_t sinsp_with_test_input::get_value_offsets(sinsp_evt* evt,
                                                           std::string_view field_name,
-                                                          filter_check_list& flist) {
+                                                          filter_check_list& flist,
+                                                          size_t val_idx) {
 	if(evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
 	}
@@ -688,19 +689,26 @@ extract_offset_t sinsp_with_test_input::get_field_offsets(sinsp_evt* evt,
 	if(offsets.size() == 0) {
 		throw sinsp_exception("Unable to extract offsets for " + std::string(field_name));
 	}
-	return offsets.at(0);
+	if(val_idx >= values.size()) {
+		throw sinsp_exception("Offset index " + std::to_string(val_idx) + " out of range for " +
+		                      std::string(field_name));
+	}
+
+	return offsets.at(val_idx);
 }
 
-uint32_t sinsp_with_test_input::get_field_offset_start(sinsp_evt* evt,
+uint32_t sinsp_with_test_input::get_value_offset_start(sinsp_evt* evt,
                                                        std::string_view field_name,
-                                                       filter_check_list& flist) {
-	return get_field_offsets(evt, field_name, flist).start;
+                                                       filter_check_list& flist,
+                                                       size_t val_idx) {
+	return get_value_offsets(evt, field_name, flist, val_idx).start;
 }
 
-uint32_t sinsp_with_test_input::get_field_offset_length(sinsp_evt* evt,
+uint32_t sinsp_with_test_input::get_value_offset_length(sinsp_evt* evt,
                                                         std::string_view field_name,
-                                                        filter_check_list& flist) {
-	return get_field_offsets(evt, field_name, flist).length;
+                                                        filter_check_list& flist,
+                                                        size_t val_idx) {
+	return get_value_offsets(evt, field_name, flist, val_idx).length;
 }
 
 bool sinsp_with_test_input::eval_filter(sinsp_evt* evt,

@@ -187,7 +187,7 @@ public:
 	bool extract_fields_and_offsets(sinsp_evt* evt,
 	                                uint32_t num_fields,
 	                                ss_plugin_extract_field* fields,
-	                                ss_plugin_extract_field_offsets* field_offsets);
+	                                ss_plugin_extract_value_offsets* value_offsets);
 
 	/** Event Parsing **/
 	inline const std::unordered_set<std::string>& parse_event_sources() const {
