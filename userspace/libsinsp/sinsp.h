@@ -587,7 +587,7 @@ public:
 	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
-	inline bool large_envs_enabled() const {
+	bool large_envs_enabled() const {
 		return (is_live() || is_syscall_plugin()) && m_large_envs_enabled;
 	}
 
@@ -996,10 +996,6 @@ public:
 	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_fdtable_dyn_fields() const {
 		return m_fdtable_dyn_fields;
 	}
-
-	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
-
-	const sinsp_fdtable_factory& get_fdtable_factory() const { return m_fdtable_factory; }
 
 	const sinsp_threadinfo_factory& get_threadinfo_factory() const { return m_threadinfo_factory; }
 
