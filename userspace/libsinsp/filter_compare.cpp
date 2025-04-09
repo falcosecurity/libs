@@ -583,9 +583,25 @@ bool flt_compare_ipv6net(cmpop op, const ipv6addr* operand1, const ipv6net* oper
 // flt_cast takes a pointer to memory, dereferences it as fromT type and casts it
 // to a compatible toT type
 template<class fromT, class toT>
-static inline toT flt_cast(const void* ptr) {
-	fromT val;
-	memcpy(&val, ptr, sizeof(fromT));
+static inline toT flt_cast(const void* ptr, uint32_t len) {
+	fromT val{};
+	/*
+	 * In big endian systems, we need to
+	 * make sure that we copy the right bytes
+	 * when len > sizeof(fromT).
+	 * This is an edge case that should only happen
+	 * for `evt.rawarg.*` fields.
+	 */
+	uint8_t shift = 0;
+#ifdef __s390x__
+	// NOTE: c++20 has `constexpr (std::endian::native == std::endian::big)`
+	// that would be much better.
+	// To avoid perf hit, only compile this on s390x (our only big-endian supported arch).
+	if(len > sizeof(fromT)) {
+		shift = len - sizeof(fromT);
+	}
+#endif
+	memcpy(&val, (uint8_t*)ptr + shift, sizeof(fromT));
 
 	return static_cast<toT>(val);
 }
@@ -607,56 +623,56 @@ bool flt_compare(cmpop op,
 	switch(type) {
 	case PT_INT8:
 		return flt_compare_numeric<int64_t>(op,
-		                                    flt_cast<int8_t, int64_t>(operand1),
-		                                    flt_cast<int8_t, int64_t>(operand2));
+		                                    flt_cast<int8_t, int64_t>(operand1, op1_len),
+		                                    flt_cast<int8_t, int64_t>(operand2, op2_len));
 	case PT_INT16:
 		return flt_compare_numeric<int64_t>(op,
-		                                    flt_cast<int16_t, int64_t>(operand1),
-		                                    flt_cast<int16_t, int64_t>(operand2));
+		                                    flt_cast<int16_t, int64_t>(operand1, op1_len),
+		                                    flt_cast<int16_t, int64_t>(operand2, op2_len));
 	case PT_INT32:
 		return flt_compare_numeric<int64_t>(op,
-		                                    flt_cast<int32_t, int64_t>(operand1),
-		                                    flt_cast<int32_t, int64_t>(operand2));
+		                                    flt_cast<int32_t, int64_t>(operand1, op1_len),
+		                                    flt_cast<int32_t, int64_t>(operand2, op2_len));
 	case PT_INT64:
 	case PT_FD:
 	case PT_PID:
 	case PT_ERRNO:
 		return flt_compare_numeric<int64_t>(op,
-		                                    flt_cast<int64_t, int64_t>(operand1),
-		                                    flt_cast<int64_t, int64_t>(operand2));
+		                                    flt_cast<int64_t, int64_t>(operand1, op1_len),
+		                                    flt_cast<int64_t, int64_t>(operand2, op2_len));
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		return flt_compare_numeric<uint64_t>(op,
-		                                     flt_cast<uint8_t, uint64_t>(operand1),
-		                                     flt_cast<uint8_t, uint64_t>(operand2));
+		                                     flt_cast<uint8_t, uint64_t>(operand1, op1_len),
+		                                     flt_cast<uint8_t, uint64_t>(operand2, op2_len));
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_ENUMFLAGS16:
 	case PT_PORT:
 	case PT_SYSCALLID:
 		return flt_compare_numeric<uint64_t>(op,
-		                                     flt_cast<uint16_t, uint64_t>(operand1),
-		                                     flt_cast<uint16_t, uint64_t>(operand2));
+		                                     flt_cast<uint16_t, uint64_t>(operand1, op1_len),
+		                                     flt_cast<uint16_t, uint64_t>(operand2, op2_len));
 	case PT_UINT32:
 	case PT_FLAGS32:
 	case PT_ENUMFLAGS32:
 	case PT_MODE:
 		return flt_compare_numeric<uint64_t>(op,
-		                                     flt_cast<uint32_t, uint64_t>(operand1),
-		                                     flt_cast<uint32_t, uint64_t>(operand2));
+		                                     flt_cast<uint32_t, uint64_t>(operand1, op1_len),
+		                                     flt_cast<uint32_t, uint64_t>(operand2, op2_len));
 	case PT_BOOL:
 		return flt_compare_bool(op,
-		                        flt_cast<uint32_t, uint64_t>(operand1),
-		                        flt_cast<uint32_t, uint64_t>(operand2));
+		                        flt_cast<uint32_t, uint64_t>(operand1, op1_len),
+		                        flt_cast<uint32_t, uint64_t>(operand2, op2_len));
 	case PT_IPV4ADDR:
 		if(op2_len != sizeof(struct in_addr)) {
 			return op == CO_NE;
 		}
 		return flt_compare_ipv4addr(op,
-		                            flt_cast<uint32_t, uint64_t>(operand1),
-		                            flt_cast<uint32_t, uint64_t>(operand2));
+		                            flt_cast<uint32_t, uint64_t>(operand1, op1_len),
+		                            flt_cast<uint32_t, uint64_t>(operand2, op2_len));
 	case PT_IPV4NET:
 		if(op2_len != sizeof(ipv4net)) {
 			return op == CO_NE;
@@ -706,8 +722,8 @@ bool flt_compare(cmpop op,
 	case PT_RELTIME:
 	case PT_ABSTIME:
 		return flt_compare_numeric<uint64_t>(op,
-		                                     flt_cast<uint64_t, uint64_t>(operand1),
-		                                     flt_cast<uint64_t, uint64_t>(operand2));
+		                                     flt_cast<uint64_t, uint64_t>(operand1, op1_len),
+		                                     flt_cast<uint64_t, uint64_t>(operand2, op2_len));
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH:
@@ -716,8 +732,8 @@ bool flt_compare(cmpop op,
 		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
 	case PT_DOUBLE:
 		return flt_compare_numeric<double>(op,
-		                                   flt_cast<double, double>(operand1),
-		                                   flt_cast<double, double>(operand2));
+		                                   flt_cast<double, double>(operand1, op1_len),
+		                                   flt_cast<double, double>(operand2, op2_len));
 	default:
 		ASSERT(false);
 		return false;
