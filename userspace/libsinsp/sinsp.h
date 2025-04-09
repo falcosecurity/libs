@@ -980,7 +980,10 @@ private:
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	const std::shared_ptr<sinsp_fdtable::ctor_params> m_fdtable_ctor_params;
 	const sinsp_fdtable_factory m_fdtable_factory;
-	const sinsp_threadinfo_factory m_threadinfo_factory;
+	// TODO(ekoops): restore constness once we find a way to remove the circular dependency
+	//   between `sinsp_thread_manager` and `sinsp_threadinfo_factory` without providing the
+	//   additional `sinsp_threadinfo_factory::set_thread_manager method`.
+	sinsp_threadinfo_factory m_threadinfo_factory;
 	// A registry that manages the state tables of this inspector.
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 

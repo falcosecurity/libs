@@ -37,11 +37,14 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/table_adapters.h>
 #include <libsinsp/event.h>
+#include <libsinsp/filter.h>
 #include <libsinsp/ifinfo.h>
 #include <libscap/scap_savefile_api.h>
 
-// Forward declare sinsp_thread_manager to avoid cyclic dependency.
+// Forward declare `sinsp_thread_manager` and `sinsp_usergroup_manager` to avoid cyclic
+// dependencies.
 class sinsp_thread_manager;
+class sinsp_usergroup_manager;
 
 struct erase_fd_params {
 	bool m_remove_from_table;
@@ -71,7 +74,8 @@ public:
 	sinsp_threadinfo(const sinsp_network_interfaces& network_interfaces,
 	                 const sinsp_fdinfo_factory& fdinfo_factory,
 	                 const sinsp_fdtable_factory& fdtable_factory,
-	                 sinsp* inspector = nullptr,
+	                 const std::shared_ptr<sinsp_thread_manager>& thread_manager,
+	                 const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
 	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                         dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
@@ -519,11 +523,6 @@ public:
 	uint64_t m_last_latency_entertime;
 	uint64_t m_latency;
 
-	//
-	// Global state
-	//
-	sinsp* m_inspector;
-
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
@@ -632,6 +631,11 @@ private:
 	// The following fields are externally provided and access to them is expected to be read-only.
 	const sinsp_network_interfaces& m_network_interfaces;
 	const sinsp_fdinfo_factory& m_fdinfo_factory;
+
+	// The following fields are externally provided and expected to be populated/updated by the
+	// threadinfo.
+	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
+	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	//
 	// Parameters that can't be accessed directly because they could be in the
