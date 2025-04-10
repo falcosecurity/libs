@@ -35,6 +35,14 @@ struct extract_value_t {
 };
 
 /**
+ * @brief Represents a field offset extracted when evaluating a filter
+ */
+struct extract_offset_t {
+	uint32_t start = UINT32_MAX;
+	uint32_t length = UINT32_MAX;
+};
+
+/**
  * @brief Represents a cache value storage for value extraction in filters
  */
 class sinsp_filter_extract_cache {
