@@ -27,7 +27,6 @@ limitations under the License.
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
 #include <libsinsp/user.h>
-#include <libsinsp/thread_manager.h>
 
 extern sinsp_evttables g_infotables;
 
@@ -38,19 +37,10 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 	dest[3] = src[3];
 }
 
-sinsp_threadinfo::sinsp_threadinfo(
-        const sinsp_network_interfaces& network_interfaces,
-        const sinsp_fdinfo_factory& fdinfo_factory,
-        const sinsp_fdtable_factory& fdtable_factory,
-        const std::shared_ptr<sinsp_thread_manager>& thread_manager,
-        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
-        table_entry(dyn_fields),
-        m_network_interfaces{network_interfaces},
-        m_fdinfo_factory{fdinfo_factory},
-        m_thread_manager{thread_manager},
-        m_usergroup_manager{usergroup_manager},
-        m_fdtable{fdtable_factory.create()},
+sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
+        table_entry(params->thread_manager_dyn_fields),
+        m_params{params},
+        m_fdtable{params->fdtable_factory.create()},
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
@@ -215,7 +205,7 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ip
 
 sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
                                                  const bool resolve_hostname_and_port) {
-	auto newfdi = m_fdinfo_factory.create();
+	auto newfdi = m_params->fdinfo_factory.create();
 
 	newfdi->m_type = fdi.type;
 	newfdi->m_openflags = 0;
@@ -234,7 +224,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 		if(fdi.info.ipv4info.l4proto == SCAP_L4_TCP) {
 			newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 		}
-		m_network_interfaces.update_fd(*newfdi);
+		m_params->network_interfaces.update_fd(*newfdi);
 		newfdi->m_name =
 		        ipv4tuple_to_string(newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 		break;
@@ -262,7 +252,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 			if(fdi.info.ipv6info.l4proto == SCAP_L4_TCP) {
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			m_network_interfaces.update_fd(*newfdi);
+			m_params->network_interfaces.update_fd(*newfdi);
 			newfdi->m_name =
 			        ipv4tuple_to_string(newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 		} else {
@@ -402,7 +392,7 @@ const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
 }
 
 std::shared_ptr<sinsp_thread_manager> sinsp_threadinfo::get_thread_manager() const {
-	return m_thread_manager;
+	return m_params->thread_manager;
 }
 
 std::string sinsp_threadinfo::get_comm() const {
@@ -420,8 +410,8 @@ std::string sinsp_threadinfo::get_exepath() const {
 std::string sinsp_threadinfo::get_container_id() {
 	std::string container_id;
 
-	const auto accessor =
-	        m_thread_manager->get_field_accessor(sinsp_thread_manager::s_container_id_field_name);
+	const auto accessor = m_params->thread_manager->get_field_accessor(
+	        sinsp_thread_manager::s_container_id_field_name);
 	if(accessor) {
 		get_dynamic_field(*accessor, container_id);
 	}
@@ -433,7 +423,8 @@ std::string sinsp_threadinfo::get_container_user() {
 
 	const auto container_id = get_container_id();
 	if(!container_id.empty()) {
-		auto table = m_thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
+		auto table =
+		        m_params->thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
 		if(table != nullptr) {
 			auto fld = table->get_field<std::string>(
 			        sinsp_thread_manager::s_containers_table_field_user);
@@ -455,7 +446,8 @@ std::string sinsp_threadinfo::get_container_ip() {
 
 	const auto container_id = get_container_id();
 	if(!container_id.empty()) {
-		auto table = m_thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
+		auto table =
+		        m_params->thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
 		if(table != nullptr) {
 			auto fld = table->get_field<std::string>(
 			        sinsp_thread_manager::s_containers_table_field_ip);
@@ -476,14 +468,15 @@ void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
 	const auto container_id = get_container_id();
 	m_uid = uid;
 	// Do not notify if the user is already present.
-	if(m_usergroup_manager->get_user(container_id, uid)) {
+	if(m_params->usergroup_manager->get_user(container_id, uid)) {
 		return;
 	}
 	// For uid 0 force set root related info.
 	if(uid == 0) {
-		m_usergroup_manager->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
+		m_params->usergroup_manager
+		        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
 	} else {
-		m_usergroup_manager->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
+		m_params->usergroup_manager->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
 	}
 }
 
@@ -491,14 +484,14 @@ void sinsp_threadinfo::set_group(const uint32_t gid, const bool notify) {
 	const auto container_id = get_container_id();
 	m_gid = gid;
 	// Do not notify if the group is already present.
-	if(m_usergroup_manager->get_group(container_id, gid)) {
+	if(m_params->usergroup_manager->get_group(container_id, gid)) {
 		return;
 	}
 	// For gid 0 force set root related info.
 	if(gid == 0) {
-		m_usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
+		m_params->usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
 	} else {
-		m_usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
+		m_params->usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
 	}
 }
 
@@ -507,7 +500,7 @@ void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
 }
 
 scap_userinfo* sinsp_threadinfo::get_user() {
-	if(const auto user = m_usergroup_manager->get_user(get_container_id(), m_uid);
+	if(const auto user = m_params->usergroup_manager->get_user(get_container_id(), m_uid);
 	   user != nullptr) {
 		return user;
 	}
@@ -522,7 +515,7 @@ scap_userinfo* sinsp_threadinfo::get_user() {
 }
 
 scap_groupinfo* sinsp_threadinfo::get_group() {
-	if(const auto group = m_usergroup_manager->get_group(get_container_id(), m_gid);
+	if(const auto group = m_params->usergroup_manager->get_group(get_container_id(), m_gid);
 	   group != nullptr) {
 		return group;
 	}
@@ -533,7 +526,7 @@ scap_groupinfo* sinsp_threadinfo::get_group() {
 }
 
 scap_userinfo* sinsp_threadinfo::get_loginuser() {
-	if(const auto user = m_usergroup_manager->get_user(get_container_id(), m_loginuid);
+	if(const auto user = m_params->usergroup_manager->get_user(get_container_id(), m_loginuid);
 	   user != nullptr) {
 		return user;
 	}
@@ -711,7 +704,7 @@ void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread() {
-	return m_thread_manager->get_thread_ref(m_ptid).get();
+	return m_params->thread_manager->get_thread_ref(m_ptid).get();
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
@@ -882,7 +875,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(
 	// if is_virtual_id == false we don't care about the namespace in which we are
 	sinsp_threadinfo* leader = nullptr;
 	if(!is_virtual_id || !is_in_pid_namespace()) {
-		leader = m_thread_manager->get_thread_ref(id).get();
+		leader = m_params->thread_manager->get_thread_ref(id).get();
 		if(leader != nullptr) {
 			return leader;
 		}
