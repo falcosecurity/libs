@@ -71,14 +71,26 @@ struct erase_fd_params {
 */
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
-	sinsp_threadinfo(const sinsp_network_interfaces& network_interfaces,
-	                 const sinsp_fdinfo_factory& fdinfo_factory,
-	                 const sinsp_fdtable_factory& fdtable_factory,
-	                 const std::shared_ptr<sinsp_thread_manager>& thread_manager,
-	                 const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
-	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                         dyn_fields = nullptr);
-	virtual ~sinsp_threadinfo();
+	/*!
+	  \brief Container holding parameters to be provided to sinsp_threadinfo constructor.
+	  An instance of this struct is meant to be shared among all sinsp_threadinfo instances.
+	*/
+	struct ctor_params {
+		// The following fields are externally provided and access to them is expected to be
+		// read-only.
+		const sinsp_network_interfaces& network_interfaces;
+		const sinsp_fdinfo_factory& fdinfo_factory;
+		const sinsp_fdtable_factory& fdtable_factory;
+		const std::shared_ptr<dynamic_struct::field_infos>& thread_manager_dyn_fields;
+
+		// The following fields are externally provided and expected to be populated/updated by the
+		// thread info.
+		std::shared_ptr<sinsp_thread_manager>& thread_manager;
+		std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager;
+	};
+
+	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
+	~sinsp_threadinfo() override;
 
 	libsinsp::state::static_struct::field_infos static_fields() const override;
 
@@ -628,14 +640,12 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
-	// The following fields are externally provided and access to them is expected to be read-only.
-	const sinsp_network_interfaces& m_network_interfaces;
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
-
-	// The following fields are externally provided and expected to be populated/updated by the
-	// threadinfo.
-	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
-	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
+	// Parameters provided at thread info construction phase.
+	// Notice: the struct instance is shared among all the thread info instances.
+	// Notice 2: this should be a plain const reference, but use a shared_ptr or the compiler will
+	// complain about referencing a member (m_input_plugin) whose lifetime is shorter than the
+	// ctor_params object in sinsp constructor.
+	const std::shared_ptr<ctor_params> m_params;
 
 	//
 	// Parameters that can't be accessed directly because they could be in the
