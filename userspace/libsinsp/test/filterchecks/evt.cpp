@@ -255,6 +255,29 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	// UINT64_MAX is FFFFFFFFFFFFFFFF
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.addr"), "FFFFFFFFFFFFFFFF");
 	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));  // PT_SOCKADDR is not comparable
+
+	/*
+	 * Now test the bugged case where `find_longest_matching_evt_param` returns a size,
+	 * but then real event has a size that is bigger than that.
+	 * In this case, `find_longest_matching_evt_param` will find `size` param
+	 * from PPME_SYSCALL_READ_E, that is {"size", PT_UINT32, PF_DEC},
+	 * but then we call evt.rawarg.size on a PPME_SYSCALL_SPLICE_E,
+	 * whose `size` param is 64bit: {"size", PT_UINT64, PF_DEC}.
+	 */
+	// [PPME_SYSCALL_SPLICE_E] = {"splice", EC_IO_OTHER | EC_SYSCALL, EF_USES_FD, 4, {
+	//	{"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size", PT_UINT64, PF_DEC}, {
+	//		"flags", PT_FLAGS32, PF_HEX, splice_flags}}}
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_SPLICE_E,
+	                           4,
+	                           (int64_t)-1,
+	                           (int64_t)-1,
+	                           (uint64_t)512,
+	                           (uint32_t)0);
+	// Size is PF_DEC, 512 is 512
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.size"), "512");
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.size < 515"));
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {
