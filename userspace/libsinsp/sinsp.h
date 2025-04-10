@@ -585,13 +585,6 @@ public:
 	inline uint64_t get_scap_schema_version() const { return SCAP_MINIMUM_DRIVER_SCHEMA_VERSION; }
 
 	/*!
-	  \brief Returns true if truncated environments should be loaded from /proc
-	*/
-	inline bool large_envs_enabled() const {
-		return (is_live() || is_syscall_plugin()) && m_large_envs_enabled;
-	}
-
-	/*!
 	  \brief Enable/disable large environment support
 
 	  \param enable when it is true and the current capture is live
@@ -961,6 +954,11 @@ private:
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 	//
+	// Account host bound server ports (needed for patching connections direction).
+	//
+	std::set<uint16_t> m_bound_server_ports;
+
+	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//
@@ -975,6 +973,8 @@ private:
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	const sinsp_fdtable_factory m_fdtable_factory;
+	// Parameter shared with each single sinsp_threadinfo instance.
+	const sinsp_threadinfo::ctor_params m_threadinfo_ctor_params;
 	const sinsp_threadinfo_factory m_threadinfo_factory;
 	// A registry that manages the state tables of this inspector.
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
@@ -989,17 +989,13 @@ public:
 		return m_fdtable_dyn_fields;
 	}
 
-	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
-
-	const sinsp_fdtable_factory& get_fdtable_factory() const { return m_fdtable_factory; }
-
 	const sinsp_threadinfo_factory& get_threadinfo_factory() const { return m_threadinfo_factory; }
 
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	uint64_t m_firstevent_ts;
-	std::unique_ptr<sinsp_filter> m_filter;
+	std::shared_ptr<sinsp_filter> m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 

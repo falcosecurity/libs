@@ -37,10 +37,14 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/table_adapters.h>
 #include <libsinsp/event.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/ifinfo.h>
 #include <libscap/scap_savefile_api.h>
 
-// Forward declare sinsp_thread_manager to avoid cyclic dependency.
+// Forward declare `sinsp_thread_manager` and `sinsp_usergroup_manager` to avoid cyclic
+// dependencies.
 class sinsp_thread_manager;
+class sinsp_usergroup_manager;
 
 struct erase_fd_params {
 	bool m_remove_from_table;
@@ -67,12 +71,32 @@ struct erase_fd_params {
 */
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
-	sinsp_threadinfo(const sinsp_fdinfo_factory& fdinfo_factory,
-	                 const sinsp_fdtable_factory& fdtable_factory,
-	                 sinsp* inspector = nullptr,
-	                 const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                         dyn_fields = nullptr);
-	virtual ~sinsp_threadinfo();
+	/*!
+	  \brief Container holding parameters to be provided to sinsp_threadinfo constructor.
+	  An instance of this struct is meant to be shared among all sinsp_threadinfo instances.
+	*/
+	struct ctor_params {
+		// The following fields are externally provided and access to them is expected to be
+		// read-only.
+		const sinsp_mode& mode;
+		const sinsp_network_interfaces& network_interfaces;
+		const bool& hostname_and_port_resolution_enabled;
+		const sinsp_fdinfo_factory& fdinfo_factory;
+		const sinsp_fdtable_factory& fdtable_factory;
+		const std::shared_ptr<const sinsp_plugin>& input_plugin;
+		const bool& large_envs_enabled;
+		const std::shared_ptr<dynamic_struct::field_infos>& thread_manager_dyn_fields;
+
+		// The following fields are externally provided and expected to be populated/updated by the
+		// thread info.
+		std::shared_ptr<sinsp_thread_manager>& thread_manager;
+		std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager;
+		std::set<uint16_t>& bound_server_ports;
+		std::shared_ptr<sinsp_filter>& filter;
+	};
+
+	explicit sinsp_threadinfo(const ctor_params& params);
+	~sinsp_threadinfo() override;
 
 	libsinsp::state::static_struct::field_infos static_fields() const override;
 
@@ -507,11 +531,6 @@ public:
 	uint64_t m_last_latency_entertime;
 	uint64_t m_latency;
 
-	//
-	// Global state
-	//
-	sinsp* m_inspector;
-
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
@@ -614,11 +633,23 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
+	bool is_syscall_plugin_enabled() const {
+		return m_params.mode.is_plugin() && m_params.input_plugin->id() == 0;
+	}
+
+	bool is_large_envs_enabled() const {
+		return (m_params.mode.is_live() || is_syscall_plugin_enabled()) &&
+		       m_params.large_envs_enabled;
+	}
+
+	// Parameters provided at thread info construction phase.
+	// Notice: the struct instance is shared among all the thread info instances.
+	const ctor_params& m_params;
+
 	//
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
 	sinsp_fdtable m_fdtable;  // The fd table of this thread
 	const libsinsp::state::base_table*
 	        m_main_fdtable;     // Points to the base fd table of the current main thread
