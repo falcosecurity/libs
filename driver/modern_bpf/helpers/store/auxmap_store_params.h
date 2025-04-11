@@ -1296,7 +1296,12 @@ static __always_inline uint16_t store_cgroup_subsys(struct auxiliary_map *auxmap
 		}
 		path_components++;
 		BPF_CORE_READ_INTO(&cgroup_path_pointers[k], kn, name);
-		BPF_CORE_READ_INTO(&kn, kn, parent);
+		if(bpf_core_field_exists(kn->parent)) {
+			BPF_CORE_READ_INTO(&kn, kn, parent);
+		} else {
+			struct kernfs_node___v6_15 *kn_v6_15 = (void *)kn;
+			BPF_CORE_READ_INTO(&kn, kn_v6_15, __parent);
+		}
 	}
 
 	/* Reconstruct the path in reverse, using previously collected pointers.
