@@ -903,7 +903,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
-		newti->init(*tinfo, large_envs_enabled());
+		newti->init(*tinfo, large_envs_enabled(), must_notify_thread_user_update());
 		if(is_nodriver()) {
 			auto existing_tinfo = find_thread(tid, true);
 			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts) {
@@ -976,8 +976,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 
 			auto newti = m_threadinfo_factory.create();
-			newti->init(*tinfo, large_envs_enabled());
-
+			newti->init(*tinfo, large_envs_enabled(), must_notify_thread_user_update());
 			sinsp_tinfo = m_thread_manager->add_thread(std::move(newti), true);
 			if(sinsp_tinfo == nullptr) {
 				ASSERT(false);
@@ -1381,7 +1380,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// upon threadinfo's container_id changes.
 		// Since the threadinfo state might get changed from a plugin parser,
 		// evaluate this one after all parsers get run.
-		user_group_updater usr_grp_updater(evt);
+		user_group_updater usr_grp_updater(evt, must_notify_thread_user_update());
 
 		if(!evt->is_filtered_out()) {
 			//

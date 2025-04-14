@@ -916,6 +916,8 @@ private:
 		return left == static_cast<uint64_t>(-1) || left <= right;
 	}
 
+	bool must_notify_thread_user_update() const { return m_mode.is_live() || is_syscall_plugin(); }
+
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_t* m_h;
 	struct scap_platform* m_platform{};

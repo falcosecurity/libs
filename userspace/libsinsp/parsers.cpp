@@ -1171,7 +1171,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_user(uid);
+	child_tinfo->set_user(uid, must_notify_thread_user_update());
 
 	/* gid */
 	int32_t gid = 0;
@@ -1691,7 +1691,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_user(uid);
+	child_tinfo->set_user(uid, must_notify_thread_user_update());
 
 	/* gid */
 	int32_t gid = 0;
@@ -2174,7 +2174,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 
 	// Get uid
 	if(evt->get_num_params() > 26) {
-		evt->get_tinfo()->set_user(evt->get_param(26)->as<uint32_t>());
+		evt->get_tinfo()->set_user(evt->get_param(26)->as<uint32_t>(),
+		                           must_notify_thread_user_update());
 	}
 
 	// Get pgid
@@ -4524,7 +4525,7 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt) {
 		if(new_euid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_user(new_euid);
+				ti->set_user(new_euid, must_notify_thread_user_update());
 			}
 		}
 	}
@@ -4544,7 +4545,7 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt *evt) {
 		if(new_euid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_user(new_euid);
+				ti->set_user(new_euid, must_notify_thread_user_update());
 			}
 		}
 	}
@@ -4604,7 +4605,7 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt) {
 		uint32_t new_euid = enter_evt->get_param(0)->as<uint32_t>();
 		sinsp_threadinfo *ti = evt->get_thread_info();
 		if(ti) {
-			ti->set_user(new_euid);
+			ti->set_user(new_euid, must_notify_thread_user_update());
 		}
 	}
 }
