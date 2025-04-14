@@ -182,17 +182,14 @@ sinsp_threadinfo::~sinsp_threadinfo() {
 	}
 }
 
-void sinsp_threadinfo::fix_sockets_coming_from_proc() {
-	m_fdtable.loop([this](int64_t fd, sinsp_fdinfo& fdi) {
+void sinsp_threadinfo::fix_sockets_coming_from_proc(const bool resolve_hostname_and_port) {
+	m_fdtable.loop([this, resolve_hostname_and_port](int64_t fd, sinsp_fdinfo& fdi) {
 		if(fdi.m_type == SCAP_FD_IPV4_SOCK) {
 			if(m_inspector->m_thread_manager->m_server_ports.find(
 			           fdi.m_sockinfo.m_ipv4info.m_fields.m_sport) !=
 			   m_inspector->m_thread_manager->m_server_ports.end()) {
-				uint32_t tip;
-				uint16_t tport;
-
-				tip = fdi.m_sockinfo.m_ipv4info.m_fields.m_sip;
-				tport = fdi.m_sockinfo.m_ipv4info.m_fields.m_sport;
+				const uint32_t tip = fdi.m_sockinfo.m_ipv4info.m_fields.m_sip;
+				const uint16_t tport = fdi.m_sockinfo.m_ipv4info.m_fields.m_sport;
 
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_sip = fdi.m_sockinfo.m_ipv4info.m_fields.m_dip;
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
@@ -201,8 +198,7 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc() {
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
 				fdi.m_name =
-				        ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info,
-				                            m_inspector->is_hostname_and_port_resolution_enabled());
+				        ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 
 				fdi.set_role_server();
 			} else {

@@ -340,7 +340,7 @@ void sinsp::init() {
 	//
 	// Scan the list to fix the direction of the sockets
 	//
-	m_thread_manager->fix_sockets_coming_from_proc();
+	m_thread_manager->fix_sockets_coming_from_proc(m_hostname_and_port_resolution_enabled);
 
 	//
 	// Load state table API field accessors

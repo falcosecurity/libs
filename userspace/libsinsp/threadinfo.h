@@ -531,7 +531,7 @@ public:
 	void init();
 	// return true if, based on the current inspector filter, this thread should be kept
 	void init(scap_threadinfo* pi);
-	void fix_sockets_coming_from_proc();
+	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 	void add_fd_from_scap(scap_fdinfo* fdinfo);
 	void remove_fd(int64_t fd);
