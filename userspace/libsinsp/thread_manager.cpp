@@ -842,7 +842,11 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
 			const bool can_load_env_from_proc = m_inspector->large_envs_enabled();
 			const bool must_notify_user_update =
 			        m_inspector->is_live() || m_inspector->is_syscall_plugin();
-			newti->init(scap_proc, can_load_env_from_proc, must_notify_user_update);
+			const auto must_notify_group_update = must_notify_user_update;
+			newti->init(scap_proc,
+			            can_load_env_from_proc,
+			            must_notify_user_update,
+			            must_notify_group_update);
 		} else {
 			//
 			// Add a fake entry to avoid a continuous lookup

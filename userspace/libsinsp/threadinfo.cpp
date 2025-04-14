@@ -328,7 +328,8 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 
 void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
                             const bool can_load_env_from_proc,
-                            const bool notify_user_update) {
+                            const bool notify_user_update,
+                            const bool notify_group_update) {
 	init();
 
 	m_tid = pinfo.tid;
@@ -389,7 +390,7 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
 	m_root = pinfo.root;
 	ASSERT(m_inspector);
 
-	set_group(pinfo.gid);
+	set_group(pinfo.gid, notify_group_update);
 	set_user(pinfo.uid, notify_user_update);
 	set_loginuid((uint32_t)pinfo.loginuid);
 }
@@ -466,7 +467,7 @@ void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
 	if(m_inspector->m_usergroup_manager->get_user(container_id, uid)) {
 		return;
 	}
-	// For uid 0 force set root related infos
+	// For uid 0 force set root related info.
 	if(uid == 0) {
 		m_inspector->m_usergroup_manager
 		        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
@@ -476,18 +477,18 @@ void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
 	}
 }
 
-void sinsp_threadinfo::set_group(uint32_t gid) {
+void sinsp_threadinfo::set_group(const uint32_t gid, const bool notify) {
 	const auto container_id = get_container_id();
 	m_gid = gid;
-	if(const scap_groupinfo* group = m_inspector->m_usergroup_manager->get_group(container_id, gid);
-	   !group) {
-		const auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		// For gid 0 force set root related info
-		if(gid == 0) {
-			m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
-		} else {
-			m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
-		}
+	// Do not notify if the group is already present.
+	if(m_inspector->m_usergroup_manager->get_group(container_id, gid)) {
+		return;
+	}
+	// For gid 0 force set root related info.
+	if(gid == 0) {
+		m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
+	} else {
+		m_inspector->m_usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
 	}
 }
 

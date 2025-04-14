@@ -197,6 +197,10 @@ private:
 		return m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
 	}
 
+	bool must_notify_thread_group_update() const {
+		return m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
+	}
+
 	// TODO(ekoops): replace references and pointers with owned resources as we determine they
 	//   cannot change at runtime and/or are used only by the parser.
 	// The following fields are externally provided and access to them is expected to be read-only.

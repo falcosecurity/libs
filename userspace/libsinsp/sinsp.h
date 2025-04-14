@@ -918,6 +918,8 @@ private:
 
 	bool must_notify_thread_user_update() const { return m_mode.is_live() || is_syscall_plugin(); }
 
+	bool must_notify_thread_group_update() const { return m_mode.is_live() || is_syscall_plugin(); }
+
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_t* m_h;
 	struct scap_platform* m_platform{};
