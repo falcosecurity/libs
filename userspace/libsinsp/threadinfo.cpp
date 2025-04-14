@@ -448,8 +448,14 @@ std::string sinsp_threadinfo::get_container_user() {
 		if(table != nullptr) {
 			auto fld = table->get_field<std::string>(
 			        sinsp_thread_manager::s_containers_table_field_user);
-			auto e = table->get_entry(container_id.c_str());
-			e.read_field(fld, user);
+			try {
+				auto e = table->get_entry(container_id);
+				e.read_field(fld, user);
+			} catch(...) {
+				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+				                          "Failed to read user from container %s",
+				                          container_id.c_str());
+			}
 		}
 	}
 	return user;
@@ -465,8 +471,14 @@ std::string sinsp_threadinfo::get_container_ip() {
 		if(table != nullptr) {
 			auto fld = table->get_field<std::string>(
 			        sinsp_thread_manager::s_containers_table_field_ip);
-			auto e = table->get_entry(container_id.c_str());
-			e.read_field(fld, ip);
+			try {
+				auto e = table->get_entry(container_id);
+				e.read_field(fld, ip);
+			} catch(...) {
+				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+				                          "Failed to read ip from container %s",
+				                          container_id.c_str());
+			}
 		}
 	}
 	return ip;
