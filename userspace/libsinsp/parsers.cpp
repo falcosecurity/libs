@@ -3692,7 +3692,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
                                                              size_t const fds_len,
                                                              scap_threadinfo *scap_tinfo) const {
 	char error[SCAP_LASTERR_SIZE];
-	for(int i = 0; i < fds_len; i++) {
+	for(size_t i = 0; i < fds_len; i++) {
 		if(scap_get_fdinfo(m_scap_platform, scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
 			libsinsp_logger()->format(
 			        sinsp_logger::SEV_DEBUG,
