@@ -409,7 +409,12 @@ public:
 	 */
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
-	void set_user(uint32_t uid);
+	/*!
+	  \brief Set the thread user and optionally notify any interested component.
+	  \param uid The user id.
+	  \param notify A boolean indicating if any interested component must be notified of the update.
+	*/
+	void set_user(uint32_t uid, bool notify);
 	void set_group(uint32_t gid);
 	void set_loginuid(uint32_t loginuid);
 
@@ -529,7 +534,7 @@ public:
 	}
 
 	void init();
-	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
+	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc, bool notify_user_update);
 	void fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
 	                                  bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);

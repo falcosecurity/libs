@@ -209,7 +209,10 @@ private:
 // RAII struct to manage threadinfos automatic user/group refresh
 // upon container_id updates.
 struct user_group_updater {
-	explicit user_group_updater(sinsp_evt *evt): m_check_cleanup(false), m_evt(nullptr) {
+	explicit user_group_updater(sinsp_evt *const evt, const bool must_notify_user_update):
+	        m_check_cleanup(false),
+	        m_evt(nullptr),
+	        m_must_notify_user_update{must_notify_user_update} {
 		switch(evt->get_type()) {
 		case PPME_PROCEXIT_E:
 		case PPME_PROCEXIT_1_E:
@@ -253,7 +256,7 @@ struct user_group_updater {
 			if(container_id != m_container_id) {
 				// Refresh user/group
 				tinfo->set_group(tinfo->m_gid);
-				tinfo->set_user(tinfo->m_uid);
+				tinfo->set_user(tinfo->m_uid, m_must_notify_user_update);
 			} else if(m_check_cleanup && !container_id.empty()) {
 				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
 					// main container process left, clean up user and groups for the container
@@ -270,6 +273,7 @@ struct user_group_updater {
 	bool m_check_cleanup;
 	sinsp_evt *m_evt;
 	std::string m_container_id;
+	bool m_must_notify_user_update;
 };
 
 #endif  // FALCOSECURITY_LIBS_USER_H

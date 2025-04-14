@@ -326,7 +326,9 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 	return m_fdtable.add(fdi.fd, std::move(newfdi));
 }
 
-void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
+void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
+                            const bool can_load_env_from_proc,
+                            const bool notify_user_update) {
 	init();
 
 	m_tid = pinfo.tid;
@@ -388,7 +390,7 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_en
 	ASSERT(m_inspector);
 
 	set_group(pinfo.gid);
-	set_user(pinfo.uid);
+	set_user(pinfo.uid, notify_user_update);
 	set_loginuid((uint32_t)pinfo.loginuid);
 }
 
@@ -457,20 +459,20 @@ std::string sinsp_threadinfo::get_container_ip() {
 	return ip;
 }
 
-void sinsp_threadinfo::set_user(uint32_t uid) {
+void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
 	const auto container_id = get_container_id();
 	m_uid = uid;
-	if(const scap_userinfo* user = m_inspector->m_usergroup_manager->get_user(container_id, uid);
-	   !user) {
-		const auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		// For uid 0 force set root related infos
-		if(uid == 0) {
-			m_inspector->m_usergroup_manager
-			        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
-		} else {
-			m_inspector->m_usergroup_manager
-			        ->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
-		}
+	// Do not notify if the user is already present.
+	if(m_inspector->m_usergroup_manager->get_user(container_id, uid)) {
+		return;
+	}
+	// For uid 0 force set root related infos
+	if(uid == 0) {
+		m_inspector->m_usergroup_manager
+		        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
+	} else {
+		m_inspector->m_usergroup_manager
+		        ->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
 	}
 }
 
