@@ -529,8 +529,7 @@ public:
 	}
 
 	void init();
-	// return true if, based on the current inspector filter, this thread should be kept
-	void init(scap_threadinfo* pi);
+	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
 	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 	sinsp_fdinfo* add_fd_from_scap(const scap_fdinfo& fdi, bool resolve_hostname_and_port);
@@ -538,7 +537,7 @@ public:
 	void update_cwd(std::string_view cwd);
 	void set_args(const char* args, size_t len);
 	void set_args(const std::vector<std::string>& args);
-	void set_env(const char* env, size_t len);
+	void set_env(const char* env, size_t len, bool can_load_from_proc);
 	void set_cgroups(const char* cgroups, size_t len);
 	void set_cgroups(const std::vector<std::string>& cgroups);
 	void set_cgroups(const cgroups_t& cgroups);

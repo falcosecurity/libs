@@ -222,6 +222,7 @@ sinsp::sinsp(bool with_metrics):
 	                                          m_threadinfo_factory,
 	                                          m_fdinfo_factory,
 	                                          m_input_plugin,
+	                                          m_large_envs_enabled,
 	                                          m_plugin_manager,
 	                                          m_thread_manager,
 	                                          m_usergroup_manager,
@@ -902,7 +903,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
-		newti->init(tinfo);
+		newti->init(*tinfo, large_envs_enabled());
 		if(is_nodriver()) {
 			auto existing_tinfo = find_thread(tid, true);
 			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts) {
@@ -975,7 +976,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 
 			auto newti = m_threadinfo_factory.create();
-			newti->init(tinfo);
+			newti->init(*tinfo, large_envs_enabled());
 
 			sinsp_tinfo = m_thread_manager->add_thread(std::move(newti), true);
 			if(sinsp_tinfo == nullptr) {

@@ -41,6 +41,7 @@ public:
 	             const sinsp_threadinfo_factory& threadinfo_factory,
 	             const sinsp_fdinfo_factory& fdinfo_factory,
 	             const std::shared_ptr<const sinsp_plugin>& input_plugin,
+	             const bool& large_envs_enabled,
 	             const std::shared_ptr<sinsp_plugin_manager>& plugin_manager,
 	             const std::shared_ptr<sinsp_thread_manager>& thread_manager,
 	             const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
@@ -188,6 +189,10 @@ private:
 		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
 	}
 
+	bool is_large_envs_enabled() const {
+		return (m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) && m_large_envs_enabled;
+	}
+
 	// TODO(ekoops): replace references and pointers with owned resources as we determine they
 	//   cannot change at runtime and/or are used only by the parser.
 	// The following fields are externally provided and access to them is expected to be read-only.
@@ -199,6 +204,7 @@ private:
 	const sinsp_threadinfo_factory m_threadinfo_factory;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
+	const bool& m_large_envs_enabled;
 
 	// The following fields are externally provided and expected to be populated/updated by the
 	// parser.
