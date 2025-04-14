@@ -511,9 +511,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	}
 }
 
-void sinsp_thread_manager::fix_sockets_coming_from_proc() {
+void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostname_and_port) {
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		tinfo.fix_sockets_coming_from_proc();
+		tinfo.fix_sockets_coming_from_proc(resolve_hostname_and_port);
 		return true;
 	});
 }

@@ -55,7 +55,7 @@ public:
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
-	void fix_sockets_coming_from_proc();
+	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
 	void load_foreign_fields_accessors();
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
