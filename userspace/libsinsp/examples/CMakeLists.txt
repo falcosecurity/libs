@@ -15,7 +15,13 @@
 
 include(jsoncpp)
 
-add_executable(sinsp-example util.cpp test.cpp cpu_usage.cpp)
+set(sources util.cpp test.cpp)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	set(sources ${sources} cpu_usage.cpp)
+endif()
+
+add_executable(sinsp-example ${sources})
 
 target_link_libraries(sinsp-example sinsp)
 
