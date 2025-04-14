@@ -11,9 +11,7 @@
 #include <unistd.h>
 
 // Utility function to calculate CPU usage
-int get_cpu_usage_percent()
-{
-
+int get_cpu_usage_percent() {
 	constexpr uint64_t USECS_PER_SEC = 1000L * 1000;
 	static uint64_t cpu_time_last_run_us = 0;
 	static uint64_t time_last_run_us = 0;
@@ -21,11 +19,12 @@ int get_cpu_usage_percent()
 
 	// Get the current timestamp in usecs
 	auto time_since_epoch = std::chrono::steady_clock::now().time_since_epoch();
-	auto curr_time_us = std::chrono::duration_cast<std::chrono::microseconds>(time_since_epoch).count();
+	auto curr_time_us =
+	        std::chrono::duration_cast<std::chrono::microseconds>(time_since_epoch).count();
 
 	// Get the current thread's CPU times
 	struct rusage usage;
-	if (getrusage(RUSAGE_THREAD, &usage) != 0) {
+	if(getrusage(RUSAGE_THREAD, &usage) != 0) {
 		return -1;
 	}
 
@@ -33,7 +32,7 @@ int get_cpu_usage_percent()
 	uint64_t curr_cpu_time_us = (usage.ru_utime.tv_sec * USECS_PER_SEC + usage.ru_utime.tv_usec) +
 	                            (usage.ru_stime.tv_sec * USECS_PER_SEC + usage.ru_stime.tv_usec);
 
-	if (time_last_run_us != 0) {
+	if(time_last_run_us != 0) {
 		// Calculate the CPU usage percentage since the last iteration
 		uint64_t time_diff_us = (double)(curr_time_us - time_last_run_us);
 		uint64_t cpu_diff_us = (double)(curr_cpu_time_us - cpu_time_last_run_us);
