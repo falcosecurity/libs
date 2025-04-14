@@ -533,7 +533,7 @@ public:
 	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
-	void add_fd_from_scap(scap_fdinfo* fdinfo);
+	sinsp_fdinfo* add_fd_from_scap(const scap_fdinfo& fdi, bool resolve_hostname_and_port);
 	void remove_fd(int64_t fd);
 	void update_cwd(std::string_view cwd);
 	void set_args(const char* args, size_t len);

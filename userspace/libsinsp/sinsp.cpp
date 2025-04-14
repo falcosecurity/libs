@@ -984,7 +984,53 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 		}
 
-		sinsp_tinfo->add_fd_from_scap(fdinfo);
+		const auto added_fdinfo =
+		        sinsp_tinfo->add_fd_from_scap(*fdinfo, m_hostname_and_port_resolution_enabled);
+		if(m_filter != nullptr && m_mode.is_capture()) {
+			// in case the inspector is configured with an internal filter, we can
+			// filter-out thread infos (and their fd infos) to not dump them in
+			// captures unless actually used. Here, we simulate an internal event
+			// using the new file descriptor info to understand if we can set
+			// its thread info as non-filterable.
+
+			// note: just like the case of  PPME_SCAPEVENT_E used for thread info
+			// filtering, the usage of PPME_SYSCALL_READ_X is opinionated. This
+			// kind of event has been chosen as a tradeoff of a lightweight and
+			// usually-ignored event (in the context of filtering), but that is also
+			// marked as using a file descriptor so that file-descriptor filter fields
+			// can extract meaningful values.
+			scap_evt tscapevt = {};
+			tscapevt.type = PPME_SYSCALL_READ_X;
+			tscapevt.tid = tid;
+			tscapevt.ts = 0;
+			tscapevt.nparams = 0;
+			tscapevt.len = sizeof(scap_evt);
+
+			sinsp_evt tevt = {};
+			tevt.set_scap_evt(&tscapevt);
+			tevt.set_info(&(g_infotables.m_event_info[PPME_SYSCALL_READ_X]));
+			tevt.set_cpuid(0);
+			tevt.set_num(0);
+			tevt.set_tinfo(sinsp_tinfo.get());
+			tevt.set_fdinfo_ref(nullptr);
+			tevt.set_fd_info(added_fdinfo);
+			int64_t tlefd = sinsp_tinfo->m_lastevent_fd;
+			sinsp_tinfo->m_lastevent_fd = fdinfo->fd;
+
+			if(m_filter->run(&tevt)) {
+				// we mark the thread info as non-filterable due to one event
+				// using one of its file descriptor has passed the filter
+				sinsp_tinfo->m_filtered_out = false;
+			} else {
+				// we can't say if the thread info for this fd is filterable or not,
+				// but we can mark the given file descriptor as filterable. This flag
+				// will prevent the fd info from being written in captures.
+				fdinfo->type = SCAP_FD_UNINITIALIZED;
+			}
+
+			sinsp_tinfo->m_lastevent_fd = tlefd;
+			sinsp_tinfo->set_last_event_data(nullptr);
+		}
 	}
 }
 
