@@ -1198,7 +1198,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_group(gid);
+	child_tinfo->set_group(gid, must_notify_thread_group_update());
 
 	/* Set cgroups and heuristically detect container id */
 	switch(etype) {
@@ -1718,7 +1718,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_group(gid);
+	child_tinfo->set_group(gid, must_notify_thread_group_update());
 
 	/* Set cgroups and heuristically detect container id */
 	switch(etype) {
@@ -2187,7 +2187,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 
 	// Get gid
 	if(evt->get_num_params() > 29) {
-		evt->get_tinfo()->set_group(evt->get_param(29)->as<uint32_t>());
+		evt->get_tinfo()->set_group(evt->get_param(29)->as<uint32_t>(),
+		                            must_notify_thread_group_update());
 	}
 
 	//
@@ -4566,7 +4567,7 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt) {
 		if(new_egid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_group(new_egid);
+				ti->set_group(new_egid, must_notify_thread_group_update());
 			}
 		}
 	}
@@ -4586,7 +4587,7 @@ void sinsp_parser::parse_setregid_exit(sinsp_evt *evt) {
 		if(new_egid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_group(new_egid);
+				ti->set_group(new_egid, must_notify_thread_group_update());
 			}
 		}
 	}
@@ -4623,7 +4624,7 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt) {
 		uint32_t new_egid = enter_evt->get_param(0)->as<uint32_t>();
 		sinsp_threadinfo *ti = evt->get_thread_info();
 		if(ti) {
-			ti->set_group(new_egid);
+			ti->set_group(new_egid, must_notify_thread_group_update());
 		}
 	}
 }

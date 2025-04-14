@@ -415,7 +415,12 @@ public:
 	  \param notify A boolean indicating if any interested component must be notified of the update.
 	*/
 	void set_user(uint32_t uid, bool notify);
-	void set_group(uint32_t gid);
+	/*!
+	  \brief Set the thread group and optionally notify any interested component.
+	  \param gid The group id.
+	  \param notify A boolean indicating if any interested component must be notified of the update.
+	*/
+	void set_group(uint32_t gid, bool notify);
 	void set_loginuid(uint32_t loginuid);
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
@@ -534,7 +539,10 @@ public:
 	}
 
 	void init();
-	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc, bool notify_user_update);
+	void init(const scap_threadinfo& pinfo,
+	          bool can_load_env_from_proc,
+	          bool notify_user_update,
+	          bool notify_group_update);
 	void fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
 	                                  bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
