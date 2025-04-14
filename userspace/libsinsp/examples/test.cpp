@@ -46,7 +46,7 @@ using namespace std;
 #if __linux__
 // Utility function to calculate CPU usage
 int get_cpu_usage_percent();
-#endif // __linux__
+#endif  // __linux__
 
 // Functions used for dumping to stdout
 void raw_dump(sinsp&, sinsp_evt* ev);
@@ -166,7 +166,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	                                       {"enable-glogger", no_argument, 0, 'g'},
 	                                       {"raw", no_argument, 0, 'r'},
 	                                       {"gvisor", optional_argument, 0, 'G'},
-										   {"perftest", no_argument, 0, 't'},
+	                                       {"perftest", no_argument, 0, 't'},
 	                                       {0, 0, 0, 0}};
 
 	bool format_set = false;
@@ -550,31 +550,34 @@ int main(int argc, char** argv) {
 			uint64_t evt_diff = num_events - last_events;
 			if(perftest) {
 #if __linux__
-				// Perftest mode does not print individual events but instead prints a running throughput every second
+				// Perftest mode does not print individual events but instead prints a running
+				// throughput every second
 				if(ts_ns - last_ts_ns > 1'000'000'000) {
 					int cpu_usage = get_cpu_usage_percent();
 					cpu_total += cpu_usage;
 					++num_samples;
 					long double curr_throughput = evt_diff / (long double)1000;
-					std::cout << "Events: " << (num_events - last_events) << " Events/ms: " << curr_throughput
-					          << " CPU: " << cpu_usage << "%                      \r" << std::flush;
+					std::cout << "Events: " << (num_events - last_events)
+					          << " Events/ms: " << curr_throughput << " CPU: " << cpu_usage
+					          << "%                      \r" << std::flush;
 					if(curr_throughput > max_throughput) {
 						max_throughput = curr_throughput;
 					}
 					last_ts_ns = ts_ns;
 					last_events = num_events;
-#else  // __linux__
+#else   // __linux__
 				if(ts_ns - last_ts_ns > 1'000'000'000) {
 					++num_samples;
 					long double curr_throughput = evt_diff / (long double)1000;
-					std::cout << "Events: " << (num_events - last_events) << " Events/ms: " << curr_throughput
-					          << "                      \r" << std::flush;
+					std::cout << "Events: " << (num_events - last_events)
+					          << " Events/ms: " << curr_throughput << "                      \r"
+					          << std::flush;
 					if(curr_throughput > max_throughput) {
 						max_throughput = curr_throughput;
 					}
 					last_ts_ns = ts_ns;
 					last_events = num_events;
-#endif // __linux__
+#endif  // __linux__
 				}
 			} else if(!thread || g_all_threads || thread->is_main_thread()) {
 				dump(inspector, ev);
@@ -587,16 +590,18 @@ int main(int argc, char** argv) {
 
 	inspector.stop_capture();
 
-	std::cout << "-- Stop capture                                                                    " << std::endl;
+	std::cout
+	        << "-- Stop capture                                                                    "
+	        << std::endl;
 	std::cout << "Retrieved events: " << std::to_string(num_events) << std::endl;
 	std::cout << "Time spent: " << duration << "ms" << std::endl;
 	if(duration > 0) {
 		std::cout << "Events/ms: " << num_events / (long double)duration << std::endl;
 	}
-	if (max_throughput > 0) {
+	if(max_throughput > 0) {
 		std::cout << "Max throughput observed: " << max_throughput << " events / ms" << std::endl;
 	}
-	if (num_samples > 0) {
+	if(num_samples > 0) {
 		std::cout << "Average CPU usage: " << cpu_total / num_samples << "%" << std::endl;
 	}
 
