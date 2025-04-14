@@ -341,70 +341,70 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 	return m_fdtable.add(fdi.fd, std::move(newfdi));
 }
 
-void sinsp_threadinfo::init(scap_threadinfo* pi) {
+void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
 	init();
 
-	m_tid = pi->tid;
-	m_pid = pi->pid;
-	m_ptid = pi->ptid;
-	m_sid = pi->sid;
-	m_vpgid = pi->vpgid;
-	m_pgid = pi->pgid;
+	m_tid = pinfo.tid;
+	m_pid = pinfo.pid;
+	m_ptid = pinfo.ptid;
+	m_sid = pinfo.sid;
+	m_vpgid = pinfo.vpgid;
+	m_pgid = pinfo.pgid;
 
-	m_comm = pi->comm;
-	m_exe = pi->exe;
+	m_comm = pinfo.comm;
+	m_exe = pinfo.exe;
 	/* The exepath is extracted from `/proc/pid/exe`. */
-	set_exepath(std::string(pi->exepath));
-	m_exe_writable = pi->exe_writable;
-	m_exe_upper_layer = pi->exe_upper_layer;
-	m_exe_lower_layer = pi->exe_lower_layer;
-	m_exe_from_memfd = pi->exe_from_memfd;
+	set_exepath(std::string(pinfo.exepath));
+	m_exe_writable = pinfo.exe_writable;
+	m_exe_upper_layer = pinfo.exe_upper_layer;
+	m_exe_lower_layer = pinfo.exe_lower_layer;
+	m_exe_from_memfd = pinfo.exe_from_memfd;
 
 	/* We cannot obtain the reaper_tid from a /proc scan */
 	m_reaper_tid = -1;
 	m_not_expired_children = 0;
 
-	set_args(pi->args, pi->args_len);
+	set_args(pinfo.args, pinfo.args_len);
 	if(is_main_thread()) {
-		set_env(pi->env, pi->env_len);
-		update_cwd({pi->cwd});
+		set_env(pinfo.env, pinfo.env_len, can_load_env_from_proc);
+		update_cwd({pinfo.cwd});
 	}
-	m_flags |= pi->flags;
+	m_flags |= pinfo.flags;
 	m_flags |= PPM_CL_ACTIVE;  // Assume that all the threads coming from /proc are real, active
 	                           // threads
 	m_fdtable.clear();
 	m_fdtable.set_tid(m_tid);
-	m_fdlimit = pi->fdlimit;
+	m_fdlimit = pinfo.fdlimit;
 
-	m_cap_permitted = pi->cap_permitted;
-	m_cap_effective = pi->cap_effective;
-	m_cap_inheritable = pi->cap_inheritable;
+	m_cap_permitted = pinfo.cap_permitted;
+	m_cap_effective = pinfo.cap_effective;
+	m_cap_inheritable = pinfo.cap_inheritable;
 
-	m_exe_ino = pi->exe_ino;
-	m_exe_ino_ctime = pi->exe_ino_ctime;
-	m_exe_ino_mtime = pi->exe_ino_mtime;
-	m_exe_ino_ctime_duration_clone_ts = pi->exe_ino_ctime_duration_clone_ts;
-	m_exe_ino_ctime_duration_pidns_start = pi->exe_ino_ctime_duration_pidns_start;
+	m_exe_ino = pinfo.exe_ino;
+	m_exe_ino_ctime = pinfo.exe_ino_ctime;
+	m_exe_ino_mtime = pinfo.exe_ino_mtime;
+	m_exe_ino_ctime_duration_clone_ts = pinfo.exe_ino_ctime_duration_clone_ts;
+	m_exe_ino_ctime_duration_pidns_start = pinfo.exe_ino_ctime_duration_pidns_start;
 
-	m_vmsize_kb = pi->vmsize_kb;
-	m_vmrss_kb = pi->vmrss_kb;
-	m_vmswap_kb = pi->vmswap_kb;
-	m_pfmajor = pi->pfmajor;
-	m_pfminor = pi->pfminor;
-	m_vtid = pi->vtid;
-	m_vpid = pi->vpid;
-	m_pidns_init_start_ts = pi->pidns_init_start_ts;
-	m_clone_ts = pi->clone_ts;
+	m_vmsize_kb = pinfo.vmsize_kb;
+	m_vmrss_kb = pinfo.vmrss_kb;
+	m_vmswap_kb = pinfo.vmswap_kb;
+	m_pfmajor = pinfo.pfmajor;
+	m_pfminor = pinfo.pfminor;
+	m_vtid = pinfo.vtid;
+	m_vpid = pinfo.vpid;
+	m_pidns_init_start_ts = pinfo.pidns_init_start_ts;
+	m_clone_ts = pinfo.clone_ts;
 	m_lastexec_ts = 0;
-	m_tty = pi->tty;
+	m_tty = pinfo.tty;
 
-	set_cgroups(pi->cgroups.path, pi->cgroups.len);
-	m_root = pi->root;
+	set_cgroups(pinfo.cgroups.path, pinfo.cgroups.len);
+	m_root = pinfo.root;
 	ASSERT(m_inspector);
 
-	set_group(pi->gid);
-	set_user(pi->uid);
-	set_loginuid((uint32_t)pi->loginuid);
+	set_group(pinfo.gid);
+	set_user(pinfo.uid);
+	set_loginuid((uint32_t)pinfo.loginuid);
 }
 
 const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
@@ -566,8 +566,8 @@ void sinsp_threadinfo::set_args(const std::vector<std::string>& args) {
 	}
 }
 
-void sinsp_threadinfo::set_env(const char* env, size_t len) {
-	if(len == SCAP_MAX_ENV_SIZE && m_inspector->large_envs_enabled()) {
+void sinsp_threadinfo::set_env(const char* const env, size_t len, const bool can_load_from_proc) {
+	if(len == SCAP_MAX_ENV_SIZE && can_load_from_proc) {
 		// the environment is possibly truncated, try to read from /proc
 		// this may fail for short-lived processes
 		if(set_env_from_proc()) {
@@ -576,14 +576,14 @@ void sinsp_threadinfo::set_env(const char* env, size_t len) {
 			                          m_pid,
 			                          m_comm.c_str());
 			return;
-		} else {
-			libsinsp_logger()->format(sinsp_logger::SEV_INFO,
-			                          "Failed to load environment for process %lu [%s] from /proc, "
-			                          "using first %d bytes",
-			                          m_pid,
-			                          m_comm.c_str(),
-			                          SCAP_MAX_ENV_SIZE);
 		}
+
+		libsinsp_logger()->format(sinsp_logger::SEV_INFO,
+		                          "Failed to load environment for process %lu [%s] from /proc, "
+		                          "using first %d bytes",
+		                          m_pid,
+		                          m_comm.c_str(),
+		                          SCAP_MAX_ENV_SIZE);
 	}
 
 	if(len > 0 && env[len - 1] == '\0') {

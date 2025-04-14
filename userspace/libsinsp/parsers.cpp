@@ -48,6 +48,7 @@ sinsp_parser::sinsp_parser(
         const sinsp_threadinfo_factory &threadinfo_factory,
         const sinsp_fdinfo_factory &fdinfo_factory,
         const std::shared_ptr<const sinsp_plugin> &input_plugin,
+        const bool &large_envs_enabled,
         const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
         const std::shared_ptr<sinsp_thread_manager> &thread_manager,
         const std::shared_ptr<sinsp_usergroup_manager> &usergroup_manager,
@@ -67,6 +68,7 @@ sinsp_parser::sinsp_parser(
         m_threadinfo_factory{threadinfo_factory},
         m_fdinfo_factory{fdinfo_factory},
         m_input_plugin{input_plugin},
+        m_large_envs_enabled{large_envs_enabled},
         m_plugin_manager{plugin_manager},
         m_thread_manager{thread_manager},
         m_usergroup_manager{usergroup_manager},
@@ -1930,6 +1932,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 		ASSERT(false);
 	}
 
+	const auto can_load_env_from_proc = is_large_envs_enabled();
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
@@ -1937,12 +1940,12 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	case PPME_SYSCALL_EXECVE_14_X:
 		// Get the environment
 		parinfo = evt->get_param(13);
-		evt->get_tinfo()->set_env(parinfo->m_val, parinfo->m_len);
+		evt->get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
 		break;
 	case PPME_SYSCALL_EXECVE_15_X:
 		// Get the environment
 		parinfo = evt->get_param(14);
-		evt->get_tinfo()->set_env(parinfo->m_val, parinfo->m_len);
+		evt->get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
@@ -1951,7 +1954,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
-		evt->get_tinfo()->set_env(parinfo->m_val, parinfo->m_len);
+		evt->get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
 
 		//
 		// Set cgroups and heuristically detect container id
