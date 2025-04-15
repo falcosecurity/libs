@@ -946,7 +946,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				memcpy(&addr.m_port, param->m_val + 5, sizeof(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv4serveraddr_to_string(
-				        &addr,
+				        addr,
 				        m_inspector->is_hostname_and_port_resolution_enabled());
 				snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%s", straddr.c_str());
 			} else {
@@ -962,7 +962,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				memcpy(&addr.m_port, param->m_val + 17, sizeof(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv6serveraddr_to_string(
-				        &addr,
+				        addr,
 				        m_inspector->is_hostname_and_port_resolution_enabled());
 				snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%s", straddr.c_str());
 			} else {
@@ -985,7 +985,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				addr.m_fields.m_l4proto =
 				        (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr =
-				        ipv4tuple_to_string(&addr,
+				        ipv4tuple_to_string(addr,
 				                            m_inspector->is_hostname_and_port_resolution_enabled());
 				snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%s", straddr.c_str());
 			} else {
@@ -1009,7 +1009,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 					addr.m_fields.m_l4proto =
 					        (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 					std::string straddr = ipv4tuple_to_string(
-					        &addr,
+					        addr,
 					        m_inspector->is_hostname_and_port_resolution_enabled());
 
 					snprintf(&m_paramstr_storage[0],

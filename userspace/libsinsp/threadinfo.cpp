@@ -198,7 +198,7 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc(const bool resolve_hostname_
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
 				fdi.m_name =
-				        ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info, resolve_hostname_and_port);
+				        ipv4tuple_to_string(fdi.m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 
 				fdi.set_role_server();
 			} else {
@@ -232,13 +232,13 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 		}
 		m_inspector->get_ifaddr_list().update_fd(*newfdi);
 		newfdi->m_name =
-		        ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
+		        ipv4tuple_to_string(newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_ip = fdi.info.ipv4serverinfo.ip;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi.info.ipv4serverinfo.port;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi.info.ipv4serverinfo.l4proto;
-		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo,
+		newfdi->m_name = ipv4serveraddr_to_string(newfdi->m_sockinfo.m_ipv4serverinfo,
 		                                          resolve_hostname_and_port);
 
 		//
@@ -268,7 +268,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 			}
 			m_inspector->get_ifaddr_list().update_fd(*newfdi);
 			newfdi->m_name =
-			        ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
+			        ipv4tuple_to_string(newfdi->m_sockinfo.m_ipv4info, resolve_hostname_and_port);
 		} else {
 			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b,
 			                  fdi.info.ipv6info.sip);
@@ -281,14 +281,14 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
 			newfdi->m_name =
-			        ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, resolve_hostname_and_port);
+			        ipv6tuple_to_string(newfdi->m_sockinfo.m_ipv6info, resolve_hostname_and_port);
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
 		copy_ipv6_address(newfdi->m_sockinfo.m_ipv6serverinfo.m_ip.m_b, fdi.info.ipv6serverinfo.ip);
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_port = fdi.info.ipv6serverinfo.port;
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi.info.ipv6serverinfo.l4proto;
-		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo,
+		newfdi->m_name = ipv6serveraddr_to_string(newfdi->m_sockinfo.m_ipv6serverinfo,
 		                                          resolve_hostname_and_port);
 
 		//

@@ -469,7 +469,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo,
 			addr.m_fields.m_dip = sinfo->m_ipv4info.m_fields.m_dip;
 			addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 			addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
-			std::string straddr = ipv4tuple_to_string(&addr, resolve);
+			std::string straddr = ipv4tuple_to_string(addr, resolve);
 			snprintf(targetbuf, targetbuf_size, "%s", straddr.c_str());
 		} else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
 		          sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW) {
@@ -502,7 +502,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo,
 				memcpy(&addr.m_fields.m_dip, dip, sizeof(uint32_t));
 				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
-				std::string straddr = ipv4tuple_to_string(&addr, resolve);
+				std::string straddr = ipv4tuple_to_string(addr, resolve);
 				snprintf(targetbuf, targetbuf_size, "%s", straddr.c_str());
 				return true;
 			} else {
@@ -968,7 +968,7 @@ std::string sinsp_gethostname() {
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve) {
+std::string port_to_string(const uint16_t port, const uint8_t l4proto, const bool resolve) {
 	std::string ret = "";
 	if(resolve) {
 		std::string proto = "";
@@ -979,8 +979,9 @@ std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve) {
 		}
 
 		// `port` is saved with network byte order
-		struct servent* res;
-		res = getservbyport(ntohs(port), (proto != "") ? proto.c_str() : NULL);  // best effort!
+		struct servent* res =
+		        getservbyport(ntohs(port),
+		                      (proto != "") ? proto.c_str() : nullptr);  // best effort!
 		if(res) {
 			ret = res->s_name;
 		} else {
@@ -993,9 +994,9 @@ std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve) {
 	return ret;
 }
 
-std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve) {
+std::string ipv4serveraddr_to_string(const ipv4serverinfo& addr, const bool resolve) {
 	char buf[50];
-	uint8_t* ip = (uint8_t*)&addr->m_ip;
+	const auto ip = reinterpret_cast<const uint8_t*>(&addr.m_ip);
 
 	// IP address is in network byte order regardless of host endianness
 	snprintf(buf,
@@ -1005,56 +1006,52 @@ std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve) {
 	         ip[1],
 	         ip[2],
 	         ip[3],
-	         port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	         port_to_string(addr.m_port, addr.m_l4proto, resolve).c_str());
 
 	return std::string(buf);
 }
 
-std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve) {
-	char buf[100];
-
+std::string ipv4tuple_to_string(const ipv4tuple& tuple, const bool resolve) {
 	ipv4serverinfo info;
 
-	info.m_ip = tuple->m_fields.m_sip;
-	info.m_port = tuple->m_fields.m_sport;
-	info.m_l4proto = tuple->m_fields.m_l4proto;
-	std::string source = ipv4serveraddr_to_string(&info, resolve);
+	info.m_ip = tuple.m_fields.m_sip;
+	info.m_port = tuple.m_fields.m_sport;
+	info.m_l4proto = tuple.m_fields.m_l4proto;
+	const auto source = ipv4serveraddr_to_string(info, resolve);
 
-	info.m_ip = tuple->m_fields.m_dip;
-	info.m_port = tuple->m_fields.m_dport;
-	info.m_l4proto = tuple->m_fields.m_l4proto;
-	std::string dest = ipv4serveraddr_to_string(&info, resolve);
+	info.m_ip = tuple.m_fields.m_dip;
+	info.m_port = tuple.m_fields.m_dport;
+	info.m_l4proto = tuple.m_fields.m_l4proto;
+	const auto dest = ipv4serveraddr_to_string(info, resolve);
 
+	char buf[100];
 	snprintf(buf, sizeof(buf), "%s->%s", source.c_str(), dest.c_str());
-
 	return std::string(buf);
 }
 
-std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve) {
+std::string ipv6serveraddr_to_string(const ipv6serverinfo& addr, const bool resolve) {
 	char address[100];
-	char buf[200];
-
-	if(NULL == inet_ntop(AF_INET6, addr->m_ip.m_b, address, 100)) {
+	if(!inet_ntop(AF_INET6, addr.m_ip.m_b, address, 100)) {
 		return std::string();
 	}
 
+	char buf[200];
 	snprintf(buf,
 	         200,
 	         "%s:%s",
 	         address,
-	         port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
-
+	         port_to_string(addr.m_port, addr.m_l4proto, resolve).c_str());
 	return std::string(buf);
 }
 
-std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve) {
+std::string ipv6tuple_to_string(const ipv6tuple& tuple, const bool resolve) {
 	char source_address[INET6_ADDRSTRLEN];
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100)) {
+	if(!inet_ntop(AF_INET6, tuple.m_fields.m_sip.m_b, source_address, 100)) {
 		return std::string();
 	}
 
 	char destination_address[INET6_ADDRSTRLEN];
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100)) {
+	if(!inet_ntop(AF_INET6, tuple.m_fields.m_dip.m_b, destination_address, 100)) {
 		return std::string();
 	}
 
@@ -1063,9 +1060,9 @@ std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve) {
 	         sizeof(buf),
 	         "%s:%s->%s:%s",
 	         source_address,
-	         port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
+	         port_to_string(tuple.m_fields.m_sport, tuple.m_fields.m_l4proto, resolve).c_str(),
 	         destination_address,
-	         port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
+	         port_to_string(tuple.m_fields.m_dport, tuple.m_fields.m_l4proto, resolve).c_str());
 
 	return std::string(buf);
 }
