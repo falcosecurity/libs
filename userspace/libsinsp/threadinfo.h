@@ -530,7 +530,8 @@ public:
 
 	void init();
 	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
-	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
+	void fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
+	                                  bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 	sinsp_fdinfo* add_fd_from_scap(const scap_fdinfo& fdi, bool resolve_hostname_and_port);
 	void remove_fd(int64_t fd);
