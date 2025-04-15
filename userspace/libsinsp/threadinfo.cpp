@@ -241,14 +241,6 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi.info.ipv4serverinfo.l4proto;
 		newfdi->m_name = ipv4serveraddr_to_string(newfdi->m_sockinfo.m_ipv4serverinfo,
 		                                          resolve_hostname_and_port);
-
-		//
-		// We keep note of all the host bound server ports.
-		// We'll need them later when patching connections direction.
-		//
-		m_inspector->m_thread_manager->m_server_ports.insert(
-		        newfdi->m_sockinfo.m_ipv4serverinfo.m_port);
-
 		break;
 	case SCAP_FD_IPV6_SOCK:
 		if(sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi.info.ipv6info.sip) &&
@@ -291,14 +283,6 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi.info.ipv6serverinfo.l4proto;
 		newfdi->m_name = ipv6serveraddr_to_string(newfdi->m_sockinfo.m_ipv6serverinfo,
 		                                          resolve_hostname_and_port);
-
-		//
-		// We keep note of all the host bound server ports.
-		// We'll need them later when patching connections direction.
-		//
-		m_inspector->m_thread_manager->m_server_ports.insert(
-		        newfdi->m_sockinfo.m_ipv6serverinfo.m_port);
-
 		break;
 	case SCAP_FD_UNIX_SOCK:
 		newfdi->m_sockinfo.m_unixinfo.m_fields.m_source = fdi.info.unix_socket_info.source;

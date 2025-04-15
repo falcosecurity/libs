@@ -78,7 +78,6 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-
 	const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid,
 	                                              bool query_os_if_not_found = false,
 	                                              bool lookup_only = true,
@@ -207,6 +206,22 @@ public:
 	constexpr static auto s_containers_table_field_user = "user";
 	constexpr static auto s_containers_table_field_ip = "ip";
 	constexpr static auto s_container_id_field_name = "container_id";
+
+	/*!
+	  \brief Account the file descriptor for the provided thread.
+
+	  \param tinfo The thread the provided fd must be accounted to.
+	  \param fdinfo The file descriptor the provided thread must be accounted for.
+	  \param resolve_hostname_and_port A flag indicating if, in case of socket file descriptors, the
+	    hostname and port must be resolved.
+
+	  \return the \ref sinsp_fdinfo object containing full file descriptor information.
+
+	  \note tinfo must be a reference to a thread that is already present in the thread table.
+	*/
+	sinsp_fdinfo* add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
+	                                      const scap_fdinfo& fdinfo,
+	                                      bool resolve_hostname_and_port);
 
 private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);

@@ -607,6 +607,32 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 	sctinfo->filtered_out = tinfo.m_filtered_out;
 }
 
+sinsp_fdinfo* sinsp_thread_manager::add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
+                                                            const scap_fdinfo& fdinfo,
+                                                            const bool resolve_hostname_and_port) {
+	const auto newfdinfo = tinfo.add_fd_from_scap(fdinfo, resolve_hostname_and_port);
+	if(!newfdinfo) {
+		return nullptr;
+	}
+
+	// We keep note of all the host bound server ports. We'll need them later when patching
+	// connections direction.
+	uint16_t server_port;
+	switch(newfdinfo->m_type) {
+	case SCAP_FD_IPV4_SERVSOCK:
+		server_port = newfdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+		break;
+	case SCAP_FD_IPV6_SERVSOCK:
+		server_port = newfdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+		break;
+	default:
+		return newfdinfo;
+	}
+
+	m_server_ports.insert(server_port);
+	return newfdinfo;
+}
+
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	if(m_threadtable.size() == 0) {
 		return;
