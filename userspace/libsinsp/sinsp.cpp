@@ -986,7 +986,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 		}
 
 		const auto added_fdinfo =
-		        sinsp_tinfo->add_fd_from_scap(*fdinfo, m_hostname_and_port_resolution_enabled);
+		        m_thread_manager->add_thread_fd_from_scap(*sinsp_tinfo,
+		                                                  *fdinfo,
+		                                                  m_hostname_and_port_resolution_enabled);
 		if(m_filter != nullptr && m_mode.is_capture()) {
 			// in case the inspector is configured with an internal filter, we can
 			// filter-out thread infos (and their fd infos) to not dump them in
