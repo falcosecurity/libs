@@ -184,30 +184,29 @@ sinsp_threadinfo::~sinsp_threadinfo() {
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
                                                     const bool resolve_hostname_and_port) {
-	m_fdtable.loop(
-	        [this, resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
-		        if(fdi.m_type != SCAP_FD_IPV4_SOCK) {
-			        return true;
-		        }
+	m_fdtable.loop([resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
+		if(fdi.m_type != SCAP_FD_IPV4_SOCK) {
+			return true;
+		}
 
-		        auto& ipv4_tuple = fdi.m_sockinfo.m_ipv4info;
-		        auto& ipv4_tuple_fields = ipv4_tuple.m_fields;
+		auto& ipv4_tuple = fdi.m_sockinfo.m_ipv4info;
+		auto& ipv4_tuple_fields = ipv4_tuple.m_fields;
 
-		        if(ipv4_server_ports.find(ipv4_tuple_fields.m_sport) == ipv4_server_ports.end()) {
-			        fdi.set_role_client();
-			        return true;
-		        }
+		if(ipv4_server_ports.find(ipv4_tuple_fields.m_sport) == ipv4_server_ports.end()) {
+			fdi.set_role_client();
+			return true;
+		}
 
-		        const uint32_t tip = ipv4_tuple_fields.m_sip;
-		        const uint16_t tport = ipv4_tuple_fields.m_sport;
-		        ipv4_tuple_fields.m_sip = ipv4_tuple_fields.m_dip;
-		        ipv4_tuple_fields.m_dip = tip;
-		        ipv4_tuple_fields.m_sport = ipv4_tuple_fields.m_dport;
-		        ipv4_tuple_fields.m_dport = tport;
-		        fdi.m_name = ipv4tuple_to_string(ipv4_tuple, resolve_hostname_and_port);
-		        fdi.set_role_server();
-		        return true;
-	        });
+		const uint32_t tip = ipv4_tuple_fields.m_sip;
+		const uint16_t tport = ipv4_tuple_fields.m_sport;
+		ipv4_tuple_fields.m_sip = ipv4_tuple_fields.m_dip;
+		ipv4_tuple_fields.m_dip = tip;
+		ipv4_tuple_fields.m_sport = ipv4_tuple_fields.m_dport;
+		ipv4_tuple_fields.m_dport = tport;
+		fdi.m_name = ipv4tuple_to_string(ipv4_tuple, resolve_hostname_and_port);
+		fdi.set_role_server();
+		return true;
+	});
 }
 
 sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
