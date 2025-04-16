@@ -25,19 +25,9 @@ limitations under the License.
 
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
-sinsp_fdtable::sinsp_fdtable(const sinsp_mode& sinsp_mode,
-                             const uint32_t max_table_size,
-                             const sinsp_fdinfo_factory& fdinfo_factory,
-                             const std::shared_ptr<const sinsp_plugin>& input_plugin,
-                             const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-                             scap_platform* const& scap_platform):
+sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
         built_in_table{"file_descriptors", &s_fdtable_static_fields},
-        m_sinsp_mode{sinsp_mode},
-        m_max_table_size{max_table_size},
-        m_fdinfo_factory{fdinfo_factory},
-        m_input_plugin{input_plugin},
-        m_sinsp_stats_v2{sinsp_stats_v2},
-        m_scap_platform{scap_platform},
+        m_params{params},
         m_tid{0} {
 	reset_cache();
 }
@@ -47,8 +37,8 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 	// Try looking up in our simple cache
 	//
 	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd) {
-		if(m_sinsp_stats_v2) {
-			m_sinsp_stats_v2->m_n_cached_fd_lookups++;
+		if(m_params->m_sinsp_stats_v2) {
+			m_params->m_sinsp_stats_v2->m_n_cached_fd_lookups++;
 		}
 		return m_last_accessed_fdinfo;
 	}
@@ -59,13 +49,13 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 	auto fdit = m_table.find(fd);
 
 	if(fdit == m_table.end()) {
-		if(m_sinsp_stats_v2) {
-			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+		if(m_params->m_sinsp_stats_v2) {
+			m_params->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
 		return m_nullptr_ret;
 	} else {
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
 		}
 
 		m_last_accessed_fd = fd;
@@ -95,13 +85,13 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 	//   b. table size is over the limit, discard the fd
 	// 2. fd is already in the table, replace it
 	if(it == m_table.end()) {
-		if(m_table.size() < m_max_table_size) {
+		if(m_table.size() < m_params->m_max_table_size) {
 			//
 			// No entry in the table, this is the normal case
 			//
 			m_last_accessed_fd = -1;
-			if(m_sinsp_stats_v2 != nullptr) {
-				m_sinsp_stats_v2->m_n_added_fds++;
+			if(m_params->m_sinsp_stats_v2 != nullptr) {
+				m_params->m_sinsp_stats_v2->m_n_added_fds++;
 			}
 
 			return m_table.emplace(fd, std::move(fdinfo)).first->second;
@@ -161,15 +151,15 @@ bool sinsp_fdtable::erase(int64_t fd) {
 		// call that created this fd. The assertion will detect it, while in release mode we just
 		// keep going.
 		//
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
 		return false;
 	} else {
 		m_table.erase(fdit);
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
-			m_sinsp_stats_v2->m_n_removed_fds++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+			m_params->m_sinsp_stats_v2->m_n_removed_fds++;
 		}
 		return true;
 	}
@@ -189,7 +179,8 @@ void sinsp_fdtable::reset_cache() {
 
 void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #ifndef _WIN32
-	if(m_sinsp_mode.is_offline() || (m_sinsp_mode.is_plugin() && !is_syscall_plugin_enabled())) {
+	if(m_params->m_sinsp_mode.is_offline() ||
+	   (m_params->m_sinsp_mode.is_plugin() && !is_syscall_plugin_enabled())) {
 		return;
 	}
 
@@ -197,7 +188,7 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 	   fdi.m_mount_id != 0) {
 		char procdir[SCAP_MAX_PATH_SIZE];
 		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
-		fdi.m_dev = scap_get_device_by_mount_id(m_scap_platform, procdir, fdi.m_mount_id);
+		fdi.m_dev = scap_get_device_by_mount_id(m_params->m_scap_platform, procdir, fdi.m_mount_id);
 		fdi.m_mount_id = 0;  // don't try again
 	}
 #endif  // _WIN32
@@ -212,7 +203,7 @@ sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
-	return m_fdinfo_factory.create();
+	return m_params->m_fdinfo_factory.create();
 };
 
 std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key) {

@@ -17,43 +17,17 @@ limitations under the License.
 */
 
 #pragma once
-#include <libsinsp/sinsp_mode.h>
-#include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/fdtable.h>
-
-struct sinsp_stats_v2;
 
 /*!
   \brief Factory hiding sinsp_fdtable creation details.
 */
 class sinsp_fdtable_factory {
-	const sinsp_mode& m_sinsp_mode;
-	const uint32_t m_max_table_size;
-	const sinsp_fdinfo_factory& m_fdinfo_factory;
-	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
-	const std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	scap_platform* const& m_scap_platform;
+	const std::shared_ptr<sinsp_fdtable::ctor_params>& m_params;
 
 public:
-	sinsp_fdtable_factory(const sinsp_mode& sinsp_mode,
-	                      const uint32_t max_table_size,
-	                      const sinsp_fdinfo_factory& fdinfo_factory,
-	                      const std::shared_ptr<const sinsp_plugin>& input_plugin,
-	                      const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-	                      scap_platform* const& scap_platform):
-	        m_sinsp_mode{sinsp_mode},
-	        m_max_table_size{max_table_size},
-	        m_fdinfo_factory{fdinfo_factory},
-	        m_input_plugin{input_plugin},
-	        m_sinsp_stats_v2{sinsp_stats_v2},
-	        m_scap_platform{scap_platform} {}
+	explicit sinsp_fdtable_factory(const std::shared_ptr<sinsp_fdtable::ctor_params>& params):
+	        m_params{params} {}
 
-	sinsp_fdtable create() const {
-		return sinsp_fdtable{m_sinsp_mode,
-		                     m_max_table_size,
-		                     m_fdinfo_factory,
-		                     m_input_plugin,
-		                     m_sinsp_stats_v2,
-		                     m_scap_platform};
-	}
+	sinsp_fdtable create() const { return sinsp_fdtable{m_params}; }
 };
