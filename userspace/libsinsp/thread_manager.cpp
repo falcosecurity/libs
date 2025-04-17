@@ -168,10 +168,10 @@ void sinsp_thread_manager::create_thread_dependencies(
 	}
 
 	/* Create the thread group info for the thread. */
-	auto tginfo = m_inspector->m_thread_manager->get_thread_group_info(tinfo->m_pid);
+	auto tginfo = get_thread_group_info(tinfo->m_pid);
 	if(tginfo == nullptr) {
 		tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, reaper, tinfo);
-		m_inspector->m_thread_manager->set_thread_group_info(tinfo->m_pid, tginfo);
+		set_thread_group_info(tinfo->m_pid, tginfo);
 	} else {
 		tginfo->add_thread_to_group(tinfo, tinfo->is_main_thread());
 	}
@@ -204,7 +204,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * Here we avoid scanning `/proc` to not trigger a possible recursion
 	 * on all the parents
 	 */
-	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
+	const auto parent_thread = get_thread_ref(tinfo->m_ptid, false);
 	if(parent_thread == nullptr || parent_thread->is_invalid()) {
 		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
 		tinfo->m_ptid = 0;
@@ -445,7 +445,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 			 * We should have the reaper thread in the table, but if we don't have
 			 * it, we try to create it from /proc
 			 */
-			reaper_tinfo = m_inspector->get_thread_ref(thread_to_remove->m_reaper_tid, true).get();
+			reaper_tinfo = get_thread_ref(thread_to_remove->m_reaper_tid, true).get();
 		}
 
 		if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid()) {
@@ -770,10 +770,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	});
 }
 
-const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
-                                                                    bool query_os_if_not_found,
-                                                                    bool lookup_only,
-                                                                    bool main_thread) {
+const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(
+        const int64_t tid,
+        const bool query_os_if_not_found,
+        const bool lookup_only,
+        const bool main_thread) {
 	const auto& sinsp_proc = find_thread(tid, lookup_only);
 
 	if(!sinsp_proc && query_os_if_not_found &&
