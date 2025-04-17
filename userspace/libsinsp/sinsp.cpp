@@ -346,9 +346,9 @@ void sinsp::init() {
 	m_thread_manager->fix_sockets_coming_from_proc(m_hostname_and_port_resolution_enabled);
 
 	//
-	// Load state table API field accessors
+	// Load state table API field accessors and tables
 	//
-	m_thread_manager->load_foreign_fields_accessors();
+	set_thread_manager_foreign_accessors_and_tables();
 
 	// If we are in capture, this is already called by consume_initialstate_events
 	if(!is_capture() && m_external_event_processor) {
@@ -385,6 +385,31 @@ void sinsp::init() {
 		(void)res;
 	}
 	m_inited = true;
+}
+
+void sinsp::set_thread_manager_foreign_accessors_and_tables() const {
+	std::vector<sinsp_thread_manager::foreign_field_accessor_entry> accessors;
+	std::vector<sinsp_thread_manager::foreign_table_entry> tables;
+
+	// Add "container_id" accessor.
+	const auto& container_id_field_name = sinsp_thread_manager::s_container_id_field_name;
+	const auto& fields = m_thread_manager->dynamic_fields()->fields();
+	if(const auto field = fields.find(container_id_field_name); field != fields.end()) {
+		accessors.emplace_back(container_id_field_name, field->second.new_accessor<std::string>());
+	}
+
+	// Add "containers" table.
+	const auto& containers_table_name = sinsp_thread_manager::s_containers_table_name;
+	const auto containers_table = dynamic_cast<libsinsp::state::base_table*>(
+	        get_table_registry()->get_table<std::string>(containers_table_name));
+	if(containers_table != nullptr) {
+		tables.emplace_back(containers_table_name, containers_table);
+	}
+
+	// Add other accessors/tables here
+
+	m_thread_manager->set_foreign_field_accessors(accessors);
+	m_thread_manager->set_foreign_tables(tables);
 }
 
 void sinsp::set_import_users(bool import_users) {

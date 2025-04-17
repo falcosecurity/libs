@@ -56,7 +56,30 @@ public:
 	inline bool remove_inactive_threads();
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
 	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
-	void load_foreign_fields_accessors();
+
+	typedef std::pair<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
+	        foreign_field_accessor_entry;
+	/*!
+	  \brief Set the list of foreign field accessors. Any previously set foreign field accessor is
+	    unset.
+	  \param accessors A list of {field_name, field_accessor} pairs.
+	 */
+	void set_foreign_field_accessors(const std::vector<foreign_field_accessor_entry>& accessors) {
+		m_foreign_fields_accessors = std::map{accessors.cbegin(), accessors.cend()};
+	}
+
+	typedef std::pair<std::string, base_table*> foreign_table_entry;
+	/*!
+	  \brief Set the list of foreign tables. Any previously set foreign table is unset.
+	  \param tables A list of {table_name, table} pairs.
+	 */
+	void set_foreign_tables(const std::vector<foreign_table_entry>& tables) {
+		m_foreign_tables.clear();
+		for(const auto& [name, table] : tables) {
+			m_foreign_tables.emplace(name, sinsp_table<std::string>(this, table));
+		}
+	}
+
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
 	/*!
