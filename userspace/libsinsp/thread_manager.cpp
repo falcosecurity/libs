@@ -518,25 +518,6 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostn
 	});
 }
 
-void sinsp_thread_manager::load_foreign_fields_accessors() {
-	// Load "container_id" accessor
-	if(const auto dyn_field = dynamic_fields()->fields().find(s_container_id_field_name);
-	   dyn_field != dynamic_fields()->fields().end()) {
-		m_foreign_fields_accessors.emplace(s_container_id_field_name,
-		                                   dyn_field->second.new_accessor<std::string>());
-	}
-
-	auto containers = dynamic_cast<libsinsp::state::base_table*>(
-	        m_inspector->get_table_registry()->get_table<std::string>(
-	                sinsp_thread_manager::s_containers_table_name));
-	if(containers != nullptr) {
-		m_foreign_tables.emplace(sinsp_thread_manager::s_containers_table_name,
-		                         sinsp_table<std::string>(this, containers));
-	}
-
-	// Add other accessors/tables here
-}
-
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo) {
 	sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL) {

@@ -877,6 +877,7 @@ private:
 	                 struct scap_platform* platform,
 	                 sinsp_mode_t mode);
 	void init();
+	void set_thread_manager_foreign_accessors_and_tables() const;
 	void deinit_state();
 	void consume_initialstate_events();
 	bool is_initialstate_event(scap_evt* pevent) const;
