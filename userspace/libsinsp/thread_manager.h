@@ -171,23 +171,19 @@ public:
 		return nullptr;
 	}
 
-	inline const std::shared_ptr<thread_group_info>& get_thread_group_info(int64_t pid) const {
-		auto tgroup = m_thread_groups.find(pid);
-		if(tgroup != m_thread_groups.end()) {
+	const std::shared_ptr<thread_group_info>& get_thread_group_info(const int64_t pid) const {
+		if(const auto tgroup = m_thread_groups.find(pid); tgroup != m_thread_groups.end()) {
 			return tgroup->second;
 		}
 		return m_nullptr_tginfo_ret;
 	}
 
-	inline void set_thread_group_info(int64_t pid,
-	                                  const std::shared_ptr<thread_group_info>& tginfo) {
-		/* It should be impossible to have a pid conflict...
-		 * Right now we manage it but we could also remove it.
-		 */
-		auto ret = m_thread_groups.insert({pid, tginfo});
-		if(!ret.second) {
-			m_thread_groups.erase(ret.first);
-			m_thread_groups.insert({pid, tginfo});
+	void set_thread_group_info(const int64_t pid,
+	                           const std::shared_ptr<thread_group_info>& tginfo) {
+		// It should be impossible to have a pid conflict. Right now we manage it by replacing the
+		// old entry with the new one.
+		if(const auto [it, inserted] = m_thread_groups.emplace(pid, tginfo); !inserted) {
+			it->second = tginfo;
 		}
 	}
 
