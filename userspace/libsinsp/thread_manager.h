@@ -156,8 +156,8 @@ public:
 		return false;
 	}
 
-	inline const libsinsp::state::dynamic_struct::field_accessor<std::string>* get_field_accessor(
-	        std::string field) {
+	const libsinsp::state::dynamic_struct::field_accessor<std::string>* get_field_accessor(
+	        const std::string& field) const {
 		if(m_foreign_fields_accessors.count(field) > 0) {
 			return &m_foreign_fields_accessors.at(field);
 		}
