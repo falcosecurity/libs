@@ -51,7 +51,6 @@ struct erase_fd_params {
 	int64_t m_fd;
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo* m_fdinfo;
-	uint64_t m_ts;
 };
 
 /** @defgroup state State management
