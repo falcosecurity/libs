@@ -185,6 +185,7 @@ sinsp::sinsp(bool with_metrics):
 	m_is_dumping = false;
 	m_parser_tmp_evt = sinsp_evt{this};
 	m_thread_manager = std::make_shared<sinsp_thread_manager>(m_threadinfo_factory,
+	                                                          m_observer,
 	                                                          this,
 	                                                          m_thread_manager_dyn_fields,
 	                                                          m_fdtable_dyn_fields);
