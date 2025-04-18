@@ -37,50 +37,48 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 	dest[3] = src[3];
 }
 
-static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
-	dst->type = src->m_type;
-	dst->ino = src->m_ino;
-	dst->fd = src->m_fd;
+static void fd_to_scap(scap_fdinfo& dst, const sinsp_fdinfo& src) {
+	dst.type = src.m_type;
+	dst.ino = src.m_ino;
+	dst.fd = src.m_fd;
 
-	switch(dst->type) {
+	switch(dst.type) {
 	case SCAP_FD_IPV4_SOCK:
-		dst->info.ipv4info.sip = src->m_sockinfo.m_ipv4info.m_fields.m_sip;
-		dst->info.ipv4info.dip = src->m_sockinfo.m_ipv4info.m_fields.m_dip;
-		dst->info.ipv4info.sport = src->m_sockinfo.m_ipv4info.m_fields.m_sport;
-		dst->info.ipv4info.dport = src->m_sockinfo.m_ipv4info.m_fields.m_dport;
-		dst->info.ipv4info.l4proto = src->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
+		dst.info.ipv4info.sip = src.m_sockinfo.m_ipv4info.m_fields.m_sip;
+		dst.info.ipv4info.dip = src.m_sockinfo.m_ipv4info.m_fields.m_dip;
+		dst.info.ipv4info.sport = src.m_sockinfo.m_ipv4info.m_fields.m_sport;
+		dst.info.ipv4info.dport = src.m_sockinfo.m_ipv4info.m_fields.m_dport;
+		dst.info.ipv4info.l4proto = src.m_sockinfo.m_ipv4info.m_fields.m_l4proto;
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
-		dst->info.ipv4serverinfo.ip = src->m_sockinfo.m_ipv4serverinfo.m_ip;
-		dst->info.ipv4serverinfo.port = src->m_sockinfo.m_ipv4serverinfo.m_port;
-		dst->info.ipv4serverinfo.l4proto = src->m_sockinfo.m_ipv4serverinfo.m_l4proto;
+		dst.info.ipv4serverinfo.ip = src.m_sockinfo.m_ipv4serverinfo.m_ip;
+		dst.info.ipv4serverinfo.port = src.m_sockinfo.m_ipv4serverinfo.m_port;
+		dst.info.ipv4serverinfo.l4proto = src.m_sockinfo.m_ipv4serverinfo.m_l4proto;
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		copy_ipv6_address(dst->info.ipv6info.sip, src->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b);
-		copy_ipv6_address(dst->info.ipv6info.dip, src->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b);
-		dst->info.ipv6info.sport = src->m_sockinfo.m_ipv6info.m_fields.m_sport;
-		dst->info.ipv6info.dport = src->m_sockinfo.m_ipv6info.m_fields.m_dport;
-		dst->info.ipv6info.l4proto = src->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+		copy_ipv6_address(dst.info.ipv6info.sip, src.m_sockinfo.m_ipv6info.m_fields.m_sip.m_b);
+		copy_ipv6_address(dst.info.ipv6info.dip, src.m_sockinfo.m_ipv6info.m_fields.m_dip.m_b);
+		dst.info.ipv6info.sport = src.m_sockinfo.m_ipv6info.m_fields.m_sport;
+		dst.info.ipv6info.dport = src.m_sockinfo.m_ipv6info.m_fields.m_dport;
+		dst.info.ipv6info.l4proto = src.m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		copy_ipv6_address(dst->info.ipv6serverinfo.ip, src->m_sockinfo.m_ipv6serverinfo.m_ip.m_b);
-		dst->info.ipv6serverinfo.port = src->m_sockinfo.m_ipv6serverinfo.m_port;
-		dst->info.ipv6serverinfo.l4proto = src->m_sockinfo.m_ipv6serverinfo.m_l4proto;
+		copy_ipv6_address(dst.info.ipv6serverinfo.ip, src.m_sockinfo.m_ipv6serverinfo.m_ip.m_b);
+		dst.info.ipv6serverinfo.port = src.m_sockinfo.m_ipv6serverinfo.m_port;
+		dst.info.ipv6serverinfo.l4proto = src.m_sockinfo.m_ipv6serverinfo.m_l4proto;
 		break;
 	case SCAP_FD_UNIX_SOCK:
-		dst->info.unix_socket_info.source = src->m_sockinfo.m_unixinfo.m_fields.m_source;
-		dst->info.unix_socket_info.destination = src->m_sockinfo.m_unixinfo.m_fields.m_dest;
-		strlcpy(dst->info.unix_socket_info.fname,
-		        src->m_name.c_str(),
-		        sizeof(dst->info.unix_socket_info.fname));
+		dst.info.unix_socket_info.source = src.m_sockinfo.m_unixinfo.m_fields.m_source;
+		dst.info.unix_socket_info.destination = src.m_sockinfo.m_unixinfo.m_fields.m_dest;
+		strlcpy(dst.info.unix_socket_info.fname,
+		        src.m_name.c_str(),
+		        sizeof(dst.info.unix_socket_info.fname));
 		break;
 	case SCAP_FD_FILE_V2:
-		dst->info.regularinfo.open_flags = src->m_openflags;
-		strlcpy(dst->info.regularinfo.fname,
-		        src->m_name.c_str(),
-		        sizeof(dst->info.regularinfo.fname));
-		dst->info.regularinfo.dev = src->m_dev;
-		dst->info.regularinfo.mount_id = src->m_mount_id;
+		dst.info.regularinfo.open_flags = src.m_openflags;
+		strlcpy(dst.info.regularinfo.fname, src.m_name.c_str(), sizeof(dst.info.regularinfo.fname));
+		dst.info.regularinfo.dev = src.m_dev;
+		dst.info.regularinfo.mount_id = src.m_mount_id;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -97,7 +95,7 @@ static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
 	case SCAP_FD_IOURING:
 	case SCAP_FD_MEMFD:
 	case SCAP_FD_PIDFD:
-		strlcpy(dst->info.fname, src->m_name.c_str(), sizeof(dst->info.fname));
+		strlcpy(dst.info.fname, src.m_name.c_str(), sizeof(dst.info.fname));
 		break;
 	default:
 		ASSERT(false);
@@ -718,7 +716,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 				//
 				// Populate the fd info
 				//
-				fd_to_scap(scfdinfo, &info);
+				fd_to_scap(*scfdinfo, info);
 
 				//
 				// Add the new fd to the scap table.
