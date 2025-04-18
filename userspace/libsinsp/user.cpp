@@ -106,10 +106,11 @@ static struct group *__getgrgid(uint32_t gid, const std::string &host_root) {
 using namespace std;
 
 // clang-format off
-sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
+sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector, const timestamper& timestamper)
 	: m_import_users(true)
 	, m_last_flush_time_ns(0)
 	, m_inspector(inspector)
+	, m_timestamper {timestamper}
 	, m_host_root(m_inspector->get_host_root())
 #if defined(__linux__) && (defined(HAVE_PWD_H) || defined(HAVE_GRP_H))
 	, m_ns_helper(std::make_unique<libsinsp::procfs_utils::ns_helper>(m_host_root))
@@ -131,7 +132,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 		for(const auto &user : usrlist) {
 			sinsp_evt evt;
 			if(user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
-				evt.get_scap_evt()->ts = m_inspector->get_new_ts();
+				evt.get_scap_evt()->ts = m_timestamper.get_new_ts();
 				dumper.dump(&evt);
 			}
 		}
@@ -143,7 +144,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 		for(const auto &group : grplist) {
 			sinsp_evt evt;
 			if(group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
-				evt.get_scap_evt()->ts = m_inspector->get_new_ts();
+				evt.get_scap_evt()->ts = m_timestamper.get_new_ts();
 				dumper.dump(&evt);
 			}
 		}
@@ -178,17 +179,16 @@ bool sinsp_usergroup_manager::clear_host_users_groups() {
 
 	bool res = false;
 
+	const uint64_t last_event_ts = m_timestamper.get_cached_ts();
 	if(m_last_flush_time_ns == 0) {
-		m_last_flush_time_ns = m_inspector->get_lastevent_ts() -
-		                       m_inspector->m_usergroups_purging_scan_time_ns +
+		m_last_flush_time_ns = last_event_ts - m_inspector->m_usergroups_purging_scan_time_ns +
 		                       60 * ONE_SECOND_IN_NS;
 	}
 
-	if(m_inspector->get_lastevent_ts() >
-	   m_last_flush_time_ns + m_inspector->m_usergroups_purging_scan_time_ns) {
+	if(last_event_ts > m_last_flush_time_ns + m_inspector->m_usergroups_purging_scan_time_ns) {
 		res = true;
 
-		m_last_flush_time_ns = m_inspector->get_lastevent_ts();
+		m_last_flush_time_ns = last_event_ts;
 
 		// Clear everything, so that new threadinfos incoming will update
 		// user and group informations

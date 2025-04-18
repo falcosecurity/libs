@@ -32,9 +32,9 @@ class usergroup_manager_test : public sinsp_with_test_input {
 };
 
 TEST_F(usergroup_manager_test, add_rm) {
-	std::string container_id{""};
-
-	sinsp_usergroup_manager mgr(&m_inspector);
+	const std::string container_id{""};
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 	// no data so far
 	ASSERT_EQ(mgr.get_user(container_id, 0), nullptr);
 	ASSERT_EQ(mgr.get_group(container_id, 0), nullptr);
@@ -82,9 +82,9 @@ TEST_F(usergroup_manager_test, add_rm) {
 // note(jasondellaluce): emscripten has issues with getpwuid
 #if !defined(__EMSCRIPTEN__)
 TEST_F(usergroup_manager_test, system_lookup) {
-	std::string container_id{""};
-
-	sinsp_usergroup_manager mgr(&m_inspector);
+	const std::string container_id{""};
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 
 	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
 	auto* user = mgr.get_user(container_id, 0);
@@ -118,9 +118,9 @@ TEST_F(usergroup_manager_test, system_lookup) {
 #endif
 
 TEST_F(usergroup_manager_test, add_no_import_users) {
-	std::string container_id{""};
-
-	sinsp_usergroup_manager mgr(&m_inspector);
+	const std::string container_id{""};
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 	mgr.m_import_users = false;
 
 	auto* added_usr = mgr.add_user(container_id, -1, 37, 15, "test", "/test", "/bin/test");
@@ -184,9 +184,9 @@ protected:
 };
 
 TEST_F(usergroup_manager_host_root_test, host_root_lookup) {
-	std::string container_id{""};
-
-	sinsp_usergroup_manager mgr(&m_inspector);
+	const std::string container_id{""};
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 
 	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
 	auto* user = mgr.get_user(container_id, 0);
@@ -205,9 +205,9 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup) {
 }
 
 TEST_F(usergroup_manager_host_root_test, nss_user_lookup) {
-	std::string container_id;  // empty container_id means host
-
-	sinsp_usergroup_manager mgr(&m_inspector);
+	const std::string container_id;  // empty container_id means host
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
 	mgr.add_user(container_id, -1, 65534, 0, {}, {}, {});
 

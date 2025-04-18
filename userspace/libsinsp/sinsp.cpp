@@ -191,7 +191,7 @@ sinsp::sinsp(bool with_metrics):
 	                                                          m_fdtable_dyn_fields);
 	// Add thread manager table to state tables registry.
 	m_table_registry->add_table(m_thread_manager.get());
-	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this);
+	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
 	m_machine_info = NULL;

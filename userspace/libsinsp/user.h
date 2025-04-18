@@ -65,7 +65,7 @@ class ns_helper;
  */
 class sinsp_usergroup_manager {
 public:
-	explicit sinsp_usergroup_manager(sinsp *inspector);
+	explicit sinsp_usergroup_manager(sinsp *inspector, const timestamper &timestamper);
 	~sinsp_usergroup_manager() = default;
 
 	void dump_users_groups(sinsp_dumper &dumper);
@@ -197,6 +197,7 @@ private:
 	std::unordered_map<std::string, groupinfo_map> m_grouplist;
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
+	const timestamper &m_timestamper;
 
 	// User and group used as a fallback when m_import_users is disabled
 	scap_userinfo m_fallback_user;
