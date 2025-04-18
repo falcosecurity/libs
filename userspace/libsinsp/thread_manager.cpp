@@ -108,6 +108,7 @@ static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fiel
 sinsp_thread_manager::sinsp_thread_manager(
         const sinsp_threadinfo_factory& threadinfo_factory,
         sinsp_observer* const& observer,
+        const timestamper& timestamper,
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
                 thread_manager_dyn_fields,
@@ -115,6 +116,7 @@ sinsp_thread_manager::sinsp_thread_manager(
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
         m_threadinfo_factory{threadinfo_factory},
         m_observer{observer},
+        m_timestamper{timestamper},
         m_max_thread_table_size(m_thread_table_default_size),
         m_fdtable_dyn_fields{fdtable_dyn_fields} {
 	m_inspector = inspector;
@@ -861,7 +863,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 		}
 		// This allows us to avoid performing an actual timestamp lookup
 		// for something that may not need to be precise
-		m_last_tinfo->m_lastaccess_ts = m_inspector->get_lastevent_ts();
+		m_last_tinfo->m_lastaccess_ts = m_timestamper.get_cached_ts();
 		m_last_tinfo->update_main_fdtable();
 		return m_last_tinfo;
 	}
@@ -878,7 +880,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 		if(!lookup_only) {
 			m_last_tid = tid;
 			m_last_tinfo = thr;
-			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
+			thr->m_lastaccess_ts = m_timestamper.get_cached_ts();
 		}
 		thr->update_main_fdtable();
 		return thr;

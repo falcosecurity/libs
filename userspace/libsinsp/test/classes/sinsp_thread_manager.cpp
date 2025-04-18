@@ -20,8 +20,10 @@ limitations under the License.
 
 TEST(sinsp_thread_manager, remove_non_existing_thread) {
 	sinsp m_inspector;
+	const timestamper timestamper{0};
 	sinsp_thread_manager manager(m_inspector.get_threadinfo_factory(),
 	                             m_inspector.m_observer,
+	                             timestamper,
 	                             &m_inspector,
 	                             m_inspector.get_thread_manager_dyn_fields(),
 	                             m_inspector.get_fdtable_dyn_fields());
@@ -34,9 +36,11 @@ TEST(sinsp_thread_manager, remove_non_existing_thread) {
 
 TEST(sinsp_thread_manager, thread_group_manager) {
 	sinsp m_inspector;
+	const timestamper timestamper{0};
 	const auto& threadinfo_factory = m_inspector.get_threadinfo_factory();
 	sinsp_thread_manager manager(threadinfo_factory,
 	                             m_inspector.m_observer,
+	                             timestamper,
 	                             &m_inspector,
 	                             m_inspector.get_thread_manager_dyn_fields(),
 	                             m_inspector.get_fdtable_dyn_fields());
@@ -189,8 +193,10 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 
 TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
 	sinsp m_inspector;
+	const timestamper timestamper{0};
 	sinsp_thread_manager manager(m_inspector.get_threadinfo_factory(),
 	                             m_inspector.m_observer,
+	                             timestamper,
 	                             &m_inspector,
 	                             m_inspector.get_thread_manager_dyn_fields(),
 	                             m_inspector.get_fdtable_dyn_fields());
