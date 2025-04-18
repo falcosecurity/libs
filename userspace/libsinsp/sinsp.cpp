@@ -144,7 +144,7 @@ sinsp::sinsp(bool with_metrics):
         m_external_event_processor(),
         m_sinsp_stats_v2(with_metrics ? std::make_shared<sinsp_stats_v2>() : nullptr),
         m_evt(this),
-        m_lastevent_ts(0),
+        m_timestamper{0},
         m_host_root(scap_get_host_root()),
         m_thread_manager_dyn_fields{
                 std::make_shared<libsinsp::state::dynamic_struct::field_infos>()},
@@ -332,7 +332,7 @@ void sinsp::init() {
 
 	m_nevts = 0;
 	m_tid_to_remove = -1;
-	m_lastevent_ts = 0;
+	m_timestamper.reset();
 	m_firstevent_ts = 0;
 	m_fds_to_remove.clear();
 
@@ -1363,7 +1363,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	//
 	m_nevts++;
 	evt->set_num(m_nevts);
-	m_lastevent_ts = ts;
+	m_timestamper.set_cached_ts(ts);
 
 	if(m_auto_threads_purging) {
 		//
@@ -1491,7 +1491,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	if(evt->get_tinfo() && evt->get_type() != PPME_SCHEDSWITCH_1_E &&
 	   evt->get_type() != PPME_SCHEDSWITCH_6_E) {
 		evt->get_tinfo()->m_prevevent_ts = evt->get_tinfo()->m_lastevent_ts;
-		evt->get_tinfo()->m_lastevent_ts = m_lastevent_ts;
+		evt->get_tinfo()->m_lastevent_ts = m_timestamper.get_cached_ts();
 	}
 
 	//
