@@ -59,6 +59,10 @@ struct inode___v6_11 {
 	uint32_t i_ctime_nsec;
 };
 
+struct kernfs_node___v6_15 {
+	struct kernfs_node *__parent;
+};
+
 #ifndef BPF_NO_PRESERVE_ACCESS_INDEX
 #pragma clang attribute pop
 #endif

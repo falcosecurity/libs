@@ -1819,7 +1819,11 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	for(int k = 0; k < MAX_CGROUP_PATHS; ++k) {
 		if(kn) {
 			cgroup_path[k] = (char *)_READ(kn->name);
+#ifdef HAS_KERNFS_NODE_PARENT
 			kn = _READ(kn->parent);
+#else
+			kn = _READ(kn->__parent);
+#endif
 		} else {
 			cgroup_path[k] = NULL;
 		}
