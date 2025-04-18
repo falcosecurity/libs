@@ -30,7 +30,7 @@ limitations under the License.
 
 extern sinsp_evttables g_infotables;
 
-static void copy_ipv6_address(uint32_t* dest, uint32_t* src) {
+static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 	dest[0] = src[0];
 	dest[1] = src[1];
 	dest[2] = src[2];
