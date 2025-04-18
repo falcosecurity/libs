@@ -429,7 +429,7 @@ void sinsp_with_test_input::remove_inactive_threads(uint64_t m_lastevent_ts,
 
 	m_inspector.set_lastevent_ts(m_lastevent_ts);
 	m_inspector.m_thread_timeout_ns = thread_timeout;
-	m_inspector.remove_inactive_threads();
+	m_inspector.m_thread_manager->remove_inactive_threads();
 }
 
 // static

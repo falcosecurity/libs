@@ -833,8 +833,6 @@ public:
 		return (m_lastevent_ts == 0) ? sinsp_utils::get_current_time_ns() : m_lastevent_ts;
 	}
 
-	bool remove_inactive_threads();
-
 	inline const std::shared_ptr<sinsp_threadinfo>& add_thread(
 	        std::unique_ptr<sinsp_threadinfo> ptinfo) {
 		return m_thread_manager->add_thread(std::move(ptinfo), false);

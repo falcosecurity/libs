@@ -1931,10 +1931,6 @@ double sinsp::get_read_progress_with_str(std::string* progress_str) const {
 	}
 }
 
-bool sinsp::remove_inactive_threads() {
-	return m_thread_manager->remove_inactive_threads();
-}
-
 void sinsp::set_thread_timeout_s(uint32_t val) {
 	m_thread_timeout_ns = (uint64_t)val * ONE_SECOND_IN_NS;
 }
