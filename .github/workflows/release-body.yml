@@ -135,6 +135,27 @@ jobs:
           echo '!'"[SCHEMA](https://img.shields.io/badge/SCHEMA-${SCHEMA_VERS}-yellow)" >> release-body.md
           echo "" >> release-body.md
 
+      - name: Push badge to latest kernel release
+        run: |
+          wget https://gist.githubusercontent.com/FedeDP/1cbc5d42edf8e3a02fb75e76625f1072/raw/kernel.json
+          # 6.15-rc2 -> 6.15
+          # 6.10.6 -> 6.10
+          # 6.10 -> 6.10
+          KVER=$(cat kernel.json | jq '.message' | tr -d '"' | grep -oE -- '[0-9]+.[0-9]+')
+          SUCCESS=$(cat kernel.json | jq '.color' | tr -d '"')
+          # If latest run was not successful,
+          # revert back to previous kernel release.
+          # Of course, the fallback logic is bugged in case minor is 0,
+          # as we cannot know which was the previous version.
+          # It should not matter until kernel 7.0 :P
+          if [[ "$SUCCESS" = "red" ]]; then
+            n=${KVER//[!0-9]/ }
+            a=(${n//\./ })
+            KVER=$(echo "${a[0]}.$((a[1] - 1))")
+          fi
+          echo '!'"[Latest Compatible Kernel](https://img.shields.io/badge/KERNEL-${KVER}-brightgreen)" >> release-body.md
+          echo "" >> release-body.md
+
       - name: Download matrix X64
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
