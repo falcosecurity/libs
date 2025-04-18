@@ -33,6 +33,8 @@ limitations under the License.
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 
+class sinsp_observer;
+
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
@@ -40,6 +42,7 @@ class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table
                                           public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(const sinsp_threadinfo_factory& threadinfo_factory,
+	                     sinsp_observer* const& observer,
 	                     sinsp* inspector,
 	                     const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                             thread_manager_dyn_fields,
@@ -54,7 +57,6 @@ public:
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
-	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
 	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
 
 	typedef std::pair<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
@@ -245,10 +247,12 @@ public:
 private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
+	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const;
 
 	const sinsp_threadinfo_factory& m_threadinfo_factory;
 	sinsp* m_inspector;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
+	sinsp_observer* const& m_observer;
 
 	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info
 	 */

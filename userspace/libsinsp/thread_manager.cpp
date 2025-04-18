@@ -107,12 +107,14 @@ static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fiel
 
 sinsp_thread_manager::sinsp_thread_manager(
         const sinsp_threadinfo_factory& threadinfo_factory,
+        sinsp_observer* const& observer,
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
                 thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields):
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
         m_threadinfo_factory{threadinfo_factory},
+        m_observer{observer},
         m_max_thread_table_size(m_thread_table_default_size),
         m_fdtable_dyn_fields{fdtable_dyn_fields} {
 	m_inspector = inspector;
@@ -345,13 +347,15 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	return nullptr;
 }
 
-void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread) {
-	/// todo(@Andreagit97): all this logic is useful only if we have a `m_fd_listener`
-	/// we could avoid it if not present.
+void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const {
+	// All this logic is intended to just call the `m_observer->on_erase_fd` callback, so just
+	// returns if there is no observer.
+	if(m_observer == nullptr) {
+		return;
+	}
 
-	/* Please note that the main thread is not always here, it is possible
-	 * that for some reason we lose it!
-	 */
+	// Please note that the main thread is not always here, it is possible that for some reason we
+	// lose it!
 	if(main_thread == nullptr) {
 		return;
 	}
@@ -366,18 +370,12 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 	eparams.m_tinfo = main_thread;
 
 	fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& fdinfo) {
+		// The canceled fd should always be deleted immediately, so if it appears here it means we
+		// have a problem. Note: it looks like that the canceled FD may appear here in case of high
+		// drop, and we need to recover. This was an assertion failure, now removed.
 		eparams.m_fd = fd;
-
-		//
-		// The canceled fd should always be deleted immediately, so if it appears
-		// here it means we have a problem.
-		// Note: it looks like that the canceled FD may appear here in case of high drop
-		// and we need to recover. This was an assertion failure, now removed.
-		//
 		eparams.m_fdinfo = &fdinfo;
-
-		/* Here we are just calling the `on_erase` callback */
-		m_inspector->get_parser()->erase_fd(&eparams);
+		m_observer->on_erase_fd(&eparams);
 		return true;
 	});
 }
