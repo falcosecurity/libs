@@ -366,7 +366,6 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 	erase_fd_params eparams;
 	eparams.m_remove_from_table = false;
 	eparams.m_tinfo = main_thread;
-	eparams.m_ts = m_inspector->get_lastevent_ts();
 
 	fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& fdinfo) {
 		eparams.m_fd = fd;
