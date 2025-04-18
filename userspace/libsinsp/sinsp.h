@@ -76,6 +76,7 @@ limitations under the License.
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
+#include <libsinsp/timestamper.h>
 
 #include <list>
 #include <map>
@@ -802,8 +803,8 @@ public:
 		return m_table_registry;
 	}
 
-	inline uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
-	inline void set_lastevent_ts(uint64_t v) { m_lastevent_ts = v; }
+	uint64_t get_lastevent_ts() const { return m_timestamper.get_cached_ts(); }
+	void set_lastevent_ts(const uint64_t v) { m_timestamper.set_cached_ts(v); }
 
 	inline const std::string& get_host_root() const { return m_host_root; }
 	inline void set_host_root(const std::string& s) { m_host_root = s; }
@@ -826,12 +827,7 @@ public:
 	 * \return The current time in nanoseconds if the last event timestamp is 0,
 	 * otherwise, the last event timestamp.
 	 */
-	inline uint64_t get_new_ts() const {
-		// m_lastevent_ts = 0 at startup when containers are
-		// being created as a part of the initial process
-		// scan.
-		return (m_lastevent_ts == 0) ? sinsp_utils::get_current_time_ns() : m_lastevent_ts;
-	}
+	uint64_t get_new_ts() const { return m_timestamper.get_new_ts(); }
 
 	bool remove_inactive_threads();
 
@@ -944,7 +940,7 @@ private:
 	int64_t m_tid_to_remove;
 	int64_t m_tid_of_fd_to_remove;
 	std::vector<int64_t> m_fds_to_remove;
-	uint64_t m_lastevent_ts;
+	timestamper m_timestamper;
 	// the parsing engine
 	std::unique_ptr<sinsp_parser> m_parser;
 	// temporary storage for the parser event to avoid memory allocation
