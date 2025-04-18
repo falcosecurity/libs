@@ -685,7 +685,6 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				//
 				eparams.m_remove_from_table = true;
 				eparams.m_tinfo = tinfo;
-				eparams.m_ts = evt->get_ts();
 
 				erase_fd(&eparams);
 			}
@@ -3244,7 +3243,6 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt) {
 		//
 		eparams.m_remove_from_table = true;
 		eparams.m_tinfo = evt->get_tinfo();
-		eparams.m_ts = evt->get_ts();
 
 		erase_fd(&eparams);
 	} else {
@@ -4226,7 +4224,6 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt) {
 			eparams.m_fdinfo = oldfdinfo;
 			eparams.m_remove_from_table = false;
 			eparams.m_tinfo = evt->get_tinfo();
-			eparams.m_ts = evt->get_ts();
 
 			erase_fd(&eparams);
 		}
