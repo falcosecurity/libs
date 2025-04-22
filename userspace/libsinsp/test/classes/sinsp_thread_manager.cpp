@@ -19,48 +19,36 @@ limitations under the License.
 #include <helpers/threads_helpers.h>
 
 TEST(sinsp_thread_manager, remove_non_existing_thread) {
-	sinsp m_inspector;
-	const timestamper timestamper{0};
-	sinsp_thread_manager manager(m_inspector.get_threadinfo_factory(),
-	                             m_inspector.m_observer,
-	                             timestamper,
-	                             &m_inspector,
-	                             m_inspector.get_thread_manager_dyn_fields(),
-	                             m_inspector.get_fdtable_dyn_fields());
-
-	int64_t unknown_tid = 100;
+	const sinsp m_inspector;
+	const auto& thread_manager_factory = m_inspector.get_thread_manager_factory();
+	const auto manager = thread_manager_factory.create();
+	constexpr int64_t unknown_tid = 100;
 	/* it should do nothing, here we are only checking that nothing will crash */
-	manager.remove_thread(unknown_tid);
-	manager.remove_thread(unknown_tid);
+	manager->remove_thread(unknown_tid);
+	manager->remove_thread(unknown_tid);
 }
 
 TEST(sinsp_thread_manager, thread_group_manager) {
-	sinsp m_inspector;
-	const timestamper timestamper{0};
-	const auto& threadinfo_factory = m_inspector.get_threadinfo_factory();
-	sinsp_thread_manager manager(threadinfo_factory,
-	                             m_inspector.m_observer,
-	                             timestamper,
-	                             &m_inspector,
-	                             m_inspector.get_thread_manager_dyn_fields(),
-	                             m_inspector.get_fdtable_dyn_fields());
+	const sinsp m_inspector;
+	const auto& thread_manager_factory = m_inspector.get_thread_manager_factory();
+	const auto manager = thread_manager_factory.create();
 
 	/* We don't have thread group info here */
-	ASSERT_FALSE(manager.get_thread_group_info(8).get());
+	ASSERT_FALSE(manager->get_thread_group_info(8).get());
 
-	const auto tinfo = threadinfo_factory.create_shared();
+	const auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_pid = 12;
 	auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
 
-	manager.set_thread_group_info(tinfo->m_pid, tginfo);
-	ASSERT_TRUE(manager.get_thread_group_info(tinfo->m_pid).get());
+	manager->set_thread_group_info(tinfo->m_pid, tginfo);
+	ASSERT_TRUE(manager->get_thread_group_info(tinfo->m_pid).get());
 
-	auto new_tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
+	const auto new_tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
 
 	/* We should replace the old thread group info */
-	manager.set_thread_group_info(tinfo->m_pid, new_tginfo);
-	ASSERT_NE(manager.get_thread_group_info(tinfo->m_pid).get(), tginfo.get());
-	ASSERT_EQ(manager.get_thread_group_info(tinfo->m_pid).get(), new_tginfo.get());
+	manager->set_thread_group_info(tinfo->m_pid, new_tginfo);
+	ASSERT_NE(manager->get_thread_group_info(tinfo->m_pid).get(), tginfo.get());
+	ASSERT_EQ(manager->get_thread_group_info(tinfo->m_pid).get(), new_tginfo.get());
 }
 
 TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer) {
@@ -192,15 +180,10 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 }
 
 TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
-	sinsp m_inspector;
-	const timestamper timestamper{0};
-	sinsp_thread_manager manager(m_inspector.get_threadinfo_factory(),
-	                             m_inspector.m_observer,
-	                             timestamper,
-	                             &m_inspector,
-	                             m_inspector.get_thread_manager_dyn_fields(),
-	                             m_inspector.get_fdtable_dyn_fields());
-	EXPECT_THROW(manager.find_new_reaper(nullptr), sinsp_exception);
+	const sinsp m_inspector;
+	const auto& thread_manager_factory = m_inspector.get_thread_manager_factory();
+	const auto manager = thread_manager_factory.create();
+	EXPECT_THROW(manager->find_new_reaper(nullptr), sinsp_exception);
 }
 
 TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_same_thread_group) {

@@ -175,6 +175,23 @@ sinsp::sinsp(bool with_metrics):
                 m_external_event_processor,
                 m_fdtable_dyn_fields,
         },
+        m_thread_manager_factory{
+                m_mode,
+                m_threadinfo_factory,
+                m_observer,
+                m_input_plugin,
+                m_large_envs_enabled,
+                m_timestamper,
+                m_self_pid,
+                m_threads_purging_scan_time_ns,
+                m_thread_timeout_ns,
+                m_sinsp_stats_v2,
+                m_platform,
+                m_h,
+                m_thread_manager_dyn_fields,
+                m_fdtable_dyn_fields,
+
+        },
         m_table_registry{std::make_shared<libsinsp::state::table_registry>()},
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
@@ -184,12 +201,7 @@ sinsp::sinsp(bool with_metrics):
 	m_parser = NULL;
 	m_is_dumping = false;
 	m_parser_tmp_evt = sinsp_evt{this};
-	m_thread_manager = std::make_shared<sinsp_thread_manager>(m_threadinfo_factory,
-	                                                          m_observer,
-	                                                          m_timestamper,
-	                                                          this,
-	                                                          m_thread_manager_dyn_fields,
-	                                                          m_fdtable_dyn_fields);
+	m_thread_manager = m_thread_manager_factory.create();
 	// Add thread manager table to state tables registry.
 	m_table_registry->add_table(m_thread_manager.get());
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
@@ -1956,19 +1968,19 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val) {
 /* Returns true when we scan the table */
 bool sinsp_thread_manager::remove_inactive_threads() {
 	const uint64_t last_event_ts = m_timestamper.get_cached_ts();
-	const uint64_t purging_scan_time_ns = m_inspector->m_threads_purging_scan_time_ns;
 
 	if(m_last_flush_time_ns == 0) {
 		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without
 		// having to wait for tens of minutes.
-		if(purging_scan_time_ns > 30 * ONE_SECOND_IN_NS) {
-			m_last_flush_time_ns = last_event_ts - purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
+		if(m_threads_purging_scan_time_ns > 30 * ONE_SECOND_IN_NS) {
+			m_last_flush_time_ns =
+			        last_event_ts - m_threads_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
 		} else {
-			m_last_flush_time_ns = last_event_ts - purging_scan_time_ns;
+			m_last_flush_time_ns = last_event_ts - m_threads_purging_scan_time_ns;
 		}
 	}
 
-	if(last_event_ts <= m_last_flush_time_ns + purging_scan_time_ns) {
+	if(last_event_ts <= m_last_flush_time_ns + m_threads_purging_scan_time_ns) {
 		return false;
 	}
 
@@ -1980,12 +1992,11 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 	// 2. Threads that we are not using and that are no more alive in /proc.
 	std::unordered_set<int64_t> to_delete;
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		if(tinfo.is_invalid() ||
-		   (last_event_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns &&
-		    !scap_is_thread_alive(m_inspector->get_scap_platform(),
-		                          tinfo.m_pid,
-		                          tinfo.m_tid,
-		                          tinfo.m_comm.c_str()))) {
+		if(tinfo.is_invalid() || (last_event_ts > tinfo.m_lastaccess_ts + m_thread_timeout_ns &&
+		                          !scap_is_thread_alive(m_scap_platform,
+		                                                tinfo.m_pid,
+		                                                tinfo.m_tid,
+		                                                tinfo.m_comm.c_str()))) {
 			to_delete.insert(tinfo.m_tid);
 		}
 		return true;

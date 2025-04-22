@@ -76,6 +76,7 @@ limitations under the License.
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
+#include <libsinsp/sinsp_thread_manager_factory.h>
 #include <libsinsp/timestamper.h>
 
 #include <list>
@@ -965,26 +966,22 @@ private:
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_thread_manager_dyn_fields;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
+	// Parameter shared with each single sinsp_fdtable instance.
 	const std::shared_ptr<sinsp_fdtable::ctor_params> m_fdtable_ctor_params;
 	const sinsp_fdtable_factory m_fdtable_factory;
 	// Parameter shared with each single sinsp_threadinfo instance.
 	const std::shared_ptr<sinsp_threadinfo::ctor_params> m_threadinfo_ctor_params;
 	const sinsp_threadinfo_factory m_threadinfo_factory;
+	const sinsp_thread_manager_factory m_thread_manager_factory;
 	// A registry that manages the state tables of this inspector.
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
 public:
-	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_thread_manager_dyn_fields()
-	        const {
-		return m_thread_manager_dyn_fields;
-	}
-
-	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> get_fdtable_dyn_fields() const {
-		return m_fdtable_dyn_fields;
-	}
-
 	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
 	const sinsp_threadinfo_factory& get_threadinfo_factory() const { return m_threadinfo_factory; }
+	const sinsp_thread_manager_factory& get_thread_manager_factory() const {
+		return m_thread_manager_factory;
+	}
 
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
