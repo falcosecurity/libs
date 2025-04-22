@@ -106,25 +106,36 @@ static void fd_to_scap(scap_fdinfo& dst, const sinsp_fdinfo& src) {
 static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
 sinsp_thread_manager::sinsp_thread_manager(
+        const sinsp_mode& sinsp_mode,
         const sinsp_threadinfo_factory& threadinfo_factory,
         sinsp_observer* const& observer,
+        const std::shared_ptr<const sinsp_plugin>& input_plugin,
+        const bool& large_envs_enabled,
         const timestamper& timestamper,
-        sinsp* inspector,
+        const int64_t& sinsp_pid,
+        const uint64_t& threads_purging_scan_time_ns,
+        const uint64_t& thread_timeout_ns,
+        const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
+        scap_platform* const& scap_platform,
+        scap_t* const& scap_handle,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
                 thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields):
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
+        m_sinsp_mode{sinsp_mode},
         m_threadinfo_factory{threadinfo_factory},
         m_observer{observer},
+        m_input_plugin{input_plugin},
+        m_large_envs_enabled{large_envs_enabled},
         m_timestamper{timestamper},
-        m_max_thread_table_size(m_thread_table_default_size),
-        m_fdtable_dyn_fields{fdtable_dyn_fields} {
-	m_inspector = inspector;
-	if(m_inspector != nullptr) {
-		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
-	} else {
-		m_sinsp_stats_v2 = nullptr;
-	}
+        m_sinsp_pid{sinsp_pid},
+        m_threads_purging_scan_time_ns{threads_purging_scan_time_ns},
+        m_thread_timeout_ns{thread_timeout_ns},
+        m_sinsp_stats_v2{sinsp_stats_v2},
+        m_scap_platform{scap_platform},
+        m_scap_handle{scap_handle},
+        m_fdtable_dyn_fields{fdtable_dyn_fields},
+        m_max_thread_table_size(m_thread_table_default_size) {
 	clear();
 }
 
@@ -225,8 +236,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
         std::unique_ptr<sinsp_threadinfo> threadinfo,
         bool from_scap_proctable) {
 	/* We have no more space */
-	if(m_threadtable.size() >= m_max_thread_table_size &&
-	   threadinfo->m_pid != m_inspector->m_self_pid) {
+	if(m_threadtable.size() >= m_max_thread_table_size && threadinfo->m_pid != m_sinsp_pid) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			// rate limit messages to avoid spamming the logs
 			if(m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0) {
@@ -387,7 +397,6 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 
 	/* This should never happen but just to be sure. */
 	if(thread_to_remove == nullptr) {
-		// Extra m_inspector nullptr check
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
@@ -756,11 +765,11 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(
 	const auto& sinsp_proc = find_thread(tid, lookup_only);
 
 	if(!sinsp_proc && query_os_if_not_found &&
-	   (m_threadtable.size() < m_max_thread_table_size || tid == m_inspector->m_self_pid)) {
+	   (m_threadtable.size() < m_max_thread_table_size || tid == m_sinsp_pid)) {
 		// Certain code paths can lead to this point from scap_open() (incomplete example:
 		// scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
 		// defensive check here to protect both, callers of get_env and get_thread.
-		if(!m_inspector->get_scap_handle()) {
+		if(!m_scap_handle) {
 			libsinsp_logger()->format(sinsp_logger::SEV_INFO,
 			                          "%s: Unable to complete for tid=%" PRIu64
 			                          ": sinsp::scap_t* is uninitialized",
@@ -793,9 +802,8 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(
 				scan_sockets = true;
 			}
 
-			uint64_t ts = sinsp_utils::get_current_time_ns();
-			if(scap_proc_get(m_inspector->get_scap_platform(), tid, &scap_proc, scan_sockets) ==
-			   SCAP_SUCCESS) {
+			const uint64_t ts = sinsp_utils::get_current_time_ns();
+			if(scap_proc_get(m_scap_platform, tid, &scap_proc, scan_sockets) == SCAP_SUCCESS) {
 				have_scap_proc = true;
 			}
 			m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
@@ -818,14 +826,10 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(
 		}
 
 		if(have_scap_proc) {
-			const bool can_load_env_from_proc = m_inspector->large_envs_enabled();
-			const bool must_notify_user_update =
-			        m_inspector->is_live() || m_inspector->is_syscall_plugin();
-			const auto must_notify_group_update = must_notify_user_update;
 			newti->init(scap_proc,
-			            can_load_env_from_proc,
-			            must_notify_user_update,
-			            must_notify_group_update);
+			            is_large_envs_enabled(),
+			            must_notify_thread_user_update(),
+			            must_notify_thread_group_update());
 		} else {
 			//
 			// Add a fake entry to avoid a continuous lookup
