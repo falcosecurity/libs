@@ -63,7 +63,6 @@ public:
 	void event_cleanup(sinsp_evt* evt);
 
 	bool reset(sinsp_evt* evt);
-	void erase_fd(erase_fd_params* params);
 
 	//
 	// Get the enter event matching the last received event
@@ -184,6 +183,7 @@ private:
 	void swap_addresses(sinsp_fdinfo* fdinfo);
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
+	void erase_fd(erase_fd_params* params);
 
 	bool is_syscall_plugin_enabled() const {
 		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
