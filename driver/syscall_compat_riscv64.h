@@ -980,3 +980,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_removexattrat
 #define __NR_removexattrat 466
 #endif
+#ifndef __NR_open_tree_attr
+#define __NR_open_tree_attr 467
+#endif

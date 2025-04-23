@@ -1030,4 +1030,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setxattrat
 	[__NR_setxattrat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SETXATTRAT},
 #endif
+#ifdef __NR_open_tree_attr
+	[__NR_open_tree_attr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OPEN_TREE_ATTR},
+#endif
 };
