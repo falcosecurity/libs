@@ -1993,7 +1993,8 @@ enum sys_exit_extra_code {
 	PPM_SC_X(REMOVEXATTRAT, 444)           \
 	PPM_SC_X(LISTXATTRAT, 445)             \
 	PPM_SC_X(GETXATTRAT, 446)              \
-	PPM_SC_X(SETXATTRAT, 447)
+	PPM_SC_X(SETXATTRAT, 447)              \
+	PPM_SC_X(OPEN_TREE_ATTR, 448)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),

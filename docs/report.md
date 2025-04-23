@@ -213,6 +213,7 @@
 | open                    | 🟢        | ppc64le,s390x,x86_64                             |
 | open_by_handle_at       | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | open_tree               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| open_tree_attr          | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | openat                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | openat2                 | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | pause                   | 🟡        | ppc64le,s390x,x86_64                             |
