@@ -850,21 +850,11 @@ public:
 
 	inline int64_t get_tid_to_remove() const { return m_tid_to_remove; }
 
-	inline void set_tid_to_remove(int64_t v) { m_tid_to_remove = v; }
-
 	inline bool is_dumping() const { return m_is_dumping; }
 
 	inline void set_dumping(bool v) { m_is_dumping = v; }
 
-	inline int64_t get_tid_of_fd_to_remove() const { return m_tid_of_fd_to_remove; }
-
-	inline void set_tid_of_fd_to_remove(int64_t v) { m_tid_of_fd_to_remove = v; }
-
 	inline uint32_t get_num_cpus() const { return m_num_cpus; }
-
-	inline const std::vector<int64_t>& get_fds_to_remove() const { return m_fds_to_remove; }
-
-	inline std::vector<int64_t>& get_fds_to_remove() { return m_fds_to_remove; }
 
 private:
 	void set_input_plugin(const std::string& name, const std::string& params);
