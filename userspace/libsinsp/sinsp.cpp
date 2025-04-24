@@ -254,11 +254,7 @@ sinsp::sinsp(bool with_metrics):
 	                                          m_thread_manager,
 	                                          m_usergroup_manager,
 	                                          m_sinsp_stats_v2,
-	                                          m_tid_to_remove,
-	                                          m_tid_of_fd_to_remove,
-	                                          m_fds_to_remove,
 	                                          m_observer,
-	                                          m_post_process_cbs,
 	                                          m_parser_tmp_evt,
 	                                          m_platform);
 
@@ -344,10 +340,9 @@ void sinsp::init() {
 	//
 
 	m_nevts = 0;
-	m_tid_to_remove = -1;
+	m_parser_verdict.clear();
 	m_timestamper.reset();
 	m_firstevent_ts = 0;
-	m_fds_to_remove.clear();
 
 	//
 	// If we're reading from file, we try to pre-parse all initial state-building events before
@@ -1383,9 +1378,10 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// Delayed removal of threads from the thread table, so that
 		// things like exit() or close() can be parsed.
 		//
-		if(m_tid_to_remove != -1) {
-			remove_thread(m_tid_to_remove);
-			m_tid_to_remove = -1;
+		if(m_parser_verdict.must_remove_tid()) {
+			const auto tid = m_parser_verdict.get_tid_to_remove();
+			remove_thread(tid);
+			m_parser_verdict.clear_tid_to_remove();
 		}
 
 		if(!is_offline()) {
@@ -1411,24 +1407,24 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	// Delayed removal of the fd, so that
 	// things like exit() or close() can be parsed.
 	//
-	uint32_t nfdr = (uint32_t)m_fds_to_remove.size();
-	if(nfdr != 0) {
+	if(m_parser_verdict.must_remove_fds()) {
 		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread
 		 * to remove we are fine.
 		 */
-		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, false).get();
-		if(ptinfo) {
-			for(uint32_t j = 0; j < nfdr; j++) {
-				ptinfo->remove_fd(m_fds_to_remove.at(j));
+		const auto tid_of_fds_to_remove = m_parser_verdict.get_tid_of_fds_to_remove();
+		const auto& fds_to_remove = m_parser_verdict.get_fds_to_remove();
+		if(sinsp_threadinfo* ptinfo = get_thread_ref(tid_of_fds_to_remove, false).get()) {
+			for(const auto fd : fds_to_remove) {
+				ptinfo->remove_fd(fd);
 			}
 		}
-		m_fds_to_remove.clear();
+		m_parser_verdict.clear_fds_to_remove();
 	}
 
 	//
 	// Cleanup the event-related state
 	//
-	m_parser->reset(evt);
+	m_parser->reset(evt, m_parser_verdict);
 
 	// Since evt_filter object below uses RAII, create a new scope.
 	{
@@ -1446,7 +1442,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			//
 			// Run the state engine
 			//
-			m_parser->process_event(evt);
+			m_parser->process_event(evt, m_parser_verdict);
 		}
 
 		// run plugin-implemented parsers
@@ -1467,11 +1463,12 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// will see the full post-event-processed state.
 		// NOTE: we don't use a RAII object because
 		// we cannot guarantee that no exception will be thrown by the callbacks.
-		if(m_observer != nullptr) {
-			for(; !m_post_process_cbs.empty(); m_post_process_cbs.pop()) {
-				auto cb = m_post_process_cbs.front();
+		if(m_observer != nullptr && m_parser_verdict.must_run_post_process_cbs()) {
+			for(auto cbs = m_parser_verdict.get_post_process_cbs(); !cbs.empty(); cbs.pop()) {
+				auto cb = cbs.front();
 				cb(m_observer, evt);
 			}
+			m_parser_verdict.clear_post_process_cbs();
 		}
 	}
 

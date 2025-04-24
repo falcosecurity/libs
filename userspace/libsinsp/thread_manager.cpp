@@ -26,6 +26,7 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
+#include <libsinsp/sinsp_observer.h>
 #include <libscap/scap-int.h>
 
 extern sinsp_evttables g_infotables;
