@@ -39,27 +39,22 @@ limitations under the License.
 #include <libsinsp/sinsp_observer.h>
 #include <libsinsp/user.h>
 
-sinsp_parser::sinsp_parser(
-        const sinsp_mode &sinsp_mode,
-        const scap_machine_info *const &machine_info,
-        const std::vector<std::string> &event_sources,
-        const sinsp_network_interfaces &network_interfaces,
-        const bool &hostname_and_port_resolution_enabled,
-        const sinsp_threadinfo_factory &threadinfo_factory,
-        const sinsp_fdinfo_factory &fdinfo_factory,
-        const std::shared_ptr<const sinsp_plugin> &input_plugin,
-        const bool &large_envs_enabled,
-        const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
-        const std::shared_ptr<sinsp_thread_manager> &thread_manager,
-        const std::shared_ptr<sinsp_usergroup_manager> &usergroup_manager,
-        const std::shared_ptr<sinsp_stats_v2> &sinsp_stats_v2,
-        int64_t &tid_to_remove,
-        int64_t &tid_of_fd_to_remove,
-        std::vector<int64_t> &fds_to_remove,
-        sinsp_observer *const &observer,
-        std::queue<std::function<void(sinsp_observer *observer, sinsp_evt *evt)>> &post_process_cbs,
-        sinsp_evt &tmp_evt,
-        scap_platform *const &scap_platform):
+sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
+                           const scap_machine_info *const &machine_info,
+                           const std::vector<std::string> &event_sources,
+                           const sinsp_network_interfaces &network_interfaces,
+                           const bool &hostname_and_port_resolution_enabled,
+                           const sinsp_threadinfo_factory &threadinfo_factory,
+                           const sinsp_fdinfo_factory &fdinfo_factory,
+                           const std::shared_ptr<const sinsp_plugin> &input_plugin,
+                           const bool &large_envs_enabled,
+                           const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
+                           const std::shared_ptr<sinsp_thread_manager> &thread_manager,
+                           const std::shared_ptr<sinsp_usergroup_manager> &usergroup_manager,
+                           const std::shared_ptr<sinsp_stats_v2> &sinsp_stats_v2,
+                           sinsp_observer *const &observer,
+                           sinsp_evt &tmp_evt,
+                           scap_platform *const &scap_platform):
         m_sinsp_mode{sinsp_mode},
         m_machine_info{machine_info},
         m_event_sources{event_sources},
@@ -73,11 +68,7 @@ sinsp_parser::sinsp_parser(
         m_thread_manager{thread_manager},
         m_usergroup_manager{usergroup_manager},
         m_sinsp_stats_v2{sinsp_stats_v2},
-        m_tid_to_remove{tid_to_remove},
-        m_tid_of_fd_to_remove{tid_of_fd_to_remove},
-        m_fds_to_remove{fds_to_remove},
         m_observer{observer},
-        m_post_process_cbs{post_process_cbs},
         m_tmp_evt{tmp_evt},
         m_scap_platform{scap_platform},
         m_syscall_event_source_idx{sinsp_no_event_source_idx} {}
@@ -97,7 +88,7 @@ void sinsp_parser::set_track_connection_status(bool enabled) {
 ///////////////////////////////////////////////////////////////////////////////
 // PROCESSING ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_parser::process_event(sinsp_evt *evt) {
+void sinsp_parser::process_event(sinsp_evt *evt, sinsp_parser_verdict &verdict) {
 	const uint16_t etype = evt->get_scap_evt()->type;
 
 	//
@@ -165,10 +156,10 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_PWRITE_X:
 	case PPME_SYSCALL_PREADV_X:
 	case PPME_SYSCALL_PWRITEV_X:
-		parse_rw_exit(evt);
+		parse_rw_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_SENDFILE_X:
-		parse_sendfile_exit(evt);
+		parse_sendfile_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
@@ -213,7 +204,7 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_VFORK_17_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE3_X:
-		parse_clone_exit(evt);
+		parse_clone_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_PIDFD_OPEN_X:
 		parse_pidfd_open_exit(evt);
@@ -230,11 +221,11 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
-		parse_execve_exit(evt);
+		parse_execve_exit(evt, verdict);
 		break;
 	case PPME_PROCEXIT_E:
 	case PPME_PROCEXIT_1_E:
-		parse_thread_exit(evt);
+		parse_thread_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_PIPE_X:
 	case PPME_SYSCALL_PIPE2_X:
@@ -245,26 +236,26 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 		parse_socket_exit(evt);
 		break;
 	case PPME_SOCKET_BIND_X:
-		parse_bind_exit(evt);
+		parse_bind_exit(evt, verdict);
 		break;
 	case PPME_SOCKET_CONNECT_E:
 		parse_connect_enter(evt);
 		break;
 	case PPME_SOCKET_CONNECT_X:
-		parse_connect_exit(evt);
+		parse_connect_exit(evt, verdict);
 		break;
 	case PPME_SOCKET_ACCEPT_X:
 	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
 	case PPME_SOCKET_ACCEPT4_5_X:
 	case PPME_SOCKET_ACCEPT4_6_X:
-		parse_accept_exit(evt);
+		parse_accept_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_CLOSE_E:
 		parse_close_enter(evt);
 		break;
 	case PPME_SYSCALL_CLOSE_X:
-		parse_close_exit(evt);
+		parse_close_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_FCNTL_E:
 		parse_fcntl_enter(evt);
@@ -286,13 +277,13 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 		parse_getcwd_exit(evt);
 		break;
 	case PPME_SOCKET_SHUTDOWN_X:
-		parse_shutdown_exit(evt);
+		parse_shutdown_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_DUP_X:
 	case PPME_SYSCALL_DUP_1_X:
 	case PPME_SYSCALL_DUP2_X:
 	case PPME_SYSCALL_DUP3_X:
-		parse_dup_exit(evt);
+		parse_dup_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_SIGNALFD_X:
 	case PPME_SYSCALL_SIGNALFD4_X:
@@ -367,7 +358,7 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 		break;
 	case PPME_SOCKET_GETSOCKOPT_X:
 		if(evt->get_num_params() > 0) {
-			parse_getsockopt_exit(evt);
+			parse_getsockopt_exit(evt, verdict);
 		}
 		break;
 	case PPME_SYSCALL_CAPSET_X:
@@ -444,7 +435,7 @@ void sinsp_parser::event_cleanup(sinsp_evt *evt) {
 // Called before starting the parsing.
 // Returns false in case of issues resetting the state.
 //
-bool sinsp_parser::reset(sinsp_evt *evt) {
+bool sinsp_parser::reset(sinsp_evt *evt, sinsp_parser_verdict &verdict) {
 	m_syslog_decoder.reset();
 
 	uint16_t etype = evt->get_type();
@@ -686,7 +677,7 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				eparams.m_remove_from_table = true;
 				eparams.m_tinfo = tinfo;
 
-				erase_fd(eparams);
+				erase_fd(eparams, verdict);
 			}
 		}
 	}
@@ -803,7 +794,9 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 // PARSERS
 ///////////////////////////////////////////////////////////////////////////////
 
-void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
+void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt,
+                                           sinsp_parser_verdict &verdict,
+                                           int64_t child_tid) {
 	uint16_t etype = evt->get_type();
 	int64_t caller_tid = evt->get_tid();
 
@@ -1278,7 +1271,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_observer) {
-		m_post_process_cbs.emplace(
+		verdict.add_post_process_cbs(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
 		        });
@@ -1289,7 +1282,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	 * generating it might have gone away.
 	 */
 	if(tid_collision != -1) {
-		reset(evt);
+		reset(evt, verdict);
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
 		               new_child->m_comm.c_str());
@@ -1297,7 +1290,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 }
 
-void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
+void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt, sinsp_parser_verdict &verdict) {
 	uint16_t etype = evt->get_type();
 	int64_t child_tid = evt->get_tid();
 
@@ -1763,7 +1756,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_observer) {
-		m_post_process_cbs.emplace(
+		verdict.add_post_process_cbs(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
 		        });
@@ -1774,7 +1767,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	 * generating it might have gone away.
 	 */
 	if(tid_collision != -1) {
-		reset(evt);
+		reset(evt, verdict);
 		/* Right now we have collisions only on the clone() caller */
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
@@ -1784,7 +1777,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 }
 
-void sinsp_parser::parse_clone_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_clone_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) {
 	int64_t childtid = evt->get_syscall_return_value();
 	/* Please note that if the child is in a namespace different from the init one
 	 * we should never use this `childtid` otherwise we will use a thread id referred to
@@ -1796,14 +1789,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt) {
 		//
 		return;
 	} else if(childtid == 0) {
-		parse_clone_exit_child(evt);
+		parse_clone_exit_child(evt, verdict);
 	} else {
-		parse_clone_exit_caller(evt, childtid);
+		parse_clone_exit_caller(evt, verdict, childtid);
 	}
 	return;
 }
 
-void sinsp_parser::parse_execve_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_execve_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	uint16_t etype = evt->get_type();
@@ -2220,7 +2213,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) const {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_observer) {
-		m_post_process_cbs.emplace(
+		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_execve(evt); });
 	}
 
@@ -2695,7 +2688,7 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt) const {
 	add_socket(evt, fd, domain, type, protocol);
 }
 
-void sinsp_parser::parse_bind_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_bind_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	const char *parstr;
@@ -2775,7 +2768,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt) const {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_observer) {
-		m_post_process_cbs.emplace(
+		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_bind(evt); });
 	}
 }
@@ -2963,7 +2956,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
 	}
 }
 
-void sinsp_parser::parse_connect_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_connect_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t fd;
@@ -3041,13 +3034,13 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt) const {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_observer) {
-		m_post_process_cbs.emplace([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
+		verdict.add_post_process_cbs([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_connect(evt, packed_data);
 		});
 	}
 }
 
-void sinsp_parser::parse_accept_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_accept_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t fd;
 	uint8_t *packed_data;
@@ -3135,7 +3128,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) const {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_observer) {
-		m_post_process_cbs.emplace(
+		verdict.add_post_process_cbs(
 		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
 			        auto fd_info = evt->get_fd_info();
 			        if(fd_info == nullptr) {
@@ -3179,7 +3172,7 @@ void sinsp_parser::parse_close_enter(sinsp_evt *evt) {
 // (process FD table, connection table...).
 // It's invoked when a close() or a thread exit happens.
 //
-void sinsp_parser::erase_fd(erase_fd_params &params) const {
+void sinsp_parser::erase_fd(erase_fd_params &params, sinsp_parser_verdict &verdict) const {
 	if(params.m_fdinfo == nullptr) {
 		//
 		// This happens when more than one close has been canceled at the same time for
@@ -3198,8 +3191,7 @@ void sinsp_parser::erase_fd(erase_fd_params &params) const {
 	// Schedule the fd for removal
 	//
 	if(params.m_remove_from_table) {
-		m_tid_of_fd_to_remove = params.m_tinfo->m_tid;
-		m_fds_to_remove.push_back(params.m_fd);
+		verdict.add_fd_to_remove(params.m_tinfo->m_tid, params.m_fd);
 	}
 
 	//
@@ -3211,7 +3203,7 @@ void sinsp_parser::erase_fd(erase_fd_params &params) const {
 	}
 }
 
-void sinsp_parser::parse_close_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_close_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	//
 	// Extract the return value
 	//
@@ -3246,7 +3238,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt) const {
 		eparams.m_remove_from_table = true;
 		eparams.m_tinfo = evt->get_tinfo();
 
-		erase_fd(eparams);
+		erase_fd(eparams, verdict);
 	} else {
 		if(evt->get_fd_info() != NULL) {
 			evt->get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
@@ -3358,7 +3350,7 @@ void sinsp_parser::parse_pipe_exit(sinsp_evt *evt) const {
 	add_pipe(evt, fd2, ino, openflags);
 }
 
-void sinsp_parser::parse_thread_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_thread_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) {
 	/* We set the `m_tinfo` in `reset()`.
 	 * If we don't have the thread info we do nothing, this thread is already deleted
 	 */
@@ -3381,7 +3373,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt) const {
 	/* [Store the tid to remove]
 	 * We set the current tid to remove. We don't remove it here so we can parse the event
 	 */
-	m_tid_to_remove = evt->get_tid();
+	verdict.set_tid_to_remove(evt->get_tid());
 
 	/* If this thread has no children we don't send the reaper info from the kernel,
 	 * so we do nothing.
@@ -3734,7 +3726,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 }
 #endif  // _WIN32
 
-void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_rw_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t tid = evt->get_tid();
@@ -3833,7 +3825,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			// If there's a listener, add a callback to later invoke it.
 			//
 			if(m_observer) {
-				m_post_process_cbs.emplace(
+				verdict.add_post_process_cbs(
 				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_read(evt,
 					                          tid,
@@ -3936,7 +3928,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			// If there's a listener, add a callback to later invoke it.
 			//
 			if(m_observer) {
-				m_post_process_cbs.emplace(
+				verdict.add_post_process_cbs(
 				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_write(evt,
 					                           tid,
@@ -3961,7 +3953,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			// If there's a listener, add a callback to later invoke it.
 			//
 			if(m_observer) {
-				m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
+				verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 					observer->on_socket_status_changed(evt);
 				});
 			}
@@ -3969,7 +3961,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	if(!evt->get_fd_info()) {
 		return;
 	}
@@ -3998,7 +3990,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) const {
 		// If there's a listener, add a callback to later invoke it.
 		//
 		if(m_observer) {
-			m_post_process_cbs.emplace([fdin, retval](sinsp_observer *observer, sinsp_evt *evt) {
+			verdict.add_post_process_cbs([fdin, retval](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_sendfile(evt, fdin, (uint32_t)retval);
 			});
 		}
@@ -4136,7 +4128,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	//
 	// Extract the return value
 	//
@@ -4154,14 +4146,14 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) const {
 		// If there's a listener, add a callback to later invoke it.
 		//
 		if(m_observer) {
-			m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
+			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_socket_shutdown(evt);
 			});
 		}
 	}
 }
 
-void sinsp_parser::parse_dup_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_dup_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	if(evt->get_tinfo() == nullptr) {
 		return;
 	}
@@ -4207,7 +4199,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt) const {
 			eparams.m_remove_from_table = false;
 			eparams.m_tinfo = evt->get_tinfo();
 
-			erase_fd(eparams);
+			erase_fd(eparams, verdict);
 		}
 
 		//
@@ -4715,7 +4707,7 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) const {
+void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t err;
@@ -4775,7 +4767,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) const {
 		// If there's a listener, add a callback to later invoke it.
 		//
 		if(m_observer) {
-			m_post_process_cbs.emplace([](sinsp_observer *observer, sinsp_evt *evt) {
+			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 				observer->on_socket_status_changed(evt);
 			});
 		}

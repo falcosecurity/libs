@@ -25,11 +25,13 @@ limitations under the License.
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/plugin.h>
-#include <libsinsp/sinsp_observer.h>
 #include <libsinsp/sinsp_mode.h>
 #include <libsinsp/user.h>
 #include <libsinsp/threadinfo.h>
+#include <libsinsp/sinsp_parser_verdict.h>
 #include <memory>
+
+class sinsp_plugin_manager;
 
 class sinsp_parser {
 public:
@@ -46,12 +48,7 @@ public:
 	             const std::shared_ptr<sinsp_thread_manager>& thread_manager,
 	             const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
 	             const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-	             int64_t& tid_to_remove,
-	             int64_t& tid_of_fd_to_remove,
-	             std::vector<int64_t>& fds_to_remove,
 	             sinsp_observer* const& observer,
-	             std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>>&
-	                     post_process_cbs,
 	             sinsp_evt& tmp_evt,
 	             scap_platform* const& scap_platform);
 	~sinsp_parser();
@@ -59,10 +56,10 @@ public:
 	//
 	// Processing entry point
 	//
-	void process_event(sinsp_evt* evt);
+	void process_event(sinsp_evt* evt, sinsp_parser_verdict& verdict);
 	void event_cleanup(sinsp_evt* evt);
 
-	bool reset(sinsp_evt* evt);
+	bool reset(sinsp_evt* evt, sinsp_parser_verdict& verdict);
 
 	//
 	// Get the enter event matching the last received event
@@ -88,34 +85,34 @@ private:
 	//
 	// Parsers
 	//
-	void parse_clone_exit_child(sinsp_evt* evt);
-	void parse_clone_exit_caller(sinsp_evt* evt, int64_t child_tid);
-	void parse_clone_exit(sinsp_evt* evt);
-	void parse_execve_exit(sinsp_evt* evt) const;
+	void parse_clone_exit_child(sinsp_evt* evt, sinsp_parser_verdict& verdict);
+	void parse_clone_exit_caller(sinsp_evt* evt, sinsp_parser_verdict& verdict, int64_t child_tid);
+	void parse_clone_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict);
+	void parse_execve_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
 	void parse_open_openat_creat_exit(sinsp_evt* evt) const;
 	static void parse_fchmod_fchown_exit(sinsp_evt* evt);
 	void parse_pipe_exit(sinsp_evt* evt) const;
 	void parse_socketpair_exit(sinsp_evt* evt) const;
 	void parse_socket_exit(sinsp_evt* evt) const;
 	void parse_connect_enter(sinsp_evt* evt) const;
-	void parse_connect_exit(sinsp_evt* evt) const;
-	void parse_accept_exit(sinsp_evt* evt) const;
+	void parse_connect_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
+	void parse_accept_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
 	static void parse_close_enter(sinsp_evt* evt);
-	void parse_close_exit(sinsp_evt* evt) const;
-	void parse_thread_exit(sinsp_evt* evt) const;
+	void parse_close_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
+	static void parse_thread_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict);
 	void parse_memfd_create_exit(sinsp_evt* evt, scap_fd_type type) const;
 	void parse_pidfd_open_exit(sinsp_evt* evt) const;
 	void parse_pidfd_getfd_exit(sinsp_evt* evt) const;
 	void parse_fspath_related_exit(sinsp_evt* evt) const;
-	inline void parse_rw_exit(sinsp_evt* evt);
-	void parse_sendfile_exit(sinsp_evt* evt) const;
+	inline void parse_rw_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict);
+	void parse_sendfile_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
 	void parse_eventfd_exit(sinsp_evt* evt) const;
-	void parse_bind_exit(sinsp_evt* evt) const;
+	void parse_bind_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
 	static void parse_chdir_exit(sinsp_evt* evt);
 	static void parse_fchdir_exit(sinsp_evt* evt);
 	static void parse_getcwd_exit(sinsp_evt* evt);
-	void parse_shutdown_exit(sinsp_evt* evt) const;
-	void parse_dup_exit(sinsp_evt* evt) const;
+	void parse_shutdown_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
+	void parse_dup_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
 	void parse_single_param_fd_exit(sinsp_evt* evt, scap_fd_type type) const;
 	void parse_getrlimit_setrlimit_exit(sinsp_evt* evt) const;
 	void parse_prlimit_exit(sinsp_evt* evt) const;
@@ -136,7 +133,7 @@ private:
 	void parse_cpu_hotplug_enter(sinsp_evt* evt) const;
 	static void parse_chroot_exit(sinsp_evt* evt);
 	static void parse_setsid_exit(sinsp_evt* evt);
-	void parse_getsockopt_exit(sinsp_evt* evt) const;
+	void parse_getsockopt_exit(sinsp_evt* evt, sinsp_parser_verdict& verdict) const;
 	static void parse_capset_exit(sinsp_evt* evt);
 	void parse_unshare_setns_exit(sinsp_evt* evt) const;
 
@@ -185,7 +182,7 @@ private:
 	static void swap_addresses(sinsp_fdinfo* fdinfo);
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
-	void erase_fd(erase_fd_params& params) const;
+	void erase_fd(erase_fd_params& params, sinsp_parser_verdict& verdict) const;
 
 	bool is_syscall_plugin_enabled() const {
 		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
@@ -222,11 +219,7 @@ private:
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	int64_t& m_tid_to_remove;
-	int64_t& m_tid_of_fd_to_remove;
-	std::vector<int64_t>& m_fds_to_remove;
 	sinsp_observer* const& m_observer;
-	std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>>& m_post_process_cbs;
 	sinsp_evt& m_tmp_evt;  // Temporary storage to avoid memory allocation
 	scap_platform* const& m_scap_platform;
 

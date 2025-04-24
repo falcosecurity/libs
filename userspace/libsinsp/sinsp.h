@@ -77,6 +77,7 @@ limitations under the License.
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/sinsp_thread_manager_factory.h>
+#include <libsinsp/sinsp_parser_verdict.h>
 #include <libsinsp/timestamper.h>
 
 #include <list>
@@ -849,7 +850,7 @@ public:
 
 	inline scap_t* get_scap_handle() { return m_h; }
 
-	inline int64_t get_tid_to_remove() const { return m_tid_to_remove; }
+	inline int64_t get_tid_to_remove() const { return m_parser_verdict.get_tid_to_remove(); }
 
 	inline bool is_dumping() const { return m_is_dumping; }
 
@@ -928,9 +929,7 @@ private:
 	uint32_t m_max_evt_output_len;
 	sinsp_evt m_evt;
 	std::string m_lasterr;
-	int64_t m_tid_to_remove;
-	int64_t m_tid_of_fd_to_remove;
-	std::vector<int64_t> m_fds_to_remove;
+	sinsp_parser_verdict m_parser_verdict;
 	timestamper m_timestamper;
 	// the parsing engine
 	std::unique_ptr<sinsp_parser> m_parser;
@@ -1134,8 +1133,6 @@ public:
 	uint32_t m_replay_scap_flags;
 
 	sinsp_observer* m_observer{nullptr};
-
-	std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>> m_post_process_cbs{};
 
 	bool m_inited;
 	static std::atomic<int> instance_count;
