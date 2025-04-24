@@ -236,7 +236,7 @@ jobs:
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
     runs-on: 'ubuntu-latest'
     if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-    container: fedora:latest
+    container: fedora:41
     steps:
       # Always install deps before invoking checkout action, to properly perform a full clone.
       - name: Install build dependencies
