@@ -428,7 +428,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 			// does unnecessary allocations and copies. We assume that failed openat() happen
 			// rarely enough that we don't care.
 			//
-			if(!m_inspector->get_parser()->retrieve_enter_event(&enter_evt, evt)) {
+			if(!m_inspector->get_parser()->retrieve_enter_event(enter_evt, *evt)) {
 				return false;
 			}
 		}
@@ -439,7 +439,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 		parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(0) : evt->get_param(1);
 		int64_t dirfd = parinfo->as<int64_t>();
 
-		std::string sdir = m_inspector->get_parser()->parse_dirfd(evt, name, dirfd);
+		std::string sdir = sinsp_parser::parse_dirfd(*evt, name, dirfd);
 
 		if(fd_nameraw) {
 			m_tstr = name;

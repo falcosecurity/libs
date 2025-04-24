@@ -442,11 +442,11 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 				if(m_field_id == TYPE_TARGET) {
 					// newdirfd
 					dirfd = evt->get_param(3)->as<int64_t>();
-					sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+					sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
 				} else if(m_field_id == TYPE_SOURCE) {
 					// olddirfd
 					dirfd = evt->get_param(1)->as<int64_t>();
-					sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+					sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
 				} else {
 					sdir = "<UNKNOWN>";
 				}

@@ -56,20 +56,20 @@ public:
 	//
 	// Processing entry point
 	//
-	void process_event(sinsp_evt* evt, sinsp_parser_verdict& verdict);
-	void event_cleanup(sinsp_evt* evt);
+	void process_event(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	void event_cleanup(sinsp_evt& evt);
 
-	bool reset(sinsp_evt* evt, sinsp_parser_verdict& verdict);
+	bool reset(sinsp_evt& evt, sinsp_parser_verdict& verdict);
 
 	//
 	// Get the enter event matching the last received event
 	//
-	bool retrieve_enter_event(sinsp_evt* enter_evt, sinsp_evt* exit_evt) const;
+	bool retrieve_enter_event(sinsp_evt& enter_evt, sinsp_evt& exit_evt) const;
 
 	//
 	// Combine the openat arguments into a full file name
 	//
-	static std::string parse_dirfd(sinsp_evt* evt, std::string_view name, int64_t dirfd);
+	static std::string parse_dirfd(sinsp_evt& evt, std::string_view name, int64_t dirfd);
 
 	void set_track_connection_status(bool enabled);
 	bool get_track_connection_status() const { return m_track_connection_status; }
