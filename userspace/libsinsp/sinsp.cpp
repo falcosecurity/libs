@@ -1424,7 +1424,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	//
 	// Cleanup the event-related state
 	//
-	m_parser->reset(evt, m_parser_verdict);
+	m_parser->reset(*evt, m_parser_verdict);
 
 	// Since evt_filter object below uses RAII, create a new scope.
 	{
@@ -1442,7 +1442,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			//
 			// Run the state engine
 			//
-			m_parser->process_event(evt, m_parser_verdict);
+			m_parser->process_event(*evt, m_parser_verdict);
 		}
 
 		// run plugin-implemented parsers
@@ -1493,7 +1493,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	}
 
 	// Clean parse related event data after analyzer did its parsing too
-	m_parser->event_cleanup(evt);
+	m_parser->event_cleanup(*evt);
 
 	//
 	// Update the last event time for this thread
