@@ -686,7 +686,7 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				eparams.m_remove_from_table = true;
 				eparams.m_tinfo = tinfo;
 
-				erase_fd(&eparams);
+				erase_fd(eparams);
 			}
 		}
 	}
@@ -707,12 +707,10 @@ void sinsp_parser::store_event(sinsp_evt *evt) {
 		return;
 	}
 
-	uint32_t elen;
-
 	//
 	// Make sure the event data is going to fit
 	//
-	elen = scap_event_getlen(evt->get_scap_evt());
+	const uint32_t elen = scap_event_getlen(evt->get_scap_evt());
 
 	if(elen > SP_EVT_BUF_SIZE) {
 		ASSERT(false);
@@ -738,7 +736,7 @@ void sinsp_parser::store_event(sinsp_evt *evt) {
 	}
 }
 
-bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_evt) {
+bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_evt) const {
 	//
 	// Make sure there's a valid thread info
 	//
@@ -1805,7 +1803,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt) {
 	return;
 }
 
-void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_execve_exit(sinsp_evt *evt) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	uint16_t etype = evt->get_type();
@@ -2267,7 +2265,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
  *   - if we have no information about `dirfd` -> sdir = "<UNKNOWN>".
  *   - if `dirfd` has a valid vaule for us -> sdir = path + "/" at the end.
  */
-std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int64_t dirfd) {
+std::string sinsp_parser::parse_dirfd(sinsp_evt *evt,
+                                      const std::string_view name,
+                                      const int64_t dirfd) {
 	bool is_absolute = false;
 	/* This should never happen but just to be sure. */
 	if(name.data() != nullptr) {
@@ -2305,7 +2305,7 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 	return fdinfo->m_name + '/';
 }
 
-void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) const {
 	int64_t fd;
 	std::string_view name;
 	std::string_view enter_evt_name;
@@ -2520,7 +2520,7 @@ void sinsp_parser::parse_fchmod_fchown_exit(sinsp_evt *evt) {
 	}
 
 	ASSERT(evt->get_param_info(1)->type == PT_FD);
-	int64_t fd = evt->get_param(1)->as<int64_t>();
+	const int64_t fd = evt->get_param(1)->as<int64_t>();
 	evt->get_tinfo()->m_lastevent_fd = fd;
 	evt->set_fd_info(evt->get_tinfo()->get_fd(fd));
 }
@@ -2530,10 +2530,10 @@ void sinsp_parser::parse_fchmod_fchown_exit(sinsp_evt *evt) {
 // the fd table of the given thread.
 //
 inline void sinsp_parser::add_socket(sinsp_evt *evt,
-                                     int64_t fd,
-                                     uint32_t domain,
-                                     uint32_t type,
-                                     uint32_t protocol) {
+                                     const int64_t fd,
+                                     const uint32_t domain,
+                                     const uint32_t type,
+                                     const uint32_t protocol) const {
 	//
 	// Populate the new fdi
 	//
@@ -2619,7 +2619,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt,
  *                evt->get_tinfo() != nullptr
  *
  */
-inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt *const evt) {
+inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt *const evt) const {
 	if((evt->get_fd_info() != nullptr) || (evt->get_tinfo() == nullptr)) {
 		return;
 	}
@@ -2661,7 +2661,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt *const evt) {
 	}
 }
 
-void sinsp_parser::parse_socket_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_socket_exit(sinsp_evt *evt) const {
 	//
 	// NOTE: we don't check the return value of get_param() because we know the arguments we need
 	// are there.
@@ -2695,7 +2695,7 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt) {
 	add_socket(evt, fd, domain, type, protocol);
 }
 
-void sinsp_parser::parse_bind_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_bind_exit(sinsp_evt *evt) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	const char *parstr;
@@ -2783,7 +2783,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt) {
 /**
  * Register a socket in pending state
  */
-void sinsp_parser::parse_connect_enter(sinsp_evt *evt) {
+void sinsp_parser::parse_connect_enter(sinsp_evt *evt) const {
 	const sinsp_evt_param *parinfo;
 	const char *parstr;
 	uint8_t *packed_data;
@@ -2876,7 +2876,8 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt) {
 
 inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
                                                   uint8_t *packed_data,
-                                                  bool overwrite_dest) {
+                                                  const bool overwrite_dest,
+                                                  const bool can_resolve_hostname_and_port) {
 	uint8_t family;
 	const char *parstr;
 	bool changed;
@@ -2930,7 +2931,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
 		                             evt->get_fd_info()->m_type,
 		                             &evt->get_paramstr_storage()[0],
 		                             (uint32_t)evt->get_paramstr_storage().size(),
-		                             m_hostname_and_port_resolution_enabled);
+		                             can_resolve_hostname_and_port);
 
 		evt->get_fd_info()->m_name = &evt->get_paramstr_storage()[0];
 	} else {
@@ -2962,7 +2963,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt,
 	}
 }
 
-void sinsp_parser::parse_connect_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_connect_exit(sinsp_evt *evt) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t fd;
@@ -3031,7 +3032,10 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt) {
 
 	uint8_t *packed_data = (uint8_t *)parinfo->m_val;
 
-	fill_client_socket_info(evt, packed_data, force_overwrite_stale_data);
+	fill_client_socket_info(evt,
+	                        packed_data,
+	                        force_overwrite_stale_data,
+	                        m_hostname_and_port_resolution_enabled);
 
 	//
 	// If there's a listener, add a callback to later invoke it.
@@ -3043,7 +3047,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_accept_exit(sinsp_evt *evt) const {
 	const sinsp_evt_param *parinfo;
 	int64_t fd;
 	uint8_t *packed_data;
@@ -3175,8 +3179,8 @@ void sinsp_parser::parse_close_enter(sinsp_evt *evt) {
 // (process FD table, connection table...).
 // It's invoked when a close() or a thread exit happens.
 //
-void sinsp_parser::erase_fd(erase_fd_params *params) {
-	if(params->m_fdinfo == NULL) {
+void sinsp_parser::erase_fd(erase_fd_params &params) const {
+	if(params.m_fdinfo == nullptr) {
 		//
 		// This happens when more than one close has been canceled at the same time for
 		// this thread. Since we currently handle just one canceling at at time (we
@@ -3186,16 +3190,16 @@ void sinsp_parser::erase_fd(erase_fd_params *params) {
 		//       rare enough that the delayed connection cleanup (when the timestamp expires)
 		//       is acceptable.
 		//
-		ASSERT(params->m_fd == CANCELED_FD_NUMBER);
+		ASSERT(params.m_fd == CANCELED_FD_NUMBER);
 		return;
 	}
 
 	//
 	// Schedule the fd for removal
 	//
-	if(params->m_remove_from_table) {
-		m_tid_of_fd_to_remove = params->m_tinfo->m_tid;
-		m_fds_to_remove.push_back(params->m_fd);
+	if(params.m_remove_from_table) {
+		m_tid_of_fd_to_remove = params.m_tinfo->m_tid;
+		m_fds_to_remove.push_back(params.m_fd);
 	}
 
 	//
@@ -3203,17 +3207,15 @@ void sinsp_parser::erase_fd(erase_fd_params *params) {
 	// note: we avoid postponing this to avoid the risk of use-after-free
 	//
 	if(m_observer) {
-		m_observer->on_erase_fd(params);
+		m_observer->on_erase_fd(&params);
 	}
 }
 
-void sinsp_parser::parse_close_exit(sinsp_evt *evt) {
-	int64_t retval;
-
+void sinsp_parser::parse_close_exit(sinsp_evt *evt) const {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// If the close() was successful, do the cleanup
@@ -3244,7 +3246,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt) {
 		eparams.m_remove_from_table = true;
 		eparams.m_tinfo = evt->get_tinfo();
 
-		erase_fd(&eparams);
+		erase_fd(eparams);
 	} else {
 		if(evt->get_fd_info() != NULL) {
 			evt->get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
@@ -3265,7 +3267,10 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t fd, uint64_t ino, uint32_t openflags) {
+void sinsp_parser::add_pipe(sinsp_evt *evt,
+                            const int64_t fd,
+                            const uint64_t ino,
+                            const uint32_t openflags) const {
 	//
 	// lookup the thread info
 	//
@@ -3287,7 +3292,7 @@ void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t fd, uint64_t ino, uint32_t o
 	evt->set_fd_info(evt->get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
-void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt) const {
 	int64_t fd1, fd2;
 	int64_t retval;
 	uint64_t source_address;
@@ -3332,13 +3337,8 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt) {
 	evt->get_tinfo()->add_fd(fd2, std::move(fdi2));
 }
 
-void sinsp_parser::parse_pipe_exit(sinsp_evt *evt) {
-	int64_t fd1, fd2;
-	int64_t retval;
-	uint64_t ino;
-	uint32_t openflags = 0;
-
-	retval = evt->get_syscall_return_value();
+void sinsp_parser::parse_pipe_exit(sinsp_evt *evt) const {
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval < 0) {
 		//
@@ -3347,21 +3347,18 @@ void sinsp_parser::parse_pipe_exit(sinsp_evt *evt) {
 		return;
 	}
 
-	fd1 = evt->get_param(1)->as<int64_t>();
-
-	fd2 = evt->get_param(2)->as<int64_t>();
-
-	ino = evt->get_param(3)->as<uint64_t>();
-
+	const auto fd1 = evt->get_param(1)->as<int64_t>();
+	const auto fd2 = evt->get_param(2)->as<int64_t>();
+	const auto ino = evt->get_param(3)->as<uint64_t>();
+	uint32_t openflags = 0;
 	if(evt->get_type() == PPME_SYSCALL_PIPE2_X) {
 		openflags = evt->get_param(4)->as<uint32_t>();
 	}
-
 	add_pipe(evt, fd1, ino, openflags);
 	add_pipe(evt, fd2, ino, openflags);
 }
 
-void sinsp_parser::parse_thread_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_thread_exit(sinsp_evt *evt) const {
 	/* We set the `m_tinfo` in `reset()`.
 	 * If we don't have the thread info we do nothing, this thread is already deleted
 	 */
@@ -3404,11 +3401,11 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt) {
 }
 
 inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo *fdinfo,
-                                                          uint32_t tsip,
-                                                          uint16_t tsport,
-                                                          uint32_t tdip,
-                                                          uint16_t tdport,
-                                                          bool overwrite_dest) {
+                                                          const uint32_t tsip,
+                                                          const uint16_t tsport,
+                                                          const uint32_t tdip,
+                                                          const uint16_t tdport,
+                                                          const bool overwrite_dest) {
 	if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
 		if((tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
 		    tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
@@ -3450,8 +3447,8 @@ inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo *fdinfo,
 }
 
 bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo *fdinfo,
-                                                uint8_t *packed_data,
-                                                bool overwrite_dest) {
+                                                const uint8_t *packed_data,
+                                                const bool overwrite_dest) {
 	uint32_t tsip, tdip;
 	uint16_t tsport, tdport;
 
@@ -3464,8 +3461,8 @@ bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo *fdinfo,
 }
 
 bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo *fdinfo,
-                                                            uint8_t *packed_data,
-                                                            bool overwrite_dest) {
+                                                            const uint8_t *packed_data,
+                                                            const bool overwrite_dest) {
 	uint32_t tsip, tdip;
 	uint16_t tsport, tdport;
 
@@ -3478,8 +3475,8 @@ bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo *fdinfo
 }
 
 bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo *fdinfo,
-                                                uint8_t *packed_data,
-                                                bool overwrite_dest) {
+                                                const uint8_t *packed_data,
+                                                const bool overwrite_dest) {
 	ipv6addr tsip, tdip;
 	uint16_t tsport, tdport;
 
@@ -3530,7 +3527,7 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo *fdinfo,
 }
 
 // Return false if the update didn't happen (for example because the tuple is NULL)
-bool sinsp_parser::update_fd(sinsp_evt *evt, const sinsp_evt_param *parinfo) {
+bool sinsp_parser::update_fd(sinsp_evt *evt, const sinsp_evt_param *parinfo) const {
 	uint8_t *packed_data = (uint8_t *)parinfo->m_val;
 	uint8_t family = *packed_data;
 
@@ -3604,22 +3601,16 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, const sinsp_evt_param *parinfo) {
 
 void sinsp_parser::swap_addresses(sinsp_fdinfo *fdinfo) {
 	if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
-		uint32_t tip;
-		uint16_t tport;
-
-		tip = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
-		tport = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+		const uint32_t tip = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+		const uint16_t tport = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport =
 		        fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 	} else {
-		ipv6addr tip;
-		uint16_t tport;
-
-		tip = fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip;
-		tport = fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
+		const ipv6addr tip = fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip;
+		const uint16_t tport = fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
 
 		fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip = fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip;
 		fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport =
@@ -3630,7 +3621,7 @@ void sinsp_parser::swap_addresses(sinsp_fdinfo *fdinfo) {
 	}
 }
 
-void sinsp_parser::parse_fspath_related_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_fspath_related_exit(sinsp_evt *evt) const {
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	if(retrieve_enter_event(enter_evt, evt)) {
 		evt->save_enter_event_params(enter_evt);
@@ -3686,12 +3677,13 @@ static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
 
 #define PPM_CMSG_LEN(len) (PPM_CMSG_ALIGN(sizeof(ppm_cmsghdr)) + (len))
 
-inline void sinsp_parser::process_recvmsg_ancillary_data_fds(int const *fds,
+inline void sinsp_parser::process_recvmsg_ancillary_data_fds(scap_platform *scap_platform,
+                                                             int const *fds,
                                                              size_t const fds_len,
-                                                             scap_threadinfo *scap_tinfo) const {
+                                                             scap_threadinfo *scap_tinfo) {
 	char error[SCAP_LASTERR_SIZE];
 	for(size_t i = 0; i < fds_len; i++) {
-		if(scap_get_fdinfo(m_scap_platform, scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
+		if(scap_get_fdinfo(scap_platform, scap_tinfo, fds[i], error) != SCAP_SUCCESS) {
 			libsinsp_logger()->format(
 			        sinsp_logger::SEV_DEBUG,
 			        "scap_get_fdinfo failed: %s, proc table will not be updated with new fd.",
@@ -3737,7 +3729,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt *evt,
 		int fds[SCM_MAX_FD];
 #undef SCM_MAX_FD
 		memcpy(&fds, PPM_CMSG_DATA(cmsg), data_size);
-		process_recvmsg_ancillary_data_fds(fds, fds_len, &scap_tinfo);
+		process_recvmsg_ancillary_data_fds(m_scap_platform, fds, fds_len, &scap_tinfo);
 	}
 }
 #endif  // _WIN32
@@ -3977,9 +3969,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) {
-	int64_t retval;
-
+void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) const {
 	if(!evt->get_fd_info()) {
 		return;
 	}
@@ -3987,7 +3977,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// If the operation was successful, validate that the fd exists
@@ -4015,7 +4005,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_eventfd_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_eventfd_exit(sinsp_evt *evt) const {
 	int64_t fd;
 
 	//
@@ -4072,12 +4062,10 @@ void sinsp_parser::parse_chdir_exit(sinsp_evt *evt) {
 }
 
 void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt) {
-	int64_t retval;
-
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// In case of success, update the thread working dir
@@ -4096,12 +4084,10 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt) {
 }
 
 void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt) {
-	int64_t retval;
-
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// Check if the syscall was successful
@@ -4150,13 +4136,11 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) {
-	int64_t retval;
-
+void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) const {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// If the operation was successful, do the cleanup
@@ -4177,9 +4161,7 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_dup_exit(sinsp_evt *evt) {
-	int64_t retval;
-
+void sinsp_parser::parse_dup_exit(sinsp_evt *evt) const {
 	if(evt->get_tinfo() == nullptr) {
 		return;
 	}
@@ -4187,7 +4169,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt) {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// Check if the syscall was successful
@@ -4225,7 +4207,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt) {
 			eparams.m_remove_from_table = false;
 			eparams.m_tinfo = evt->get_tinfo();
 
-			erase_fd(&eparams);
+			erase_fd(eparams);
 		}
 
 		//
@@ -4265,13 +4247,11 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_single_param_fd_exit(sinsp_evt *evt, scap_fd_type type) {
-	int64_t retval;
-
+void sinsp_parser::parse_single_param_fd_exit(sinsp_evt *evt, const scap_fd_type type) const {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(evt->get_tinfo() == nullptr) {
 		return;
@@ -4304,7 +4284,7 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt *evt, scap_fd_type type)
 	evt->set_fd_info(evt->get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 
-void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt) const {
 	int64_t retval;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	uint8_t resource;
@@ -4354,7 +4334,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt) const {
 	int64_t retval;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	uint8_t resource;
@@ -4439,21 +4419,20 @@ void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt) {
 		return;
 	}
 
-	uint8_t cmd = evt->get_param(1)->as<int8_t>();
+	const auto cmd = evt->get_param(1)->as<int8_t>();
 
 	if(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC) {
 		store_event(evt);
 	}
 }
 
-void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt) {
-	int64_t retval;
+void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt) const {
 	sinsp_evt *enter_evt = &m_tmp_evt;
 
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	//
 	// If this is not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore it
@@ -4508,7 +4487,7 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt *evt) {
 	evt->get_tinfo()->m_vmswap_kb = evt->get_param(3)->as<uint32_t>();
 }
 
-void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt) const {
 	int64_t retval;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 
@@ -4529,13 +4508,11 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_setreuid_exit(sinsp_evt *evt) {
-	int64_t retval;
-
+void sinsp_parser::parse_setreuid_exit(sinsp_evt *evt) const {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval == 0) {
 		uint32_t new_euid = evt->get_param(1)->as<uint32_t>();
@@ -4549,14 +4526,13 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt) {
-	int64_t retval;
+void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt) const {
 	sinsp_evt *enter_evt = &m_tmp_evt;
 
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval == 0 && retrieve_enter_event(enter_evt, evt)) {
 		uint32_t new_egid = enter_evt->get_param(1)->as<uint32_t>();
@@ -4570,13 +4546,11 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_setregid_exit(sinsp_evt *evt) {
-	int64_t retval;
-
+void sinsp_parser::parse_setregid_exit(sinsp_evt *evt) const {
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval == 0) {
 		uint32_t new_egid = evt->get_param(1)->as<uint32_t>();
@@ -4590,14 +4564,13 @@ void sinsp_parser::parse_setregid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_setuid_exit(sinsp_evt *evt) {
-	int64_t retval;
+void sinsp_parser::parse_setuid_exit(sinsp_evt *evt) const {
 	sinsp_evt *enter_evt = &m_tmp_evt;
 
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval == 0 && retrieve_enter_event(enter_evt, evt)) {
 		uint32_t new_euid = enter_evt->get_param(0)->as<uint32_t>();
@@ -4608,7 +4581,7 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_setgid_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_setgid_exit(sinsp_evt *evt) const {
 	int64_t retval;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 
@@ -4626,18 +4599,13 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_user_evt(sinsp_evt *evt) {
-	uint32_t uid, gid;
-	std::string_view name, home, shell, container_id;
-
-	uid = evt->get_param(0)->as<uint32_t>();
-
-	gid = evt->get_param(1)->as<uint32_t>();
-
-	name = evt->get_param(2)->as<std::string_view>();
-	home = evt->get_param(3)->as<std::string_view>();
-	shell = evt->get_param(4)->as<std::string_view>();
-	container_id = evt->get_param(5)->as<std::string_view>();
+void sinsp_parser::parse_user_evt(sinsp_evt *evt) const {
+	const auto uid = evt->get_param(0)->as<uint32_t>();
+	const auto gid = evt->get_param(1)->as<uint32_t>();
+	const auto name = evt->get_param(2)->as<std::string_view>();
+	const auto home = evt->get_param(3)->as<std::string_view>();
+	const auto shell = evt->get_param(4)->as<std::string_view>();
+	const auto container_id = evt->get_param(5)->as<std::string_view>();
 
 	if(evt->get_scap_evt()->type == PPME_USER_ADDED_E) {
 		m_usergroup_manager->add_user(std::string(container_id), -1, uid, gid, name, home, shell);
@@ -4646,11 +4614,10 @@ void sinsp_parser::parse_user_evt(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_group_evt(sinsp_evt *evt) {
-	uint32_t gid = evt->get_param(0)->as<uint32_t>();
-
-	std::string_view name = evt->get_param(1)->as<std::string_view>();
-	std::string_view container_id = evt->get_param(2)->as<std::string_view>();
+void sinsp_parser::parse_group_evt(sinsp_evt *evt) const {
+	const auto gid = evt->get_param(0)->as<uint32_t>();
+	const auto name = evt->get_param(1)->as<std::string_view>();
+	const auto container_id = evt->get_param(2)->as<std::string_view>();
 
 	if(evt->get_scap_evt()->type == PPME_GROUP_ADDED_E) {
 		m_usergroup_manager->add_group(container_id.data(), -1, gid, name.data());
@@ -4659,7 +4626,7 @@ void sinsp_parser::parse_group_evt(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt) {
+void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt) const {
 	if(m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) {
 		throw sinsp_exception("CPU " + evt->get_param_value_str("cpu") +
 		                      " configuration change detected. Aborting.");
@@ -4668,7 +4635,7 @@ void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt) {
 
 void sinsp_parser::parse_prctl_exit_event(sinsp_evt *evt) {
 	/* Parameter 1: res (type: PT_ERRNO) */
-	int64_t retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval < 0) {
 		/* we are not interested in parsing something if the syscall fails */
@@ -4723,7 +4690,7 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 		return;
 	}
 
-	int64_t retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 	if(retval == 0) {
 		const char *resolved_path;
 		auto path = evt->get_param_as_str(1, &resolved_path);
@@ -4736,12 +4703,10 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 }
 
 void sinsp_parser::parse_setsid_exit(sinsp_evt *evt) {
-	int64_t retval;
-
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval >= 0) {
 		if(evt->get_thread_info()) {
@@ -4750,7 +4715,7 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt) {
 	}
 }
 
-void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t err;
@@ -4818,19 +4783,16 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt) {
 }
 
 void sinsp_parser::parse_capset_exit(sinsp_evt *evt) {
-	sinsp_threadinfo *tinfo;
-	int64_t retval;
-
 	//
 	// Extract the return value
 	//
-	retval = evt->get_syscall_return_value();
+	const int64_t retval = evt->get_syscall_return_value();
 
 	if(retval < 0 || evt->get_tinfo() == nullptr) {
 		return;
 	}
 
-	tinfo = evt->get_tinfo();
+	const auto tinfo = evt->get_tinfo();
 
 	//
 	// Extract and update thread capabilities
@@ -4842,7 +4804,7 @@ void sinsp_parser::parse_capset_exit(sinsp_evt *evt) {
 	tinfo->m_cap_effective = evt->get_param(3)->as<uint64_t>();
 }
 
-void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt) const {
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	sinsp_threadinfo *tinfo;
 	int64_t retval;
@@ -4889,7 +4851,7 @@ void sinsp_parser::free_event_buffer(uint8_t *ptr) {
 	}
 }
 
-void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type) {
+void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, const scap_fd_type type) const {
 	int64_t fd;
 	uint32_t flags;
 
@@ -4920,7 +4882,7 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type) {
 	evt->set_fd_info(evt->get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
-void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt) const {
 	int64_t fd;
 	int64_t pid;
 	int64_t flags;
@@ -4953,7 +4915,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt) {
 	evt->set_fd_info(evt->get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
-void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt) {
+void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt) const {
 	int64_t fd;
 	int64_t pidfd;
 	int64_t targetfd;
