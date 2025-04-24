@@ -983,6 +983,7 @@ public:
 		return m_fdtable_dyn_fields;
 	}
 
+	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
 	const sinsp_threadinfo_factory& get_threadinfo_factory() const { return m_threadinfo_factory; }
 
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;

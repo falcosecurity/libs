@@ -2006,7 +2006,7 @@ std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(si
 }
 
 std::unique_ptr<sinsp_fdinfo> libsinsp::event_processor::build_fdinfo(sinsp* inspector) {
-	return std::make_unique<sinsp_fdinfo>(inspector->get_fdtable_dyn_fields());
+	return sinsp_fdinfo_factory::create_unique_attorney::create(inspector->get_fdinfo_factory());
 }
 
 void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt) {

@@ -31,7 +31,24 @@ class sinsp_fdinfo_factory {
 		return *m_external_event_processor;
 	}
 
+	// The access to `create_unique` is granted through the
+	// `sinsp_fdinfo_factory::create_unique_attorney` class (see its definition for more details).
+	static std::unique_ptr<sinsp_fdinfo> create_unique() {
+		return std::make_unique<sinsp_fdinfo>();
+	}
+
 public:
+	/*!
+	  \brief This class follows the attorney-client idiom to limit the access to
+	  `sinsp_fdinfo_factory::create_unique()` only to `libsinsp::event_processor`.
+	*/
+	class create_unique_attorney {
+		static std::unique_ptr<sinsp_fdinfo> create(sinsp_fdinfo_factory const& factory) {
+			return factory.create_unique();
+		}
+		friend libsinsp::event_processor;
+	};
+
 	sinsp_fdinfo_factory(
 	        sinsp* sinsp,
 	        libsinsp::event_processor** external_event_processor,
@@ -43,7 +60,7 @@ public:
 	std::unique_ptr<sinsp_fdinfo> create() const {
 		const auto external_event_processor = get_external_event_processor();
 		auto fdinfo = external_event_processor ? external_event_processor->build_fdinfo(m_sinsp)
-		                                       : std::make_unique<sinsp_fdinfo>();
+		                                       : create_unique();
 		if(fdinfo->dynamic_fields() == nullptr) {
 			fdinfo->set_dynamic_fields(m_dyn_fields);
 		}
