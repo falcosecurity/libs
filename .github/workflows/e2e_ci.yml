@@ -35,7 +35,6 @@ jobs:
             clang \
             llvm \
             git \
-            clang \
             ccache \
             llvm \
             pkg-config \
