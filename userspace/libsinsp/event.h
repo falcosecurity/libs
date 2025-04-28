@@ -622,7 +622,6 @@ public:
 	                   sinsp_evt::param_fmt fmt);
 	inline uint32_t get_dump_flags() const { return m_dump_flags; }
 	inline void set_dump_flags(uint32_t v) { m_dump_flags = v; }
-	static bool clone_event(sinsp_evt& dest, const sinsp_evt& src);
 	int32_t get_errorcode() const { return m_errorcode; }
 	inline void set_errorcode(int32_t v) { m_errorcode = v; }
 
