@@ -422,7 +422,7 @@ void sinsp_parser::event_cleanup(sinsp_evt &evt) {
 	if(evt.get_direction() == SCAP_ED_OUT && evt.get_tinfo() &&
 	   evt.get_tinfo()->get_last_event_data()) {
 		free_event_buffer(evt.get_tinfo()->get_last_event_data());
-		evt.get_tinfo()->set_last_event_data(NULL);
+		evt.get_tinfo()->set_last_event_data(nullptr);
 		evt.get_tinfo()->set_lastevent_data_validity(false);
 	}
 }
@@ -492,7 +492,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	ppm_event_flags eflags = evt.get_info_flags();
 
 	evt.set_fdinfo_ref(nullptr);
-	evt.set_fd_info(NULL);
+	evt.set_fd_info(nullptr);
 	evt.set_errorcode(0);
 
 	//
@@ -503,7 +503,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 			evt.set_tinfo(
 			        m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, false, false).get());
 		} else {
-			evt.set_tinfo(NULL);
+			evt.set_tinfo(nullptr);
 		}
 
 		return false;
@@ -651,7 +651,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 			}
 
 			evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
-			if(evt.get_fd_info() == NULL) {
+			if(evt.get_fd_info() == nullptr) {
 				return false;
 			}
 
@@ -712,9 +712,9 @@ void sinsp_parser::store_event(sinsp_evt &evt) {
 	// Copy the data
 	//
 	auto tinfo = evt.get_tinfo();
-	if(tinfo->get_last_event_data() == NULL) {
+	if(tinfo->get_last_event_data() == nullptr) {
 		tinfo->set_last_event_data(reserve_event_buffer());
-		if(tinfo->get_last_event_data() == NULL) {
+		if(tinfo->get_last_event_data() == nullptr) {
 			throw sinsp_exception("cannot reserve event buffer in sinsp_parser::store_event.");
 			return;
 		}
@@ -1003,7 +1003,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 			 * flag
 			 */
 			sinsp_fdtable *fd_table_ptr = caller_tinfo->get_fd_table();
-			if(fd_table_ptr != NULL) {
+			if(fd_table_ptr != nullptr) {
 				child_tinfo->get_fdtable().clear();
 				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
 				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo &info) {
@@ -1572,7 +1572,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			 * flag
 			 */
 			sinsp_fdtable *fd_table_ptr = lookup_tinfo->get_fd_table();
-			if(fd_table_ptr != NULL) {
+			if(fd_table_ptr != nullptr) {
 				child_tinfo->get_fdtable().clear();
 				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
 				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo &info) {
@@ -2274,7 +2274,7 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt &evt,
 		return ".";
 	}
 
-	if(evt.get_tinfo() == NULL) {
+	if(evt.get_tinfo() == nullptr) {
 		// In this case we can
 		// - neither retrieve the cwd when dirfd == PPM_AT_FDCWD
 		// - nor attempt to query the threadtable for the dirfd fd_info
@@ -2286,7 +2286,7 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt &evt,
 	}
 
 	auto fdinfo = evt.get_tinfo()->get_fd(dirfd);
-	if(fdinfo == NULL) {
+	if(fdinfo == nullptr) {
 		return "<UNKNOWN>";
 	}
 
@@ -2693,7 +2693,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	uint8_t *packed_data;
 	uint8_t family;
 
-	if(evt.get_fd_info() == NULL) {
+	if(evt.get_fd_info() == nullptr) {
 		return;
 	}
 
@@ -2779,7 +2779,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 	const char *parstr;
 	uint8_t *packed_data;
 
-	if(evt.get_fd_info() == NULL) {
+	if(evt.get_fd_info() == nullptr) {
 		return;
 	}
 
@@ -2813,7 +2813,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 	parinfo = evt.get_param(1);
 	if(parinfo->m_len == 0) {
 		//
-		// Address can be NULL:
+		// Address can be nullptr:
 		// sk is a TCP fastopen active socket and
 		// TCP_FASTOPEN_CONNECT sockopt is set and
 		// we already have a valid cookie for this socket.
@@ -3013,7 +3013,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	parinfo = evt.get_param(1);
 	if(parinfo->m_len == 0) {
 		//
-		// Address can be NULL:
+		// Address can be nullptr:
 		// sk is a TCP fastopen active socket and
 		// TCP_FASTOPEN_CONNECT sockopt is set and
 		// we already have a valid cookie for this socket.
@@ -3158,7 +3158,7 @@ void sinsp_parser::parse_close_enter(sinsp_evt &evt) {
 	}
 
 	evt.set_fd_info(evt.get_tinfo()->get_fd(evt.get_tinfo()->m_lastevent_fd));
-	if(evt.get_fd_info() == NULL) {
+	if(evt.get_fd_info() == nullptr) {
 		return;
 	}
 
@@ -3238,7 +3238,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 		erase_fd(eparams, verdict);
 	} else {
-		if(evt.get_fd_info() != NULL) {
+		if(evt.get_fd_info() != nullptr) {
 			evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
 		}
 
@@ -3310,7 +3310,7 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt &evt) const {
 	** In the case of 2 equal fds we ignore them (e.g. both equal to -1).
 	*/
 	if(fd1 == fd2) {
-		evt.set_fd_info(NULL);
+		evt.set_fd_info(nullptr);
 		return;
 	}
 
@@ -3516,7 +3516,7 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo &fdinfo,
 	return changed;
 }
 
-// Return false if the update didn't happen (for example because the tuple is NULL)
+// Return false if the update didn't happen (for example because the tuple is nullptr)
 bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) const {
 	uint8_t *packed_data = (uint8_t *)parinfo.m_val;
 	uint8_t family = *packed_data;
@@ -3742,7 +3742,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	//
 	retval = evt.get_syscall_return_value();
 
-	if(evt.get_fd_info() == NULL) {
+	if(evt.get_fd_info() == nullptr) {
 		return;
 	}
 
@@ -4136,7 +4136,7 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 	// If the operation was successful, do the cleanup
 	//
 	if(retval >= 0) {
-		if(evt.get_fd_info() == NULL) {
+		if(evt.get_fd_info() == nullptr) {
 			return;
 		}
 
@@ -4175,7 +4175,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 			evt.get_tinfo()->m_flags |= PPM_CL_PIPE_SRC;
 		}
 
-		if(evt.get_fd_info() == NULL) {
+		if(evt.get_fd_info() == nullptr) {
 			return;
 		}
 		//
@@ -4189,7 +4189,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 		//
 		sinsp_fdinfo *oldfdinfo = evt.get_tinfo()->get_fd(retval);
 
-		if(oldfdinfo != NULL) {
+		if(oldfdinfo != nullptr) {
 			erase_fd_params eparams;
 
 			eparams.m_fd = retval;
@@ -4394,9 +4394,9 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt &evt) {
 		return;
 	}
 
-	if(evt.get_tinfo()->get_last_event_data() == NULL) {
+	if(evt.get_tinfo()->get_last_event_data() == nullptr) {
 		evt.get_tinfo()->set_last_event_data(reserve_event_buffer());
-		if(evt.get_tinfo()->get_last_event_data() == NULL) {
+		if(evt.get_tinfo()->get_last_event_data() == nullptr) {
 			throw sinsp_exception(
 			        "cannot reserve event buffer in "
 			        "sinsp_parser::parse_select_poll_epollwait_enter.");
@@ -4435,7 +4435,7 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
 	// Check if the syscall was successful
 	//
 	if(retval >= 0) {
-		if(evt.get_fd_info() == NULL) {
+		if(evt.get_fd_info() == nullptr) {
 			return;
 		}
 
