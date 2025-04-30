@@ -1285,7 +1285,7 @@ int32_t scap_fd_get_fdinfo(struct scap_linux_platform const *const linux_platfor
 	// In no driver mode to limit cpu usage we just parse sockets
 	// because we are interested only on them.
 	if(linux_platform->m_minimal_scan && !S_ISSOCK(sb.st_mode)) {
-		return EXIT_SUCCESS;
+		return SCAP_SUCCESS;
 	}
 
 	return handle_file(proclist, f_name, tinfo, &fdi, procdir, &sb, net_ns, sockets_by_ns, error);
