@@ -776,6 +776,9 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 
 	// check more fields
 	ASSERT_EQ(get_field_as_string(evt, "proc.args"), "-c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.args[0]"), "-c");
+	ASSERT_EQ(get_field_as_string(evt, "proc.args[1]"), "'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.args[8]"), "");
 	ASSERT_EQ(get_field_as_string(evt, "proc.exeline"),
 	          "/bin/test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.tty"), "34818");

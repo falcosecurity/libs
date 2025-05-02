@@ -140,7 +140,12 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "Arguments",
          "The arguments passed on the command line when starting the process generating the event "
          "excluding argv[0] (truncated after 4096 bytes). This field is collected from the "
-         "syscalls args or, as a fallback, extracted from /proc/PID/cmdline."},
+         "system call arguments, or as a fallback, extracted from /proc/PID/cmdline, can be "
+         "accessed "
+         "by specifying proc.args[INDEX], e.g., proc.args[0] or proc.args[1]. The indexing is "
+         "zero-based, "
+         "meaning proc.args[0] refers to the first command-line argument passed, rather than "
+         "argv[0]."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
@@ -782,6 +787,19 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname,
 		} else {
 			throw sinsp_exception("filter syntax error: " + string(val));
 		}
+	} else if(m_field_id == TYPE_ARGS) {
+		if(val.size() > fldname.size() && val.at(fldname.size()) == '[') {
+			parsed_len = val.find(']');
+			if(parsed_len == std::string::npos) {
+				throw sinsp_exception("the field '" + string(fldname) +
+				                      "' requires an argument but ']' is not found");
+			}
+			string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
+			m_argid = sinsp_numparser::parsed32(numstr);
+			parsed_len++;
+		} else {
+			throw sinsp_exception("filter syntax error: " + string(val));
+		}
 	}
 
 	return (int32_t)parsed_len;
@@ -889,6 +907,22 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		} catch(...) {
 			if(val == "proc.env") {
 				m_argname.clear();
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	} else if(STR_MATCH("proc.args")) {
+		m_field_id = TYPE_ARGS;
+		m_field = &m_info->m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try {
+			res = extract_arg("proc.args", val, NULL);
+		} catch(...) {
+			if(val == "proc.args") {
+				m_argid = -1;
 				res = (int32_t)val.size();
 			}
 		}
@@ -1107,10 +1141,16 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		uint32_t j;
 		uint32_t nargs = (uint32_t)tinfo->m_args.size();
 
-		for(j = 0; j < nargs; j++) {
-			m_tstr += tinfo->m_args[j];
-			if(j < nargs - 1) {
-				m_tstr += ' ';
+		if(m_argid >= 0) {
+			if(static_cast<uint32_t>(m_argid) < nargs) {
+				m_tstr = tinfo->m_args[m_argid];
+			}
+		} else {
+			for(j = 0; j < nargs; j++) {
+				m_tstr += tinfo->m_args[j];
+				if(j < nargs - 1) {
+					m_tstr += ' ';
+				}
 			}
 		}
 
