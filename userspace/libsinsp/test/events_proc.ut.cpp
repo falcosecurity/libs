@@ -768,10 +768,10 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.pvpid"), "1");
 	ASSERT_FALSE(field_has_value(evt, "proc.apid[2]"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
-	ASSERT_EQ(get_field_as_string(evt, "proc.pcmdline"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.pcmdline"), "init context ls --format {{json .}}");
 	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[0]"),
 	          "test-exe -c 'echo aGVsbG8K | base64 -d'");
-	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[1]"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[1]"), "init context ls --format {{json .}}");
 	ASSERT_FALSE(field_has_value(evt, "proc.acmdline[2]"));
 
 	// check more fields
@@ -779,6 +779,8 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.args[0]"), "-c");
 	ASSERT_EQ(get_field_as_string(evt, "proc.args[1]"), "'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.args[8]"), "");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aargs[0]"), "-c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aargs[1]"), "context ls --format {{json .}}");
 	ASSERT_EQ(get_field_as_string(evt, "proc.exeline"),
 	          "/bin/test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.tty"), "34818");

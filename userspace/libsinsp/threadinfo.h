@@ -418,6 +418,7 @@ public:
 	}
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
+	static void populate_args(std::string& args, const sinsp_threadinfo* tinfo);
 
 	/*!
 	  \brief Translate a directory's file descriptor into its path

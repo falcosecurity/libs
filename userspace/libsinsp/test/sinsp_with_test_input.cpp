@@ -530,6 +530,7 @@ scap_threadinfo sinsp_with_test_input::create_threadinfo(uint64_t tid,
 
 void sinsp_with_test_input::add_default_init_thread() {
 	std::vector<std::string> env = {"TEST_ENV_PARENT_LINEAGE=secret", "HOME=/home/user/parent"};
+	std::vector<std::string> args = {"context", "ls", "--format", "{{json .}}"};
 	scap_threadinfo tinfo = create_threadinfo(1,
 	                                          1,
 	                                          0,
@@ -542,7 +543,7 @@ void sinsp_with_test_input::add_default_init_thread() {
 	                                          increasing_ts(),
 	                                          0,
 	                                          0,
-	                                          {},
+	                                          args,
 	                                          0,
 	                                          env,
 	                                          "/root/");
