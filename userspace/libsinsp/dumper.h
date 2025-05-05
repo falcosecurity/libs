@@ -107,10 +107,7 @@ public:
 	*/
 	void dump(sinsp_evt* evt);
 
-	inline void set_inspector(sinsp* inspector) { m_inspector = inspector; }
-
 private:
-	sinsp* m_inspector;
 	scap_dumper_t* m_dumper;
 	uint8_t* m_target_memory_buffer;
 	uint64_t m_target_memory_buffer_size;
