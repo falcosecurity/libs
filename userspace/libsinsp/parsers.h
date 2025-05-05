@@ -20,7 +20,6 @@ limitations under the License.
 // Public definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include <libsinsp/sinsp_syslog.h>
 #include <libsinsp/fdinfo.h>
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
@@ -73,8 +72,6 @@ public:
 
 	void set_track_connection_status(bool enabled);
 	bool get_track_connection_status() const { return m_track_connection_status; }
-
-	inline sinsp_syslog_decoder& get_syslog_decoder() { return m_syslog_decoder; }
 
 private:
 	//
@@ -229,6 +226,4 @@ private:
 
 	// caches the index of the "syscall" event source
 	size_t m_syscall_event_source_idx;
-
-	sinsp_syslog_decoder m_syslog_decoder;
 };

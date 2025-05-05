@@ -174,9 +174,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          PF_NA,
          "evt.info",
          "Information",
-         "for most events, this field returns the same value as evt.args. However, for some events "
-         "(like writes to /dev/log) it provides higher level information coming from decoding the "
-         "arguments."},
+         "Currently, this field returns the same value as 'evt.args'."},
         {PT_BYTEBUF,
          EPF_NO_PTR_STABILITY,
          PF_NA,
@@ -1218,16 +1216,10 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 	} break;
 	case TYPE_INFO: {
-		if(m_inspector->get_parser()->get_syslog_decoder().is_data_valid()) {
-			// syslog is actually the only info line we support up until now
-			m_strstorage = m_inspector->get_parser()->get_syslog_decoder().get_info_line();
-			RETURN_EXTRACT_STRING(m_strstorage);
-		}
+		// No info line support at the moment.
 	}
-		//
-		// NOTE: this falls through to TYPE_ARGSTR, and that's what we want!
-		//       Please don't add anything here!
-		//
+	// NOTE: this falls through to TYPE_ARGS, and that's what we want! Please don't add anything
+	// here!
 	case TYPE_ARGS: {
 		if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X) {
 			//

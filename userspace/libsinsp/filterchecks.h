@@ -32,7 +32,6 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck_mesos.h>
 #include <libsinsp/sinsp_filtercheck_rawstring.h>
 #include <libsinsp/sinsp_filtercheck_reference.h>
-#include <libsinsp/sinsp_filtercheck_syslog.h>
 #include <libsinsp/sinsp_filtercheck_thread.h>
 #include <libsinsp/sinsp_filtercheck_tracer.h>
 #include <libsinsp/sinsp_filtercheck_user.h>

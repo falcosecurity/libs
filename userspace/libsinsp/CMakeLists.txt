@@ -66,7 +66,6 @@ add_library(
 	sinsp_filtercheck_mesos.cpp
 	sinsp_filtercheck_rawstring.cpp
 	sinsp_filtercheck_reference.cpp
-	sinsp_filtercheck_syslog.cpp
 	sinsp_filtercheck_thread.cpp
 	sinsp_filtercheck_tracer.cpp
 	sinsp_filtercheck_user.cpp
@@ -82,7 +81,6 @@ add_library(
 	plugin_table_api.cpp
 	plugin_filtercheck.cpp
 	prefix_search.cpp
-	sinsp_syslog.cpp
 	threadinfo.cpp
 	thread_manager.cpp
 	tuples.cpp

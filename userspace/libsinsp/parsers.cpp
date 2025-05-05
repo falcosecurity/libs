@@ -474,8 +474,6 @@ static bool can_query_os_for_thread_info(const uint16_t evt_type) {
 // Returns false in case of issues resetting the state.
 //
 bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
-	m_syslog_decoder.reset();
-
 	uint16_t etype = evt.get_type();
 	// Before anything can happen, the event needs to be initialized.
 	evt.init();
@@ -3925,11 +3923,6 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 					                           (uint32_t)retval,
 					                           datalen);
 				        });
-			}
-
-			// perform syslog decoding if applicable
-			if(evt.get_fd_info()->is_syslog()) {
-				m_syslog_decoder.parse_data(data, datalen);
 			}
 		}
 	} else if(m_track_connection_status) {
