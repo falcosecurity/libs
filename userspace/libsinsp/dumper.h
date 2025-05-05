@@ -96,15 +96,6 @@ public:
 	uint64_t written_bytes() const;
 
 	/*!
-	  \brief Return the starting position for the next write into
-	          the file. (Under the covers, this uses gztell while
-	          written_bytes uses gzoffset, which represent different values).
-
-	  \return The starting position for the next write.
-	*/
-	uint64_t next_write_position() const;
-
-	/*!
 	  \brief Flush all pending output into the file.
 	*/
 	void flush();
@@ -115,8 +106,6 @@ public:
 	  \param evt Pointer to the event to dump.
 	*/
 	void dump(sinsp_evt* evt);
-
-	inline uint8_t* get_memory_dump_cur_buf() { return scap_get_memorydumper_curpos(m_dumper); }
 
 	inline void set_inspector(sinsp* inspector) { m_inspector = inspector; }
 
