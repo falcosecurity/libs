@@ -63,10 +63,6 @@ jobs:
           sudo .github/install-deps.sh
 
       - name: Build tests 🏗️
-        env:
-          # This avoids random failures on CI.
-          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
-          ASAN_OPTIONS: intercept_tls_get_addr=0
         run: |
           mkdir -p build && cd build
           cmake -DBUILD_BPF=ON \
@@ -85,10 +81,6 @@ jobs:
           mv ${{ inputs.custom_container_plugin }} build/test/e2e/container_plugin-prefix/src/container_plugin/
 
       - name: Run tests - docker 🧪
-        env:
-          # This avoids random failures on CI.
-          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
-          ASAN_OPTIONS: intercept_tls_get_addr=0
         run: |
           cd build
           sudo -E ../test/e2e/scripts/run_tests.sh
@@ -104,9 +96,6 @@ jobs:
       - name: Run tests - podman 🧪
         if: always()
         env:
-          # This avoids random failures on CI.
-          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
-          ASAN_OPTIONS: intercept_tls_get_addr=0
           # Set DOCKER_HOST pointing to podman socket
           DOCKER_HOST: unix://run/podman/podman.sock
         run: |
