@@ -134,18 +134,16 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "filters and matches any of the process ancestors. For instance, you can use "
          "`proc.aname=bash` to match any process ancestor whose name is `bash`."},
         {PT_CHARBUF,
-         EPF_NONE,
+         EPF_ARG_ALLOWED,
          PF_NA,
          "proc.args",
          "Arguments",
          "The arguments passed on the command line when starting the process generating the event "
          "excluding argv[0] (truncated after 4096 bytes). This field is collected from the "
          "system call arguments, or as a fallback, extracted from /proc/PID/cmdline, can be "
-         "accessed "
-         "by specifying proc.args[INDEX], e.g., proc.args[0] or proc.args[1]. The indexing is "
-         "zero-based, "
-         "meaning proc.args[0] refers to the first command-line argument passed, rather than "
-         "argv[0]."},
+         "accessed by specifying proc.args[INDEX], e.g., proc.args[0] or proc.args[1]. The "
+         "indexing is zero-based, meaning proc.args[0] refers to the first command-line argument "
+         "passed, rather than argv[0]."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
@@ -740,7 +738,7 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname,
 	// 'arg' and 'resarg' are handled in a custom way
 	//
 	if(m_field_id == TYPE_APID || m_field_id == TYPE_ANAME || m_field_id == TYPE_AEXE ||
-	   m_field_id == TYPE_AEXEPATH || m_field_id == TYPE_ACMDLINE) {
+	   m_field_id == TYPE_AEXEPATH || m_field_id == TYPE_ACMDLINE || m_field_id == TYPE_ARGS) {
 		if(val.size() > fldname.size() && val.at(fldname.size()) == '[') {
 			parsed_len = val.find(']');
 			if(parsed_len == std::string::npos) {
@@ -784,19 +782,6 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname,
 
 			parsed_len = endpos;
 			m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
-		} else {
-			throw sinsp_exception("filter syntax error: " + string(val));
-		}
-	} else if(m_field_id == TYPE_ARGS) {
-		if(val.size() > fldname.size() && val.at(fldname.size()) == '[') {
-			parsed_len = val.find(']');
-			if(parsed_len == std::string::npos) {
-				throw sinsp_exception("the field '" + string(fldname) +
-				                      "' requires an argument but ']' is not found");
-			}
-			string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
-			m_argid = sinsp_numparser::parsed32(numstr);
-			parsed_len++;
 		} else {
 			throw sinsp_exception("filter syntax error: " + string(val));
 		}
