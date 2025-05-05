@@ -1052,6 +1052,18 @@ void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_thread
 	}
 }
 
+void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* tinfo) {
+	uint32_t j;
+	uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+	for(j = 0; j < nargs; j++) {
+		args += tinfo->m_args[j];
+		if(j < nargs - 1) {
+			args += ' ';
+		}
+	}
+}
+
 std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 	sinsp_fdinfo* dir_fdinfo = get_fd(dir_fd);
 	if(!dir_fdinfo || dir_fdinfo->m_name.empty()) {

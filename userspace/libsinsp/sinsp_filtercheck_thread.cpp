@@ -145,6 +145,20 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "indexing is zero-based, meaning proc.args[0] refers to the first command-line argument "
          "passed, rather than argv[0]."},
         {PT_CHARBUF,
+         EPF_ARG_ALLOWED,
+         PF_NA,
+         "proc.aargs",
+         "Ancestor Arguments",
+         "The arguments passed on the command line when starting the process generating the event "
+         "for a specific process ancestor. You can access different levels of ancestors by using "
+         "indices. For example, proc.aargs[1] retrieves the arguments passed on the command line "
+         "of the parent process, proc.aargs[2] retrieves the proc.args of the grandparent process, "
+         "and so on. The current process's arguments passed on the command line can be obtained "
+         "using proc.aargs[0]. When used without any arguments, proc.aargs is applicable only in "
+         "filters and matches any of the process ancestors. For instance, you can use `proc.aargs "
+         "contains base64` to match any process ancestor whose arguments passed on the command "
+         "line contains the term base64."},
+        {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
          "proc.cmdline",
@@ -751,6 +765,21 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname,
 		} else {
 			throw sinsp_exception("filter syntax error: " + string(val));
 		}
+	} else if(m_field_id == TYPE_AARGS) {
+		// Separate statement in order to expand future usage
+		// to proc.aargs[1][3]; allow for indexed ancestor args access
+		if(val.size() > fldname.size() && val.at(fldname.size()) == '[') {
+			parsed_len = val.find(']');
+			if(parsed_len == std::string::npos) {
+				throw sinsp_exception("the field '" + string(fldname) +
+				                      "' requires an argument but ']' is not found");
+			}
+			string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
+			m_argid = sinsp_numparser::parsed32(numstr);
+			parsed_len++;
+		} else {
+			throw sinsp_exception("filter syntax error: " + string(val));
+		}
 	} else if(m_field_id == TYPE_ENV || m_field_id == TYPE_AENV) {
 		if(val.size() > fldname.size() && val.at(fldname.size()) == '[') {
 			std::string::size_type startpos = fldname.size();
@@ -875,6 +904,22 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 			res = extract_arg("proc.acmdline", val, NULL);
 		} catch(...) {
 			if(val == "proc.acmdline") {
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	} else if(STR_MATCH("proc.aargs")) {
+		m_field_id = TYPE_AARGS;
+		m_field = &m_info->m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try {
+			res = extract_arg("proc.aargs", val, NULL);
+		} catch(...) {
+			if(val == "proc.aargs") {
 				m_argid = -1;
 				res = (int32_t)val.size();
 			}
@@ -1123,22 +1168,25 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 	case TYPE_ARGS: {
 		m_tstr.clear();
 
-		uint32_t j;
-		uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
 		if(m_argid >= 0) {
-			if(static_cast<uint32_t>(m_argid) < nargs) {
+			if(static_cast<uint32_t>(m_argid) < (uint32_t)tinfo->m_args.size()) {
 				m_tstr = tinfo->m_args[m_argid];
 			}
 		} else {
-			for(j = 0; j < nargs; j++) {
-				m_tstr += tinfo->m_args[j];
-				if(j < nargs - 1) {
-					m_tstr += ' ';
-				}
-			}
+			sinsp_threadinfo::populate_args(m_tstr, tinfo);
 		}
 
+		RETURN_EXTRACT_STRING(m_tstr);
+	}
+	case TYPE_AARGS: {
+		m_tstr.clear();
+
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process(m_argid);
+		if(!mt) {
+			return NULL;
+		}
+
+		sinsp_threadinfo::populate_args(m_tstr, mt);
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_ENV: {
