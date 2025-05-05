@@ -1,0 +1,131 @@
+name: Run libs e2e tests python framework
+
+on:
+  workflow_call:
+    inputs:
+      custom_container_plugin:
+        description: 'use a custom container plugin; path or empty'
+        type: string
+        required: false
+        default: ''
+
+concurrency:
+  group: e2e-tests
+  cancel-in-progress: true
+
+jobs:
+  test-e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ system_deps, bundled_deps, asan ]
+        include:
+          - name: system_deps
+            cmake_opts: -DUSE_BUNDLED_DEPS=False
+          - name: bundled_deps
+            cmake_opts: -DUSE_BUNDLED_DEPS=True
+          - name: asan
+            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            cmake \
+            build-essential \
+            git \
+            clang \
+            llvm \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            libelf-dev \
+            wget \
+            libbpf-dev \
+            libcap-dev \
+            libtbb-dev \
+            libjq-dev \
+            libjsoncpp-dev \
+            libgtest-dev \
+            libprotobuf-dev \
+            protobuf-compiler \
+            "linux-headers-$(uname -r)"
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Fix kernel mmap rnd bits
+        # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+        # high-entropy ASLR in much newer kernels that GitHub runners are
+        # using leading to random crashes: https://reviews.llvm.org/D148280
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Install deps ⛓️
+        run: |
+          sudo .github/install-deps.sh
+
+      - name: Build tests 🏗️
+        env:
+          # This avoids random failures on CI.
+          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
+          ASAN_OPTIONS: intercept_tls_get_addr=0
+        run: |
+          mkdir -p build && cd build
+          cmake -DBUILD_BPF=ON \
+                -DBUILD_LIBSCAP_MODERN_BPF=ON \
+                -DBUILD_LIBSCAP_GVISOR=OFF \
+                -DENABLE_E2E_TESTS=ON \
+                ${{ matrix.cmake_opts }} \
+                -DUSE_BUNDLED_LIBBPF=ON \
+                ..
+          make -j$(nproc) sinsp-example driver bpf container_plugin
+          sudo -E make e2e-install-deps
+
+      - name: Use custom container plugin
+        if: inputs.custom_container_plugin != ''
+        run: |
+          mv ${{ inputs.custom_container_plugin }} build/test/e2e/container_plugin-prefix/src/container_plugin/
+
+      - name: Run tests - docker 🧪
+        env:
+          # This avoids random failures on CI.
+          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
+          ASAN_OPTIONS: intercept_tls_get_addr=0
+        run: |
+          cd build
+          sudo -E ../test/e2e/scripts/run_tests.sh
+
+      - name: Archive test reports - docker
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: ${{ matrix.name }}_report
+          path: |
+            /tmp/report/
+
+      - name: Run tests - podman 🧪
+        if: always()
+        env:
+          # This avoids random failures on CI.
+          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
+          ASAN_OPTIONS: intercept_tls_get_addr=0
+          # Set DOCKER_HOST pointing to podman socket
+          DOCKER_HOST: unix://run/podman/podman.sock
+        run: |
+          sudo rm -rf /tmp/report
+          # Podman tests require podman socket
+          sudo systemctl start podman
+          cd build
+          sudo -E ../test/e2e/scripts/run_tests.sh
+
+      - name: Archive test reports - podman
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: ${{ matrix.name }}_podman_report
+          path: |
+            /tmp/report/
