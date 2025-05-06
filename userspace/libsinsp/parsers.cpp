@@ -490,14 +490,14 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	}
 
 	if(plugin_id != 0) {
-		bool pfound = false;
-		auto srcidx = m_plugin_manager->source_idx_by_plugin_id(plugin_id, pfound);
-		if(!pfound) {
+		bool plugin_found = false;
+		const auto src_idx = m_plugin_manager->source_idx_by_plugin_id(plugin_id, plugin_found);
+		if(!plugin_found) {
 			evt.set_source_idx(sinsp_no_event_source_idx);
 			evt.set_source_name(sinsp_no_event_source_name);
 		} else {
-			evt.set_source_idx(srcidx);
-			evt.set_source_name(m_event_sources[srcidx].c_str());
+			evt.set_source_idx(src_idx);
+			evt.set_source_name(m_event_sources[src_idx].c_str());
 		}
 	} else {
 		// Every other event falls under the "syscall" event source umbrella cache index of
@@ -515,30 +515,24 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 			}
 		}
 		evt.set_source_idx(m_syscall_event_source_idx);
-		evt.set_source_name((m_syscall_event_source_idx != sinsp_no_event_source_idx)
+		evt.set_source_name(m_syscall_event_source_idx != sinsp_no_event_source_idx
 		                            ? sinsp_syscall_event_source_name
 		                            : sinsp_no_event_source_name);
 	}
-
-	ppm_event_flags eflags = evt.get_info_flags();
 
 	evt.set_fdinfo_ref(nullptr);
 	evt.set_fd_info(nullptr);
 	evt.set_errorcode(0);
 
 	// Ignore events with EF_SKIPPARSERESET flag.
-	if(eflags & EF_SKIPPARSERESET) {
+	if(const auto eflags = evt.get_info_flags(); eflags & EF_SKIPPARSERESET) {
+		sinsp_threadinfo *tinfo = nullptr;
 		if(etype == PPME_PROCINFO_E) {
-			evt.set_tinfo(
-			        m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, false, false).get());
-		} else {
-			evt.set_tinfo(nullptr);
+			tinfo = m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, false, false).get();
 		}
-
+		evt.set_tinfo(tinfo);
 		return false;
 	}
-
-	const bool query_os = can_query_os_for_thread_info(etype);
 
 	// todo(jasondellaluce): should we do this for all meta-events in general?
 	if(etype == PPME_CONTAINER_JSON_E || etype == PPME_CONTAINER_JSON_2_E ||
@@ -550,13 +544,17 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		return true;
 	}
 
-	evt.set_tinfo(m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, query_os, false).get());
+	const auto tid = evt.get_scap_evt()->tid;
+	const bool query_os = can_query_os_for_thread_info(etype);
+	const auto tinfo = m_thread_manager->get_thread_ref(tid, query_os, false).get();
+
+	evt.set_tinfo(tinfo);
 
 	if(is_schedswitch_event(etype)) {
 		return false;
 	}
 
-	if(!evt.get_tinfo()) {
+	if(!tinfo) {
 		if(is_clone_exit_event(etype) || is_fork_exit_event(etype)) {
 			if(m_sinsp_stats_v2 != nullptr) {
 				m_sinsp_stats_v2->m_n_failed_thread_lookups--;
@@ -566,24 +564,24 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	}
 
 	if(query_os) {
-		evt.get_tinfo()->m_flags |= PPM_CL_ACTIVE;
+		tinfo->m_flags |= PPM_CL_ACTIVE;
 	}
 
 	// todo!: at the end of we work we should remove the enter/exit distinction and ideally we
 	//   should set the fdinfos directly here and return if they are not present.
 	if(PPME_IS_ENTER(etype)) {
-		evt.get_tinfo()->m_lastevent_fd = -1;
-		evt.get_tinfo()->set_lastevent_type(etype);
+		tinfo->m_lastevent_fd = -1;
+		tinfo->set_lastevent_type(etype);
 
 		if(evt.uses_fd()) {
-			int fd_location = get_enter_event_fd_location((ppm_event_code)etype);
+			const int fd_location = get_enter_event_fd_location(static_cast<ppm_event_code>(etype));
 			ASSERT(evt.get_param_info(fd_location)->type == PT_FD);
-			evt.get_tinfo()->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
-			evt.set_fd_info(evt.get_tinfo()->get_fd(evt.get_tinfo()->m_lastevent_fd));
+			tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
+			evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
 		}
 
-		evt.get_tinfo()->m_latency = 0;
-		evt.get_tinfo()->m_last_latency_entertime = evt.get_ts();
+		tinfo->m_latency = 0;
+		tinfo->m_last_latency_entertime = evt.get_ts();
 		return true;
 	}
 
@@ -591,14 +589,12 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	// Handling section for exit events.
 	//
 
-	sinsp_threadinfo *tinfo = evt.get_tinfo();
-
 	//
 	// event latency
 	//
 	if(tinfo->m_last_latency_entertime != 0) {
 		tinfo->m_latency = evt.get_ts() - tinfo->m_last_latency_entertime;
-		ASSERT((int64_t)tinfo->m_latency >= 0);
+		ASSERT(static_cast<int64_t>(tinfo->m_latency) >= 0);
 	}
 
 	if((etype == PPME_SYSCALL_EXECVE_18_X || etype == PPME_SYSCALL_EXECVE_19_X) &&
@@ -618,10 +614,8 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	// Error detection logic
 	//
 	if(evt.has_return_value()) {
-		int64_t res = evt.get_syscall_return_value();
-
-		if(res < 0) {
-			evt.set_errorcode(-(int32_t)res);
+		if(const int64_t res = evt.get_syscall_return_value(); res < 0) {
+			evt.set_errorcode(-static_cast<int32_t>(res));
 		}
 	}
 
@@ -647,14 +641,15 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 
 	// todo!: this should become the unique logic when we'll disable the enter events.
 	if(tinfo->m_lastevent_fd == -1) {
-		int fd_location = get_exit_event_fd_location((ppm_event_code)etype);
-		if(fd_location != -1) {
+		if(const int fd_location = get_exit_event_fd_location(static_cast<ppm_event_code>(etype));
+		   fd_location != -1) {
 			tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
 		}
 	}
 
-	evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
-	if(evt.get_fd_info() == nullptr) {
+	const auto fdinfo = tinfo->get_fd(tinfo->m_lastevent_fd);
+	evt.set_fd_info(fdinfo);
+	if(fdinfo == nullptr) {
 		return false;
 	}
 
@@ -662,19 +657,20 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		m_observer->on_error(&evt);
 	}
 
-	if((evt.get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) == 0) {
+	if((fdinfo->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) == 0) {
 		return true;
 	}
 
 	// FD close canceled handling. A fd close gets canceled when the same fd is created successfully
 	// between close enter and close exit.
+	fdinfo->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 	erase_fd_params eparams;
-	evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 	eparams.m_fd = CANCELED_FD_NUMBER;
 	eparams.m_fdinfo = tinfo->get_fd(CANCELED_FD_NUMBER);
 	eparams.m_remove_from_table = true;
 	eparams.m_tinfo = tinfo;
 	erase_fd(eparams, verdict);
+
 	return true;
 }
 
