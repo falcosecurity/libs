@@ -121,6 +121,10 @@ class SinspProcessStreamer(SinspStreamer):
             if (datetime.now() - start).total_seconds() > self.timeout:
                 break
 
+        # flush remaining queue
+        while not self.queue.empty():
+            yield self.queue.get(block=False)
+
 
 class SinspStreamerBuilder:
     def __init__(self):
