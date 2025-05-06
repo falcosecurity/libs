@@ -2112,11 +2112,11 @@ std::shared_ptr<sinsp_thread_pool> sinsp::get_thread_pool() {
 	return m_thread_pool;
 }
 
-bool sinsp::set_thread_pool(std::shared_ptr<sinsp_thread_pool> tpool) {
-	if(!m_thread_pool) {
-		m_thread_pool = tpool;
-		return true;
+bool sinsp::set_thread_pool(const std::shared_ptr<sinsp_thread_pool>& tpool) {
+	if(m_thread_pool) {
+		return false;
 	}
 
-	return false;
+	m_thread_pool = tpool;
+	return true;
 }
