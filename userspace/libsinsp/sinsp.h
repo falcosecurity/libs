@@ -835,8 +835,6 @@ public:
 
 	void set_mode(sinsp_mode_t value) { m_mode = value; }
 
-	inline void remove_thread(int64_t tid) { m_thread_manager->remove_thread(tid); }
-
 	inline const struct scap_platform* get_scap_platform() const { return m_platform; }
 
 	inline struct scap_platform* get_scap_platform() { return m_platform; }

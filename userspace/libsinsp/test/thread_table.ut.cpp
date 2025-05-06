@@ -192,9 +192,11 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
 	set_threadinfo_last_access_time(p2_t2_tid, 70);
 	set_threadinfo_last_access_time(p2_t3_tid, 70);
 
+	auto& thread_manager = m_inspector.m_thread_manager;
+
 	/* This should remove no one */
 	remove_inactive_threads(80, 20);
-	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, m_inspector.m_thread_manager->get_thread_count());
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
 
 	/* mark p2_t1 and p2_t3 to remove */
 	set_threadinfo_last_access_time(p2_t1_tid, 20);
@@ -204,7 +206,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
 	 * threads in that group while p2_t3 should be removed.
 	 */
 	remove_inactive_threads(80, 20);
-	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, m_inspector.m_thread_manager->get_thread_count());
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, thread_manager->get_thread_count());
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 2, 2, p2_t1_tid, p2_t2_tid);
 
 	/* Calling PRCTL on an unknown thread should generate an invalid thread */
@@ -225,12 +227,12 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
 
 	/* This call should remove only invalid threads */
 	remove_inactive_threads(80, 20);
-	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, m_inspector.m_thread_manager->get_thread_count());
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, thread_manager->get_thread_count());
 
 	/* successive remove call on `p2_t1` do nothing since it is a main thread */
-	m_inspector.remove_thread(p2_t1_tid);
-	m_inspector.remove_thread(p2_t1_tid);
-	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, m_inspector.m_thread_manager->get_thread_count());
+	thread_manager->remove_thread(p2_t1_tid);
+	thread_manager->remove_thread(p2_t1_tid);
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, thread_manager->get_thread_count());
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
@@ -342,7 +344,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_main_thread_first) 
 	remove_thread(p5_t1_tid, 0);
 	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 1, false, 2, 2, p5_t1_tid, p5_t2_tid)
 
-	/* We remove the secondary thread and we should remove the whole group */
+	/* We remove the secondary thread, and we should remove the whole group */
 	remove_thread(p5_t2_tid, 0);
 
 	ASSERT_FALSE(m_inspector.m_thread_manager->get_thread_group_info(p5_t1_pid));
@@ -370,7 +372,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost) {
 	/* Let's imagine we miss the exit event on p5_t2. At a certain point
 	 * we will try to remove it.
 	 */
-	m_inspector.remove_thread(p5_t2_tid);
+	m_inspector.m_thread_manager->remove_thread(p5_t2_tid);
 
 	/* Thanks to userspace logic p5_t1 should be the new reaper */
 	ASSERT_THREAD_GROUP_INFO(p5_t1_tid, 1, false, 2, 1);
@@ -425,7 +427,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree) {
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
-	m_inspector.m_thread_manager->set_max_thread_table_size(10000);
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	thread_manager->set_max_thread_table_size(10000);
 
 	add_default_init_thread();
 	open_inspector();
@@ -437,8 +440,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
 	/* Here we want to check that creating a number of threads grater
 	 * than m_max_thread_table_size doesn't cause a crash.
 	 */
-	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->get_max_thread_table_size() + 1000);
-	    i++) {
+	for(uint32_t i = 1; i < (thread_manager->get_max_thread_table_size() + 1000); i++) {
 		/* we change only the tid */
 		generate_clone_x_event(0, pid + i, pid, INIT_TID, PPM_CL_CLONE_THREAD);
 	}
@@ -447,7 +449,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
 	 * We already have `init` so the final size of the group will be
 	 * `m_max_thread_table_size -1`
 	 */
-	int64_t thread_group_size = m_inspector.m_thread_manager->get_max_thread_table_size() - 1;
+	const int64_t thread_group_size = thread_manager->get_max_thread_table_size() - 1;
 	ASSERT_THREAD_GROUP_INFO(pid, thread_group_size, false, thread_group_size, thread_group_size);
 }
 
@@ -498,10 +500,12 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group) {
 		remove_thread(pid + i, 0);
 	}
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
 	/* The thread group info should be removed */
-	ASSERT_FALSE(m_inspector.m_thread_manager->get_thread_group_info(20));
+	ASSERT_FALSE(thread_manager->get_thread_group_info(20));
 	/* We should have only init */
-	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
+	ASSERT_EQ(thread_manager->get_thread_count(), 1);
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group) {
