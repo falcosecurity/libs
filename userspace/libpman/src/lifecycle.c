@@ -98,9 +98,18 @@ int pman_prepare_progs_before_loading() {
 			return errno;
 		}
 
+		event_prog_t old_prog = progs[0];
 		// Always move the selected program to index 0 to be easily accessed by maps.c
 		// If no programs are skipped, the following line expands to progs[0] = progs[0];
 		progs[0] = progs[chosen_idx];
+
+		// To be able to reload the probe, we need to still reference the old
+		// program to set its autoload to false.
+		// Ie: in case of:
+		// * open()
+		// * close()
+		// * open()
+		progs[chosen_idx] = old_prog;
 	}
 	return 0;
 }
