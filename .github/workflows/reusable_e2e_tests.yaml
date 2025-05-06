@@ -18,10 +18,16 @@ on:
         type: boolean
         required: false
         default: true
-
-concurrency:
-  group: e2e-tests
-  cancel-in-progress: true
+      libsversion:
+        description: 'libs version to be tested, eg: master'
+        type: string
+        required: false
+        default: 'master'
+      libsrepo:
+        description: 'libs repo to be tested, eg: falcosecurity/libs'
+        type: string
+        required: false
+        default: 'falcosecurity/libs'
 
 jobs:
   test-e2e:
@@ -68,6 +74,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          repository: ${{ inputs.libsrepo }}
+          ref: ${{ inputs.libsversion }}
 
       - name: Install deps ⛓️
         run: |
