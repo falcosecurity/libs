@@ -90,7 +90,7 @@ struct sinsp_evt_filter {
 				do_filter_later = true;
 			} else {
 				if(!inspector->run_filters_on_evt(evt)) {
-					if(evt->get_tinfo() != NULL) {
+					if(evt->get_tinfo() != nullptr) {
 						if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E)) {
 							evt->get_tinfo()->set_lastevent_type(PPM_EVENT_MAX);
 						}
@@ -197,8 +197,8 @@ sinsp::sinsp(bool with_metrics):
         m_inited(false) {
 	++instance_count;
 
-	m_h = NULL;
-	m_parser = NULL;
+	m_h = nullptr;
+	m_parser = nullptr;
 	m_is_dumping = false;
 	m_parser_tmp_evt = sinsp_evt{this};
 	m_thread_manager = m_thread_manager_factory.create();
@@ -206,9 +206,9 @@ sinsp::sinsp(bool with_metrics):
 	m_table_registry->add_table(m_thread_manager.get());
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
-	m_filter = NULL;
-	m_machine_info = NULL;
-	m_agent_info = NULL;
+	m_filter = nullptr;
+	m_machine_info = nullptr;
+	m_agent_info = nullptr;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
@@ -233,7 +233,7 @@ sinsp::sinsp(bool with_metrics):
 	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
 	m_proc_scan_log_interval_ms = SCAP_PROC_SCAN_LOG_NONE;
 
-	m_replay_scap_evt = NULL;
+	m_replay_scap_evt = nullptr;
 
 	// the "syscall" event source is implemented by sinsp itself
 	// and is always present
@@ -320,7 +320,7 @@ void sinsp::init() {
 	// Retrieve machine information
 	//
 	m_machine_info = scap_get_machine_info(get_scap_platform());
-	if(m_machine_info != NULL) {
+	if(m_machine_info != nullptr) {
 		m_num_cpus = m_machine_info->num_cpus;
 	} else {
 		ASSERT(false);
@@ -331,7 +331,7 @@ void sinsp::init() {
 	// Retrieve agent information
 	//
 	m_agent_info = scap_get_agent_info(get_scap_platform());
-	if(m_agent_info == NULL) {
+	if(m_agent_info == nullptr) {
 		ASSERT(false);
 	}
 
@@ -456,7 +456,7 @@ void sinsp::open_common(scap_open_args* oargs,
 	oargs->proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 
 	m_h = scap_alloc();
-	if(m_h == NULL) {
+	if(m_h == nullptr) {
 		throw scap_open_exception("failed to allocate scap handle", SCAP_FAILURE);
 	}
 
@@ -468,7 +468,7 @@ void sinsp::open_common(scap_open_args* oargs,
 
 		std::string error = scap_getlasterr(m_h);
 		scap_close(m_h);
-		m_h = NULL;
+		m_h = nullptr;
 		if(error.empty()) {
 			error = "Initialization issues during scap_init";
 		}
@@ -483,7 +483,7 @@ void sinsp::open_common(scap_open_args* oargs,
 		m_platform = nullptr;
 
 		scap_close(m_h);
-		m_h = NULL;
+		m_h = nullptr;
 
 		throw scap_open_exception(m_platform_lasterr, scap_rc);
 	}
@@ -631,7 +631,7 @@ void sinsp::open_savefile(const std::string& filename, int fd) {
 	if(m_input_fd != 0) {
 		/* In this case, we can't get a reliable filesize */
 		params.fd = m_input_fd;
-		params.fname = NULL;
+		params.fname = nullptr;
 		m_filesize = 0;
 	} else {
 		if(filename.empty()) {
@@ -840,7 +840,7 @@ std::string sinsp::get_error_desc(const std::string& msg) {
 	DWORD flg = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
 	            FORMAT_MESSAGE_IGNORE_INSERTS;
 	LPTSTR msg_buf = 0;
-	if(FormatMessageA(flg, 0, err_no, 0, (LPTSTR)&msg_buf, 0, NULL))
+	if(FormatMessageA(flg, 0, err_no, 0, (LPTSTR)&msg_buf, 0, nullptr))
 		if(msg_buf) {
 			errstr.append(msg_buf, strlen(msg_buf));
 			LocalFree(msg_buf);
@@ -864,7 +864,7 @@ void sinsp::close() {
 
 	if(m_h) {
 		scap_close(m_h);
-		m_h = NULL;
+		m_h = nullptr;
 	}
 
 	m_is_dumping = false;
@@ -931,7 +931,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	//
 	{
 		m_machine_info = scap_get_machine_info(get_scap_platform());
-		if(m_machine_info != NULL) {
+		if(m_machine_info != nullptr) {
 			m_num_cpus = m_machine_info->num_cpus;
 		} else {
 			m_num_cpus = 0;
@@ -945,8 +945,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 	//
 	// Add the thread or FD
 	//
-	if(fdinfo == NULL) {
-		ASSERT(tinfo != NULL);
+	if(fdinfo == nullptr) {
+		ASSERT(tinfo != nullptr);
 
 		threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
@@ -1006,9 +1006,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 				tevt.set_inspector(this);
 				tevt.set_tinfo(sinsp_tinfo.get());
 				tevt.set_fdinfo_ref(nullptr);
-				tevt.set_fd_info(NULL);
+				tevt.set_fd_info(nullptr);
 				sinsp_tinfo->m_lastevent_fd = -1;
-				sinsp_tinfo->set_last_event_data(NULL);
+				sinsp_tinfo->set_last_event_data(nullptr);
 
 				sinsp_tinfo->m_filtered_out = !m_filter->run(&tevt);
 			}
@@ -1020,7 +1020,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 		auto sinsp_tinfo = find_thread(tid, true);
 
 		if(!sinsp_tinfo) {
-			if(tinfo == NULL) {
+			if(tinfo == nullptr) {
 				// we have an fd but no associated tinfo, skip it
 				return;
 			}
@@ -1098,7 +1098,7 @@ int32_t on_new_entry_from_proc(void* context,
 	sinsp* _this = (sinsp*)context;
 	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo);
 
-	if(new_tinfo != NULL) {
+	if(new_tinfo != nullptr) {
 		*new_tinfo = tinfo;
 	}
 
@@ -1207,7 +1207,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts) {
 
 	char error[SCAP_LASTERR_SIZE];
 	auto* threadlist = scap_get_threadlist(get_scap_platform(), error);
-	if(threadlist == NULL) {
+	if(threadlist == nullptr) {
 		throw sinsp_exception(std::string("scap error: ") + error);
 	}
 
@@ -1244,11 +1244,11 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
 	// check if an event must be replayed, which currently happens
 	// when a capture file is read and we discover the first "event" block
 	// after the initial "machine state" section
-	if(m_replay_scap_evt != NULL) {
+	if(m_replay_scap_evt != nullptr) {
 		evt->set_scap_evt(m_replay_scap_evt);
 		evt->set_cpuid(m_replay_scap_cpuid);
 		evt->set_dump_flags(m_replay_scap_flags);
-		m_replay_scap_evt = NULL;
+		m_replay_scap_evt = nullptr;
 		return SCAP_SUCCESS;
 	}
 
@@ -1302,7 +1302,7 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
 }
 
 int32_t sinsp::next(sinsp_evt** puevt) {
-	*puevt = NULL;
+	*puevt = nullptr;
 	sinsp_evt* evt = &m_evt;
 
 	// fetch the next event
@@ -1318,11 +1318,11 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	if(res != SCAP_SUCCESS) {
 		if(res == SCAP_TIMEOUT) {
 			if(m_external_event_processor) {
-				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_TIMEOUT);
 			}
 		} else if(res == SCAP_EOF) {
 			if(m_external_event_processor) {
-				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_EOF);
 			}
 			*puevt = evt;
 		} else if(res == SCAP_UNEXPECTED_BLOCK) {
@@ -1339,7 +1339,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			// However, we still need to return here so that the client doesn't time out the
 			// request.
 			if(m_external_event_processor) {
-				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
+				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_FILTERED);
 			}
 		} else {
 			m_lasterr = scap_getlasterr(m_h);
@@ -1545,7 +1545,7 @@ void sinsp::set_snaplen(uint32_t snaplen) {
 	// If set_snaplen is called before opening of the inspector,
 	// we register the value to be set after its initialization.
 	//
-	if(m_h == NULL) {
+	if(m_h == nullptr) {
 		m_snaplen = snaplen;
 		return;
 	}
@@ -1566,7 +1566,7 @@ void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 	// If set_fullcapture_port_range is called before opening of the inspector,
 	// we register the value to be set after its initialization.
 	//
-	if(m_h == NULL) {
+	if(m_h == nullptr) {
 		m_increased_snaplen_port_range = {range_start, range_end};
 		return;
 	}
@@ -1586,7 +1586,7 @@ void sinsp::set_statsd_port(const uint16_t port) {
 	// If this method is called before opening of the inspector,
 	// we register the value to be set after its initialization.
 	//
-	if(m_h == NULL) {
+	if(m_h == nullptr) {
 		m_statsd_port = port;
 		return;
 	}
@@ -1720,7 +1720,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio) {
 #endif  // _WIN32
 
 void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& filterstring) {
-	if(m_filter != NULL) {
+	if(m_filter != nullptr) {
 		ASSERT(false);
 		throw sinsp_exception("filter can only be set once");
 	}
@@ -1730,7 +1730,7 @@ void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& 
 }
 
 void sinsp::set_filter(const std::string& filter) {
-	if(m_filter != NULL) {
+	if(m_filter != nullptr) {
 		ASSERT(false);
 		throw sinsp_exception("filter can only be set once");
 	}
@@ -1818,7 +1818,7 @@ const metrics_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, 
 	const metrics_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
 	if(!stats_v2) {
 		*nstats = 0;
-		return NULL;
+		return nullptr;
 	}
 	return stats_v2;
 }
@@ -1902,8 +1902,8 @@ double sinsp::get_read_progress_file() const {
 }
 
 void sinsp::get_read_progress_plugin(double* nres, std::string* sres) const {
-	ASSERT(nres != NULL);
-	ASSERT(sres != NULL);
+	ASSERT(nres != nullptr);
+	ASSERT(sres != nullptr);
 	if(!nres || !sres) {
 		return;
 	}
@@ -1924,7 +1924,7 @@ void sinsp::get_read_progress_plugin(double* nres, std::string* sres) const {
 double sinsp::get_read_progress() const {
 	if(is_plugin()) {
 		double res = 0;
-		get_read_progress_plugin(&res, NULL);
+		get_read_progress_plugin(&res, nullptr);
 		return res;
 	} else {
 		return get_read_progress_file();
