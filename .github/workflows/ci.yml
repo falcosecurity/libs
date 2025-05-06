@@ -257,6 +257,8 @@ jobs:
 
   run-e2e-tests-amd64:
     uses: ./.github/workflows/reusable_e2e_tests.yaml
+    with:
+      libsversion: ${{ github.sha }}
     secrets: inherit
 
 
