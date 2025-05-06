@@ -821,7 +821,7 @@ public:
 	inline void set_track_connection_status(bool enabled);
 
 	std::shared_ptr<sinsp_thread_pool> get_thread_pool();
-	bool set_thread_pool(std::shared_ptr<sinsp_thread_pool> tpool);
+	bool set_thread_pool(const std::shared_ptr<sinsp_thread_pool>& tpool);
 
 	/**
 	 * \brief Get a new timestamp.
