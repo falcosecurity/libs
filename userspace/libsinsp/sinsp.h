@@ -818,7 +818,7 @@ public:
 	inline sinsp_observer* get_observer() const { return m_observer; }
 
 	bool get_track_connection_status() const;
-	inline void set_track_connection_status(bool enabled);
+	inline void set_track_connection_status(bool enabled) const;
 
 	std::shared_ptr<sinsp_thread_pool> get_thread_pool();
 	bool set_thread_pool(const std::shared_ptr<sinsp_thread_pool>& tpool);
