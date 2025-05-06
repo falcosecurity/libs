@@ -861,7 +861,7 @@ private:
 	void set_thread_manager_foreign_accessors_and_tables() const;
 	void deinit_state();
 	void consume_initialstate_events();
-	bool is_initialstate_event(scap_evt* pevent) const;
+	static bool is_initialstate_event(const scap_evt& pevent);
 	void import_ifaddr_list();
 	void import_user_list();
 	int32_t fetch_next_event(sinsp_evt*& evt);

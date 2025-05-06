@@ -273,11 +273,12 @@ sinsp::~sinsp() {
 	}
 }
 
-bool sinsp::is_initialstate_event(scap_evt* pevent) const {
-	return pevent->type == PPME_CONTAINER_E || pevent->type == PPME_CONTAINER_JSON_E ||
-	       pevent->type == PPME_CONTAINER_JSON_2_E || pevent->type == PPME_USER_ADDED_E ||
-	       pevent->type == PPME_USER_DELETED_E || pevent->type == PPME_GROUP_ADDED_E ||
-	       pevent->type == PPME_GROUP_DELETED_E || pevent->type == PPME_ASYNCEVENT_E;
+bool sinsp::is_initialstate_event(const scap_evt& pevent) {
+	const auto evt_type = pevent.type;
+	return evt_type == PPME_CONTAINER_E || evt_type == PPME_CONTAINER_JSON_E ||
+	       evt_type == PPME_CONTAINER_JSON_2_E || evt_type == PPME_USER_ADDED_E ||
+	       evt_type == PPME_USER_DELETED_E || evt_type == PPME_GROUP_ADDED_E ||
+	       evt_type == PPME_GROUP_DELETED_E || evt_type == PPME_ASYNCEVENT_E;
 }
 
 void sinsp::consume_initialstate_events() {
@@ -303,7 +304,7 @@ void sinsp::consume_initialstate_events() {
 			m_replay_scap_evt = pevent;
 			m_replay_scap_cpuid = pcpuid;
 			m_replay_scap_flags = flags;
-			if(!is_initialstate_event(pevent)) {
+			if(!is_initialstate_event(*pevent)) {
 				break;
 			} else {
 				next(&tevt);
