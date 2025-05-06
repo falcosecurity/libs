@@ -257,19 +257,27 @@ def assert_events(expected_events: dict,
         container (docker.Container): A container object to stream logs from.
         timeout (int): The seconds to wait for the events to be asserted
     """
-    for event in expected_events:
-        success = False
-        received_event = None
+    start = datetime.now()
+    for log in sinsp.read():
+        if not log:
+            continue
+        received_event = parse_log(log)
 
-        for log in sinsp.read():
-            if not log:
-                continue
-
-            received_event = parse_log(log)
+        for event in expected_events:
             if validate_event(event, received_event):
-                success = True
+                expected_events.remove(event)
                 break
-        assert success, f"Did not receive expected event: {event}"
+
+        if not expected_events:
+            # No more events to be matched. Leave.
+            break
+        if (datetime.now() - start).total_seconds() > timeout:
+            # Timeout :/
+            break
+
+    # If any event was unmatched, raise an assert.
+    if expected_events:
+        assert False, f"Did not receive expected events: {expected_events}"
 
 
 def sinsp_validation(container: docker.models.containers.Container) -> (bool, str):
