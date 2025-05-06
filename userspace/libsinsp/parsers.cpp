@@ -431,6 +431,44 @@ void sinsp_parser::event_cleanup(sinsp_evt &evt) {
 // HELPERS
 ///////////////////////////////////////////////////////////////////////////////
 
+/*!
+ * \brief Indicate if the event is a clone or a clone3 exit event.
+ */
+static bool is_clone_exit_event(const uint16_t evt_type) {
+	return evt_type == PPME_SYSCALL_CLONE_11_X || evt_type == PPME_SYSCALL_CLONE_16_X ||
+	       evt_type == PPME_SYSCALL_CLONE_17_X || evt_type == PPME_SYSCALL_CLONE_20_X ||
+	       evt_type == PPME_SYSCALL_CLONE3_X;
+}
+
+/*!
+ * \brief Indicate if the event is a fork or a vfork exit event.
+ */
+static bool is_fork_exit_event(const uint16_t evt_type) {
+	return evt_type == PPME_SYSCALL_FORK_X || evt_type == PPME_SYSCALL_FORK_17_X ||
+	       evt_type == PPME_SYSCALL_FORK_20_X || evt_type == PPME_SYSCALL_VFORK_X ||
+	       evt_type == PPME_SYSCALL_VFORK_17_X || evt_type == PPME_SYSCALL_VFORK_20_X;
+}
+
+static bool is_procexit_event(const uint16_t evt_type) {
+	return evt_type == PPME_PROCEXIT_E || evt_type == PPME_PROCEXIT_1_E;
+}
+
+static bool is_schedswitch_event(const uint16_t evt_type) {
+	return evt_type == PPME_SCHEDSWITCH_6_E;
+}
+
+/*!
+ * \brief Indicate if it is allowed to query the operating system for retrieving thread information.
+ * If it is an exit clone event or a scheduler event (many kernel thread), it is not needed to query
+ * the OS.
+ */
+static bool can_query_os_for_thread_info(const uint16_t evt_type) {
+	// If we received a `procexit` event it means that the process is dead in the kernel, and
+	// querying for thread information would generate fake entries.
+	return !(is_clone_exit_event(evt_type) || is_fork_exit_event(evt_type) ||
+	         is_schedswitch_event(evt_type) || is_procexit_event(evt_type));
+}
+
 //
 // Called before starting the parsing.
 // Returns false in case of issues resetting the state.
@@ -513,25 +551,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	// Find the thread info
 	//
 
-	//
-	// If we're exiting a clone or if we have a scheduler event
-	// (many kernel thread), we don't look for /proc
-	//
-	bool query_os;
-	if(etype == PPME_SYSCALL_CLONE_11_X || etype == PPME_SYSCALL_CLONE_16_X ||
-	   etype == PPME_SYSCALL_CLONE_17_X || etype == PPME_SYSCALL_CLONE_20_X ||
-	   etype == PPME_SYSCALL_FORK_X || etype == PPME_SYSCALL_FORK_17_X ||
-	   etype == PPME_SYSCALL_FORK_20_X || etype == PPME_SYSCALL_VFORK_X ||
-	   etype == PPME_SYSCALL_VFORK_17_X || etype == PPME_SYSCALL_VFORK_20_X ||
-	   etype == PPME_SYSCALL_CLONE3_X || etype == PPME_SCHEDSWITCH_6_E ||
-	   /* If we received a `procexit` event it means that the process
-	    * is dead in the kernel, `query_os==true` would just generate fake entries.
-	    */
-	   etype == PPME_PROCEXIT_E || etype == PPME_PROCEXIT_1_E) {
-		query_os = false;
-	} else {
-		query_os = true;
-	}
+	const bool query_os = can_query_os_for_thread_info(etype);
 
 	// todo(jasondellaluce): should we do this for all meta-events in general?
 	if(etype == PPME_CONTAINER_JSON_E || etype == PPME_CONTAINER_JSON_2_E ||
@@ -547,17 +567,12 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		        m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, query_os, false).get());
 	}
 
-	if(etype == PPME_SCHEDSWITCH_6_E) {
+	if(is_schedswitch_event(etype)) {
 		return false;
 	}
 
 	if(!evt.get_tinfo()) {
-		if(etype == PPME_SYSCALL_CLONE_11_X || etype == PPME_SYSCALL_CLONE_16_X ||
-		   etype == PPME_SYSCALL_CLONE_17_X || etype == PPME_SYSCALL_CLONE_20_X ||
-		   etype == PPME_SYSCALL_FORK_X || etype == PPME_SYSCALL_FORK_17_X ||
-		   etype == PPME_SYSCALL_FORK_20_X || etype == PPME_SYSCALL_VFORK_X ||
-		   etype == PPME_SYSCALL_VFORK_17_X || etype == PPME_SYSCALL_VFORK_20_X ||
-		   etype == PPME_SYSCALL_CLONE3_X) {
+		if(is_clone_exit_event(etype) || is_fork_exit_event(etype)) {
 			if(m_sinsp_stats_v2 != nullptr) {
 				m_sinsp_stats_v2->m_n_failed_thread_lookups--;
 			}
