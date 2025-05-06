@@ -8,6 +8,16 @@ on:
         type: string
         required: false
         default: ''
+      test-docker:
+        description: "Whether to run tests with docker socket"
+        type: boolean
+        required: false
+        default: true
+      test-podman:
+        description: "Whether to run tests with podman socket"
+        type: boolean
+        required: false
+        default: true
 
 concurrency:
   group: e2e-tests
@@ -15,6 +25,7 @@ concurrency:
 
 jobs:
   test-e2e:
+    if: inputs.test-docker || inputs.test-podman
     strategy:
       fail-fast: false
       matrix:
@@ -81,33 +92,35 @@ jobs:
           mv ${{ inputs.custom_container_plugin }} build/test/e2e/container_plugin-prefix/src/container_plugin/
 
       - name: Run tests - docker 🧪
+        if: inputs.test-docker
+        working-directory: build
         run: |
-          cd build
           sudo -E ../test/e2e/scripts/run_tests.sh
 
       - name: Archive test reports - docker
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: failure()
+        if: inputs.test-docker && failure()
         with:
-          name: ${{ matrix.name }}_report
+          name: ${{ matrix.name }}_docker_report
           path: |
             /tmp/report/
 
       - name: Run tests - podman 🧪
-        if: always()
+        if: inputs.test-podman && always()
+        working-directory: build
         env:
           # Set DOCKER_HOST pointing to podman socket
           DOCKER_HOST: unix://run/podman/podman.sock
         run: |
+          # Cleanup docker tests generated report folder
           sudo rm -rf /tmp/report
           # Podman tests require podman socket
           sudo systemctl start podman
-          cd build
           sudo -E ../test/e2e/scripts/run_tests.sh
 
       - name: Archive test reports - podman
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: failure()
+        if: inputs.test-podman && failure()
         with:
           name: ${{ matrix.name }}_podman_report
           path: |
