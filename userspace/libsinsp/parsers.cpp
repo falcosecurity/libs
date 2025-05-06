@@ -548,10 +548,9 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		// files, even if they are then parsed by the container plugin.
 		evt.set_tinfo(nullptr);
 		return true;
-	} else {
-		evt.set_tinfo(
-		        m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, query_os, false).get());
 	}
+
+	evt.set_tinfo(m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, query_os, false).get());
 
 	if(is_schedswitch_event(etype)) {
 		return false;
@@ -585,88 +584,97 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 
 		evt.get_tinfo()->m_latency = 0;
 		evt.get_tinfo()->m_last_latency_entertime = evt.get_ts();
+		return true;
+	}
+
+	//
+	// Handling section for exit events.
+	//
+
+	sinsp_threadinfo *tinfo = evt.get_tinfo();
+
+	//
+	// event latency
+	//
+	if(tinfo->m_last_latency_entertime != 0) {
+		tinfo->m_latency = evt.get_ts() - tinfo->m_last_latency_entertime;
+		ASSERT((int64_t)tinfo->m_latency >= 0);
+	}
+
+	if((etype == PPME_SYSCALL_EXECVE_18_X || etype == PPME_SYSCALL_EXECVE_19_X) &&
+	   tinfo->get_lastevent_type() == PPME_SYSCALL_EXECVEAT_E) {
+		tinfo->set_lastevent_data_validity(true);
+	} else if(etype == tinfo->get_lastevent_type() + 1) {
+		tinfo->set_lastevent_data_validity(true);
 	} else {
-		sinsp_threadinfo *tinfo = evt.get_tinfo();
+		tinfo->set_lastevent_data_validity(false);
+		// We cannot be sure that the lastevent_fd is something valid, it could be the socket of
+		// the previous `socket` syscall, or it could be something completely unrelated, for now
+		// we don't trust it in any case.
+		tinfo->m_lastevent_fd = -1;
+	}
 
-		//
-		// event latency
-		//
-		if(tinfo->m_last_latency_entertime != 0) {
-			tinfo->m_latency = evt.get_ts() - tinfo->m_last_latency_entertime;
-			ASSERT((int64_t)tinfo->m_latency >= 0);
-		}
+	//
+	// Error detection logic
+	//
+	if(evt.has_return_value()) {
+		int64_t res = evt.get_syscall_return_value();
 
-		if((etype == PPME_SYSCALL_EXECVE_18_X || etype == PPME_SYSCALL_EXECVE_19_X) &&
-		   tinfo->get_lastevent_type() == PPME_SYSCALL_EXECVEAT_E) {
-			tinfo->set_lastevent_data_validity(true);
-		} else if(etype == tinfo->get_lastevent_type() + 1) {
-			tinfo->set_lastevent_data_validity(true);
-		} else {
-			tinfo->set_lastevent_data_validity(false);
-			// We cannot be sure that the lastevent_fd is something valid, it could be the socket of
-			// the previous `socket` syscall, or it could be something completely unrelated, for now
-			// we don't trust it in any case.
-			tinfo->m_lastevent_fd = -1;
-		}
-
-		//
-		// Error detection logic
-		//
-		if(evt.has_return_value()) {
-			int64_t res = evt.get_syscall_return_value();
-
-			if(res < 0) {
-				evt.set_errorcode(-(int32_t)res);
-			}
-		}
-
-		//
-		// Retrieve the fd
-		//
-		if(evt.uses_fd()) {
-			// The copy_file_range syscall has the peculiarity of using two fds. Set as
-			// m_lastevent_fd the output fd.
-			if(etype == PPME_SYSCALL_COPY_FILE_RANGE_X) {
-				tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
-			}
-
-			// sendmmsg and recvmmsg send all data in the exit event, fd included.
-			if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
-			   evt.get_num_params() > 0) {
-				tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
-			}
-
-			// todo!: this should become the unique logic when we'll disable the enter events.
-			if(tinfo->m_lastevent_fd == -1) {
-				int fd_location = get_exit_event_fd_location((ppm_event_code)etype);
-				if(fd_location != -1) {
-					tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
-				}
-			}
-
-			evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
-			if(evt.get_fd_info() == nullptr) {
-				return false;
-			}
-
-			if(evt.get_errorcode() != 0 && m_observer) {
-				m_observer->on_error(&evt);
-			}
-
-			if(evt.get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) {
-				// FD close canceled handling. A fd close gets canceled when the same fd is created
-				// successfully between close enter and close exit.
-				erase_fd_params eparams;
-				evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
-				eparams.m_fd = CANCELED_FD_NUMBER;
-				eparams.m_fdinfo = tinfo->get_fd(CANCELED_FD_NUMBER);
-				eparams.m_remove_from_table = true;
-				eparams.m_tinfo = tinfo;
-				erase_fd(eparams, verdict);
-			}
+		if(res < 0) {
+			evt.set_errorcode(-(int32_t)res);
 		}
 	}
 
+	if(!evt.uses_fd()) {
+		return true;
+	}
+
+	//
+	// Handling section for events using FDs.
+	//
+
+	// The copy_file_range syscall has the peculiarity of using two fds. Set as m_lastevent_fd the
+	// output fd.
+	if(etype == PPME_SYSCALL_COPY_FILE_RANGE_X) {
+		tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
+	}
+
+	// sendmmsg and recvmmsg send all data in the exit event, fd included.
+	if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
+	   evt.get_num_params() > 0) {
+		tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
+	}
+
+	// todo!: this should become the unique logic when we'll disable the enter events.
+	if(tinfo->m_lastevent_fd == -1) {
+		int fd_location = get_exit_event_fd_location((ppm_event_code)etype);
+		if(fd_location != -1) {
+			tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
+		}
+	}
+
+	evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
+	if(evt.get_fd_info() == nullptr) {
+		return false;
+	}
+
+	if(evt.get_errorcode() != 0 && m_observer) {
+		m_observer->on_error(&evt);
+	}
+
+	if((evt.get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) == 0) {
+		return true;
+	}
+
+	// FD close canceled handling. A fd close gets canceled when the same fd is created successfully
+	// between close enter and close exit.
+	erase_fd_params eparams;
+	evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
+	eparams.m_fd = CANCELED_FD_NUMBER;
+	eparams.m_fdinfo = tinfo->get_fd(CANCELED_FD_NUMBER);
+	eparams.m_remove_from_table = true;
+	eparams.m_tinfo = tinfo;
+	erase_fd(eparams, verdict);
 	return true;
 }
 
