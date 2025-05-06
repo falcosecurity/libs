@@ -477,20 +477,15 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	m_syslog_decoder.reset();
 
 	uint16_t etype = evt.get_type();
-	//
-	// Before anything can happen, the event needs to be
-	// initialized.
-	//
+	// Before anything can happen, the event needs to be initialized.
 	evt.init();
 
 	uint32_t plugin_id = 0;
 	if(evt.get_type() == PPME_PLUGINEVENT_E || evt.get_type() == PPME_ASYNCEVENT_E) {
-		// note: async events can potentially encode a non-zero plugin ID
-		// to indicate that they've been produced by a plugin with
-		// a specific event source. If an async event has a zero plugin ID, then
-		// we can assume it being of the "syscall" source. On the other hand,
-		// plugin events are not allowed to have a zero plugin ID, so we should
-		// be ok on that front.
+		// Note: async events can potentially encode a non-zero plugin ID to indicate that they've
+		// been produced by a plugin with a specific event source. If an async event has a zero
+		// plugin ID, then we can assume it being of the "syscall" source. On the other hand, plugin
+		// events are not allowed to have a zero plugin ID, so we should be ok on that front.
 		plugin_id = evt.get_param(0)->as<uint32_t>();
 	}
 
@@ -505,15 +500,13 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 			evt.set_source_name(m_event_sources[srcidx].c_str());
 		}
 	} else {
-		// every other event falls under the "syscall" event source umbrella
-		// cache index of "syscall" event source in case we haven't already
+		// Every other event falls under the "syscall" event source umbrella cache index of
+		// "syscall" event source in case we haven't already.
 		if(m_syscall_event_source_idx == sinsp_no_event_source_idx) {
-			// note: the current inspector's implementation guarantees
-			// that the "syscall" event source is always at index 0, being
-			// the first one in the list. However we don't want to leak
-			// that knowledge down to this level, so we search for it
-			// in order to be resilient to future changes.
-			// The search happens only once.
+			// Note: the current inspector's implementation guarantees that the "syscall" event
+			// source is always at index 0, being the first one in the list. However, we don't want
+			// to leak that knowledge down to this level, so we search for it in order to be
+			// resilient to future changes. The search happens only once.
 			for(size_t i = 0; i < m_event_sources.size(); i++) {
 				if(m_event_sources[i] == sinsp_syscall_event_source_name) {
 					m_syscall_event_source_idx = i;
@@ -533,9 +526,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 	evt.set_fd_info(nullptr);
 	evt.set_errorcode(0);
 
-	//
-	// Ignore scheduler events
-	//
+	// Ignore events with EF_SKIPPARSERESET flag.
 	if(eflags & EF_SKIPPARSERESET) {
 		if(etype == PPME_PROCINFO_E) {
 			evt.set_tinfo(
@@ -547,19 +538,14 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		return false;
 	}
 
-	//
-	// Find the thread info
-	//
-
 	const bool query_os = can_query_os_for_thread_info(etype);
 
 	// todo(jasondellaluce): should we do this for all meta-events in general?
 	if(etype == PPME_CONTAINER_JSON_E || etype == PPME_CONTAINER_JSON_2_E ||
 	   etype == PPME_USER_ADDED_E || etype == PPME_USER_DELETED_E || etype == PPME_GROUP_ADDED_E ||
 	   etype == PPME_GROUP_DELETED_E || etype == PPME_PLUGINEVENT_E || etype == PPME_ASYNCEVENT_E) {
-		// Note: still managing container events cases:
-		// they might still be present in existing scap files,
-		// even if they are then parsed by the container plugin.
+		// Note: still managing container events cases. They might still be present in existing scap
+		// files, even if they are then parsed by the container plugin.
 		evt.set_tinfo(nullptr);
 		return true;
 	} else {
@@ -584,18 +570,13 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		evt.get_tinfo()->m_flags |= PPM_CL_ACTIVE;
 	}
 
-	// todo!: at the end of we work we should remove this if/else and ideally we should set the
-	// fdinfos directly here and return if they are not present
+	// todo!: at the end of we work we should remove the enter/exit distinction and ideally we
+	//   should set the fdinfos directly here and return if they are not present.
 	if(PPME_IS_ENTER(etype)) {
 		evt.get_tinfo()->m_lastevent_fd = -1;
 		evt.get_tinfo()->set_lastevent_type(etype);
 
 		if(evt.uses_fd()) {
-			//
-			// Get the fd.
-			// An fd will usually be the first parameter of the enter event,
-			// but there are exceptions, as is the case with mmap, mmap2
-			//
 			int fd_location = get_enter_event_fd_location((ppm_event_code)etype);
 			ASSERT(evt.get_param_info(fd_location)->type == PT_FD);
 			evt.get_tinfo()->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
@@ -623,7 +604,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		} else {
 			tinfo->set_lastevent_data_validity(false);
 			// We cannot be sure that the lastevent_fd is something valid, it could be the socket of
-			// the previous `socket` syscall or it could be something completely unrelated, for now
+			// the previous `socket` syscall, or it could be something completely unrelated, for now
 			// we don't trust it in any case.
 			tinfo->m_lastevent_fd = -1;
 		}
@@ -643,15 +624,13 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 		// Retrieve the fd
 		//
 		if(evt.uses_fd()) {
-			//
-			// The copy_file_range syscall has the peculiarity of using two fds
-			// Set as m_lastevent_fd the output fd
-			//
+			// The copy_file_range syscall has the peculiarity of using two fds. Set as
+			// m_lastevent_fd the output fd.
 			if(etype == PPME_SYSCALL_COPY_FILE_RANGE_X) {
 				tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
 			}
 
-			// sendmmsg and recvmmsg send all data in the exit event, fd included
+			// sendmmsg and recvmmsg send all data in the exit event, fd included.
 			if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
 			   evt.get_num_params() > 0) {
 				tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
@@ -675,23 +654,14 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 			}
 
 			if(evt.get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) {
-				//
-				// A close gets canceled when the same fd is created successfully between
-				// close enter and close exit.
-				// If that happens
-				//
+				// FD close canceled handling. A fd close gets canceled when the same fd is created
+				// successfully between close enter and close exit.
 				erase_fd_params eparams;
-
 				evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 				eparams.m_fd = CANCELED_FD_NUMBER;
 				eparams.m_fdinfo = tinfo->get_fd(CANCELED_FD_NUMBER);
-
-				//
-				// Remove the fd from the different tables
-				//
 				eparams.m_remove_from_table = true;
 				eparams.m_tinfo = tinfo;
-
 				erase_fd(eparams, verdict);
 			}
 		}
