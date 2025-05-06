@@ -3,8 +3,8 @@ name: Run libs e2e tests python framework
 on:
   workflow_call:
     inputs:
-      custom_container_plugin:
-        description: 'use a custom container plugin; path or empty'
+      container_plugin_artifact_name:
+        description: 'use a previously built custom container plugin; artifact name to be downloaded, or empty'
         type: string
         required: false
         default: ''
@@ -86,10 +86,12 @@ jobs:
           make -j$(nproc) sinsp-example driver bpf container_plugin
           sudo -E make e2e-install-deps
 
-      - name: Use custom container plugin
-        if: inputs.custom_container_plugin != ''
-        run: |
-          mv ${{ inputs.custom_container_plugin }} build/test/e2e/container_plugin-prefix/src/container_plugin/
+      - name: Download overriding custom container plugin
+        if: inputs.container_plugin_artifact_name != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ inputs.container_plugin_artifact_name }}
+          path: build/test/e2e/container_plugin-prefix/src/container_plugin/
 
       - name: Run tests - docker 🧪
         if: inputs.test-docker
