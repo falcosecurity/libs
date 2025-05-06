@@ -1123,7 +1123,7 @@ public:
 	//
 	// An instance of scap_evt to be used during the next call to sinsp::next().
 	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
-	// After using this event, sinsp::next() will set this back to NULL.
+	// After using this event, sinsp::next() will set this back to nullptr.
 	// This is used internally during the state initialization phase.
 	scap_evt* m_replay_scap_evt;
 	//
