@@ -454,7 +454,7 @@ static bool is_procexit_event(const uint16_t evt_type) {
 }
 
 static bool is_schedswitch_event(const uint16_t evt_type) {
-	return evt_type == PPME_SCHEDSWITCH_6_E;
+	return evt_type == PPME_SCHEDSWITCH_1_E || evt_type == PPME_SCHEDSWITCH_6_E;
 }
 
 /*!
