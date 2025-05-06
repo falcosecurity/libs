@@ -2104,7 +2104,7 @@ bool sinsp::get_track_connection_status() const {
 	return m_parser->get_track_connection_status();
 }
 
-void sinsp::set_track_connection_status(bool enabled) {
+void sinsp::set_track_connection_status(const bool enabled) const {
 	m_parser->set_track_connection_status(enabled);
 }
 
