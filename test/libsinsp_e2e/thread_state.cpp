@@ -41,7 +41,7 @@ protected:
 			thr->m_tid = pid;
 			thr->m_ptid = ppid;
 
-			m_inspector.add_thread(std::move(thr));
+			m_inspector.m_thread_manager->add_thread(std::move(thr), false);
 			sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(pid).get();
 
 			m_threads.push_back(tinfo);

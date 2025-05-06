@@ -833,11 +833,6 @@ public:
 
 	bool remove_inactive_threads();
 
-	inline const std::shared_ptr<sinsp_threadinfo>& add_thread(
-	        std::unique_ptr<sinsp_threadinfo> ptinfo) {
-		return m_thread_manager->add_thread(std::move(ptinfo), false);
-	}
-
 	void set_mode(sinsp_mode_t value) { m_mode = value; }
 
 	inline void remove_thread(int64_t tid) { m_thread_manager->remove_thread(tid); }
