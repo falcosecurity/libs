@@ -6115,6 +6115,7 @@ FILLER(sys_ptrace_x, true) {
 	uint16_t request;
 	long retval;
 	int res;
+	pid_t pid;
 
 	/*
 	 * res
@@ -6128,6 +6129,17 @@ FILLER(sys_ptrace_x, true) {
 		CHECK_RES(res);
 
 		res = bpf_val_to_ring_dyn(data, 0, PT_UINT64, 0);
+		CHECK_RES(res);
+
+		/* Parameter 4: request (type: PT_FLAGS16) */
+		val = bpf_syscall_get_argument(data, 0);
+		request = ptrace_requests_to_scap(val);
+		res = bpf_push_u16_to_ring(data, request);
+		CHECK_RES(res);
+
+		/* Parameter 5: pid (type: PT_PID) */
+		pid = (int32_t)bpf_syscall_get_argument(data, 1);
+		res = bpf_push_s64_to_ring(data, (int64_t)pid);
 
 		return res;
 	}
@@ -6139,6 +6151,15 @@ FILLER(sys_ptrace_x, true) {
 	CHECK_RES(res);
 
 	res = bpf_parse_ptrace_data(data, request);
+	CHECK_RES(res);
+
+	/* Parameter 4: request (type: PT_FLAGS16) */
+	res = bpf_push_u16_to_ring(data, request);
+	CHECK_RES(res);
+
+	/* Parameter 5: pid (type: PT_PID) */
+	pid = (int32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s64_to_ring(data, (int64_t)pid);
 
 	return res;
 }

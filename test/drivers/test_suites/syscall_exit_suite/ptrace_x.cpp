@@ -36,17 +36,23 @@ TEST(SyscallExit, ptraceX_failure) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD) */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: addr (type: PT_DYN) */
 	evt_test->assert_ptrace_addr(2);
 
 	/* Parameter 3: data (type: PT_DYN) */
-	evt_test->assert_ptrace_addr(3);
+	evt_test->assert_ptrace_data(3);
+
+	/* Parameter 4: request (type: PT_FLAGS16) */
+	evt_test->assert_numeric_param(4, (uint16_t)PPM_PTRACE_PEEKSIGINFO);
+
+	/* Parameter 5: pid (type: PT_PID) */
+	evt_test->assert_numeric_param(5, (int64_t)pid);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
