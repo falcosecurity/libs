@@ -177,6 +177,17 @@ inline std::vector<std::string> get_event_param_as<std::vector<std::string>>(
 	return sinsp_split({param.m_val, static_cast<std::string_view::size_type>(len)}, '\0');
 }
 
+template<>
+inline std::vector<uint8_t> get_event_param_as<std::vector<uint8_t>>(const sinsp_evt_param& param) {
+	// copy content of the event parameter to a new vector
+	std::vector<uint8_t> res;
+	for(size_t i = 0; i < param.m_len; ++i) {
+		res.push_back(uint8_t(param.m_val[i]));
+	}
+
+	return res;
+}
+
 /*!
   \brief Event class.
   This class is returned by \ref sinsp::next() and encapsulates the state

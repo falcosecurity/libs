@@ -67,6 +67,13 @@ int BPF_PROG(ptrace_x, struct pt_regs *regs, long ret) {
 	uint64_t data_pointer = (uint64_t)extract__syscall_argument(regs, 3);
 	auxmap__store_ptrace_data_param(auxmap, ret, scap_ptrace_request, data_pointer);
 
+	/* Parameter 4: request (type: PT_FLAGS16) */
+	auxmap__store_u16_param(auxmap, scap_ptrace_request);
+
+	/* Parameter 5: pid (type: PT_PID) */
+	pid_t pid = (int32_t)extract__syscall_argument(regs, 1);
+	auxmap__store_s64_param(auxmap, (int64_t)pid);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

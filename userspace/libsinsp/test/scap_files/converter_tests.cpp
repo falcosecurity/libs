@@ -558,3 +558,52 @@ TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
 	                                             type,
 	                                             proto));
 }
+
+////////////////////////////
+// PTRACE
+////////////////////////////
+
+TEST_F(scap_file_test, ptrace_e_same_number_of_events) {
+	open_filename("ptrace.scap");
+	assert_num_event_type(PPME_SYSCALL_PTRACE_E, 3);
+}
+
+TEST_F(scap_file_test, ptrace_x_same_number_of_events) {
+	open_filename("ptrace.scap");
+	assert_num_event_type(PPME_SYSCALL_PTRACE_X, 3);
+}
+
+TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
+	open_filename("ptrace.scap");
+
+	// Inside the scap-file the event `463` is the following:
+	// - type=PPME_SYSCALL_PTRACE_X,
+	// - ts=1747834548577695347
+	// - tid=368860
+	// - args=res=0 addr=78 data=3B
+	//
+	// And its corresponding enter event `464` is the following:
+	// - type=PPME_SYSCALL_PTRACE_E
+	// - ts=1747834548577692897
+	// - tid=368860
+	// - args=request=4(PTRACE_PEEKUSR) pid=368861(mystrace)
+	//
+	// Let's see the new PPME_SYSCALL_PTRACE_X event!
+
+	uint64_t ts = 1747834548577695347;
+	int64_t tid = 368860;
+	int64_t res = 0;
+	uint8_t addr[] = {0x00, 0x78, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+	uint8_t data[] = {0x00, 0x3b, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+	uint16_t request = 4;
+	int64_t pid = 368861;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_PTRACE_X,
+	                                             5,
+	                                             res,
+	                                             scap_const_sized_buffer{addr, sizeof(addr)},
+	                                             scap_const_sized_buffer{data, sizeof(data)},
+	                                             request,
+	                                             pid));
+}

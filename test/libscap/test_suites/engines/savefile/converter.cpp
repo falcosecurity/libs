@@ -1100,3 +1100,86 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_with_enter) {
 	                                                        type,
 	                                                        protocol));
 }
+
+////////////////////////////
+// PTRACE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t pid = 66;
+	uint16_t request = PPM_PTRACE_PEEKSIGINFO;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_E, 2, request, pid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	uint8_t addr[] = {'h', 'e', 'l', 'l', 'o'};
+	uint8_t data[] = {'w', 'o', 'r', 'l', 'd'};
+
+	// Defaulted to 0
+	int64_t pid = 0;
+	uint16_t request = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PTRACE_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{addr, sizeof(addr)},
+	                               scap_const_sized_buffer{data, sizeof(data)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PTRACE_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{addr, sizeof(addr)},
+	                               scap_const_sized_buffer{data, sizeof(data)},
+	                               request,
+	                               pid));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t pid = 66;
+	uint16_t request = PPM_PTRACE_PEEKSIGINFO;
+	uint8_t addr[] = {'h', 'e', 'l', 'l', 'o'};
+	uint8_t data[] = {'w', 'o', 'r', 'l', 'd'};
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_E, 2, request, pid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PTRACE_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{addr, sizeof(addr)},
+	                               scap_const_sized_buffer{data, sizeof(data)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PTRACE_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{addr, sizeof(addr)},
+	                               scap_const_sized_buffer{data, sizeof(data)},
+	                               request,
+	                               pid));
+}
