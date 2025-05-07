@@ -112,10 +112,6 @@ void pman_set_scap_tid(int32_t scap_tid) {
 	g_state.skel->bss->g_settings.scap_tid = scap_tid;
 }
 
-void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting) {
-	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
-}
-
 void pman_fill_syscall_sampling_table() {
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++) {
 		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP) {
@@ -295,6 +291,35 @@ int pman_fill_syscall_exit_extra_tail_table() {
 
 /*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
 
+int pman_fill_interesting_syscalls_table_64bit() {
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
+	for (uint32_t i = 0; i < SYSCALL_TABLE_SIZE; i++) {
+		const bool interesting = false;
+		if(bpf_map_update_elem(fd, &i, &interesting, BPF_ANY) < 0) {
+			snprintf(error_message,
+					MAX_ERROR_MESSAGE_LEN,
+					"unable to initialize interesting syscall table at index %d!", i);
+			pman_print_error((const char *)error_message);
+			return errno;
+		}
+	}
+	return 0;
+}
+
+int pman_mark_single_64bit_syscall(int syscall_id, bool interesting) {
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
+	if(bpf_map_update_elem(fd, &syscall_id, &interesting, BPF_ANY) < 0) {
+		snprintf(error_message,
+				MAX_ERROR_MESSAGE_LEN,
+				"unable to set interesting syscall at index %d as %d!", syscall_id, interesting);
+		pman_print_error((const char *)error_message);
+		return errno;
+	}
+	return 0;
+}
+
 static int size_auxiliary_maps() {
 	/* We always allocate auxiliary maps from all the CPUs, even if some of them are not online. */
 	if(bpf_map__set_max_entries(g_state.skel->maps.auxiliary_maps, g_state.n_possible_cpus)) {
@@ -348,6 +373,7 @@ int pman_finalize_maps_after_loading() {
 	pman_set_statsd_port(PPM_PORT_STATSD);
 
 	/* We have to fill all ours tail tables. */
+	pman_fill_interesting_syscalls_table_64bit();
 	err = pman_fill_syscalls_tail_table();
 	err = err ?: pman_fill_syscall_exit_extra_tail_table();
 	return err;
