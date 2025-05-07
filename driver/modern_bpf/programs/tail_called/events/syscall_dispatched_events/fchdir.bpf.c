@@ -50,6 +50,10 @@ int BPF_PROG(fchdir_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

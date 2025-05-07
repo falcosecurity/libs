@@ -530,6 +530,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 	char cwd3[256];
 	char cwd4[256];
 	char cwd5[256];
+	int fds[6];
 
 	ASSERT_TRUE(getcwd(cwd_ori, 256) != NULL);
 
@@ -548,6 +549,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 		if(fd < 0) {
 			FAIL();
 		}
+		fds[0] = fd;
 		ASSERT_TRUE(fchdir(fd) == 0);
 		ASSERT_TRUE(getcwd(cwd0, 256) != NULL);
 		close(fd);
@@ -556,6 +558,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 		if(fd < 0) {
 			FAIL();
 		}
+		fds[1] = fd;
 		ASSERT_TRUE(fchdir(fd) == 0);
 		ASSERT_TRUE(getcwd(cwd1, 256) != NULL);
 		close(fd);
@@ -564,6 +567,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 		if(fd < 0) {
 			FAIL();
 		}
+		fds[2] = fd;
 		ASSERT_TRUE(fchdir(fd) == 0);
 		ASSERT_TRUE(getcwd(cwd2, 256) != NULL);
 		close(fd);
@@ -572,10 +576,12 @@ TEST_F(sys_call_test, dir_fchdir) {
 		if(fd < 0) {
 			FAIL();
 		}
+		fds[3] = fd;
 		ASSERT_TRUE(fchdir(fd) == 0);
 		ASSERT_TRUE(getcwd(cwd3, 256) != NULL);
 		close(fd);
 
+		fds[4] = 12345;
 		ASSERT_TRUE(fchdir(12345) < 0);
 		ASSERT_TRUE(getcwd(cwd4, 256) != NULL);
 		close(fd);
@@ -584,6 +590,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 		if(fd < 0) {
 			FAIL();
 		}
+		fds[5] = fd;
 		ASSERT_TRUE(fchdir(fd) == 0);
 		ASSERT_TRUE(getcwd(cwd5, 256) != NULL);
 		close(fd);
@@ -634,26 +641,32 @@ TEST_F(sys_call_test, dir_fchdir) {
 			switch(callnum) {
 			case 1:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
+				EXPECT_EQ((int64_t)fds[0], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd0);
 				break;
 			case 3:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
+				EXPECT_EQ((int64_t)fds[1], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd1);
 				break;
 			case 5:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
+				EXPECT_EQ((int64_t)fds[2], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd2);
 				break;
 			case 7:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
+				EXPECT_EQ((int64_t)fds[3], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd3);
 				break;
 			case 9:
 				EXPECT_NE("0", e->get_param_value_str("res"));
+				EXPECT_EQ((int64_t)fds[4], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd3);
 				break;
 			case 11:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
+				EXPECT_EQ((int64_t)fds[5], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd_ori);
 				break;
 			default:

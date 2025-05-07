@@ -3043,7 +3043,12 @@ FILLER(sys_fchdir_e, true) {
 FILLER(sys_fchdir_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	long retval = bpf_syscall_get_retval(data->ctx);
-	return bpf_push_s64_to_ring(data, retval);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_s64_to_ring(data, (int64_t)fd);
 }
 
 FILLER(sys_setns_e, true) {
