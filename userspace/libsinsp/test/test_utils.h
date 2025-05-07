@@ -131,4 +131,5 @@ void print_bytes(uint8_t* buf, size_t size);
 
 std::string describe_string(const char* nullable_string);
 
+std::vector<uint8_t> pack_ptrace_pair(uint8_t type, uint64_t addr);
 }  // namespace test_utils
