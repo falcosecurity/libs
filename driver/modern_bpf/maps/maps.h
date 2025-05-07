@@ -63,13 +63,13 @@ __weak bool g_64bit_interesting_syscalls_table[SYSCALL_TABLE_SIZE];
  * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
  * - `UF_NONE` if we drop the syscall depends on the sampling ratio.
  */
-__weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
+__weak const uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
 
 /**
  * @brief Given the syscall id on 32-bit x86 arch returns
  * its x64 value. Used to support ia32 syscall emulation.
  */
-__weak uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
+__weak const uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
 /**
  * @brief Global capture settings shared between userspace and
