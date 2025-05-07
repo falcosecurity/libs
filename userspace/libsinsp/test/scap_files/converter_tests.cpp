@@ -89,6 +89,12 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
+	open_filename("fchdir.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_FCHDIR_E, 1},
+	        {PPME_SYSCALL_FCHDIR_X, 1},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
 	// Add further checks for the expected number of events in unhandled scap files here.
 }
 
@@ -662,7 +668,7 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 	open_filename("mkdir.scap");
 
-	// Inside the scap-file the event `463` is the following:
+	// Inside the scap-file the event `465` is the following:
 	// - type=PPME_SYSCALL_MKDIR_2_X,
 	// - ts=1749017847850665826
 	// - tid=1163259
@@ -787,13 +793,13 @@ TEST_F(scap_file_test, poll_x_check_final_converted_event) {
 TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	open_filename("ptrace.scap");
 
-	// Inside the scap-file the event `463` is the following:
+	// Inside the scap-file the event `464` is the following:
 	// - type=PPME_SYSCALL_PTRACE_X,
 	// - ts=1747834548577695347
 	// - tid=368860
 	// - args=res=0 addr=78 data=3B
 	//
-	// And its corresponding enter event `464` is the following:
+	// And its corresponding enter event `463` is the following:
 	// - type=PPME_SYSCALL_PTRACE_E
 	// - ts=1747834548577692897
 	// - tid=368860
@@ -847,4 +853,32 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 	uint32_t nstype = 8;  // CLONE_NEWIPC
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 3, res, fd, nstype));
+}
+
+////////////////////////////
+// FCHDIR
+////////////////////////////
+
+TEST_F(scap_file_test, fchdir_x_check_final_converted_event) {
+	open_filename("fchdir.scap");
+
+	// Inside the scap-file the event `370` is the following:
+	// - type=PPME_SYSCALL_FCHDIR_X,
+	// - ts=1749117249748433380
+	// - tid=1377498
+	// - args=res=-9(EBADF)
+	//
+	// And its corresponding enter event `369` is the following:
+	// - type=PPME_SYSCALL_FCHDIR_E,
+	// - ts=1749117249748432840
+	// - tid=1377498
+	// - args=fd=25
+	//
+	// Let's see the new PPME_SYSCALL_FCHDIR_X event!
+
+	uint64_t ts = 1749117249748433380;
+	int64_t tid = 1377498;
+	int64_t res = -9;
+	int64_t fd = 25;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 2, res, fd));
 }

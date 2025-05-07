@@ -7520,10 +7520,18 @@ int f_sys_fchdir_e(struct event_filler_arguments *args) {
 
 int f_sys_fchdir_x(struct event_filler_arguments *args) {
 	int64_t res = 0;
+	int32_t fd = 0;
+	unsigned long val = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	res = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, res, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD)*/
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 	return add_sentinel(args);
 }
