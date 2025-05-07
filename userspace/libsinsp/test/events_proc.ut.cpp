@@ -857,7 +857,7 @@ TEST_F(sinsp_with_test_input, chdir_fchdir) {
 	                     (uint64_t)0);
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHDIR_E, 1, dirfd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHDIR_X, 1, test_errno);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHDIR_X, 2, test_errno, dirfd);
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory-fd/");
 }
 
