@@ -47,10 +47,6 @@ __weak const volatile uint64_t probe_api_ver = PPM_API_CURRENT_VERSION;
  */
 __weak const volatile uint64_t probe_schema_var = PPM_SCHEMA_CURRENT_VERSION;
 
-/*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
-
-/*=============================== BPF GLOBAL VARIABLES ===============================*/
-
 /**
  * @brief Given the syscall id on 64-bit-architectures returns if
  * the syscall must be filtered out according to the simple consumer logic.
@@ -63,13 +59,17 @@ __weak bool g_64bit_interesting_syscalls_table[SYSCALL_TABLE_SIZE];
  * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
  * - `UF_NONE` if we drop the syscall depends on the sampling ratio.
  */
-__weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
+__weak const volatile uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
 
 /**
  * @brief Given the syscall id on 32-bit x86 arch returns
  * its x64 value. Used to support ia32 syscall emulation.
  */
-__weak uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
+__weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
+
+/*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
+
+/*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 /**
  * @brief Global capture settings shared between userspace and
