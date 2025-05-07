@@ -48,12 +48,6 @@ __weak const volatile uint64_t probe_api_ver = PPM_API_CURRENT_VERSION;
 __weak const volatile uint64_t probe_schema_var = PPM_SCHEMA_CURRENT_VERSION;
 
 /**
- * @brief Given the syscall id on 64-bit-architectures returns if
- * the syscall must be filtered out according to the simple consumer logic.
- */
-__weak bool g_64bit_interesting_syscalls_table[SYSCALL_TABLE_SIZE];
-
-/**
  * @brief Given the syscall id on 64-bit-architectures returns:
  * - `UF_NEVER_DROP` if the syscall must not be dropped in the sampling logic.
  * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
@@ -132,6 +126,17 @@ struct {
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 
 /*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
+
+/**
+ * @brief This table is used to keep track of which syscalls must be filtered out
+ * according to the simple consumer logic.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, SYSCALL_TABLE_SIZE);
+	__type(key, uint32_t);
+	__type(value, bool);
+} interesting_syscalls_table_64bit __weak SEC(".maps");
 
 /* These maps have one entry for each CPU.
  *
