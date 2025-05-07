@@ -89,8 +89,12 @@ static __always_inline uint8_t maps__64bit_sampling_syscall_table(uint32_t sysca
 
 /*=============================== SYSCALL-64 INTERESTING TABLE ===========================*/
 
-static __always_inline bool maps__64bit_interesting_syscall(uint32_t syscall_id) {
-	return g_64bit_interesting_syscalls_table[syscall_id & (SYSCALL_TABLE_SIZE - 1)];
+static __always_inline bool maps__interesting_syscall_64bit(uint32_t syscall_id) {
+	bool *ret = bpf_map_lookup_elem(&interesting_syscalls_table_64bit, &syscall_id);
+	if(ret == NULL) {
+		return false;
+	}
+	return *ret;
 }
 
 /*=============================== SYSCALL-64 INTERESTING TABLE ===========================*/

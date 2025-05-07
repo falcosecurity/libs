@@ -461,8 +461,9 @@ int pman_finalize_maps_after_loading(void);
  * @param syscall_id syscall system id.
  * @param interesting true if the syscall must be marked as interesting.
  *
+ * @return `0` on success, `errno` in case of error.
  */
-void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
+int pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
 
 #ifdef __cplusplus
 }
