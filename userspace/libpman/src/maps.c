@@ -119,19 +119,19 @@ void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 void pman_fill_syscall_sampling_table() {
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++) {
 		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP) {
-			g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = UF_NEVER_DROP;
+			g_state.skel->rodata->g_64bit_sampling_syscall_table[syscall_id] = UF_NEVER_DROP;
 			continue;
 		}
 
 		/* Syscalls with `g_syscall_table[syscall_id].flags == UF_NONE` are the generic ones */
 		if(g_syscall_table[syscall_id].flags & UF_ALWAYS_DROP ||
 		   g_syscall_table[syscall_id].flags == UF_NONE) {
-			g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = UF_ALWAYS_DROP;
+			g_state.skel->rodata->g_64bit_sampling_syscall_table[syscall_id] = UF_ALWAYS_DROP;
 			continue;
 		}
 
 		if(g_syscall_table[syscall_id].flags & UF_USED) {
-			g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = 0;
+			g_state.skel->rodata->g_64bit_sampling_syscall_table[syscall_id] = 0;
 			continue;
 		}
 	}
@@ -144,7 +144,7 @@ void pman_fill_ia32_to_64_table() {
 		// 0 is read on x86_64; this is not a problem though because
 		// we will never receive a 32bit syscall above the upper limit, since it won't be existent.
 		const int x64_val = g_ia32_64_map[syscall_id];
-		g_state.skel->bss->g_ia32_to_64_table[syscall_id] = x64_val;
+		g_state.skel->rodata->g_ia32_to_64_table[syscall_id] = x64_val;
 	}
 }
 
@@ -324,6 +324,8 @@ int pman_prepare_maps_before_loading() {
 	/* Read-only global variables must be set before loading phase. */
 	fill_event_params_table();
 	fill_ppm_sc_table();
+	pman_fill_ia32_to_64_table();
+	pman_fill_syscall_sampling_table();
 
 	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY
 	 * The number of entries will be always equal to the CPUs number.
@@ -346,8 +348,6 @@ int pman_finalize_maps_after_loading() {
 	pman_set_statsd_port(PPM_PORT_STATSD);
 
 	/* We have to fill all ours tail tables. */
-	pman_fill_syscall_sampling_table();
-	pman_fill_ia32_to_64_table();
 	err = pman_fill_syscalls_tail_table();
 	err = err ?: pman_fill_syscall_exit_extra_tail_table();
 	return err;
