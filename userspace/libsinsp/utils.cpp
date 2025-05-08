@@ -71,7 +71,10 @@ sinsp_initializer::sinsp_initializer() {
 	//
 	// Init the event tables
 	//
-	g_infotables.m_event_info = scap_get_event_info_table();
+	memcpy(&g_infotables.m_event_info,
+	       scap_get_event_info_table(),
+	       PPM_EVENT_MAX * sizeof(ppm_event_info));
+	g_infotables.m_event_size = PPM_EVENT_MAX;
 
 	//
 	// Init the logger
