@@ -75,41 +75,106 @@ uint64_t pman_get_probe_schema_ver() {
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
+int pman_get_capture_settings(struct capture_settings* settings) {
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	int ret;
+	uint32_t key = 0;
+	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
+	if(fd <= 0) {
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings map fd!");
+		pman_print_error((const char*)error_message);
+		return errno;
+	}
+	if((ret = bpf_map_lookup_elem(fd, &key, settings)) != 0) {
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings!");
+		pman_print_error((const char*)error_message);
+	}
+
+	return ret;
+}
+
+int pman_update_capture_settings(struct capture_settings* settings) {
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	int ret;
+	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
+	if(fd <= 0) {
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings map fd!");
+		pman_print_error((const char*)error_message);
+		return errno;
+	}
+	uint32_t key = 0;
+	if((ret = bpf_map_update_elem(fd, &key, settings, BPF_ANY)) != 0) {
+		snprintf(error_message,
+		         MAX_ERROR_MESSAGE_LEN,
+		         "unable to initialize capture_settings map!");
+		pman_print_error((const char*)error_message);
+	}
+
+	return ret;
+}
+
 void pman_set_snaplen(uint32_t desired_snaplen) {
-	g_state.skel->bss->g_settings.snaplen = desired_snaplen;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.snaplen = desired_snaplen;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_boot_time(uint64_t boot_time) {
-	g_state.skel->bss->g_settings.boot_time = boot_time;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.boot_time = boot_time;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_dropping_mode(bool value) {
-	g_state.skel->bss->g_settings.dropping_mode = value;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.dropping_mode = value;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_sampling_ratio(uint32_t value) {
-	g_state.skel->bss->g_settings.sampling_ratio = value;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.sampling_ratio = value;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_drop_failed(bool drop_failed) {
-	g_state.skel->bss->g_settings.drop_failed = drop_failed;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.drop_failed = drop_failed;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_do_dynamic_snaplen(bool do_dynamic_snaplen) {
-	g_state.skel->bss->g_settings.do_dynamic_snaplen = do_dynamic_snaplen;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.do_dynamic_snaplen = do_dynamic_snaplen;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_fullcapture_port_range(uint16_t range_start, uint16_t range_end) {
-	g_state.skel->bss->g_settings.fullcapture_port_range_start = range_start;
-	g_state.skel->bss->g_settings.fullcapture_port_range_end = range_end;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.fullcapture_port_range_start = range_start;
+	settings.fullcapture_port_range_end = range_end;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_statsd_port(uint16_t statsd_port) {
-	g_state.skel->bss->g_settings.statsd_port = statsd_port;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.statsd_port = statsd_port;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_set_scap_tid(int32_t scap_tid) {
-	g_state.skel->bss->g_settings.scap_tid = scap_tid;
+	struct capture_settings settings;
+	pman_get_capture_settings(&settings);
+	settings.scap_tid = scap_tid;
+	pman_update_capture_settings(&settings);
 }
 
 void pman_fill_syscall_sampling_table() {
@@ -131,6 +196,28 @@ void pman_fill_syscall_sampling_table() {
 			continue;
 		}
 	}
+}
+
+int pman_init_settings_map() {
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	struct capture_settings settings = {};
+	uint32_t key = 0;
+	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
+	if(fd <= 0) {
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings map!");
+		pman_print_error((const char*)error_message);
+		return errno;
+	}
+
+	if(bpf_map_update_elem(fd, &key, &settings, BPF_ANY)) {
+		snprintf(error_message,
+		         MAX_ERROR_MESSAGE_LEN,
+		         "unable to initialize capture_settings map!");
+		pman_print_error((const char*)error_message);
+		return errno;
+	}
+
+	return 0;
 }
 
 void pman_fill_ia32_to_64_table() {
@@ -294,13 +381,14 @@ int pman_fill_syscall_exit_extra_tail_table() {
 int pman_fill_interesting_syscalls_table_64bit() {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
-	for (uint32_t i = 0; i < SYSCALL_TABLE_SIZE; i++) {
+	for(uint32_t i = 0; i < SYSCALL_TABLE_SIZE; i++) {
 		const bool interesting = false;
 		if(bpf_map_update_elem(fd, &i, &interesting, BPF_ANY) < 0) {
 			snprintf(error_message,
-					MAX_ERROR_MESSAGE_LEN,
-					"unable to initialize interesting syscall table at index %d!", i);
-			pman_print_error((const char *)error_message);
+			         MAX_ERROR_MESSAGE_LEN,
+			         "unable to initialize interesting syscall table at index %d!",
+			         i);
+			pman_print_error((const char*)error_message);
 			return errno;
 		}
 	}
@@ -312,9 +400,11 @@ int pman_mark_single_64bit_syscall(int syscall_id, bool interesting) {
 	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
 	if(bpf_map_update_elem(fd, &syscall_id, &interesting, BPF_ANY) < 0) {
 		snprintf(error_message,
-				MAX_ERROR_MESSAGE_LEN,
-				"unable to set interesting syscall at index %d as %d!", syscall_id, interesting);
-		pman_print_error((const char *)error_message);
+		         MAX_ERROR_MESSAGE_LEN,
+		         "unable to set interesting syscall at index %d as %d!",
+		         syscall_id,
+		         interesting);
+		pman_print_error((const char*)error_message);
 		return errno;
 	}
 	return 0;
@@ -362,6 +452,10 @@ int pman_prepare_maps_before_loading() {
 
 int pman_finalize_maps_after_loading() {
 	int err;
+	err = pman_init_settings_map();
+	if(err != 0) {
+		return err;
+	}
 
 	/* set bpf global variables. */
 	pman_set_snaplen(80);

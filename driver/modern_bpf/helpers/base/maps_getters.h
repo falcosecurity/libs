@@ -17,44 +17,99 @@
 
 /*=============================== SETTINGS ===========================*/
 
+static __always_inline struct capture_settings *maps__get_capture_settings() {
+	uint32_t key = 0;
+	return bpf_map_lookup_elem(&capture_settings, &key);
+}
+
 static __always_inline uint64_t maps__get_boot_time() {
-	return g_settings.boot_time;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->boot_time;
 }
 
 static __always_inline uint32_t maps__get_snaplen() {
-	return g_settings.snaplen;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->snaplen;
 }
 
 static __always_inline bool maps__get_dropping_mode() {
-	return g_settings.dropping_mode;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->dropping_mode;
 }
 
 static __always_inline uint32_t maps__get_sampling_ratio() {
-	return g_settings.sampling_ratio;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->sampling_ratio;
 }
 
 static __always_inline bool maps__get_drop_failed() {
-	return g_settings.drop_failed;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->drop_failed;
 }
 
 static __always_inline bool maps__get_do_dynamic_snaplen() {
-	return g_settings.do_dynamic_snaplen;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->do_dynamic_snaplen;
 }
 
 static __always_inline uint16_t maps__get_fullcapture_port_range_start() {
-	return g_settings.fullcapture_port_range_start;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->fullcapture_port_range_start;
 }
 
 static __always_inline uint16_t maps__get_fullcapture_port_range_end() {
-	return g_settings.fullcapture_port_range_end;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->fullcapture_port_range_end;
 }
 
 static __always_inline uint16_t maps__get_statsd_port() {
-	return g_settings.statsd_port;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->statsd_port;
 }
 
 static __always_inline int32_t maps__get_scap_tid() {
-	return g_settings.scap_tid;
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->scap_tid;
 }
 
 /*=============================== SETTINGS ===========================*/
