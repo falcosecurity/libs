@@ -349,7 +349,7 @@ TEST(ppm_sc_API, all_event_set) {
 	ASSERT_EQ(all_events.size(), PPM_EVENT_MAX);
 	for(int i = 0; i < PPM_EVENT_MAX; i++) {
 		ASSERT_TRUE(all_events.contains((ppm_event_code)i))
-		        << "\n- The event '" << scap_get_event_info_table()[i].name
+		        << "\n- The event '" << g_infotables.m_event_info[i].name
 		        << "' is not present inside the all event set" << std::endl;
 	}
 }
@@ -379,7 +379,7 @@ TEST(ppm_sc_API, all_event_names) {
 		if(libsinsp::events::is_old_version_event((ppm_event_code)evt)) {
 			old_versions_events++;
 		}
-		all_expected_events_names.insert(scap_get_event_info_table()[evt].name);
+		all_expected_events_names.insert(g_infotables.m_event_info[evt].name);
 	}
 
 	libsinsp::events::set<ppm_event_code> generic_events{PPME_GENERIC_E, PPME_GENERIC_X};
@@ -519,7 +519,7 @@ TEST(ppm_sc_API, AES_sc_set_AES) {
 		}
 
 		ASSERT_TRUE(partial_events.contains((ppm_event_code)i))
-		        << "\n- The event '" << scap_get_event_info_table()[i].name
+		        << "\n- The event '" << g_infotables.m_event_info[i].name
 		        << "' is not present inside the event set" << std::endl;
 	}
 	ASSERT_EQ(partial_events.size(), SYSCALL_EVENTS_NUM + TRACEPOINT_EVENTS_NUM);
@@ -897,7 +897,7 @@ TEST(ppm_sc_API, ASS_event_set_ASS) {
 		}
 
 		ASSERT_TRUE(all_events.contains((ppm_event_code)i))
-		        << "\n- The event '" << scap_get_event_info_table()[i].name
+		        << "\n- The event '" << g_infotables.m_event_info[i].name
 		        << "' is not present inside the event set" << std::endl;
 	}
 	ASSERT_EQ(all_events.size(), SYSCALL_EVENTS_NUM + TRACEPOINT_EVENTS_NUM);

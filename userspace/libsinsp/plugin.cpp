@@ -591,6 +591,20 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 		                           m_handle->api.get_async_events,
 		                           m_async_event_names,
 		                           false);
+
+		// Register each async event name in sinsp global event table.
+		for(const auto& name : m_async_event_names) {
+			if(g_infotables.m_event_size == MAX_EVENTINFO_SIZE) {
+				// too many async events registered
+				break;
+			}
+			g_infotables.m_event_info[g_infotables.m_event_size] =
+			        g_infotables.m_event_info[PPME_ASYNCEVENT_E];
+			strlcpy(g_infotables.m_event_info[g_infotables.m_event_size].name,
+			        name.c_str(),
+			        PPM_MAX_NAME_LEN);
+			g_infotables.m_event_size++;
+		}
 	}
 
 	return true;

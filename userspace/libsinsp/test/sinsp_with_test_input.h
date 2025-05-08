@@ -107,7 +107,7 @@ protected:
 		(
 		        [&] {
 			        const struct ppm_event_info* event_info =
-			                &scap_get_event_info_table()[event_type];
+			                &g_infotables.m_event_info[event_type];
 			        const struct ppm_param_info* pi = &event_info->params[i];
 			        switch(pi->type) {
 			        case PT_INT8:
