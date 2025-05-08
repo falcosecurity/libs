@@ -66,12 +66,6 @@ __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 /**
- * @brief Global capture settings shared between userspace and
- * bpf programs.
- */
-__weak struct capture_settings g_settings;
-
-/**
  * @brief Variable used only kernel side to understand when we need to send
  * `DROP_E` and `DROP_X` events
  */
@@ -137,6 +131,17 @@ struct {
 	__type(key, uint32_t);
 	__type(value, bool);
 } interesting_syscalls_table_64bit __weak SEC(".maps");
+
+/**
+ * @brief Global capture settings shared between userspace and
+ * bpf programs.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, uint32_t);
+	__type(value, struct capture_settings);
+} capture_settings __weak SEC(".maps");
 
 /* These maps have one entry for each CPU.
  *
