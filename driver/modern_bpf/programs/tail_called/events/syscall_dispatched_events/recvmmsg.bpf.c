@@ -161,7 +161,7 @@ int BPF_PROG(recvmmsg_x, struct pt_regs *regs, long ret) {
 	        .args = args,
 	};
 
-	uint32_t nr_loops = ret < 1024 ? ret : 1024;
+	uint32_t nr_loops = ret < MAX_SENDMMSG_RECVMMSG_SIZE ? ret : MAX_SENDMMSG_RECVMMSG_SIZE;
 	bpf_loop(nr_loops, handle_exit, &data, 0);
 
 	return 0;
