@@ -31,7 +31,7 @@ def test_non_sudo_setuid(sinsp, run_containers):
             "proc.name": "child",
         },
         {
-            "evt.args": "res=0",
+            "evt.args": "res=0 uid=2(<NA>)",
             "evt.dir": "<",
             "evt.type": "setuid",
             "proc.name": "child",
@@ -43,7 +43,7 @@ def test_non_sudo_setuid(sinsp, run_containers):
             "proc.name": "child",
         },
         {
-            "evt.args": "res=-1(EPERM)",
+            "evt.args": "res=-1(EPERM) uid=0(<NA>)",
             "evt.dir": "<",
             "evt.type": "setuid",
             "proc.name": "child",

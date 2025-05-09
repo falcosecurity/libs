@@ -7561,4 +7561,19 @@ FILLER(sys_delete_module_x, true) {
 	return res;
 }
 
+FILLER(sys_setuid_x, true) {
+	long retval;
+	int res;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_push_s64_to_ring(data, (int32_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: uid (type: PT_UINT32) */
+	uint32_t uid = (uint32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u32_to_ring(data, uid);
+
+	return res;
+}
 #endif

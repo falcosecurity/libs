@@ -198,6 +198,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_delete_module_x)              \
 	FN(sys_pread64_x)                    \
 	FN(sys_pwrite64_x)                   \
+	FN(sys_setuid_x)                     \
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
