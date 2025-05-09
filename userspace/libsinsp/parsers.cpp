@@ -123,7 +123,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_SETRESUID_E:
 	case PPME_SYSCALL_SETRESGID_E:
-	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_UNLINK_E:
@@ -4525,15 +4524,13 @@ void sinsp_parser::parse_setregid_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_setuid_exit(sinsp_evt &evt) const {
-	sinsp_evt *enter_evt = &m_tmp_evt;
-
 	//
 	// Extract the return value
 	//
 	const int64_t retval = evt.get_syscall_return_value();
 
-	if(retval == 0 && retrieve_enter_event(*enter_evt, evt)) {
-		uint32_t new_euid = enter_evt->get_param(0)->as<uint32_t>();
+	if(retval == 0 && evt.get_num_params() > 1) {
+		uint32_t new_euid = evt.get_param(1)->as<uint32_t>();
 		sinsp_threadinfo *ti = evt.get_thread_info();
 		if(ti) {
 			ti->set_user(new_euid, must_notify_thread_user_update());

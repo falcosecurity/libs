@@ -133,7 +133,7 @@
 #define SCAPEVENT_E_SIZE HEADER_LEN + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 2
 #define SCAPEVENT_X_SIZE HEADER_LEN
 #define SETUID_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
-#define SETUID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SETUID_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define SETGID_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define SETGID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define GETUID_E_SIZE HEADER_LEN

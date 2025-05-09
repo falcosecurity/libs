@@ -35,7 +35,7 @@ TEST_F(sinsp_with_test_input, setuid_setgid) {
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
 
 	// check that the user ID is updated if the call is successful
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 1, errno_success);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 2, errno_success, 500);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
 
 	// set a new group ID
@@ -53,7 +53,7 @@ TEST_F(sinsp_with_test_input, setuid_setgid) {
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
 
 	// check that the user ID is not updated after an unsuccessful setuid call
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 1, errno_failure);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 2, errno_failure, 0);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
 
 	// same for group ID

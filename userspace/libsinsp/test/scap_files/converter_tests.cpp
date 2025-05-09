@@ -245,3 +245,41 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with PWRITE events. Add it if we face a failure.
+
+////////////////////////////
+// SETUID
+////////////////////////////
+
+TEST_F(scap_file_test, setuid_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SYSCALL_SETUID_E, 2);
+}
+
+TEST_F(scap_file_test, setuid_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SYSCALL_SETUID_X, 2);
+}
+
+TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `61288` is the following:
+	// - type=PPME_SYSCALL_SETUID_X,
+	// - ts=1687966709959025387
+	// - tid=141446
+	// - args=res=0
+	//
+	// And its corresponding enter event `61285` is the following:
+	// - type=PPME_SYSCALL_SETUID_E
+	// - ts=1687966709959015344
+	// - tid=141446
+	// - args=uid=0(<NA>)
+	//
+	// Let's see the new PPME_SYSCALL_SETUID_X event!
+
+	uint64_t ts = 1687966709959025387;
+	int64_t tid = 141446;
+	int64_t res = 0;
+	int32_t uid = 0;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
+}
