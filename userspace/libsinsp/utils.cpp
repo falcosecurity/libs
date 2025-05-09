@@ -69,9 +69,18 @@ sinsp_initializer g_initializer;
 //
 sinsp_initializer::sinsp_initializer() {
 	//
-	// Init the event tables
+	// Init the event table
+	// NOTE: when async plugins are registered,
+	// each generated async event name will be appended
+	// to this table with name == async event name.
+	// Thus, if you want to only loop over event_table events,
+	// you gotta loop up to PPM_EVENT_MAX.
+	// The only helper method that iterates over ALL events (async events too)
+	// is libsinsp::events::names_to_event_set().
+	// This allows mapping async events names to PPME_ASYNCEVENT_E.
+	// Of course, m_event_size will increase accordingly.
 	//
-	memcpy(&g_infotables.m_event_info,
+	memcpy(g_infotables.m_event_info,
 	       scap_get_event_info_table(),
 	       PPM_EVENT_MAX * sizeof(ppm_event_info));
 	g_infotables.m_event_size = PPM_EVENT_MAX;
