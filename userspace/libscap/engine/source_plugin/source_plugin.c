@@ -206,10 +206,6 @@ static int32_t next(struct scap_engine_handle engine,
 	// Sanity checks in case a plugin implements a non-syscall event source.
 	// If a plugin has event sourcing capability and has a specific ID, then
 	// it is allowed to produce only plugin events of its own event source.
-	uint8_t* pplugin_id = (uint8_t*)evt + sizeof(scap_evt) + sizeof(uint32_t) + sizeof(uint32_t);
-	uint32_t plugin_id;
-	memcpy(&plugin_id, pplugin_id, sizeof(plugin_id));
-
 	if(handle->m_input_plugin->id != 0) {
 		/*
 		 * | scap_evt | len_id (4B) | len_pl (4B) | id | payload |
@@ -222,6 +218,12 @@ static int32_t next(struct scap_engine_handle engine,
 			                      "malformed plugin event produced by plugin: '%s'",
 			                      handle->m_input_plugin->name);
 		}
+
+		// We are now sure this is a PLUGINEVENT thus we can read the plugin id (first param)
+		uint8_t* pplugin_id =
+		        (uint8_t*)evt + sizeof(scap_evt) + sizeof(uint32_t) + sizeof(uint32_t);
+		uint32_t plugin_id;
+		memcpy(&plugin_id, pplugin_id, sizeof(plugin_id));
 
 		// forcely setting plugin ID with the one of the open plugin
 		if(plugin_id == 0) {
@@ -240,6 +242,12 @@ static int32_t next(struct scap_engine_handle engine,
 	}
 
 	if(scap_event_get_type(evt) == PPME_PLUGINEVENT_E) {
+		// We are now sure this is a PLUGINEVENT thus we can read the plugin id (first param)
+		uint8_t* pplugin_id =
+		        (uint8_t*)evt + sizeof(scap_evt) + sizeof(uint32_t) + sizeof(uint32_t);
+		uint32_t plugin_id;
+		memcpy(&plugin_id, pplugin_id, sizeof(plugin_id));
+
 		// a zero plugin ID is not allowed for PPME_PLUGINEVENT_E
 		if(plugin_id == 0) {
 			return scap_errprintf(lasterr,
