@@ -14,7 +14,7 @@
 #include <helpers/extract/extract_from_kernel.h>
 
 static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint32_t syscall_id) {
-	return maps__64bit_interesting_syscall(syscall_id);
+	return maps__interesting_syscall_64bit(syscall_id);
 }
 
 static __always_inline long convert_network_syscalls(struct pt_regs *regs) {

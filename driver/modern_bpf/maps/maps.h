@@ -47,35 +47,23 @@ __weak const volatile uint64_t probe_api_ver = PPM_API_CURRENT_VERSION;
  */
 __weak const volatile uint64_t probe_schema_var = PPM_SCHEMA_CURRENT_VERSION;
 
-/*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
-
-/*=============================== BPF GLOBAL VARIABLES ===============================*/
-
-/**
- * @brief Given the syscall id on 64-bit-architectures returns if
- * the syscall must be filtered out according to the simple consumer logic.
- */
-__weak bool g_64bit_interesting_syscalls_table[SYSCALL_TABLE_SIZE];
-
 /**
  * @brief Given the syscall id on 64-bit-architectures returns:
  * - `UF_NEVER_DROP` if the syscall must not be dropped in the sampling logic.
  * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
  * - `UF_NONE` if we drop the syscall depends on the sampling ratio.
  */
-__weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
+__weak const volatile uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
 
 /**
  * @brief Given the syscall id on 32-bit x86 arch returns
  * its x64 value. Used to support ia32 syscall emulation.
  */
-__weak uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
+__weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
-/**
- * @brief Global capture settings shared between userspace and
- * bpf programs.
- */
-__weak struct capture_settings g_settings;
+/*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
+
+/*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 /**
  * @brief Variable used only kernel side to understand when we need to send
@@ -132,6 +120,28 @@ struct {
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 
 /*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
+
+/**
+ * @brief This table is used to keep track of which syscalls must be filtered out
+ * according to the simple consumer logic.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, SYSCALL_TABLE_SIZE);
+	__type(key, uint32_t);
+	__type(value, bool);
+} interesting_syscalls_table_64bit __weak SEC(".maps");
+
+/**
+ * @brief Global capture settings shared between userspace and
+ * bpf programs.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, uint32_t);
+	__type(value, struct capture_settings);
+} capture_settings __weak SEC(".maps");
 
 /* These maps have one entry for each CPU.
  *

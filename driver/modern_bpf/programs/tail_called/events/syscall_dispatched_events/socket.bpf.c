@@ -76,7 +76,7 @@ int BPF_PROG(socket_x, struct pt_regs *regs, long ret) {
 	/* Just called once by our scap process */
 	if(ret >= 0 && maps__get_socket_file_ops() == NULL) {
 		struct task_struct *task = get_current_task();
-		/* Please note that in `g_settings.scap_tid` scap will put its virtual tid
+		/* Please note that in `settings.scap_tid` scap will put its virtual tid
 		 * if it is running inside a container. If we want to extract the same information
 		 * in the kernel we need to extract the virtual tid of the task.
 		 */

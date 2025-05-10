@@ -52,11 +52,11 @@ int pman_enforce_sc_set(bool *sc_set) {
 		}
 
 		if(!sc_set[sc]) {
-			pman_mark_single_64bit_syscall(syscall_id, false);
+			ret = ret ?: pman_mark_single_64bit_syscall(syscall_id, false);
 		} else {
 			sys_enter = true;
 			sys_exit = true;
-			pman_mark_single_64bit_syscall(syscall_id, true);
+			ret = ret ?: pman_mark_single_64bit_syscall(syscall_id, true);
 		}
 	}
 
