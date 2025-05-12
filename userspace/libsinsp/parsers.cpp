@@ -771,7 +771,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 
 void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
                                            sinsp_parser_verdict &verdict,
-                                           int64_t child_tid) {
+                                           const int64_t child_tid) const {
 	uint16_t etype = evt.get_type();
 	int64_t caller_tid = evt.get_tid();
 
@@ -1265,7 +1265,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 }
 
-void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
+void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	uint16_t etype = evt.get_type();
 	int64_t child_tid = evt.get_tid();
 
@@ -1752,7 +1752,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 }
 
-void sinsp_parser::parse_clone_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
+void sinsp_parser::parse_clone_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	int64_t childtid = evt.get_syscall_return_value();
 	/* Please note that if the child is in a namespace different from the init one
 	 * we should never use this `childtid` otherwise we will use a thread id referred to
@@ -3699,7 +3699,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
 }
 #endif  // _WIN32
 
-void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
+void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t tid = evt.get_tid();
