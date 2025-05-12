@@ -42,6 +42,7 @@ limitations under the License.
 sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
                            const scap_machine_info *const &machine_info,
                            const std::vector<std::string> &event_sources,
+                           const size_t syscall_event_source_idx,
                            const sinsp_network_interfaces &network_interfaces,
                            const bool &hostname_and_port_resolution_enabled,
                            const sinsp_threadinfo_factory &threadinfo_factory,
@@ -58,6 +59,7 @@ sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
         m_sinsp_mode{sinsp_mode},
         m_machine_info{machine_info},
         m_event_sources{event_sources},
+        m_syscall_event_source_idx{syscall_event_source_idx},
         m_network_interfaces{network_interfaces},
         m_hostname_and_port_resolution_enabled{hostname_and_port_resolution_enabled},
         m_threadinfo_factory{threadinfo_factory},
@@ -70,8 +72,7 @@ sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
         m_sinsp_stats_v2{sinsp_stats_v2},
         m_observer{observer},
         m_tmp_evt{tmp_evt},
-        m_scap_platform{scap_platform},
-        m_syscall_event_source_idx{sinsp_no_event_source_idx} {}
+        m_scap_platform{scap_platform} {}
 
 sinsp_parser::~sinsp_parser() {
 	while(!m_tmp_events_buffer.empty()) {
@@ -473,7 +474,7 @@ static bool can_query_os_for_thread_info(const uint16_t evt_type) {
 // Called before starting the parsing.
 // Returns false in case of issues resetting the state.
 //
-bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
+bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	uint16_t etype = evt.get_type();
 	// Before anything can happen, the event needs to be initialized.
 	evt.init();
@@ -498,20 +499,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
 			evt.set_source_name(m_event_sources[src_idx].c_str());
 		}
 	} else {
-		// Every other event falls under the "syscall" event source umbrella cache index of
-		// "syscall" event source in case we haven't already.
-		if(m_syscall_event_source_idx == sinsp_no_event_source_idx) {
-			// Note: the current inspector's implementation guarantees that the "syscall" event
-			// source is always at index 0, being the first one in the list. However, we don't want
-			// to leak that knowledge down to this level, so we search for it in order to be
-			// resilient to future changes. The search happens only once.
-			for(size_t i = 0; i < m_event_sources.size(); i++) {
-				if(m_event_sources[i] == sinsp_syscall_event_source_name) {
-					m_syscall_event_source_idx = i;
-					break;
-				}
-			}
-		}
+		// Every other event falls under the "syscall" event source umbrella.
 		evt.set_source_idx(m_syscall_event_source_idx);
 		evt.set_source_name(m_syscall_event_source_idx != sinsp_no_event_source_idx
 		                            ? sinsp_syscall_event_source_name
