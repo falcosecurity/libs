@@ -235,15 +235,16 @@ sinsp::sinsp(bool with_metrics):
 
 	m_replay_scap_evt = nullptr;
 
-	// the "syscall" event source is implemented by sinsp itself
-	// and is always present
 	m_plugin_parsers.clear();
+	// The "syscall" event source is implemented by sinsp itself and is always present at index 0.
+	constexpr size_t syscall_event_source_idx = 0;
 	m_event_sources.push_back(sinsp_syscall_event_source_name);
 	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
 
 	m_parser = std::make_unique<sinsp_parser>(m_mode,
 	                                          m_machine_info,
 	                                          m_event_sources,
+	                                          syscall_event_source_idx,
 	                                          m_network_interfaces,
 	                                          m_hostname_and_port_resolution_enabled,
 	                                          m_threadinfo_factory,
