@@ -117,7 +117,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread) {
 	/* we mark the thread as dead manually and we check that we don't call `decrement_thread_count`
 	 * during PROC_EXIT
 	 */
-	auto p5_t2_tinfo = m_inspector.get_thread_ref(p5_t2_tid, false).get();
+	auto p5_t2_tinfo = m_inspector.m_thread_manager->get_thread_ref(p5_t2_tid, false).get();
 	ASSERT_TRUE(p5_t2_tinfo);
 	p5_t2_tinfo->set_dead();
 

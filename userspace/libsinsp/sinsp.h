@@ -424,35 +424,6 @@ public:
 	}
 
 	/*!
-	  \brief Look up a thread given its tid and return its information,
-	   and optionally go dig into proc if the thread is not in the thread table.
-
-	  \param tid the ID of the thread. In case of multi-thread processes,
-	   this corresponds to the PID.
-	  \param query_os_if_not_found if true, the library will search for this
-	   thread's information in proc, use the result to create a new thread
-	   entry, and return the new entry.
-
-	  \return the \ref sinsp_threadinfo object containing full thread information
-	   and state.
-
-	  \note if you are interested in a process' information, just give this
-	  function with the PID of the process.
-
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	inline const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid,
-	                                                     bool query_os_if_not_found = false,
-	                                                     bool lookup_only = true,
-	                                                     bool main_thread = false) {
-		return m_thread_manager->get_thread_ref(tid,
-		                                        query_os_if_not_found,
-		                                        lookup_only,
-		                                        main_thread);
-	}
-
-	/*!
 	  \brief Fill the given structure with statistics about the currently
 	   open capture.
 
