@@ -83,9 +83,11 @@ private:
 	//
 	// Parsers
 	//
-	void parse_clone_exit_child(sinsp_evt& evt, sinsp_parser_verdict& verdict);
-	void parse_clone_exit_caller(sinsp_evt& evt, sinsp_parser_verdict& verdict, int64_t child_tid);
-	void parse_clone_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	void parse_clone_exit_child(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
+	void parse_clone_exit_caller(sinsp_evt& evt,
+	                             sinsp_parser_verdict& verdict,
+	                             int64_t child_tid) const;
+	void parse_clone_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_execve_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_open_openat_creat_exit(sinsp_evt& evt) const;
 	static void parse_fchmod_fchown_exit(sinsp_evt& evt);
@@ -102,7 +104,7 @@ private:
 	void parse_pidfd_open_exit(sinsp_evt& evt) const;
 	void parse_pidfd_getfd_exit(sinsp_evt& evt) const;
 	void parse_fspath_related_exit(sinsp_evt& evt) const;
-	inline void parse_rw_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	inline void parse_rw_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_sendfile_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_eventfd_exit(sinsp_evt& evt) const;
 	void parse_bind_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
