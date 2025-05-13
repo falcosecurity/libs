@@ -37,6 +37,7 @@ public:
 	sinsp_parser(const sinsp_mode& mode,
 	             const scap_machine_info* const& machine_info,
 	             const std::vector<std::string>& event_sources,
+	             size_t syscall_event_source_idx,
 	             const sinsp_network_interfaces& network_interfaces,
 	             const bool& hostname_and_port_resolution_enabled,
 	             const sinsp_threadinfo_factory& threadinfo_factory,
@@ -58,7 +59,7 @@ public:
 	void process_event(sinsp_evt& evt, sinsp_parser_verdict& verdict);
 	void event_cleanup(sinsp_evt& evt);
 
-	bool reset(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	bool reset(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 
 	//
 	// Get the enter event matching the last received event
@@ -82,9 +83,11 @@ private:
 	//
 	// Parsers
 	//
-	void parse_clone_exit_child(sinsp_evt& evt, sinsp_parser_verdict& verdict);
-	void parse_clone_exit_caller(sinsp_evt& evt, sinsp_parser_verdict& verdict, int64_t child_tid);
-	void parse_clone_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	void parse_clone_exit_child(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
+	void parse_clone_exit_caller(sinsp_evt& evt,
+	                             sinsp_parser_verdict& verdict,
+	                             int64_t child_tid) const;
+	void parse_clone_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_execve_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_open_openat_creat_exit(sinsp_evt& evt) const;
 	static void parse_fchmod_fchown_exit(sinsp_evt& evt);
@@ -101,7 +104,7 @@ private:
 	void parse_pidfd_open_exit(sinsp_evt& evt) const;
 	void parse_pidfd_getfd_exit(sinsp_evt& evt) const;
 	void parse_fspath_related_exit(sinsp_evt& evt) const;
-	inline void parse_rw_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	inline void parse_rw_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_sendfile_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_eventfd_exit(sinsp_evt& evt) const;
 	void parse_bind_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
@@ -203,6 +206,7 @@ private:
 	const sinsp_mode& m_sinsp_mode;
 	const scap_machine_info* const& m_machine_info;
 	const std::vector<std::string>& m_event_sources;
+	const size_t m_syscall_event_source_idx;
 	const sinsp_network_interfaces& m_network_interfaces;
 	const bool& m_hostname_and_port_resolution_enabled;
 	const sinsp_threadinfo_factory m_threadinfo_factory;
@@ -223,7 +227,4 @@ private:
 	bool m_track_connection_status = false;
 
 	std::stack<uint8_t*> m_tmp_events_buffer;
-
-	// caches the index of the "syscall" event source
-	size_t m_syscall_event_source_idx;
 };
