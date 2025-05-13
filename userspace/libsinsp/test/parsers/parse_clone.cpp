@@ -37,7 +37,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_failed) {
 	ASSERT_EQ(evt->get_thread_info()->m_ptid, INIT_PTID);
 
 	/* We should have a NULL pointer here so no thread-info for the new process */
-	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	sinsp_threadinfo* p1_t1_tinfo =
+	        m_inspector.m_thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_FALSE(p1_t1_tinfo);
 }
 
@@ -55,7 +56,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_in_container) {
 
 	/* The child process is in a container so the parent doesn't populate the thread_info for
 	 * the child  */
-	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false).get();
+	sinsp_threadinfo* p1_t1_tinfo =
+	        m_inspector.m_thread_manager->get_thread_ref(p1_t1_tid, false).get();
 	ASSERT_FALSE(p1_t1_tinfo);
 }
 
@@ -81,7 +83,9 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision) {
 	                       DEFAULT_VALUE,
 	                       "old_bash");
 
-	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	sinsp_threadinfo* p1_t1_tinfo = thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
 
@@ -101,7 +105,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision) {
 	                       DEFAULT_VALUE,
 	                       "new_bash");
 
-	p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	p1_t1_tinfo = thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	/* We should find the new name now since this should be a fresh thread info */
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "new_bash");
@@ -128,7 +132,9 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child) {
 	                       DEFAULT_VALUE,
 	                       "old_bash");
 
-	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	sinsp_threadinfo* p1_t1_tinfo = thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
 
@@ -142,7 +148,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child) {
 	                       DEFAULT_VALUE,
 	                       "new_bash");
 
-	p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	p1_t1_tinfo = thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
 }
@@ -473,7 +479,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision) {
 	 * clone child exit event will be called we should treat the current thread info
 	 * as stale.
 	 */
-	tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	tinfo = m_inspector.m_thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(tinfo);
 	tinfo->m_clone_ts = tinfo->m_clone_ts - (CLONE_STALE_TIME_NS + 1);
 
@@ -510,7 +516,8 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_new_main_thread) {
 	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid)
 
 	/* Check if the thread-info in the thread table is correctly assigned to our event */
-	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
+	sinsp_threadinfo* p1_t1_tinfo =
+	        m_inspector.m_thread_manager->get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(evt && evt->get_thread_info());
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo, evt->get_thread_info());

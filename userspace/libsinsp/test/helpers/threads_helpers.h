@@ -24,7 +24,8 @@ limitations under the License.
 
 #define ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(tid, pid, ptid, vtid, vpid)              \
 	{                                                                                 \
-		sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(tid, false, true).get(); \
+		sinsp_threadinfo* tinfo =                                                     \
+		        m_inspector.m_thread_manager->get_thread_ref(tid, false, true).get(); \
 		ASSERT_TRUE(tinfo);                                                           \
 		ASSERT_EQ(tinfo->m_tid, tid);                                                 \
 		ASSERT_EQ(tinfo->m_pid, pid);                                                 \
@@ -37,85 +38,89 @@ limitations under the License.
 #define ASSERT_THREAD_INFO_PIDS(tid, pid, ppid) \
 	{ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(tid, pid, ppid, tid, pid)}
 
-#define ASSERT_THREAD_GROUP_INFO(tg_pid,                                                      \
-                                 alive_threads,                                               \
-                                 reaper_enabled,                                              \
-                                 threads_num,                                                 \
-                                 not_expired,                                                 \
-                                 ...)                                                         \
-	{                                                                                         \
-		auto tginfo = m_inspector.m_thread_manager->get_thread_group_info(tg_pid).get();      \
-		ASSERT_TRUE(tginfo);                                                                  \
-		ASSERT_EQ(tginfo->get_thread_count(), alive_threads);                                 \
-		ASSERT_EQ(tginfo->is_reaper(), reaper_enabled);                                       \
-		ASSERT_EQ(tginfo->get_tgroup_pid(), tg_pid);                                          \
-		ASSERT_EQ(tginfo->get_thread_list().size(), threads_num);                             \
-		std::set<int64_t> tid_to_assert{__VA_ARGS__};                                         \
-		for(const auto& tid : tid_to_assert) {                                                \
-			sinsp_threadinfo* tid_tinfo = m_inspector.get_thread_ref(tid, false, true).get(); \
-			ASSERT_TRUE(tid_tinfo);                                                           \
-			ASSERT_EQ(tid_tinfo->m_pid, tg_pid)                                               \
-			        << "Thread '" + std::to_string(tid_tinfo->m_tid) +                        \
-			                   "' doesn't belong to the thread group id '" +                  \
-			                   std::to_string(tg_pid) + "'";                                  \
-			bool found = false;                                                               \
-			for(const auto& thread : tginfo->get_thread_list()) {                             \
-				if(thread.lock().get() == tid_tinfo) {                                        \
-					found = true;                                                             \
-				}                                                                             \
-			}                                                                                 \
-			ASSERT_TRUE(found);                                                               \
-		}                                                                                     \
-		uint64_t not_expired_count = 0;                                                       \
-		for(const auto& thread : tginfo->get_thread_list()) {                                 \
-			if(!thread.expired()) {                                                           \
-				not_expired_count++;                                                          \
-			}                                                                                 \
-		}                                                                                     \
-		ASSERT_EQ(not_expired_count, not_expired);                                            \
+#define ASSERT_THREAD_GROUP_INFO(tg_pid,                                                          \
+                                 alive_threads,                                                   \
+                                 reaper_enabled,                                                  \
+                                 threads_num,                                                     \
+                                 not_expired,                                                     \
+                                 ...)                                                             \
+	{                                                                                             \
+		const auto& thread_manager = m_inspector.m_thread_manager;                                \
+		auto tginfo = thread_manager->get_thread_group_info(tg_pid).get();                        \
+		ASSERT_TRUE(tginfo);                                                                      \
+		ASSERT_EQ(tginfo->get_thread_count(), alive_threads);                                     \
+		ASSERT_EQ(tginfo->is_reaper(), reaper_enabled);                                           \
+		ASSERT_EQ(tginfo->get_tgroup_pid(), tg_pid);                                              \
+		ASSERT_EQ(tginfo->get_thread_list().size(), threads_num);                                 \
+		std::set<int64_t> tid_to_assert{__VA_ARGS__};                                             \
+		for(const auto& tid : tid_to_assert) {                                                    \
+			sinsp_threadinfo* tid_tinfo = thread_manager->get_thread_ref(tid, false, true).get(); \
+			ASSERT_TRUE(tid_tinfo);                                                               \
+			ASSERT_EQ(tid_tinfo->m_pid, tg_pid)                                                   \
+			        << "Thread '" + std::to_string(tid_tinfo->m_tid) +                            \
+			                   "' doesn't belong to the thread group id '" +                      \
+			                   std::to_string(tg_pid) + "'";                                      \
+			bool found = false;                                                                   \
+			for(const auto& thread : tginfo->get_thread_list()) {                                 \
+				if(thread.lock().get() == tid_tinfo) {                                            \
+					found = true;                                                                 \
+				}                                                                                 \
+			}                                                                                     \
+			ASSERT_TRUE(found);                                                                   \
+		}                                                                                         \
+		uint64_t not_expired_count = 0;                                                           \
+		for(const auto& thread : tginfo->get_thread_list()) {                                     \
+			if(!thread.expired()) {                                                               \
+				not_expired_count++;                                                              \
+			}                                                                                     \
+		}                                                                                         \
+		ASSERT_EQ(not_expired_count, not_expired);                                                \
 	}
 
-#define ASSERT_THREAD_CHILDREN(parent_tid, children_num, not_expired, ...)                    \
-	{                                                                                         \
-		sinsp_threadinfo* parent_tinfo =                                                      \
-		        m_inspector.get_thread_ref(parent_tid, false, true).get();                    \
-		ASSERT_TRUE(parent_tinfo);                                                            \
-		ASSERT_EQ(parent_tinfo->m_children.size(), children_num);                             \
-		std::set<int64_t> tid_to_assert{__VA_ARGS__};                                         \
-		for(const auto& tid : tid_to_assert) {                                                \
-			sinsp_threadinfo* tid_tinfo = m_inspector.get_thread_ref(tid, false, true).get(); \
-			ASSERT_TRUE(tid_tinfo);                                                           \
-			bool found = false;                                                               \
-			for(const auto& child : parent_tinfo->m_children) {                               \
-				if(child.lock().get() == tid_tinfo) {                                         \
-					found = true;                                                             \
-				}                                                                             \
-			}                                                                                 \
-			ASSERT_TRUE(found);                                                               \
-		}                                                                                     \
-		uint16_t not_expired_count = 0;                                                       \
-		for(const auto& child : parent_tinfo->m_children) {                                   \
-			if(!child.expired()) {                                                            \
-				not_expired_count++;                                                          \
-			}                                                                                 \
-		}                                                                                     \
-		ASSERT_EQ(not_expired_count, not_expired);                                            \
-		ASSERT_EQ(not_expired_count, parent_tinfo->m_not_expired_children);                   \
+#define ASSERT_THREAD_CHILDREN(parent_tid, children_num, not_expired, ...)                        \
+	{                                                                                             \
+		const auto& thread_manager = m_inspector.m_thread_manager;                                \
+		sinsp_threadinfo* parent_tinfo =                                                          \
+		        thread_manager->get_thread_ref(parent_tid, false, true).get();                    \
+		ASSERT_TRUE(parent_tinfo);                                                                \
+		ASSERT_EQ(parent_tinfo->m_children.size(), children_num);                                 \
+		std::set<int64_t> tid_to_assert{__VA_ARGS__};                                             \
+		for(const auto& tid : tid_to_assert) {                                                    \
+			sinsp_threadinfo* tid_tinfo = thread_manager->get_thread_ref(tid, false, true).get(); \
+			ASSERT_TRUE(tid_tinfo);                                                               \
+			bool found = false;                                                                   \
+			for(const auto& child : parent_tinfo->m_children) {                                   \
+				if(child.lock().get() == tid_tinfo) {                                             \
+					found = true;                                                                 \
+				}                                                                                 \
+			}                                                                                     \
+			ASSERT_TRUE(found);                                                                   \
+		}                                                                                         \
+		uint16_t not_expired_count = 0;                                                           \
+		for(const auto& child : parent_tinfo->m_children) {                                       \
+			if(!child.expired()) {                                                                \
+				not_expired_count++;                                                              \
+			}                                                                                     \
+		}                                                                                         \
+		ASSERT_EQ(not_expired_count, not_expired);                                                \
+		ASSERT_EQ(not_expired_count, parent_tinfo->m_not_expired_children);                       \
 	}
 
 /* if `missing==true` we shouldn't find the thread info */
-#define ASSERT_MISSING_THREAD_INFO(tid_to_check, missing)                  \
-	{                                                                      \
-		if(missing) {                                                      \
-			ASSERT_FALSE(m_inspector.get_thread_ref(tid_to_check, false)); \
-		} else {                                                           \
-			ASSERT_TRUE(m_inspector.get_thread_ref(tid_to_check, false));  \
-		}                                                                  \
+#define ASSERT_MISSING_THREAD_INFO(tid_to_check, missing)                      \
+	{                                                                          \
+		const auto& thread_manager = m_inspector.m_thread_manager;             \
+		if(missing) {                                                          \
+			ASSERT_FALSE(thread_manager->get_thread_ref(tid_to_check, false)); \
+		} else {                                                               \
+			ASSERT_TRUE(thread_manager->get_thread_ref(tid_to_check, false));  \
+		}                                                                      \
 	}
 
 #define ASSERT_THREAD_INFO_FLAG(tid, flag, present)                                   \
 	{                                                                                 \
-		sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(tid, false, true).get(); \
+		sinsp_threadinfo* tinfo =                                                     \
+		        m_inspector.m_thread_manager->get_thread_ref(tid, false, true).get(); \
 		ASSERT_TRUE(tinfo);                                                           \
 		if(present) {                                                                 \
 			ASSERT_TRUE(tinfo->m_flags& flag);                                        \
@@ -124,11 +129,11 @@ limitations under the License.
 		}                                                                             \
 	}
 
-#define ASSERT_THREAD_INFO_COMM(tid, comm)                                      \
-	{                                                                           \
-		sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(tid, false).get(); \
-		ASSERT_TRUE(tinfo);                                                     \
-		ASSERT_EQ(tinfo->m_comm, comm);                                         \
+#define ASSERT_THREAD_INFO_COMM(tid, comm)                                                        \
+	{                                                                                             \
+		sinsp_threadinfo* tinfo = m_inspector.m_thread_manager->get_thread_ref(tid, false).get(); \
+		ASSERT_TRUE(tinfo);                                                                       \
+		ASSERT_EQ(tinfo->m_comm, comm);                                                           \
 	}
 
 #define DEFAULT_TREE_NUM_PROCS 12

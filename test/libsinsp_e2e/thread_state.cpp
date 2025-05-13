@@ -32,6 +32,7 @@ class thread_state_test : public ::testing::Test {
 protected:
 	virtual void SetUp() {
 		const auto& threadinfo_factory = m_inspector.get_threadinfo_factory();
+		const auto& thread_manager = m_inspector.m_thread_manager;
 		// Each entry in the vector has a parent of the previous
 		// entry. The first entry has a parent of 1.
 		for(int64_t pid = 100, i = 0; i < m_max; pid++, i++) {
@@ -41,8 +42,8 @@ protected:
 			thr->m_tid = pid;
 			thr->m_ptid = ppid;
 
-			m_inspector.m_thread_manager->add_thread(std::move(thr), false);
-			sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(pid).get();
+			thread_manager->add_thread(std::move(thr), false);
+			sinsp_threadinfo* tinfo = thread_manager->get_thread_ref(pid).get();
 
 			m_threads.push_back(tinfo);
 		}

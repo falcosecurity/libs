@@ -81,14 +81,16 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 	// the event is suppressed we get an exception.
 	EXPECT_ANY_THROW(generate_execve_x(pid, file_to_run, "sh"));
 
-	EXPECT_NE(m_inspector.get_thread_ref(pid), nullptr);
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	EXPECT_NE(thread_manager->get_thread_ref(pid), nullptr);
 
 	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
 
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_RENAME_E, 0);
 
-	EXPECT_EQ(m_inspector.get_thread_ref(pid), nullptr);
+	EXPECT_EQ(thread_manager->get_thread_ref(pid), nullptr);
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);
@@ -131,14 +133,16 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 	                                      "/bin/test-exe"));
 	EXPECT_ANY_THROW(generate_execve_x(pid, "/bin/test-exe", "test-exe"));
 
-	EXPECT_NE(m_inspector.get_thread_ref(pid), nullptr);
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	EXPECT_NE(thread_manager->get_thread_ref(pid), nullptr);
 
 	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
 
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_RENAME_E, 0);
 
-	EXPECT_EQ(m_inspector.get_thread_ref(pid), nullptr);
+	EXPECT_EQ(thread_manager->get_thread_ref(pid), nullptr);
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);

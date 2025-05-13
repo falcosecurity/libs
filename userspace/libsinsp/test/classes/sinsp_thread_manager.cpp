@@ -189,40 +189,46 @@ TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
 TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_same_thread_group) {
 	DEFAULT_TREE
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
 	/* We mark it as dead otherwise it will be chosen as a new reaper */
-	auto p5_t1_tinfo = m_inspector.get_thread_ref(p5_t1_tid, false).get();
+	const auto p5_t1_tinfo = thread_manager->get_thread_ref(p5_t1_tid, false).get();
 	ASSERT_TRUE(p5_t1_tinfo);
 	p5_t1_tinfo->set_dead();
 
 	/* Call the find reaper method, the reaper thread should be the unique thread alive in the group
 	 */
-	auto reaper = m_inspector.m_thread_manager->find_new_reaper(p5_t1_tinfo);
+	const auto reaper = thread_manager->find_new_reaper(p5_t1_tinfo);
 	ASSERT_EQ(reaper->m_tid, p5_t2_tid);
 }
 
 TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree) {
 	DEFAULT_TREE
 
-	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	const auto p6_t1_tinfo = thread_manager->get_thread_ref(p6_t1_tid, false).get();
 	ASSERT_TRUE(p6_t1_tinfo);
 
 	/* Call the find reaper method, the reaper for p6_t1 should be p4_t1  */
-	auto reaper = m_inspector.m_thread_manager->find_new_reaper(p6_t1_tinfo);
+	const auto reaper = thread_manager->find_new_reaper(p6_t1_tinfo);
 	ASSERT_EQ(reaper->m_tid, p4_t1_tid);
 }
 
 TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
 	DEFAULT_TREE
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
 	/* If we detect a loop the new reaper will be nullptr.
 	 * We set p2_t1 group as a reaper.
 	 */
-	auto p2_t1_tinfo = m_inspector.get_thread_ref(p2_t1_tid, false).get();
+	const auto p2_t1_tinfo = thread_manager->get_thread_ref(p2_t1_tid, false).get();
 	ASSERT_TRUE(p2_t1_tinfo);
 	p2_t1_tinfo->m_tginfo->set_reaper(true);
 
 	/* We explicitly set p3_t1 ptid to p4_t1, so we create a loop */
-	auto p3_t1_tinfo = m_inspector.get_thread_ref(p3_t1_tid, false).get();
+	const auto p3_t1_tinfo = thread_manager->get_thread_ref(p3_t1_tid, false).get();
 	ASSERT_TRUE(p3_t1_tinfo);
 	p3_t1_tinfo->m_ptid = p4_t1_tid;
 
@@ -234,7 +240,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
 	/* We call find_new_reaper on p4_t1.
 	 * The new reaper should be nullptr since we detected a loop.
 	 */
-	auto p4_t1_tinfo = m_inspector.get_thread_ref(p4_t1_tid, false).get();
+	const auto p4_t1_tinfo = thread_manager->get_thread_ref(p4_t1_tid, false).get();
 	ASSERT_TRUE(p4_t1_tinfo);
-	ASSERT_EQ(m_inspector.m_thread_manager->find_new_reaper(p4_t1_tinfo), nullptr);
+	ASSERT_EQ(thread_manager->find_new_reaper(p4_t1_tinfo), nullptr);
 }

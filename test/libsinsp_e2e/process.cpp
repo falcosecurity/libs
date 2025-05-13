@@ -361,20 +361,21 @@ TEST(procinfo, process_not_existent) {
 	sinsp inspector;
 	inspector.open_nodriver(true);
 
+	const auto& thread_manager = inspector.m_thread_manager;
 	//
 	// The first lookup should fail
 	//
-	EXPECT_EQ(NULL, inspector.get_thread_ref(0xffff, false, true).get());
+	EXPECT_EQ(NULL, thread_manager->get_thread_ref(0xffff, false, true).get());
 
 	//
 	// Even the second, to confirm that nothing was added to the table
 	//
-	EXPECT_EQ(NULL, inspector.get_thread_ref(0xffff, false, true).get());
+	EXPECT_EQ(NULL, thread_manager->get_thread_ref(0xffff, false, true).get());
 
 	//
 	// Now a new entry should be added to the process list...
 	//
-	sinsp_threadinfo* tinfo = inspector.get_thread_ref(0xffff, true, true).get();
+	sinsp_threadinfo* tinfo = thread_manager->get_thread_ref(0xffff, true, true).get();
 	EXPECT_NE((sinsp_threadinfo*)NULL, tinfo);
 	if(tinfo) {
 		EXPECT_EQ("<NA>", tinfo->m_comm);
@@ -383,7 +384,7 @@ TEST(procinfo, process_not_existent) {
 	//
 	// ...and confirm
 	//
-	tinfo = inspector.get_thread_ref(0xffff, false, true).get();
+	tinfo = thread_manager->get_thread_ref(0xffff, false, true).get();
 	EXPECT_NE((sinsp_threadinfo*)NULL, tinfo);
 	if(tinfo) {
 		EXPECT_EQ("<NA>", tinfo->m_comm);

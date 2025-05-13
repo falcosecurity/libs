@@ -758,42 +758,42 @@ TEST_F(sys_call_test, fs_dup) {
 			}
 		} else if(type == PPME_SYSCALL_DUP_1_X || type == PPME_SYSCALL_DUP2_X ||
 		          type == PPME_SYSCALL_DUP3_X || type == PPME_SYSCALL_DUP_X) {
-			ASSERT_NE((sinsp_threadinfo*)&*param.m_inspector->get_thread_ref(e->get_tid(),
-			                                                                 false,
-			                                                                 true),
-			          nullptr);
+			auto const& thread_manager = param.m_inspector->m_thread_manager;
+			ASSERT_NE(
+			        (sinsp_threadinfo*)&*thread_manager->get_thread_ref(e->get_tid(), false, true),
+			        nullptr);
 			if(callnum == 1) {
 				EXPECT_EQ(fd1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd1));
 				callnum++;
 			} else if(callnum == 3) {
 				EXPECT_EQ(fd2, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd2));
 				callnum++;
 			} else if(callnum == 5) {
 				EXPECT_EQ(fd3, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd3));
 				callnum++;
 			} else if(callnum == 7) {
 				EXPECT_EQ(fd4, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd4));
 				callnum++;
 			} else if(callnum == 9) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd5));
 				callnum++;
@@ -860,21 +860,21 @@ TEST_F(sys_call_test, fs_fcntl) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_FCNTL_X) {
-			ASSERT_NE((sinsp_threadinfo*)&*param.m_inspector->get_thread_ref(e->get_tid(),
-			                                                                 false,
-			                                                                 true),
-			          nullptr);
+			const auto& thread_manager = param.m_inspector->m_thread_manager;
+			ASSERT_NE(
+			        (sinsp_threadinfo*)&*thread_manager->get_thread_ref(e->get_tid(), false, true),
+			        nullptr);
 			if(callnum == 1) {
 				EXPECT_EQ(fd1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd1));
 				callnum++;
 			} else if(callnum == 3) {
 				EXPECT_EQ(fd2, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
-				          (sinsp_threadinfo*)&*param.m_inspector
+				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd1));
 				callnum++;

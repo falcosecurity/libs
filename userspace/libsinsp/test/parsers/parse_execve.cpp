@@ -146,7 +146,9 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath) {
 	                                     "good-exe",
 	                                     "/usr/bin/bad-exe");
 
-	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	auto p6_t1_tinfo = thread_manager->get_thread_ref(p6_t1_tid, false).get();
 	ASSERT_TRUE(p6_t1_tinfo);
 
 	ASSERT_EQ(p6_t1_tinfo->get_exepath(), "/usr/bin/bad-exe");
@@ -168,7 +170,7 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath) {
 	                       p7_t1_vpid,
 	                       "new-comm");
 
-	auto p7_t1_tinfo = m_inspector.get_thread_ref(p7_t1_tid, false).get();
+	auto p7_t1_tinfo = thread_manager->get_thread_ref(p7_t1_tid, false).get();
 	ASSERT_TRUE(p7_t1_tinfo);
 
 	ASSERT_EQ(p7_t1_tinfo->get_exepath(), "/usr/bin/bad-exe");
@@ -224,7 +226,9 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath) {
 	                     not_relevant_64,
 	                     not_relevant_32);
 
-	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	auto p6_t1_tinfo = thread_manager->get_thread_ref(p6_t1_tid, false).get();
 	ASSERT_TRUE(p6_t1_tinfo);
 
 	/* In the old event version we will use the pathname to reconstruct the exepath through our
@@ -248,7 +252,7 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath) {
 	                       p7_t1_vpid,
 	                       "new-comm");
 
-	auto p7_t1_tinfo = m_inspector.get_thread_ref(p7_t1_tid, false).get();
+	auto p7_t1_tinfo = thread_manager->get_thread_ref(p7_t1_tid, false).get();
 	ASSERT_TRUE(p7_t1_tinfo);
 
 	ASSERT_EQ(p7_t1_tinfo->get_exepath(), pathname.c_str());
@@ -271,7 +275,7 @@ TEST_F(sinsp_with_test_input, EXECVE_check_pgid_population) {
 	                                     {},
 	                                     random_pgid);
 
-	auto init_tinfo = m_inspector.get_thread_ref(INIT_TID, false).get();
+	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
 	ASSERT_TRUE(init_tinfo);
 	ASSERT_EQ(init_tinfo->m_pgid, random_pgid);
 }

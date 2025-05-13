@@ -122,7 +122,8 @@ sinsp_threadinfo *sinsp_evt::get_thread_info(bool query_os_if_not_found) {
 		return m_tinfo;
 	}
 
-	return m_inspector->get_thread_ref(m_pevt->tid, query_os_if_not_found, false).get();
+	return m_inspector->m_thread_manager->get_thread_ref(m_pevt->tid, query_os_if_not_found, false)
+	        .get();
 }
 
 int64_t sinsp_evt::get_fd_num() const {
@@ -786,7 +787,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 		         param->as<int64_t>());
 
 		sinsp_threadinfo *atinfo =
-		        m_inspector->get_thread_ref(param->as<int64_t>(), false, true).get();
+		        m_inspector->m_thread_manager->get_thread_ref(param->as<int64_t>(), false, true)
+		                .get();
 		if(atinfo != NULL) {
 			std::string &tcomm = atinfo->m_comm;
 

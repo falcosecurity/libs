@@ -252,19 +252,20 @@ TEST_F(sys_call_test, forking_process_expired) {
 	// OUTPUT VALDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
+		const auto& thread_manager = param.m_inspector->m_thread_manager;
 		sinsp_evt* e = param.m_evt;
 		if(!sleep_caught) {
 			if(e->get_type() == PPME_SYSCALL_NANOSLEEP_E) {
 				//
 				// The child should exist
 				//
-				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
+				sinsp_threadinfo* ti = thread_manager->get_thread_ref(ctid, false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 			} else if(e->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
 				//
 				// The child should exist
 				//
-				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
+				sinsp_threadinfo* ti = thread_manager->get_thread_ref(ctid, false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 				sleep_caught = true;
 			}

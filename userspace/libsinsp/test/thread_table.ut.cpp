@@ -69,7 +69,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_missing_init_in_proc) {
 	open_inspector();
 
 	/* Check the fake init thread info just created */
-	auto p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false).get();
+	auto p1_t1_tinfo = m_inspector.m_thread_manager->get_thread_ref(p1_t1_tid, false).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo->m_ptid, 0);
 }
@@ -78,7 +78,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation) {
 	/* Right now we have only the init process here */
 	add_default_init_thread();
 	open_inspector();
-	sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(INIT_TID, false, true).get();
+	sinsp_threadinfo* tinfo =
+	        m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false, true).get();
 	ASSERT_TRUE(tinfo);
 	ASSERT_TRUE(tinfo->is_main_thread());
 	ASSERT_EQ(tinfo->get_main_thread(), tinfo);
@@ -153,7 +154,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_s
 
 	/* Here we fill the thread table */
 	open_inspector();
-	ASSERT_EQ(8, m_inspector.m_thread_manager->get_thread_count());
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	ASSERT_EQ(8, thread_manager->get_thread_count());
 
 	/* Children */
 	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
@@ -166,7 +170,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_s
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid)
 	ASSERT_THREAD_GROUP_INFO(p3_t1_pid, 1, false, 1, 1, p3_t1_tid)
 
-	auto p1_t3_tinfo = m_inspector.get_thread_ref(p1_t3_tid, false).get();
+	auto p1_t3_tinfo = thread_manager->get_thread_ref(p1_t3_tid, false).get();
 	ASSERT_TRUE(p1_t3_tinfo);
 	ASSERT_FALSE(p1_t3_tinfo->m_tginfo);
 	ASSERT_EQ(p1_t3_tinfo->m_ptid, -1);
@@ -220,7 +224,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
 	                     "<NA>",
 	                     (int64_t)0);
 
-	auto unknown_tinfo = m_inspector.get_thread_ref(unknown_tid, false).get();
+	auto unknown_tinfo = thread_manager->get_thread_ref(unknown_tid, false).get();
 	ASSERT_TRUE(unknown_tinfo);
 	ASSERT_FALSE(unknown_tinfo->m_tginfo);
 	ASSERT_EQ(unknown_tinfo->m_ptid, -1);
@@ -249,9 +253,11 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 		return true;
 	};
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
 	/*=============================== p4_t1 traverse ===========================*/
 
-	sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(p4_t1_tid, false, true).get();
+	sinsp_threadinfo* tinfo = thread_manager->get_thread_ref(p4_t1_tid, false, true).get();
 	ASSERT_TRUE(tinfo);
 
 	std::vector<int64_t> expected_p4_traverse_parents = {p4_t1_ptid, p3_t1_ptid, p2_t1_ptid};
@@ -264,7 +270,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 
 	/*=============================== p5_t2 traverse ===========================*/
 
-	tinfo = m_inspector.get_thread_ref(p5_t2_tid, false).get();
+	tinfo = thread_manager->get_thread_ref(p5_t2_tid, false).get();
 	ASSERT_TRUE(tinfo);
 
 	std::vector<int64_t> expected_p5_traverse_parents = {p5_t2_ptid,
@@ -299,7 +305,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	ASSERT_THREAD_CHILDREN(p4_t1_tid, 3, 1, p6_t1_tid)
 
 	/* Set p2_t1 group as reaper, emulate prctl */
-	auto tginfo = m_inspector.m_thread_manager->get_thread_group_info(p2_t1_pid).get();
+	auto tginfo = thread_manager->get_thread_group_info(p2_t1_pid).get();
 	tginfo->set_reaper(true);
 
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 3, true, 3, 3, p2_t1_tid, p2_t2_tid, p2_t3_tid)
@@ -325,7 +331,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 
 	/*=============================== p6_t1 traverse ===========================*/
 
-	tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
+	tinfo = thread_manager->get_thread_ref(p6_t1_tid, false).get();
 	ASSERT_TRUE(tinfo);
 
 	std::vector<int64_t> expected_p6_traverse_parents = {p4_t1_tid, p2_t3_tid, INIT_TID};
@@ -390,14 +396,16 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper) {
 	int64_t unknonw_repaer_tid = 50000;
 	remove_thread(p2_t1_tid, unknonw_repaer_tid);
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
 	/* p2_t1 is not expired since it is a main thread and the reaper flag should not be set */
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 2, false, 3, 3);
-	auto p2_t1_tinfo = m_inspector.get_thread_ref(p2_t1_tid, false).get();
+	auto p2_t1_tinfo = thread_manager->get_thread_ref(p2_t1_tid, false).get();
 	ASSERT_TRUE(p2_t1_tinfo);
 	ASSERT_EQ(p2_t1_tinfo->m_reaper_tid, p2_t2_tid);
 
 	/* During the process we create also an invalid thread with id `unknonw_repaer_tid` */
-	auto unknonw_repaer_tinfo = m_inspector.get_thread_ref(unknonw_repaer_tid, false).get();
+	auto unknonw_repaer_tinfo = thread_manager->get_thread_ref(unknonw_repaer_tid, false).get();
 	ASSERT_TRUE(unknonw_repaer_tinfo);
 	ASSERT_TRUE(unknonw_repaer_tinfo->is_invalid());
 }
@@ -625,16 +633,18 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_children) {
 TEST_F(sinsp_with_test_input, THRD_TABLE_proc_apid_ppid) {
 	DEFAULT_TREE
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
 	// Thread p5_t1_ptid is generated by p4_t2_tid, which is a thread
 	// Retrieve it to check apid and ppid
-	auto p5_t1_info = m_inspector.get_thread_ref(p5_t1_tid, false).get();
+	auto p5_t1_info = thread_manager->get_thread_ref(p5_t1_tid, false).get();
 	ASSERT_EQ(p5_t1_info->m_ptid, p4_t2_tid);
 
-	auto p4_t1_info = m_inspector.get_thread_ref(p4_t1_tid, false).get();
+	auto p4_t1_info = thread_manager->get_thread_ref(p4_t1_tid, false).get();
 	auto p5_t1_parent_info = p5_t1_info->get_ancestor_process();
 	ASSERT_EQ(p4_t1_info->m_pid, p5_t1_parent_info->m_pid);
 
-	auto p3_t1_info = m_inspector.get_thread_ref(p3_t1_tid, false).get();
+	auto p3_t1_info = thread_manager->get_thread_ref(p3_t1_tid, false).get();
 	auto p5_t1_gparent_info = p5_t1_info->get_ancestor_process(2);
 	ASSERT_EQ(p3_t1_info->m_pid, p5_t1_gparent_info->m_pid);
 }
