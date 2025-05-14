@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libscap/scap_log.h>
 
+#include <stdarg.h>
 #include <stdio.h>
 
 #define scap_log(HANDLE, sev, ...) scap_log_impl(HANDLE->m_log_fn, sev, __VA_ARGS__)
