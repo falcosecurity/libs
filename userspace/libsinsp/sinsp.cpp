@@ -27,7 +27,6 @@ limitations under the License.
 #include <libsinsp/dns_manager.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_manager.h>
-#include <libsinsp/plugin_filtercheck.h>
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libscap/strl.h>
