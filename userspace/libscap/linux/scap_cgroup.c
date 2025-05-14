@@ -539,14 +539,15 @@ static int32_t scap_get_cgroup_mount_v2(struct mntent* de,
 static int32_t scap_get_cgroup_self_v2_cgroupns(struct mntent* de,
                                                 char* self,
                                                 const char* host_root,
-                                                char* pid_str) {
+                                                char* pid_str,
+                                                char* error) {
 	char my_cg[SCAP_MAX_PATH_SIZE];
 	size_t my_cg_len = snprintf(my_cg, sizeof(my_cg), "%s/proc/1/root%s", host_root, de->mnt_dir);
 	if(my_cg_len >= sizeof(my_cg)) {
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "cgroup mount path too long");
 	}
 	if(scap_find_my_cgroup(my_cg, pid_str) != SCAP_SUCCESS) {
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "failed to find cgroup for pid %s", pid_str);
 	}
 
 	snprintf(self, SCAP_MAX_PATH_SIZE, "%s", my_cg + my_cg_len);
@@ -661,7 +662,18 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi,
 					continue;
 				}
 				if(cgi->m_in_cgroupns) {
-					scap_get_cgroup_self_v2_cgroupns(de, cgi->m_self_v2, host_root, pid_str);
+					if(scap_get_cgroup_self_v2_cgroupns(de,
+					                                    cgi->m_self_v2,
+					                                    host_root,
+					                                    pid_str,
+					                                    error) != SCAP_SUCCESS) {
+						scap_log(cgi,
+						         FALCOSECURITY_LOG_SEV_WARNING,
+						         "failed to find cgroup v2 path bypassing namespace restrictions "
+						         "%s: %s",
+						         pid_str,
+						         error);
+					}
 				}
 				// If we found a cgroup v2 mountpoint with controllers, we can
 				// stop searching
