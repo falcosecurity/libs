@@ -34,7 +34,7 @@ sinsp_filter_check_static::sinsp_filter_check_static() {
 }
 
 sinsp_filter_check_static::sinsp_filter_check_static(
-        const std::unordered_map<std::string, std::string> filters) {
+        const std::map<std::string, std::string> filters) {
 	m_filters = filters;
 
 	m_info_fields.resize(m_filters.size());

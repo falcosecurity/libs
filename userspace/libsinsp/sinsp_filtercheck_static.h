@@ -20,7 +20,7 @@ limitations under the License.
 
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/version.h>
 #include <libsinsp/filter.h>
@@ -34,7 +34,7 @@ class sinsp_filter_check_static : public sinsp_filter_check {
 public:
 	sinsp_filter_check_static();
 
-	explicit sinsp_filter_check_static(const std::unordered_map<std::string, std::string> filters);
+	explicit sinsp_filter_check_static(const std::map<std::string, std::string> filters);
 
 	explicit sinsp_filter_check_static(const sinsp_filter_check_static& p);
 
@@ -49,6 +49,6 @@ protected:
 	                     bool sanitize_strings = true) override;
 
 private:
-	std::unordered_map<std::string, std::string> m_filters;
+	std::map<std::string, std::string> m_filters;
 	std::vector<filtercheck_field_info> m_info_fields;
 };
