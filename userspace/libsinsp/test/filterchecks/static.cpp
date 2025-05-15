@@ -27,7 +27,7 @@ static void ensure_filter_list_set(sinsp* inspector) {
 		pl_flist.reset(new sinsp_filter_check_list());
 		filter_factory.reset(new sinsp_filter_factory(inspector, *pl_flist.get()));
 
-		std::unordered_map<std::string, std::string> filters;
+		std::map<std::string, std::string> filters;
 		filters["example"] = "example_value";
 		pl_flist->add_filter_check(std::make_unique<sinsp_filter_check_static>(filters));
 	}
