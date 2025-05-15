@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck_static.h>
 
+static const std::string s_static_prefix = "static.";
+
 using namespace std;
 sinsp_filter_check_static::sinsp_filter_check_static() {
 	static const filter_check_info s_no_static_fields_info = {
@@ -44,7 +46,8 @@ sinsp_filter_check_static::sinsp_filter_check_static(
 		// Automatically suggest it for output print format
 		m_info_fields[i].m_flags = EPF_FORMAT_SUGGESTED;
 		m_info_fields[i].m_print_format = ppm_print_format::PF_NA;
-		m_info_fields[i].m_name = f.first;
+		// Prepend `static.` prefix
+		m_info_fields[i].m_name = s_static_prefix + f.first;
 		// No display name, no description
 
 		i++;
@@ -76,10 +79,11 @@ bool sinsp_filter_check_static::extract_nocache(sinsp_evt* evt,
 	auto type = sinsp_filter_check::get_field_info()->m_type;
 
 	const auto& fld_name = m_info->m_fields[m_field_id].m_name;
-	if(m_filters.find(fld_name) == m_filters.end()) {
+	const auto& stripped_name = fld_name.substr(s_static_prefix.length());
+	if(m_filters.find(stripped_name) == m_filters.end()) {
 		return false;
 	}
-	const auto& val = m_filters[fld_name];
+	const auto& val = m_filters[stripped_name];
 
 	if(offsets) {
 		offsets->clear();
