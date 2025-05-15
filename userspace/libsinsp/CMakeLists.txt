@@ -66,6 +66,7 @@ add_library(
 	sinsp_filtercheck_mesos.cpp
 	sinsp_filtercheck_rawstring.cpp
 	sinsp_filtercheck_reference.cpp
+	sinsp_filtercheck_static.cpp
 	sinsp_filtercheck_thread.cpp
 	sinsp_filtercheck_tracer.cpp
 	sinsp_filtercheck_user.cpp
