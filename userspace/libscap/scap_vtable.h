@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <libscap/engine_handle.h>
 #include <libscap/scap_open.h>
+#include <libscap/scap.h>
 
 #ifdef __cplusplus
 extern "C" {

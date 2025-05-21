@@ -42,42 +42,10 @@ limitations under the License.
 #include <libsinsp/user.h>
 #include <libsinsp/packed_data.h>
 
-sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
-                           const scap_machine_info *const &machine_info,
-                           const std::vector<std::string> &event_sources,
-                           const size_t syscall_event_source_idx,
-                           const sinsp_network_interfaces &network_interfaces,
-                           const bool &hostname_and_port_resolution_enabled,
-                           const sinsp_threadinfo_factory &threadinfo_factory,
-                           const sinsp_fdinfo_factory &fdinfo_factory,
-                           const std::shared_ptr<const sinsp_plugin> &input_plugin,
-                           const plugin_tables &plugin_tables,
-                           const bool &large_envs_enabled,
-                           const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
-                           const std::shared_ptr<sinsp_thread_manager> &thread_manager,
-                           const std::shared_ptr<sinsp_usergroup_manager> &usergroup_manager,
-                           const std::shared_ptr<sinsp_stats_v2> &sinsp_stats_v2,
-                           sinsp_observer *const &observer,
-                           sinsp_evt &tmp_evt,
-                           scap_platform *const &scap_platform):
-        m_sinsp_mode{sinsp_mode},
-        m_machine_info{machine_info},
-        m_event_sources{event_sources},
-        m_syscall_event_source_idx{syscall_event_source_idx},
-        m_network_interfaces{network_interfaces},
-        m_hostname_and_port_resolution_enabled{hostname_and_port_resolution_enabled},
-        m_threadinfo_factory{threadinfo_factory},
-        m_fdinfo_factory{fdinfo_factory},
-        m_input_plugin{input_plugin},
-        m_plugin_tables{plugin_tables},
-        m_large_envs_enabled{large_envs_enabled},
-        m_plugin_manager{plugin_manager},
-        m_thread_manager{thread_manager},
-        m_usergroup_manager{usergroup_manager},
-        m_sinsp_stats_v2{sinsp_stats_v2},
-        m_observer{observer},
-        m_tmp_evt{tmp_evt},
-        m_scap_platform{scap_platform} {}
+sinsp_parser::sinsp_parser(const std::shared_ptr<sinsp_parser_shared_params> &shared_params,
+                           sinsp_evt &tmp_evt_storage):
+        m_params{shared_params},
+        m_tmp_evt_storage{tmp_evt_storage} {}
 
 sinsp_parser::~sinsp_parser() {}
 
@@ -372,18 +340,19 @@ void sinsp_parser::set_event_source(sinsp_evt &evt) const {
 
 	if(plugin_id != 0) {
 		bool plugin_found = false;
-		const auto src_idx = m_plugin_manager->source_idx_by_plugin_id(plugin_id, plugin_found);
+		const auto src_idx =
+		        m_params->m_plugin_manager->source_idx_by_plugin_id(plugin_id, plugin_found);
 		if(!plugin_found) {
 			evt.set_source_idx(sinsp_no_event_source_idx);
 			evt.set_source_name(sinsp_no_event_source_name);
 		} else {
 			evt.set_source_idx(src_idx);
-			evt.set_source_name(m_event_sources[src_idx].c_str());
+			evt.set_source_name(m_params->m_event_sources[src_idx].c_str());
 		}
 	} else {
 		// Every other event falls under the "syscall" event source umbrella.
-		evt.set_source_idx(m_syscall_event_source_idx);
-		evt.set_source_name(m_syscall_event_source_idx != sinsp_no_event_source_idx
+		evt.set_source_idx(m_params->m_syscall_event_source_idx);
+		evt.set_source_name(m_params->m_syscall_event_source_idx != sinsp_no_event_source_idx
 		                            ? sinsp_syscall_event_source_name
 		                            : sinsp_no_event_source_name);
 	}
@@ -407,7 +376,7 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	if(const auto eflags = evt.get_info_flags(); eflags & EF_SKIPPARSERESET) {
 		sinsp_threadinfo *tinfo = nullptr;
 		if(etype == PPME_PROCINFO_E) {
-			tinfo = m_thread_manager->find_thread(evt.get_scap_evt()->tid, false).get();
+			tinfo = m_params->m_thread_manager->find_thread(evt.get_scap_evt()->tid, false).get();
 		}
 		evt.set_tinfo(tinfo);
 		return false;
@@ -425,8 +394,8 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	const auto tid = evt.get_scap_evt()->tid;
 	const bool query_os = can_query_os_for_thread_info(etype);
-	const auto tinfo = query_os ? m_thread_manager->get_thread(tid, false).get()
-	                            : m_thread_manager->find_thread(tid, false).get();
+	const auto tinfo = query_os ? m_params->m_thread_manager->get_thread(tid, false).get()
+	                            : m_params->m_thread_manager->find_thread(tid, false).get();
 
 	evt.set_tinfo(tinfo);
 
@@ -436,8 +405,8 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	if(!tinfo) {
 		if(is_clone_exit_event(etype) || is_fork_exit_event(etype)) {
-			if(m_sinsp_stats_v2 != nullptr) {
-				m_sinsp_stats_v2->m_n_failed_thread_lookups--;
+			if(m_params->m_sinsp_stats_v2 != nullptr) {
+				m_params->m_sinsp_stats_v2->m_n_failed_thread_lookups--;
 			}
 		}
 		return false;
@@ -511,8 +480,8 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 		return false;
 	}
 
-	if(evt.get_errorcode() != 0 && m_observer) {
-		m_observer->on_error(&evt);
+	if(evt.get_errorcode() != 0 && m_params->m_observer) {
+		m_params->m_observer->on_error(&evt);
 	}
 
 	return true;
@@ -522,8 +491,8 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 	if(evt.get_tinfo() == nullptr) {
 		// No thread in the table. We won't store this event, which mean that we could not be able
 		// to parse the corresponding exit event, and we'll have to drop the information it carries.
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_store_evts_drops++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_store_evts_drops++;
 		}
 		return;
 	}
@@ -551,8 +520,8 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 	memcpy(tinfo->get_last_event_data(), evt.get_scap_evt(), evt_len);
 	tinfo->set_lastevent_cpuid(evt.get_cpuid());
 
-	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_stored_evts++;
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->m_n_stored_evts++;
 	}
 }
 
@@ -573,8 +542,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 		// This happen especially at the beginning of trace files, where events
 		// can be truncated
 		//
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
 		}
 		return false;
 	}
@@ -593,8 +562,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	 */
 	if(exit_evt.get_type() == PPME_SYSCALL_EXECVE_19_X &&
 	   enter_evt.get_type() == PPME_SYSCALL_EXECVEAT_E) {
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_retrieved_evts++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_retrieved_evts++;
 		}
 		return true;
 	}
@@ -606,13 +575,13 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	if(enter_evt.get_type() != (exit_evt.get_type() - 1)) {
 		// ASSERT(false);
 		exit_evt.get_tinfo()->set_lastevent_data_validity(false);
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
 		}
 		return false;
 	}
-	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_retrieved_evts++;
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->m_n_retrieved_evts++;
 	}
 
 	return true;
@@ -648,7 +617,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * ===========================*/
 
 	/* Let's see if we have some info regarding the caller */
-	auto caller_tinfo = m_thread_manager->get_thread(caller_tid);
+	auto caller_tinfo = m_params->m_thread_manager->get_thread(caller_tid);
 
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
@@ -689,7 +658,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		}
 
 		/* Create thread groups and parenting relationships */
-		m_thread_manager->create_thread_dependencies(caller_tinfo);
+		m_params->m_thread_manager->create_thread_dependencies(caller_tinfo);
 	}
 
 	/* Update the evt.get_tinfo() of the caller. */
@@ -793,7 +762,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* See if the child is already there, if yes and it is valid we return immediately */
-	sinsp_threadinfo *existing_child_tinfo = m_thread_manager->find_thread(child_tid, true).get();
+	sinsp_threadinfo *existing_child_tinfo =
+	        m_params->m_thread_manager->find_thread(child_tid, true).get();
 	if(existing_child_tinfo != nullptr) {
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
@@ -803,7 +773,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		if(existing_child_tinfo->m_flags & PPM_CL_CLONE_INVERTED) {
 			return;
 		} else {
-			m_thread_manager->remove_thread(child_tid);
+			m_params->m_thread_manager->remove_thread(child_tid);
 			tid_collision = child_tid;
 		}
 	}
@@ -817,7 +787,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/* Allocate the new thread info and initialize it.
 	 * We avoid `malloc` here and get the item from a preallocated list.
 	 */
-	auto child_tinfo = m_threadinfo_factory.create();
+	auto child_tinfo = m_params->m_threadinfo_factory.create();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
@@ -955,12 +925,15 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	const auto gid = evt.get_param(17)->as<int32_t>();
 	child_tinfo->m_gid = gid;
 
-	m_usergroup_manager->add_user("",
-	                              child_tinfo->m_pid,
-	                              uid,
-	                              gid,
-	                              must_notify_thread_user_update());
-	m_usergroup_manager->add_group("", child_tinfo->m_pid, gid, must_notify_thread_group_update());
+	m_params->m_usergroup_manager->add_user("",
+	                                        child_tinfo->m_pid,
+	                                        uid,
+	                                        gid,
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group("",
+	                                         child_tinfo->m_pid,
+	                                         gid,
+	                                         must_notify_thread_group_update());
 
 	// Set cgroups
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -971,7 +944,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	child_tinfo->m_clone_ts = evt.get_ts();
 
 	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
-	child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
+	child_tinfo->m_pidns_init_start_ts = m_params->m_machine_info->boot_ts_epoch;
 
 	/* Take some further info from the caller */
 	if(valid_caller) {
@@ -1028,7 +1001,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 
 	/* Until we use the shared pointer we need it here, after we can move it at the end */
-	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), true);
+	auto new_child = m_params->m_thread_manager->add_thread(std::move(child_tinfo), true);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		return;
@@ -1037,7 +1010,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
@@ -1084,7 +1057,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		}
 
 		/* The info is too old, we remove it and create a new one */
-		m_thread_manager->remove_thread(child_tid);
+		m_params->m_thread_manager->remove_thread(child_tid);
 		tid_collision = child_tid;
 		evt.set_tinfo(nullptr);
 	}
@@ -1105,7 +1078,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* Allocate the new thread info and initialize it.
 	 * We must avoid `malloc` here and get the item from a preallocated list.
 	 */
-	auto child_tinfo = m_threadinfo_factory.create();
+	auto child_tinfo = m_params->m_threadinfo_factory.create();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
@@ -1172,7 +1145,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
 	}
 
-	auto lookup_tinfo = m_thread_manager->get_thread(lookup_tid);
+	auto lookup_tinfo = m_params->m_thread_manager->get_thread(lookup_tid);
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
 	 * `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
@@ -1206,7 +1179,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			lookup_tinfo->m_vtid = lookup_tinfo->m_vpid;
 
 			/* Create thread groups and parenting relationships */
-			m_thread_manager->create_thread_dependencies(lookup_tinfo);
+			m_params->m_thread_manager->create_thread_dependencies(lookup_tinfo);
 		}
 	}
 
@@ -1362,12 +1335,15 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	const auto gid = evt.get_param(17)->as<int32_t>();
 	child_tinfo->m_gid = gid;
 
-	m_usergroup_manager->add_user("",
-	                              child_tinfo->m_pid,
-	                              uid,
-	                              gid,
-	                              must_notify_thread_user_update());
-	m_usergroup_manager->add_group("", child_tinfo->m_pid, gid, must_notify_thread_group_update());
+	m_params->m_usergroup_manager->add_user("",
+	                                        child_tinfo->m_pid,
+	                                        uid,
+	                                        gid,
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group("",
+	                                         child_tinfo->m_pid,
+	                                         gid,
+	                                         must_notify_thread_group_update());
 
 	// Set cgroups
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -1383,17 +1359,17 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	   child_tinfo->m_tid != child_tinfo->m_vtid) {
 		if(const auto pidns_init_start_ts_param = evt.get_param(20);
 		   !pidns_init_start_ts_param->empty()) {
-			child_tinfo->m_pidns_init_start_ts =
-			        pidns_init_start_ts_param->as<uint64_t>() + m_machine_info->boot_ts_epoch;
+			child_tinfo->m_pidns_init_start_ts = pidns_init_start_ts_param->as<uint64_t>() +
+			                                     m_params->m_machine_info->boot_ts_epoch;
 		}
 	} else {
-		child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
+		child_tinfo->m_pidns_init_start_ts = m_params->m_machine_info->boot_ts_epoch;
 	}
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
 	/* Add the new thread to the table */
-	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), true);
+	auto new_child = m_params->m_thread_manager->add_thread(std::move(child_tinfo), true);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		evt.set_tinfo(nullptr);
@@ -1409,7 +1385,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
@@ -1518,9 +1494,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			evt.get_tinfo()->m_vpid = evt.get_tinfo()->m_pid;
 		}
 
-		auto tinfo = m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
+		auto tinfo = m_params->m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
 		/* Create thread groups and parenting relationships */
-		m_thread_manager->create_thread_dependencies(tinfo);
+		m_params->m_thread_manager->create_thread_dependencies(tinfo);
 	}
 
 	// Set the fdlimit.
@@ -1567,7 +1543,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		 */
 
 		// If we are not able to retrieve the enter event we can do nothing.
-		sinsp_evt *enter_evt = &m_tmp_evt;
+		sinsp_evt *enter_evt = &m_tmp_evt_storage;
 		if(retrieve_enter_event(*enter_evt, evt)) {
 			std::string fullpath;
 
@@ -1731,16 +1707,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->m_gid = gid_param->as<uint32_t>();
 	}
 
-	std::string container_id = m_plugin_tables.get_container_id(*evt.get_tinfo());
-	m_usergroup_manager->add_user(container_id,
-	                              evt.get_tinfo()->m_pid,
-	                              evt.get_tinfo()->m_uid,
-	                              evt.get_tinfo()->m_gid,
-	                              must_notify_thread_user_update());
-	m_usergroup_manager->add_group(container_id,
-	                               evt.get_tinfo()->m_pid,
-	                               evt.get_tinfo()->m_gid,
-	                               must_notify_thread_group_update());
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*evt.get_tinfo());
+	m_params->m_usergroup_manager->add_user(container_id,
+	                                        evt.get_tinfo()->m_pid,
+	                                        evt.get_tinfo()->m_uid,
+	                                        evt.get_tinfo()->m_gid,
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group(container_id,
+	                                         evt.get_tinfo()->m_pid,
+	                                         evt.get_tinfo()->m_gid,
+	                                         must_notify_thread_group_update());
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -1772,7 +1748,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_execve(evt); });
 	}
@@ -1804,7 +1780,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			   thread_ptr->m_tid == evt.get_tinfo()->m_tid) {
 				continue;
 			}
-			m_thread_manager->remove_thread(thread_ptr->m_tid);
+			m_params->m_thread_manager->remove_thread(thread_ptr->m_tid);
 		}
 	}
 }
@@ -1863,7 +1839,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 	std::string_view enter_evt_name;
 	uint32_t flags;
 	uint32_t enter_evt_flags;
-	sinsp_evt *enter_evt = &m_tmp_evt;
+	sinsp_evt *enter_evt = &m_tmp_evt_storage;
 	std::string sdir;
 	uint16_t etype = evt.get_type();
 	uint32_t dev = 0;
@@ -2033,7 +2009,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 		//
 		// Populate the new fdi
 		//
-		auto fdi = m_fdinfo_factory.create();
+		auto fdi = m_params->m_fdinfo_factory.create();
 		if(flags & PPM_O_DIRECTORY) {
 			fdi->m_type = SCAP_FD_DIRECTORY;
 		} else {
@@ -2059,8 +2035,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 		evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 	}
 
-	if(m_observer && !(flags & PPM_O_DIRECTORY)) {
-		m_observer->on_file_open(&evt, fullpath, flags);
+	if(m_params->m_observer && !(flags & PPM_O_DIRECTORY)) {
+		m_params->m_observer->on_file_open(&evt, fullpath, flags);
 	}
 }
 
@@ -2076,7 +2052,7 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 	//
 	// Populate the new fdi
 	//
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	memset(&(fdi->m_sockinfo.m_ipv4info), 0, sizeof(fdi->m_sockinfo.m_ipv4info));
 	fdi->m_type = SCAP_FD_UNKNOWN;
 	fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
@@ -2290,7 +2266,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	evt.get_fd_info()->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_bind(evt); });
 	}
@@ -2568,7 +2544,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 
 	// Extract enter event address parameter. This is used as a fallback in case the event tuple is
 	// empty or in case a TOCTOU attack is attempted.
-	auto &enter_evt = m_tmp_evt;
+	auto &enter_evt = m_tmp_evt_storage;
 	const bool enter_evt_retrieved = retrieve_enter_event(enter_evt, evt);
 	const uint8_t *enter_addr_data = nullptr;
 	if(enter_evt_retrieved) {
@@ -2591,10 +2567,10 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 		fill_client_socket_info_from_addr(evt, enter_addr_data);
 
 		// If there's a listener callback, and we're tracking connection status, invoke it.
-		if(m_track_connection_status && m_observer) {
+		if(m_track_connection_status && m_params->m_observer) {
 			// todo(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
 			//   accept const pointers/references.
-			m_observer->on_connect(&evt, const_cast<uint8_t *>(enter_addr_data));
+			m_params->m_observer->on_connect(&evt, const_cast<uint8_t *>(enter_addr_data));
 		}
 		return;
 	}
@@ -2617,10 +2593,10 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	                        tuple_data,
 	                        addr_data,
 	                        enter_addr_data,
-	                        m_hostname_and_port_resolution_enabled);
+	                        m_params->m_hostname_and_port_resolution_enabled);
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs([tuple_data](sinsp_observer *observer, sinsp_evt *evt) {
 			// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
 			//   accept const pointers/references.
@@ -2656,7 +2632,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	const auto family = *packed::generic_sockaddr::family(packed_data);
 
 	// Populate the fd info class.
-	std::shared_ptr fdi = m_fdinfo_factory.create();
+	std::shared_ptr fdi = m_params->m_fdinfo_factory.create();
 	if(family == PPM_AF_INET) {
 		const auto *const sip = packed::in_socktuple::sip(packed_data);
 		const auto *const sport = packed::in_socktuple::sport(packed_data);
@@ -2696,7 +2672,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	fdi->m_flags = 0;
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
 			        auto fd_info = evt->get_fd_info();
@@ -2732,8 +2708,8 @@ void sinsp_parser::erase_fd(erase_fd_params &params, sinsp_parser_verdict &verdi
 
 	// If there's a listener, invoke the callback.
 	// Note: we avoid postponing this to avoid the risk of use-after-free.
-	if(m_observer) {
-		m_observer->on_erase_fd(&params);
+	if(m_params->m_observer) {
+		m_params->m_observer->on_erase_fd(&params);
 	}
 }
 
@@ -2755,8 +2731,8 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 	// It is normal when a close fails that the fd lookup failed, so we revert the increment of
 	// m_n_failed_fd_lookups.
-	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_failed_fd_lookups--;
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->m_n_failed_fd_lookups--;
 	}
 }
 
@@ -2765,7 +2741,7 @@ void sinsp_parser::add_pipe(sinsp_evt &evt,
                             const uint64_t ino,
                             const uint32_t openflags) const {
 	// Populate the new fd info and add it to the table.
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	fdi->m_type = SCAP_FD_FIFO;
 	fdi->m_ino = ino;
 	fdi->m_openflags = openflags;
@@ -2790,7 +2766,7 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt &evt) const {
 	const auto source_address = evt.get_param(3)->as<uint64_t>();
 	const auto peer_address = evt.get_param(4)->as<uint64_t>();
 
-	auto fdi1 = m_fdinfo_factory.create();
+	auto fdi1 = m_params->m_fdinfo_factory.create();
 	fdi1->m_type = SCAP_FD_UNIX_SOCK;
 	fdi1->m_sockinfo.m_unixinfo.m_fields.m_source = source_address;
 	fdi1->m_sockinfo.m_unixinfo.m_fields.m_dest = peer_address;
@@ -3079,7 +3055,7 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 	//
 	// If this is an incomplete tuple, patch it using interface info
 	//
-	m_network_interfaces.update_fd(*evt.get_fd_info());
+	m_params->m_network_interfaces.update_fd(*evt.get_fd_info());
 
 	return true;
 }
@@ -3129,7 +3105,7 @@ struct ppm_cmsghdr {
 	        ((char *)(cmsg)) + offsetof(ppm_cmsghdr, field), \
 	        sizeof((cmsg)->field)))
 
-#define PPM_CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t) ~(sizeof(size_t) - 1))
+#define PPM_CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t)~(sizeof(size_t) - 1))
 
 // Given a length, return the additional padding necessary such that
 // `len + __PPM_CMSG_PADDING(len) == PPM_CMSG_ALIGN(len)`.
@@ -3221,11 +3197,11 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
 		}
 		scap_threadinfo scap_tinfo{};
 		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
-		m_thread_manager->thread_to_scap(*evt.get_tinfo(), &scap_tinfo);
+		m_params->m_thread_manager->thread_to_scap(*evt.get_tinfo(), &scap_tinfo);
 		int fds[SCM_MAX_FD];
 #undef SCM_MAX_FD
 		memcpy(&fds, PPM_CMSG_DATA(cmsg), data_size);
-		process_recvmsg_ancillary_data_fds(m_scap_platform, fds, fds_len, scap_tinfo);
+		process_recvmsg_ancillary_data_fds(m_params->m_scap_platform, fds, fds_len, scap_tinfo);
 	}
 }
 #endif  // _WIN32
@@ -3255,7 +3231,7 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
 			fdinfo.set_socket_failed();
 			// If there's a listener, add a callback to later invoke it.
-			if(!m_observer) {
+			if(!m_params->m_observer) {
 				return;
 			}
 			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
@@ -3304,7 +3280,7 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 				                             fd_type,
 				                             str_storage_ptr,
 				                             str_storage_len,
-				                             m_hostname_and_port_resolution_enabled);
+				                             m_params->m_hostname_and_port_resolution_enabled);
 				fdinfo.m_name = str_storage_ptr;
 			} else {
 				const char *parstr;
@@ -3314,7 +3290,7 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		const sinsp_evt_param *data_param;
 		if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
 		   etype == PPME_SOCKET_RECVMSG_X) {
@@ -3391,7 +3367,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
 			fdinfo.set_socket_failed();
 			// If there's a listener, add a callback to later invoke it.
-			if(!m_observer) {
+			if(!m_params->m_observer) {
 				return;
 			}
 			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
@@ -3436,7 +3412,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 				                             fd_type,
 				                             str_storage_ptr,
 				                             str_storage_len,
-				                             m_hostname_and_port_resolution_enabled);
+				                             m_params->m_hostname_and_port_resolution_enabled);
 
 				fdinfo.m_name = str_storage_ptr;
 			} else {
@@ -3448,7 +3424,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		const sinsp_evt_param *data_param;
 		if(etype == PPME_SOCKET_SENDMMSG_X) {
 			data_param = evt.get_param(3);
@@ -3481,7 +3457,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 	// If the operation was successful and there's a listener, add a callback to later
 	// invoke it.
 	const int64_t retval = evt.get_syscall_return_value();
-	if(retval < 0 || !m_observer) {
+	if(retval < 0 || !m_params->m_observer) {
 		return;
 	}
 
@@ -3504,7 +3480,7 @@ void sinsp_parser::parse_eventfd_eventfd2_exit(sinsp_evt &evt) const {
 	}
 
 	// Populate the new fd info.
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	fdi->m_type = SCAP_FD_EVENT;
 
 	if(evt.get_type() == PPME_SYSCALL_EVENTFD2_X) {
@@ -3572,7 +3548,7 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_socket_shutdown(evt);
 		});
@@ -3645,7 +3621,7 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 	}
 
 	// Populate the new fd info.
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	fdi->m_type = type;
 
 	if(evt.get_type() == PPME_SYSCALL_INOTIFY_INIT1_X) {
@@ -3708,7 +3684,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 		tid = evt.get_tid();
 	}
 
-	auto *const ptinfo = m_thread_manager->get_thread(tid, true).get();
+	auto *const ptinfo = m_params->m_thread_manager->get_thread(tid, true).get();
 	// If the thread info is invalid we cannot recover the main thread because we don't even have
 	// the `pid` of the thread.
 	if(ptinfo == nullptr || ptinfo->is_invalid()) {
@@ -3796,12 +3772,12 @@ void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const sinsp_evt_param &eu
 	}
 
 	ti->m_uid = euid_param.as<uint32_t>();
-	std::string container_id = m_plugin_tables.get_container_id(*ti);
-	m_usergroup_manager->add_user(container_id,
-	                              ti->m_pid,
-	                              ti->m_uid,
-	                              ti->m_gid,
-	                              must_notify_thread_user_update());
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*ti);
+	m_params->m_usergroup_manager->add_user(container_id,
+	                                        ti->m_pid,
+	                                        ti->m_uid,
+	                                        ti->m_gid,
+	                                        must_notify_thread_user_update());
 }
 
 void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &egid_param) const {
@@ -3815,11 +3791,11 @@ void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &e
 	}
 
 	ti->m_gid = egid_param.as<uint32_t>();
-	std::string container_id = m_plugin_tables.get_container_id(*ti);
-	m_usergroup_manager->add_group(container_id,
-	                               ti->m_pid,
-	                               ti->m_gid,
-	                               must_notify_thread_group_update());
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*ti);
+	m_params->m_usergroup_manager->add_group(container_id,
+	                                         ti->m_pid,
+	                                         ti->m_gid,
+	                                         must_notify_thread_group_update());
 }
 
 void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
@@ -3879,9 +3855,9 @@ void sinsp_parser::parse_user_evt(sinsp_evt &evt) const {
 		const auto name = evt.get_param(2)->as<std::string_view>();
 		const auto home = evt.get_param(3)->as<std::string_view>();
 		const auto shell = evt.get_param(4)->as<std::string_view>();
-		m_usergroup_manager->add_user(container_id, -1, uid, gid, name, home, shell);
+		m_params->m_usergroup_manager->add_user(container_id, -1, uid, gid, name, home, shell);
 	} else {
-		m_usergroup_manager->rm_user(container_id, uid);
+		m_params->m_usergroup_manager->rm_user(container_id, uid);
 	}
 }
 
@@ -3891,14 +3867,14 @@ void sinsp_parser::parse_group_evt(sinsp_evt &evt) const {
 	const auto container_id = evt.get_param(2)->as<std::string_view>();
 
 	if(evt.get_scap_evt()->type == PPME_GROUP_ADDED_E) {
-		m_usergroup_manager->add_group(container_id.data(), -1, gid, name);
+		m_params->m_usergroup_manager->add_group(container_id.data(), -1, gid, name);
 	} else {
-		m_usergroup_manager->rm_group(container_id.data(), gid);
+		m_params->m_usergroup_manager->rm_group(container_id.data(), gid);
 	}
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt &evt) const {
-	if(m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) {
+	if(m_params->m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) {
 		throw sinsp_exception("CPU " + evt.get_param_value_str("cpu") +
 		                      " configuration change detected. Aborting.");
 	}
@@ -3976,7 +3952,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt &evt, sinsp_parser_verdict &v
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_socket_status_changed(evt);
 		});
@@ -4028,7 +4004,7 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type ty
 	}
 
 	const auto fd = evt.get_syscall_return_value();
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	if(fd >= 0) {
 		fdi->m_type = type;
 		const auto name = evt.get_param(1)->as<std::string_view>();
@@ -4045,7 +4021,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt &evt) const {
 	}
 
 	const auto fd = evt.get_syscall_return_value();
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	if(fd >= 0) {
 		// note: approximating equivalent filename as in:
 		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
@@ -4075,7 +4051,7 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	const auto pidfd_tinfo = m_thread_manager->find_thread(pidfd_fdinfo->m_pid, true);
+	const auto pidfd_tinfo = m_params->m_thread_manager->find_thread(pidfd_fdinfo->m_pid, true);
 	if(pidfd_tinfo == nullptr) {
 		return;
 	}
