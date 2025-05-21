@@ -17,9 +17,6 @@ limitations under the License.
 #include <stdint.h>
 
 #define MODERN_BPF_ENGINE "modern_bpf"
-// TODO: remove DEFAULT_CPU_FOR_EACH_BUFFER once sinsp is updated to support the new buffers_num
-//   logic.
-#define DEFAULT_CPU_FOR_EACH_BUFFER 1
 #define DEFAULT_BUFFERS_NUM 1
 
 #ifdef __cplusplus
