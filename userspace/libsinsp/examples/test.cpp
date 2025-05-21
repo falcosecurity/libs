@@ -54,6 +54,8 @@ using namespace std;
 void raw_dump(sinsp&, sinsp_evt* ev);
 void formatted_dump(sinsp&, sinsp_evt* ev);
 
+#define BUFFERS_NUM_OPTION "--buffers_num"
+
 libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector);
 std::function<void(sinsp&, sinsp_evt*)> dump = formatted_dump;
 static bool g_interrupted = false;
@@ -69,7 +71,7 @@ static string engine_string;
 static string filter_string = "";
 static string file_path = "";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
-static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
+static double buffers_num = DEFAULT_BUFFERS_NUM;
 static bool all_cpus = false;
 static uint64_t max_events = UINT64_MAX;
 static std::shared_ptr<sinsp_plugin> plugin;
@@ -349,10 +351,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		("d,buffer_dim",
 			"Dimension in bytes that every buffer will have.",
 			cxxopts::value<unsigned long>())
-		("c,cpus-for-each-buffer",
-			"(modern eBPF probe only) Allocate a ring buffer every <num> CPU(s) "
-			"(default: 1).",
-			cxxopts::value<uint16_t>())
+		("c,buffers-num",
+		"(modern eBPF probe only) Determines the number of allocated ring buffers. The behaviour depends on its value:\n"
+										 " - if `<num> > 1`, it is the number of requested ring buffers;\n
+										 " - if `<num> > 0 && <num> <= 1`, a ring buffer is allocated for every `1 / <num>`;\n
+										 " - if `<num> == 0`, it means that 1 ring buffer is shared among all available CPUs.\n
+										 " (default: 1).",
+			cxxopts::value<double>())
 		("A,all-cpus",
 			"(modern eBPF probe only) Allocate ring buffers for all available CPUs "
 			"(default: allocate ring buffers for online CPU(s) only).")
@@ -463,9 +468,32 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			buffer_bytes_dim = result["buffer_dim"].as<unsigned long>();
 		}
 
-		if(result.count("cpus-for-each-buffer")) {
-			const auto value = result["cpus-for-each-buffer"].as<uint16_t>();
-			cpus_for_each_buffer = value;
+		if(result.count("buffers-num")) {
+			const auto bufs_num = result["buffers-num"].as<double>();
+			if(bufs_num < 0) {
+				std::cerr << "Invalid " << BUFFERS_NUM_OPTION
+				          << " option value. Must be greater than or equal to 0" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			if(bufs_num > 0 && bufs_num <= 1) {
+				if(const auto cpus_for_each_buffer = static_cast<double>(1) / bufs_num;
+				   cpus_for_each_buffer !=
+				   static_cast<double>(static_cast<uint16_t>(cpus_for_each_buffer))) {
+					std::cerr << "Invalid " << BUFFERS_NUM_OPTION
+					          << " option value. 1 / <num> must be a positive integer" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			} else if(bufs_num !=
+			          static_cast<double>(static_cast<uint16_t>(bufs_num))) {  // bufs_num > 1
+				std::cerr << "Invalid " << BUFFERS_NUM_OPTION
+				          << " option value. If the value specified is above 1, it must be a "
+				             "positive integer"
+				          << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			buffers_num = bufs_num;
 		}
 
 		if(result.count("all-cpus")) {
@@ -595,7 +623,7 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
-		inspector.open_modern_bpf(buffer_bytes_dim, cpus_for_each_buffer, !all_cpus, ppm_sc);
+		inspector.open_modern_bpf(buffer_bytes_dim, buffers_num, !all_cpus, ppm_sc);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
