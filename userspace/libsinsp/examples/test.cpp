@@ -147,27 +147,27 @@ static void select_engine(const char* select) {
 #ifndef _WIN32
 // Parse CLI options.
 void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
-	static struct option long_options[] = {{"help", no_argument, 0, 'h'},
-	                                       {"filter", required_argument, 0, 'f'},
-	                                       {"json", no_argument, 0, 'j'},
-	                                       {"all-threads", no_argument, 0, 'a'},
-	                                       {"bpf", required_argument, 0, 'b'},
-	                                       {"modern_bpf", no_argument, 0, 'm'},
-	                                       {"kmod", no_argument, 0, 'k'},
-	                                       {"scap_file", required_argument, 0, 's'},
-	                                       {"plugin", required_argument, 0, 'p'},
-	                                       {"buffer_dim", required_argument, 0, 'd'},
-	                                       {"output-fields", required_argument, 0, 'o'},
-	                                       {"exclude-users", no_argument, 0, 'E'},
-	                                       {"num-events", required_argument, 0, 'n'},
-	                                       {"ppm-sc-modifies-state", no_argument, 0, 'z'},
-	                                       {"ppm-sc-repair-state", no_argument, 0, 'x'},
-	                                       {"remove-io-sc-state", no_argument, 0, 'q'},
-	                                       {"enable-glogger", no_argument, 0, 'g'},
-	                                       {"raw", no_argument, 0, 'r'},
-	                                       {"gvisor", optional_argument, 0, 'G'},
-	                                       {"perftest", no_argument, 0, 't'},
-	                                       {0, 0, 0, 0}};
+	static struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
+	                                       {"filter", required_argument, nullptr, 'f'},
+	                                       {"json", no_argument, nullptr, 'j'},
+	                                       {"all-threads", no_argument, nullptr, 'a'},
+	                                       {"bpf", required_argument, nullptr, 'b'},
+	                                       {"modern_bpf", no_argument, nullptr, 'm'},
+	                                       {"kmod", no_argument, nullptr, 'k'},
+	                                       {"scap_file", required_argument, nullptr, 's'},
+	                                       {"plugin", required_argument, nullptr, 'p'},
+	                                       {"buffer_dim", required_argument, nullptr, 'd'},
+	                                       {"output-fields", required_argument, nullptr, 'o'},
+	                                       {"exclude-users", no_argument, nullptr, 'E'},
+	                                       {"num-events", required_argument, nullptr, 'n'},
+	                                       {"ppm-sc-modifies-state", no_argument, nullptr, 'z'},
+	                                       {"ppm-sc-repair-state", no_argument, nullptr, 'x'},
+	                                       {"remove-io-sc-state", no_argument, nullptr, 'q'},
+	                                       {"enable-glogger", no_argument, nullptr, 'g'},
+	                                       {"raw", no_argument, nullptr, 'r'},
+	                                       {"gvisor", optional_argument, nullptr, 'G'},
+	                                       {"perftest", no_argument, nullptr, 't'},
+	                                       {nullptr, 0, nullptr, 0}};
 
 	bool format_set = false;
 	int op;
@@ -246,7 +246,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			break;
 		}
 		case 'd':
-			buffer_bytes_dim = strtoul(optarg, NULL, 10);
+			buffer_bytes_dim = strtoul(optarg, nullptr, 10);
 			break;
 		case 'o':
 			default_output = optarg;
@@ -404,7 +404,7 @@ static bool insert_module() {
 		return true;
 
 	char* driver_path = getenv("KERNEL_MODULE");
-	if(driver_path == NULL || *driver_path == '\0') {
+	if(driver_path == nullptr || *driver_path == '\0') {
 		// We don't have a path set, assuming the kernel module is already there
 		return true;
 	}
