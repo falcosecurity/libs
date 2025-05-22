@@ -68,6 +68,8 @@ static string file_path = "";
 static string bpf_path = "";
 static string gvisor_config_path = "/etc/docker/runsc_falco_config.json";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
+static bool all_cpus = false;
 static uint64_t max_events = UINT64_MAX;
 static std::shared_ptr<sinsp_plugin> plugin;
 static std::string open_params;  // for source plugins, its open params
@@ -115,13 +117,15 @@ Options:
   -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
   -j, --json                                 Use JSON as the output format.
   -a, --all-threads                          Output information about all threads, not just the main one.
-  -b <path>, --bpf <path>                    BPF probe.
-  -m, --modern_bpf                           modern BPF probe.
+  -b <path>, --bpf <path>                    eBPF probe.
+  -m, --modern_bpf                           Modern eBPF probe.
   -k, --kmod                                 Kernel module
   -G <config_path>, --gvisor <config_path>   Gvisor engine
   -s <path>, --scap_file <path>              Scap file
   -p <path>, --plugin <path>                 Plugin. Path can follow the pattern "filepath.so|init_cfg|open_params".
-  -d <dim>, --buffer_dim <dim>               Dimension in bytes that every per-CPU buffer will have.
+  -d <dim>, --buffer_dim <dim>               Dimension in bytes that every buffer will have.
+  -c <num>, --cpus-for-each-buffer <num>     (modern eBPF probe only) Allocate a ring buffer every <num> CPU(s) (default: 1).
+  -A, --all-cpus                             (modern eBPF probe only) Allocate ring buffers for all available CPUs (default: allocate ring buffers for online CPU(s) only).
   -o <fields>, --output-fields <fields>      Output fields string (see <filter> for supported display fields) that overwrites default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
   -E, --exclude-users                        Don't create the user/group tables
   -n, --num-events                           Number of events to be retrieved (no limit by default)
@@ -147,34 +151,37 @@ static void select_engine(const char* select) {
 #ifndef _WIN32
 // Parse CLI options.
 void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
-	static struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
-	                                       {"filter", required_argument, nullptr, 'f'},
-	                                       {"json", no_argument, nullptr, 'j'},
-	                                       {"all-threads", no_argument, nullptr, 'a'},
-	                                       {"bpf", required_argument, nullptr, 'b'},
-	                                       {"modern_bpf", no_argument, nullptr, 'm'},
-	                                       {"kmod", no_argument, nullptr, 'k'},
-	                                       {"scap_file", required_argument, nullptr, 's'},
-	                                       {"plugin", required_argument, nullptr, 'p'},
-	                                       {"buffer_dim", required_argument, nullptr, 'd'},
-	                                       {"output-fields", required_argument, nullptr, 'o'},
-	                                       {"exclude-users", no_argument, nullptr, 'E'},
-	                                       {"num-events", required_argument, nullptr, 'n'},
-	                                       {"ppm-sc-modifies-state", no_argument, nullptr, 'z'},
-	                                       {"ppm-sc-repair-state", no_argument, nullptr, 'x'},
-	                                       {"remove-io-sc-state", no_argument, nullptr, 'q'},
-	                                       {"enable-glogger", no_argument, nullptr, 'g'},
-	                                       {"raw", no_argument, nullptr, 'r'},
-	                                       {"gvisor", optional_argument, nullptr, 'G'},
-	                                       {"perftest", no_argument, nullptr, 't'},
-	                                       {nullptr, 0, nullptr, 0}};
+	static struct option long_options[] = {
+	        {"help", no_argument, nullptr, 'h'},
+	        {"filter", required_argument, nullptr, 'f'},
+	        {"json", no_argument, nullptr, 'j'},
+	        {"all-threads", no_argument, nullptr, 'a'},
+	        {"bpf", required_argument, nullptr, 'b'},
+	        {"modern_bpf", no_argument, nullptr, 'm'},
+	        {"kmod", no_argument, nullptr, 'k'},
+	        {"scap_file", required_argument, nullptr, 's'},
+	        {"plugin", required_argument, nullptr, 'p'},
+	        {"buffer_dim", required_argument, nullptr, 'd'},
+	        {"cpus-for-each-buffer", required_argument, nullptr, 'c'},
+	        {"all-cpus", no_argument, nullptr, 'A'},
+	        {"output-fields", required_argument, nullptr, 'o'},
+	        {"exclude-users", no_argument, nullptr, 'E'},
+	        {"num-events", required_argument, nullptr, 'n'},
+	        {"ppm-sc-modifies-state", no_argument, nullptr, 'z'},
+	        {"ppm-sc-repair-state", no_argument, nullptr, 'x'},
+	        {"remove-io-sc-state", no_argument, nullptr, 'q'},
+	        {"enable-glogger", no_argument, nullptr, 'g'},
+	        {"raw", no_argument, nullptr, 'r'},
+	        {"gvisor", optional_argument, nullptr, 'G'},
+	        {"perftest", no_argument, nullptr, 't'},
+	        {nullptr, 0, nullptr, 0}};
 
 	bool format_set = false;
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc,
 	                        argv,
-	                        "hf:jab:mks:p:d:o:En:zxqgrtG::",
+	                        "hf:jab:mks:p:d:c:Ao:En:zxqgrtG::",
 	                        long_options,
 	                        &long_index)) != -1) {
 		switch(op) {
@@ -247,6 +254,19 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		}
 		case 'd':
 			buffer_bytes_dim = strtoul(optarg, nullptr, 10);
+			break;
+		case 'c': {
+			const auto value = strtoul(optarg, nullptr, 10);
+			if(value > UINT16_MAX) {
+				std::cerr << "The number of CPUs for each ring buffer cannot be greater than "
+				          << UINT16_MAX << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			cpus_for_each_buffer = static_cast<uint16_t>(value);
+			break;
+		}
+		case 'A':
+			all_cpus = true;
 			break;
 		case 'o':
 			default_output = optarg;
@@ -364,7 +384,7 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
-		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true, ppm_sc);
+		inspector.open_modern_bpf(buffer_bytes_dim, cpus_for_each_buffer, !all_cpus, ppm_sc);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
