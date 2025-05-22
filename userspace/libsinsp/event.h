@@ -42,6 +42,8 @@ class sinsp_evt;
 // Event arguments
 ///////////////////////////////////////////////////////////////////////////////
 
+#define MAX_EVENTINFO_SIZE 1024
+
 /** @defgroup event Event manipulation
  * Classes to manipulate events, extract their content and convert them into strings.
  *  @{
@@ -52,9 +54,11 @@ class sinsp_evt;
 */
 class SINSP_PUBLIC sinsp_evttables {
 public:
-	const struct ppm_event_info*
-	        m_event_info;  ///< List of events supported by the capture and analysis subsystems.
-	                       ///< Each entry fully documents an event and its parameters.
+	struct ppm_event_info
+	        m_event_info[MAX_EVENTINFO_SIZE];  ///< List of events supported by the capture and
+	                                           ///< analysis subsystems. Each entry fully documents
+	                                           ///< an event and its parameters.
+	size_t m_event_size;                       ///< Number of events in the event table.
 };
 
 template<class T>
