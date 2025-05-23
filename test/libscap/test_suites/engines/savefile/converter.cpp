@@ -18,13 +18,13 @@ limitations under the License.
 TEST_F(convert_event_test, conversion_not_needed) {
 	uint64_t ts = 12;
 	int64_t tid = 25;
-	const char data[] = "hello world";
+	constexpr char data[] = "hello";
 
 	auto evt = create_safe_scap_event(ts,
 	                                  tid,
 	                                  PPME_CONTAINER_JSON_2_E,
 	                                  1,
-	                                  scap_const_sized_buffer{&data, strlen(data) + 1});
+	                                  scap_const_sized_buffer{data, sizeof(data)});
 	assert_single_conversion_failure(evt);
 }
 
@@ -49,7 +49,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_READ_X_to_4_params_no_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t read_buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char read_buf[] = "hello";
 
 	// Defaulted to 0
 	int64_t fd = 0;
@@ -78,7 +78,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_READ_X_to_4_params_with_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t read_buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char read_buf[] = "hello";
 	int64_t fd = 25;
 	uint32_t size = 36;
 
@@ -127,7 +127,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_no_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t read_buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char read_buf[] = "hello";
 
 	// Defaulted to 0
 	int64_t fd = 0;
@@ -158,7 +158,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_with_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t read_buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char read_buf[] = "hello";
 	int64_t fd = 25;
 	uint32_t size = 36;
 	uint64_t pos = 7;
@@ -379,7 +379,7 @@ TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_X_to_PPME_SOCKET_ACCEPT_5_X) {
 	int64_t tid = 25;
 
 	int64_t fd = 25;
-	char tuple[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char tuple[] = "tuple";
 	uint8_t queuepct = 3;
 
 	// Defaulted to 0
@@ -435,7 +435,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_WRITE_X_to_4_params_no_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char buf[] = "hello";
 
 	// Defaulted to 0
 	int64_t fd = 0;
@@ -464,7 +464,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_WRITE_X_to_4_params_with_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char buf[] = "hello";
 	int64_t fd = 25;
 	uint32_t size = 36;
 
@@ -513,7 +513,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_X_to_4_params_no_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char buf[] = "hello";
 
 	// Defaulted to 0
 	int64_t fd = 0;
@@ -544,7 +544,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_X_to_4_params_with_enter) {
 	int64_t tid = 25;
 
 	int64_t res = 89;
-	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+	constexpr char buf[] = "hello";
 	int64_t fd = 25;
 	uint32_t size = 36;
 	uint64_t pos = 7;
@@ -696,4 +696,174 @@ TEST_F(convert_event_test, PPME_SOCKET_RECV_X_to_5_params_with_enter) {
 	                                                        fd,
 	                                                        size,
 	                                                        scap_const_sized_buffer{nullptr, 0}));
+}
+
+////////////////////////////
+// SEND
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SEND_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	uint32_t size = 5;
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SEND_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SEND_X_to_5_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	constexpr char data[] = "hello";
+
+	// Defaulted
+	int64_t fd = 0;
+	uint32_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SEND_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, sizeof(data)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SEND_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, sizeof(data)},
+	                               fd,
+	                               size,
+	                               scap_const_sized_buffer{nullptr, 0}));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SEND_X_to_5_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t fd = 25;
+	constexpr char data[] = "hello";
+	constexpr int32_t size = sizeof(data);
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SEND_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SEND_X,
+	                                                        2,
+	                                                        res,
+	                                                        scap_const_sized_buffer{data, size}),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SEND_X,
+	                                                        5,
+	                                                        res,
+	                                                        scap_const_sized_buffer{data, size},
+	                                                        fd,
+	                                                        size,
+	                                                        scap_const_sized_buffer{nullptr, 0}));
+}
+
+////////////////////////////
+// SENDTO
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDTO_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	uint32_t size = 5;
+	constexpr char tuple[] = "tuple";
+	auto evt = create_safe_scap_event(ts,
+	                                  tid,
+	                                  PPME_SOCKET_SENDTO_E,
+	                                  3,
+	                                  fd,
+	                                  size,
+	                                  scap_const_sized_buffer{tuple, sizeof(tuple)});
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDTO_X_to_5_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+
+	// Defaulted
+	int64_t fd = 0;
+	uint32_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDTO_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDTO_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd,
+	                               size,
+	                               scap_const_sized_buffer{nullptr, 0}));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDTO_X_to_5_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t fd = 25;
+	constexpr char data[] = "hello";
+	constexpr int32_t size = sizeof(data);
+	char tuple[] = "tuple";
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts,
+	                                  tid,
+	                                  PPME_SOCKET_SENDTO_E,
+	                                  3,
+	                                  fd,
+	                                  size,
+	                                  scap_const_sized_buffer{tuple, sizeof(tuple)});
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDTO_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDTO_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, size},
+	                               fd,
+	                               size,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)}));
 }
