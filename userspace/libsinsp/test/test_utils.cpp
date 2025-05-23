@@ -247,4 +247,18 @@ std::vector<uint8_t> pack_unix_socktuple(uint64_t scr_pointer,
 }
 #endif  //_WIN32 __EMSCRIPTEN__
 
+std::vector<uint8_t> pack_ptrace_pair(uint8_t type, uint64_t addr) {
+	std::vector<uint8_t> res;
+
+	// Type
+	res.push_back(type);
+
+	// Addr
+	for(size_t i = 0; i < sizeof(addr); ++i) {
+		res.push_back(addr & 0xFF);
+		addr >>= 8;
+	}
+	return res;
+}
+
 }  // namespace test_utils
