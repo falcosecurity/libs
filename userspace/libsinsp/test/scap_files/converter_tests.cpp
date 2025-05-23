@@ -21,7 +21,7 @@ limitations under the License.
 
 // Use `sudo sysdig -r <scap-file> -S -q` to check the number of events in the scap file.
 // When you find a specific event to assert use
-// `sudo sysdig -r <> -d "evt.num =<>" -p "ts=%evt.rawtime,tid=%thread.tid,args=%evt.arg.args"`
+// `sudo sysdig -r <> -d "evt.num=<>" -p "ts=%evt.rawtime, tid=%thread.tid, args=%evt.args"`
 
 ////////////////////////////
 // READ
@@ -289,3 +289,58 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with RECV events. Add it if we face a failure.
+
+////////////////////////////
+// SEND
+////////////////////////////
+
+// We don't have scap-files with SEND events. Add it if we face a failure.
+
+////////////////////////////
+// SENDTO
+////////////////////////////
+
+TEST_F(scap_file_test, sendto_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SENDTO_E, 162);
+}
+
+TEST_F(scap_file_test, sendto_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SENDTO_X, 162);
+}
+
+TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `857230` is the following:
+	// - type=PPME_SOCKET_SENDTO_X
+	// - ts=1687966733172651252
+	// - tid=114093
+	// - args=res=17 data="\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0"
+	//
+	// And its corresponding enter event `857231` is the following:
+	// - type=PPME_SOCKET_SENDTO_E
+	// - ts=1687966733172634128
+	// - tid=114093
+	// - args=fd=22(<n>) size=17 tuple=NULL
+	//
+	// Let's see the new PPME_SOCKET_SENDTO_X event!
+
+	uint64_t ts = 1687966733172651252;
+	int64_t tid = 114093;
+	int64_t res = 17;
+
+	constexpr char data[] = "\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0";
+	constexpr uint32_t size = sizeof(data);
+	int64_t fd = 22;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SOCKET_SENDTO_X,
+	                                             5,
+	                                             res,
+	                                             scap_const_sized_buffer{data, size},
+	                                             fd,
+	                                             size,
+	                                             scap_const_sized_buffer{nullptr, 0}));
+}

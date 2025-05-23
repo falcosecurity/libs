@@ -35,12 +35,23 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_by_snaplen) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv4_tcp_message_truncated_by_snaplen) {
@@ -75,9 +86,20 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_truncated_by_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port) {
@@ -121,12 +143,22 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
 
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
@@ -166,12 +198,23 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  std::to_string(PPM_PORT_DNS).c_str());
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv6_tcp_message_not_truncated_fullcapture_port) {
@@ -218,9 +261,20 @@ TEST(SyscallExit, sendtoX_ipv6_tcp_message_not_truncated_fullcapture_port) {
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
 
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL_sockaddr) {
@@ -263,12 +317,23 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL_s
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 /*=============================== UDP ===========================*/
@@ -304,9 +369,20 @@ TEST(SyscallExit, sendtoX_ipv4_udp_message_not_truncated_by_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
 
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv4_udp_message_truncated_by_snaplen) {
@@ -341,9 +417,20 @@ TEST(SyscallExit, sendtoX_ipv4_udp_message_truncated_by_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_ipv4_udp_message_not_truncated_fullcapture_port) {
@@ -389,9 +476,20 @@ TEST(SyscallExit, sendtoX_ipv4_udp_message_not_truncated_fullcapture_port) {
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
 
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 // We cannot call a sendto without a destination address in UDP. Errno: 89 err_message: Destination
@@ -443,7 +541,7 @@ TEST(SyscallExit, sendtoX_fail) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendtoX_empty) {
@@ -485,12 +583,12 @@ TEST(SyscallExit, sendtoX_empty) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(2);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 #endif /* __NR_sendmsg */

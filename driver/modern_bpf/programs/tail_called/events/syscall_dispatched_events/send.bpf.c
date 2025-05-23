@@ -29,8 +29,8 @@ int BPF_PROG(send_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)args[0];
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+	int64_t fd = (int32_t)args[0];
+	ringbuf__store_s64(&ringbuf, fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	uint32_t size = (uint32_t)args[2];
@@ -62,16 +62,23 @@ int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3] = {0};
-	extract__network_args(args, 3, regs);
+	unsigned long args[5] = {0};
+	extract__network_args(args, 5, regs);
 
 	dynamic_snaplen_args snaplen_args = {
 	        .only_port_range = false,
 	        .evt_type = PPME_SOCKET_SEND_X,
 	};
-	int64_t bytes_to_read = ret > 0 ? ret : args[2];
 	uint16_t snaplen = maps__get_snaplen();
 	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
+
+	/* Extract size syscall parameter */
+	uint32_t size = (uint32_t)args[2];
+
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user */
+	int64_t bytes_to_read = ret > 0 ? ret : (int64_t)size;
+
 	if((int64_t)snaplen > bytes_to_read) {
 		snaplen = bytes_to_read;
 	}
@@ -79,6 +86,23 @@ int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	unsigned long sent_data_pointer = args[1];
 	auxmap__store_bytebuf_param(auxmap, sent_data_pointer, snaplen, USER);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int32_t)args[0];
+	auxmap__store_s64_param(auxmap, fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	auxmap__store_u32_param(auxmap, size);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	if(ret >= 0) {
+		struct sockaddr *usrsockaddr = (struct sockaddr *)args[4];
+		/* Notice: the following will push an empty parameter if
+		 * something goes wrong (e.g.: fd not valid) */
+		auxmap__store_socktuple_param(auxmap, fd, OUTBOUND, NULL);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

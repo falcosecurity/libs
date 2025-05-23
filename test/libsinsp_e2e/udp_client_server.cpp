@@ -647,7 +647,6 @@ TEST_F(sys_call_test, udp_client_server_sendmsg) {
 		std::string dst_port;
 
 		if(type == PPME_SOCKET_RECVMSG_X) {
-			std::cout << e->get_param_value_str("tuple") << std::endl;
 			parse_tuple(e->get_param_value_str("tuple"), src_addr, src_port, dst_addr, dst_port);
 
 			EXPECT_EQ(udps.server_address(), src_addr);
@@ -781,15 +780,11 @@ TEST_F(sys_call_test, udp_client_server_fd_name_changed) {
 	bool use_sendmsg = false, recvmsg_twobufs = false, use_connect = false;
 
 	// This test only needs to count events. We want to
-	// see 7 events, representing the following:
-	//  - The servers bind()ing their sockets to their server ports.
+	// see 6 events, representing the following:
+	//  - The first server bind()ing their sockets to its server port.
+	//  - The second server bind()ing their sockets to its server port.
 	//  - the udp client sending to the first server.
 	//  - the first udp server receiving from the udp client
-	//  - the udp client receiving the echoed response from the first udp server.
-	//    This results in an event, even though this fd has already
-	//    been used between the server and client, because this
-	//    recvfrom sets the client side port as a result of
-	//    the recvfrom().
 	//  - the udp client sending to the second server
 	//  - the second udp server receiving from the udp client
 	//
@@ -800,7 +795,7 @@ TEST_F(sys_call_test, udp_client_server_fd_name_changed) {
 	//  - the udp client receiving the second echo back from the second server. This is because
 	//    the client side port was already set from the communication with the first server.
 
-	run_fd_name_changed_test(use_sendmsg, recvmsg_twobufs, use_connect, m_tid_filter, 7);
+	run_fd_name_changed_test(use_sendmsg, recvmsg_twobufs, use_connect, m_tid_filter, 6);
 }
 
 TEST_F(sys_call_test, udp_client_server_connect_fd_name_changed) {
@@ -816,7 +811,7 @@ TEST_F(sys_call_test, udp_client_server_connect_fd_name_changed) {
 TEST_F(sys_call_test, udp_client_server_sendmsg_fd_name_changed) {
 	bool use_sendmsg = true, recvmsg_twobufs = false, use_connect = false;
 
-	run_fd_name_changed_test(use_sendmsg, recvmsg_twobufs, use_connect, m_tid_filter, 7);
+	run_fd_name_changed_test(use_sendmsg, recvmsg_twobufs, use_connect, m_tid_filter, 6);
 }
 
 TEST_F(sys_call_test, udp_client_server_multiple_connect_name_changed) {
@@ -883,7 +878,7 @@ TEST_F(sys_call_test, udp_client_server_multiple_connect_name_changed) {
 TEST_F(sys_call_test, udp_client_server_sendmsg_2buf_fd_name_changed) {
 	bool use_sendmsg = true, recvmsg_twobufs = true, use_connect = false;
 
-	run_fd_name_changed_test(use_sendmsg, recvmsg_twobufs, use_connect, m_tid_filter, 7);
+	run_fd_name_changed_test(use_sendmsg, recvmsg_twobufs, use_connect, m_tid_filter, 6);
 }
 
 TEST_F(sys_call_test, statsd_client_snaplen) {

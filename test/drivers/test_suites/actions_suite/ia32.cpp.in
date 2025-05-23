@@ -769,9 +769,20 @@ TEST(Actions, ia32_socketcall_sendto)
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, NO_SNAPLEN_MESSAGE, NO_SNAPLEN_MESSAGE_LEN);
 
+    /* Parameter 4: size (type: PT_UINT32) */
+    evt_test->assert_numeric_param(4, (uint32_t)NO_SNAPLEN_MESSAGE_LEN);
+
+    /* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
 
