@@ -86,4 +86,11 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_SETUID_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SETUID_X, 1},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
-};
+        /*====================== RECV ======================*/
+        {conversion_key{PPME_SOCKET_RECV_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SOCKET_RECV_X, 2},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1},
+                          {C_INSTR_FROM_DEFAULT, 0}})}};

@@ -29,8 +29,8 @@ int BPF_PROG(recv_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)args[0];
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+	int64_t fd = (int32_t)args[0];
+	ringbuf__store_s64(&ringbuf, fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	uint32_t size = (uint32_t)args[2];
@@ -61,11 +61,15 @@ int BPF_PROG(recv_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	if(ret > 0) {
-		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[2] = {0};
-		extract__network_args(args, 2, regs);
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[5] = {0};
+	extract__network_args(args, 5, regs);
 
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Send an empty parameter if the syscall failed (or the return value is zero): indeed, in this
+	 * case, the content of the buffer provided by the user remains untouched, and is not important.
+	 */
+	if(ret > 0) {
 		dynamic_snaplen_args snaplen_args = {
 		        .only_port_range = false,
 		        .evt_type = PPME_SOCKET_RECV_X,
@@ -75,12 +79,27 @@ int BPF_PROG(recv_x, struct pt_regs *regs, long ret) {
 		if(snaplen > ret) {
 			snaplen = ret;
 		}
-
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		unsigned long data_pointer = args[1];
-		auxmap__store_bytebuf_param(auxmap, data_pointer, snaplen, USER);
+		unsigned long received_data_pointer = args[1];
+		auxmap__store_bytebuf_param(auxmap, received_data_pointer, snaplen, USER);
 	} else {
-		/* Parameter 2: data (type: PT_BYTEBUF) */
+		auxmap__store_empty_param(auxmap);
+	}
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int32_t)args[0];
+	auxmap__store_s64_param(auxmap, fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)args[2];
+	auxmap__store_u32_param(auxmap, size);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	if(ret >= 0) {
+		struct sockaddr *usrsockaddr = (struct sockaddr *)args[4];
+		/* Notice: the following will push an empty parameter if
+		 * something goes wrong (e.g.: fd not valid) */
+		auxmap__store_socktuple_param(auxmap, fd, INBOUND, NULL);
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 
