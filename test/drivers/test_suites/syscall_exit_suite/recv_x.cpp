@@ -39,8 +39,14 @@ TEST(SyscallExit, recvX_fail) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif

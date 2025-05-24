@@ -4028,13 +4028,54 @@ static __always_inline int f_sys_recv_x_common(struct filler_data *data, long re
 }
 
 FILLER(sys_recv_x, true) {
-	long retval;
-	int res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = f_sys_recv_x_common(data, retval);
+	/* Extract fd parameter */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
 
-	return res;
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Send an empty parameter if the syscall failed (or the return value is zero): indeed, in this
+	 * case, the content of the buffer provided by the user remains untouched, and is not important.
+	 */
+	if(retval > 0) {
+		const unsigned long bytes_to_read = retval;
+		const unsigned long received_data_pointer = bpf_syscall_get_argument(data, 1);
+		data->fd = fd;
+		res = __bpf_val_to_ring(data,
+		                        received_data_pointer,
+		                        bytes_to_read,
+		                        PT_BYTEBUF,
+		                        -1,
+		                        true,
+		                        USER);
+	} else {
+		bpf_push_empty_param(data);
+	}
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u32_to_ring(data, size);
+	CHECK_RES(res);
+
+	if(retval < 0) {
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		return bpf_push_empty_param(data);
+	}
+
+	/* Convert the fd into socket endpoint information */
+	char *tmp_area = data->tmp_scratch + sizeof(struct sockaddr_storage);
+	uint16_t tuple_size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true, tmp_area);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, tuple_size);
 }
 
 FILLER(sys_recvfrom_e, true) {

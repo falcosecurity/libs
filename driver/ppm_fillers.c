@@ -2426,13 +2426,63 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 
 int f_sys_recv_x(struct event_filler_arguments *args) {
 	int res;
+	unsigned long val;
 	int64_t retval;
+	int64_t fd;
+	unsigned long received_data_pointer, bytes_to_read;
+	uint32_t size;
+	char *targetbuf = args->str_storage;
+	uint16_t tuple_size;
 
-	res = f_sys_recv_x_common(args, &retval);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
 
-	if(likely(res == PPM_SUCCESS))
+	/* Extract fd parameter */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int64_t)(int32_t)val;
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Send an empty parameter if the syscall failed (or the return value is zero): indeed, in this
+	 * case, the content of the buffer provided by the user remains untouched, and is not important.
+	 */
+	if(retval > 0) {
+		syscall_get_arguments_deprecated(args, 1, 1, &received_data_pointer);
+		bytes_to_read = retval;
+		args->fd = (int)fd;
+		args->enforce_snaplen = true;
+		res = val_to_ring(args, received_data_pointer, bytes_to_read, true, 0);
+	} else {
+		res = push_empty_param(args);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	size = (uint32_t)val;
+	res = val_to_ring(args, size, 0, false, 0);
+	CHECK_RES(res);
+
+	if(retval < 0) {
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
 		return add_sentinel(args);
-	return res;
+	}
+
+	/* Convert the fd into socket endpoint information */
+	tuple_size = fd_to_socktuple((int)fd, NULL, 0, false, true, targetbuf, STR_STORAGE_SIZE);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
 }
 
 int f_sys_recvfrom_e(struct event_filler_arguments *args) {

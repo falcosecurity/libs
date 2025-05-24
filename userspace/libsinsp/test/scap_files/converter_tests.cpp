@@ -283,3 +283,9 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 	int32_t uid = 0;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
 }
+
+////////////////////////////
+// RECV
+////////////////////////////
+
+// We don't have scap-files with RECV events. Add it if we face a failure.

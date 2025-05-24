@@ -3738,7 +3738,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 				tupleparam = 2;
 			} else if(etype == PPME_SOCKET_RECVMSG_X) {
 				tupleparam = 3;
-			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
+			} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
 				tupleparam = 4;
 			}
 
@@ -3782,7 +3782,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			// Extract the data buffer
 			//
 			if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
-			   etype == PPME_SOCKET_RECVMSG_X) {
+			   etype == PPME_SOCKET_RECVMSG_X || etype == PPME_SOCKET_RECV_X) {
 				parinfo = evt.get_param(2);
 			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
 				parinfo = evt.get_param(3);
