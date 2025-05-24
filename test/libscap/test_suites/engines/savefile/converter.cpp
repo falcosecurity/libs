@@ -620,3 +620,80 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 1, res),
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
 }
+
+////////////////////////////
+// RECV
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_RECV_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	uint32_t size = 5;
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECV_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECV_X_to_5_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	constexpr char data[] = "hello";
+
+	// Defaulted
+	int64_t fd = 0;
+	uint32_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECV_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, sizeof(data)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECV_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, sizeof(data)},
+	                               fd,
+	                               size,
+	                               scap_const_sized_buffer{nullptr, 0}));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECV_X_to_5_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t fd = 25;
+	constexpr char data[] = "hello";
+	constexpr int32_t size = sizeof(data);
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECV_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_RECV_X,
+	                                                        2,
+	                                                        res,
+	                                                        scap_const_sized_buffer{data, size}),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_RECV_X,
+	                                                        5,
+	                                                        res,
+	                                                        scap_const_sized_buffer{data, size},
+	                                                        fd,
+	                                                        size,
+	                                                        scap_const_sized_buffer{nullptr, 0}));
+}
