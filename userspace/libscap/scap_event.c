@@ -300,7 +300,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
 				        param.size,
-				        event->type,
+				        event_type,
 				        len_size);
 			}
 			if(scap_buffer_can_fit(event_buf, len)) {
@@ -316,7 +316,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
 				        param.size,
-				        event->type,
+				        event_type,
 				        len_size);
 			}
 			if(scap_buffer_can_fit(event_buf, len)) {
@@ -330,7 +330,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			                      "unexpected param %d length %zu for event with type %d",
 			                      i,
 			                      len_size,
-			                      event->type);
+			                      event_type);
 		}
 
 		if(scap_buffer_can_fit(event_buf, len + param.size) && param.size != 0) {
