@@ -24,17 +24,15 @@ limitations under the License.
 
 static void print_ipv4(int starting_index, char *valptr) {
 	char ipv4_string[50];
-	uint8_t *ipv4 = (uint8_t *)(valptr + starting_index);
+	uint8_t ipv4[4];
+	memcpy(ipv4, valptr + starting_index, sizeof(ipv4));
 	snprintf(ipv4_string, sizeof(ipv4_string), "%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
 	printf("- ipv4: %s\n", ipv4_string);
 }
 
 static void print_ipv6(int starting_index, char *valptr) {
-	uint32_t ipv6[4] = {0, 0, 0, 0};
-	ipv6[0] = *(uint32_t *)(valptr + starting_index);
-	ipv6[1] = *(uint32_t *)(valptr + starting_index + 4);
-	ipv6[2] = *(uint32_t *)(valptr + starting_index + 8);
-	ipv6[3] = *(uint32_t *)(valptr + starting_index + 12);
+	uint32_t ipv6[4];
+	memcpy(ipv6, valptr + starting_index, sizeof(ipv6));
 
 	char ipv6_string[150];
 	inet_ntop(AF_INET6, ipv6, ipv6_string, 150);
@@ -46,12 +44,17 @@ static void print_unix_path(int starting_index, char *valptr) {
 }
 
 static void print_port(int starting_index, char *valptr) {
-	printf("- port: %d\n", *(uint16_t *)(valptr + starting_index));
+	uint16_t port;
+	memcpy(&port, valptr + starting_index, sizeof(port));
+	printf("- port: %d\n", port);
 }
 
 static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
-	uint16_t len =
-	        *(uint16_t *)((char *)ev + sizeof(struct ppm_evt_hdr) + num_param * sizeof(uint16_t));
+	uint16_t len;
+	const uint16_t *len_ptr =
+	        (uint16_t *)((char *)ev + sizeof(struct ppm_evt_hdr) + num_param * sizeof(uint16_t));
+	memcpy(&len, len_ptr, sizeof(len));
+
 	char *valptr = (char *)ev + offset;
 
 	if(len == 0) {
@@ -60,47 +63,22 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 	}
 
 	switch(g_event_info[ev->type].params[num_param].type) {
-	case PT_FLAGS8:
-		printf("PARAM %d: %X\n", num_param, *(uint8_t *)(valptr));
-		break;
-
-	case PT_FLAGS16:
-		printf("PARAM %d: %X\n", num_param, *(uint16_t *)(valptr));
-		break;
-
-	case PT_FLAGS32:
-		printf("PARAM %d: %X\n", num_param, *(uint32_t *)(valptr));
-		break;
-
-	case PT_INT8:
-		printf("PARAM %d: %d\n", num_param, *(int8_t *)(valptr));
-		break;
-
-	case PT_INT16:
-		printf("PARAM %d: %d\n", num_param, *(int16_t *)(valptr));
-		break;
-
-	case PT_INT32:
-		printf("PARAM %d: %d\n", num_param, *(int32_t *)(valptr));
-		break;
-
-	case PT_INT64:
-	case PT_ERRNO:
-	case PT_PID:
-		printf("PARAM %d: %ld\n", num_param, *(int64_t *)(valptr));
-		break;
-
 	case PT_UINT8:
 	case PT_SIGTYPE:
 	case PT_ENUMFLAGS8:
-		printf("PARAM %d: %d\n", num_param, *(uint8_t *)(valptr));
+	case PT_FLAGS8:
+		printf("PARAM %d: %X\n", num_param, *(uint8_t *)(valptr));
 		break;
 
 	case PT_UINT16:
 	case PT_SYSCALLID:
 	case PT_ENUMFLAGS16:
-		printf("PARAM %d: %d\n", num_param, *(uint16_t *)(valptr));
+	case PT_FLAGS16: {
+		uint16_t val;
+		memcpy(&val, valptr, sizeof(val));
+		printf("PARAM %d: %X\n", num_param, val);
 		break;
+	}
 
 	case PT_UINT32:
 	case PT_UID:
@@ -108,18 +86,49 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 	case PT_SIGSET:
 	case PT_MODE:
 	case PT_ENUMFLAGS32:
-		printf("PARAM %d: %d\n", num_param, *(uint32_t *)(valptr));
+	case PT_FLAGS32: {
+		uint32_t val;
+		memcpy(&val, valptr, sizeof(val));
+		printf("PARAM %d: %X\n", num_param, val);
 		break;
+	}
 
 	case PT_UINT64:
 	case PT_RELTIME:
-	case PT_ABSTIME:
-		printf("PARAM %d: %lu\n", num_param, *(uint64_t *)(valptr));
+	case PT_ABSTIME: {
+		uint64_t val;
+		memcpy(&val, valptr, sizeof(val));
+		printf("PARAM %d: %lu\n", num_param, val);
+		break;
+	}
+
+	case PT_INT8:
+		printf("PARAM %d: %d\n", num_param, *(int8_t *)(valptr));
 		break;
 
-	case PT_FD:
-		printf("PARAM %d: %d\n", num_param, *(int32_t *)(valptr));
+	case PT_INT16: {
+		int16_t val;
+		memcpy(&val, valptr, sizeof(val));
+		printf("PARAM %d: %d\n", num_param, val);
 		break;
+	}
+
+	case PT_INT32:
+	case PT_FD: {
+		int32_t val;
+		memcpy(&val, valptr, sizeof(val));
+		printf("PARAM %d: %d\n", num_param, val);
+		break;
+	}
+
+	case PT_INT64:
+	case PT_ERRNO:
+	case PT_PID: {
+		int64_t val;
+		memcpy(&val, valptr, sizeof(val));
+		printf("PARAM %d: %ld\n", num_param, val);
+		break;
+	}
 
 	case PT_SOCKADDR: {
 		printf("PARAM %d:\n", num_param);
@@ -212,9 +221,10 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 
 	case PT_BYTEBUF:
 	case PT_CHARBUFARRAY:
-		printf("PARAM %d\n: ", num_param);
+		printf("PARAM %d:\n", num_param);
 		for(int j = 0; j < len; j++) {
-			printf("%c(%x)\n", *(char *)(valptr + j), *(char *)(valptr + j));
+			const char val = *(char *)(valptr + j);
+			printf("%c(%02hhx)\n", val, val);
 		}
 		printf("\n");
 		break;
