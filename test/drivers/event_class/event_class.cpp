@@ -447,7 +447,9 @@ void event_test::connect_ipv4_client_to_server(int32_t* client_socket,
 	                     -1);
 }
 
-void event_test::client_to_server(send_data send_d,
+void event_test::client_to_server(int32_t* client_fd,
+                                  int32_t* server_fd,
+                                  send_data send_d,
                                   recv_data receive_d,
                                   network_config net_config) {
 	int32_t client_socket_fd = 0;
@@ -626,6 +628,10 @@ void event_test::client_to_server(send_data send_d,
 		syscall(__NR_shutdown, client_socket_fd, 2);
 		syscall(__NR_close, server_socket_fd);
 		syscall(__NR_close, client_socket_fd);
+
+		// Return file descriptors to the caller.
+		*client_fd = client_socket_fd;
+		*server_fd = server_socket_fd;
 		return;
 	}
 
@@ -758,13 +764,21 @@ void event_test::client_to_server(send_data send_d,
 	syscall(__NR_shutdown, client_socket_fd, 2);
 	syscall(__NR_close, server_socket_fd);
 	syscall(__NR_close, client_socket_fd);
+
+	// Return file descriptors to the caller.
+	*client_fd = client_socket_fd;
+	*server_fd = receive_socket_fd;
 }
 
-void event_test::client_to_server_ipv4_tcp(send_data send_d,
+void event_test::client_to_server_ipv4_tcp(int32_t* client_socket_fd,
+                                           int32_t* server_accepted_conn_socket_fd,
+                                           send_data send_d,
                                            recv_data receive_d,
                                            int32_t client_port,
                                            int32_t server_port) {
-	this->client_to_server(send_d,
+	this->client_to_server(client_socket_fd,
+	                       server_accepted_conn_socket_fd,
+	                       send_d,
 	                       receive_d,
 	                       network_config{.proto_L3 = protocol_L3::IPv4,
 	                                      .proto_L4 = protocol_L4::TCP,
@@ -772,11 +786,15 @@ void event_test::client_to_server_ipv4_tcp(send_data send_d,
 	                                      .server_port = server_port});
 }
 
-void event_test::client_to_server_ipv4_udp(send_data send_d,
+void event_test::client_to_server_ipv4_udp(int32_t* client_socket_fd,
+                                           int32_t* server_socket_fd,
+                                           send_data send_d,
                                            recv_data receive_d,
                                            int32_t client_port,
                                            int32_t server_port) {
-	this->client_to_server(send_d,
+	this->client_to_server(client_socket_fd,
+	                       server_socket_fd,
+	                       send_d,
 	                       receive_d,
 	                       network_config{.proto_L3 = protocol_L3::IPv4,
 	                                      .proto_L4 = protocol_L4::UDP,
@@ -784,11 +802,15 @@ void event_test::client_to_server_ipv4_udp(send_data send_d,
 	                                      .server_port = server_port});
 }
 
-void event_test::client_to_server_ipv6_tcp(send_data send_d,
+void event_test::client_to_server_ipv6_tcp(int32_t* client_socket_fd,
+                                           int32_t* server_accepted_conn_socket_fd,
+                                           send_data send_d,
                                            recv_data receive_d,
                                            int32_t client_port,
                                            int32_t server_port) {
-	this->client_to_server(send_d,
+	this->client_to_server(client_socket_fd,
+	                       server_accepted_conn_socket_fd,
+	                       send_d,
 	                       receive_d,
 	                       network_config{.proto_L3 = protocol_L3::IPv6,
 	                                      .proto_L4 = protocol_L4::TCP,
@@ -796,11 +818,15 @@ void event_test::client_to_server_ipv6_tcp(send_data send_d,
 	                                      .server_port = server_port});
 }
 
-void event_test::client_to_server_ipv6_udp(send_data send_d,
+void event_test::client_to_server_ipv6_udp(int32_t* client_socket_fd,
+                                           int32_t* server_socket_fd,
+                                           send_data send_d,
                                            recv_data receive_d,
                                            int32_t client_port,
                                            int32_t server_port) {
-	this->client_to_server(send_d,
+	this->client_to_server(client_socket_fd,
+	                       server_socket_fd,
+	                       send_d,
 	                       receive_d,
 	                       network_config{.proto_L3 = protocol_L3::IPv6,
 	                                      .proto_L4 = protocol_L4::UDP,

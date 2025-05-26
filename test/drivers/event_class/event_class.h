@@ -385,23 +385,43 @@ public:
 	                                   int32_t* server_socket,
 	                                   struct sockaddr_un* server_sockaddr);
 
-	void client_to_server(send_data send_d, recv_data receive_d, network_config net_config);
-	void client_to_server_ipv4_tcp(send_data send_d,
+	// Notice: server_fd is used as the output location for the file descriptor of the server
+	// socket, in case of connection-less transport protocol or in case the receiving phase is
+	// skipped (receive_d.skip_recv_phase is set to true); otherwise, it is used as the output
+	// location for the server accepted connection.
+	void client_to_server(int32_t* client_fd,
+	                      int32_t* server_fd,
+	                      send_data send_d,
+	                      recv_data receive_d,
+	                      network_config net_config);
+	// Notice: server_accepted_conn_socket_fd is used as the output location for the file descriptor
+	// of the server accepted connection, not the listening socket file descriptor.
+	void client_to_server_ipv4_tcp(int32_t* client_socket_fd,
+	                               int32_t* server_accepted_conn_socket_fd,
+	                               send_data send_d,
 	                               recv_data receive_d = {.syscall_num = 0,
 	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
-	void client_to_server_ipv4_udp(send_data send_d,
+	void client_to_server_ipv4_udp(int32_t* client_socket_fd,
+	                               int32_t* server_socket_fd,
+	                               send_data send_d,
 	                               recv_data receive_d = {.syscall_num = 0,
 	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
-	void client_to_server_ipv6_tcp(send_data send_d,
+	// Notice: server_accepted_conn_socket_fd is used as the output location for the file descriptor
+	// of the server accepted connection, not the listening socket file descriptor.
+	void client_to_server_ipv6_tcp(int32_t* client_socket_fd,
+	                               int32_t* server_accepted_conn_socket_fd,
+	                               send_data send_d,
 	                               recv_data receive_d = {.syscall_num = 0,
 	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
-	void client_to_server_ipv6_udp(send_data send_d,
+	void client_to_server_ipv6_udp(int32_t* client_socket_fd,
+	                               int32_t* server_socket_fd,
+	                               send_data send_d,
 	                               recv_data receive_d = {.syscall_num = 0,
 	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,

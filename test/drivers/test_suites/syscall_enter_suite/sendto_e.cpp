@@ -13,7 +13,10 @@ TEST(SyscallEnter, sendtoE_ipv4_tcp) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendto});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -30,6 +33,9 @@ TEST(SyscallEnter, sendtoE_ipv4_tcp) {
 	evt_test->assert_header();
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(1, (int64_t)client_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(2, (uint32_t)SHORT_MESSAGE_LEN);
@@ -54,7 +60,10 @@ TEST(SyscallEnter, sendtoE_ipv4_tcp_NULL_sockaddr) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -73,10 +82,13 @@ TEST(SyscallEnter, sendtoE_ipv4_tcp_NULL_sockaddr) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 2: size (type: PT_UINT32)*/
+	/* Parameter 1: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(1, (int64_t)client_fd);
+
+	/* Parameter 2: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(2, (uint32_t)SHORT_MESSAGE_LEN);
 
-	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
+	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 	if(evt_test->is_modern_bpf_engine()) {
 		// We can recover the tuple even without the userspace socaddr
 		evt_test->assert_tuple_inet_param(3,
@@ -162,6 +174,9 @@ TEST(SyscallEnter, sendtoE_unix_udp) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
+	/* Parameter 1: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(1, (int64_t)client_socket_fd);
+
 	/* Parameter 2: size (type: PT_UINT32)*/
 	evt_test->assert_numeric_param(2, (uint32_t)SHORT_MESSAGE_LEN);
 
@@ -180,7 +195,10 @@ TEST(SyscallEnter, sendtoE_ipv4_udp) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendto});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -198,10 +216,13 @@ TEST(SyscallEnter, sendtoE_ipv4_udp) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 2: size (type: PT_UINT32)*/
+	/* Parameter 1: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(1, (int64_t)client_fd);
+
+	/* Parameter 2: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(2, (uint32_t)SHORT_MESSAGE_LEN);
 
-	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
+	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_tuple_inet_param(3,
 	                                  PPM_AF_INET,
 	                                  IPV4_CLIENT,

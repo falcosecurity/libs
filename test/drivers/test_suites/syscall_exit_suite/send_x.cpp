@@ -45,6 +45,9 @@ TEST(SyscallExit, sendX_fail) {
 	/* Parameter 4: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(4, (uint32_t)data_len);
 
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);

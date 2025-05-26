@@ -15,7 +15,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto},
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendto},
 	                                    recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -50,6 +53,9 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
 	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
@@ -65,7 +71,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom});
 
@@ -99,6 +108,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -119,7 +132,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom});
 
@@ -161,6 +177,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -177,7 +197,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom},
 	        IP_PORT_DNS,
@@ -216,6 +239,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
 	                                  IP_PORT_DNS_STRING,
 	                                  IP_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -236,7 +263,10 @@ TEST(SyscallExit, recvfromX_ipv6_tcp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv6_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom});
 
@@ -278,6 +308,10 @@ TEST(SyscallExit, recvfromX_ipv6_tcp_message_not_truncated_fullcapture_port) {
 	                                   IPV6_PORT_CLIENT_STRING,
 	                                   IPV6_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -292,7 +326,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_sockaddr) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
@@ -329,6 +366,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_sockaddr) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -351,7 +392,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
@@ -393,6 +437,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -407,7 +455,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_buffer) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom, .null_receiver_buffer = true});
 
@@ -442,6 +493,10 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_buffer) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, 0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -458,7 +513,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto},
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendto},
 	                                    recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -491,6 +549,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -505,7 +567,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom});
 
@@ -539,6 +604,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -559,7 +628,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom});
 
@@ -601,6 +673,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_fullcapture_port) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -615,7 +691,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_sockaddr) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
@@ -652,6 +731,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_sockaddr) {
 	                                  IPV4_PORT_EMPTY_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -674,7 +757,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_fullcapture_port_NULL_soc
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
@@ -716,6 +802,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_fullcapture_port_NULL_soc
 	                                  IPV4_PORT_EMPTY_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -730,7 +820,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_buffer) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_recvfrom, .null_receiver_buffer = true});
 
@@ -765,6 +858,10 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_buffer) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)server_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, 0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -822,6 +919,10 @@ TEST(SyscallExit, recvfromX_fail) {
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_empty_param(3);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)mock_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
