@@ -12,7 +12,10 @@ TEST(SyscallExit, sendmmsgX_ipv4_tcp_message_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendmmsg});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendmmsg});
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -32,6 +35,9 @@ TEST(SyscallExit, sendmmsgX_ipv4_tcp_message_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -59,10 +65,13 @@ TEST(SyscallExit, sendmmsgX_ipv4_tcp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{
-	        .syscall_num = __NR_sendmmsg,
-	        .greater_snaplen = true,
-	});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendmmsg,
+	                                            .greater_snaplen = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -82,6 +91,9 @@ TEST(SyscallExit, sendmmsgX_ipv4_tcp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)LONG_MESSAGE_LEN);
@@ -109,7 +121,10 @@ TEST(SyscallExit, sendmmsgX_ipv6_tcp_message_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_tcp(send_data{.syscall_num = __NR_sendmmsg});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendmmsg});
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -129,6 +144,9 @@ TEST(SyscallExit, sendmmsgX_ipv6_tcp_message_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -156,10 +174,13 @@ TEST(SyscallExit, sendmmsgX_ipv6_tcp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_tcp(send_data{
-	        .syscall_num = __NR_sendmmsg,
-	        .greater_snaplen = true,
-	});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendmmsg,
+	                                            .greater_snaplen = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -179,6 +200,9 @@ TEST(SyscallExit, sendmmsgX_ipv6_tcp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)LONG_MESSAGE_LEN);
@@ -206,7 +230,10 @@ TEST(SyscallExit, sendmmsgX_ipv4_udp_message_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendmmsg});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendmmsg});
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -226,6 +253,9 @@ TEST(SyscallExit, sendmmsgX_ipv4_udp_message_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -253,10 +283,13 @@ TEST(SyscallExit, sendmmsgX_ipv4_udp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{
-	        .syscall_num = __NR_sendmmsg,
-	        .greater_snaplen = true,
-	});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendmmsg,
+	                                            .greater_snaplen = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -276,6 +309,9 @@ TEST(SyscallExit, sendmmsgX_ipv4_udp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)LONG_MESSAGE_LEN);
@@ -303,7 +339,10 @@ TEST(SyscallExit, sendmmsgX_ipv6_udp_message_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_udp(send_data{.syscall_num = __NR_sendmmsg});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendmmsg});
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -323,6 +362,9 @@ TEST(SyscallExit, sendmmsgX_ipv6_udp_message_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -350,10 +392,13 @@ TEST(SyscallExit, sendmmsgX_ipv6_udp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_udp(send_data{
-	        .syscall_num = __NR_sendmmsg,
-	        .greater_snaplen = true,
-	});
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendmmsg,
+	                                            .greater_snaplen = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -373,6 +418,9 @@ TEST(SyscallExit, sendmmsgX_ipv6_udp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)LONG_MESSAGE_LEN);

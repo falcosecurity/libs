@@ -164,7 +164,10 @@ TEST(SyscallExit, readX_ipv4_tcp_message_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_read});
 
@@ -190,6 +193,9 @@ TEST(SyscallExit, readX_ipv4_tcp_message_truncated_by_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (int64_t)server_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
@@ -208,7 +214,10 @@ TEST(SyscallExit, readX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_read});
 
@@ -241,6 +250,9 @@ TEST(SyscallExit, readX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, MAX_RECV_BUF_SIZE);
 
+	/* Parameter 3: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (int64_t)server_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
@@ -253,7 +265,10 @@ TEST(SyscallExit, readX_ipv4_udp_message_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_read});
 
@@ -279,6 +294,9 @@ TEST(SyscallExit, readX_ipv4_udp_message_truncated_by_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (int64_t)server_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
@@ -295,7 +313,10 @@ TEST(SyscallExit, readX_ipv4_udp_message_truncated_fullcapture_client_port) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_read});
 
@@ -330,6 +351,9 @@ TEST(SyscallExit, readX_ipv4_udp_message_truncated_fullcapture_client_port) {
 	// the snaplen.
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (int64_t)server_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
@@ -348,7 +372,10 @@ TEST(SyscallExit, readX_ipv4_udp_message_not_truncated_fullcapture_server_port) 
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_udp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
 	        recv_data{.syscall_num = __NR_read});
 
@@ -380,6 +407,9 @@ TEST(SyscallExit, readX_ipv4_udp_message_not_truncated_fullcapture_server_port) 
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, MAX_RECV_BUF_SIZE);
+
+	/* Parameter 3: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (int64_t)server_fd);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

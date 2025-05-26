@@ -203,7 +203,10 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_write, .greater_snaplen = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -228,6 +231,9 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
@@ -244,7 +250,10 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	int32_t client_fd, server_fd;
 	evt_test->client_to_server_ipv4_tcp(
+	        &client_fd,
+	        &server_fd,
 	        send_data{.syscall_num = __NR_write, .greater_snaplen = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -273,8 +282,11 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_fd);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

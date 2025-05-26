@@ -14,13 +14,15 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -40,6 +42,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -84,14 +89,16 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -111,6 +118,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)MAX_RECV_BUF_SIZE);
@@ -151,13 +161,15 @@ TEST(SyscallExit, recvmmsgX_ipv6_tcp_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_tcp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -177,6 +189,9 @@ TEST(SyscallExit, recvmmsgX_ipv6_tcp_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -220,15 +235,16 @@ TEST(SyscallExit, recvmmsgX_ipv6_tcp_truncated) {
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
-
-	evt_test->client_to_server_ipv6_tcp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -248,6 +264,9 @@ TEST(SyscallExit, recvmmsgX_ipv6_tcp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)MAX_RECV_BUF_SIZE);
@@ -286,14 +305,15 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_no_snaplen) {
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
-
-	evt_test->client_to_server_ipv4_udp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -313,6 +333,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -345,14 +368,16 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -372,6 +397,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)MAX_RECV_BUF_SIZE);
@@ -404,13 +432,15 @@ TEST(SyscallExit, recvmmsgX_ipv6_udp_no_snaplen) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_udp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -430,6 +460,9 @@ TEST(SyscallExit, recvmmsgX_ipv6_udp_no_snaplen) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
@@ -462,14 +495,16 @@ TEST(SyscallExit, recvmmsgX_ipv6_udp_truncated) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_udp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv6_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -489,6 +524,9 @@ TEST(SyscallExit, recvmmsgX_ipv6_udp_truncated) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)MAX_RECV_BUF_SIZE);
@@ -521,15 +559,17 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_connection_null_sockaddr) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	                .null_sockaddr = true,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                            .null_sockaddr = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -549,6 +589,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_connection_null_sockaddr) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)MAX_RECV_BUF_SIZE);
@@ -589,15 +632,17 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_connection_null_sockaddr) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	                .null_sockaddr = true,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                            .null_sockaddr = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -617,6 +662,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_connection_null_sockaddr) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)MAX_RECV_BUF_SIZE);
@@ -657,15 +705,17 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_connection_null_buffer) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	                .null_receiver_buffer = true,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                            .null_receiver_buffer = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -685,6 +735,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_connection_null_buffer) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)0);
@@ -725,15 +778,17 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_connection_null_buffer) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(
-	        send_data{
-	                .syscall_num = __NR_sendto,
-	                .greater_snaplen = true,
-	        },
-	        recv_data{
-	                .syscall_num = __NR_recvmmsg,
-	                .null_receiver_buffer = true,
-	        });
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_udp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendto,
+	                                            .greater_snaplen = true,
+	                                    },
+	                                    recv_data{
+	                                            .syscall_num = __NR_recvmmsg,
+	                                            .null_receiver_buffer = true,
+	                                    });
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -753,6 +808,9 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_connection_null_buffer) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)server_fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(3, (uint32_t)0);
