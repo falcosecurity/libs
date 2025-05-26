@@ -21,6 +21,7 @@
  * at the moment we keep them just too avoid to touch many files.
  */
 #define IP_PORT_DNS 53
+#define IP_PORT_DNS_STRING "53"
 #define IP_PORT_EMPTY 0
 #define IP_PORT_EMPTY_STRING "0"
 #define IP_PORT_CLIENT 51789

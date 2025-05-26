@@ -699,6 +699,92 @@ TEST_F(convert_event_test, PPME_SOCKET_RECV_X_to_5_params_with_enter) {
 }
 
 ////////////////////////////
+// RECVFROM
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVFROM_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint32_t size = 5;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECVFROM_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVFROM_X_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+	constexpr int32_t tuple_size = sizeof(tuple);
+
+	// Defaulted
+	constexpr int64_t defaulted_fd = 0;
+	constexpr uint32_t defaulted_size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVFROM_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVFROM_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               defaulted_fd,
+	                               defaulted_size));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVFROM_X_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fd = 25;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+	constexpr int32_t tuple_size = sizeof(tuple);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECVFROM_E, 2, fd, data_size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVFROM_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVFROM_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               fd,
+	                               data_size,
+	                               scap_const_sized_buffer{nullptr, 0}));
+}
+
+////////////////////////////
 // SEND
 ////////////////////////////
 

@@ -3783,7 +3783,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 				parinfo = evt.get_param(2);
 			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
 				parinfo = evt.get_param(3);
-			} else {
+			} else {  // PPME_SOCKET_RECVFROM_X
 				parinfo = evt.get_param(1);
 			}
 

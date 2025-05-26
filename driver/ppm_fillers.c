@@ -2474,50 +2474,6 @@ int f_sys_sendto_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval) {
-	int res;
-	unsigned long val;
-	unsigned long bufsize;
-
-	/*
-	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
-	 */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-
-	args->fd = (int)val;
-
-	/*
-	 * res
-	 */
-	*retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, *retval, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * data
-	 */
-	if(*retval < 0) {
-		/*
-		 * The operation failed, return an empty buffer
-		 */
-		val = 0;
-		bufsize = 0;
-	} else {
-		syscall_get_arguments_deprecated(args, 1, 1, &val);
-
-		/*
-		 * The return value can be lower than the value provided by the user,
-		 * and we take that into account.
-		 */
-		bufsize = *retval;
-	}
-
-	args->enforce_snaplen = true;
-	res = val_to_ring(args, val, bufsize, true, 0);
-
-	return res;
-}
-
 int f_sys_recv_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
@@ -2599,84 +2555,120 @@ int f_sys_recvfrom_e(struct event_filler_arguments *args) {
 }
 
 int f_sys_recvfrom_x(struct event_filler_arguments *args) {
-	unsigned long val;
 	int res;
-	uint16_t size = 0;
+	unsigned long val;
 	int64_t retval;
-	char *targetbuf = args->str_storage;
-	int fd;
+	int64_t fd;
+	uint16_t size;
+	unsigned long received_data_pointer, bytes_to_read;
 	struct sockaddr __user *usrsockaddr;
+	void *usrsockaddr_len_pointer;
+	unsigned long usrsockaddr_len;
 	struct sockaddr_storage address;
-	int addrlen;
-	int err = 0;
+	struct sockaddr *ksockaddr = NULL;
+	unsigned long sockaddr_len = 0;
+	bool use_sockaddr = false;
+	char *targetbuf = args->str_storage;
+	uint16_t tuple_size = 0;
 
-	/*
-	 * Push the common params to the ring
-	 */
-	res = f_sys_recv_x_common(args, &retval);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	if(retval >= 0) {
-		/*
-		 * Get the fd
-		 */
-		syscall_get_arguments_deprecated(args, 0, 1, &val);
-		fd = (int)val;
+	/* Extract fd and size parameters */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int64_t)(int32_t)val;
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	size = (uint32_t)val;
 
-		/*
-		 * Get the address
-		 */
-		syscall_get_arguments_deprecated(args, 4, 1, &val);
-		usrsockaddr = (struct sockaddr __user *)val;
+	if(retval < 0) {
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
 
-		/*
-		 * Get the address len
-		 */
-		syscall_get_arguments_deprecated(args, 5, 1, &val);
-		if(usrsockaddr != NULL && val != 0) {
+		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+
+		/* Parameter 4: fd (type: PT_FD) */
+		res = val_to_ring(args, fd, 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 5: size (type: PT_UINT32) */
+		res = val_to_ring(args, size, 0, false, 0);
+		CHECK_RES(res);
+
+		return add_sentinel(args);
+	}
+
+	/* Handle successful system call path. */
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	syscall_get_arguments_deprecated(args, 1, 1, &received_data_pointer);
+	bytes_to_read = retval;
+	args->fd = (int)fd;
+	args->enforce_snaplen = true;
+	res = val_to_ring(args, received_data_pointer, bytes_to_read, true, 0);
+	CHECK_RES(res);
+
+	/* Get the address */
+	syscall_get_arguments_deprecated(args, 4, 1, &val);
+	usrsockaddr = (struct sockaddr __user *)val;
+
+	/* Get the address len pointer */
+	syscall_get_arguments_deprecated(args, 5, 1, &val);
+	usrsockaddr_len_pointer = (void *)val;
+
+	/* Evaluate socktuple, leveraging the user-provided sockaddr if possible */
+	if(usrsockaddr != NULL && usrsockaddr_len_pointer != NULL) {
 #ifdef CONFIG_COMPAT
-			if(!args->compat) {
+		if(!args->compat) {
 #endif
-				if(unlikely(
-				           ppm_copy_from_user(&addrlen, (const void __user *)val, sizeof(addrlen))))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
+			if(unlikely(ppm_copy_from_user(&usrsockaddr_len,
+			                               (const void __user *)usrsockaddr_len_pointer,
+			                               sizeof(usrsockaddr_len)))) {
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			}
 #ifdef CONFIG_COMPAT
-			} else {
-				if(unlikely(ppm_copy_from_user(&addrlen,
-				                               (const void __user *)compat_ptr(val),
-				                               sizeof(addrlen))))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-			}
-#endif
-
-			/*
-			 * Copy the address
-			 */
-			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-			if(likely(err >= 0)) {
-				/*
-				 * Convert the fd into socket endpoint information
-				 */
-				size = fd_to_socktuple(fd,
-				                       (struct sockaddr *)&address,
-				                       addrlen,
-				                       true,
-				                       true,
-				                       targetbuf,
-				                       STR_STORAGE_SIZE);
-			}
 		} else {
-			/*
-			 * Get socket endpoint information from fd if the user-provided *sockaddr is NULL
-			 */
-			size = fd_to_socktuple(fd, NULL, 0, false, true, targetbuf, STR_STORAGE_SIZE);
+			if(unlikely(ppm_copy_from_user(
+			           &usrsockaddr_len,
+			           (const void __user *)compat_ptr((unsigned long)usrsockaddr_len_pointer),
+			           sizeof(usrsockaddr_len)))) {
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			}
+		}
+#endif
+
+		/* Copy the address into kernel memory */
+		res = addr_to_kernel(usrsockaddr, usrsockaddr_len, (struct sockaddr *)&address);
+		if(likely(res >= 0)) {
+			ksockaddr = (struct sockaddr *)&address;
+			sockaddr_len = usrsockaddr_len;
+			use_sockaddr = true;
 		}
 	}
 
-	/*
-	 * Copy the endpoint info into the ring
-	 */
-	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
+	/* Convert the fd into socket endpoint information */
+	tuple_size = fd_to_socktuple((int)fd,
+	                             ksockaddr,
+	                             sockaddr_len,
+	                             use_sockaddr,
+	                             true,
+	                             targetbuf,
+	                             STR_STORAGE_SIZE);
+
+	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: fd (type: PT_FD) */
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: size (type: PT_UINT32) */
+	res = val_to_ring(args, size, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

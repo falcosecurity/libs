@@ -187,8 +187,7 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 	// - type=PPME_SOCKET_LISTEN_E
 	// - ts=1687966709944347577
 	// - tid=141291
-	// - args=fd=25(<u>/tmp/pty1908604488/pty.sock)
-	// - backlog=4096
+	// - args=fd=25(<u>/tmp/pty1908604488/pty.sock) backlog=4096
 	//
 	// Let's see the new PPME_SOCKET_LISTEN_X event!
 
@@ -348,6 +347,69 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with RECV events. Add it if we face a failure.
+
+////////////////////////////
+// RECVFROM
+////////////////////////////
+
+TEST_F(scap_file_test, recvfrom_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_RECVFROM_E, 82);
+}
+
+TEST_F(scap_file_test, recvfrom_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_RECVFROM_X, 82);
+}
+
+// Compile out this test if test_utils helpers are not defined.
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+TEST_F(scap_file_test, recvfrom_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `593051` is the following:
+	// - type=PPME_SOCKET_RECVFROM_X,
+	// - ts=1687966725502692767
+	// - tid=141633
+	// - args=res=89 data=.............ip-172-31-24-0.eu-central-1.compute.internal..............,..
+	//   ...... tuple=127.0.0.53:53->127.0.0.1:47288
+	//
+	// And its corresponding enter event `593050` is the following:
+	// - type=PPME_SOCKET_RECVFROM_E
+	// - ts=1687966725502689763
+	// - args=fd=6(<4u>127.0.0.1:47288->127.0.0.53:53) size=2048
+	//
+	// Let's see the new PPME_SOCKET_RECVFROM_X event!
+
+	constexpr uint64_t ts = 1687966725502692767;
+	constexpr int64_t tid = 141633;
+	constexpr int64_t res = 89;
+	constexpr uint8_t data[] = {
+	        0xe5, 0xa9, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x0e, 'i',
+	        'p',  '-',  '1',  '7',  '2',  '-',  '3',  '1',  '-',  '2',  '4',  '-',  '0',  0x0c,
+	        'e',  'u',  '-',  'c',  'e',  'n',  't',  'r',  'a',  'l',  '-',  '1',  0x07, 'c',
+	        'o',  'm',  'p',  'u',  't',  'e',  0x08, 'i',  'n',  't',  'e',  'r',  'n',  'a',
+	        'l',  0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+	        0x00, ',',  0x00, 0x04, 0xac, 0x1f, 0x18, 0x00, 0x00, 0x00};
+	sockaddr_in client_sockaddr = test_utils::fill_sockaddr_in(53, "127.0.0.53");
+	sockaddr_in server_sockaddr = test_utils::fill_sockaddr_in(47288, "127.0.0.1");
+	const std::vector<uint8_t> tuple =
+	        test_utils::pack_socktuple(reinterpret_cast<struct sockaddr *>(&client_sockaddr),
+	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
+	constexpr int64_t fd = 6;
+	constexpr int32_t size = 2048;
+	assert_event_presence(
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVFROM_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, sizeof(data)},
+	                               scap_const_sized_buffer{tuple.data(), tuple.size()},
+	                               fd,
+	                               size));
+}
+#endif
 
 ////////////////////////////
 // SEND

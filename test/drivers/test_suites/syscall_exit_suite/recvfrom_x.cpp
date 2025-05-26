@@ -50,9 +50,12 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 5: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_tcp_message_truncated_by_snaplen) {
@@ -96,9 +99,11 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port) {
@@ -156,9 +161,11 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
@@ -201,9 +208,19 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
 	// Since the client port matches the fullcapture port range we should see the full message.
 	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, MAX_RECV_BUF_SIZE);
 
+	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(3,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IP_PORT_DNS_STRING,
+	                                  IP_PORT_SERVER_STRING);
+
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv6_tcp_message_not_truncated_fullcapture_port) {
@@ -261,9 +278,11 @@ TEST(SyscallExit, recvfromX_ipv6_tcp_message_not_truncated_fullcapture_port) {
 	                                   IPV6_PORT_CLIENT_STRING,
 	                                   IPV6_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_sockaddr) {
@@ -310,9 +329,11 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_sockaddr) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 // Even if the sockaddr is NULL we can retrieve the information from the kernel socket because we
@@ -372,9 +393,11 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_buffer) {
@@ -419,9 +442,11 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_buffer) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, 0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 /*=============================== UDP ===========================*/
@@ -466,9 +491,11 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_by_snaplen) {
@@ -512,9 +539,11 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_by_snaplen) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_fullcapture_port) {
@@ -572,9 +601,11 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_fullcapture_port) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_udp_NULL_sockaddr) {
@@ -621,9 +652,11 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_sockaddr) {
 	                                  IPV4_PORT_EMPTY_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 // If the `sockaddr` is `NULL` we cannot extract the sender ip and port. For this reason, the
@@ -683,9 +716,11 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_fullcapture_port_NULL_soc
 	                                  IPV4_PORT_EMPTY_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvfromX_ipv4_udp_NULL_buffer) {
@@ -730,9 +765,11 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_buffer) {
 	                                  IPV4_PORT_CLIENT_STRING,
 	                                  IPV4_PORT_SERVER_STRING);
 
+	evt_test->assert_numeric_param(5, 0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
 
@@ -785,9 +822,11 @@ TEST(SyscallExit, recvfromX_fail) {
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_empty_param(3);
 
+	evt_test->assert_numeric_param(5, MAX_RECV_BUF_SIZE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 #endif
