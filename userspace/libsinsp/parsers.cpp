@@ -109,7 +109,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_LINKAT_E:
 	case PPME_SYSCALL_MKDIR_E:
 	case PPME_SYSCALL_RMDIR_E:
-	case PPME_SOCKET_SHUTDOWN_E:
 	case PPME_SYSCALL_GETRLIMIT_E:
 	case PPME_SYSCALL_SETRLIMIT_E:
 	case PPME_SYSCALL_PRLIMIT_E:
@@ -4092,27 +4091,21 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt &evt) {
 }
 
 void sinsp_parser::parse_shutdown_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
+	if(evt.get_syscall_return_value() < 0) {
+		return;
+	}
 
-	//
-	// If the operation was successful, do the cleanup
-	//
-	if(retval >= 0) {
-		if(evt.get_fd_info() == nullptr) {
-			return;
-		}
+	// Operation was successful, do the cleanup.
 
-		//
-		// If there's a listener, add a callback to later invoke it.
-		//
-		if(m_observer) {
-			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
-				observer->on_socket_shutdown(evt);
-			});
-		}
+	if(evt.get_fd_info() == nullptr) {
+		return;
+	}
+
+	// If there's a listener, add a callback to later invoke it.
+	if(m_observer) {
+		verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
+			observer->on_socket_shutdown(evt);
+		});
 	}
 }
 

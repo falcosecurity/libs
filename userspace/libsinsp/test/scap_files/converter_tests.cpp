@@ -434,13 +434,13 @@ TEST_F(scap_file_test, sendto_x_same_number_of_events) {
 TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
 
-	// Inside the scap-file the event `857230` is the following:
+	// Inside the scap-file the event `857231` is the following:
 	// - type=PPME_SOCKET_SENDTO_X
 	// - ts=1687966733172651252
 	// - tid=114093
 	// - args=res=17 data="\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0"
 	//
-	// And its corresponding enter event `857231` is the following:
+	// And its corresponding enter event `857230` is the following:
 	// - type=PPME_SOCKET_SENDTO_E
 	// - ts=1687966733172634128
 	// - tid=114093
@@ -451,7 +451,6 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 	uint64_t ts = 1687966733172651252;
 	int64_t tid = 114093;
 	int64_t res = 17;
-
 	constexpr char data[] = "\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0";
 	constexpr uint32_t size = sizeof(data);
 	int64_t fd = 22;
@@ -464,4 +463,43 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 	                                             fd,
 	                                             size,
 	                                             scap_const_sized_buffer{nullptr, 0}));
+}
+
+////////////////////////////
+// SHUTDOWN
+////////////////////////////
+
+TEST_F(scap_file_test, shutdown_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SHUTDOWN_E, 9);
+}
+
+TEST_F(scap_file_test, shutdown_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SHUTDOWN_X, 9);
+}
+
+TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `861764` is the following:
+	// - type=PPME_SOCKET_SHUTDOWN_X
+	// - ts=1687966733231918487
+	// - tid=112954
+	// - args=res=-107(ENOTCONN)
+	//
+	// And its corresponding enter event `861763` is the following:
+	// - type=PPME_SOCKET_SHUTDOWN_E
+	// - ts=1687966733231918028
+	// - tid=112954
+	// - args=fd=13(<4t>127.0.0.1:33566->127.0.0.1:42891) how=1(SHUT_WR)
+	//
+	// Let's see the new PPME_SOCKET_SHUTDOWN_X event!
+
+	uint64_t ts = 1687966733231918487;
+	int64_t tid = 112954;
+	int64_t res = -107;
+	int64_t fd = 13;
+	uint8_t how = 1;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
 }

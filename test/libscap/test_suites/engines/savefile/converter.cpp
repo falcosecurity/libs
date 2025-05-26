@@ -953,3 +953,53 @@ TEST_F(convert_event_test, PPME_SOCKET_SENDTO_X_to_5_params_with_enter) {
 	                               size,
 	                               scap_const_sized_buffer{tuple, sizeof(tuple)}));
 }
+
+////////////////////////////
+// SHUTDOWN
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SHUTDOWN_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	uint8_t how = 5;
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_E, 2, fd, how);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SHUTDOWN_X_to_3_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+
+	// Defaulted
+	int64_t fd = 0;
+	uint8_t how = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SHUTDOWN_X_to_3_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t fd = 25;
+	int8_t how = 5;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_E, 2, fd, how);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
+}

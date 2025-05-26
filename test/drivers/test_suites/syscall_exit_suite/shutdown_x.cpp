@@ -32,11 +32,17 @@ TEST(SyscallExit, shutdownX) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: ret (type: PT_FD)*/
+	/* Parameter 1: ret (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)invalid_fd);
+
+	/* Parameter 3: how (type: PT_ENUMFLAGS8) */
+	evt_test->assert_numeric_param(3, (uint8_t)PPM_SHUT_RD);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif
