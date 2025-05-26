@@ -17,7 +17,7 @@ limitations under the License.
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(sinsp_with_test_input, RECV_success) {
+TEST_F(sinsp_with_test_input, RECVFROM_success) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -40,13 +40,13 @@ TEST_F(sinsp_with_test_input, RECV_success) {
 	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
 	evt = add_event_advance_ts(increasing_ts(),
 	                           INIT_TID,
-	                           PPME_SOCKET_RECV_X,
+	                           PPME_SOCKET_RECVFROM_X,
 	                           5,
 	                           return_value,
 	                           scap_const_sized_buffer{data.c_str(), data_buff_size},
+	                           scap_const_sized_buffer{tuple.data(), tuple.size()},
 	                           sock_params.fd,
-	                           data_buff_size,
-	                           scap_const_sized_buffer{tuple.data(), tuple.size()});
+	                           data_buff_size);
 
 	// Check that the returned value is as expected.
 	ASSERT_EQ(evt->get_param_by_name("res")->as<int64_t>(), return_value);

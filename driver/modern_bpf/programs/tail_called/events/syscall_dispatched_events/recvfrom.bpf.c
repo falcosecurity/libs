@@ -29,8 +29,8 @@ int BPF_PROG(recvfrom_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t socket_fd = (int32_t)args[0];
-	ringbuf__store_s64(&ringbuf, (int64_t)socket_fd);
+	int64_t socket_fd = (int32_t)args[0];
+	ringbuf__store_s64(&ringbuf, socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	uint32_t size = (uint32_t)args[2];
@@ -61,6 +61,12 @@ int BPF_PROG(recvfrom_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[5] = {0};
+	extract__network_args(args, 5, regs);
+
+	uint32_t socket_fd = (uint32_t)args[0];
+
 	if(ret >= 0) {
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
@@ -75,17 +81,14 @@ int BPF_PROG(recvfrom_x, struct pt_regs *regs, long ret) {
 			snaplen = ret;
 		}
 
-		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[5] = {0};
-		extract__network_args(args, 5, regs);
-
 		/* Parameter 2: data (type: PT_BYTEBUF) */
 		unsigned long received_data_pointer = args[1];
 		auxmap__store_bytebuf_param(auxmap, received_data_pointer, snaplen, USER);
 
 		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-		uint32_t socket_fd = (uint32_t)args[0];
 		struct sockaddr *usrsockaddr = (struct sockaddr *)args[4];
+		/* Notice: the following will push an empty parameter if something goes wrong (e.g.: fd not
+		 * valid) */
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, usrsockaddr);
 	} else {
 		/* Parameter 2: data (type: PT_BYTEBUF) */
@@ -94,6 +97,13 @@ int BPF_PROG(recvfrom_x, struct pt_regs *regs, long ret) {
 		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 		auxmap__store_empty_param(auxmap);
 	}
+
+	/* Parameter 4: fd (type: PT_FD) */
+	auxmap__store_s64_param(auxmap, socket_fd);
+
+	/* Parameter 5: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)args[2];
+	auxmap__store_u32_param(auxmap, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
