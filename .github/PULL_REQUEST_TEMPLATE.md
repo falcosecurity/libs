@@ -20,6 +20,8 @@
 
 > /kind failing-test
 
+> /kind test
+
 > /kind feature
 
 <!--
