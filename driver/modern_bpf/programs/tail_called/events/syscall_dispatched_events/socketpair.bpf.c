@@ -28,17 +28,17 @@ int BPF_PROG(socketpair_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: domain (type: PT_ENUMFLAGS32) */
-	/* why to send 32 bits if we need only 8 bits? */
+	/* Why to send 32 bits if we need only 8 bits? */
 	uint8_t domain = (uint8_t)args[0];
 	ringbuf__store_u32(&ringbuf, (uint32_t)socket_family_to_scap(domain));
 
 	/* Parameter 2: type (type: PT_UINT32) */
-	/* this should be an int, not a uint32 */
+	/* This should be an int, not an uint32. */
 	uint32_t type = (uint32_t)args[1];
 	ringbuf__store_u32(&ringbuf, type);
 
 	/* Parameter 3: proto (type: PT_UINT32) */
-	/* this should be an int, not a uint32 */
+	/* This should be an int, not an uint32. */
 	uint32_t proto = (uint32_t)args[2];
 	ringbuf__store_u32(&ringbuf, proto);
 
@@ -55,6 +55,12 @@ int BPF_PROG(socketpair_e, struct pt_regs *regs, long id) {
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(socketpair_x, struct pt_regs *regs, long ret) {
+	/* We need to keep this at the beginning of the program because otherwise we alter the state of
+	 * the ebpf registers causing a verifier issue.
+	 */
+	unsigned long args[4] = {0};
+	extract__network_args(args, 4, regs);
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, SOCKETPAIR_X_SIZE, PPME_SOCKET_SOCKETPAIR_X)) {
 		return 0;
@@ -68,18 +74,13 @@ int BPF_PROG(socketpair_x, struct pt_regs *regs, long ret) {
 	ringbuf__store_s64(&ringbuf, ret);
 
 	int32_t fds[2] = {-1, -1};
-	unsigned long source = 0;
-	unsigned long peer = 0;
-	unsigned long fds_pointer = 0;
+	uint64_t source = 0;
+	uint64_t peer = 0;
 
 	/* In case of success we have 0. */
 	if(ret == 0) {
-		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[4] = {0};
-		extract__network_args(args, 4, regs);
-
 		/* Get new sockets. */
-		fds_pointer = args[3];
+		void *fds_pointer = (void *)args[3];
 		bpf_probe_read_user((void *)fds, 2 * sizeof(int32_t), (void *)fds_pointer);
 
 		/* Get source and peer. */
@@ -103,6 +104,21 @@ int BPF_PROG(socketpair_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 5: peer (type: PT_UINT64) */
 	ringbuf__store_u64(&ringbuf, peer);
+
+	/* Parameter 6: domain (type: PT_ENUMFLAGS32) */
+	/* Why to send 32 bits if we need only 8 bits? */
+	uint8_t domain = (uint8_t)args[0];
+	ringbuf__store_u32(&ringbuf, (uint32_t)socket_family_to_scap(domain));
+
+	/* Parameter 7: type (type: PT_UINT32) */
+	/* This should be an int, not an uint32. */
+	uint32_t type = (uint32_t)args[1];
+	ringbuf__store_u32(&ringbuf, type);
+
+	/* Parameter 8: proto (type: PT_UINT32) */
+	/* This should be an int, not an uint32. */
+	uint32_t proto = (uint32_t)args[2];
+	ringbuf__store_u32(&ringbuf, proto);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
