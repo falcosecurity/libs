@@ -65,7 +65,7 @@ int BPF_PROG(recvfrom_x, struct pt_regs *regs, long ret) {
 	unsigned long args[5] = {0};
 	extract__network_args(args, 5, regs);
 
-	uint32_t socket_fd = (uint32_t)args[0];
+	int64_t socket_fd = (int32_t)args[0];
 
 	if(ret >= 0) {
 		/* We read the minimum between `snaplen` and what we really
