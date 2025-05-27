@@ -1003,3 +1003,100 @@ TEST_F(convert_event_test, PPME_SOCKET_SHUTDOWN_X_to_3_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 1, res),
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
 }
+
+////////////////////////////
+// SOCKETPAIR
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	uint32_t domain = AF_INET;
+	uint32_t type = SOCK_STREAM;
+	uint32_t protocol = IPPROTO_TCP;
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKETPAIR_E, 3, domain, type, protocol);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t fd1 = 50;
+	int64_t fd2 = 51;
+	uint64_t source = 1234;
+	uint64_t peer = 5678;
+	// Defaulted
+	uint32_t domain = 0;
+	uint32_t type = 0;
+	uint32_t protocol = 0;
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SOCKETPAIR_X,
+	                                                        5,
+	                                                        res,
+	                                                        fd1,
+	                                                        fd2,
+	                                                        source,
+	                                                        peer),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SOCKETPAIR_X,
+	                                                        8,
+	                                                        res,
+	                                                        fd1,
+	                                                        fd2,
+	                                                        source,
+	                                                        peer,
+	                                                        domain,
+	                                                        type,
+	                                                        protocol));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	uint32_t domain = AF_INET;
+	uint32_t type = SOCK_STREAM;
+	uint32_t protocol = IPPROTO_TCP;
+
+	int64_t res = 89;
+	int64_t fd1 = 50;
+	int64_t fd2 = 51;
+	uint64_t source = 1234;
+	uint64_t peer = 5678;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKETPAIR_E, 3, domain, type, protocol);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SOCKETPAIR_X,
+	                                                        5,
+	                                                        res,
+	                                                        fd1,
+	                                                        fd2,
+	                                                        source,
+	                                                        peer),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SOCKETPAIR_X,
+	                                                        8,
+	                                                        res,
+	                                                        fd1,
+	                                                        fd2,
+	                                                        source,
+	                                                        peer,
+	                                                        domain,
+	                                                        type,
+	                                                        protocol));
+}

@@ -1214,45 +1214,60 @@ FILLER(sys_connect_x, true) {
 }
 
 FILLER(sys_socketpair_x, true) {
-	struct unix_sock *us = NULL;
-	struct sock *speer = NULL;
-	/* In case of failure we send invalid fd (-1) */
-	int fds[2] = {-1, -1};
-	unsigned long val;
-	long retval;
-	int res;
-
-	/* ret */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
+	/* In case of failure we send invalid fd (-1) */
+	int fds[2] = {-1, -1};
+	struct unix_sock *us = NULL;
+	struct sock *speer = NULL;
+
 	if(retval == 0) {
-		val = bpf_syscall_get_argument(data, 3);
-		if(bpf_probe_read_user(fds, 2 * sizeof(int), (void *)val))
+		void *val = (void *)bpf_syscall_get_argument(data, 3);
+		if(bpf_probe_read_user(fds, 2 * sizeof(int), val)) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
 
 		struct socket *sock = bpf_sockfd_lookup(data, fds[0]);
-
 		if(sock) {
 			us = (struct unix_sock *)_READ(sock->sk);
 			speer = _READ(us->peer);
 		}
 	}
-	/* fd1 */
+	/* Parameter 2: fd1 (type: PT_FD) */
 	res = bpf_push_s64_to_ring(data, (int64_t)fds[0]);
 	CHECK_RES(res);
 
-	/* fd2 */
+	/* Parameter 3: fd2 (type: PT_FD) */
 	res = bpf_push_s64_to_ring(data, (int64_t)fds[1]);
 	CHECK_RES(res);
 
-	/* source */
+	/* Parameter 4: source (type: PT_UINT64) */
 	res = bpf_push_u64_to_ring(data, (unsigned long)us);
 	CHECK_RES(res);
 
-	/* peer */
-	return bpf_push_u64_to_ring(data, (unsigned long)speer);
+	/* Parameter 5: peer (type: PT_UINT64) */
+	bpf_push_u64_to_ring(data, (unsigned long)speer);
+	CHECK_RES(res);
+
+	/* Parameter 6: domain (type: PT_ENUMFLAGS32) */
+	/* why to send 32 bits if we need only 8 bits? */
+	uint8_t domain = (uint8_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u32_to_ring(data, domain);
+	CHECK_RES(res);
+
+	/* Parameter 7: type (type: PT_UINT32) */
+	/* this should be an int, not an uint32 */
+	uint32_t type = (uint32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u32_to_ring(data, type);
+	CHECK_RES(res);
+
+	/* Parameter 8: proto (type: PT_UINT32) */
+	/* this should be an int, not an uint32 */
+	uint32_t proto = (uint32_t)bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, proto);
 }
 
 // TODO bpf_val_to_ring_dyn?

@@ -503,3 +503,58 @@ TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 	uint8_t how = 1;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
 }
+
+////////////////////////////
+// SOCKETPAIR
+////////////////////////////
+
+TEST_F(scap_file_test, socketpair_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SOCKETPAIR_E, 114);
+}
+
+TEST_F(scap_file_test, socketpair_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SOCKETPAIR_X, 114);
+}
+
+TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `839802` is the following:
+	// - type=PPME_SOCKET_SOCKETPAIR_X
+	// - ts=1687966732709347847
+	// - tid=118552
+	// - args=res=0 fd1=28(<u>) fd2=29(<u>) source=FFFF0003C2F15C00 peer=FFFF0003C2F16C00
+	//
+	// And its corresponding enter event `839801` is the following:
+	// - type=PPME_SOCKET_SOCKETPAIR_E
+	// - ts=1687966732709343195
+	// - tid=118552
+	// - args=domain=1(AF_LOCAL|AF_UNIX) type=524289 proto=0
+	//
+	// Let's see the new PPME_SOCKET_SOCKETPAIR_X event!
+
+	constexpr uint64_t ts = 1687966732709347847;
+	constexpr int64_t tid = 118552;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd1 = 28;
+	constexpr int64_t fd2 = 29;
+	constexpr uint64_t source = 0xFFFF0003C2F15C00;
+	constexpr uint64_t peer = 0xFFFF0003C2F16C00;
+	constexpr uint32_t domain = AF_UNIX;
+	constexpr uint32_t type = 524289;
+	constexpr uint32_t proto = 0;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SOCKET_SOCKETPAIR_X,
+	                                             8,
+	                                             res,
+	                                             fd1,
+	                                             fd2,
+	                                             source,
+	                                             peer,
+	                                             domain,
+	                                             type,
+	                                             proto));
+}

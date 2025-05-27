@@ -1325,26 +1325,35 @@ TEST(SyscallExit, socketcall_socketpairX_success) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
-	/* Parameter 2: fd1 (type: PT_FD)*/
+	/* Parameter 2: fd1 (type: PT_FD) */
 	evt_test->assert_numeric_param(2, (int64_t)fd[0]);
 
-	/* Parameter 3: fd2 (type: PT_FD)*/
+	/* Parameter 3: fd2 (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)fd[1]);
 
-	/* Parameter 4: source (type: PT_UINT64)*/
+	/* Parameter 4: source (type: PT_UINT64) */
 	/* Here we have a kernel pointer, we don't know the exact value. */
 	evt_test->assert_numeric_param(4, (uint64_t)0, NOT_EQUAL);
 
-	/* Parameter 5: peer (type: PT_UINT64)*/
+	/* Parameter 5: peer (type: PT_UINT64) */
 	/* Here we have a kernel pointer, we don't know the exact value. */
 	evt_test->assert_numeric_param(5, (uint64_t)0, NOT_EQUAL);
 
+	/* Parameter 6: domain (type: PT_ENUMFLAGS32) */
+	evt_test->assert_numeric_param(6, (uint32_t)PPM_AF_LOCAL);
+
+	/* Parameter 7: type (type: PT_UINT32) */
+	evt_test->assert_numeric_param(7, (uint32_t)type);
+
+	/* Parameter 8: proto (type: PT_UINT32) */
+	evt_test->assert_numeric_param(8, (uint32_t)protocol);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(8);
 }
 
 TEST(SyscallExit, socketcall_socketpairX_failure) {
@@ -1400,9 +1409,18 @@ TEST(SyscallExit, socketcall_socketpairX_failure) {
 	/* Parameter 5: peer (type: PT_UINT64) */
 	evt_test->assert_numeric_param(5, (uint64_t)0);
 
+	/* Parameter 6: domain (type: PT_ENUMFLAGS32) */
+	evt_test->assert_numeric_param(6, (uint32_t)PPM_AF_LOCAL);
+
+	/* Parameter 7: type (type: PT_UINT32) */
+	evt_test->assert_numeric_param(7, (uint32_t)type);
+
+	/* Parameter 8: proto (type: PT_UINT32) */
+	evt_test->assert_numeric_param(8, (uint32_t)protocol);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(8);
 }
 
 #endif

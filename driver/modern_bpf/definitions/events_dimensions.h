@@ -42,7 +42,7 @@
 #define GETPEERNAME_E_SIZE HEADER_LEN
 #define GETPEERNAME_X_SIZE HEADER_LEN
 #define SOCKETPAIR_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
-#define SOCKETPAIR_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
+#define SOCKETPAIR_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 8
 #define SETSOCKOPT_E_SIZE HEADER_LEN
 #define GETSOCKOPT_E_SIZE HEADER_LEN
 #define SENDMMSG_E_SIZE HEADER_LEN

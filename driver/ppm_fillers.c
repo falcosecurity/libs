@@ -1815,20 +1815,14 @@ int f_sys_socketpair_x(struct event_filler_arguments *args) {
 	struct unix_sock *us;
 	struct sock *speer;
 
-	/*
-	 * retval
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * If the call was successful, copy the FDs
-	 */
+	/* In case of success we have 0. */
 	if(likely(retval == 0)) {
-		/*
-		 * fds
-		 */
+		/* Get new sockets file descriptors. */
 		syscall_get_arguments_deprecated(args, 3, 1, &val);
 #ifdef CONFIG_COMPAT
 		if(!args->compat) {
@@ -1842,13 +1836,15 @@ int f_sys_socketpair_x(struct event_filler_arguments *args) {
 		}
 #endif
 
+		/* Parameter 2: fd1 (type: PT_FD) */
 		res = val_to_ring(args, (int64_t)fds[0], 0, false, 0);
 		CHECK_RES(res);
 
+		/* Parameter 3: fd2 (type: PT_FD) */
 		res = val_to_ring(args, (int64_t)fds[1], 0, false, 0);
 		CHECK_RES(res);
 
-		/* get socket source and peer address */
+		/* Get socket source and peer address. */
 		sock = sockfd_lookup(fds[0], &err);
 		if(likely(sock != NULL)) {
 			us = unix_sk(sock->sk);
@@ -1882,6 +1878,21 @@ int f_sys_socketpair_x(struct event_filler_arguments *args) {
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
 	}
+
+	/* Parameter 2: domain (type: PT_ENUMFLAGS32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: type (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: proto (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
