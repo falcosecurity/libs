@@ -376,8 +376,30 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	ASSERT_FALSE(field_has_value(evt, "fd.name", filterlist));
 	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname", filterlist), src_pl->name());
 	ASSERT_EQ(get_field_as_string(evt, "sample.hello", filterlist), "hello world");
-	ASSERT_EQ(get_value_offset_start(evt, "sample.hello", filterlist, 0), 0);
-	ASSERT_EQ(get_value_offset_length(evt, "sample.hello", filterlist, 0), 11);
+
+	auto offset = get_value_offset_start(evt, "sample.hello", filterlist, 0);
+	ASSERT_EQ(offset, PLUGIN_EVENT_PAYLOAD_OFFSET);
+	auto length = get_value_offset_length(evt, "sample.hello", filterlist, 0);
+	ASSERT_EQ(length, 11);
+
+	const auto raw_evt = reinterpret_cast<const char*>(evt->get_scap_evt());
+	for(int i = 0; i < evt->get_scap_evt()->len; i++) {
+		printf("%02x ", (unsigned char)raw_evt[i]);
+	}
+	printf("\n");
+	for(int i = 0; i < evt->get_scap_evt()->len; i++) {
+		char c = ' ';
+		if(i >= offset && i < offset + length) {
+			c = '^';
+		}
+		printf("%c%c%c", c, c, c);
+	}
+	printf("\n");
+
+	// Note: here we are asserting that the exact bytes are present in the event payload
+	// This does not need to hold for all plugins (e.g. due to serialization format)
+	// but is a useful check here to validate we got the offsets correct.
+	ASSERT_EQ(memcmp(raw_evt + offset, "hello world", 11), 0);
 	ASSERT_EQ(next_event(), nullptr);  // EOF is expected
 }
 
