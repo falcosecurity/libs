@@ -221,10 +221,11 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 
 	case PT_BYTEBUF:
 	case PT_CHARBUFARRAY:
+	case PT_DYN:
 		printf("PARAM %d:\n", num_param);
 		for(int j = 0; j < len; j++) {
-			const char val = *(char *)(valptr + j);
-			printf("%c(%02hhx)\n", val, val);
+			const char val = *(valptr + j);
+			printf("%c (%02hhx)\n", val, val);
 		}
 		printf("\n");
 		break;
