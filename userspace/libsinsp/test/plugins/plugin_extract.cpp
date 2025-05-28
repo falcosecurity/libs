@@ -35,6 +35,8 @@ namespace {
 struct plugin_state {
 	std::string lasterr;
 	std::string strstorage;
+	std::vector<uint32_t> offsets;
+	std::vector<uint32_t> lengths;
 	const char* strptr;
 	std::vector<uint16_t> event_types;
 	ss_plugin_owner_t* owner;
@@ -130,6 +132,12 @@ ss_plugin_rc plugin_extract_fields(ss_plugin_t* s,
                                    const ss_plugin_event_input* ev,
                                    const ss_plugin_field_extract_input* in) {
 	auto ps = reinterpret_cast<plugin_state*>(s);
+
+	if(in->value_offsets) {
+		ps->offsets.resize(in->num_fields);
+		ps->lengths.resize(in->num_fields);
+	}
+
 	for(uint32_t i = 0; i < in->num_fields; i++) {
 		switch(in->fields[i].field_id) {
 		case 0:  // test.hello
@@ -141,14 +149,18 @@ ss_plugin_rc plugin_extract_fields(ss_plugin_t* s,
 			in->fields[i].res.str = &ps->strptr;
 			in->fields[i].res_len = 1;
 			if(in->value_offsets) {
-				in->value_offsets[i].start = &res_start;
-				in->value_offsets[i].length = &res_length;
+				ps->offsets[i] = PLUGIN_EVENT_PAYLOAD_OFFSET + res_start;
+				ps->lengths[i] = res_length;
 			}
 		} break;
 		default:
 			in->fields[i].res_len = 0;
 			return SS_PLUGIN_FAILURE;
 		}
+	}
+	if(in->value_offsets) {
+		in->value_offsets->start = ps->offsets.data();
+		in->value_offsets->length = ps->lengths.data();
 	}
 	return SS_PLUGIN_SUCCESS;
 }

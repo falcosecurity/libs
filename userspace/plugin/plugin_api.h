@@ -46,6 +46,15 @@ extern "C" {
 //
 #define PLUGIN_MAX_ERRLEN 1024
 
+// The offset in the event where a plugin event payload starts
+// Since the event payload is at a fixed offset, you can add this value
+// to the start of an extracted field within the payload to get the offset
+// from the start of the event.
+//
+// 26 bytes for the event header, plus 2*4 bytes for the parameter lengths,
+// plus 4 bytes for the plugin ID.
+#define PLUGIN_EVENT_PAYLOAD_OFFSET 38
+
 // Supported by the API but deprecated. Use the extended version ss_plugin_table_reader_vtable_ext
 // instead. todo(jasondellaluce): when/if major changes to v4, remove this and give this name to the
 // associated *_ext struct.
@@ -371,9 +380,13 @@ typedef struct ss_plugin_field_extract_input {
 	// Vtable for controlling a state table for read operations.
 	ss_plugin_table_reader_vtable_ext* table_reader_ext;
 
-	// An array of ss_plugin_extract_value_offsets structs. The start
-	// and length in each entry should be set to nullptr, and as with
-	// the "fields" member, memory pointers set as output must be
+	// An optional ss_plugin_extract_value_offsets struct. If set, the plugin
+	// is expected to allocate two arrays of size num_fields, one for
+	// the offsets and one for the lengths of the extracted values.
+	// The offsets are counted starting from the beginning of the event
+	// (including the header), and the lengths are the number of bytes
+	// that the extracted value occupies in the event data.
+	// As with the "fields" member, memory pointers set as output must be
 	// allocated by the plugin and must not be deallocated or modified
 	// until the next extract_fields() call.
 	// This member is optional, and might be ignored by extractors.
