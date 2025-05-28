@@ -37,10 +37,7 @@ struct extract_value_t {
 /**
  * @brief Represents a field offset extracted when evaluating a filter
  */
-struct extract_offset_t {
-	uint32_t start = UINT32_MAX;
-	uint32_t length = UINT32_MAX;
-};
+using extract_offset_t = ss_plugin_extract_value_offsets;
 
 /**
  * @brief Represents a cache value storage for value extraction in filters

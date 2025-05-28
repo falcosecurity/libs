@@ -371,11 +371,12 @@ typedef struct ss_plugin_field_extract_input {
 	// Vtable for controlling a state table for read operations.
 	ss_plugin_table_reader_vtable_ext* table_reader_ext;
 
-	// An array of ss_plugin_extract_value_offsets structs. The start
-	// and length in each entry should be set to nullptr, and as with
-	// the "fields" member, memory pointers set as output must be
-	// allocated by the plugin and must not be deallocated or modified
-	// until the next extract_fields() call.
+	// An optional array of ss_plugin_extract_value_offsets structs, capable
+	// of holding (at least) num_fields elements.
+	// If set, the plugin is then expected to fill it with the offsets and lengths
+	// of the extracted values. The offsets are counted starting from the beginning
+	// of the event (including the header), and the lengths are the number of bytes
+	// that the extracted value occupies in the event data.
 	// This member is optional, and might be ignored by extractors.
 	ss_plugin_extract_value_offsets* value_offsets;
 } ss_plugin_field_extract_input;

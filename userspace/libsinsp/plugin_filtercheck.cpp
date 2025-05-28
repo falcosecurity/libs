@@ -170,10 +170,16 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 	efield.arg_present = m_arg_present;
 	efield.ftype = type;
 	efield.flist = m_info->m_fields[m_field_id].m_flags & EPF_IS_LIST;
-	ss_plugin_extract_value_offsets eoffset = {nullptr, nullptr};
+
+	if(offsets) {
+		if(offsets->size() < num_fields) {
+			offsets->resize(num_fields, {UINT32_MAX, UINT32_MAX});
+		}
+	}
+
 	ss_plugin_extract_value_offsets* eoptr = nullptr;
 	if(offsets) {
-		eoptr = &eoffset;
+		eoptr = offsets->data();
 	}
 	if(!m_eplugin->extract_fields_and_offsets(evt, num_fields, &efield, eoptr) ||
 	   efield.res_len == 0) {
@@ -214,10 +220,6 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
 			break;
 		}
 		values.push_back(res);
-
-		if(offsets && eoffset.start && eoffset.length) {
-			offsets->emplace_back(extract_offset_t{eoffset.start[i], eoffset.length[i]});
-		}
 	}
 
 	return true;

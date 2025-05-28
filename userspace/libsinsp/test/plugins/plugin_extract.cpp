@@ -141,8 +141,8 @@ ss_plugin_rc plugin_extract_fields(ss_plugin_t* s,
 			in->fields[i].res.str = &ps->strptr;
 			in->fields[i].res_len = 1;
 			if(in->value_offsets) {
-				in->value_offsets[i].start = &res_start;
-				in->value_offsets[i].length = &res_length;
+				in->value_offsets[i].start = res_start;
+				in->value_offsets[i].length = res_length;
 			}
 		} break;
 		default:
