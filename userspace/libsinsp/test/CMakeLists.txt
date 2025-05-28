@@ -46,10 +46,10 @@ if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x") AND ${SCAP_FILES_SUITE_
 	# Binary dir in which we will save all our Cmake files
 	file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/scap_files")
 	# Add here the name for new scap-files
-	set(SCAP_FILE_NAMES "kexec_arm64.scap" "kexec_x86.scap" "sample.scap" "scap_2013.scap")
-	set(SCAP_FILE_DOWNLOAD_PREFIX
-		"https://falco-distribution.s3.eu-west-1.amazonaws.com/fixtures/libs/scap_files"
+	set(SCAP_FILE_NAMES "kexec_arm64.scap" "kexec_x86.scap" "sample.scap" "scap_2013.scap"
+						"ptrace.scap"
 	)
+	set(SCAP_FILE_DOWNLOAD_PREFIX "https://download.falco.org/fixtures/libs/scap_files")
 	message(STATUS "Download all scap-files from: ${SCAP_FILE_DOWNLOAD_PREFIX}")
 	foreach(FILE_NAME ${SCAP_FILE_NAMES})
 		message(STATUS "Downloading scap-file: ${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}")
