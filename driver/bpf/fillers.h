@@ -4635,24 +4635,103 @@ FILLER(sys_sendmsg_x, true) {
 	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Extract socket fd and msghdr pointer syscall parameters. */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	unsigned long mh_pointer = bpf_syscall_get_argument(data, 1);
+
+	/* Extract the content of msghdr and use it to derive the parameters. */
 	struct user_msghdr mh = {0};
-	unsigned long msghdr_pointer = bpf_syscall_get_argument(data, 1);
-	if(bpf_probe_read_user(&mh, sizeof(mh), (void *)msghdr_pointer)) {
-		/* in case of NULL msghdr we return an empty param */
+
+	if(unlikely(bpf_probe_read_user(&mh, sizeof(mh), (void *)mh_pointer) < 0)) {
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		res = bpf_push_empty_param(data);
+		CHECK_RES(res);
+
+		/* Parameter 3: fd (type: PT_FD) */
+		res = bpf_push_s64_to_ring(data, fd);
+		CHECK_RES(res);
+
+		/* Parameter 4: size (type: PT_UINT32) */
+		res = bpf_push_empty_param(data);
+		CHECK_RES(res);
+
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
 		return bpf_push_empty_param(data);
 	}
 
 	const struct iovec *iov = (const struct iovec *)mh.msg_iov;
 	unsigned long iovcnt = mh.msg_iovlen;
 
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	res = bpf_parse_readv_writev_bufs(data,
 	                                  iov,
 	                                  iovcnt,
 	                                  retval,
 	                                  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	CHECK_RES(res);
 
-	return res;
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, 0, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	CHECK_RES(res);
+
+	if(retval < 0) {
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		return bpf_push_empty_param(data);
+	}
+
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sys_sendmsg_x_2);
+	bpf_printk("Can't tail call f_sys_sendmsg_x_2 filler\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(sys_sendmsg_x_2, true) {
+	/* Extract the content of msghdr and use it to derive the parameters. */
+	struct user_msghdr mh = {0};
+	unsigned long mh_pointer = bpf_syscall_get_argument(data, 1);
+	if(unlikely(bpf_probe_read_user(&mh, sizeof(mh), (void *)mh_pointer) < 0)) {
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+
+	/* Get the address and address len */
+	struct sockaddr __user *usrsockaddr = (struct sockaddr __user *)mh.msg_name;
+	unsigned long usrsockaddr_len = mh.msg_namelen;
+
+	/* Evaluate socktuple, leveraging the user-provided sockaddr if possible */
+	struct sockaddr *ksockaddr = (struct sockaddr *)data->tmp_scratch;
+	bool use_sockaddr_user_data = false;
+	bool push_socktuple = true;
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory */
+		int res = bpf_addr_to_kernel(usrsockaddr, usrsockaddr_len, ksockaddr);
+		if(likely(res >= 0)) {
+			/* Convert the fd into socket endpoint information */
+			use_sockaddr_user_data = true;
+		} else {
+			/* Do not send any socket endpoint information */
+			push_socktuple = false;
+		}
+	}
+
+	uint32_t socktuple_size = 0;
+	if(push_socktuple) {
+		int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+		/* Convert the fd into socket endpoint information */
+		socktuple_size = bpf_fd_to_socktuple(data,
+		                                     fd,
+		                                     ksockaddr,
+		                                     usrsockaddr_len,
+		                                     use_sockaddr_user_data,
+		                                     false,
+		                                     data->tmp_scratch + sizeof(struct sockaddr_storage));
+	}
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, socktuple_size);
 }
 
 FILLER(sys_sendmmsg_x, true) {

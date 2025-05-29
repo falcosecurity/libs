@@ -669,6 +669,15 @@ TEST_F(sys_call_test, udp_client_server_sendmsg) {
 			EXPECT_EQ((int)BUFFER_LENGTH, std::stoi(e->get_param_value_str("size")));
 		} else if(type == PPME_SOCKET_SENDMSG_X) {
 			EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
+
+			EXPECT_EQ((int)BUFFER_LENGTH, std::stoi(e->get_param_value_str("size")));
+
+			parse_tuple(e->get_param_value_str("tuple"), src_addr, src_port, dst_addr, dst_port);
+
+			EXPECT_EQ("0.0.0.0", src_addr);
+			EXPECT_TRUE(udps.is_server_port(src_port));
+			EXPECT_EQ(udps.server_address(), dst_addr);
+			EXPECT_NE("0", dst_port);
 		}
 	};
 
@@ -724,6 +733,15 @@ TEST_F(sys_call_test, udp_client_server_sendmsg_2buf) {
 			EXPECT_EQ((int)BUFFER_LENGTH, std::stoi(e->get_param_value_str("size")));
 		} else if(type == PPME_SOCKET_SENDMSG_X) {
 			EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
+
+			EXPECT_EQ((int)BUFFER_LENGTH, std::stoi(e->get_param_value_str("size")));
+
+			parse_tuple(e->get_param_value_str("tuple"), src_addr, src_port, dst_addr, dst_port);
+
+			EXPECT_EQ("0.0.0.0", src_addr);
+			EXPECT_TRUE(udps.is_server_port(src_port));
+			EXPECT_EQ(udps.server_address(), dst_addr);
+			EXPECT_NE("0", dst_port);
 		}
 	};
 

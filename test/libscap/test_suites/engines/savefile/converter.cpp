@@ -1102,6 +1102,99 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// SENDMSG
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDMSG_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint32_t size = 5;
+	constexpr char tuple[] = "tuple";
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SOCKET_SENDMSG_E,
+	                                        3,
+	                                        fd,
+	                                        size,
+	                                        scap_const_sized_buffer{tuple, sizeof(tuple)});
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDMSG_X_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+
+	// Defaulted
+	constexpr int64_t fd = 0;
+	constexpr uint32_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDMSG_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDMSG_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd,
+	                               size,
+	                               scap_const_sized_buffer{nullptr, 0}));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDMSG_X_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fd = 25;
+	constexpr char data[] = "hello";
+	constexpr int32_t size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SOCKET_SENDMSG_E,
+	                                        3,
+	                                        fd,
+	                                        size,
+	                                        scap_const_sized_buffer{tuple, sizeof(tuple)});
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDMSG_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_SENDMSG_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, size},
+	                               fd,
+	                               size,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)}));
+}
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 

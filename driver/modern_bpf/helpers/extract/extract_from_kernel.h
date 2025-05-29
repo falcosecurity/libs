@@ -10,6 +10,7 @@
 
 #include <helpers/base/maps_getters.h>
 #include <helpers/base/read_from_task.h>
+#include <helpers/base/shared_size.h>
 #include <driver/ppm_flag_helpers.h>
 
 #if __has_include(<sys/syscall.h>)
@@ -1030,4 +1031,48 @@ static __always_inline struct socket *get_sock_from_file(struct file *file) {
 		return NULL;
 	}
 	return (struct socket *)BPF_CORE_READ(file, private_data);
+}
+
+///////////////////////////
+// EXTRACT FROM MSGHDR
+///////////////////////////
+
+/**
+ * @brief Read the msghdr pointed by `msghdr_pointer` and store it in `msghdr` location.
+ * @param msghdr pointer to the user_msghdr struct used to store the read msghdr.
+ * @param msghdr_pointer pointer to the msghdr to be read.
+ * @return 0 on success, or a negative error in case of failure.
+ */
+static __always_inline long extract__msghdr(struct user_msghdr *msghdr,
+                                            unsigned long msghdr_pointer) {
+	return bpf_probe_read_user((void *)msghdr,
+	                           bpf_core_type_size(struct user_msghdr),
+	                           (void *)msghdr_pointer);
+}
+
+/**
+ * @brief Extract the size of a message extracted from an `iovec` struct array.
+ * @param scratch_space pointer the scratch space on which iovecs are read.
+ * @param scratch_space_size scratch space total size.
+ * @param iov_pointer pointer to `iovec` struct array.
+ * @param iov_cnt number of `iovec` structs.
+ * @return the size of the message on success, or 0 in case of failure.
+ */
+static __always_inline uint32_t extract__iovec_size(void *scratch_space,
+                                                    uint32_t scratch_space_size,
+                                                    unsigned long iov_pointer,
+                                                    unsigned long iov_cnt) {
+	if(bpf_probe_read_user(scratch_space, scratch_space_size, (void *)iov_pointer)) {
+		return 0;
+	}
+
+	uint32_t total_size_to_read = 0;
+	const struct iovec *iovec = (const struct iovec *)scratch_space;
+	for(int i = 0; i < MAX_IOVCNT; i++) {
+		if(i == iov_cnt) {
+			break;
+		}
+		total_size_to_read += iovec[i].iov_len;
+	}
+	return total_size_to_read;
 }

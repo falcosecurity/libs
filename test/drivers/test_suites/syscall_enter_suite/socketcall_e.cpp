@@ -744,7 +744,7 @@ TEST(SyscallEnter, socketcall_sendmsgE) {
 	/* Parameter 2: size (type: PT_UINT32)*/
 	evt_test->assert_numeric_param(2, (uint32_t)FULL_MESSAGE_LEN);
 
-	/* Parameter 3: addr (type: PT_SOCKADDR)*/
+	/* Parameter 3: addr (type: PT_SOCKADDR) */
 	/* The client performs a `sendmsg` to the server so the src_ipv4 is the client one. */
 	evt_test->assert_tuple_inet_param(3,
 	                                  PPM_AF_INET,

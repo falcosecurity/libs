@@ -112,7 +112,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_GETRLIMIT_E:
 	case PPME_SYSCALL_SETRLIMIT_E:
 	case PPME_SYSCALL_PRLIMIT_E:
-	case PPME_SOCKET_SENDMSG_E:
 	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_SETRESUID_E:
 	case PPME_SYSCALL_SETRESGID_E:
@@ -2568,7 +2567,7 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 }
 
 /**
- * If we receive a call to 'sendto()' and the event's m_fdinfo is nullptr,
+ * If we receive a call to 'send()/sendto()/sendmsg()' and the event's m_fdinfo is nullptr,
  * then we likely missed the call to 'socket()' that created the file
  * descriptor.  In that case, we'll guess that it's a SOCK_DGRAM/UDP socket
  * and create the fdinfo based on that.
@@ -2577,7 +2576,7 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
  *                evt.get_tinfo() != nullptr
  *
  */
-inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt &evt) const {
+inline void sinsp_parser::infer_send_sendto_sendmsg_fdinfo(sinsp_evt &evt) const {
 	if((evt.get_fd_info() != nullptr) || (evt.get_tinfo() == nullptr)) {
 		return;
 	}
@@ -2588,7 +2587,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt &evt) const {
 	const sinsp_evt_param *parinfo = nullptr;
 
 	if(evt.get_syscall_return_value() < 0) {
-		// Call to sendto() failed so we cannot trust parameters provided by the user.
+		// Call to send*() failed so we cannot trust parameters provided by the user.
 		return;
 	}
 
@@ -2604,7 +2603,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt &evt) const {
 
 #ifndef _WIN32
 		SINSP_DEBUG(
-		        "Call to sendto() with fd=%d; missing socket() "
+		        "Call to send*() with fd=%d; missing socket() "
 		        "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
 		        "for command '%s', pid %d",
 		        fd,
@@ -2613,7 +2612,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt &evt) const {
 		        evt.get_tinfo()->m_pid);
 #endif
 
-		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
+		// Here we're assuming send*() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
 		// this point.
 		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP);
@@ -3704,9 +3703,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		return;
 	}
 
-	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X) &&
+	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
+	    etype == PPME_SOCKET_SENDMSG_X) &&
 	   evt.get_fd_info() == nullptr && evt.get_tinfo() != nullptr) {
-		infer_sendto_fdinfo(evt);
+		infer_send_sendto_sendmsg_fdinfo(evt);
 	}
 
 	if(evt.get_fd_info() == nullptr) {
@@ -3832,27 +3832,12 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
 			    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
 			   (evt.get_fd_info()->m_name.length() == 0 || !evt.get_fd_info()->is_tcp_socket())) {
-				//
-				// send, sendto and sendmmsg contain tuple info in the exit event while sendmsg
-				// contains them into enter event.
+				// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event.
 				// If the fd still doesn't contain tuple info (because the socket is a datagram one
 				// or because some event was lost), add it here.
-				//
-				sinsp_evt *src_evt;
-				int32_t tupleparam = -1;
-				sinsp_evt &enter_evt = m_tmp_evt;
-				if(etype == PPME_SOCKET_SENDMSG_X) {
-					if(!retrieve_enter_event(enter_evt, evt)) {
-						return;
-					}
-					src_evt = &enter_evt;
-					tupleparam = 2;
-				} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X or PPME_SOCKET_SENDMMSG_X
-					src_evt = &evt;
-					tupleparam = 4;
-				}
+				constexpr uint32_t FILE_DESCRIPTOR_PARAM = 4;
 
-				if(update_fd(evt, *src_evt->get_param(tupleparam))) {
+				if(update_fd(evt, *evt.get_param(FILE_DESCRIPTOR_PARAM))) {
 					scap_fd_type fdtype = evt.get_fd_info()->m_type;
 
 					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
@@ -3873,9 +3858,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 						evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
 					} else {
 						const char *parstr;
-						evt.get_fd_info()->m_name = src_evt->get_param_as_str(tupleparam,
-						                                                      &parstr,
-						                                                      sinsp_evt::PF_SIMPLE);
+						evt.get_fd_info()->m_name = evt.get_param_as_str(FILE_DESCRIPTOR_PARAM,
+						                                                 &parstr,
+						                                                 sinsp_evt::PF_SIMPLE);
 					}
 				}
 			}
