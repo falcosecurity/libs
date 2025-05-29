@@ -75,28 +75,71 @@ int BPF_PROG(sendmsg_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* Collect parameters at the beginning to manage socketcalls */
+	/* Collect parameters at the beginning to manage socketcalls. */
 	unsigned long args[2] = {0};
 	extract__network_args(args, 2, regs);
 
-	/* In case of failure `bytes_to_read` could be also lower than `snaplen`
-	 * but we will discover it directly into `auxmap__store_iovec_data_param`
-	 * otherwise we need to extract it now and it has a cost. Here we check just
-	 * the return value if the syscall is successful.
-	 */
-	uint16_t snaplen = maps__get_snaplen();
-	dynamic_snaplen_args snaplen_args = {
-	        .only_port_range = true,
-	        .evt_type = PPME_SOCKET_SENDMSG_X,
-	};
-	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
-	if(ret > 0 && snaplen > ret) {
-		snaplen = ret;
-	}
-
-	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Extract socket fd and msghdr pointer syscall parameters. */
+	int64_t fd = (int32_t)args[0];
 	unsigned long msghdr_pointer = args[1];
-	auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, snaplen);
+
+	/* Extract the content of msghdr and use it to derive the parameters. */
+	struct user_msghdr msghdr = {0};
+	if(unlikely(extract__msghdr(&msghdr, msghdr_pointer) < 0)) {
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		auxmap__store_empty_param(auxmap);
+
+		/* Parameter 3: fd (type: PT_FD) */
+		auxmap__store_s64_param(auxmap, fd);
+
+		/* Parameter 4: size (type: PT_UINT32) */
+		auxmap__store_empty_param(auxmap);
+
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		auxmap__store_empty_param(auxmap);
+	} else {
+		/* In case of failure `bytes_to_read` could be also lower than `snaplen`
+		 * but we will discover it directly into `auxmap__store_iovec_data_param`
+		 * otherwise we need to extract it now and it has a cost. Here we check just
+		 * the return value if the syscall is successful.
+		 */
+		uint16_t snaplen = maps__get_snaplen();
+		dynamic_snaplen_args snaplen_args = {
+		        .only_port_range = true,
+		        .evt_type = PPME_SOCKET_SENDMSG_X,
+		};
+		apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
+		if(ret > 0 && snaplen > ret) {
+			snaplen = ret;
+		}
+
+		unsigned long iov_pointer = (unsigned long)msghdr.msg_iov;
+		uint32_t iov_cnt = msghdr.msg_iovlen;
+
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		auxmap__store_iovec_data_param(auxmap, (unsigned long)iov_pointer, iov_cnt, snaplen);
+
+		/* Parameter 3: fd (type: PT_FD) */
+		auxmap__store_s64_param(auxmap, fd);
+
+		/* Parameter 4: size (type: PT_UINT32) */
+		/* Use the second part of our auxmap as a scratch space for the `extract__iovec_size` helper
+		 * to read the iovec structs in. */
+		void *scratch_space = (void *)&auxmap->data[MAX_PARAM_SIZE];
+		uint32_t scratch_space_size = SAFE_ACCESS(iov_cnt * bpf_core_type_size(struct iovec));
+		uint32_t size =
+		        extract__iovec_size(scratch_space, scratch_space_size, iov_pointer, iov_cnt);
+		auxmap__store_u32_param(auxmap, size);
+
+		/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+		if(ret >= 0) {
+			struct sockaddr *usrsockaddr = (struct sockaddr *)msghdr.msg_name;
+			/* Notice: the following will push an empty parameter if something goes wrong. */
+			auxmap__store_socktuple_param(auxmap, fd, OUTBOUND, usrsockaddr);
+		} else {
+			auxmap__store_empty_param(auxmap);
+		}
+	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
