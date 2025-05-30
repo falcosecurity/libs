@@ -4300,19 +4300,13 @@ FILLER(sys_recvmsg_e, true) {
 }
 
 FILLER(sys_recvmsg_x, true) {
-	const struct iovec *iov;
-	struct user_msghdr mh;
-	unsigned long iovcnt;
-	unsigned long val;
-
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/* If the syscall fails we are not able to collect reliable params
-	 * so we return empty ones.
-	 */
+	 * so we return empty ones. */
 	if(retval < 0) {
 		/* Parameter 2: size (type: PT_UINT32) */
 		res = bpf_push_u32_to_ring(data, 0);
@@ -4327,22 +4321,25 @@ FILLER(sys_recvmsg_x, true) {
 		CHECK_RES(res);
 
 		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
-		return bpf_push_empty_param(data);
+		res = bpf_push_empty_param(data);
+		CHECK_RES(res);
+
+		/* Parameter 6: fd (type: PT_FD) */
+		int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+		return bpf_push_s64_to_ring(data, fd);
 	}
 
-	/*
-	 * Retrieve the message header
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	if(bpf_probe_read_user(&mh, sizeof(mh), (void *)val))
+	/* Extract the content of msghdr and use it to derive the parameters. */
+	unsigned long mh_pointer = bpf_syscall_get_argument(data, 1);
+	struct user_msghdr mh = {0};
+	if(unlikely(bpf_probe_read_user(&mh, sizeof(mh), (void *)mh_pointer) < 0)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
 
-	/*
-	 * data and size
-	 */
-	iov = (const struct iovec *)mh.msg_iov;
-	iovcnt = mh.msg_iovlen;
-
+	/* Parameter 2: size (type: PT_UINT32) */
+	/* Parameter 3: data (type: PT_BYTEBUF) */
+	const struct iovec *iov = (const struct iovec *)mh.msg_iov;
+	const unsigned long iovcnt = mh.msg_iovlen;
 	res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
 	CHECK_RES(res);
 
@@ -4352,60 +4349,54 @@ FILLER(sys_recvmsg_x, true) {
 }
 
 FILLER(sys_recvmsg_x_2, true) {
-	struct sockaddr *usrsockaddr;
-	struct user_msghdr mh;
-	unsigned long val;
-	uint16_t size = 0;
-	long retval;
-	int addrlen;
 	int res;
-	int fd;
 
-	retval = bpf_syscall_get_retval(data->ctx);
-
-	/*
-	 * tuple and msg_control
-	 */
-
-	/*
-	 * Retrieve the message header
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	if(bpf_probe_read_user(&mh, sizeof(mh), (void *)val))
+	/* Retrieve the message header. */
+	unsigned long mh_pointer = bpf_syscall_get_argument(data, 1);
+	struct user_msghdr mh = {0};
+	if(unlikely(bpf_probe_read_user(&mh, sizeof(mh), (void *)mh_pointer) < 0)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
 
-	/*
-	 * Get the address
-	 */
-	usrsockaddr = (struct sockaddr *)mh.msg_name;
-	addrlen = mh.msg_namelen;
+	/* Get the address and address len */
+	struct sockaddr __user *usrsockaddr = (struct sockaddr __user *)mh.msg_name;
+	unsigned long usrsockaddr_len = mh.msg_namelen;
 
-	if(usrsockaddr && addrlen != 0) {
-		/*
-		 * Copy the address
-		 */
-		res = bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)data->tmp_scratch);
-
-		if(res >= 0) {
-			fd = bpf_syscall_get_argument(data, 0);
-
-			/*
-			 * Convert the fd into socket endpoint information
-			 */
-			size = bpf_fd_to_socktuple(data,
-			                           fd,
-			                           (struct sockaddr *)data->tmp_scratch,
-			                           addrlen,
-			                           true,
-			                           true,
-			                           data->tmp_scratch + sizeof(struct sockaddr_storage));
+	/* Evaluate socktuple, leveraging the user-provided sockaddr if possible */
+	struct sockaddr *ksockaddr = (struct sockaddr *)data->tmp_scratch;
+	bool use_sockaddr_user_data = false;
+	bool push_socktuple = true;
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory */
+		res = bpf_addr_to_kernel(usrsockaddr, usrsockaddr_len, ksockaddr);
+		if(likely(res >= 0)) {
+			/* Convert the fd into socket endpoint information */
+			use_sockaddr_user_data = true;
+		} else {
+			/* Do not send any socket endpoint information */
+			push_socktuple = false;
 		}
 	}
 
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	uint32_t socktuple_size = 0;
+	if(push_socktuple) {
+		/* Convert the fd into socket endpoint information */
+		socktuple_size = bpf_fd_to_socktuple(data,
+		                                     fd,
+		                                     ksockaddr,
+		                                     usrsockaddr_len,
+		                                     use_sockaddr_user_data,
+		                                     true,
+		                                     data->tmp_scratch + sizeof(struct sockaddr_storage));
+	}
+
+	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 	data->curarg_already_on_frame = true;
-	res = __bpf_val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false, KERNEL);
+	res = bpf_val_to_ring_len(data, 0, socktuple_size);
 	CHECK_RES(res);
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 	if(mh.msg_control != NULL) {
 		res = __bpf_val_to_ring(data,
 		                        (unsigned long)mh.msg_control,
@@ -4417,8 +4408,10 @@ FILLER(sys_recvmsg_x_2, true) {
 	} else {
 		res = bpf_push_empty_param(data);
 	}
+	CHECK_RES(res);
 
-	return res;
+	/* Parameter 6: fd (type: PT_FD) */
+	return bpf_push_s64_to_ring(data, fd);
 }
 
 FILLER(sys_recvmmsg_x, true) {

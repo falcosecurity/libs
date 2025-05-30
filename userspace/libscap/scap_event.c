@@ -557,6 +557,8 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SOCKET_RECVFROM_X:
 		location = 3;
 		break;
+	case PPME_SOCKET_RECVMSG_X:
+		location = 5;
 	default:
 		break;
 	}

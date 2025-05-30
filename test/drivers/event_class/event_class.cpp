@@ -979,10 +979,10 @@ void event_test::connect_ipv6_udp_client_to_server(int32_t* client_socket,
 	                     -1);
 }
 
-void event_test::connect_unix_client_to_server(int32_t* client_socket,
-                                               sockaddr_un* client_sockaddr,
-                                               int32_t* server_socket,
-                                               sockaddr_un* server_sockaddr) {
+void event_test::connect_unix_tcp_client_to_server(int32_t* client_socket,
+                                                   sockaddr_un* client_sockaddr,
+                                                   int32_t* server_socket,
+                                                   sockaddr_un* server_sockaddr) {
 	/* Create the server socket. */
 	*server_socket = syscall(__NR_socket, AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", *server_socket, NOT_EQUAL, -1);

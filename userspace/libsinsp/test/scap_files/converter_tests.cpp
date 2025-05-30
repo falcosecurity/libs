@@ -625,6 +625,74 @@ TEST_F(scap_file_test, sendmsg_x_check_final_converted_event) {
 #endif
 
 ////////////////////////////
+// RECVMSG
+////////////////////////////
+
+TEST_F(scap_file_test, recvmsg_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_RECVMSG_E, 522);
+}
+
+TEST_F(scap_file_test, recvmsg_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_RECVMSG_X, 522);
+}
+
+// Compile out this test if test_utils helpers are not defined.
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `593019` is the following:
+	// - type=PPME_SOCKET_RECVMSG_X
+	// - ts=1687966725502520629
+	// - tid=493
+	// args=res=73 size=73 data=...
+	// .........ip-172-31-24-0.eu-central-1.compute.internal.......)........
+	// tuple=127.0.0.1:47288->127.0.0.53:53
+	//
+	// And its corresponding enter event `593018` is the following:
+	// - type=PPME_SOCKET_RECVMSG_E
+	// - ts=1687966725502515632
+	// - tid=493
+	// - args=fd=13(<4u>127.0.0.1:40646->127.0.0.53:53)
+	//
+	// Let's see the new PPME_SOCKET_RECVMSG_X event!
+
+	constexpr uint64_t ts = 1687966725502520629;
+	constexpr int64_t tid = 493;
+
+	constexpr int64_t res = 73;
+	constexpr int32_t size = res;
+	constexpr uint8_t data[] = {0xe5, 0xa9, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+	                            0x01, 0x0e, 'i',  'p',  '-',  '1',  '7',  '2',  '-',  '3',  '1',
+	                            '-',  '2',  '4',  '-',  '0',  0x0c, 'e',  'u',  '-',  'c',  'e',
+	                            'n',  't',  'r',  'a',  'l',  '-',  '1',  0x07, 'c',  'o',  'm',
+	                            'p',  'u',  't',  'e',  0x08, 'i',  'n',  't',  'e',  'r',  'n',
+	                            'a',  'l',  0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x04,
+	                            0xb0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	sockaddr_in client_sockaddr = test_utils::fill_sockaddr_in(47288, "127.0.0.1");
+	sockaddr_in server_sockaddr = test_utils::fill_sockaddr_in(53, "127.0.0.53");
+	const std::vector<uint8_t> tuple =
+	        test_utils::pack_socktuple(reinterpret_cast<struct sockaddr *>(&client_sockaddr),
+	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
+	constexpr int64_t fd = 13;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               6,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, sizeof(data)},
+	                               scap_const_sized_buffer{tuple.data(), tuple.size()},
+	                               scap_const_sized_buffer{nullptr, 0},
+	                               fd));
+}
+#endif
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 

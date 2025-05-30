@@ -3225,33 +3225,38 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int64_t retval;
+	int64_t fd;
+	unsigned long mh_pointer;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
+	struct msghdr mh;
+#endif
 	const struct iovec __user *iov;
 #ifdef CONFIG_COMPAT
 	const struct compat_iovec __user *compat_iov;
 	struct compat_msghdr compat_mh;
 #endif
 	unsigned long iovcnt;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
-	struct user_msghdr mh;
-#else
-	struct msghdr mh;
-#endif
-	char *targetbuf = args->str_storage;
-	int fd;
+	int usrsockaddr_len;
 	struct sockaddr __user *usrsockaddr;
 	struct sockaddr_storage address;
-	uint16_t size = 0;
-	int addrlen;
-	int err = 0;
+	struct sockaddr *ksockaddr = NULL;
+	unsigned long sockaddr_len = 0;
+	bool use_sockaddr = false;
+	char *targetbuf = args->str_storage;
+	uint16_t tuple_size = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/* If the syscall fails we are not able to collect reliable params
-	 * so we return empty ones.
-	 */
+	/* Extract fd syscall parameter for later usage. */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int64_t)(int32_t)val;
+
+	/* If the syscall fails we are not able to collect reliable params so we return empty ones. */
 	if(retval < 0) {
 		/* Parameter 2: size (type: PT_UINT32) */
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -3269,97 +3274,89 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args) {
 		res = push_empty_param(args);
 		CHECK_RES(res);
 
+		/* Parameter 6: fd (type: PT_FD) */
+		res = val_to_ring(args, fd, 0, false, 0);
+		CHECK_RES(res);
+
 		return add_sentinel(args);
 	}
 
-	/*
-	 * Retrieve the message header
-	 */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	/* Extract the content of msghdr and use it to derive the parameters. */
+	syscall_get_arguments_deprecated(args, 1, 1, &mh_pointer);
 
 #ifdef CONFIG_COMPAT
 	if(!args->compat) {
 #endif
-		if(unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
+		if(unlikely(ppm_copy_from_user(&mh, (const void __user *)mh_pointer, sizeof(mh)))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
 
-		/*
-		 * data and size
-		 */
+		/* Parameter 2: size (type: PT_UINT32) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
 		iov = (const struct iovec __user *)mh.msg_iov;
 		iovcnt = mh.msg_iovlen;
-
 		res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		CHECK_RES(res);
+
+		/* Get the address pointer and length */
+		usrsockaddr = (struct sockaddr __user *)mh.msg_name;
+		usrsockaddr_len = mh.msg_namelen;
+
 #ifdef CONFIG_COMPAT
 	} else {
 		if(unlikely(ppm_copy_from_user(&compat_mh,
 		                               (const void __user *)compat_ptr(val),
-		                               sizeof(compat_mh))))
+		                               sizeof(compat_mh)))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
 
-		/*
-		 * data and size
-		 */
+		/* Parameter 2: size (type: PT_UINT32) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
 		compat_iov = (const struct compat_iovec __user *)compat_ptr(compat_mh.msg_iov);
 		iovcnt = compat_mh.msg_iovlen;
-
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		CHECK_RES(res);
+
+		/* Get the address pointer and length. */
+		usrsockaddr = (struct sockaddr __user *)compat_ptr(compat_mh.msg_name);
+		usrsockaddr_len = compat_mh.msg_namelen;
 	}
 #endif
 
-	CHECK_RES(res);
-
-	/*
-	 * tuple
-	 */
-	if(retval >= 0) {
-		/*
-		 * Get the fd
-		 */
-		syscall_get_arguments_deprecated(args, 0, 1, &val);
-		fd = (int)val;
-
-		/*
-		 * Get the address
-		 */
-		usrsockaddr = (struct sockaddr __user *)mh.msg_name;
-		addrlen = mh.msg_namelen;
-
-		if(usrsockaddr != NULL && addrlen != 0) {
-			/*
-			 * Copy the address
-			 */
-			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-			if(likely(err >= 0)) {
-				/*
-				 * Convert the fd into socket endpoint information
-				 */
-				size = fd_to_socktuple(fd,
-				                       (struct sockaddr *)&address,
-				                       addrlen,
-				                       true,
-				                       true,
-				                       targetbuf,
-				                       STR_STORAGE_SIZE);
-			}
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory. */
+		res = addr_to_kernel(usrsockaddr, usrsockaddr_len, (struct sockaddr *)&address);
+		if(likely(res >= 0)) {
+			ksockaddr = (struct sockaddr *)&address;
+			sockaddr_len = usrsockaddr_len;
+			use_sockaddr = true;
 		}
 	}
 
-	/* Copy the endpoint info into the ring */
-	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
+	/* Convert the fd into socket endpoint information. */
+	tuple_size = fd_to_socktuple((int)fd,
+	                             ksockaddr,
+	                             sockaddr_len,
+	                             use_sockaddr,
+	                             true,
+	                             targetbuf,
+	                             STR_STORAGE_SIZE);
+
+	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
 	CHECK_RES(res);
 
-	/*
-	    msg_control: ancillary data.
-	*/
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 	if(mh.msg_control != NULL && mh.msg_controllen > 0) {
 		res = val_to_ring(args, (uint64_t)mh.msg_control, (uint32_t)mh.msg_controllen, true, 0);
-		CHECK_RES(res);
 	} else {
-		/* pushing empty data */
 		res = push_empty_param(args);
-		CHECK_RES(res);
 	}
+	CHECK_RES(res);
+
+	/* Parameter 6: fd (type: PT_FD) */
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

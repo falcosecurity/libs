@@ -3827,8 +3827,6 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 #endif
 
 		} else {
-			uint32_t datalen;
-
 			if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
 			    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
 			   (evt.get_fd_info()->m_name.length() == 0 || !evt.get_fd_info()->is_tcp_socket())) {
@@ -3873,7 +3871,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			} else {
 				parinfo = evt.get_param(1);
 			}
-			datalen = parinfo->m_len;
+			const uint32_t datalen = parinfo->m_len;
 			const char *data = parinfo->m_val;
 
 			//
