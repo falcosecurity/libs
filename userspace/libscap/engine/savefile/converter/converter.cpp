@@ -366,6 +366,8 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 	PRINT_EVENT(new_evt, PRINT_HEADER);
 
 	scap_evt *tmp_evt = NULL;
+	// If this is true at the end of the for loop we will free its memory.
+	bool used_enter_event = false;
 
 	// We iterate over the instructions
 	for(size_t i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
@@ -400,6 +402,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 				        get_direction_char((ppm_event_code)tmp_evt->type));
 				return CONVERSION_ERROR;
 			}
+			used_enter_event = true;
 			break;
 
 		case C_INSTR_FROM_OLD:
@@ -439,7 +442,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 		}
 	}
 
-	if(PPME_IS_EXIT(evt_to_convert->type)) {
+	if(used_enter_event) {
 		// We can free the enter event for this thread because we don't need it anymore.
 		clear_evt(evt_storage, evt_to_convert->tid);
 	}
