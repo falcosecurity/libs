@@ -156,8 +156,8 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	// This plugin tells that it can receive `syscall` events
 	add_plugin_filterchecks(&m_inspector, pl, sinsp_syscall_event_source_name, pl_flist);
 
-	// Since `%ample.is_open` field was requested by the plugin as an addOutput field,
-	// its filtercheck should have the EPF_FORMAT_SUGGESTED flag..
+	// Since `%sample.is_open` field was requested by the plugin as an addOutput field,
+	// its filtercheck shall have the EPF_FORMAT_SUGGESTED flag.
 	std::vector<const filter_check_info*> fields;
 	pl_flist.get_all_fields(fields);
 	for(const auto& field : fields) {

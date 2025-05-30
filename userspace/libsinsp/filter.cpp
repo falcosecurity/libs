@@ -36,7 +36,6 @@ limitations under the License.
 #include <libsinsp/filter.h>
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/sinsp_filtercheck.h>
-#include <libsinsp/plugin_filtercheck.h>
 #include <libsinsp/filter_compare.h>
 
 ///////////////////////////////////////////////////////////////////////////////
