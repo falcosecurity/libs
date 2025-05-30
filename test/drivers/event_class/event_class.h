@@ -380,10 +380,10 @@ public:
 	                                       int32_t client_port = IPV6_PORT_CLIENT,
 	                                       int32_t server_port = IPV6_PORT_SERVER);
 
-	void connect_unix_client_to_server(int32_t* client_socket,
-	                                   struct sockaddr_un* client_sockaddr,
-	                                   int32_t* server_socket,
-	                                   struct sockaddr_un* server_sockaddr);
+	void connect_unix_tcp_client_to_server(int32_t* client_socket,
+	                                       struct sockaddr_un* client_sockaddr,
+	                                       int32_t* server_socket,
+	                                       struct sockaddr_un* server_sockaddr);
 
 	// Notice: server_fd is used as the output location for the file descriptor of the server
 	// socket, in case of connection-less transport protocol or in case the receiving phase is

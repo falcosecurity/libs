@@ -169,10 +169,10 @@ TEST(SyscallExit, accept4X_UNIX) {
 	int32_t server_socket_fd = 0;
 	struct sockaddr_un client_addr = {};
 	struct sockaddr_un server_addr = {};
-	evt_test->connect_unix_client_to_server(&client_socket_fd,
-	                                        &client_addr,
-	                                        &server_socket_fd,
-	                                        &server_addr);
+	evt_test->connect_unix_tcp_client_to_server(&client_socket_fd,
+	                                            &client_addr,
+	                                            &server_socket_fd,
+	                                            &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	sockaddr* addr = NULL;

@@ -1020,7 +1020,7 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_no_enter) {
+TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_8_params_no_enter) {
 	uint64_t ts = 12;
 	int64_t tid = 25;
 
@@ -1058,7 +1058,7 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_no_enter) {
 	                                                        protocol));
 }
 
-TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_3_params_with_enter) {
+TEST_F(convert_event_test, PPME_SOCKET_SOCKETPAIR_X_to_8_params_with_enter) {
 	uint64_t ts = 12;
 	int64_t tid = 25;
 
@@ -1192,6 +1192,170 @@ TEST_F(convert_event_test, PPME_SOCKET_SENDMSG_X_to_5_params_with_enter) {
 	                               fd,
 	                               size,
 	                               scap_const_sized_buffer{tuple, sizeof(tuple)}));
+}
+
+////////////////////////////
+// RECVMSG
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECVMSG_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_X_4_to_5_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint32_t size = res;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+	constexpr int32_t tuple_size = sizeof(tuple);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               4,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               5,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               scap_const_sized_buffer{nullptr, 0}));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_X_5_to_6_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint32_t size = res;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+	constexpr int32_t tuple_size = sizeof(tuple);
+	constexpr uint8_t msgcontrol[] = {1, 2, 3, 4};
+	constexpr int32_t msgcontrol_size = sizeof(msgcontrol);
+
+	// Defaulted
+	constexpr int64_t fd = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               5,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               scap_const_sized_buffer{msgcontrol, msgcontrol_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               6,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               scap_const_sized_buffer{msgcontrol, msgcontrol_size},
+	                               fd));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_X_5_to_6_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr int64_t res = 89;
+	constexpr uint32_t size = res;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+	constexpr int32_t tuple_size = sizeof(tuple);
+	constexpr uint8_t msgcontrol[] = {1, 2, 3, 4};
+	constexpr int32_t msgcontrol_size = sizeof(msgcontrol);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECVMSG_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               5,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               scap_const_sized_buffer{msgcontrol, msgcontrol_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_RECVMSG_X,
+	                               6,
+	                               res,
+	                               size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               scap_const_sized_buffer{tuple, tuple_size},
+	                               scap_const_sized_buffer{msgcontrol, msgcontrol_size},
+	                               fd));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_X_4_to_6_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr int64_t res = 89;
+	constexpr uint32_t size = res;
+	constexpr char data[] = "hello";
+	constexpr int32_t data_size = sizeof(data);
+	constexpr char tuple[] = "tuple";
+	constexpr int32_t tuple_size = sizeof(tuple);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_RECVMSG_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SOCKET_RECVMSG_X,
+	                                              4,
+	                                              res,
+	                                              size,
+	                                              scap_const_sized_buffer{data, data_size},
+	                                              scap_const_sized_buffer{tuple, tuple_size}),
+	                       create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SOCKET_RECVMSG_X,
+	                                              6,
+	                                              res,
+	                                              size,
+	                                              scap_const_sized_buffer{data, data_size},
+	                                              scap_const_sized_buffer{tuple, tuple_size},
+	                                              scap_const_sized_buffer{nullptr, 0},
+	                                              fd));
 }
 
 ////////////////////////////
