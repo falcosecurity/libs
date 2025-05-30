@@ -62,7 +62,6 @@ option(ENABLE_DRIVERS_TESTS "Enable driver tests (bpf, kernel module, modern bpf
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
 option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
-option(ENABLE_VM_TESTS "Enable driver sanity tests" OFF)
 option(USE_ASAN "Build with AddressSanitizer" OFF)
 option(USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
 option(USE_TSAN "Build with ThreadSanitizer" OFF)
@@ -143,10 +142,6 @@ if(CREATE_TEST_TARGETS)
 		message(WARNING "LIBSINSP_E2E_TESTS are experimental!")
 		add_subdirectory(test/libsinsp_e2e)
 		add_subdirectory(test/libsinsp_e2e/resources)
-	endif()
-
-	if(ENABLE_VM_TESTS)
-		add_subdirectory(test/vm)
 	endif()
 
 endif()
