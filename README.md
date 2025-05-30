@@ -11,7 +11,7 @@ This repository contains **libsinsp**, **libscap**, the **kernel module** and th
 
 These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
 
-This component stack mainly operates on syscall events. We monitor syscalls using either a kernel module or an eBPF probe, which we call *drivers*. On top of the drivers, `libscap` manages the data capture process, while `libsinsp` enriches the data, and provides a rich set of API to consume the data. Furthermore, these two libraries also implement a [plugin](https://github.com/falcosecurity/plugins) framework that extends this stack to potentially any other data sources. For further details, please refer to the [official documentation](https://falco.org/docs/).
+This component stack mainly operates on syscall events. We monitor syscalls using either a kernel module or an eBPF probe, which we call *drivers*. On top of the drivers, `libscap` manages the data capture process, while `libsinsp` enriches the data, and provides a rich set of API to consume the data. Furthermore, these two libraries also implement a [plugin](https://github.com/falcosecurity/plugins) framework that extends this stack to potentially any other data sources. For further details, please refer to Falco's [official documentation](https://falco.org/docs/).
 
 An image is worth a thousand words, they say:
 
@@ -104,13 +104,13 @@ If you are building this project outside of a Git working directory, or if you w
 <details>
 	<summary>Expand Build Instructions</summary>
 
-For your convenience, we have included the instructions for building the `libs` modules here, in addition to the information available in the [official documentation](https://falco.org/docs/install-operate/source/). These instructions are designed for building and testing `libs` on your own Linux development machine. However, if you intend to adopt CI or build within containers, there are additional considerations to take into account. The official [website]((https://falco.org/docs/install-operate/source/)) continually extends its guidance in this respect.
+For your convenience, we have included the instructions for building the `libs` modules here, in addition to the information available in Falco's [official documentation](https://falco.org/docs/install-operate/source/). These instructions are designed for building and testing `libs` on your own Linux development machine. However, if you intend to adopt CI or build within containers, there are additional considerations to take into account. The official [website]((https://falco.org/docs/install-operate/source/)) continually extends its guidance in this respect.
 
 The project utilizes the `cmake` build system, and the key `make` targets are as follows: 
 
 * `driver` -> build the kmod
-* `bpf` -> build the eBPF probe
-* `scap` -> build libscap (`modern_bpf` driver will be bundled into `scap` if enabled)
+* `bpf` -> build the legacy `ebpf` probe
+* `scap` -> build libscap (`modern_ebpf` driver will be bundled into `scap` if enabled)
 * `sinsp` -> build libsinsp (depends upon `scap` target)
 * `scap-open` -> build a small example binary for `libscap` to test the drivers (dependent on `scap`)
 * `sinsp-example` -> build a small example binary for `libsinsp` to test the drivers and/or `libsinsp` functionality (dependent on `scap` and `sinsp`)
@@ -135,7 +135,7 @@ make sinsp
 
 ### Build userspace using system deps
 
-To build using the system deps instead, first, make sure to have all the needed packages installed. Refer to the [official documentation](https://falco.org/docs/install-operate/source/).
+To build using the system deps instead, first, make sure to have all the needed packages installed. Refer to Falco's [official documentation](https://falco.org/docs/install-operate/source/).
 
 ```bash
 cmake -DUSE_BUNDLED_DEPS=OFF ../;
@@ -146,28 +146,26 @@ make sinsp
 
 ### Build driver - kmod
 
-To build the kmod driver, you need your kernel headers installed. Check out the [official documentation](https://falco.org/docs/install-operate/source/).
+To build the kmod driver, you need your kernel headers installed. Check out Falco's [official documentation](https://falco.org/docs/install-operate/source/).
 
 ```bash
 make driver
-# Verify the kmod object code was created, uses `.ko` extension.
+# Verify the kmod binary object file was created, uses `.ko` extension.
 ls -l driver/src/scap.ko;
 ```
 
 ### Build driver - eBPF probe
 
-To build the eBPF probe, you need `clang` and `llvm` packages and you also need your kernel headers installed. Check out the [official documentation](https://falco.org/docs/install-operate/source/).
+To build the eBPF probe, you need `clang` and `llvm` packages and you also need your kernel headers installed. Check out Falco's [official documentation](https://falco.org/docs/install-operate/source/).
 
 ```bash
 cmake -DBUILD_BPF=ON ../;
 make bpf
-# Verify the eBPF object code was created, uses `.o` extension.
+# Verify the eBPF bytecode file was created, uses `.o` extension.
 ls -l driver/bpf/probe.o;
 ```
 
 >__WARNING__: **clang-7** is the oldest supported version to build our BPF probe.
-
-Initial guidance for CI and building within containers: To build either the kmod or eBPF probe in a container, you will need to make the extracted kernel headers available. The [test/vm](test/vm/) directory contains example [scripts](test/vm/scripts/compile_drivers.sh) demonstrating how to pass them to the `make` command using the argument `KERNELDIR=${EXTRACTED_KERNEL_HEADERS_DIR}`. You can also use the [falcosecurity/driverkit](https://github.com/falcosecurity/driverkit) or explore the scripts within the driverkit repository. The mentioned resources also provide candidate builder containers.
 
 ### Build driver - modern eBPF probe
 
@@ -193,13 +191,13 @@ To build the modern eBPF probe, further prerequisites are necessary:
 
 > __NOTE:__ These are not the requirements to use the modern BPF probe, but rather for building it from source.
 
-Regarding the previously discussed bpf drivers, they create a kernel-specific object code (`driver/bpf/probe.o`) for your machine's kernel release (`uname -r`). This object code is then used as an argument for testing with `scap-open` and `sinsp-example` binaries.
+Regarding the previously discussed legacy eBPF driver, it generates kernel-specific bytecode (`driver/bpf/probe.o`) tailored to your machine's kernel release (`uname -r`). The location of the bytecode file can then be passed as an argument for testing with the `scap-open` and `sinsp-example` binaries.
 
-However, the modern BPF driver operates differently. It doesn't require kernel headers, and its build isn't tied to your kernel release. This is enabled by the CO-RE (Compile Once - Run Everywhere) feature of the modern BPF driver. CO-RE allows the driver to work on kernels with backported BTF (BPF Type Format) support or kernel versions >= 5.8.
+However, the modern eBPF driver build process doesn't require kernel headers, and it isn't tied to your kernel release. This is enabled by the CO-RE (Compile Once - Run Everywhere) feature of the modern eBPF driver.
 
-To comprehend how the driver understands kernel data structures without knowledge of the kernel it runs on, there's no black magic involved. We maintain a [vmlinux.h](driver/modern_bpf/definitions/vmlinux.h) file in our project containing all necessary kernel data structure definitions. Additionally, we sometimes rely on macros or functions typically found in system header files, which we redefine in [struct_flavors.h](driver/modern_bpf/definitions/struct_flavors.h).
+CO-RE allows the driver to work on kernels with backported BTF (BPF Type Format) support or kernel versions >= 5.8. The way the driver interprets kernel data structures without direct knowledge of the running kernel is not magic — it leverages predefined type information and BTF-based relocations. We maintain a [vmlinux.h](driver/modern_bpf/definitions/vmlinux.h) file containing essential kernel data structure definitions, allowing the eBPF program to reference fields dynamically. Additionally, for cases where macros or functions from system headers are required, we redefine them in [struct_flavors.h](driver/modern_bpf/definitions/struct_flavors.h). Combined with CO-RE (Compile Once, Run Everywhere), this enables the driver to remain portable across different kernel versions.
  
-That being said, the modern BPF driver still produces an object file, which you can create using the target below. Nevertheless, we ultimately include it in `scap` regardless. Hence, when modern BPF is enabled, building `scap` will already cover this step for you.
+The modern eBPF driver build process produces an eBPF header skeleton file using `bpftool`. The skeleton file is a C header file that embeds the compiled eBPF program as bytecode.
 
 ```bash
 cmake \
@@ -207,13 +205,15 @@ cmake \
 -DBUILD_LIBSCAP_MODERN_BPF=ON ../;
 
 make ProbeSkeleton
-# Verify the modern eBPF object code / final composed header file including all `.o` modern_bpf files was created, uses `.h` extension.
+# Verify the modern eBPF bytecode / final composed header file including all `.o` modern_ebpf files was created, uses `.h` extension.
 ls -l skel_dir/bpf_probe.skel.h;
 # Now includes skel_dir/bpf_probe.skel.h in `scap` during the linking process.
 make scap
 ```
 
-Initial guidance for CI and building within containers: The Falco Project, for instance, compiles the final Falco userspace binary within older centos7 [falco-builder](https://falco.org/docs/install-operate/source/#build-using-falco-builder-container) containers with bundled dependencies. This ensures compatibility across supported systems, mainly due to GLIBC versions and other intricacies. However, you won't be able to compile the modern BPF driver on such old systems or builder containers. One solution is to build `skel_dir/bpf_probe.skel.h` in a more recent builder container. For example, you can refer to this [container](test/vm/containers/ubuntu2310.Dockerfile) as a guide. Subsequently, you can provide the modern BPF header file as an artifact to `scap` during building in an older builder container. As an illustrative example, we use `/tmp/skel-dir` containing the `bpf_probe.skel.h` file.
+Since modern eBPF is included in `scap`, running `make scap` automatically covers the `make ProbeSkeleton` build step.
+
+You can also split the build process and specify the directory containing the `bpf_probe.skel.h` file.
 
 ```bash
 cmake \
@@ -243,7 +243,7 @@ This repository includes convenient test example binaries for both `scap` and `s
 
 When developing new features, you would run either one depending on what you're working on, in order to test and validate your changes.
 
-> __NOTE:__ When you're working on driver development, it can be quite useful to make use of the kernel's built-in `printk` functionality. However, for the traditional bpf driver, you'll need to uncomment a line in the [bpf Makefile](driver/bpf/Makefile) first and use a dedicated build flag `BPF_DEBUG`. For modern BPF, use the build flag `MODERN_BPF_DEBUG_MODE`. Any logs generated by `bpf_printk()` will be written to `/sys/kernel/debug/tracing/trace_pipe`. Just make sure you have the right permissions set up for this.
+> __NOTE:__ When you're working on driver development, it can be quite useful to make use of the kernel's built-in `printk` functionality. However, for the traditional bpf driver, you'll need to uncomment a line in the [bpf Makefile](driver/bpf/Makefile) first and use a dedicated build flag `BPF_DEBUG`. For modern eBPF, use the build flag `MODERN_BPF_DEBUG_MODE`. Any logs generated by `bpf_printk()` will be written to `/sys/kernel/debug/tracing/trace_pipe`. Just make sure you have the right permissions set up for this.
 
 Here's an example of a `cmake` command that will enable everything you need for all tests and components. By default, the following flags are disabled, with the exception of `USE_BUNDLED_DEPS` and `CREATE_TEST_TARGETS` (they are enabled by default).
 
@@ -259,8 +259,7 @@ cmake \
 -DCREATE_TEST_TARGETS=ON \
 -DENABLE_LIBSCAP_TESTS=ON \
 -DENABLE_DRIVERS_TESTS=ON \
--DENABLE_LIBSINSP_E2E_TESTS=ON \
--DENABLE_VM_TESTS=ON ../;
+-DENABLE_LIBSINSP_E2E_TESTS=ON ../;
 ```
 
 > __NOTE:__ The `ENABLE_LIBSINSP_E2E_TESTS` flag enables the new e2e tests for libsinsp. Please keep in mind these tests are currently in heavy development and need some extra steps (see in the section below) to run correctly.
@@ -302,9 +301,10 @@ sudo ./test/drivers/drivers_test -m;
 The tests mentioned below expand beyond the scope of "unit tests". In this context as well, we are dedicated to making sure they run smoothly on your `localhost` for pre-PR testing, to the best of our ability:
 
 - [test/e2e](test/e2e) - enforced by our CI
-- [test/vm](test/vm) - our CI includes comparable tests, but it employs a distinct framework. For current status reports on Falco drivers kernel testing, please visit this [page](https://falcosecurity.github.io/libs/).
 
-As mentioned earlier, The Falco Project's `libs` repository includes numerous CI-powered checks. For the most current information, please refer to the CI definitions under the [workflows](.github/workflows/) directory.
+For current status reports on the CI powered Falco drivers kernel testing, please visit this [page](https://falcosecurity.github.io/libs/).
+
+In general, The Falco Project's `libs` repository includes numerous CI-powered checks. For the most current information, please refer to the CI definitions under the [workflows](.github/workflows/) directory.
 
 ### [EXPERIMENTAL] Run libsinsp e2e tests
 
