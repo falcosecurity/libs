@@ -3,7 +3,7 @@
 
 const ppm_event_info* libsinsp::events::info(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	return scap_get_event_info_table() + ((size_t)event_type);
+	return g_infotables.m_event_info + ((size_t)event_type);
 }
 
 bool libsinsp::events::is_generic(ppm_event_code event_type) {
@@ -14,43 +14,43 @@ bool libsinsp::events::is_generic(ppm_event_code event_type) {
 
 bool libsinsp::events::is_unused_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_flags flags = scap_get_event_info_table()[event_type].flags;
+	ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
 	return (flags & EF_UNUSED);
 }
 
 bool libsinsp::events::is_skip_parse_reset_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_flags flags = scap_get_event_info_table()[event_type].flags;
+	ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
 	return (flags & EF_SKIPPARSERESET);
 }
 
 bool libsinsp::events::is_old_version_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_flags flags = scap_get_event_info_table()[event_type].flags;
+	ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
 	return (flags & EF_OLD_VERSION);
 }
 
 bool libsinsp::events::is_syscall_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_category category = scap_get_event_info_table()[event_type].category;
+	ppm_event_category category = g_infotables.m_event_info[event_type].category;
 	return (category & EC_SYSCALL);
 }
 
 bool libsinsp::events::is_tracepoint_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_category category = scap_get_event_info_table()[event_type].category;
+	ppm_event_category category = g_infotables.m_event_info[event_type].category;
 	return (category & EC_TRACEPOINT);
 }
 
 bool libsinsp::events::is_metaevent(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_category category = scap_get_event_info_table()[event_type].category;
+	ppm_event_category category = g_infotables.m_event_info[event_type].category;
 	return (category & EC_METAEVENT);
 }
 
 bool libsinsp::events::is_unknown_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_category category = scap_get_event_info_table()[event_type].category;
+	ppm_event_category category = g_infotables.m_event_info[event_type].category;
 	/* Please note this is not an `&` but an `==` if one event has
 	 * the `EC_UNKNOWN` category, it must have only this category!
 	 */
@@ -59,7 +59,7 @@ bool libsinsp::events::is_unknown_event(ppm_event_code event_type) {
 
 bool libsinsp::events::is_plugin_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	ppm_event_category category = scap_get_event_info_table()[event_type].category;
+	ppm_event_category category = g_infotables.m_event_info[event_type].category;
 	return (category & EC_PLUGIN);
 }
 
@@ -81,13 +81,12 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(
 				resolved_generic = true;
 			}
 		} else {
-			events_names_set.insert(scap_get_event_info_table()[ev].name);
+			events_names_set.insert(g_infotables.m_event_info[ev].name);
 		}
 	}
 	return events_names_set;
 }
 
-// todo(jasondellaluce): think about how we can handle well PPME_ASYNCEVENT_E
 libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(
         const std::unordered_set<std::string>& events) {
 	std::unordered_set<std::string> remaining_events = events;
@@ -95,9 +94,19 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(
 
 	// Main loop, on events (ie: non generic events)
 	for(int ppm_ev = 2; ppm_ev < PPM_EVENT_MAX; ++ppm_ev) {
-		const char* ppm_ev_name = scap_get_event_info_table()[ppm_ev].name;
+		const char* ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
 		if(events.find(ppm_ev_name) != events.end()) {
 			ppm_event_set.insert((ppm_event_code)ppm_ev);
+			remaining_events.erase(ppm_ev_name);
+		}
+	}
+
+	// Secondary loop, on specific async event names, as filled by sinsp
+	for(int ppm_ev = PPM_EVENT_MAX; ppm_ev < g_infotables.m_event_size; ++ppm_ev) {
+		const char* ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
+		if(events.find(ppm_ev_name) != events.end()) {
+			// Force-set PPME_ASYNCEVENT_E here.
+			ppm_event_set.insert((ppm_event_code)PPME_ASYNCEVENT_E);
 			remaining_events.erase(ppm_ev_name);
 		}
 	}

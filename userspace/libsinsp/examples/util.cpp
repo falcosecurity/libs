@@ -75,7 +75,7 @@ std::string get_event_type_name(sinsp_evt *ev) {
 		return "UNKNOWN " + std::to_string(type);
 	}
 	if(type != PPME_GENERIC_E && type != PPME_GENERIC_X) {
-		return scap_get_event_info_table()[type].name;
+		return g_infotables.m_event_info[type].name;
 	}
 
 	uint16_t ppm_sc = ev->get_param(0)->as<uint16_t>();

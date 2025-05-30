@@ -440,9 +440,6 @@ private:
 // note: emscripten has trouble with the nodriver engine and async events
 #if !defined(__EMSCRIPTEN__)
 TEST_F(sinsp_with_test_input, plugin_dump) {
-	uint64_t max_count = 1;
-	uint64_t period_ns = 1000000;  // 1ms
-	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_async);
 
 	// we will not use the test scap engine here, but open the src plugin instead
@@ -670,6 +667,13 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async) {
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_async, async_pl_cfg);
 	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
 	add_plugin_filterchecks(&m_inspector, ext_pl, srcname, filterlist);
+
+	// Check that the `sampleticker` async events was added to the list of events
+	auto event_set =
+	        libsinsp::events::names_to_event_set(std::unordered_set<std::string>{"sampleticker"});
+	libsinsp::events::set<ppm_event_code> event_set_truth = {PPME_ASYNCEVENT_E};
+	ASSERT_EQ(event_set.size(), 1);
+	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
 
 	// check that the async event name is an accepted evt.type value
 	std::unique_ptr<sinsp_filter_check> chk(
