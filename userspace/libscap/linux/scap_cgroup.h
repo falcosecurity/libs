@@ -22,6 +22,7 @@ limitations under the License.
 #include <stdint.h>
 
 #include <libscap/scap_cgroup_set.h>
+#include <libscap/scap_log.h>
 
 #define FOR_EACH_SUBSYS(cgset, subsys)                                                           \
 	for(const char *subsys = (cgset)->path, *_end = (cgset)->path + (cgset)->len; subsys < _end; \
@@ -54,6 +55,8 @@ struct scap_cgroup_interface {
 	char m_self_v2[SCAP_MAX_PATH_SIZE];
 
 	bool m_in_cgroupns;
+
+	falcosecurity_log_fn m_log_fn;
 };
 
 int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi,
