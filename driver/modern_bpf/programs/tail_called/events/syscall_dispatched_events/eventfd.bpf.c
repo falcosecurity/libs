@@ -22,8 +22,8 @@ int BPF_PROG(eventfd_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: initval (type: PT_UINT64) */
-	uint32_t initval = (uint32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_u64(&ringbuf, (uint64_t)initval);
+	uint64_t initval = (uint64_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, initval);
 
 	/* Parameter 2: flags (type: PT_UINT32) */
 	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
@@ -53,8 +53,18 @@ int BPF_PROG(eventfd_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD)*/
+	/* Parameter 1: res (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: initval (type: PT_UINT64) */
+	uint64_t initval = (uint64_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, initval);
+
+	/* Parameter 3: flags (type: PT_UINT32) */
+	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
+	 * For compatibility with the event definition here we send `0` as flags.
+	 */
+	ringbuf__store_u32(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

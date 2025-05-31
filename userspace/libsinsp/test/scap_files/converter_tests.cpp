@@ -448,7 +448,6 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 ////////////////////////////
 // SHUTDOWN
 ////////////////////////////
-///
 TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
 
@@ -631,6 +630,12 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 	                               fd));
 }
 #endif
+
+////////////////////////////
+///// EVENTFD
+////////////////////////////
+
+// We don't have scap-files with EVENTFD events. Add it if we face a failure.
 
 ////////////////////////////
 // PTRACE

@@ -101,7 +101,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_OPENAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
-	case PPME_SYSCALL_EVENTFD_E:
 	case PPME_SYSCALL_EVENTFD2_E:
 	case PPME_SYSCALL_FCHDIR_E:
 	case PPME_SYSCALL_LINK_E:
@@ -3942,27 +3941,18 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 }
 
 void sinsp_parser::parse_eventfd_exit(sinsp_evt &evt) const {
-	int64_t fd;
-
-	//
-	// lookup the thread info
-	//
+	// Lookup the thread info.
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	fd = evt.get_syscall_return_value();
-
+	const int64_t fd = evt.get_syscall_return_value();
 	if(fd < 0) {
-		//
 		// eventfd() failed. Nothing to add to the table.
-		//
 		return;
 	}
 
-	//
-	// Populate the new fdi
-	//
+	// Populate the new fd info.
 	auto fdi = m_fdinfo_factory.create();
 	fdi->m_type = SCAP_FD_EVENT;
 
@@ -3970,9 +3960,7 @@ void sinsp_parser::parse_eventfd_exit(sinsp_evt &evt) const {
 		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
 	}
 
-	//
 	// Add the fd to the table.
-	//
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
