@@ -1121,9 +1121,7 @@ static __always_inline void auxmap__store_msghdr_size_param(struct auxiliary_map
 	 * we return 0.
 	 */
 	struct user_msghdr msghdr = {0};
-	if(bpf_probe_read_user((void *)&msghdr,
-	                       bpf_core_type_size(struct user_msghdr),
-	                       (void *)msghdr_pointer)) {
+	if(extract__msghdr(&msghdr, msghdr_pointer)) {
 		auxmap__store_u32_param(auxmap, 0);
 		return;
 	}
@@ -1148,9 +1146,7 @@ static __always_inline struct user_msghdr auxmap__store_msghdr_data_param(
 	 * we return an empty param.
 	 */
 	struct user_msghdr msghdr = {0};
-	if(bpf_probe_read_user((void *)&msghdr,
-	                       bpf_core_type_size(struct user_msghdr),
-	                       (void *)msghdr_pointer)) {
+	if(extract__msghdr(&msghdr, msghdr_pointer)) {
 		/* in case of NULL msghdr we return an empty param */
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return msghdr;
@@ -1589,9 +1585,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 			// in any case we break the switch.
 			break;
 		}
-		if(bpf_probe_read_user(&msg_mh.mh,
-		                       bpf_core_type_size(struct user_msghdr),
-		                       (void *)args[1]) == 0) {
+		if(extract__msghdr(&msg_mh.mh, args[1]) == 0) {
 			sockaddr = (struct sockaddr *)msg_mh.mh.msg_name;
 		}
 	} break;
