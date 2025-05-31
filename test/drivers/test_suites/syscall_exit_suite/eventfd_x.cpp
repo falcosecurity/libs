@@ -32,8 +32,14 @@ TEST(SyscallExit, eventfdX) {
 	/* Parameter 1: res (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)fd);
 
+	/* Parameter 2: initval (type: PT_UINT64) */
+	evt_test->assert_numeric_param(2, (uint64_t)initval);
+
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(3, (uint32_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif
