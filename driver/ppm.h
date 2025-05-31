@@ -19,6 +19,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_consumer.h"
 
 #ifdef _DEBUG
+
 #define ASSERT(expr) WARN_ON(!(expr))
 #else
 #define ASSERT(expr)
