@@ -103,7 +103,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_OPENAT2_E:
 	case PPME_SYSCALL_EVENTFD_E:
 	case PPME_SYSCALL_EVENTFD2_E:
-	case PPME_SYSCALL_CHDIR_E:
 	case PPME_SYSCALL_FCHDIR_E:
 	case PPME_SYSCALL_LINK_E:
 	case PPME_SYSCALL_LINKAT_E:
@@ -3978,22 +3977,8 @@ void sinsp_parser::parse_eventfd_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_chdir_exit(sinsp_evt &evt) {
-	int64_t retval;
-
-	if(evt.get_tinfo() == nullptr) {
-		return;
-	}
-
-	//
-	// Extract the return value
-	//
-	retval = evt.get_syscall_return_value();
-
-	//
-	// In case of success, update the thread working dir
-	//
-	if(retval >= 0) {
-		// Update the thread working directory
+	// In case of success, if the event has an associated thread, update its working directory.
+	if(evt.get_tinfo() != nullptr && evt.get_syscall_return_value() >= 0) {
 		evt.get_tinfo()->update_cwd(evt.get_param(1)->as<std::string_view>());
 	}
 }
