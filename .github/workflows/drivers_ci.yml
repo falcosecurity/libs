@@ -104,11 +104,10 @@ jobs:
 
       - name: Validate scap-open with modern bpf
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: Andreagit97/bpfvalidator@v0.2.0
+        uses: Andreagit97/bpfvalidator@v0.3.0
         with:
-          cmd: "$GITHUB_WORKSPACE/build/libscap/examples/01-open/scap-open --modern_bpf --num_events 10"
-          kernels: "v5.10.237,v5.15.184,v6.1.140,v6.6.92,v6.12.30,v6.15"
-          kvm: ${{ matrix.arch == 'amd64' }}
+          args: |
+            --config=$GITHUB_WORKSPACE/driver/modern_bpf/bpfvalidator_config.yaml --cmd="$GITHUB_WORKSPACE/build/libscap/examples/01-open/scap-open --modern_bpf --num_events 10"
 
   test-drivers:
     name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
