@@ -35,8 +35,11 @@ TEST(SyscallExit, mkdirX) {
 	/* Parameter 2: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, path);
 
+	/* Parameter 3: mode (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, mode);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

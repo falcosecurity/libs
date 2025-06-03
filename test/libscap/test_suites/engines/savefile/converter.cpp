@@ -1440,3 +1440,53 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_with_enter) {
 	                               request,
 	                               pid));
 }
+
+////////////////////////////
+// MKDIR
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	uint32_t mode = 0755;  // Default mode for mkdir
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_E, 1, mode);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_to_3_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	constexpr char path[] = "/hello";
+
+	// Defaulted to 0
+	uint32_t mode = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 2, res, path),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_to_3_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	constexpr char path[] = "/hello";
+	uint32_t mode = 0755;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_E, 1, mode);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 2, res, path),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}

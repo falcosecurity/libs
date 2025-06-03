@@ -740,3 +740,43 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	                                             request,
 	                                             pid));
 }
+
+////////////////////////////
+// MKDIR
+////////////////////////////
+
+TEST_F(scap_file_test, mkdir_e_same_number_of_events) {
+	open_filename("mkdir.scap");
+	assert_num_event_type(PPME_SYSCALL_MKDIR_2_E, 1);
+}
+
+TEST_F(scap_file_test, mkdir_x_same_number_of_events) {
+	open_filename("mkdir.scap");
+	assert_num_event_type(PPME_SYSCALL_MKDIR_2_X, 1);
+}
+
+TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
+	open_filename("mkdir.scap");
+
+	// Inside the scap-file the event `463` is the following:
+	// - type=PPME_SYSCALL_MKDIR_2_X,
+	// - ts=1749017847850665826
+	// - tid=1163259
+	// - args=res=-13(EACCES) path=/hello
+	//
+	// And its corresponding enter event `464` is the following:
+	// - type=PPME_SYSCALL_MKDIR_2_E
+	// - ts=1749017847850637066
+	// - tid=1163259
+	// - args=mode=1FF
+	//
+	// Let's see the new PPME_SYSCALL_MKDIR_2_X event!
+
+	uint64_t ts = 1749017847850665826;
+	int64_t tid = 1163259;
+	int64_t res = -13;
+	constexpr char path[] = "/hello";
+	uint32_t mode = 0x1ff;  // 0777 in octal
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}

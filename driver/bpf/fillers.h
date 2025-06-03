@@ -5219,6 +5219,22 @@ FILLER(sys_mkdir_e, true) {
 	return bpf_push_u32_to_ring(data, mode);
 }
 
+FILLER(sys_mkdir_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: path (type: PT_FSPATH) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_mem(data, val, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: mode (type: PT_UINT32) */
+	uint32_t mode = (uint32_t)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u32_to_ring(data, mode);
+}
+
 FILLER(sys_pread64_e, true) {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
