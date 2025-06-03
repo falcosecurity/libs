@@ -7109,6 +7109,29 @@ int f_sys_mkdir_e(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_mkdir_x(struct event_filler_arguments *args) {
+	unsigned long val = 0;
+	int res = 0;
+	long retval = 0;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: path (type: PT_FSPATH) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: mode (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_setns_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;

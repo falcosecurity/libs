@@ -55,6 +55,10 @@ int BPF_PROG(mkdir_x, struct pt_regs *regs, long ret) {
 	unsigned long path_pointer = extract__syscall_argument(regs, 0);
 	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
+	/* Parameter 3: mode (type: PT_UINT32) */
+	uint32_t mode = (uint32_t)extract__syscall_argument(regs, 1);
+	auxmap__store_u32_param(auxmap, mode);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
