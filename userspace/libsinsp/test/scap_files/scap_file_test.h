@@ -39,9 +39,11 @@ protected:
 		sinsp_evt* evt = nullptr;
 		int ret = SCAP_SUCCESS;
 		uint64_t count = 0;
+		uint64_t number_of_evts = 0;
 		while(1) {
 			ret = m_inspector->next(&evt);
 			if(ret == SCAP_EOF) {
+				printf("EOF!\n");
 				break;
 			}
 			if(ret != SCAP_SUCCESS) {
@@ -51,7 +53,9 @@ protected:
 			if(evt->get_type() == event_type) {
 				count++;
 			}
+			number_of_evts++;
 		}
+		printf("topkek %ld/%ld\n", count, number_of_evts);
 		ASSERT_EQ(count, expected_count);
 	}
 
