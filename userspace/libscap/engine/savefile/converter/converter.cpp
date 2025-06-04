@@ -74,6 +74,7 @@ static void store_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage
 	}
 	memcpy(tmp_evt, evt, evt->len);
 	evt_storage[tid] = safe_scap_evt(tmp_evt);
+	printf("topkek %ld\n", evt_storage.size());
 }
 
 static scap_evt *retrieve_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage,
