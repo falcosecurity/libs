@@ -857,22 +857,40 @@ FILLER(sys_nanosleep_e, true) {
 }
 
 FILLER(sys_futex_e, true) {
-	unsigned long val;
-	int res;
-
 	/* Parameter 1: addr (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_u64_to_ring(data, (uint64_t)val);
+	uint64_t addr = bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_u64_to_ring(data, addr);
 	CHECK_RES(res);
 
 	/* Parameter 2: op (type: PT_ENUMFLAGS16) */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_push_u16_to_ring(data, futex_op_to_scap(val));
+	unsigned long op = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u16_to_ring(data, futex_op_to_scap(op));
 	CHECK_RES(res);
 
 	/* Parameter 3: val (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 2);
-	return bpf_push_u64_to_ring(data, (uint64_t)val);
+	uint64_t val = bpf_syscall_get_argument(data, 2);
+	return bpf_push_u64_to_ring(data, val);
+}
+
+FILLER(sys_futex_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	int64_t retval = (int64_t)bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: addr (type: PT_UINT64) */
+	uint64_t addr = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u64_to_ring(data, addr);
+	CHECK_RES(res);
+
+	/* Parameter 3: op (type: PT_ENUMFLAGS16) */
+	unsigned long op = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u16_to_ring(data, futex_op_to_scap(op));
+	CHECK_RES(res);
+
+	/* Parameter 4: val (type: PT_UINT64) */
+	uint64_t val = bpf_syscall_get_argument(data, 2);
+	return bpf_push_u64_to_ring(data, val);
 }
 
 static __always_inline unsigned long bpf_get_mm_counter(struct mm_struct *mm, int member) {

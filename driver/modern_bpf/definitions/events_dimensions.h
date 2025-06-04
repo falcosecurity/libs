@@ -53,7 +53,7 @@
 #define EVENTFD_E_SIZE HEADER_LEN + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 2
 #define EVENTFD_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define FUTEX_E_SIZE HEADER_LEN + sizeof(uint16_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
-#define FUTEX_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define FUTEX_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 4
 #define STAT_E_SIZE HEADER_LEN
 #define LSTAT_E_SIZE HEADER_LEN
 #define FSTAT_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN

@@ -71,6 +71,13 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
+	open_filename("sample.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_FUTEX_E, 15},
+	        {PPME_SYSCALL_FUTEX_X, 15},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
+
 	// Add further checks for the expected number of events in unhandled scap files here.
 }
 
@@ -636,6 +643,37 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with EVENTFD events. Add it if we face a failure.
+
+////////////////////////////
+///// FUTEX
+////////////////////////////
+
+TEST_F(scap_file_test, futex_x_check_final_converted_event) {
+	open_filename("sample.scap");
+
+	// Inside the scap-file the event `177` is the following:
+	// - type=PPME_SYSCALL_FUTEX_X,
+	// - ts=1690557262892768316
+	// - tid=418
+	// - args=res=0
+	//
+	// And its corresponding enter event `176` is the following:
+	// - type=PPME_SYSCALL_FUTEX_E
+	// - ts=1690557262892767595
+	// - tid=418
+	// - args=addr=5600C32351E0 op=129(FUTEX_PRIVATE_FLAG|FUTEX_WAKE) val=1
+	//
+	// Let's see the new PPME_SYSCALL_FUTEX_X event!
+
+	constexpr uint64_t ts = 1690557262892768316;
+	constexpr int64_t tid = 418;
+	constexpr int64_t res = 0;
+	constexpr uint64_t addr = 0x5600C32351E0;
+	constexpr uint16_t op = 129;
+	constexpr uint64_t val = 1;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FUTEX_X, 4, res, addr, op, val));
+}
 
 ////////////////////////////
 // PTRACE
