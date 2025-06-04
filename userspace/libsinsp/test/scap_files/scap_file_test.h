@@ -35,11 +35,18 @@ protected:
 		m_inspector->open_savefile(path);
 	}
 
-	void assert_num_event_type(ppm_event_code event_type, uint64_t expected_count) {
+	void assert_num_event_types(
+	        const std::vector<std::pair<ppm_event_code, uint64_t>>& events_expected_counts) const {
+		// Initialize the actual counters for all the expected event types to 0.
+		std::unordered_map<uint16_t, uint64_t> events_actual_counts;
+		events_actual_counts.reserve(events_expected_counts.size());
+		for(auto& [event_type, _] : events_expected_counts) {
+			events_actual_counts[event_type] = 0;
+		}
+
 		sinsp_evt* evt = nullptr;
 		int ret = SCAP_SUCCESS;
-		uint64_t count = 0;
-		while(1) {
+		while(true) {
 			ret = m_inspector->next(&evt);
 			if(ret == SCAP_EOF) {
 				break;
@@ -48,11 +55,16 @@ protected:
 				throw std::runtime_error("Error reading event. scap_code: " + std::to_string(ret) +
 				                         ", " + m_inspector->getlasterr());
 			}
-			if(evt->get_type() == event_type) {
-				count++;
+			auto event_type = evt->get_type();
+			if(auto it = events_actual_counts.find(event_type); it != events_actual_counts.end()) {
+				it->second++;
 			}
 		}
-		ASSERT_EQ(count, expected_count);
+
+		for(auto& [event_type, expected_count] : events_expected_counts) {
+			ASSERT_EQ(events_actual_counts[event_type], expected_count)
+			        << "Mismatching number of events for event type " << event_type;
+		}
 	}
 
 	void assert_no_event_type(ppm_event_code event_type) {

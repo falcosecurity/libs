@@ -24,19 +24,59 @@ limitations under the License.
 // When you find a specific event to assert use
 // `sudo sysdig -r <> -d "evt.num=<>" -p "ts=%evt.rawtime, tid=%thread.tid, args=%evt.args"`
 
+TEST_F(scap_file_test, same_number_of_events) {
+	open_filename("scap_2013.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_READ_E, 24956},
+	        {PPME_SYSCALL_READ_X, 24957},
+	        {PPME_SOCKET_ACCEPT_E, 3817},
+	        {PPME_SOCKET_ACCEPT_5_X, 3816},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
+
+	open_filename("kexec_arm64.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_PREAD_E, 3216},
+	        {PPME_SYSCALL_PREAD_X, 3216},
+	        {PPME_SOCKET_LISTEN_E, 1},
+	        {PPME_SOCKET_LISTEN_X, 1},
+	        {PPME_SYSCALL_SETUID_E, 2},
+	        {PPME_SYSCALL_SETUID_X, 2},
+	        {PPME_SOCKET_RECVFROM_E, 82},
+	        {PPME_SOCKET_RECVFROM_X, 82},
+	        {PPME_SOCKET_SENDTO_E, 162},
+	        {PPME_SOCKET_SENDTO_X, 162},
+	        {PPME_SOCKET_SHUTDOWN_E, 9},
+	        {PPME_SOCKET_SHUTDOWN_X, 9},
+	        {PPME_SOCKET_SOCKETPAIR_E, 114},
+	        {PPME_SOCKET_SOCKETPAIR_X, 114},
+	        {PPME_SOCKET_SENDMSG_E, 26},
+	        {PPME_SOCKET_SENDMSG_X, 26},
+	        {PPME_SOCKET_RECVMSG_E, 522},
+	        {PPME_SOCKET_RECVMSG_X, 522},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
+
+	open_filename("ptrace.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_PTRACE_E, 3},
+	        {PPME_SYSCALL_PTRACE_X, 3},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
+
+	open_filename("mkdir.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_MKDIR_2_E, 1},
+	        {PPME_SYSCALL_MKDIR_2_X, 1},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
+
+	// Add further checks for the expected number of events in unhandled scap files here.
+}
+
 ////////////////////////////
 // READ
 ////////////////////////////
-
-TEST_F(scap_file_test, read_e_same_number_of_events) {
-	open_filename("scap_2013.scap");
-	assert_num_event_type(PPME_SYSCALL_READ_E, 24956);
-}
-
-TEST_F(scap_file_test, read_x_same_number_of_events) {
-	open_filename("scap_2013.scap");
-	assert_num_event_type(PPME_SYSCALL_READ_X, 24957);
-}
 
 TEST_F(scap_file_test, read_x_check_final_converted_event) {
 	open_filename("scap_2013.scap");
@@ -79,16 +119,6 @@ TEST_F(scap_file_test, read_x_check_final_converted_event) {
 ////////////////////////////
 // PREAD
 ////////////////////////////
-
-TEST_F(scap_file_test, pread_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SYSCALL_PREAD_E, 3216);
-}
-
-TEST_F(scap_file_test, pread_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SYSCALL_PREAD_X, 3216);
-}
 
 TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
@@ -164,16 +194,6 @@ TEST_F(scap_file_test, socket_x_check_final_converted_event) {
 // LISTEN
 ////////////////////////////
 
-TEST_F(scap_file_test, listen_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_LISTEN_E, 1);
-}
-
-TEST_F(scap_file_test, listen_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_LISTEN_X, 1);
-}
-
 TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
 
@@ -203,16 +223,6 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 ////////////////////////////
 // ACCEPT
 ////////////////////////////
-
-TEST_F(scap_file_test, accept_e_same_number_of_events) {
-	open_filename("scap_2013.scap");
-	assert_num_event_type(PPME_SOCKET_ACCEPT_E, 3817);
-}
-
-TEST_F(scap_file_test, accept_x_same_number_of_events) {
-	open_filename("scap_2013.scap");
-	assert_num_event_type(PPME_SOCKET_ACCEPT_5_X, 3816);
-}
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
@@ -308,16 +318,6 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 // SETUID
 ////////////////////////////
 
-TEST_F(scap_file_test, setuid_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SYSCALL_SETUID_E, 2);
-}
-
-TEST_F(scap_file_test, setuid_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SYSCALL_SETUID_X, 2);
-}
-
 TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
 
@@ -351,16 +351,6 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 ////////////////////////////
 // RECVFROM
 ////////////////////////////
-
-TEST_F(scap_file_test, recvfrom_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_RECVFROM_E, 82);
-}
-
-TEST_F(scap_file_test, recvfrom_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_RECVFROM_X, 82);
-}
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
@@ -421,16 +411,6 @@ TEST_F(scap_file_test, recvfrom_x_check_final_converted_event) {
 // SENDTO
 ////////////////////////////
 
-TEST_F(scap_file_test, sendto_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SENDTO_E, 162);
-}
-
-TEST_F(scap_file_test, sendto_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SENDTO_X, 162);
-}
-
 TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
 
@@ -468,17 +448,7 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 ////////////////////////////
 // SHUTDOWN
 ////////////////////////////
-
-TEST_F(scap_file_test, shutdown_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SHUTDOWN_E, 9);
-}
-
-TEST_F(scap_file_test, shutdown_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SHUTDOWN_X, 9);
-}
-
+///
 TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
 
@@ -507,16 +477,6 @@ TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 ////////////////////////////
 // SOCKETPAIR
 ////////////////////////////
-
-TEST_F(scap_file_test, socketpair_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SOCKETPAIR_E, 114);
-}
-
-TEST_F(scap_file_test, socketpair_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SOCKETPAIR_X, 114);
-}
 
 TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
 	open_filename("kexec_arm64.scap");
@@ -562,16 +522,6 @@ TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
 ////////////////////////////
 // SENDMSG
 ////////////////////////////
-
-TEST_F(scap_file_test, sendmsg_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SENDMSG_E, 26);
-}
-
-TEST_F(scap_file_test, sendmsg_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SENDMSG_X, 26);
-}
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
@@ -627,16 +577,6 @@ TEST_F(scap_file_test, sendmsg_x_check_final_converted_event) {
 ////////////////////////////
 // RECVMSG
 ////////////////////////////
-
-TEST_F(scap_file_test, recvmsg_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_RECVMSG_E, 522);
-}
-
-TEST_F(scap_file_test, recvmsg_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_RECVMSG_X, 522);
-}
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
@@ -696,16 +636,6 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 // PTRACE
 ////////////////////////////
 
-TEST_F(scap_file_test, ptrace_e_same_number_of_events) {
-	open_filename("ptrace.scap");
-	assert_num_event_type(PPME_SYSCALL_PTRACE_E, 3);
-}
-
-TEST_F(scap_file_test, ptrace_x_same_number_of_events) {
-	open_filename("ptrace.scap");
-	assert_num_event_type(PPME_SYSCALL_PTRACE_X, 3);
-}
-
 TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	open_filename("ptrace.scap");
 
@@ -744,16 +674,6 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 ////////////////////////////
 // MKDIR
 ////////////////////////////
-
-TEST_F(scap_file_test, mkdir_e_same_number_of_events) {
-	open_filename("mkdir.scap");
-	assert_num_event_type(PPME_SYSCALL_MKDIR_2_E, 1);
-}
-
-TEST_F(scap_file_test, mkdir_x_same_number_of_events) {
-	open_filename("mkdir.scap");
-	assert_num_event_type(PPME_SYSCALL_MKDIR_2_X, 1);
-}
 
 TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 	open_filename("mkdir.scap");
