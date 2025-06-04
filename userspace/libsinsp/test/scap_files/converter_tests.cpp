@@ -508,6 +508,16 @@ TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 // SOCKETPAIR
 ////////////////////////////
 
+TEST_F(scap_file_test, sendmsg_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SENDMSG_E, 26);
+}
+
+TEST_F(scap_file_test, sendmsg_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_SENDMSG_X, 26);
+}
+
 TEST_F(scap_file_test, socketpair_e_same_number_of_events) {
 	open_filename("kexec_arm64.scap");
 	assert_num_event_type(PPME_SOCKET_SOCKETPAIR_E, 114);
@@ -562,16 +572,6 @@ TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
 ////////////////////////////
 // SENDMSG
 ////////////////////////////
-
-TEST_F(scap_file_test, sendmsg_e_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SENDMSG_E, 26);
-}
-
-TEST_F(scap_file_test, sendmsg_x_same_number_of_events) {
-	open_filename("kexec_arm64.scap");
-	assert_num_event_type(PPME_SOCKET_SENDMSG_X, 26);
-}
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)

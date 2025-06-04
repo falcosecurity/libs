@@ -43,7 +43,6 @@ protected:
 		while(1) {
 			ret = m_inspector->next(&evt);
 			if(ret == SCAP_EOF) {
-				printf("EOF!\n");
 				break;
 			}
 			if(ret != SCAP_SUCCESS) {
@@ -55,7 +54,6 @@ protected:
 			}
 			number_of_evts++;
 		}
-		printf("topkek %ld/%ld\n", count, number_of_evts);
 		ASSERT_EQ(count, expected_count);
 	}
 
