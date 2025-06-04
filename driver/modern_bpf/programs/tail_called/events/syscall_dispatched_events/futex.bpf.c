@@ -58,6 +58,18 @@ int BPF_PROG(futex_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
+	/* Parameter 2: addr (type: PT_UINT64) */
+	uint64_t addr = extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, addr);
+
+	/* Parameter 3: op (type: PT_ENUMFLAGS16) */
+	int32_t op = (int32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_u16(&ringbuf, futex_op_to_scap((unsigned long)op));
+
+	/* Parameter 4: val (type: PT_UINT64) */
+	uint64_t val = extract__syscall_argument(regs, 2);
+	ringbuf__store_u64(&ringbuf, val);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

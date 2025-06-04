@@ -39,8 +39,17 @@ TEST(SyscallEnter, futexX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: addr (type: PT_UINT64) */
+	evt_test->assert_numeric_param(2, (uint64_t)&futex_word);
+
+	/* Parameter 3: op (type: PT_ENUMFLAGS16) */
+	evt_test->assert_numeric_param(3, (uint16_t)PPM_FU_FUTEX_PRIVATE_FLAG);
+
+	/* Parameter 4: val (type: PT_UINT64) */
+	evt_test->assert_numeric_param(4, (uint64_t)val);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif
