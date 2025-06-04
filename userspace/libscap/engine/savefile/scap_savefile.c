@@ -2050,7 +2050,7 @@ static int32_t next(struct scap_engine_handle engine,
 	conversion_result conv_res = CONVERSION_CONTINUE;
 	for(conv_num = 0; conv_num < MAX_CONVERSION_BOUNDARY && conv_res == CONVERSION_CONTINUE;
 	    conv_num++) {
-		printf("converting\n");
+		printf("converting %d idx\n", conv_num);
 		// Before each conversion we move the current event into the storage
 		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
 		conv_res = scap_convert_event(handle->m_converter_buf,
