@@ -58,9 +58,9 @@ else()
 
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
-		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2022.0.0.tar.gz")
+		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2022.1.0.tar.gz")
 		set(TBB_SRC_URL_HASH
-			"SHA256=e8e89c9c345415b17b30a2db3095ba9d47647611662073f7fbf54ad48b7f3c2a"
+			"SHA256=ed067603ece0dc832d2881ba5c516625ac2522c665d95f767ef6304e34f961b5"
 		)
 		set(TBB_FLAGS "")
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -89,6 +89,8 @@ else()
 						   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 						   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
 						   -DEMSCRIPTEN=${TBB_EMSCRIPTEN}
+						   -DTBB_FILE_TRIM=Off
+						   -DTBB_INSTALL=Off
 				BUILD_BYPRODUCTS ${TBB_LIB}
 				INSTALL_COMMAND ""
 			)
@@ -110,6 +112,8 @@ else()
 							   -DTBB_OUTPUT_DIR_BASE=lib
 							   -DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+							   -DTBB_FILE_TRIM=Off
+							   -DTBB_INSTALL=Off
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND ""
 				)
@@ -129,6 +133,8 @@ else()
 							   -DTBB_OUTPUT_DIR_BASE=lib
 							   -DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+							   -DTBB_FILE_TRIM=Off
+							   -DTBB_INSTALL=Off
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND ""
 				)
