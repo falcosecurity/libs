@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2024 The Falco Authors.
+Copyright (C) 2025 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -211,4 +211,14 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_SETPGID_X, 1},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
-                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})}};
+                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
+        /*====================== LSEEK ======================*/
+        {conversion_key{PPME_SYSCALL_LSEEK_E, 3}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_LSEEK_X, 1},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_OLD, 0},
+                          {C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1},
+                          {C_INSTR_FROM_ENTER, 2}})},
+};
