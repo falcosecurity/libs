@@ -2895,9 +2895,10 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			//
 			// This should happen only in case of a bug in our code, because I'm assuming that the
 			// OS causes a connect with the wrong socket type to fail. Assert in debug mode and just
-			// keep going in release mode.
+			// return in release mode.
 			//
 			ASSERT(false);
+			return;
 		}
 
 		//
