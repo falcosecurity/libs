@@ -32,7 +32,7 @@ TEST(SyscallEnter, epoll_waitE) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: maxevents (type: PT_ERRNO)*/
+	/* Parameter 1: maxevents (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)maxevents);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

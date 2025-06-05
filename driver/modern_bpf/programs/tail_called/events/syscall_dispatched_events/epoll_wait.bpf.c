@@ -50,6 +50,10 @@ int BPF_PROG(epoll_wait_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: maxevents (type: PT_ERRNO) */
+	int maxevents = (int)extract__syscall_argument(regs, 2);
+	ringbuf__store_s64(&ringbuf, (int64_t)maxevents);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

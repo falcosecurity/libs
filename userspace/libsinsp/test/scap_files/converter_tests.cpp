@@ -57,6 +57,13 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
+	open_filename("kexec_x86.scap");
+	assert_num_event_types({
+	        {PPME_SYSCALL_EPOLLWAIT_E, 2051},
+	        {PPME_SYSCALL_EPOLLWAIT_X, 2051},
+	        // Add further checks regarding the expected number of events in this scap file here.
+	});
+
 	open_filename("ptrace.scap");
 	assert_num_event_types({
 	        {PPME_SYSCALL_PTRACE_E, 3},
@@ -673,6 +680,35 @@ TEST_F(scap_file_test, futex_x_check_final_converted_event) {
 	constexpr uint64_t val = 1;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FUTEX_X, 4, res, addr, op, val));
+}
+
+////////////////////////////
+///// EPOLL_WAIT
+////////////////////////////
+
+TEST_F(scap_file_test, epoll_wait_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `522235` is the following:
+	// - type=PPME_SYSCALL_EPOLLWAIT_X,
+	// - ts=1687889198957001006
+	// - tid=1385
+	// - args=res=0
+	//
+	// And its corresponding enter event `522236` is the following:
+	// - type=PPME_SYSCALL_EPOLLWAIT_E
+	// - ts=1687889198956999803
+	// - tid=1385
+	// - args=maxevents=1024
+	//
+	// Let's see the new PPME_SYSCALL_EPOLLWAIT_X event!
+
+	constexpr uint64_t ts = 1687889198957001006;
+	constexpr int64_t tid = 1385;
+	constexpr int64_t res = 0;
+	constexpr int64_t maxevents = 1024;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLLWAIT_X, 2, res, maxevents));
 }
 
 ////////////////////////////

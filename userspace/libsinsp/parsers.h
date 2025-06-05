@@ -116,7 +116,7 @@ private:
 	void parse_single_param_fd_exit(sinsp_evt& evt, scap_fd_type type) const;
 	void parse_getrlimit_setrlimit_exit(sinsp_evt& evt) const;
 	void parse_prlimit_exit(sinsp_evt& evt) const;
-	void parse_select_poll_epollwait_enter(sinsp_evt& evt);
+	void parse_select_poll_ppoll_epollwait(sinsp_evt& evt);
 	void parse_fcntl_enter(sinsp_evt& evt);
 	void parse_fcntl_exit(sinsp_evt& evt) const;
 	static void parse_prctl_exit_event(sinsp_evt& evt);
