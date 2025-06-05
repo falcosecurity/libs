@@ -63,7 +63,7 @@
 #define FSTAT64_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define FSTAT64_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define EPOLL_WAIT_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define EPOLL_WAIT_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define EPOLL_WAIT_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
 #define SELECT_E_SIZE HEADER_LEN
 #define SELECT_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define LSEEK_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + sizeof(uint8_t) + PARAM_LEN * 3

@@ -36,8 +36,11 @@ TEST(SyscallExit, epoll_waitX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: maxevents (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(2, (int64_t)maxevents);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif

@@ -3869,7 +3869,7 @@ FILLER(sys_epoll_create_e, true) {
 }
 
 FILLER(sys_epoll_create_x, true) {
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	unsigned long retval = bpf_syscall_get_retval(data->ctx);
 	return bpf_push_s64_to_ring(data, retval);
 }
@@ -3884,6 +3884,17 @@ FILLER(sys_epoll_create1_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	unsigned long retval = bpf_syscall_get_retval(data->ctx);
 	return bpf_push_s64_to_ring(data, retval);
+}
+
+FILLER(sys_epoll_wait_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	unsigned long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: maxevents (type: PT_ERRNO) */
+	int64_t maxevents = (int)bpf_syscall_get_argument(data, 2);
+	return bpf_push_s64_to_ring(data, maxevents);
 }
 
 FILLER(sys_sendfile_e, true) {
