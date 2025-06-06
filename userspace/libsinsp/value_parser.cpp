@@ -90,7 +90,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str,
 				if(se == NULL) {
 					throw sinsp_exception("unrecognized protocol " + in);
 				} else {
-					*(uint16_t*)storage = ntohs(getservbyname(in.c_str(), NULL)->s_port);
+					*(uint16_t*)storage = ntohs(se->s_port);
 				}
 			}
 		}
