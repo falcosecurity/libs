@@ -7218,6 +7218,31 @@ int f_sys_setns_e(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_setns_x(struct event_filler_arguments *args) {
+	unsigned long val = 0;
+	int res = 0;
+	int32_t fd = 0;
+	int64_t retval = 0;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: nstype (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, clone_flags_to_scap((int)val), 0, true, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_setpgid_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;

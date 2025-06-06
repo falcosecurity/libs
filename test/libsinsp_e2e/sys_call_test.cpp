@@ -1164,6 +1164,8 @@ TEST_F(sys_call_test, setns_test) {
 			break;
 		case PPME_SYSCALL_SETNS_X:
 			EXPECT_EQ("0", e->get_param_value_str("res"));
+			EXPECT_EQ((int64_t)fd, e->get_param_by_name("fd")->as<int64_t>());
+			ASSERT_EQ(PPM_CL_CLONE_NEWNET, e->get_param_by_name("nstype")->as<uint32_t>());
 			break;
 		}
 		++callnum;
