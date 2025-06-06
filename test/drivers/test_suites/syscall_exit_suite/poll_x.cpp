@@ -67,9 +67,12 @@ TEST(SyscallExit, pollX_success) {
 	/* Parameter 2: fds (type: PT_FDLIST) */
 	evt_test->assert_fd_list(2, (struct fd_poll *)&expected, 2);
 
+	/* Parameter 3: timeout (type: PT_INT64) */
+	evt_test->assert_numeric_param(3, (int64_t)timeout);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 #endif

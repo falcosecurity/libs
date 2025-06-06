@@ -238,7 +238,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_SEMCTL_E] = {FILLER_REF(sys_semctl_e)},
         [PPME_SYSCALL_SEMCTL_X] = {FILLER_REF(sys_single_x)},
         [PPME_SYSCALL_PPOLL_E] = {FILLER_REF(sys_ppoll_e)},
-        [PPME_SYSCALL_PPOLL_X] = {FILLER_REF(sys_poll_x)}, /* exit same for poll() and ppoll() */
+        [PPME_SYSCALL_PPOLL_X] = {FILLER_REF(sys_ppoll_x)},
         [PPME_SYSCALL_MOUNT_E] = {FILLER_REF(sys_mount_e)},
         [PPME_SYSCALL_MOUNT_X] = {FILLER_REF(sys_autofill),
                                   4,

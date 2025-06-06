@@ -70,6 +70,11 @@ int BPF_PROG(poll_x, struct pt_regs *regs, long ret) {
 	/* Parameter 2: fds (type: PT_FDLIST) */
 	auxmap__store_fdlist_param(auxmap, fds_pointer, nfds, RETURNED_EVENTS);
 
+	/* Parameter 3: timeout (type: PT_INT64) */
+	/* This is an `int` in the syscall signature but we push it as an `int64` */
+	uint32_t timeout_msecs = (int32_t)extract__syscall_argument(regs, 2);
+	auxmap__store_s64_param(auxmap, (int64_t)timeout_msecs);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

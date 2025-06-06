@@ -61,6 +61,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	assert_num_event_types({
 	        {PPME_SYSCALL_EPOLLWAIT_E, 2051},
 	        {PPME_SYSCALL_EPOLLWAIT_X, 2051},
+	        {PPME_SYSCALL_POLL_E, 2682},
+	        {PPME_SYSCALL_POLL_X, 2683},
 	        {PPME_SYSCALL_SETNS_E, 5},
 	        {PPME_SYSCALL_SETNS_X, 5},
 	        // Add further checks regarding the expected number of events in this scap file here.
@@ -654,6 +656,36 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 // We don't have scap-files with EVENTFD events. Add it if we face a failure.
 
 ////////////////////////////
+// MKDIR
+////////////////////////////
+
+TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
+	open_filename("mkdir.scap");
+
+	// Inside the scap-file the event `463` is the following:
+	// - type=PPME_SYSCALL_MKDIR_2_X,
+	// - ts=1749017847850665826
+	// - tid=1163259
+	// - args=res=-13(EACCES) path=/hello
+	//
+	// And its corresponding enter event `464` is the following:
+	// - type=PPME_SYSCALL_MKDIR_2_E
+	// - ts=1749017847850637066
+	// - tid=1163259
+	// - args=mode=1FF
+	//
+	// Let's see the new PPME_SYSCALL_MKDIR_2_X event!
+
+	uint64_t ts = 1749017847850665826;
+	int64_t tid = 1163259;
+	int64_t res = -13;
+	constexpr char path[] = "/hello";
+	uint32_t mode = 0x1ff;  // 0777 in octal
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}
+
+////////////////////////////
 ///// FUTEX
 ////////////////////////////
 
@@ -714,6 +746,41 @@ TEST_F(scap_file_test, epoll_wait_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+///// POLL
+////////////////////////////
+
+TEST_F(scap_file_test, poll_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `520415` is the following:
+	// - type=PPME_SYSCALL_POLL_X,
+	// - ts=1687889198874896483
+	// - tid=99525
+	// - args=res=1 fds=22:i1
+	//
+	// And its corresponding enter event `520414` is the following:
+	// - type=PPME_SYSCALL_POLL_E
+	// - ts=1687889198874895459
+	// - tid=99525
+	// - args=fds=20:p1 22:i1 timeout=500
+	//
+	// Let's see the new PPME_SYSCALL_POLL_X event!
+
+	constexpr uint64_t ts = 1687889198874896483;
+	constexpr int64_t tid = 99525;
+	constexpr int64_t res = 1;
+	constexpr uint8_t fds[] = {0x1, 0x0, 0x16, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0};
+	constexpr int64_t timeout = 500;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_POLL_X,
+	                                             3,
+	                                             res,
+	                                             scap_const_sized_buffer{fds, sizeof(fds)},
+	                                             timeout));
+}
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 
@@ -750,36 +817,6 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	                                             scap_const_sized_buffer{data, sizeof(data)},
 	                                             request,
 	                                             pid));
-}
-
-////////////////////////////
-// MKDIR
-////////////////////////////
-
-TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
-	open_filename("mkdir.scap");
-
-	// Inside the scap-file the event `463` is the following:
-	// - type=PPME_SYSCALL_MKDIR_2_X,
-	// - ts=1749017847850665826
-	// - tid=1163259
-	// - args=res=-13(EACCES) path=/hello
-	//
-	// And its corresponding enter event `464` is the following:
-	// - type=PPME_SYSCALL_MKDIR_2_E
-	// - ts=1749017847850637066
-	// - tid=1163259
-	// - args=mode=1FF
-	//
-	// Let's see the new PPME_SYSCALL_MKDIR_2_X event!
-
-	uint64_t ts = 1749017847850665826;
-	int64_t tid = 1163259;
-	int64_t res = -13;
-	constexpr char path[] = "/hello";
-	uint32_t mode = 0x1ff;  // 0777 in octal
-	assert_event_presence(
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
 }
 
 ////////////////////////////
