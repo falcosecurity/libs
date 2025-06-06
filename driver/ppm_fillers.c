@@ -4031,12 +4031,33 @@ int f_sys_poll_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
+	/* Parameter 1: fds (type: PT_FDLIST) */
 	res = poll_parse_fds(args, true);
 	CHECK_RES(res);
 
-	/*
-	 * timeout
-	 */
+	/* Parameter 2: timeout (type: PT_INT64) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_poll_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	unsigned long val;
+	int res;
+
+	/* Parameter 1: ret (type: PT_FD) */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fds (type: PT_FDLIST) */
+	res = poll_parse_fds(args, false);
+	CHECK_RES(res);
+
+	/* Parameter 3: timeout (type: PT_INT64) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
@@ -4108,18 +4129,16 @@ int f_sys_ppoll_e(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-/* This is the same for poll() and ppoll() */
-int f_sys_poll_x(struct event_filler_arguments *args) {
+int f_sys_ppoll_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: ret (type: PT_FD) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 2: fds (type: PT_FDLIST) */
 	res = poll_parse_fds(args, false);
 	CHECK_RES(res);
 

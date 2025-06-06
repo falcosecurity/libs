@@ -167,7 +167,7 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
-	case PPME_SYSCALL_POLL_E:
+	case PPME_SYSCALL_POLL_X:
 	case PPME_SYSCALL_PPOLL_E:
 	case PPME_SYSCALL_EPOLLWAIT_X:
 		parse_select_poll_ppoll_epollwait(evt);
@@ -4313,7 +4313,7 @@ void sinsp_parser::parse_select_poll_ppoll_epollwait(sinsp_evt &evt) {
 		if(evt.get_tinfo()->get_last_event_data() == nullptr) {
 			throw sinsp_exception(
 			        "cannot reserve event buffer in "
-			        "sinsp_parser::parse_select_poll_epollwait_enter.");
+			        "sinsp_parser::parse_select_poll_ppoll_epollwait.");
 		}
 	}
 	*(uint64_t *)evt.get_tinfo()->get_last_event_data() = evt.get_ts();

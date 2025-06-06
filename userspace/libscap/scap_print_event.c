@@ -54,13 +54,12 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 	const uint16_t *len_ptr =
 	        (uint16_t *)((char *)ev + sizeof(struct ppm_evt_hdr) + num_param * sizeof(uint16_t));
 	memcpy(&len, len_ptr, sizeof(len));
-
-	char *valptr = (char *)ev + offset;
-
 	if(len == 0) {
 		printf("PARAM %d: is empty\n", num_param);
 		return;
 	}
+
+	char *valptr = (char *)ev + offset;
 
 	switch(g_event_info[ev->type].params[num_param].type) {
 	case PT_UINT8:
@@ -221,6 +220,7 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 
 	case PT_BYTEBUF:
 	case PT_CHARBUFARRAY:
+	case PT_FDLIST:
 	case PT_DYN:
 		printf("PARAM %d:\n", num_param);
 		for(int j = 0; j < len; j++) {

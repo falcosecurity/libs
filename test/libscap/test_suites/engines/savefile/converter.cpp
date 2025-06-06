@@ -1511,6 +1511,89 @@ TEST_F(convert_event_test, PPME_SYSCALL_EPOLLWAIT_X_to_2_params_with_enter) {
 }
 
 ////////////////////////////
+// POLL
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_POLL_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint8_t fds[] = {0x1, 0x0, 0x16, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0};
+	constexpr int64_t timeout = 1000;
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_POLL_E,
+	                                        2,
+	                                        scap_const_sized_buffer{fds, sizeof(fds)},
+	                                        timeout);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_POLL_X_to_3_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint8_t fds[] = {0x1, 0x0, 0x16, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0};
+
+	// Defaulted
+	constexpr int64_t timeout = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_POLL_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{fds, sizeof(fds)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_POLL_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{fds, sizeof(fds)},
+	                               timeout));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_POLL_X_to_3_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint8_t fds[] = {0x1, 0x0, 0x16, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0};
+	constexpr int64_t timeout = 1000;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_POLL_E,
+	                                        2,
+	                                        scap_const_sized_buffer{fds, sizeof(fds)},
+	                                        timeout);
+
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_POLL_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{fds, sizeof(fds)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_POLL_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{fds, sizeof(fds)},
+	                               timeout));
+}
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 

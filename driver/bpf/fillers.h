@@ -567,7 +567,13 @@ FILLER(sys_poll_x, true) {
 	CHECK_RES(res);
 
 	/* Parameter 2: fds (type: PT_FDLIST) */
-	return bpf_poll_parse_fds(data, false);
+	res = bpf_poll_parse_fds(data, false);
+	CHECK_RES(res);
+
+	/* Parameter 3: timeout (type: PT_INT64) */
+	/* This is an `int` in the syscall signature but we push it as an `int64` */
+	uint32_t timeout_msecs = (int32_t)bpf_syscall_get_argument(data, 2);
+	return bpf_push_s64_to_ring(data, (int64_t)timeout_msecs);
 }
 
 #ifdef CONFIG_COMPAT
@@ -5163,6 +5169,16 @@ FILLER(sys_ppoll_e, true) {
 	unsigned long sigmask_pointer = bpf_syscall_get_argument(data, 3);
 	bpf_probe_read_user(&sigmask, sizeof(sigmask), (void *)sigmask_pointer);
 	return bpf_push_u32_to_ring(data, sigmask[0]);
+}
+
+FILLER(sys_ppoll_x, true) {
+	/* Parameter 1: ret (type: PT_FD) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fds (type: PT_FDLIST) */
+	return bpf_poll_parse_fds(data, false);
 }
 
 FILLER(sys_semop_x, true) {
