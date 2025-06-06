@@ -173,7 +173,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		parse_select_poll_ppoll_epollwait(evt);
 		break;
 	case PPME_SYSCALL_UNSHARE_E:
-	case PPME_SYSCALL_SETNS_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_UNSHARE_X:
@@ -4719,19 +4718,21 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	if(!retrieve_enter_event(*enter_evt, evt)) {
-		return;
-	}
-
 	uint16_t etype = evt.get_scap_evt()->type;
 
 	//
 	// Retrieve flags from enter event
 	//
 	if(etype == PPME_SYSCALL_UNSHARE_X) {
+		if(!retrieve_enter_event(*enter_evt, evt)) {
+			return;
+		}
 		flags = enter_evt->get_param(0)->as<uint32_t>();
 	} else if(etype == PPME_SYSCALL_SETNS_X) {
-		flags = enter_evt->get_param(1)->as<uint32_t>();
+		//
+		// Retrieve the flags from the exit event
+		//
+		flags = evt.get_param(2)->as<uint32_t>();
 	}
 
 	//

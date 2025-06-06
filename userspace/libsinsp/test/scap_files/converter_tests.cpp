@@ -61,6 +61,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	assert_num_event_types({
 	        {PPME_SYSCALL_EPOLLWAIT_E, 2051},
 	        {PPME_SYSCALL_EPOLLWAIT_X, 2051},
+	        {PPME_SYSCALL_SETNS_E, 5},
+	        {PPME_SYSCALL_SETNS_X, 5},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -778,4 +780,34 @@ TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 	uint32_t mode = 0x1ff;  // 0777 in octal
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}
+
+////////////////////////////
+// SETNS
+////////////////////////////
+
+TEST_F(scap_file_test, setns_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `156638` is the following:
+	// - type=PPME_SYSCALL_SETNS_X,
+	// - ts=1687889193606963670
+	// - tid=107363
+	// - args=res=0
+	//
+	// And its corresponding enter event `156637` is the following:
+	// - type=PPME_SYSCALL_SETNS_E
+	// - ts=1687889193606959614
+	// - tid=107363
+	// - args=fd=6(<f>/proc/1993/ns/ipc) nstype=8(CLONE_NEWIPC)
+	//
+	// Let's see the new PPME_SYSCALL_SETNS_X event!
+
+	uint64_t ts = 1687889193606963670;
+	int64_t tid = 107363;
+	int64_t res = 0;
+	int64_t fd = 6;
+	uint32_t nstype = 8;  // CLONE_NEWIPC
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 3, res, fd, nstype));
 }

@@ -539,6 +539,7 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	// we want to return -1 as location if we forgot to handle something
 	int location = -1;
 	switch(etype) {
+	case PPME_SYSCALL_SETNS_X:
 	case PPME_SOCKET_LISTEN_X:
 	case PPME_SOCKET_SHUTDOWN_X:
 		location = 1;
