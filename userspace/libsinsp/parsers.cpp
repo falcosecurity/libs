@@ -113,7 +113,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_SETRESUID_E:
 	case PPME_SYSCALL_SETRESGID_E:
 	case PPME_SYSCALL_SETGID_E:
-	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
 	case PPME_SYSCALL_EXECVE_18_E:

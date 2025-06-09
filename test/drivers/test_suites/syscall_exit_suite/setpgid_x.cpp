@@ -29,11 +29,17 @@ TEST(SyscallExit, setpgidX) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_PID) */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 1: pid (type: PT_PID) */
+	evt_test->assert_numeric_param(2, (int64_t)pid);
+
+	/* Parameter 2: pgid (type: PT_PID) */
+	evt_test->assert_numeric_param(3, (int64_t)pgid);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif
