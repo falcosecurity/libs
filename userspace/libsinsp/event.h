@@ -498,23 +498,17 @@ public:
 	                                const char** resolved_str,
 	                                param_fmt fmt = PF_NORMAL);
 
-	inline void init_keep_threadinfo() {
+	inline void init() {
 		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
-		m_fdinfo = NULL;
+		m_tinfo_ref.reset();
+		m_tinfo = NULL;
 		m_fdinfo_ref.reset();
+		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
-	}
-	inline void init() {
-		init_keep_threadinfo();
-		m_tinfo_ref.reset();
-		m_tinfo = NULL;
-		m_fdinfo = NULL;
-		m_fdinfo_ref.reset();
-		m_fdinfo_name_changed = false;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid) {
 		m_flags = EF_NONE;
