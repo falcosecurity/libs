@@ -65,6 +65,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_POLL_X, 2683},
 	        {PPME_SYSCALL_SETNS_E, 5},
 	        {PPME_SYSCALL_SETNS_X, 5},
+	        {PPME_SYSCALL_SETPGID_E, 4},
+	        {PPME_SYSCALL_SETPGID_X, 4},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -881,4 +883,34 @@ TEST_F(scap_file_test, fchdir_x_check_final_converted_event) {
 	int64_t res = -9;
 	int64_t fd = 25;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 2, res, fd));
+}
+
+////////////////////////////
+// SETPGID
+////////////////////////////
+
+TEST_F(scap_file_test, setpgid_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `123127` is the following:
+	// - type=PPME_SYSCALL_SETPGID_X,
+	// - ts=1687889193490376726
+	// - tid=107344
+	// - args=res=0
+	//
+	// And its corresponding enter event `123126` is the following:
+	// - type=PPME_SYSCALL_SETPGID_E
+	// - ts=1687889193490374360
+	// - tid=107344
+	// - args=pid=0 pgid=107344(zsh)
+	//
+	// Let's see the new PPME_SYSCALL_SETPGID_X event!
+
+	uint64_t ts = 1687889193490376726;
+	int64_t tid = 107344;
+	int64_t res = 0;
+	int64_t pid = 0;
+	int64_t pgid = 107344;  // zsh process ID
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 3, res, pid, pgid));
 }

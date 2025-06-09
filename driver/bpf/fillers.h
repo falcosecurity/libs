@@ -3089,6 +3089,22 @@ FILLER(sys_setpgid_e, true) {
 	return bpf_push_s64_to_ring(data, (int64_t)pgid);
 }
 
+FILLER(sys_setpgid_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)pid);
+	CHECK_RES(res);
+
+	/* Parameter 3: pgid (type: PT_PID) */
+	pid_t pgid = (int32_t)bpf_syscall_get_argument(data, 1);
+	return bpf_push_s64_to_ring(data, (int64_t)pgid);
+}
+
 FILLER(sys_unshare_e, true) {
 	unsigned long val;
 	uint32_t flags;

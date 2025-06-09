@@ -180,6 +180,12 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_FCHDIR_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_FCHDIR_X, 1},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        /*====================== SETPGID ======================*/
+        {conversion_key{PPME_SYSCALL_SETPGID_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_SETPGID_X, 1},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
         /*====================== SETNS ======================*/
         {conversion_key{PPME_SYSCALL_SETNS_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SETNS_X, 1},

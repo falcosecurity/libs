@@ -28,7 +28,7 @@ TEST(SyscallEnter, setpgidE) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: pid (type: PT_FD) */
+	/* Parameter 1: pid (type: PT_PID) */
 	evt_test->assert_numeric_param(1, (int64_t)pid);
 
 	/* Parameter 2: pgid (type: PT_PID) */

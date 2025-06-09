@@ -177,6 +177,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mkdir_e)                      \
 	FN(sys_mkdir_x)                      \
 	FN(sys_setpgid_e)                    \
+	FN(sys_setpgid_x)                    \
 	FN(sys_recvfrom_e)                   \
 	FN(sys_recvmsg_e)                    \
 	FN(sys_listen_e)                     \
