@@ -7,7 +7,6 @@ approvers:
   - molter73
   - lucaguerra
   - jasondellaluce
-  - incertum
   - ekoops
 reviewers:
   - hbrueckner
@@ -15,3 +14,4 @@ emeritus_approvers:
   - fntlnz
   - leodido
   - ldegio
+  - incertum
