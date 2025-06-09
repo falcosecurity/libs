@@ -510,7 +510,7 @@ public:
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
 	}
-	inline void init(uint8_t* evdata, uint16_t cpuid) {
+	inline void init_from_raw(uint8_t* evdata, uint16_t cpuid) {
 		m_flags = EF_NONE;
 		m_pevt = (scap_evt*)evdata;
 		m_info = &(m_event_info_table[m_pevt->type]);
@@ -528,7 +528,7 @@ public:
 	static std::unique_ptr<sinsp_evt> from_scap_evt(std::unique_ptr<uint8_t[]> scap_event) {
 		auto ret = std::make_unique<sinsp_evt>();
 		auto evdata = scap_event.release();
-		ret->init(evdata, 0);
+		ret->init_from_raw(evdata, 0);
 		ret->m_pevt_storage = (char*)evdata;
 		return ret;
 	}

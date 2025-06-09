@@ -712,8 +712,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 		return false;
 	}
 
-	enter_evt.init(exit_evt.get_tinfo()->get_last_event_data(),
-	               exit_evt.get_tinfo()->get_lastevent_cpuid());
+	enter_evt.init_from_raw(exit_evt.get_tinfo()->get_last_event_data(),
+	                        exit_evt.get_tinfo()->get_lastevent_cpuid());
 
 	/* The `execveat` syscall is a wrapper of `execve`, when the call
 	 * succeeds the event returned is simply an `execve` exit event.
