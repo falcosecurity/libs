@@ -524,24 +524,6 @@ public:
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
 	}
-	inline void init(scap_evt* scap_event,
-	                 ppm_event_info* ppm_event,
-	                 sinsp_threadinfo* threadinfo,
-	                 sinsp_fdinfo* fdinfo) {
-		m_pevt = scap_event;
-		m_info = ppm_event;
-		m_tinfo_ref.reset();  // we don't own the threadinfo so don't try to manage its lifetime
-		m_tinfo = threadinfo;
-		m_tinfo_ref.reset();
-		m_fdinfo = fdinfo;
-		m_source_idx = sinsp_no_event_source_idx;
-		m_source_name = sinsp_no_event_source_name;
-	}
-	inline void init(scap_evt* scap_event, ppm_event_info* ppm_event, int32_t errorcode) {
-		m_pevt = scap_event;
-		m_info = ppm_event;
-		m_errorcode = errorcode;
-	}
 
 	static std::unique_ptr<sinsp_evt> from_scap_evt(std::unique_ptr<uint8_t[]> scap_event) {
 		auto ret = std::make_unique<sinsp_evt>();
