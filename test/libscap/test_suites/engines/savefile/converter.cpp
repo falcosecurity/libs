@@ -614,7 +614,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_E_store)
 
 	int64_t fd = 3;
 	uint64_t offset = 1024;
-	uint8_t whence = SEEK_SET; // Usually 0
+	uint8_t whence = SEEK_SET;
 
 	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_E, 3, fd, offset, whence);
 	assert_single_conversion_skip(evt);
@@ -626,7 +626,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_X_to_4_params_no_enter)
 	uint64_t ts = 15;
 	int64_t tid = 30;
 
-	int64_t res = 1024; // Return value of lseek
+	int64_t res = 1024;
 
 	// Defaulted values if enter event is missing
 	int64_t fd = 0;
@@ -644,10 +644,10 @@ TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_X_to_4_params_with_enter)
 	uint64_t ts = 15;
 	int64_t tid = 30;
 
-	int64_t res = 1024; // Return value of lseek
+	int64_t res = 1024;
 	int64_t fd = 3;
 	uint64_t offset = 1024;
-	uint8_t whence = SEEK_SET; // Usually 0, corresponds to PPM_SEEK_SET
+	uint8_t whence = SEEK_SET;
 
 	// Store the enter event first
 	auto evt_e = create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_E, 3, fd, offset, lseek_whence_to_scap(whence));
