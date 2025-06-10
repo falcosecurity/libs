@@ -52,7 +52,7 @@ scap_t* open_modern_bpf_engine(char* error_buf,
 }
 
 TEST(modern_bpf, open_engine) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* we want 1 ring buffer for each CPU */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, true);
@@ -62,7 +62,7 @@ TEST(modern_bpf, open_engine) {
 }
 
 TEST(modern_bpf, empty_buffer_dim) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 0, 1, true);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
@@ -71,7 +71,7 @@ TEST(modern_bpf, empty_buffer_dim) {
 }
 
 TEST(modern_bpf, wrong_buffer_dim) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* ring buffer dim is not a multiple of PAGE_SIZE */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 + 4 * 4096, 1, true);
@@ -81,7 +81,7 @@ TEST(modern_bpf, wrong_buffer_dim) {
 }
 
 TEST(modern_bpf, not_enough_possible_CPUs) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 
 	ssize_t num_possible_CPUs = num_possible_cpus();
@@ -92,7 +92,7 @@ TEST(modern_bpf, not_enough_possible_CPUs) {
 }
 
 TEST(modern_bpf, not_enough_online_CPUs) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 
 	ssize_t num_online_CPUs = sysconf(_SC_NPROCESSORS_ONLN);
@@ -104,7 +104,7 @@ TEST(modern_bpf, not_enough_online_CPUs) {
 }
 
 TEST(modern_bpf, one_buffer_per_possible_CPU) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -121,7 +121,7 @@ TEST(modern_bpf, one_buffer_per_possible_CPU) {
 }
 
 TEST(modern_bpf, one_buffer_every_two_possible_CPUs) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 2, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -142,7 +142,7 @@ TEST(modern_bpf, one_buffer_every_two_possible_CPUs) {
 }
 
 TEST(modern_bpf, one_buffer_shared_between_all_possible_CPUs_with_special_value) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* `0` is a special value that means one single shared ring buffer */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 0, false);
@@ -163,7 +163,7 @@ TEST(modern_bpf, one_buffer_shared_between_all_possible_CPUs_with_special_value)
  * `one_buffer_shared_between_all_CPUs_with_special_value`.
  */
 TEST(modern_bpf, one_buffer_shared_between_all_online_CPUs_with_explicit_CPUs_number) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 
 	ssize_t num_possible_CPUs = sysconf(_SC_NPROCESSORS_ONLN);
@@ -181,7 +181,7 @@ TEST(modern_bpf, one_buffer_shared_between_all_online_CPUs_with_explicit_CPUs_nu
 }
 
 TEST(modern_bpf, read_in_order_one_buffer_per_online_CPU) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 1, true);
@@ -194,7 +194,7 @@ TEST(modern_bpf, read_in_order_one_buffer_per_online_CPU) {
 }
 
 TEST(modern_bpf, read_in_order_one_buffer_every_two_online_CPUs) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 2, true);
@@ -207,7 +207,7 @@ TEST(modern_bpf, read_in_order_one_buffer_every_two_online_CPUs) {
 }
 
 TEST(modern_bpf, read_in_order_one_buffer_shared_between_all_possible_CPUs) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
@@ -220,7 +220,7 @@ TEST(modern_bpf, read_in_order_one_buffer_shared_between_all_possible_CPUs) {
 }
 
 TEST(modern_bpf, scap_stats_check) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
@@ -238,7 +238,7 @@ TEST(modern_bpf, scap_stats_check) {
 }
 
 TEST(modern_bpf, double_scap_stats_call) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
@@ -261,7 +261,7 @@ TEST(modern_bpf, double_scap_stats_call) {
 }
 
 TEST(modern_bpf, metrics_v2_check_per_CPU_stats) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
@@ -324,7 +324,7 @@ TEST(modern_bpf, metrics_v2_check_per_CPU_stats) {
 }
 
 TEST(modern_bpf, metrics_v2_check_results) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
@@ -376,7 +376,7 @@ TEST(modern_bpf, metrics_v2_check_results) {
 }
 
 TEST(modern_bpf, metrics_v2_check_empty) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
@@ -394,7 +394,7 @@ TEST(modern_bpf, metrics_v2_check_empty) {
 }
 
 TEST(modern_bpf, double_metrics_v2_call) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);

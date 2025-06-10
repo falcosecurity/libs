@@ -13,7 +13,7 @@ TEST(SyscallExit, signalfd4X) {
 
 	/* `mask` and `flags` are not catched BPF side. */
 	int32_t mock_fd = -1;
-	sigset_t mask = {0};
+	sigset_t mask{};
 	size_t sizemask = 0;
 	/* Our instrumentation will convert these into `O_NONBLOCK | O_CLOEXEC` */
 	int flags = SFD_NONBLOCK | SFD_CLOEXEC;

@@ -13,7 +13,7 @@ TEST(SyscallEnter, signalfd4E) {
 
 	/* `mask` is not catched BPF side. */
 	int32_t mock_fd = -1;
-	sigset_t mask = {0};
+	sigset_t mask{};
 	size_t sizemask = 0;
 	int flags = 7;
 	assert_syscall_state(SYSCALL_FAILURE,

@@ -233,7 +233,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 				//
 				// Wait 10 seconds. During this time, the process should NOT be removed
 				//
-				struct timespec req = {0};
+				struct timespec req {};
 				req.tv_sec = 1;
 				req.tv_nsec = 0;
 

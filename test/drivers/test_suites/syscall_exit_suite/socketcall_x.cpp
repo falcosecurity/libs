@@ -17,7 +17,7 @@ TEST(SyscallExit, socketcall_socketX) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = -1;
 	args[1] = -1;
 	args[2] = -1;
@@ -95,7 +95,7 @@ TEST(SyscallExit, socketcall_bindX) {
 	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)&server_addr;
 	args[2] = sizeof(server_addr);
@@ -164,7 +164,7 @@ TEST(SyscallExit, socketcall_connectX) {
 
 	/* With `SOCK_DGRAM` the `connect` will not perform a connection this is why the syscall doesn't
 	 * fail. */
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)&server_addr;
 	args[2] = sizeof(server_addr);
@@ -228,7 +228,7 @@ TEST(SyscallExit, socketcall_recvmmsgX) {
 	int flags = 0;
 	struct timespec *timeout = NULL;
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)msg;
 	args[2] = vlen;
@@ -273,7 +273,7 @@ TEST(SyscallExit, socketcall_sendmmsgX) {
 	uint32_t vlen = 0;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)msg;
 	args[2] = vlen;
@@ -314,7 +314,7 @@ TEST(SyscallExit, socketcall_shutdownX) {
 	int32_t invalid_fd = -1;
 	int how = SHUT_RD;
 
-	unsigned long args[2] = {0};
+	unsigned long args[2]{};
 	args[0] = invalid_fd;
 	args[1] = how;
 	assert_syscall_state(SYSCALL_FAILURE, "shutdown", syscall(__NR_socketcall, SYS_SHUTDOWN, args));
@@ -378,7 +378,7 @@ TEST(SyscallExit, socketcall_acceptX_INET) {
 	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)NULL;
 	args[2] = (unsigned long)NULL;
@@ -466,7 +466,7 @@ TEST(SyscallExit, socketcall_acceptX_INET6) {
 	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)NULL;
 	args[2] = (unsigned long)NULL;
@@ -555,7 +555,7 @@ TEST(SyscallExit, socketcall_acceptX_UNIX) {
 	                                            &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)NULL;
 	args[2] = (unsigned long)NULL;
@@ -635,7 +635,7 @@ TEST(SyscallExit, socketcall_acceptX_failure) {
 	sockaddr *addr = NULL;
 	socklen_t *addrlen = NULL;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -705,7 +705,7 @@ TEST(SyscallExit, socketcall_accept4X_INET) {
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -786,7 +786,7 @@ TEST(SyscallExit, socketcall_accept4X_INET6) {
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -868,7 +868,7 @@ TEST(SyscallExit, socketcall_accept4X_UNIX) {
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = server_socket_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -938,7 +938,7 @@ TEST(SyscallExit, socketcall_accept4X_failure) {
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -994,7 +994,7 @@ TEST(SyscallExit, socketcall_listenX) {
 	int32_t socket_fd = 2;
 	int backlog = 3;
 
-	unsigned long args[2] = {0};
+	unsigned long args[2]{};
 	args[0] = socket_fd;
 	args[1] = backlog;
 	assert_syscall_state(SYSCALL_FAILURE, "listen", syscall(__NR_socketcall, SYS_LISTEN, args));
@@ -1072,7 +1072,7 @@ TEST(SyscallExit, socketcall_recvfromX_no_snaplen) {
 	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = connected_socket_fd;
 	args[1] = (unsigned long)received_data;
 	args[2] = received_data_len;
@@ -1166,7 +1166,7 @@ TEST(SyscallExit, socketcall_recvfromX_snaplen) {
 	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = connected_socket_fd;
 	args[1] = (unsigned long)received_data;
 	args[2] = received_data_len;
@@ -1237,7 +1237,7 @@ TEST(SyscallExit, socketcall_recvfromX_fail) {
 	sockaddr *src_addr = NULL;
 	socklen_t *addrlen = NULL;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)received_data;
 	args[2] = received_data_len;
@@ -1296,7 +1296,7 @@ TEST(SyscallExit, socketcall_socketpairX_success) {
 	int protocol = 0;
 	int32_t fd[2];
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = domain;
 	args[1] = type;
 	args[2] = protocol;
@@ -1368,7 +1368,7 @@ TEST(SyscallExit, socketcall_socketpairX_failure) {
 	int protocol = 0;
 	int32_t *fd = NULL;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = domain;
 	args[1] = type;
 	args[2] = protocol;
@@ -1453,7 +1453,7 @@ TEST(SyscallExit, socketcall_sendtoX_no_snaplen) {
 	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)sent_data;
 	args[2] = sizeof(sent_data);
@@ -1517,7 +1517,7 @@ TEST(SyscallExit, socketcall_sendtoX_snaplen) {
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)sent_data;
 	args[2] = sizeof(sent_data);
@@ -1575,7 +1575,7 @@ TEST(SyscallExit, socketcall_sendtoX_fail) {
 	sockaddr *dest_addr = NULL;
 	socklen_t addrlen = 0;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)sent_data;
 	args[2] = len;
@@ -1626,7 +1626,7 @@ TEST(SyscallExit, socketcall_sendtoX_empty) {
 	sockaddr *dest_addr = NULL;
 	socklen_t addrlen = 0;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)sent_data;
 	args[2] = len;
@@ -1706,7 +1706,7 @@ TEST(SyscallExit, socketcall_sendmsgX_no_snaplen) {
 	send_msg.msg_iovlen = 2;
 	uint32_t sendmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)&send_msg;
 	args[2] = sendmsg_flags;
@@ -1783,7 +1783,7 @@ TEST(SyscallExit, socketcall_sendmsgX_snaplen) {
 	send_msg.msg_iovlen = 3;
 	uint32_t sendmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)&send_msg;
 	args[2] = sendmsg_flags;
@@ -1843,7 +1843,7 @@ TEST(SyscallExit, socketcall_sendmsgX_fail) {
 	send_msg.msg_iovlen = 1;
 	uint32_t sendmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)&send_msg;
 	args[2] = sendmsg_flags;
@@ -1892,7 +1892,7 @@ TEST(SyscallExit, socketcall_sendmsgX_null_iovec) {
 	send_msg.msg_iovlen = 3;
 	uint32_t sendmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)&send_msg;
 	args[2] = sendmsg_flags;
@@ -1947,7 +1947,7 @@ TEST(SyscallExit, socketcall_sendmsgX_null_msghdr) {
 	struct msghdr *send_msg = NULL;
 	uint32_t sendmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)send_msg;
 	args[2] = sendmsg_flags;
@@ -2037,7 +2037,7 @@ TEST(SyscallExit, socketcall_recvmsgX_no_snaplen) {
 	recv_msg.msg_iovlen = 2;
 	uint32_t recvmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = connected_socket_fd;
 	args[1] = (unsigned long)&recv_msg;
 	args[2] = recvmsg_flags;
@@ -2155,7 +2155,7 @@ TEST(SyscallExit, socketcall_recvmsgX_snaplen) {
 	recv_msg.msg_iovlen = 2;
 	uint32_t recvmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = connected_socket_fd;
 	args[1] = (unsigned long)&recv_msg;
 	args[2] = recvmsg_flags;
@@ -2236,7 +2236,7 @@ TEST(SyscallExit, socketcall_recvmsgX_fail) {
 	struct msghdr *msg = NULL;
 	int flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)msg;
 	args[2] = flags;
@@ -2301,7 +2301,7 @@ TEST(SyscallExit, socketcall_getsockoptX_success) {
 	int32_t setsockopt_option_value = 1;
 	socklen_t setsockopt_option_len = sizeof(setsockopt_option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = socketfd;
 	args[1] = SOL_SOCKET;
 	args[2] = SO_REUSEADDR;
@@ -2392,7 +2392,7 @@ TEST(SyscallExit, socketcall_getsockoptX_SO_RCVTIMEO) {
 	option_value.tv_usec = 10;
 	socklen_t option_len = sizeof(struct timeval);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2456,7 +2456,7 @@ TEST(SyscallExit, socketcall_getsockoptX_SO_COOKIE) {
 	uint64_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2519,7 +2519,7 @@ TEST(SyscallExit, socketcall_getsockoptX_SO_PASSCRED) {
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2582,7 +2582,7 @@ TEST(SyscallExit, socketcall_getsockoptX_UNKNOWN_OPTION) {
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2645,7 +2645,7 @@ TEST(SyscallExit, socketcall_getsockoptX_SOL_UNKNOWN) {
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2708,7 +2708,7 @@ TEST(SyscallExit, socketcall_getsockoptX_ZERO_OPTLEN) {
 	uint32_t option_value = 0;
 	socklen_t option_len = 0;
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2778,7 +2778,7 @@ TEST(SyscallExit, socketcall_setsockoptX_SO_ERROR) {
 	int32_t option_value = 14;
 	socklen_t option_len = sizeof(int32_t);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2845,7 +2845,7 @@ TEST(SyscallExit, socketcall_setsockoptX_SO_RCVTIMEO) {
 	option_value.tv_usec = 10;
 	socklen_t option_len = sizeof(struct timeval);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2909,7 +2909,7 @@ TEST(SyscallExit, socketcall_setsockoptX_SO_COOKIE) {
 	uint64_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -2972,7 +2972,7 @@ TEST(SyscallExit, socketcall_setsockoptX_SO_PASSCRED) {
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -3035,7 +3035,7 @@ TEST(SyscallExit, socketcall_setsockoptX_UNKNOWN_OPTION) {
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -3098,7 +3098,7 @@ TEST(SyscallExit, socketcall_setsockoptX_SOL_UNKNOWN) {
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -3161,7 +3161,7 @@ TEST(SyscallExit, socketcall_setsockoptX_ZERO_OPTLEN) {
 	uint32_t option_value = 0;
 	socklen_t option_len = 0;
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -3227,7 +3227,7 @@ TEST(SyscallExit, socketcall_sendX) {
 	char buf[data_len] = "some-data";
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)buf;
 	args[2] = data_len;
@@ -3275,7 +3275,7 @@ TEST(SyscallExit, socketcall_recvX_fail) {
 	size_t mock_count = DEFAULT_SNAPLEN;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)mock_buf;
 	args[2] = mock_count;
@@ -3323,7 +3323,7 @@ TEST(SyscallExit, socketcall_getpeernameX) {
 	void *usockaddr = NULL;
 	int *usockaddr_len = NULL;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)usockaddr;
 	args[2] = (unsigned long)usockaddr_len;
@@ -3367,7 +3367,7 @@ TEST(SyscallExit, socketcall_getsocknameX) {
 	void *usockaddr = NULL;
 	int *usockaddr_len = NULL;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)usockaddr;
 	args[2] = (unsigned long)usockaddr_len;
@@ -3407,7 +3407,7 @@ TEST(SyscallExit, socketcall_wrong_code_socketcall_interesting) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = 47;
 	args[1] = 0;
 	args[2] = 0;
@@ -3430,7 +3430,7 @@ TEST(SyscallExit, socketcall_wrong_code_socketcall_not_interesting) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = 47;
 	args[1] = 0;
 	args[2] = 0;

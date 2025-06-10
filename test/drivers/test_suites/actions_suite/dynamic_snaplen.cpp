@@ -906,7 +906,7 @@ TEST(Actions, dynamic_snaplen_MONGO) {
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
-	char buf[data_len] = {0};
+	char buf[data_len]{};
 	*(int32_t *)(&buf[12]) = 0x01;  // this 1 and it's ok
 	uint32_t sendto_flags = 0;
 
@@ -1009,7 +1009,7 @@ TEST(Actions, dynamic_snaplen_not_MONGO) {
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
-	char buf[data_len] = {0};
+	char buf[data_len]{};
 	*(int32_t *)(&buf[12]) = 0x07;
 	uint32_t sendto_flags = 0;
 

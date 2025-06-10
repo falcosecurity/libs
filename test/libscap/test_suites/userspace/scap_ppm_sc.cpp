@@ -26,7 +26,7 @@ TEST(scap_ppm_sc, scap_get_modifies_state_ppm_sc) {
 	/* Failure case */
 	ASSERT_EQ(scap_get_modifies_state_ppm_sc(NULL), SCAP_FAILURE);
 
-	uint8_t ppm_sc_array[PPM_SC_MAX] = {0};
+	uint8_t ppm_sc_array[PPM_SC_MAX]{};
 	ASSERT_EQ(scap_get_modifies_state_ppm_sc(ppm_sc_array), SCAP_SUCCESS);
 
 	/* All UNEVER_DROP syscalls */
@@ -44,8 +44,8 @@ TEST(scap_ppm_sc, scap_get_modifies_state_ppm_sc) {
 			continue;
 		}
 
-		uint8_t ppm_sc_array_int[PPM_SC_MAX] = {0};
-		uint8_t events_array_int[PPM_EVENT_MAX] = {0};
+		uint8_t ppm_sc_array_int[PPM_SC_MAX]{};
+		uint8_t events_array_int[PPM_EVENT_MAX]{};
 		events_array_int[event_nr] = 1;
 		ASSERT_EQ(scap_get_ppm_sc_from_events(events_array_int, ppm_sc_array_int), SCAP_SUCCESS);
 		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++) {
@@ -62,8 +62,8 @@ TEST(scap_ppm_sc, scap_get_modifies_state_ppm_sc) {
 TEST(scap_ppm_sc, scap_get_events_from_ppm_sc) {
 	{
 		/* Failure cases */
-		uint8_t ppm_sc_array[PPM_SC_MAX] = {0};
-		uint8_t events_array[PPM_EVENT_MAX] = {0};
+		uint8_t ppm_sc_array[PPM_SC_MAX]{};
+		uint8_t events_array[PPM_EVENT_MAX]{};
 		ASSERT_EQ(scap_get_events_from_ppm_sc(NULL, events_array), SCAP_FAILURE);
 		ASSERT_EQ(scap_get_events_from_ppm_sc(ppm_sc_array, NULL), SCAP_FAILURE);
 		ASSERT_EQ(scap_get_events_from_ppm_sc(NULL, NULL), SCAP_FAILURE);
@@ -83,9 +83,9 @@ TEST(scap_ppm_sc, scap_get_events_from_ppm_sc) {
 	 * implementation.
 	 */
 	for(int ppm_sc = 1; ppm_sc < PPM_SC_MAX; ppm_sc++) {
-		uint8_t ppm_sc_array[PPM_SC_MAX] = {0};
+		uint8_t ppm_sc_array[PPM_SC_MAX]{};
 		ppm_sc_array[ppm_sc] = 1;
-		uint8_t events_array[PPM_EVENT_MAX] = {0};
+		uint8_t events_array[PPM_EVENT_MAX]{};
 		ASSERT_EQ(scap_get_events_from_ppm_sc(ppm_sc_array, events_array), SCAP_SUCCESS);
 		for(int sys_id = 0; sys_id < SYSCALL_TABLE_SIZE; sys_id++) {
 			syscall_evt_pair pair = g_syscall_table[sys_id];
@@ -111,8 +111,8 @@ TEST(scap_ppm_sc, scap_get_events_from_ppm_sc) {
 TEST(scap_ppm_sc, scap_get_ppm_sc_from_events) {
 	{
 		/* Failure cases */
-		uint8_t ppm_sc_array[PPM_SC_MAX] = {0};
-		uint8_t events_array[PPM_EVENT_MAX] = {0};
+		uint8_t ppm_sc_array[PPM_SC_MAX]{};
+		uint8_t events_array[PPM_EVENT_MAX]{};
 		ASSERT_EQ(scap_get_ppm_sc_from_events(NULL, ppm_sc_array), SCAP_FAILURE);
 		ASSERT_EQ(scap_get_ppm_sc_from_events(events_array, NULL), SCAP_FAILURE);
 		ASSERT_EQ(scap_get_ppm_sc_from_events(NULL, NULL), SCAP_FAILURE);
@@ -130,9 +130,9 @@ TEST(scap_ppm_sc, scap_get_ppm_sc_from_events) {
 	/* Best effort checks, we have ifdefs in the syscall_table.
 	 */
 	for(int evt_id = 1; evt_id < PPM_EVENT_MAX; evt_id++) {
-		uint8_t events_array[PPM_EVENT_MAX] = {0};
+		uint8_t events_array[PPM_EVENT_MAX]{};
 		events_array[evt_id] = 1;
-		uint8_t ppm_sc_array[PPM_SC_MAX] = {0};
+		uint8_t ppm_sc_array[PPM_SC_MAX]{};
 		ASSERT_EQ(scap_get_ppm_sc_from_events(events_array, ppm_sc_array), SCAP_SUCCESS);
 		for(int sys_id = 0; sys_id < SYSCALL_TABLE_SIZE; sys_id++) {
 			syscall_evt_pair pair = g_syscall_table[sys_id];
