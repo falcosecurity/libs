@@ -32,11 +32,20 @@ TEST(SyscallExit, llseekX) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)fd);
+
+	/* Parameter 3: offset (type: PT_UINT64) */
+	evt_test->assert_numeric_param(3, offset);
+
+	/* Parameter 4: whence (type: PT_ENUMFLAGS8) */
+	evt_test->asser_numeric_param(4, (uint8_t)PPM_SEEK_SET);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif
