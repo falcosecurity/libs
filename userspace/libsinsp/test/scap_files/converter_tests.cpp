@@ -289,24 +289,21 @@ TEST_F(scap_file_test, accept_x_check_final_converted_event) {
 // LSEEK
 ////////////////////////////
 
-TEST_F(scap_file_test, lseek_x_converted_params_present)
-{
-	open_filename("kexec_arm64.scap"); // This file is already used and likely contains some I/O
+TEST_F(scap_file_test, lseek_x_converted_params_present) {
+	open_filename("kexec_arm64.scap");  // This file is already used and likely contains some I/O
 
-	sinsp_evt* evt = NULL;
+	sinsp_evt *evt = NULL;
 	int32_t res = SCAP_SUCCESS;
 	uint32_t lseek_x_count = 0;
 
-	while((res = m_inspector->next_event(&evt)) == SCAP_SUCCESS)
-	{
-		if(evt->get_type() == PPME_SYSCALL_LSEEK_X)
-		{
+	while((res = m_inspector->next_event(&evt)) == SCAP_SUCCESS) {
+		if(evt->get_type() == PPME_SYSCALL_LSEEK_X) {
 			lseek_x_count++;
 			// After conversion, lseek_x should have 4 parameters
 			// res, fd, offset, whence
 			ASSERT_EQ(evt->get_num_params(), 4)
-				<< "Event num: " << evt->get_num() << " tid: " << evt->get_tid()
-				<< " type: " << evt->get_type_name();
+			        << "Event num: " << evt->get_num() << " tid: " << evt->get_tid()
+			        << " type: " << evt->get_type_name();
 
 			// We can also try to fetch them to ensure parsers don't crash,
 			// though specific value assertion is hard without knowing the capture.
@@ -328,9 +325,10 @@ TEST_F(scap_file_test, lseek_x_converted_params_present)
 	// In a real scenario, we'd use a capture known to contain these events.
 	// For now, if lseek_x_count is 0, the specific parameter checks above didn't run.
 	// We are asserting that if lseek_x events are present, they have 4 parameters.
-	if (lseek_x_count == 0)
-	{
-		std::cout << "INFO: No PPME_SYSCALL_LSEEK_X events found in kexec_arm64.scap for detailed param count check." << std::endl;
+	if(lseek_x_count == 0) {
+		std::cout << "INFO: No PPME_SYSCALL_LSEEK_X events found in kexec_arm64.scap for detailed "
+		             "param count check."
+		          << std::endl;
 	}
 }
 
