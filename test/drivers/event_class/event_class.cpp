@@ -287,16 +287,17 @@ void event_test::client_reuse_address_port(int32_t socketfd) {
 	                             sizeof(option_value)),
 	                     NOT_EQUAL,
 	                     -1);
-	assert_syscall_state(SYSCALL_SUCCESS,
-	                     "setsockopt (client port)",
-	                     syscall(__NR_setsockopt,
-	                             socketfd,
-	                             SOL_SOCKET,
-	                             SO_REUSEPORT,
-	                             &option_value,
-	                             sizeof(option_value)),
-	                     NOT_EQUAL,
-	                     -1);
+
+	// Commit https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net.git/commit/?id=5b0af621c3f6
+	// restricts SO_REUSEPORT socket option to inet sockets: this means that the following call is
+	// going to fail on unix sockets, and we have no way to prevent it. For this reason, simply
+	// ignore its return value and hope any subsequent call to bind is going to succeed.
+	syscall(__NR_setsockopt,
+	        socketfd,
+	        SOL_SOCKET,
+	        SO_REUSEPORT,
+	        &option_value,
+	        sizeof(option_value));
 }
 
 void event_test::server_reuse_address_port(int32_t socketfd) {
@@ -312,16 +313,17 @@ void event_test::server_reuse_address_port(int32_t socketfd) {
 	                             sizeof(option_value)),
 	                     NOT_EQUAL,
 	                     -1);
-	assert_syscall_state(SYSCALL_SUCCESS,
-	                     "setsockopt (server port)",
-	                     syscall(__NR_setsockopt,
-	                             socketfd,
-	                             SOL_SOCKET,
-	                             SO_REUSEPORT,
-	                             &option_value,
-	                             sizeof(option_value)),
-	                     NOT_EQUAL,
-	                     -1);
+
+	// Commit https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net.git/commit/?id=5b0af621c3f6
+	// restricts SO_REUSEPORT socket option to inet sockets: this means that the following call is
+	// going to fail on unix sockets, and we have no way to prevent it. For this reason, simply
+	// ignore its return value and hope any subsequent call to bind is going to succeed.
+	syscall(__NR_setsockopt,
+	        socketfd,
+	        SOL_SOCKET,
+	        SO_REUSEPORT,
+	        &option_value,
+	        sizeof(option_value));
 }
 
 void event_test::client_fill_sockaddr_in(sockaddr_in* sockaddr,
