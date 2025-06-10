@@ -789,6 +789,12 @@ TEST_F(scap_file_test, poll_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// LLSEEK
+////////////////////////////
+
+// We don't have scap-files with LLSEEK events. Add it if we face a failure.
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 

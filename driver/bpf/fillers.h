@@ -5077,38 +5077,53 @@ FILLER(sys_lseek_e, true) {
 }
 
 FILLER(sys_llseek_e, true) {
-	unsigned long flags;
-	unsigned long val;
-	unsigned long oh;
-	unsigned long ol;
-	uint64_t offset;
-	int32_t fd;
-	int res;
-
-	/*
-	 * fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	fd = (int32_t)val;
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	/* Parameter 1: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, fd);
 	CHECK_RES(res);
 
 	/*
-	 * offset
+	 * Parameter 2: offset (type: PT_UINT64)
 	 * We build it by combining the offset_high and offset_low
 	 * system call arguments
 	 */
-	oh = bpf_syscall_get_argument(data, 1);
-	ol = bpf_syscall_get_argument(data, 2);
-	offset = (((uint64_t)oh) << 32) + ((uint64_t)ol);
+	uint64_t oh = (uint64_t)bpf_syscall_get_argument(data, 1);
+	uint64_t ol = (uint64_t)bpf_syscall_get_argument(data, 2);
+	uint64_t offset = (oh << 32) + ol;
 	res = bpf_push_u64_to_ring(data, offset);
 	CHECK_RES(res);
 
+	/* Parameter 3: whence (type: PT_ENUMFLAGS8) */
+	unsigned long val = bpf_syscall_get_argument(data, 4);
+	uint8_t flags = (uint8_t)lseek_whence_to_scap(val);
+	return bpf_push_u8_to_ring(data, flags);
+}
+
+FILLER(sys_llseek_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
 	/*
-	 * whence
+	 * Parameter 3: offset (type: PT_UINT64)
+	 * We build it by combining the offset_high and offset_low
+	 * system call arguments
 	 */
-	val = bpf_syscall_get_argument(data, 4);
-	flags = lseek_whence_to_scap(val);
+	uint64_t oh = (uint64_t)bpf_syscall_get_argument(data, 1);
+	uint64_t ol = (uint64_t)bpf_syscall_get_argument(data, 2);
+	uint64_t offset = (oh << 32) + ol;
+	res = bpf_push_u64_to_ring(data, offset);
+	CHECK_RES(res);
+
+	/* Parameter 4: whence (type: PT_ENUMFLAGS8) */
+	unsigned long val = bpf_syscall_get_argument(data, 4);
+	uint8_t flags = (uint8_t)lseek_whence_to_scap(val);
 	return bpf_push_u8_to_ring(data, flags);
 }
 

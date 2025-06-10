@@ -543,6 +543,7 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SOCKET_LISTEN_X:
 	case PPME_SOCKET_SHUTDOWN_X:
 	case PPME_SYSCALL_FCHDIR_X:
+	case PPME_SYSCALL_LLSEEK_X:
 		location = 1;
 		break;
 	case PPME_SYSCALL_READ_X:
