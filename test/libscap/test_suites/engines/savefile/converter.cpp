@@ -14,6 +14,7 @@ limitations under the License.
 #include "convert_event_test.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <driver/ppm_flag_helpers.h>
 
 TEST_F(convert_event_test, conversion_not_needed) {
 	uint64_t ts = 12;
@@ -601,6 +602,73 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_no_enter) {
 	        conversion_result::CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 1, res),
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
+}
+
+////////////////////////////
+// LSEEK
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_E_store) {
+	uint64_t ts = 15;
+	int64_t tid = 30;
+
+	int64_t fd = 3;
+	uint64_t offset = 1024;
+	uint8_t whence = SEEK_SET;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_E, 3, fd, offset, whence);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_X_to_4_params_no_enter) {
+	uint64_t ts = 15;
+	int64_t tid = 30;
+
+	int64_t res = 1024;
+
+	// Defaulted values if enter event is missing
+	int64_t fd = 0;
+	uint64_t offset = 0;
+	uint8_t whence = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 4, res, fd, offset, whence));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_X_to_4_params_with_enter) {
+	uint64_t ts = 15;
+	int64_t tid = 30;
+
+	int64_t res = 1024;
+	int64_t fd = 3;
+	uint64_t offset = 1024;
+	uint8_t whence = SEEK_SET;
+
+	// Store the enter event first
+	auto evt_e = create_safe_scap_event(ts,
+	                                    tid,
+	                                    PPME_SYSCALL_LSEEK_E,
+	                                    3,
+	                                    fd,
+	                                    offset,
+	                                    lseek_whence_to_scap(whence));
+	assert_single_conversion_skip(evt_e);
+	assert_event_storage_presence(evt_e);
+
+	// Then convert the exit event
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 1, res),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_LSEEK_X,
+	                                                        4,
+	                                                        res,
+	                                                        fd,
+	                                                        offset,
+	                                                        lseek_whence_to_scap(whence)));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_with_enter) {

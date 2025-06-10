@@ -56,6 +56,18 @@ int BPF_PROG(lseek_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+
+	/* Parameter 3: offset (type: PT_UINT64) */
+	unsigned long offset = extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, offset);
+
+	/* Parameter 4: whence (type: PT_ENUMFLAGS8) */
+	unsigned long whence = extract__syscall_argument(regs, 2);
+	ringbuf__store_u8(&ringbuf, lseek_whence_to_scap(whence));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
