@@ -34,7 +34,7 @@ scap_t* open_bpf_engine(char* error_buf,
 }
 
 TEST(bpf, open_engine) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -43,7 +43,7 @@ TEST(bpf, open_engine) {
 }
 
 TEST(bpf, wrong_bpf_path) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, ".");
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
@@ -51,7 +51,7 @@ TEST(bpf, wrong_bpf_path) {
 }
 
 TEST(bpf, empty_bpf_path) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, "");
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
@@ -59,7 +59,7 @@ TEST(bpf, empty_bpf_path) {
 }
 
 TEST(bpf, wrong_buffer_dim) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
@@ -70,7 +70,7 @@ TEST(bpf, wrong_buffer_dim) {
 /* This check is not so reliable, better than nothing but to be sure we need to obtain the producer
  * and consumer positions from the drivers */
 TEST(bpf, events_not_overwritten) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -81,7 +81,7 @@ TEST(bpf, events_not_overwritten) {
 }
 
 TEST(bpf, read_in_order) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -92,7 +92,7 @@ TEST(bpf, read_in_order) {
 }
 
 TEST(bpf, scap_stats_check) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -108,7 +108,7 @@ TEST(bpf, scap_stats_check) {
 }
 
 TEST(bpf, double_scap_stats_call) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -130,7 +130,7 @@ TEST(bpf, double_scap_stats_call) {
 }
 
 TEST(bpf, metrics_v2_check_per_CPU_stats) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -192,7 +192,7 @@ TEST(bpf, metrics_v2_check_per_CPU_stats) {
 }
 
 TEST(bpf, metrics_v2_check_results) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -242,7 +242,7 @@ TEST(bpf, metrics_v2_check_results) {
 }
 
 TEST(bpf, double_metrics_v2_call) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -265,7 +265,7 @@ TEST(bpf, double_metrics_v2_call) {
 }
 
 TEST(bpf, metrics_v2_check_empty) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)

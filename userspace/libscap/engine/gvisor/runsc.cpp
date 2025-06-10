@@ -49,7 +49,7 @@ result runsc(char *argv[]) {
 
 		std::string line;
 
-		char buf[512] = {0};
+		char buf[512]{};
 		std::stringstream ss;
 		size_t len;
 

@@ -643,7 +643,7 @@ void sinsp::open_savefile(const std::string& filename, int fd) {
 		params.fname = filename.c_str();
 		params.fd = 0;
 
-		char error[SCAP_LASTERR_SIZE] = {0};
+		char error[SCAP_LASTERR_SIZE]{};
 		m_filesize = get_file_size(params.fname, error);
 		if(m_filesize < 0) {
 			throw sinsp_exception(error);
