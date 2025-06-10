@@ -375,7 +375,11 @@ TEST_F(sys_call_test, ioctl) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_IOCTL_3_E) {
+		if(type == PPME_SYSCALL_IOCTL_3_X) {
+			string res = e->get_param_value_str("res");
+			EXPECT_TRUE(res == "0" || res == "EIO");
+		}
+		if(type == PPME_SYSCALL_IOCTL_3_E || type == PPME_SYSCALL_IOCTL_3_X) {
 			std::ostringstream oss;
 			oss << std::hex << std::uppercase << TIOCMGET;
 			EXPECT_EQ("<f>/dev/ttyS0", e->get_param_value_str("fd"));
@@ -384,10 +388,6 @@ TEST_F(sys_call_test, ioctl) {
 			oss.clear();
 			oss << std::hex << std::uppercase << ((unsigned long)&status);
 			EXPECT_EQ(oss.str(), e->get_param_value_str("argument"));
-			callnum++;
-		} else if(type == PPME_SYSCALL_IOCTL_3_X) {
-			string res = e->get_param_value_str("res");
-			EXPECT_TRUE(res == "0" || res == "EIO");
 			callnum++;
 		}
 	};

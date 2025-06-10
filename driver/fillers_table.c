@@ -173,7 +173,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_PTRACE_E] = {FILLER_REF(sys_ptrace_e)},
         [PPME_SYSCALL_PTRACE_X] = {FILLER_REF(sys_ptrace_x)},
         [PPME_SYSCALL_IOCTL_3_E] = {FILLER_REF(sys_ioctl_e)},
-        [PPME_SYSCALL_IOCTL_3_X] = {FILLER_REF(sys_single_x)},
+        [PPME_SYSCALL_IOCTL_3_X] = {FILLER_REF(sys_ioctl_x)},
         [PPME_SYSCALL_RENAME_E] = {FILLER_REF(sys_empty)},
         [PPME_SYSCALL_RENAME_X] = {FILLER_REF(sys_autofill),
                                    3,

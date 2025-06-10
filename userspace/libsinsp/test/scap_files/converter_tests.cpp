@@ -36,24 +36,16 @@ TEST_F(scap_file_test, same_number_of_events) {
 
 	open_filename("kexec_arm64.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_PREAD_E, 3216},
-	        {PPME_SYSCALL_PREAD_X, 3216},
-	        {PPME_SOCKET_LISTEN_E, 1},
-	        {PPME_SOCKET_LISTEN_X, 1},
-	        {PPME_SYSCALL_SETUID_E, 2},
-	        {PPME_SYSCALL_SETUID_X, 2},
-	        {PPME_SOCKET_RECVFROM_E, 82},
-	        {PPME_SOCKET_RECVFROM_X, 82},
-	        {PPME_SOCKET_SENDTO_E, 162},
-	        {PPME_SOCKET_SENDTO_X, 162},
-	        {PPME_SOCKET_SHUTDOWN_E, 9},
-	        {PPME_SOCKET_SHUTDOWN_X, 9},
-	        {PPME_SOCKET_SOCKETPAIR_E, 114},
-	        {PPME_SOCKET_SOCKETPAIR_X, 114},
-	        {PPME_SOCKET_SENDMSG_E, 26},
-	        {PPME_SOCKET_SENDMSG_X, 26},
-	        {PPME_SOCKET_RECVMSG_E, 522},
-	        {PPME_SOCKET_RECVMSG_X, 522},
+	        {PPME_SYSCALL_PREAD_E, 3216},    {PPME_SYSCALL_PREAD_X, 3216},
+	        {PPME_SOCKET_LISTEN_E, 1},       {PPME_SOCKET_LISTEN_X, 1},
+	        {PPME_SYSCALL_SETUID_E, 2},      {PPME_SYSCALL_SETUID_X, 2},
+	        {PPME_SOCKET_RECVFROM_E, 82},    {PPME_SOCKET_RECVFROM_X, 82},
+	        {PPME_SOCKET_SENDTO_E, 162},     {PPME_SOCKET_SENDTO_X, 162},
+	        {PPME_SOCKET_SHUTDOWN_E, 9},     {PPME_SOCKET_SHUTDOWN_X, 9},
+	        {PPME_SOCKET_SOCKETPAIR_E, 114}, {PPME_SOCKET_SOCKETPAIR_X, 114},
+	        {PPME_SOCKET_SENDMSG_E, 26},     {PPME_SOCKET_SENDMSG_X, 26},
+	        {PPME_SOCKET_RECVMSG_E, 522},    {PPME_SOCKET_RECVMSG_X, 522},
+	        {PPME_SYSCALL_IOCTL_3_E, 1164},  {PPME_SYSCALL_IOCTL_3_X, 1164},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -793,6 +785,37 @@ TEST_F(scap_file_test, poll_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with LLSEEK events. Add it if we face a failure.
+
+////////////////////////////
+///// IOCTL
+////////////////////////////
+
+TEST_F(scap_file_test, ioctl_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `903005` is the following:
+	// - type=PPME_SYSCALL_IOCTL_3_X,
+	// - ts=1687966733986436903
+	// - tid=118552
+	// - args=res=0
+	//
+	// And its corresponding enter event `903004` is the following:
+	// - type=PPME_SYSCALL_IOCTL_3_E
+	// - ts=1687966733986427631
+	// - tid=118552
+	// - args=fd=21(<f>/dev/ptmx) request=5414 argument=FFFFD297F908
+	//
+	// Let's see the new PPME_SYSCALL_IOCTL_3_X event!
+
+	constexpr uint64_t ts = 1687966733986436903;
+	constexpr int64_t tid = 118552;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd = 21;
+	constexpr uint64_t request = 0x5414;
+	constexpr uint64_t argument = 0xFFFFD297F908;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_3_X, 4, res, fd, request, argument));
+}
 
 ////////////////////////////
 // PTRACE
