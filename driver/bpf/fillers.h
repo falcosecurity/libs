@@ -5328,6 +5328,27 @@ FILLER(sys_ioctl_e, true) {
 	return bpf_push_u64_to_ring(data, argument);
 }
 
+FILLER(sys_ioctl_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: request (type: PT_UINT64) */
+	uint64_t request = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u64_to_ring(data, request);
+	CHECK_RES(res);
+
+	/* Parameter 4: argument (type: PT_UINT64) */
+	uint64_t argument = bpf_syscall_get_argument(data, 2);
+	return bpf_push_u64_to_ring(data, argument);
+}
+
 FILLER(sys_mkdir_e, true) {
 	/* Parameter 1: mode (type: PT_UINT32) */
 	uint32_t mode = (uint32_t)bpf_syscall_get_argument(data, 1);

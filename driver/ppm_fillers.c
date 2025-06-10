@@ -7217,6 +7217,36 @@ int f_sys_ioctl_e(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_ioctl_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	unsigned long val = 0;
+	int res = 0;
+	int32_t fd = 0;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: request (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: argument (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_mkdir_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;

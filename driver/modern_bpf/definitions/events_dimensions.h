@@ -117,7 +117,7 @@
 #define SPLICE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define PTRACE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
 #define IOCTL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
-#define IOCTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define IOCTL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) * 2 + PARAM_LEN * 4
 #define RENAME_E_SIZE HEADER_LEN
 #define RENAMEAT_E_SIZE HEADER_LEN
 #define SYMLINK_E_SIZE HEADER_LEN
