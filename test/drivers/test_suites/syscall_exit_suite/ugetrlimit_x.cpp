@@ -17,7 +17,7 @@ TEST(SyscallExit, ugetrlimitX_success) {
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int resource = RLIMIT_NPROC;
-	struct rlimit rlim = {0};
+	struct rlimit rlim {};
 	assert_syscall_state(SYSCALL_SUCCESS,
 	                     "ugetrlimit",
 	                     syscall(__NR_ugetrlimit, resource, &rlim),
@@ -67,7 +67,7 @@ TEST(SyscallExit, ugetrlimitX_failure) {
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int resource = -1;
-	struct rlimit rlim = {0};
+	struct rlimit rlim {};
 	assert_syscall_state(SYSCALL_FAILURE, "ugetrlimit", syscall(__NR_ugetrlimit, resource, &rlim));
 	int64_t errno_value = -errno;
 

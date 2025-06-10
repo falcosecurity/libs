@@ -17,7 +17,7 @@ TEST(SyscallEnter, socketcall_socketE) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = AF_INET;
 	args[1] = SOCK_RAW;
 	args[2] = PF_INET;
@@ -91,7 +91,7 @@ TEST(SyscallEnter, socketcall_bindE) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = 47;
 	args[1] = 0;
 	args[2] = 0;
@@ -134,7 +134,7 @@ TEST(SyscallEnter, socketcall_connectE) {
 	int32_t mock_fd = -1;
 	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)&server_addr;
 	args[2] = sizeof(server_addr);
@@ -194,7 +194,7 @@ TEST(SyscallEnter, socketcall_recvmmsgE) {
 	int flags = 0;
 	struct timespec *timeout = NULL;
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)msg;
 	args[2] = vlen;
@@ -239,7 +239,7 @@ TEST(SyscallEnter, socketcall_sendmmsgE) {
 	uint32_t vlen = 0;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)msg;
 	args[2] = vlen;
@@ -280,7 +280,7 @@ TEST(SyscallEnter, socketcall_shutdownE) {
 	int32_t invalid_fd = -1;
 	int how = SHUT_RD;
 
-	unsigned long args[2] = {0};
+	unsigned long args[2]{};
 	args[0] = invalid_fd;
 	args[1] = how;
 	assert_syscall_state(SYSCALL_FAILURE, "shutdown", syscall(__NR_socketcall, SYS_SHUTDOWN, args));
@@ -337,7 +337,7 @@ TEST(SyscallEnter, socketcall_acceptE) {
 	sockaddr *addr = NULL;
 	socklen_t *addrlen = NULL;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -399,7 +399,7 @@ TEST(SyscallEnter, socketcall_accept4E) {
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)addr;
 	args[2] = (unsigned long)addrlen;
@@ -443,7 +443,7 @@ TEST(SyscallEnter, socketcall_listenE) {
 	int32_t socket_fd = 2;
 	int backlog = 3;
 
-	unsigned long args[2] = {0};
+	unsigned long args[2]{};
 	args[0] = socket_fd;
 	args[1] = backlog;
 	assert_syscall_state(SYSCALL_FAILURE, "listen", syscall(__NR_socketcall, SYS_LISTEN, args));
@@ -492,7 +492,7 @@ TEST(SyscallEnter, socketcall_recvfromE) {
 	sockaddr *src_addr = NULL;
 	socklen_t *addrlen = NULL;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)received_data;
 	args[2] = received_data_len;
@@ -546,7 +546,7 @@ TEST(SyscallEnter, socketcall_socketpairE) {
 	int protocol = 0;
 	int32_t *fds = NULL;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = domain;
 	args[1] = type;
 	args[2] = protocol;
@@ -610,7 +610,7 @@ TEST(SyscallEnter, socketcall_sendtoE) {
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
 
-	unsigned long args[6] = {0};
+	unsigned long args[6]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)sent_data;
 	args[2] = sizeof(sent_data);
@@ -706,7 +706,7 @@ TEST(SyscallEnter, socketcall_sendmsgE) {
 	send_msg.msg_iovlen = 3;
 	uint32_t sendmsg_flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)&send_msg;
 	args[2] = sendmsg_flags;
@@ -771,7 +771,7 @@ TEST(SyscallEnter, socketcall_recvmsgE) {
 	struct msghdr *msg = NULL;
 	int flags = 0;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)msg;
 	args[2] = flags;
@@ -819,7 +819,7 @@ TEST(SyscallEnter, socketcall_getsockoptE) {
 	int option_value = 0;
 	socklen_t option_len = 0;
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = socket_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -870,7 +870,7 @@ TEST(SyscallEnter, socketcall_setsockoptE) {
 	const void *option_value = NULL;
 	socklen_t option_len = 0;
 
-	unsigned long args[5] = {0};
+	unsigned long args[5]{};
 	args[0] = socket_fd;
 	args[1] = level;
 	args[2] = option_name;
@@ -918,7 +918,7 @@ TEST(SyscallEnter, socketcall_sendE) {
 	size_t mock_count = 4096;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)mock_buf;
 	args[2] = mock_count;
@@ -967,7 +967,7 @@ TEST(SyscallEnter, socketcall_recvE) {
 	size_t mock_count = DEFAULT_SNAPLEN;
 	int flags = 0;
 
-	unsigned long args[4] = {0};
+	unsigned long args[4]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)mock_buf;
 	args[2] = mock_count;
@@ -1014,7 +1014,7 @@ TEST(SyscallEnter, socketcall_getpeernameE) {
 	void *usockaddr = NULL;
 	int *usockaddr_len = NULL;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)usockaddr;
 	args[2] = (unsigned long)usockaddr_len;
@@ -1058,7 +1058,7 @@ TEST(SyscallEnter, socketcall_getsocknameE) {
 	void *usockaddr = NULL;
 	int *usockaddr_len = NULL;
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)usockaddr;
 	args[2] = (unsigned long)usockaddr_len;
@@ -1098,7 +1098,7 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = 47;
 	args[1] = 0;
 	args[2] = 0;
@@ -1121,7 +1121,7 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long args[3] = {0};
+	unsigned long args[3]{};
 	args[0] = 47;
 	args[1] = 0;
 	args[2] = 0;

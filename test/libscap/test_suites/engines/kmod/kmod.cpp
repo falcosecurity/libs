@@ -110,7 +110,7 @@ scap_t* open_kmod_engine(char* error_buf,
 }
 
 TEST(kmod, open_engine) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -119,7 +119,7 @@ TEST(kmod, open_engine) {
 }
 
 TEST(kmod, wrong_buffer_dim) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
@@ -130,7 +130,7 @@ TEST(kmod, wrong_buffer_dim) {
 /* This check is not so reliable, better than nothing but to be sure we need to obtain the producer
  * and consumer positions from the drivers */
 TEST(kmod, events_not_overwritten) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -141,7 +141,7 @@ TEST(kmod, events_not_overwritten) {
 }
 
 TEST(kmod, read_in_order) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
 	scap_t* h =
@@ -154,7 +154,7 @@ TEST(kmod, read_in_order) {
 }
 
 TEST(kmod, scap_stats_check) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -170,7 +170,7 @@ TEST(kmod, scap_stats_check) {
 }
 
 TEST(kmod, double_scap_stats_call) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -192,7 +192,7 @@ TEST(kmod, double_scap_stats_call) {
 }
 
 TEST(kmod, metrics_v2_check_per_CPU_stats) {
-	char error_buffer[FILENAME_MAX] = {0};
+	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -254,7 +254,7 @@ TEST(kmod, metrics_v2_check_per_CPU_stats) {
 }
 
 TEST(kmod, metrics_v2_check_results) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -296,7 +296,7 @@ TEST(kmod, metrics_v2_check_results) {
 }
 
 TEST(kmod, double_metrics_v2_call) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
@@ -319,7 +319,7 @@ TEST(kmod, double_metrics_v2_call) {
 }
 
 TEST(kmod, metrics_v2_check_empty) {
-	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	char error_buffer[SCAP_LASTERR_SIZE]{};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)

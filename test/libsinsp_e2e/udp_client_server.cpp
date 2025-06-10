@@ -287,7 +287,7 @@ public:
 					            sizeof(serveraddr));
 				}
 			} else {
-				struct msghdr msg = {0};
+				struct msghdr msg {};
 				if(m_use_connect) {
 					msg.msg_name = NULL;
 				} else {

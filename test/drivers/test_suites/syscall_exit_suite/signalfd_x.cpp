@@ -13,7 +13,7 @@ TEST(SyscallExit, signalfdX) {
 
 	/* `mask` is not caught BPF side. */
 	int32_t mock_fd = -1;
-	sigset_t mask = {0};
+	sigset_t mask{};
 	size_t sizemask = 0;
 	assert_syscall_state(SYSCALL_FAILURE,
 	                     "signalfd",
