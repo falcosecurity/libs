@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2024 The Falco Authors.
+Copyright (C) 2025 The Falco Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -13,9 +13,9 @@ limitations under the License.
 */
 
 #include <sinsp_with_test_input.h>
+#include <driver/ppm_flag_helpers.h>
 
-TEST_F(sinsp_with_test_input, parse_lseek_e_success)
-{
+TEST_F(sinsp_with_test_input, parse_lseek_e_success) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -28,7 +28,6 @@ TEST_F(sinsp_with_test_input, parse_lseek_e_success)
 	uint8_t whence_raw = SEEK_SET;
 	// The event table stores the scap_lseek_whence converted value for lseek_e
 	uint8_t whence_scap = lseek_whence_to_scap(whence_raw);
-
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
@@ -43,12 +42,13 @@ TEST_F(sinsp_with_test_input, parse_lseek_e_success)
 
 	ASSERT_PARAM_VALUE_EQ(evt, "fd", dummy_fd);
 	ASSERT_PARAM_VALUE_EQ(evt, "offset", offset);
-	ASSERT_PARAM_VALUE_EQ(evt, "whence", (uint64_t)PPM_SEEK_SET); // Check against the resolved enum
+	ASSERT_PARAM_VALUE_EQ(evt,
+	                      "whence",
+	                      (uint64_t)PPM_SEEK_SET);  // Check against the resolved enum
 	ASSERT_PARAM_VALUE_STR(evt, "whence", "SEEK_SET");
 }
 
-TEST_F(sinsp_with_test_input, parse_lseek_x_success)
-{
+TEST_F(sinsp_with_test_input, parse_lseek_x_success) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -57,9 +57,9 @@ TEST_F(sinsp_with_test_input, parse_lseek_x_success)
 	ASSERT_TRUE(open_evt->get_fd_info());
 	int64_t dummy_fd = sinsp_test_input::open_params::default_fd;
 
-	int64_t res = 1024; // mock return value for lseek
+	int64_t res = 1024;  // mock return value for lseek
 	uint64_t offset = 1024;
-	uint8_t whence_raw = SEEK_CUR; // Use a different whence for variety
+	uint8_t whence_raw = SEEK_CUR;  // Use a different whence for variety
 	// The event table stores the scap_lseek_whence converted value for lseek_x
 	uint8_t whence_scap = lseek_whence_to_scap(whence_raw);
 
@@ -75,15 +75,20 @@ TEST_F(sinsp_with_test_input, parse_lseek_x_success)
 	ASSERT_TRUE(evt->get_fd_info());
 	ASSERT_EQ(evt->get_fd_info()->m_fd, dummy_fd);
 
-	assert_return_value(evt, res);
-	ASSERT_PARAM_VALUE_EQ(evt, "fd", dummy_fd);
-	ASSERT_PARAM_VALUE_EQ(evt, "offset", offset);
-	ASSERT_PARAM_VALUE_EQ(evt, "whence", (uint64_t)PPM_SEEK_CUR); // Check against the resolved enum
-	ASSERT_PARAM_VALUE_STR(evt, "whence", "SEEK_CUR");
+	// Check that the returned value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("res")->as<int64_t>(), res);
+
+	// Check that the fd value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("fd")->as<int64_t>(), dummy_fd);
+
+	// Check that the offset value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("offset")->as<uint64_t>(), offset);
+
+	// Check that the whence value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("whence")->as<uint8_t>(), whence_scap);
 }
 
-TEST_F(sinsp_with_test_input, parse_lseek_x_failure)
-{
+TEST_F(sinsp_with_test_input, parse_lseek_x_failure) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -91,9 +96,9 @@ TEST_F(sinsp_with_test_input, parse_lseek_x_failure)
 	auto open_evt = generate_open_x_event();
 	ASSERT_TRUE(open_evt->get_fd_info());
 	int64_t dummy_fd = sinsp_test_input::open_params::default_fd;
-	int64_t invalid_fd = -1; // Use an invalid FD for the lseek call itself for failure case
+	int64_t invalid_fd = -1;  // Use an invalid FD for the lseek call itself for failure case
 
-	int64_t res = -EBADF; // mock return value for lseek failure
+	int64_t res = -EBADF;  // mock return value for lseek failure
 	uint64_t offset = 1024;
 	uint8_t whence_raw = SEEK_END;
 	uint8_t whence_scap = lseek_whence_to_scap(whence_raw);
@@ -103,7 +108,7 @@ TEST_F(sinsp_with_test_input, parse_lseek_x_failure)
 	                                PPME_SYSCALL_LSEEK_X,
 	                                4,
 	                                res,
-	                                invalid_fd, // This is the fd param in the event
+	                                invalid_fd,  // This is the fd param in the event
 	                                offset,
 	                                whence_scap);
 
@@ -111,7 +116,7 @@ TEST_F(sinsp_with_test_input, parse_lseek_x_failure)
 	// Depending on how `get_fd_info` handles errors or invalid fds, this might need adjustment
 	// If `invalid_fd` is used, it shouldn't find a valid fd_info unless `-1` is specially handled
 	// For now, let's assume we expect no valid fd_info if the fd in event is -1
-	if (invalid_fd >= 0) {
+	if(invalid_fd >= 0) {
 		ASSERT_TRUE(evt->get_fd_info());
 		ASSERT_EQ(evt->get_fd_info()->m_fd, invalid_fd);
 	} else {
@@ -122,9 +127,8 @@ TEST_F(sinsp_with_test_input, parse_lseek_x_failure)
 		ASSERT_FALSE(evt->get_fd_info());
 	}
 
-
 	assert_return_value(evt, res);
-	ASSERT_PARAM_VALUE_EQ(evt, "fd", invalid_fd); // Check the raw fd value from the event
+	ASSERT_PARAM_VALUE_EQ(evt, "fd", invalid_fd);  // Check the raw fd value from the event
 	ASSERT_PARAM_VALUE_EQ(evt, "offset", offset);
 	ASSERT_PARAM_VALUE_EQ(evt, "whence", (uint64_t)PPM_SEEK_END);
 	ASSERT_PARAM_VALUE_STR(evt, "whence", "SEEK_END");
