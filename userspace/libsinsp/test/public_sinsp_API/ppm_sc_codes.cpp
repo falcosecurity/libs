@@ -136,8 +136,6 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
         PPME_SOCKET_SENDTO_X,
         PPME_SYSCALL_SETGID_E,
         PPME_SYSCALL_SETGID_X,
-        PPME_SYSCALL_SETPGID_E,
-        PPME_SYSCALL_SETPGID_X,
         PPME_SYSCALL_SETRESGID_E,
         PPME_SYSCALL_SETRESGID_X,
         PPME_SYSCALL_SETRESUID_E,
@@ -232,14 +230,14 @@ const libsinsp::events::set<ppm_sc_code> expected_sinsp_state_sc_set = {
         PPM_SC_OPENAT,         PPM_SC_OPENAT2,      PPM_SC_PIPE,          PPM_SC_PIPE2,
         PPM_SC_PRLIMIT64,      PPM_SC_RECVFROM,     PPM_SC_RECVMSG,       PPM_SC_RECVMMSG,
         PPM_SC_GETSOCKOPT,     PPM_SC_SENDMSG,      PPM_SC_SENDMMSG,      PPM_SC_SENDTO,
-        PPM_SC_SETGID,         PPM_SC_SETGID32,     PPM_SC_SETPGID,       PPM_SC_SETRESGID,
+        PPM_SC_SETGID,         PPM_SC_SETGID32,     PPM_SC_SETRESGID,     PPM_SC_SETREGID,
         PPM_SC_SETRESGID32,    PPM_SC_SETRESUID,    PPM_SC_SETRESUID32,   PPM_SC_SETRLIMIT,
         PPM_SC_SETSID,         PPM_SC_SETUID,       PPM_SC_SETUID32,      PPM_SC_SHUTDOWN,
         PPM_SC_SIGNALFD,       PPM_SC_SIGNALFD4,    PPM_SC_SOCKET,        PPM_SC_SOCKETPAIR,
         PPM_SC_TIMERFD_CREATE, PPM_SC_UMOUNT,       PPM_SC_UMOUNT2,       PPM_SC_USERFAULTFD,
         PPM_SC_VFORK,          PPM_SC_EPOLL_CREATE, PPM_SC_EPOLL_CREATE1, PPM_SC_SCHED_PROCESS_EXIT,
         PPM_SC_PRCTL,          PPM_SC_MEMFD_CREATE, PPM_SC_PIDFD_OPEN,    PPM_SC_PIDFD_GETFD,
-        PPM_SC_SETREUID,       PPM_SC_SETREGID,
+        PPM_SC_SETREUID,
 };
 
 const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
