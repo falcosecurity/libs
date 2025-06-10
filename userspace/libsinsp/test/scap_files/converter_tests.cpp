@@ -46,6 +46,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SOCKET_SENDMSG_E, 26},     {PPME_SOCKET_SENDMSG_X, 26},
 	        {PPME_SOCKET_RECVMSG_E, 522},    {PPME_SOCKET_RECVMSG_X, 522},
 	        {PPME_SYSCALL_IOCTL_3_E, 1164},  {PPME_SYSCALL_IOCTL_3_X, 1164},
+	        {PPME_SYSCALL_FSTAT_E, 1962},    {PPME_SYSCALL_FSTAT_X, 1962},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -714,6 +715,35 @@ TEST_F(scap_file_test, futex_x_check_final_converted_event) {
 	constexpr uint64_t val = 1;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FUTEX_X, 4, res, addr, op, val));
+}
+
+////////////////////////////
+///// FSTAT
+////////////////////////////
+
+TEST_F(scap_file_test, fstat_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `899035` is the following:
+	// - type=PPME_SYSCALL_FSTAT_X,
+	// - ts=1687966733785539028
+	// - tid=114100
+	// - args=res=0
+	//
+	// And its corresponding enter event `899034` is the following:
+	// - type=PPME_SYSCALL_FSTAT_E
+	// - ts=1687966733785538273
+	// - tid=114100
+	// -
+	// args=fd=19(<f>/sys/fs/cgroup/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-besteffort.slice/kubelet-kubepods-besteffort-pod506a980e_4d84_43bf_9c8f_c8811e541ce2.slice/cgroup.controllers)
+	//
+	// Let's see the new PPME_SYSCALL_FSTAT_X event!
+
+	constexpr uint64_t ts = 1687966733785539028;
+	constexpr int64_t tid = 114100;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd = 19;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FSTAT_X, 2, res, fd));
 }
 
 ////////////////////////////

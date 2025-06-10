@@ -21,6 +21,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_single)                       \
 	FN(sys_single_x)                     \
 	FN(sys_fstat_e)                      \
+	FN(sys_fstat_x)                      \
 	FN(sys_open_e)                       \
 	FN(sys_open_x)                       \
 	FN(sys_read_e)                       \

@@ -57,7 +57,7 @@
 #define STAT_E_SIZE HEADER_LEN
 #define LSTAT_E_SIZE HEADER_LEN
 #define FSTAT_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define FSTAT_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define FSTAT_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
 #define STAT64_E_SIZE HEADER_LEN
 #define LSTAT64_E_SIZE HEADER_LEN
 #define FSTAT64_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
