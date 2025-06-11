@@ -43,7 +43,7 @@ TEST(SyscallExit, recvX_fail) {
 	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
 
 	/* Parameter 4: size (type: PT_UINT32) */
-	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+	evt_test->assert_numeric_param(4, (uint32_t)mock_count);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_empty_param(5);
