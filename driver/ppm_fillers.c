@@ -5465,7 +5465,7 @@ int f_sys_ptrace_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args) {
+int f_sys_munmap_mmap_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res = 0;
 	struct mm_struct *mm = current->mm;
@@ -5473,6 +5473,7 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args) {
 	long total_rss = 0;
 	long swap = 0;
 
+	/* Parameter 1: ret (type: PT_UINT64) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
@@ -5483,22 +5484,56 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args) {
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
-	/*
-	 * vm_size
-	 */
+	/* Parameter 2: vm_size (type: PT_UINT32) */
 	res = val_to_ring(args, total_vm, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * vm_rss
-	 */
+	/* Parameter 3: vm_rss (type: PT_UINT32) */
 	res = val_to_ring(args, total_rss, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * vm_swap
-	 */
+	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	res = val_to_ring(args, swap, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_brk_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res = 0;
+	struct mm_struct *mm = current->mm;
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+	unsigned long addr;
+
+	/* Parameter 1: ret (type: PT_UINT64) */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	if(mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/* Parameter 2: vm_size (type: PT_UINT32) */
+	res = val_to_ring(args, total_vm, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: vm_rss (type: PT_UINT32) */
+	res = val_to_ring(args, total_rss, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: vm_swap (type: PT_UINT32) */
+	res = val_to_ring(args, swap, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &addr);
+	res = val_to_ring(args, addr, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

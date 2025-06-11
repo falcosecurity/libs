@@ -188,6 +188,75 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// BRK
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t addr = 1234;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_4_E, 1, addr);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_X_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t res = 89;
+	constexpr uint32_t vm_size = 70;
+	constexpr uint32_t vm_rss = 71;
+	constexpr uint32_t vm_swap = 72;
+
+	// Defaulted to 0
+	constexpr uint64_t addr = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_4_X, 4, res, vm_size, vm_rss, vm_swap),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_BRK_4_X,
+	                               5,
+	                               res,
+	                               vm_size,
+	                               vm_rss,
+	                               vm_swap,
+	                               addr));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_X_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t res = 89;
+	constexpr uint32_t vm_size = 70;
+	constexpr uint32_t vm_rss = 71;
+	constexpr uint32_t vm_swap = 72;
+	constexpr uint64_t addr = 1234;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_4_E, 1, addr);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_4_X, 4, res, vm_size, vm_rss, vm_swap),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_BRK_4_X,
+	                               5,
+	                               res,
+	                               vm_size,
+	                               vm_rss,
+	                               vm_swap,
+	                               addr));
+}
+
+////////////////////////////
 // BIND
 ////////////////////////////
 

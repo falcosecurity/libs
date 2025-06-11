@@ -23,15 +23,17 @@ TEST_F(sinsp_with_test_input, parse_brk_updated_prog_break) {
 	uint32_t vm_size = 294;
 	uint32_t vm_rss = 295;
 	uint32_t vm_swap = 296;
+	uint64_t addr = 8;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_BRK_4_X,
-	                                4,
+	                                5,
 	                                res,
 	                                vm_size,
 	                                vm_rss,
-	                                vm_swap);
+	                                vm_swap,
+	                                addr);
 
 	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false, true).get();
 	ASSERT_TRUE(init_tinfo);
@@ -49,6 +51,9 @@ TEST_F(sinsp_with_test_input, parse_brk_updated_prog_break) {
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[3]"), std::to_string(vm_swap));
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.vm_swap"), std::to_string(vm_swap));
+
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg[4]"), std::to_string(addr));
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.addr"), std::to_string(addr));
 }
 
 TEST_F(sinsp_with_test_input, parse_brk_no_update) {
@@ -60,15 +65,17 @@ TEST_F(sinsp_with_test_input, parse_brk_no_update) {
 	uint32_t vm_size = 294;
 	uint32_t vm_rss = 295;
 	uint32_t vm_swap = 296;
+	uint64_t addr = 8;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_BRK_4_X,
-	                                4,
+	                                5,
 	                                res,
 	                                vm_size,
 	                                vm_rss,
-	                                vm_swap);
+	                                vm_swap,
+	                                addr);
 
 	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false, true).get();
 	ASSERT_TRUE(init_tinfo);
