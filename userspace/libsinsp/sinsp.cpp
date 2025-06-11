@@ -204,7 +204,6 @@ sinsp::sinsp(bool with_metrics):
 	// Add thread manager table to state tables registry.
 	m_table_registry->add_table(m_thread_manager.get());
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
-	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = nullptr;
 	m_machine_info = nullptr;
 	m_agent_info = nullptr;
@@ -1398,10 +1397,6 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 
 			m_next_stats_print_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
 		}
-	}
-
-	if(m_auto_usergroups_purging && !is_offline()) {
-		m_usergroup_manager->clear_host_users_groups();
 	}
 
 	//
