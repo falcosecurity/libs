@@ -967,13 +967,19 @@ int32_t fill_event_setresgid_e(scap_sized_buffer scap_buf,
 int32_t fill_event_setresgid_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
-                               int64_t res) {
+                               int64_t res,
+                               uint32_t rgid,
+                               uint32_t egid,
+                               uint32_t sgid) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_SETRESGID_X,
-	                                1,
-	                                res);
+	                                4,
+	                                res,
+	                                rgid,
+	                                egid,
+	                                sgid);
 }
 
 // PPME_SYSCALL_PRLIMIT_E

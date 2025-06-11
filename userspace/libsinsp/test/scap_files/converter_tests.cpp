@@ -69,6 +69,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_SETRLIMIT_X, 1},
 	        {PPME_SYSCALL_MMAP_E, 2123},
 	        {PPME_SYSCALL_MMAP_X, 2123},
+	        {PPME_SYSCALL_SETRESGID_E, 10},
+	        {PPME_SYSCALL_SETRESGID_X, 10},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1188,4 +1190,35 @@ TEST_F(scap_file_test, setgid_x_check_final_converted_event) {
 	int64_t res = 0;
 	uint32_t gid = 0;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid));
+}
+
+////////////////////////////
+// SETRESGID
+////////////////////////////
+
+TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `293989` is the following:
+	// - type=PPME_SYSCALL_SETRESGID_X,
+	// - ts=1687889196229751724
+	// - tid=107389
+	// - args=res=0
+	//
+	// And its corresponding enter event `293988` is the following:
+	// - type=PPME_SYSCALL_SETRESGID_E
+	// - ts=1687889196229749397
+	// - tid=107389
+	// - args=rgid=0(<NA>) egid=0(<NA>) sgid=0(<NA>)
+	//
+	// Let's see the new PPME_SYSCALL_SETRESGID_X event!
+
+	uint64_t ts = 1687889196229751724;
+	int64_t tid = 107389;
+	int64_t res = 0;
+	uint32_t rgid = (uint32_t)-1;
+	uint32_t egid = 1000;
+	uint32_t sgid = (uint32_t)-1;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
 }

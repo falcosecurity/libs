@@ -184,6 +184,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_setgid_x)                     \
 	FN(sys_setpgid_e)                    \
 	FN(sys_setpgid_x)                    \
+	FN(sys_setresgid_x)                  \
 	FN(sys_recvfrom_e)                   \
 	FN(sys_recvmsg_e)                    \
 	FN(sys_listen_e)                     \

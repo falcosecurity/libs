@@ -108,7 +108,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_SETRESUID_E:
-	case PPME_SYSCALL_SETRESGID_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
 	case PPME_SYSCALL_EXECVE_18_E:
@@ -4326,15 +4325,13 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_setresgid_exit(sinsp_evt &evt) const {
-	sinsp_evt *enter_evt = &m_tmp_evt;
-
 	//
 	// Extract the return value
 	//
 	const int64_t retval = evt.get_syscall_return_value();
 
-	if(retval == 0 && retrieve_enter_event(*enter_evt, evt)) {
-		uint32_t new_egid = enter_evt->get_param(1)->as<uint32_t>();
+	if(retval == 0) {
+		uint32_t new_egid = evt.get_param(2)->as<uint32_t>();
 
 		if(new_egid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt.get_thread_info();
