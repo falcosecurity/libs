@@ -106,7 +106,7 @@
 #define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
 #define SWITCH_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 6
 #define BRK_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
-#define BRK_X_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + sizeof(uint64_t) + PARAM_LEN * 4
+#define BRK_X_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
 #define MMAP_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 2 + sizeof(uint64_t) * 3 + PARAM_LEN * 6
 #define MMAP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
 #define MMAP2_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 2 + sizeof(uint64_t) * 3 + PARAM_LEN * 6

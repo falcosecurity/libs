@@ -22,7 +22,7 @@ int BPF_PROG(brk_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	unsigned long addr = extract__syscall_argument(regs, 0);
+	uint64_t addr = extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, addr);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -67,6 +67,10 @@ int BPF_PROG(brk_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, swap_size);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	uint64_t addr = extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, addr);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

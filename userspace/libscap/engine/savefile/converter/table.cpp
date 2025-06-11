@@ -36,6 +36,10 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({{C_INSTR_FROM_ENTER, 0},
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
+        /*====================== BRK ======================*/
+        {conversion_key{PPME_SYSCALL_BRK_4_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_BRK_4_X, 4},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
         /*====================== BIND ======================*/
         {conversion_key{PPME_SOCKET_BIND_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SOCKET_BIND_X, 2},

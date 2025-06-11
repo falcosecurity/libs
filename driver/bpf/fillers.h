@@ -933,7 +933,7 @@ static __always_inline unsigned long bpf_get_mm_swap(struct mm_struct *mm) {
 	return bpf_get_mm_counter(mm, MM_SWAPENTS);
 }
 
-FILLER(sys_brk_munmap_mmap_x, true) {
+FILLER(sys_munmap_mmap_x, true) {
 	struct task_struct *task;
 	unsigned long total_vm = 0;
 	struct mm_struct *mm;
@@ -968,6 +968,48 @@ FILLER(sys_brk_munmap_mmap_x, true) {
 
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	return bpf_push_u32_to_ring(data, swap);
+}
+
+FILLER(sys_brk_x, true) {
+	struct task_struct *task;
+	unsigned long total_vm = 0;
+	struct mm_struct *mm;
+	long total_rss = 0;
+	long swap = 0;
+	long retval;
+	int res;
+
+	task = (struct task_struct *)bpf_get_current_task();
+	mm = NULL;
+	bpf_probe_read_kernel(&mm, sizeof(mm), &task->mm);
+
+	/* Parameter 1: ret (type: PT_UINT64) */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	if(mm) {
+		total_vm = _READ(mm->total_vm);
+		total_vm <<= (PAGE_SHIFT - 10);
+		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/* Parameter 2: vm_size (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, total_vm);
+	CHECK_RES(res);
+
+	/* Parameter 3: vm_rss (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, total_rss);
+	CHECK_RES(res);
+
+	/* Parameter 4: vm_swap (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, swap);
+	CHECK_RES(res);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	uint64_t addr = bpf_syscall_get_argument(data, 0);
+	return bpf_push_u64_to_ring(data, addr);
 }
 
 FILLER(sys_mmap_e, true) {

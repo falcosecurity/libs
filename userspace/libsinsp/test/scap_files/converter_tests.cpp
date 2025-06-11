@@ -47,6 +47,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SOCKET_RECVMSG_E, 522},    {PPME_SOCKET_RECVMSG_X, 522},
 	        {PPME_SYSCALL_IOCTL_3_E, 1164},  {PPME_SYSCALL_IOCTL_3_X, 1164},
 	        {PPME_SYSCALL_FSTAT_E, 1962},    {PPME_SYSCALL_FSTAT_X, 1962},
+	        {PPME_SYSCALL_BRK_4_E, 659},     {PPME_SYSCALL_BRK_4_X, 659},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -179,6 +180,46 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	                               fd,
 	                               size,
 	                               pos));
+}
+
+////////////////////////////
+///// BRK
+////////////////////////////
+
+TEST_F(scap_file_test, brk_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `897489` is the following:
+	// - type=PPME_SYSCALL_BRK_4_X,
+	// - ts=1687966733729257738
+	// - tid=141707
+	// - args=res=AAAB08F60000 vm_size=2208 vm_rss=788 vm_swap=0
+	//
+	// And its corresponding enter event `897487` is the following:
+	// - type=PPME_SYSCALL_BRK_4_E
+	// - ts=1687966733729256163
+	// - tid=141707
+	// - args=addr=AAAB08F60000
+	//
+	// Let's see the new PPME_SYSCALL_POLL_X event!
+
+	constexpr uint64_t ts = 1687966733729257738;
+	constexpr int64_t tid = 141707;
+	constexpr int64_t res = 0xAAAB08F60000;
+	constexpr uint32_t vm_size = 2208;
+	constexpr uint32_t vm_rss = 788;
+	constexpr uint32_t vm_swap = 0;
+	constexpr uint64_t addr = 0xAAAB08F60000;
+
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_BRK_4_X,
+	                                             5,
+	                                             res,
+	                                             vm_size,
+	                                             vm_rss,
+	                                             vm_swap,
+	                                             addr));
 }
 
 ////////////////////////////

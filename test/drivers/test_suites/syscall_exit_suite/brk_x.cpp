@@ -44,8 +44,11 @@ TEST(SyscallExit, brkX) {
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	evt_test->assert_only_param_len(4, sizeof(uint32_t));
 
+	/* Parameter 1: addr (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)addr);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
