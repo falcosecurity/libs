@@ -187,10 +187,12 @@ jobs:
           command_timeout: 60m
           script: |
             sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
+            # Remove, if present, any libs clone created by a previous job run.
+            rm -rf libs
             git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
             cd libs
             mkdir -p build
-            cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+            cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF -DUSE_BUNDLED_LIBELF=OFF ../
             make drivers_test driver bpf -j6
             sudo ./test/drivers/drivers_test -m
             rc_modern=$?
