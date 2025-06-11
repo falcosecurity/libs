@@ -978,6 +978,8 @@ TEST_F(sys_call_test, getsetuid_and_gid) {
 		case PPME_SYSCALL_SETGID_X:
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
+			EXPECT_EQ("6566", e->get_param_value_str("gid", false));
+			EXPECT_EQ("<NA>", e->get_param_value_str("gid"));
 			break;
 		case PPME_SYSCALL_GETUID_X:
 			++callnum;
