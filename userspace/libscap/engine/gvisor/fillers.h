@@ -335,7 +335,10 @@ int32_t fill_event_setresgid_e(scap_sized_buffer scap_buf,
 int32_t fill_event_setresgid_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
-                               int64_t res);
+                               int64_t res,
+                               uint32_t rgid,
+                               uint32_t egid,
+                               uint32_t sgid);
 
 int32_t fill_event_prlimit_e(scap_sized_buffer scap_buf,
                              size_t* event_size,
