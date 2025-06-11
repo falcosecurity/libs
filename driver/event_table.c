@@ -1216,10 +1216,16 @@ const struct ppm_event_info g_event_info[] = {
                                    EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED,
                                    2,
                                    {{"res", PT_ERRNO, PF_DEC}, {"uid", PT_UID, PF_DEC}}},
-        [PPME_SYSCALL_SETGID_E] =
-                {"setgid", EC_USER | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"gid", PT_GID, PF_DEC}}},
-        [PPME_SYSCALL_SETGID_X] =
-                {"setgid", EC_USER | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}},
+        [PPME_SYSCALL_SETGID_E] = {"setgid",
+                                   EC_USER | EC_SYSCALL,
+                                   EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED,
+                                   1,
+                                   {{"gid", PT_GID, PF_DEC}}},
+        [PPME_SYSCALL_SETGID_X] = {"setgid",
+                                   EC_USER | EC_SYSCALL,
+                                   EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED,
+                                   2,
+                                   {{"res", PT_ERRNO, PF_DEC}, {"gid", PT_GID, PF_DEC}}},
         [PPME_SYSCALL_GETUID_E] = {"getuid", EC_USER | EC_SYSCALL, EF_NONE, 0},
         [PPME_SYSCALL_GETUID_X] =
                 {"getuid", EC_USER | EC_SYSCALL, EF_NONE, 1, {{"uid", PT_UID, PF_DEC}}},

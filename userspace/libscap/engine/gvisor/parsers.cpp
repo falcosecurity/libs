@@ -1318,7 +1318,8 @@ static parse_result parse_setid(uint32_t id,
 			ret.status = scap_gvisor::fillers::fill_event_setgid_x(scap_buf,
 			                                                       &ret.size,
 			                                                       scap_err,
-			                                                       gvisor_evt.exit().result());
+			                                                       gvisor_evt.exit().result(),
+			                                                       gvisor_evt.id());
 			break;
 
 		case __NR_setsid:

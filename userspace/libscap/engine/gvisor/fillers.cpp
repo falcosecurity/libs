@@ -879,8 +879,15 @@ int32_t fill_event_setgid_e(scap_sized_buffer scap_buf,
 int32_t fill_event_setgid_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
-                            int64_t res) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_SETGID_X, 1, res);
+                            int64_t res,
+                            uint32_t gid) {
+	return scap_event_encode_params(scap_buf,
+	                                event_size,
+	                                scap_err,
+	                                PPME_SYSCALL_SETGID_X,
+	                                2,
+	                                res,
+	                                gid);
 }
 
 // PPME_SYSCALL_SETSID_E

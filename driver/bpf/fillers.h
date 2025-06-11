@@ -3089,6 +3089,18 @@ FILLER(sys_setns_x, true) {
 	return bpf_push_u32_to_ring(data, clone_flags_to_scap((int)nstype));
 }
 
+FILLER(sys_setgid_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: gpid (type: PT_GID) */
+	uint32_t gid = (uint32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_u32_to_ring(data, gid);
+	CHECK_RES(res);
+}
+
 FILLER(sys_setpgid_e, true) {
 	/* Parameter 1: pid (type: PT_PID) */
 	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
