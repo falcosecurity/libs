@@ -347,21 +347,6 @@ public:
 	}
 
 	/*!
-	 * \brief Enables or disables an automatic routine that periodically purges
-	 * users and groups infos from the internal state. If disabled, the client
-	 * is responsible of manually-handling the lifetime of users and groups.
-	 */
-	void set_auto_usergroups_purging(bool enabled) { m_auto_usergroups_purging = enabled; }
-
-	/*!
-	 * \brief Sets the interval (in seconds) at which the automatic
-	 * users and groups purging routine runs (if enabled).
-	 */
-	inline void set_auto_usergroups_purging_interval_s(uint32_t val) {
-		m_usergroups_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
-	}
-
-	/*!
 	 * \brief Enables or disables an automatic routine that periodically logs
 	 * the current capture stats.
 	 */
@@ -976,12 +961,6 @@ public:
 	bool m_auto_threads_purging = true;
 	uint64_t m_thread_timeout_ns = (uint64_t)1800 * ONE_SECOND_IN_NS;
 	uint64_t m_threads_purging_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;
-
-	//
-	// Users/groups limits
-	//
-	bool m_auto_usergroups_purging = true;
-	uint64_t m_usergroups_purging_scan_time_ns;
 
 	//
 	// How to render the data buffers

@@ -172,32 +172,6 @@ void sinsp_usergroup_manager::delete_container(const std::string &container_id) 
 	m_grouplist.erase(container_id);
 }
 
-bool sinsp_usergroup_manager::clear_host_users_groups() {
-	if(!m_import_users) {
-		return false;
-	}
-
-	bool res = false;
-
-	const uint64_t last_event_ts = m_timestamper.get_cached_ts();
-	if(m_last_flush_time_ns == 0) {
-		m_last_flush_time_ns = last_event_ts - m_inspector->m_usergroups_purging_scan_time_ns +
-		                       60 * ONE_SECOND_IN_NS;
-	}
-
-	if(last_event_ts > m_last_flush_time_ns + m_inspector->m_usergroups_purging_scan_time_ns) {
-		res = true;
-
-		m_last_flush_time_ns = last_event_ts;
-
-		// Clear everything, so that new threadinfos incoming will update
-		// user and group informations
-		m_userlist[""].clear();
-		m_grouplist[""].clear();
-	}
-	return res;
-}
-
 scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(userinfo_map &map,
                                                             uint32_t uid,
                                                             uint32_t gid,

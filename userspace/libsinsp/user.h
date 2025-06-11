@@ -49,19 +49,15 @@ class ns_helper;
  * * on PPME_{USER,GROUP}_ADDED, the new user/group is stored in the
  * m_{user,group}_list<container_id>, if not present.
  *
- * * Host users and groups lists are cleared once every DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S (1
- * min by default), see sinsp::m_usergroups_purging_scan_time_ns. Then, the users and groups will be
- * refreshed as explained above, every time a threadinfo is created. This is needed to fetch deleted
- * users/groups, or overwritten ones. Note: PPME_USER_DELETED_E is never sent for host users; we
+ * PPME_USER_DELETED_E is never sent for host users; we
  * miss the mechanism to undestand when an user is removed (without calling scap_get_userlist and
  * comparing to the already stored one; but that is an heavy operation).
  * * Containers users and groups gets bulk deleted once the container is cleaned up and
  *      PPME_{USER,GROUP}_DELETED_E event is sent for each of them.
  *
- * * Each threadinfo stores internally its user and group informations.
- *      This is needed to avoid that eg: a threadinfo spawns on uid 1000 "foo".
- *      Then, uid 1000 is deleted, and a new uid 1000 is created, named "bar".
- *      We need to be able to tell that the threadinfo user is still "foo".
+ * * Each threadinfo stores internally its uid and gid informations that, together
+ * with the container_id written by the container plugin, will be used as keys to access
+ * user/group metadata cache tables.
  */
 class sinsp_usergroup_manager {
 public:
@@ -137,8 +133,6 @@ public:
 
 	bool rm_user(const std::string &container_id, uint32_t uid, bool notify = false);
 	bool rm_group(const std::string &container_id, uint32_t gid, bool notify = false);
-
-	bool clear_host_users_groups();
 
 	void delete_container(const std::string &container_id);
 
