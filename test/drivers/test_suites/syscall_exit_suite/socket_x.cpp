@@ -66,7 +66,7 @@ TEST(SyscallExit, socketX) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: domain (type: PT_ENUMFLAGS32) */
