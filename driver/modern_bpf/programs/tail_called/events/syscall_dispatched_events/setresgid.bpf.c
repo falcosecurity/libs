@@ -58,6 +58,18 @@ int BPF_PROG(setresgid_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: rgid (type: PT_GID) */
+	gid_t rgid = (uint32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u32(&ringbuf, rgid);
+
+	/* Parameter 3: egid (type: PT_GID) */
+	gid_t egid = (uint32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_u32(&ringbuf, egid);
+
+	/* Parameter 4: sgid (type: PT_GID) */
+	gid_t sgid = (uint32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, sgid);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
