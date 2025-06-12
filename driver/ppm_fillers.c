@@ -4953,13 +4953,9 @@ int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
-	/*
-	 * resource
-	 */
+	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-
 	ppm_resource = rlimit_resource_to_scap((uint32_t)val);
-
 	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false, 0);
 	CHECK_RES(res);
 
@@ -4976,6 +4972,7 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 #endif
 	int64_t cur;
 	int64_t max;
+	uint8_t ppm_resource;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -5022,6 +5019,12 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 
 	/* Parameter 3: max (type: PT_INT64)*/
 	res = val_to_ring(args, max, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	ppm_resource = rlimit_resource_to_scap((uint32_t)val);
+	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

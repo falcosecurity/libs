@@ -48,6 +48,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_IOCTL_3_E, 1164},  {PPME_SYSCALL_IOCTL_3_X, 1164},
 	        {PPME_SYSCALL_FSTAT_E, 1962},    {PPME_SYSCALL_FSTAT_X, 1962},
 	        {PPME_SYSCALL_BRK_4_E, 659},     {PPME_SYSCALL_BRK_4_X, 659},
+	        {PPME_SYSCALL_GETRLIMIT_E, 2},   {PPME_SYSCALL_GETRLIMIT_X, 2},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -63,6 +64,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_SETPGID_X, 4},
 	        {PPME_SYSCALL_SETGID_E, 3},
 	        {PPME_SYSCALL_SETGID_X, 3},
+	        {PPME_SYSCALL_SETRLIMIT_E, 1},
+	        {PPME_SYSCALL_SETRLIMIT_X, 1},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -180,6 +183,68 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	                               fd,
 	                               size,
 	                               pos));
+}
+
+////////////////////////////
+// GETRLIMIT
+////////////////////////////
+
+TEST_F(scap_file_test, getrlimit_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `64634` is the following:
+	// - type=PPME_SYSCALL_GETRLIMIT_X,
+	// - ts=1687966709997975281
+	// - tid=141446
+	// - args=res=0 cur=1048576 max=1048576
+	//
+	// And its corresponding enter event `64633` is the following:
+	// - type=PPME_SYSCALL_GETRLIMIT_E
+	// - ts=1687966709997974370
+	// - tid=141446
+	// - args=resource=7(RLIMIT_NOFILE)
+	//
+	// Let's see the new PPME_SYSCALL_GETRLIMIT_X event!
+	constexpr uint64_t ts = 1687966709997975281;
+	constexpr int64_t tid = 141446;
+	constexpr int64_t res = 0;
+	constexpr int64_t cur = 1048576;
+	constexpr int64_t max = 1048576;
+	constexpr uint8_t resource = 7;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_X, 4, res, cur, max, resource));
+}
+
+////////////////////////////
+// SETRLIMIT
+////////////////////////////
+
+TEST_F(scap_file_test, setrlimit_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `297081` is the following:
+	// - type=PPME_SYSCALL_SETRLIMIT_X,
+	// - ts=1687889196237251155
+	// - tid=107391
+	// - args=res=0 cur=1048576 max=1048576
+	//
+	// And its corresponding enter event `297080` is the following:
+	// - type=PPME_SYSCALL_SETRLIMIT_E
+	// - ts=1687889196237250150
+	// - tid=107391
+	// - args=resource=7(RLIMIT_NOFILE)
+	//
+	// Let's see the new PPME_SYSCALL_SETRLIMIT_X event!
+	constexpr uint64_t ts = 1687889196237251155;
+	constexpr int64_t tid = 107391;
+	constexpr int64_t res = 0;
+	constexpr int64_t cur = 1048576;
+	constexpr int64_t max = 1048576;
+	constexpr uint8_t resource = 7;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 4, res, cur, max, resource));
 }
 
 ////////////////////////////

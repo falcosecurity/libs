@@ -106,8 +106,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_LINKAT_E:
 	case PPME_SYSCALL_MKDIR_E:
 	case PPME_SYSCALL_RMDIR_E:
-	case PPME_SYSCALL_GETRLIMIT_E:
-	case PPME_SYSCALL_SETRLIMIT_E:
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_SETRESUID_E:
@@ -4186,52 +4184,26 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 }
 
 void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt &evt) const {
-	int64_t retval;
-	sinsp_evt *enter_evt = &m_tmp_evt;
-	uint8_t resource;
-	int64_t curval;
-
-	if(evt.get_tinfo() == nullptr) {
+	if(evt.get_tinfo() == nullptr || evt.get_syscall_return_value() < 0) {
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
-	retval = evt.get_syscall_return_value();
+	// Extract the resource number.
+	const uint8_t resource = evt.get_param(3)->as<uint8_t>();
+	if(resource != PPM_RLIMIT_NOFILE) {
+		return;
+	}
 
-	//
-	// Check if the syscall was successful
-	//
-	if(retval >= 0) {
-		//
-		// Load the enter event so we can access its arguments
-		//
-		if(!retrieve_enter_event(*enter_evt, evt)) {
+	// Extract the current value for the resource.
+	int64_t curval = evt.get_param(1)->as<uint64_t>();
+	if(curval != -1) {
+		auto main_thread = evt.get_tinfo()->get_main_thread();
+		if(main_thread == nullptr) {
 			return;
 		}
-
-		//
-		// Extract the resource number
-		//
-		resource = enter_evt->get_param(0)->as<uint8_t>();
-
-		if(resource == PPM_RLIMIT_NOFILE) {
-			//
-			// Extract the current value for the resource
-			//
-			curval = evt.get_param(1)->as<uint64_t>();
-
-			if(curval != -1) {
-				auto main_thread = evt.get_tinfo()->get_main_thread();
-				if(main_thread == nullptr) {
-					return;
-				}
-				main_thread->m_fdlimit = curval;
-			} else {
-				ASSERT(false);
-			}
-		}
+		main_thread->m_fdlimit = curval;
+	} else {
+		ASSERT(false);
 	}
 }
 

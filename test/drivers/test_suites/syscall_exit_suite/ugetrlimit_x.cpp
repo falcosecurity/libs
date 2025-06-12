@@ -49,9 +49,12 @@ TEST(SyscallExit, ugetrlimitX_success) {
 	/* Parameter 3: max (type: PT_INT64) */
 	evt_test->assert_numeric_param(3, (int64_t)rlim.rlim_max);
 
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	evt_test->assert_numeric_param(4, (uint8_t)resource);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, ugetrlimitX_failure) {
@@ -96,8 +99,11 @@ TEST(SyscallExit, ugetrlimitX_failure) {
 	/* Parameter 3: max (type: PT_INT64) */
 	evt_test->assert_numeric_param(3, (int64_t)-1);
 
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	evt_test->assert_numeric_param(4, (uint8_t)resource);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif
