@@ -26,12 +26,6 @@ limitations under the License.
 #include <unordered_map>
 #include <memory>
 
-#ifdef _WIN32
-#define CANCELED_FD_NUMBER INT64_MAX
-#else
-#define CANCELED_FD_NUMBER std::numeric_limits<int64_t>::max()
-#endif
-
 // fd type characters
 #define CHAR_FD_FILE 'f'
 #define CHAR_FD_IPV4_SOCK '4'
@@ -90,8 +84,8 @@ public:
 		// FLAGS_TRANSACTION = (1 << 1), // note: deprecated
 		FLAGS_ROLE_CLIENT = (1 << 2),
 		FLAGS_ROLE_SERVER = (1 << 3),
-		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
-		FLAGS_CLOSE_CANCELED = (1 << 5),
+		// FLAGS_CLOSE_IN_PROGRESS = (1 << 4), // note: deprecated
+		// FLAGS_CLOSE_CANCELED = (1 << 5), // note: deprecated
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
 		// FLAGS_IS_TRACER_FILE = (1 << 7), // note: deprecated
 		// FLAGS_IS_TRACER_FD = (1 << 8), // note: deprecated

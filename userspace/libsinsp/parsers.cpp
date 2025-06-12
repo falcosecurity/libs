@@ -233,9 +233,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SOCKET_ACCEPT4_6_X:
 		parse_accept_exit(evt, verdict);
 		break;
-	case PPME_SYSCALL_CLOSE_E:
-		parse_close_enter(evt);
-		break;
 	case PPME_SYSCALL_CLOSE_X:
 		parse_close_exit(evt, verdict);
 		break;
@@ -623,20 +620,6 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	if(evt.get_errorcode() != 0 && m_observer) {
 		m_observer->on_error(&evt);
 	}
-
-	if((fdinfo->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) == 0) {
-		return true;
-	}
-
-	// FD close canceled handling. A fd close gets canceled when the same fd is created successfully
-	// between close enter and close exit.
-	fdinfo->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
-	erase_fd_params eparams;
-	eparams.m_fd = CANCELED_FD_NUMBER;
-	eparams.m_fdinfo = tinfo->get_fd(CANCELED_FD_NUMBER);
-	eparams.m_remove_from_table = true;
-	eparams.m_tinfo = tinfo;
-	erase_fd(eparams, verdict);
 
 	return true;
 }
@@ -3110,107 +3093,53 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
-void sinsp_parser::parse_close_enter(sinsp_evt &evt) {
-	if(evt.get_tinfo() == nullptr) {
-		return;
-	}
-
-	evt.set_fd_info(evt.get_tinfo()->get_fd(evt.get_tinfo()->m_lastevent_fd));
-	if(evt.get_fd_info() == nullptr) {
-		return;
-	}
-
-	evt.get_fd_info()->m_flags |= sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
-}
-
 //
 // This function takes care of cleaning up the FD and removing it from all the tables
 // (process FD table, connection table...).
 // It's invoked when a close() or a thread exit happens.
 //
 void sinsp_parser::erase_fd(erase_fd_params &params, sinsp_parser_verdict &verdict) const {
-	if(params.m_fdinfo == nullptr) {
-		//
-		// This happens when more than one close has been canceled at the same time for
-		// this thread. Since we currently handle just one canceling at at time (we
-		// don't have a list of canceled closes, just a single entry), the second one
-		// will generate a failed FD lookup. We do nothing.
-		// NOTE: I do realize that this can cause a connection leak, I just assume that it's
-		//       rare enough that the delayed connection cleanup (when the timestamp expires)
-		//       is acceptable.
-		//
-		ASSERT(params.m_fd == CANCELED_FD_NUMBER);
-		return;
-	}
-
-	//
-	// Schedule the fd for removal
-	//
+	// Schedule the fd for removal.
 	if(params.m_remove_from_table) {
 		verdict.add_fd_to_remove(params.m_tinfo->m_tid, params.m_fd);
 	}
 
-	//
-	// If there's a listener, invoke the callback
-	// note: we avoid postponing this to avoid the risk of use-after-free
-	//
+	// If there's a listener, invoke the callback.
+	// Note: we avoid postponing this to avoid the risk of use-after-free.
 	if(m_observer) {
 		m_observer->on_erase_fd(&params);
 	}
 }
 
 void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	//
 	// If the close() was successful, do the cleanup
-	//
-	if(retval >= 0) {
+	if(evt.get_syscall_return_value() >= 0) {
 		if(evt.get_fd_info() == nullptr || evt.get_tinfo() == nullptr) {
 			return;
 		}
 
-		//
-		// a close gets canceled when the same fd is created successfully between
-		// close enter and close exit.
-		//
 		erase_fd_params eparams;
-
-		if(evt.get_fd_info()->m_flags & sinsp_fdinfo::FLAGS_CLOSE_CANCELED) {
-			evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
-			eparams.m_fd = CANCELED_FD_NUMBER;
-			eparams.m_fdinfo = evt.get_tinfo()->get_fd(CANCELED_FD_NUMBER);
-		} else {
-			eparams.m_fd = evt.get_tinfo()->m_lastevent_fd;
-			eparams.m_fdinfo = evt.get_fd_info();
-		}
-
-		//
-		// Remove the fd from the different tables
-		//
+		eparams.m_fd = evt.get_tinfo()->m_lastevent_fd;
+		eparams.m_fdinfo = evt.get_fd_info();
 		eparams.m_remove_from_table = true;
 		eparams.m_tinfo = evt.get_tinfo();
-
 		erase_fd(eparams, verdict);
-	} else {
-		if(evt.get_fd_info() != nullptr) {
-			evt.get_fd_info()->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
-		}
+		return;
+	}
 
-		//
-		// It is normal when a close fails that the fd lookup failed, so we revert the
-		// increment of m_n_failed_fd_lookups (for the enter event too if there's one).
-		//
+	//
+	// It is normal when a close fails that the fd lookup failed, so we revert the
+	// increment of m_n_failed_fd_lookups (for the enter event too if there's one).
+	//
+	if(m_sinsp_stats_v2 != nullptr) {
+		m_sinsp_stats_v2->m_n_failed_fd_lookups--;
+	}
+	// TODO(ekoops): remove this once we remove, in sinsp_parser::reset(), the logic setting the
+	//   lastevent type upon the `close` enter event reception as well as the logic setting the
+	//   lastevent data validity upon the `close` exit event reception.
+	if(evt.get_tinfo() && evt.get_tinfo()->is_lastevent_data_valid()) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_failed_fd_lookups--;
-		}
-		if(evt.get_tinfo() && evt.get_tinfo()->is_lastevent_data_valid()) {
-			if(m_sinsp_stats_v2 != nullptr) {
-				m_sinsp_stats_v2->m_n_failed_fd_lookups--;
-			}
 		}
 	}
 }
@@ -4103,7 +4032,6 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 			eparams.m_fdinfo = oldfdinfo;
 			eparams.m_remove_from_table = false;
 			eparams.m_tinfo = evt.get_tinfo();
-
 			erase_fd(eparams, verdict);
 		}
 
