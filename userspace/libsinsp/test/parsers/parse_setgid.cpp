@@ -14,28 +14,23 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, SETNS_success) {
+TEST_F(sinsp_with_test_input, SETGID_success) {
 	add_default_init_thread();
 	open_inspector();
 
 	int64_t return_value = 0;
-	int64_t fd = 66;
-	uint32_t nstype = 0x12345678;  // Example flags
+	uint32_t gid = 66;
 
 	const auto evt = add_event_advance_ts(increasing_ts(),
 	                                      INIT_TID,
-	                                      PPME_SYSCALL_SETNS_X,
-	                                      3,
+	                                      PPME_SYSCALL_SETGID_X,
+	                                      2,
 	                                      return_value,
-	                                      fd,
-	                                      nstype);
+	                                      gid);
 
 	// Check that the returned value is as expected.
 	ASSERT_EQ(evt->get_param_by_name("res")->as<int64_t>(), return_value);
 
-	// Check that the fd value is as expected.
-	ASSERT_EQ(evt->get_param_by_name("fd")->as<int64_t>(), fd);
-
-	// Check that the nstype value is as expected.
-	ASSERT_EQ(evt->get_param_by_name("nstype")->as<uint32_t>(), nstype);
+	// Check that the gid value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("gid")->as<uint32_t>(), gid);
 }
