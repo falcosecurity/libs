@@ -104,7 +104,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EVENTFD2_E:
 	case PPME_SYSCALL_LINK_E:
 	case PPME_SYSCALL_LINKAT_E:
-	case PPME_SYSCALL_MKDIR_E:
 	case PPME_SYSCALL_RMDIR_E:
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SYSCALL_SENDFILE_E:
@@ -117,7 +116,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EXECVEAT_E:
 		store_event(evt);
 		break;
-	case PPME_SYSCALL_MKDIR_X:
 	case PPME_SYSCALL_RMDIR_X:
 	case PPME_SYSCALL_LINK_X:
 	case PPME_SYSCALL_LINKAT_X:
