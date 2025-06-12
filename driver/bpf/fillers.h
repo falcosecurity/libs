@@ -1155,7 +1155,12 @@ FILLER(sys_getrlimit_x, true) {
 	CHECK_RES(res);
 
 	/* Parameter 3: max (type: PT_INT64) */
-	return bpf_push_s64_to_ring(data, max);
+	res = bpf_push_s64_to_ring(data, max);
+	CHECK_RES(res);
+
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	uint32_t resource = bpf_syscall_get_argument(data, 0);
+	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
 FILLER(sys_setrlimit_x, true) {

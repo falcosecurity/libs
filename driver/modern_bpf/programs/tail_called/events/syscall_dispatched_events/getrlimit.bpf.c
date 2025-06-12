@@ -71,6 +71,10 @@ int BPF_PROG(getrlimit_x, struct pt_regs *regs, long ret) {
 		ringbuf__store_s64(&ringbuf, -1);
 	}
 
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	unsigned long resource = extract__syscall_argument(regs, 0);
+	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

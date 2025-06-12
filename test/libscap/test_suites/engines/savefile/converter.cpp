@@ -163,7 +163,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_with_enter) {
 	uint32_t size = 36;
 	uint64_t pos = 7;
 
-	// After the first conversion we should have the storage
+	// After the first conversion we should have the storage.
 	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PREAD_E, 3, fd, size, pos);
 	assert_single_conversion_skip(evt);
 	assert_event_storage_presence(evt);
@@ -185,6 +185,110 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_with_enter) {
 	                               fd,
 	                               size,
 	                               pos));
+}
+
+////////////////////////////
+// GETRLIMIT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETRLIMIT_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint8_t resource = 10;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_E, 1, resource);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETRLIMIT_X_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t cur = 90;
+	constexpr int64_t max = 91;
+
+	// Defaulted to 0
+	constexpr uint8_t resource = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_X, 3, res, cur, max),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_X, 4, res, cur, max, resource));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETRLIMIT_X_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t cur = 90;
+	constexpr int64_t max = 91;
+	constexpr uint8_t resource = 92;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_E, 1, resource);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_X, 3, res, cur, max),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_X, 4, res, cur, max, resource));
+}
+
+////////////////////////////
+// SETRLIMIT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SETRLIMIT_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint8_t resource = 10;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_E, 1, resource);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SETRLIMIT_X_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t cur = 90;
+	constexpr int64_t max = 91;
+
+	// Defaulted to 0
+	constexpr uint8_t resource = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 3, res, cur, max),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 4, res, cur, max, resource));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SETRLIMIT_X_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t cur = 90;
+	constexpr int64_t max = 91;
+	constexpr uint8_t resource = 92;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_E, 1, resource);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 3, res, cur, max),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 4, res, cur, max, resource));
 }
 
 ////////////////////////////
