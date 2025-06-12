@@ -589,11 +589,14 @@ const struct ppm_event_info g_event_info[] = {
                                    {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_NA}}},
         [PPME_SYSCALL_MKDIR_E] = {"mkdir",
                                   EC_FILE | EC_SYSCALL,
-                                  EF_OLD_VERSION,
+                                  EF_OLD_VERSION | EF_TMP_CONVERTER_MANAGED,
                                   2,
                                   {{"path", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX}}},
-        [PPME_SYSCALL_MKDIR_X] =
-                {"mkdir", EC_FILE | EC_SYSCALL, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC}}},
+        [PPME_SYSCALL_MKDIR_X] = {"mkdir",
+                                  EC_FILE | EC_SYSCALL,
+                                  EF_OLD_VERSION | EF_TMP_CONVERTER_MANAGED,
+                                  1,
+                                  {{"res", PT_ERRNO, PF_DEC}}},
         [PPME_SYSCALL_RMDIR_E] =
                 {"rmdir", EC_FILE | EC_SYSCALL, EF_OLD_VERSION, 1, {{"path", PT_FSPATH, PF_NA}}},
         [PPME_SYSCALL_RMDIR_X] =

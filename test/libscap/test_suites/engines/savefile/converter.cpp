@@ -2057,6 +2057,24 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_to_3_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
 }
 
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_to_MKDIR_2_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	constexpr char path[] = "/hello";
+	uint32_t mode = 0755;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_E, 2, path, mode);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}
+
 ////////////////////////////
 // SETNS
 ////////////////////////////

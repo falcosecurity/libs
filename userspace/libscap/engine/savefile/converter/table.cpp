@@ -166,6 +166,14 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_MKDIR_2_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_MKDIR_2_X, 2},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        {conversion_key{PPME_SYSCALL_MKDIR_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_MKDIR_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_MKDIR_2_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({{C_INSTR_FROM_OLD, 0},
+                          {C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1}})},
         /*====================== FUTEX ======================*/
         {conversion_key{PPME_SYSCALL_FUTEX_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_FUTEX_X, 1},
