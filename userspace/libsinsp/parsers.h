@@ -97,7 +97,6 @@ private:
 	void parse_connect_enter(sinsp_evt& evt) const;
 	void parse_connect_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_accept_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
-	static void parse_close_enter(sinsp_evt& evt);
 	void parse_close_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	static void parse_thread_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict);
 	void parse_memfd_create_exit(sinsp_evt& evt, scap_fd_type type) const;

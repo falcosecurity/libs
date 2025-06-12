@@ -452,7 +452,10 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 				EXPECT_EQ(0, res);
 			}
 
-			callnum++;
+			int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
+			if(clfd == prfd) {
+				callnum++;
+			}
 		}
 	};
 
@@ -575,7 +578,11 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 				EXPECT_EQ(0, res);
 			}
 
-			callnum++;
+			int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
+
+			if(clfd == prfd) {
+				callnum++;
+			}
 		}
 	};
 
