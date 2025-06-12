@@ -94,6 +94,13 @@ TEST_F(sinsp_with_test_input, setresuid_setresgid) {
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
 
 	// check that the group ID is updated if the call is successful. The expected user is the EGID
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESGID_X, 1, errno_success);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_SETRESGID_X,
+	                           4,
+	                           errno_success,
+	                           600,
+	                           600,
+	                           600);
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
 }
