@@ -151,8 +151,13 @@ TEST_F(sinsp_with_test_input, sinsp_observer) {
 	                     INIT_TID,
 	                     PPME_SYSCALL_CLOSE_E,
 	                     1,
-	                     (int64_t)4);  // default sinsp_test_input::open_params fd)
-	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_CLOSE_X, 1, (int64_t)0);
+	                     sinsp_test_input::open_params::default_fd);
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_CLOSE_X,
+	                     2,
+	                     (int64_t)0,
+	                     sinsp_test_input::open_params::default_fd);
 	ASSERT_EQ(observer.get_clone_counter(), 1);
 	ASSERT_EQ(observer.get_execve_counter(), 1);
 	ASSERT_EQ(observer.get_open_counter(), 1);

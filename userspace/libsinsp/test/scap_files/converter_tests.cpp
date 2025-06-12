@@ -49,6 +49,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_FSTAT_E, 1962},    {PPME_SYSCALL_FSTAT_X, 1962},
 	        {PPME_SYSCALL_BRK_4_E, 659},     {PPME_SYSCALL_BRK_4_X, 659},
 	        {PPME_SYSCALL_GETRLIMIT_E, 2},   {PPME_SYSCALL_GETRLIMIT_X, 2},
+	        {PPME_SYSCALL_CLOSE_E, 19860},   {PPME_SYSCALL_CLOSE_X, 19860},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -97,6 +98,33 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 	// Add further checks for the expected number of events in unhandled scap files here.
+}
+
+////////////////////////////
+// CLOSE
+////////////////////////////
+
+TEST_F(scap_file_test, close_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `907955` is the following:
+	// - type=PPME_SYSCALL_CLOSE_X
+	// - ts=1687966734290924121
+	// - tid=115186
+	// - args=res=0
+	//
+	// And its corresponding enter event `907954` is the following:
+	// - type=PPME_SYSCALL_CLOSE_E
+	// - ts=1687966734290922537
+	// - tid=115186
+	// - args=fd=13(<6>)
+	//
+	// Let's see the new PPME_SYSCALL_CLOSE_X event!
+	constexpr uint64_t ts = 1687966734290924121;
+	constexpr int64_t tid = 115186;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd = 13;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLOSE_X, 2, res, fd));
 }
 
 ////////////////////////////
