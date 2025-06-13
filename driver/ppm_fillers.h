@@ -33,6 +33,7 @@ or GPL2.txt for full copies of the license.
 	FN(proc_startupdate_2)               \
 	FN(proc_startupdate_3)               \
 	FN(sys_socketpair_x)                 \
+	FN(sys_socketpair_x_2)               \
 	FN(sys_setsockopt_x)                 \
 	FN(sys_getsockopt_x)                 \
 	FN(sys_connect_x)                    \

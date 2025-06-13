@@ -551,157 +551,164 @@ static __always_inline uint32_t clone_flags_to_scap(int flags) {
 }
 
 static __always_inline uint8_t socket_family_to_scap(uint8_t family) {
-	if(family == AF_INET)
-		return PPM_AF_INET;
-	else if(family == AF_INET6)
-		return PPM_AF_INET6;
-	else if(family == AF_UNIX)
-		return PPM_AF_UNIX;
 #ifdef AF_NETLINK
-	else if(family == AF_NETLINK)
+	if(family == AF_NETLINK) {
 		return PPM_AF_NETLINK;
+	}
 #endif
+#ifdef AF_ROUTE
+	if(family == AF_ROUTE) {
+		return PPM_AF_ROUTE;
+	}
+#endif
+	switch(family) {
+	case AF_INET:
+		return PPM_AF_INET;
+	case AF_INET6:
+		return PPM_AF_INET6;
+	case AF_UNIX:
+		return PPM_AF_UNIX;
 #ifdef AF_PACKET
-	else if(family == AF_PACKET)
+	case AF_PACKET:
 		return PPM_AF_PACKET;
 #endif
 #ifdef AF_UNSPEC
-	else if(family == AF_UNSPEC)
+	case AF_UNSPEC:
 		return PPM_AF_UNSPEC;
 #endif
 #ifdef AF_AX25
-	else if(family == AF_AX25)
+	case AF_AX25:
 		return PPM_AF_AX25;
 #endif
 #ifdef AF_IPX
-	else if(family == AF_IPX)
+	case AF_IPX:
 		return PPM_AF_IPX;
 #endif
 #ifdef AF_APPLETALK
-	else if(family == AF_APPLETALK)
+	case AF_APPLETALK:
 		return PPM_AF_APPLETALK;
 #endif
 #ifdef AF_NETROM
-	else if(family == AF_NETROM)
+	case AF_NETROM:
 		return PPM_AF_NETROM;
 #endif
 #ifdef AF_BRIDGE
-	else if(family == AF_BRIDGE)
+	case AF_BRIDGE:
 		return PPM_AF_BRIDGE;
 #endif
 #ifdef AF_ATMPVC
-	else if(family == AF_ATMPVC)
+	case AF_ATMPVC:
 		return PPM_AF_ATMPVC;
 #endif
 #ifdef AF_X25
-	else if(family == AF_X25)
+	case AF_X25:
 		return PPM_AF_X25;
 #endif
 #ifdef AF_ROSE
-	else if(family == AF_ROSE)
+	case AF_ROSE:
 		return PPM_AF_ROSE;
 #endif
 #ifdef AF_DECnet
-	else if(family == AF_DECnet)
+	case AF_DECnet:
 		return PPM_AF_DECnet;
 #endif
 #ifdef AF_NETBEUI
-	else if(family == AF_NETBEUI)
+	case AF_NETBEUI:
 		return PPM_AF_NETBEUI;
 #endif
 #ifdef AF_SECURITY
-	else if(family == AF_SECURITY)
+	case AF_SECURITY:
 		return PPM_AF_SECURITY;
 #endif
 #ifdef AF_KEY
-	else if(family == AF_KEY)
+	case AF_KEY:
 		return PPM_AF_KEY;
 #endif
 #ifdef AF_ROUTE
-	else if(family == AF_ROUTE)
+	case AF_ROUTE:
 		return PPM_AF_ROUTE;
 #endif
 #ifdef AF_ASH
-	else if(family == AF_ASH)
+	case AF_ASH:
 		return PPM_AF_ASH;
 #endif
 #ifdef AF_ECONET
-	else if(family == AF_ECONET)
+	case AF_ECONET:
 		return PPM_AF_ECONET;
 #endif
 #ifdef AF_ATMSVC
-	else if(family == AF_ATMSVC)
+	case AF_ATMSVC:
 		return PPM_AF_ATMSVC;
 #endif
 #ifdef AF_RDS
-	else if(family == AF_RDS)
+	case AF_RDS:
 		return PPM_AF_RDS;
 #endif
 #ifdef AF_SNA
-	else if(family == AF_SNA)
+	case AF_SNA:
 		return PPM_AF_SNA;
 #endif
 #ifdef AF_IRDA
-	else if(family == AF_IRDA)
+	case AF_IRDA:
 		return PPM_AF_IRDA;
 #endif
 #ifdef AF_PPPOX
-	else if(family == AF_PPPOX)
+	case AF_PPPOX:
 		return PPM_AF_PPPOX;
 #endif
 #ifdef AF_WANPIPE
-	else if(family == AF_WANPIPE)
+	case AF_WANPIPE:
 		return PPM_AF_WANPIPE;
 #endif
 #ifdef AF_LLC
-	else if(family == AF_LLC)
+	case AF_LLC:
 		return PPM_AF_LLC;
 #endif
 #ifdef AF_CAN
-	else if(family == AF_CAN)
+	case AF_CAN:
 		return PPM_AF_CAN;
 #endif
 #ifdef AF_TIPC
-	else if(family == AF_TIPC)
+	case AF_TIPC:
 		return PPM_AF_TIPC;
 #endif
 #ifdef AF_BLUETOOTH
-	else if(family == AF_BLUETOOTH)
+	case AF_BLUETOOTH:
 		return PPM_AF_BLUETOOTH;
 #endif
 #ifdef AF_IUCV
-	else if(family == AF_IUCV)
+	case AF_IUCV:
 		return PPM_AF_IUCV;
 #endif
 #ifdef AF_RXRPC
-	else if(family == AF_RXRPC)
+	case AF_RXRPC:
 		return PPM_AF_RXRPC;
 #endif
 #ifdef AF_ISDN
-	else if(family == AF_ISDN)
+	case AF_ISDN:
 		return PPM_AF_ISDN;
 #endif
 #ifdef AF_PHONET
-	else if(family == AF_PHONET)
+	case AF_PHONET:
 		return PPM_AF_PHONET;
 #endif
 #ifdef AF_IEEE802154
-	else if(family == AF_IEEE802154)
+	case AF_IEEE802154:
 		return PPM_AF_IEEE802154;
 #endif
 #ifdef AF_CAIF
-	else if(family == AF_CAIF)
+	case AF_CAIF:
 		return PPM_AF_CAIF;
 #endif
 #ifdef AF_ALG
-	else if(family == AF_ALG)
+	case AF_ALG:
 		return PPM_AF_ALG;
 #endif
 #ifdef AF_NFC
-	else if(family == AF_NFC)
+	case AF_NFC:
 		return PPM_AF_NFC;
 #endif
-	else {
+	default:
 		ASSERT(false);
 		return PPM_AF_UNSPEC;
 	}

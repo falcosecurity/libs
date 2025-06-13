@@ -1334,10 +1334,16 @@ FILLER(sys_socketpair_x, true) {
 	bpf_push_u64_to_ring(data, (unsigned long)speer);
 	CHECK_RES(res);
 
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sys_socketpair_x_2);
+	bpf_printk("Can't tail call 'sys_socketpair_x_2' filler\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(sys_socketpair_x_2, true) {
 	/* Parameter 6: domain (type: PT_ENUMFLAGS32) */
 	/* why to send 32 bits if we need only 8 bits? */
 	uint8_t domain = (uint8_t)bpf_syscall_get_argument(data, 0);
-	res = bpf_push_u32_to_ring(data, (uint32_t)socket_family_to_scap(domain));
+	int res = bpf_push_u32_to_ring(data, socket_family_to_scap(domain));
 	CHECK_RES(res);
 
 	/* Parameter 7: type (type: PT_UINT32) */
@@ -4621,7 +4627,7 @@ FILLER(sys_recvmmsg_x, true) {
 	CHECK_RES(res);
 
 	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sys_recvmmsg_x_2);
-	bpf_printk("Can't tail call f_sys_recvmsg_x_2 filler\n");
+	bpf_printk("Can't tail call f_sys_recvmmsg_x_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
