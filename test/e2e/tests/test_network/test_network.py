@@ -76,7 +76,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "evt.type": "close",
             "proc.name": "curl",
         }, {
-            "evt.args": "res=0",
+            "evt.args": f"res=0 fd=3(<4t>{origin['ip']}->{destination['ip']})",
             "evt.dir": "<",
             "evt.type": "close",
             "proc.name": "curl",
@@ -86,7 +86,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "evt.type": "close",
             "proc.name": "nginx",
         }, {
-            "evt.args": "res=0",
+            "evt.args": f"res=0 fd=3(<4t>{origin['ip']}->{destination['ip']})",
             "evt.dir": "<",
             "evt.type": "close",
             "proc.name": "nginx",

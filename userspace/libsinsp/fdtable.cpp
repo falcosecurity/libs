@@ -74,10 +74,7 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 
 	fdinfo->m_fd = fd;
 
-	//
-	// Look for the FD in the table
-	//
-	auto it = m_table.find(fd);
+	const auto it = m_table.find(fd);
 
 	// Three possible exits here:
 	// 1. fd is not on the table
@@ -85,56 +82,35 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 	//   b. table size is over the limit, discard the fd
 	// 2. fd is already in the table, replace it
 	if(it == m_table.end()) {
-		if(m_table.size() < m_params->m_max_table_size) {
-			//
-			// No entry in the table, this is the normal case
-			//
-			m_last_accessed_fd = -1;
-			if(m_params->m_sinsp_stats_v2 != nullptr) {
-				m_params->m_sinsp_stats_v2->m_n_added_fds++;
-			}
-
-			return m_table.emplace(fd, std::move(fdinfo)).first->second;
-		} else {
+		if(m_table.size() == m_params->m_max_table_size) {
 			return m_nullptr_ret;
 		}
-	} else {
-		//
-		// the fd is already in the table.
-		//
-		if(it->second->m_flags & sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS) {
-			//
-			// Sometimes an FD-creating syscall can be called on an FD that is being closed (i.e
-			// the close enter has arrived but the close exit has not arrived yet).
-			// If this is the case, mark the new entry so that the successive close exit won't
-			// destroy it.
-			//
-			fdinfo->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
-			fdinfo->m_flags |= sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 
-			m_table[CANCELED_FD_NUMBER] = it->second->clone();
-		} else {
-			//
-			// This can happen if:
-			//  - the event is a dup2 or dup3 that overwrites an existing FD (perfectly legal)
-			//  - a close() has been dropped when capturing
-			//  - an fd has been closed by clone() or execve() (it happens when the fd is opened
-			//  with the FD_CLOEXEC flag,
-			//    which we don't currently parse.
-			// In either case, removing the old fd, replacing it with the new one and keeping going
-			// is a reasonable choice. We include an assertion to catch the situation.
-			//
-			// XXX Can't have this enabled until the FD_CLOEXEC flag is supported
-			// ASSERT(false);
+		// No entry in the table, this is the normal case.
+		m_last_accessed_fd = -1;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->m_n_added_fds++;
 		}
 
-		//
-		// Replace the fd as a struct copy
-		//
-		m_last_accessed_fd = -1;
-		it->second = std::move(fdinfo);
-		return it->second;
+		return m_table.emplace(fd, std::move(fdinfo)).first->second;
 	}
+
+	// the fd is already in the table. This can happen if:
+	//  - the event is a dup2 or dup3 that overwrites an existing FD (perfectly legal)
+	//  - a close() has been dropped when capturing
+	//  - an fd has been closed by clone() or execve() (it happens when the fd is opened
+	//  with the FD_CLOEXEC flag,
+	//    which we don't currently parse.
+	// In either case, removing the old fd, replacing it with the new one and keeping going
+	// is a reasonable choice. We include an assertion to catch the situation.
+	//
+	// XXX Can't have this enabled until the FD_CLOEXEC flag is supported
+	// ASSERT(false);
+
+	// Replace the fd as a struct copy.
+	m_last_accessed_fd = -1;
+	it->second = std::move(fdinfo);
+	return it->second;
 }
 
 bool sinsp_fdtable::erase(int64_t fd) {

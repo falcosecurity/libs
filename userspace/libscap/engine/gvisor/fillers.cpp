@@ -574,8 +574,15 @@ int32_t fill_event_close_e(scap_sized_buffer scap_buf,
 int32_t fill_event_close_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
-                           int64_t res) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_CLOSE_X, 1, res);
+                           int64_t res,
+                           int64_t fd) {
+	return scap_event_encode_params(scap_buf,
+	                                event_size,
+	                                scap_err,
+	                                PPME_SYSCALL_CLOSE_X,
+	                                2,
+	                                res,
+	                                fd);
 }
 
 // PPME_SYSCALL_READ_E
