@@ -62,6 +62,7 @@ int32_t scap_linux_init_platform(struct scap_platform* platform,
 	linux_platform->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	linux_platform->m_log_fn = oargs->log_fn;
+	linux_platform->m_cgroups.m_log_fn = oargs->log_fn;
 
 	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
