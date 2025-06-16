@@ -1336,8 +1336,8 @@ FILLER(sys_socketpair_x, true) {
 
 	/* Parameter 6: domain (type: PT_ENUMFLAGS32) */
 	/* why to send 32 bits if we need only 8 bits? */
-	uint8_t domain = (uint8_t)bpf_syscall_get_argument(data, 0);
-	res = bpf_push_u32_to_ring(data, (uint32_t)socket_family_to_scap(domain));
+	int8_t domain = (int8_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u32_to_ring(data, (uint32_t)bpf_socket_family_to_scap(domain));
 	CHECK_RES(res);
 
 	/* Parameter 7: type (type: PT_UINT32) */
@@ -5357,8 +5357,8 @@ FILLER(sys_socket_x, true) {
 	}
 
 	/* Parameter 2: domain (type: PT_ENUMFLAGS32) */
-	uint8_t domain = (uint8_t)bpf_syscall_get_argument(data, 0);
-	res = bpf_push_u32_to_ring(data, (uint32_t)socket_family_to_scap(domain));
+	int8_t domain = (int8_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u32_to_ring(data, (uint32_t)bpf_socket_family_to_scap(domain));
 	CHECK_RES(res);
 
 	/* Parameter 3: type (type: PT_UINT32) */
