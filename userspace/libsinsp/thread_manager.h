@@ -147,6 +147,19 @@ public:
 
 	void set_m_max_n_proc_lookups(int32_t val) { m_max_n_proc_lookups = val; }
 	void set_m_max_n_proc_socket_lookups(int32_t val) { m_max_n_proc_socket_lookups = val; }
+	/*!
+	 * \brief Set time period for resetting process lookup counters
+	 *
+	 * Controls how frequently process lookup counters are reset, allowing
+	 * the system to perform up to max_n_proc_lookups within each period.
+	 * This prevents excessive OS queries while ensuring processes are still
+	 * discovered over time.
+	 *
+	 * \param val Duration in milliseconds between counter resets (0 to disable)
+	 *
+	 * \see set_m_max_n_proc_lookups
+	 */
+	void set_proc_lookup_period_ms(uint64_t val) { m_proc_lookup_period = val * 1000000LL; }
 
 	// ---- libsinsp::state::table implementation ----
 
@@ -225,6 +238,8 @@ public:
 	void create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo);
 
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
+
+	void maybe_log_max_lookup(int64_t tid, bool scan_sockets, uint64_t period);
 
 	inline uint64_t get_last_flush_time_ns() const { return m_last_flush_time_ns; }
 
@@ -309,6 +324,8 @@ private:
 	int32_t m_n_main_thread_lookups = 0;
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
+	uint64_t m_proc_lookup_period = 0;
+	uint64_t m_last_proc_lookup_period_start = 0;
 
 	const std::shared_ptr<sinsp_threadinfo>
 	        m_nullptr_tinfo_ret;  // needed for returning a reference
