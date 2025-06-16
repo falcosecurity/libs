@@ -1407,3 +1407,15 @@ static __always_inline pid_t bpf_push_pgid(struct filler_data *data, struct task
 }
 
 #endif
+
+/* Legacy-probe-specific replacement for `socket_family_to_scap` helper. As encoding the socket
+ * family using the `socket_family_to_scap` helper breaks the verifier on old kernel versions, just
+ * send `PPM_AF_UNSPEC` if the user-provided socket family is negative, and leave it as is
+ * otherwise. This solution relies on the fact that `AF_*` and corresponding `PPM_AF_*` macros map
+ * to the same values. */
+static __always_inline uint8_t bpf_socket_family_to_scap(int8_t family) {
+	if(family < 0) {
+		family = PPM_AF_UNSPEC;
+	}
+	return (uint8_t)family;
+}
