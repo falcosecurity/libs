@@ -67,6 +67,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_SETGID_X, 3},
 	        {PPME_SYSCALL_SETRLIMIT_E, 1},
 	        {PPME_SYSCALL_SETRLIMIT_X, 1},
+	        {PPME_SYSCALL_MMAP_E, 2123},
+	        {PPME_SYSCALL_MMAP_X, 2123},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -981,6 +983,56 @@ TEST_F(scap_file_test, ioctl_x_check_final_converted_event) {
 	constexpr uint64_t argument = 0xFFFFD297F908;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_3_X, 4, res, fd, request, argument));
+}
+
+////////////////////////////
+// MMAP
+////////////////////////////
+
+TEST_F(scap_file_test, mmap_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `513124` is the following:
+	// - type=PPME_SYSCALL_MMAP_X,
+	// - ts=1687889198695960021
+	// - tid=107452
+	// - args=res=139631788478464 vm_size=5908 vm_rss=1024 vm_swap=0
+	//
+	// And its corresponding enter event `513123` is the following:
+	// - type=PPME_SYSCALL_MMAP_E
+	// - ts=1687889198695957637
+	// - tid=107452
+	// - args=addr=0 length=139264 prot=3(PROT_READ|PROT_WRITE) flags=10(MAP_PRIVATE|MAP_ANONYMOUS)
+	//   fd=-1(EPERM) offset=0
+	//
+	// Let's see the new PPME_SYSCALL_MMAP_X event!
+
+	constexpr uint64_t ts = 1687889198695960021;
+	constexpr int64_t tid = 107452;
+	constexpr int64_t res = 139631788478464;
+	constexpr uint32_t vm_size = 5908;
+	constexpr uint32_t vm_rss = 1024;
+	constexpr uint32_t vm_swap = 0;
+	constexpr uint64_t addr = 0;
+	constexpr uint64_t length = 139264;
+	constexpr uint32_t prot = 3;
+	constexpr uint32_t flags = 10;
+	constexpr int64_t fd = -1;
+	constexpr uint64_t offset = 0;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_MMAP_X,
+	                                             10,
+	                                             res,
+	                                             vm_size,
+	                                             vm_rss,
+	                                             vm_swap,
+	                                             addr,
+	                                             length,
+	                                             prot,
+	                                             flags,
+	                                             fd,
+	                                             offset));
 }
 
 ////////////////////////////

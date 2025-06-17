@@ -933,7 +933,7 @@ static __always_inline unsigned long bpf_get_mm_swap(struct mm_struct *mm) {
 	return bpf_get_mm_counter(mm, MM_SWAPENTS);
 }
 
-FILLER(sys_munmap_mmap_x, true) {
+FILLER(sys_munmap_mmap2_x, true) {
 	struct task_struct *task;
 	unsigned long total_vm = 0;
 	struct mm_struct *mm;
@@ -968,6 +968,74 @@ FILLER(sys_munmap_mmap_x, true) {
 
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	return bpf_push_u32_to_ring(data, swap);
+}
+
+FILLER(sys_mmap_x, true) {
+	struct task_struct *task;
+	unsigned long total_vm = 0;
+	struct mm_struct *mm;
+	long total_rss = 0;
+	long swap = 0;
+	long retval;
+	int res;
+	unsigned long val;
+
+	task = (struct task_struct *)bpf_get_current_task();
+	mm = NULL;
+	bpf_probe_read_kernel(&mm, sizeof(mm), &task->mm);
+
+	/* Parameter 1: ret (type: PT_UINT64) */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	if(mm) {
+		total_vm = _READ(mm->total_vm);
+		total_vm <<= (PAGE_SHIFT - 10);
+		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/* Parameter 2: vm_size (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, total_vm);
+	CHECK_RES(res);
+
+	/* Parameter 3: vm_rss (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, total_rss);
+	CHECK_RES(res);
+
+	/* Parameter 4: vm_swap (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, swap);
+	CHECK_RES(res);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u64_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u64_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 7: prot (type: PT_FLAGS32) */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
+	CHECK_RES(res);
+
+	/* Parameter 8: flags (type: PT_FLAGS32) */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_push_u32_to_ring(data, mmap_flags_to_scap(val));
+	CHECK_RES(res);
+
+	/* Paremeter 9: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 4);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 10: offset (type: PT_UINT64) */
+	val = bpf_syscall_get_argument(data, 5);
+	return bpf_push_u64_to_ring(data, val);
 }
 
 FILLER(sys_brk_x, true) {
@@ -1016,44 +1084,32 @@ FILLER(sys_mmap_e, true) {
 	unsigned long val;
 	int res;
 
-	/*
-	 * addr
-	 */
+	/* Parameter 1: addr (type: PT_UINT64) */
 	val = bpf_syscall_get_argument(data, 0);
 	res = bpf_push_u64_to_ring(data, val);
 	CHECK_RES(res);
 
-	/*
-	 * length
-	 */
+	/* Parameter 2: length (type: PT_UINT64) */
 	val = bpf_syscall_get_argument(data, 1);
 	res = bpf_push_u64_to_ring(data, val);
 	CHECK_RES(res);
 
-	/*
-	 * prot
-	 */
+	/* Parameter 3: prot (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 2);
 	res = bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
 	CHECK_RES(res);
 
-	/*
-	 * flags
-	 */
+	/* Parameter 4: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 3);
 	res = bpf_push_u32_to_ring(data, mmap_flags_to_scap(val));
 	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
+	/* Paremeter 5: fd (type: PT_FD) */
 	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 4);
 	res = bpf_push_s64_to_ring(data, (int64_t)fd);
 	CHECK_RES(res);
 
-	/*
-	 * offset/pgoffset
-	 */
+	/* Parameter 6: offset (type: PT_UINT64) */
 	val = bpf_syscall_get_argument(data, 5);
 	return bpf_push_u64_to_ring(data, val);
 }

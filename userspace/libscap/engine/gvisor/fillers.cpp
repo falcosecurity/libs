@@ -1599,16 +1599,28 @@ int32_t fill_event_mmap_e(scap_sized_buffer scap_buf,
 int32_t fill_event_mmap_x(scap_sized_buffer scap_buf,
                           size_t* event_size,
                           char* scap_err,
-                          int64_t res) {
+                          int64_t res,
+                          uint64_t addr,
+                          uint64_t length,
+                          uint32_t prot,
+                          uint32_t flags,
+                          int64_t fd,
+                          uint64_t offset) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_MMAP_X,
-	                                4,
+	                                10,
 	                                res,
-	                                0,   // vm_size -- INVALID
-	                                0,   // vm_rss -- INVALID
-	                                0);  // vm_swap -- INVALID
+	                                0,  // vm_size -- INVALID
+	                                0,  // vm_rss -- INVALID
+	                                0,  // vm_swap -- INVALID
+	                                addr,
+	                                length,
+	                                prot,
+	                                flags,
+	                                fd,
+	                                offset);
 }
 
 // PPME_SYSCALL_MUNMAP_E

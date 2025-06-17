@@ -57,8 +57,26 @@ TEST(SyscallExit, mmapX) {
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	evt_test->assert_only_param_len(4, sizeof(uint32_t));
 
+	/* Parameter 5: addr (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)mock_addr);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	evt_test->assert_numeric_param(6, (uint64_t)mock_length);
+
+	/* Parameter 7: prot (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(7, (uint32_t)mock_prot);
+
+	/* Parameter 8: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(8, (uint32_t)mock_flags);
+
+	/* Parameter 9: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(9, (int64_t)mock_fd);
+
+	/* Parameter 10: offset (type: PT_UINT64) */
+	evt_test->assert_numeric_param(10, (uint64_t)mock_offset);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(10);
 }
 #endif

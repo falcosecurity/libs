@@ -793,7 +793,13 @@ static parse_result parse_generic_syscall(uint32_t id,
 			ret.status = scap_gvisor::fillers::fill_event_mmap_x(scap_buf,
 			                                                     &ret.size,
 			                                                     scap_err,
-			                                                     gvisor_evt.exit().result());
+			                                                     gvisor_evt.exit().result(),
+			                                                     gvisor_evt.arg1(),
+			                                                     gvisor_evt.arg2(),
+			                                                     gvisor_evt.arg3(),
+			                                                     gvisor_evt.arg4(),
+			                                                     gvisor_evt.arg5(),
+			                                                     gvisor_evt.arg6());
 			break;
 
 		case __NR_munmap:
