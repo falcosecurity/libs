@@ -71,6 +71,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_MMAP_X, 2123},
 	        {PPME_SYSCALL_SETRESGID_E, 10},
 	        {PPME_SYSCALL_SETRESGID_X, 10},
+	        {PPME_SYSCALL_SETRESUID_E, 17},
+	        {PPME_SYSCALL_SETRESUID_X, 17},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -472,6 +474,38 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with PWRITE events. Add it if we face a failure.
+
+////////////////////////////
+// SETRESUID
+////////////////////////////
+
+TEST_F(scap_file_test, setresuid_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `293991` is the following:
+	// - type=PPME_SYSCALL_SETRESUID_X,
+	// - ts=1687889196229754428
+	// - tid=107389
+	// - args=res=0
+	//
+	// And its corresponding enter event `293990` is the following:
+	// - type=PPME_SYSCALL_SETRESUID_E
+	// - ts=1687889196229752468
+	// - tid=107389
+	// - args=ruid=1000(ubuntu) euid=-1(<NONE>) suid=-1(<NONE>)
+	//
+	// Let's see the new PPME_SYSCALL_SETRESUID_X event!
+
+	constexpr uint64_t ts = 1687889196229754428;
+	constexpr int64_t tid = 107389;
+	constexpr int64_t res = 0;
+	constexpr uint32_t ruid = 1000;
+	constexpr uint32_t euid = (uint32_t)-1;
+	constexpr uint32_t suid = (uint32_t)-1;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid));
+}
 
 ////////////////////////////
 // SETUID

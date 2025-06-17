@@ -6359,6 +6359,27 @@ FILLER(sys_quotactl_x, true) {
 	return bpf_push_u8_to_ring(data, quota_fmt_out);
 }
 
+FILLER(sys_setresuid_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: ruid (type: PT_UINT32) */
+	uint32_t ruid = (uint32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u32_to_ring(data, ruid);
+	CHECK_RES(res);
+
+	/* Parameter 3: euid (type: PT_UINT32) */
+	uint32_t euid = (uint32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u32_to_ring(data, euid);
+	CHECK_RES(res);
+
+	/* Parameter 4: suid (type: PT_UINT32) */
+	uint32_t suid = (uint32_t)bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, suid);
+}
+
 FILLER(sys_semget_e, true) {
 	unsigned long val;
 	int res;

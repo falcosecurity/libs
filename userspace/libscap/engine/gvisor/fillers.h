@@ -323,7 +323,10 @@ int32_t fill_event_setresuid_e(scap_sized_buffer scap_buf,
 int32_t fill_event_setresuid_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
-                               int64_t res);
+                               int64_t res,
+                               uint32_t ruid,
+                               uint32_t euid,
+                               uint32_t suid);
 
 int32_t fill_event_setresgid_e(scap_sized_buffer scap_buf,
                                size_t* event_size,

@@ -58,6 +58,18 @@ int BPF_PROG(setresuid_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: ruid (type: PT_GID) */
+	uid_t ruid = (uint32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u32(&ringbuf, ruid);
+
+	/* Parameter 3: euid (type: PT_GID) */
+	uid_t euid = (uint32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_u32(&ringbuf, euid);
+
+	/* Parameter 4: suid (type: PT_GID) */
+	uid_t suid = (uint32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, suid);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

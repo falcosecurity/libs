@@ -1426,6 +1426,12 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		} else if(type == PPME_SYSCALL_SETRESUID_X && !setresuid_ok) {
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
+			EXPECT_EQ("5454", e->get_param_value_str("ruid", false));
+			EXPECT_EQ("testsetresuid", e->get_param_value_str("ruid"));
+			EXPECT_EQ("-1", e->get_param_value_str("euid", false));
+			EXPECT_EQ("<NONE>", e->get_param_value_str("euid"));
+			EXPECT_EQ("-1", e->get_param_value_str("suid", false));
+			EXPECT_EQ("<NONE>", e->get_param_value_str("suid"));
 			setresuid_ok = true;
 		} else if(type == PPME_SYSCALL_SETRESGID_E &&
 		          e->get_param_value_str("rgid", false) != "-1" && !setresgid_e_ok) {

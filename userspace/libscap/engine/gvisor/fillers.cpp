@@ -935,13 +935,19 @@ int32_t fill_event_setresuid_e(scap_sized_buffer scap_buf,
 int32_t fill_event_setresuid_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
-                               int64_t res) {
+                               int64_t res,
+                               uint32_t ruid,
+                               uint32_t euid,
+                               uint32_t suid) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_SETRESUID_X,
-	                                1,
-	                                res);
+	                                4,
+	                                res,
+	                                ruid,
+	                                euid,
+	                                suid);
 }
 
 // PPME_SYSCALL_SETRESGID_E
