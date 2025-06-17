@@ -795,6 +795,60 @@ TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// SETRESUID
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	uint32_t ruid = 25;
+	uint32_t euid = 26;
+	uint32_t suid = 27;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_E, 3, ruid, euid, suid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_to_4_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+
+	// Defaulted to 0
+	uint32_t ruid = 0;
+	uint32_t euid = 0;
+	uint32_t suid = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_to_4_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	uint32_t ruid = 42;
+	uint32_t euid = 43;
+	uint32_t suid = 44;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_E, 3, ruid, euid, suid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid));
+}
+
+////////////////////////////
 // SETUID
 ////////////////////////////
 
