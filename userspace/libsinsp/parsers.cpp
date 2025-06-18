@@ -4309,7 +4309,7 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt &evt) const {
 	const int64_t retval = evt.get_syscall_return_value();
 
 	if(retval == 0) {
-		uint32_t new_euid = evt.get_param(1)->as<uint32_t>();
+		uint32_t new_euid = evt.get_param(2)->as<uint32_t>();
 
 		if(new_euid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt.get_thread_info();
@@ -4345,7 +4345,7 @@ void sinsp_parser::parse_setregid_exit(sinsp_evt &evt) const {
 	const int64_t retval = evt.get_syscall_return_value();
 
 	if(retval == 0) {
-		uint32_t new_egid = evt.get_param(1)->as<uint32_t>();
+		uint32_t new_egid = evt.get_param(2)->as<uint32_t>();
 
 		if(new_egid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt.get_thread_info();
