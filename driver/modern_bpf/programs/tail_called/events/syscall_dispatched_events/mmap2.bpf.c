@@ -87,6 +87,30 @@ int BPF_PROG(mmap2_x, struct pt_regs *regs, long ret) {
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, swap_size);
 
+	/* Parameter 5: addr (type: PT_UINT64) */
+	unsigned long addr = extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, addr);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	unsigned long length = extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, length);
+
+	/* Parameter 7: prot (type: PT_FLAGS32) */
+	unsigned long prot = extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, prot_flags_to_scap(prot));
+
+	/* Parameter 8: flags (type: PT_FLAGS32) */
+	unsigned long flags = extract__syscall_argument(regs, 3);
+	ringbuf__store_u32(&ringbuf, mmap_flags_to_scap(flags));
+
+	/* Paremeter 9: fd (type: PT_FD) */
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 4);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+
+	/* Parameter 10: pgoffset (type: PT_UINT64) */
+	unsigned long offset = extract__syscall_argument(regs, 5);
+	ringbuf__store_u64(&ringbuf, offset);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

@@ -567,6 +567,7 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 		location = 5;
 		break;
 	case PPME_SYSCALL_MMAP_X:
+	case PPME_SYSCALL_MMAP2_X:
 		location = 8;
 		break;
 	default:

@@ -2140,6 +2140,119 @@ TEST_F(convert_event_test, PPME_SYSCALL_MMAP_X_to_10_params_with_enter) {
 }
 
 ////////////////////////////
+// MMAP2
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_MMAP2_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t addr = 49;
+	constexpr uint64_t length = 50;
+	constexpr uint32_t prot = 51;
+	constexpr uint32_t flags = 52;
+	constexpr int64_t fd = 53;
+	constexpr uint64_t pgoffset = 54;
+
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_MMAP2_E,
+	                                        6,
+	                                        addr,
+	                                        length,
+	                                        prot,
+	                                        flags,
+	                                        fd,
+	                                        pgoffset);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_MMAP2_X_to_10_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint32_t vm_size = 21;
+	constexpr uint32_t vm_rss = 22;
+	constexpr uint32_t vm_swap = 23;
+
+	// Defaulted to 0
+	constexpr uint64_t addr = 0;
+	constexpr uint64_t length = 0;
+	constexpr uint32_t prot = 0;
+	constexpr uint32_t flags = 0;
+	constexpr int64_t fd = 0;
+	constexpr uint64_t pgoffset = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MMAP2_X, 4, res, vm_size, vm_rss, vm_swap),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_MMAP2_X,
+	                               10,
+	                               res,
+	                               vm_size,
+	                               vm_rss,
+	                               vm_swap,
+	                               addr,
+	                               length,
+	                               prot,
+	                               flags,
+	                               fd,
+	                               pgoffset));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_MMAP2_X_to_10_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint32_t vm_size = 21;
+	constexpr uint32_t vm_rss = 22;
+	constexpr uint32_t vm_swap = 23;
+	constexpr uint64_t addr = 49;
+	constexpr uint64_t length = 50;
+	constexpr uint32_t prot = 51;
+	constexpr uint32_t flags = 52;
+	constexpr int64_t fd = 53;
+	constexpr uint64_t pgoffset = 54;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_MMAP2_E,
+	                                        6,
+	                                        addr,
+	                                        length,
+	                                        prot,
+	                                        flags,
+	                                        fd,
+	                                        pgoffset);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MMAP2_X, 4, res, vm_size, vm_rss, vm_swap),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_MMAP2_X,
+	                               10,
+	                               res,
+	                               vm_size,
+	                               vm_rss,
+	                               vm_swap,
+	                               addr,
+	                               length,
+	                               prot,
+	                               flags,
+	                               fd,
+	                               pgoffset));
+}
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 
