@@ -90,8 +90,9 @@ or GPL2.txt for full copies of the license.
 	FN(sys_ptrace_x)                     \
 	FN(sys_mmap_e)                       \
 	FN(sys_mmap_x)                       \
+	FN(sys_mmap2_x)                      \
 	FN(sys_brk_x)                        \
-	FN(sys_munmap_mmap2_x)               \
+	FN(sys_munmap_x)                     \
 	FN(sys_renameat_x)                   \
 	FN(sys_renameat2_x)                  \
 	FN(sys_symlinkat_x)                  \

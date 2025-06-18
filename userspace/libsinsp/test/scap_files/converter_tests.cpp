@@ -1072,6 +1072,12 @@ TEST_F(scap_file_test, mmap_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// MMAP2
+////////////////////////////
+
+// We don't have scap-files with MMAP2 events. Add it if we face a failure.
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 

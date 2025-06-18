@@ -5468,7 +5468,7 @@ int f_sys_ptrace_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_munmap_mmap2_x(struct event_filler_arguments *args) {
+int f_sys_munmap_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res = 0;
 	struct mm_struct *mm = current->mm;
@@ -5562,6 +5562,73 @@ int f_sys_mmap_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 10: offset (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 5, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_mmap2_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res = 0;
+	struct mm_struct *mm = current->mm;
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+	unsigned long val;
+	int64_t fd;
+
+	/* Parameter 1: ret (type: PT_UINT64) */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	if(mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/* Parameter 2: vm_size (type: PT_UINT32) */
+	res = val_to_ring(args, total_vm, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: vm_rss (type: PT_UINT32) */
+	res = val_to_ring(args, total_rss, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: vm_swap (type: PT_UINT32) */
+	res = val_to_ring(args, swap, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 7: prot (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 8: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 3, 1, &val);
+	res = val_to_ring(args, mmap_flags_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
+
+	/* Paremeter 9: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 4, 1, &val);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 10: pgoffset (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 5, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
