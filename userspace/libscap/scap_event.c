@@ -547,6 +547,8 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SYSCALL_IOCTL_3_X:
 	case PPME_SYSCALL_FSTAT_X:
 	case PPME_SYSCALL_CLOSE_X:
+	case PPME_SYSCALL_GETDENTS_X:
+	case PPME_SYSCALL_GETDENTS64_X:
 		location = 1;
 		break;
 	case PPME_SYSCALL_READ_X:
