@@ -1227,6 +1227,12 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// FLOCK
+////////////////////////////
+
+// We don't have scap-files with FLOCK events. Add it if we face a failure.
+
+////////////////////////////
 // FCHDIR
 ////////////////////////////
 
