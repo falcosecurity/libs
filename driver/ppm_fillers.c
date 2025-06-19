@@ -7726,6 +7726,7 @@ int f_sys_semop_x(struct event_filler_arguments *args) {
 	long retval = 0;
 	struct sembuf *sops_pointer = NULL;
 	struct sembuf sops[2] = {0};
+	unsigned long val;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -7780,6 +7781,11 @@ int f_sys_semop_x(struct event_filler_arguments *args) {
 
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
 	res = val_to_ring(args, semop_flags_to_scap(sops[1].sem_flg), 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 9: semid (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, (int32_t)val, 0, true, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

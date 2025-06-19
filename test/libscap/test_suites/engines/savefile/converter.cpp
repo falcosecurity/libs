@@ -2690,6 +2690,114 @@ TEST_F(convert_event_test, PPME_SYSCALL_FLOCK_1_X_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// SEMOP
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t semid = 25;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMOP_E, 1, semid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_8_X_to_9_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint32_t nsops = 20;
+	constexpr uint16_t sem_num_0 = 21;
+	constexpr int16_t sem_op_0 = 22;
+	constexpr uint16_t sem_flg_0 = 23;
+	constexpr uint16_t sem_num_1 = 24;
+	constexpr int16_t sem_op_1 = 25;
+	constexpr uint16_t sem_flg_1 = 26;
+
+	// Defaulted to 0
+	constexpr int32_t semid = 0;
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SEMOP_X,
+	                                                        8,
+	                                                        res,
+	                                                        nsops,
+	                                                        sem_num_0,
+	                                                        sem_op_0,
+	                                                        sem_flg_0,
+	                                                        sem_num_1,
+	                                                        sem_op_1,
+	                                                        sem_flg_1),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SEMOP_X,
+	                                                        9,
+	                                                        res,
+	                                                        nsops,
+	                                                        sem_num_0,
+	                                                        sem_op_0,
+	                                                        sem_flg_0,
+	                                                        sem_num_1,
+	                                                        sem_op_1,
+	                                                        sem_flg_1,
+	                                                        semid));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_1_X_to_3_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t semid = 27;
+	constexpr int64_t res = 89;
+	constexpr uint32_t nsops = 20;
+	constexpr uint16_t sem_num_0 = 21;
+	constexpr int16_t sem_op_0 = 22;
+	constexpr uint16_t sem_flg_0 = 23;
+	constexpr uint16_t sem_num_1 = 24;
+	constexpr int16_t sem_op_1 = 25;
+	constexpr uint16_t sem_flg_1 = 26;
+
+	// Defaulted to 0
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMOP_E, 1, semid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SEMOP_X,
+	                                                        8,
+	                                                        res,
+	                                                        nsops,
+	                                                        sem_num_0,
+	                                                        sem_op_0,
+	                                                        sem_flg_0,
+	                                                        sem_num_1,
+	                                                        sem_op_1,
+	                                                        sem_flg_1),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SEMOP_X,
+	                                                        9,
+	                                                        res,
+	                                                        nsops,
+	                                                        sem_num_0,
+	                                                        sem_op_0,
+	                                                        sem_flg_0,
+	                                                        sem_num_1,
+	                                                        sem_op_1,
+	                                                        sem_flg_1,
+	                                                        semid));
+}
+
+////////////////////////////
 // FCHDIR
 ////////////////////////////
 

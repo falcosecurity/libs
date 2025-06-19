@@ -32,7 +32,7 @@ TEST(SyscallEnter, semopE) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: semid (type: PT_INT32)*/
+	/* Parameter 1: semid (type: PT_INT32) */
 	evt_test->assert_numeric_param(1, (int32_t)semid);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

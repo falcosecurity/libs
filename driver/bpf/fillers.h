@@ -5498,7 +5498,12 @@ FILLER(sys_semop_x, true) {
 	CHECK_RES(res);
 
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
-	return bpf_push_u16_to_ring(data, semop_flags_to_scap(sops[1].sem_flg));
+	res = bpf_push_u16_to_ring(data, semop_flags_to_scap(sops[1].sem_flg));
+	CHECK_RES(res);
+
+	/* Parameter 9: semid (type: PT_INT32) */
+	int32_t initval = (int32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_s32_to_ring(data, initval);
 }
 
 FILLER(sys_socket_x, true) {
