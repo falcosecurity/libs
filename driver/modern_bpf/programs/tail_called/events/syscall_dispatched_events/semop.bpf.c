@@ -21,7 +21,7 @@ int BPF_PROG(semop_e, struct pt_regs *regs, long id) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: semid (type: PT_INT32)*/
+	/* Parameter 1: semid (type: PT_INT32) */
 	int32_t semid = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s32(&ringbuf, semid);
 
@@ -91,6 +91,10 @@ int BPF_PROG(semop_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
 	ringbuf__store_u16(&ringbuf, semop_flags_to_scap(sops[1].sem_flg));
+
+	/* Parameter 9: semid (type: PT_INT32) */
+	int32_t semid = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s32(&ringbuf, semid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

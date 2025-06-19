@@ -1233,6 +1233,14 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 // We don't have scap-files with FLOCK events. Add it if we face a failure.
 
 ////////////////////////////
+// SEMOP
+////////////////////////////
+
+// We don't have scap-files with SEMOP events (scap_2013 contains only PPME_GENERIC_* events
+// originated from unsupported semop events, but since they formally have another event type, we
+// cannot leverage them) . Add it if we face a failure.
+
+////////////////////////////
 // FCHDIR
 ////////////////////////////
 

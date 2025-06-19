@@ -164,7 +164,7 @@
 #define CPU_HOTPLUG_E_SIZE HEADER_LEN + sizeof(uint32_t) * 2 + PARAM_LEN * 2
 #define ACCEPT_E_SIZE HEADER_LEN
 #define SEMOP_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
-#define SEMOP_X_SIZE HEADER_LEN + sizeof(int16_t) * 2 + sizeof(int64_t) + sizeof(uint16_t) * 4 + sizeof(uint32_t) + PARAM_LEN * 8
+#define SEMOP_X_SIZE HEADER_LEN + sizeof(int16_t) * 2 + sizeof(int32_t) + sizeof(int64_t) + sizeof(uint16_t) * 4 + sizeof(uint32_t) + PARAM_LEN * 9
 #define SEMCTL_E_SIZE HEADER_LEN + sizeof(int32_t) * 3 + sizeof(uint16_t) + PARAM_LEN * 4
 #define SEMCTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define MOUNT_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN

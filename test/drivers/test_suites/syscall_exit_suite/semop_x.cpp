@@ -57,9 +57,12 @@ TEST(SyscallExit, semopX_null_pointer) {
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
 	evt_test->assert_numeric_param(8, (uint16_t)0);
 
+	/* Parameter 9: semid (type: PT_INT32) */
+	evt_test->assert_numeric_param(9, (int32_t)semid);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
 }
 
 #if defined(__NR_semget) && defined(__NR_semctl)
@@ -133,9 +136,12 @@ TEST(SyscallExit, semopX_wrong_nops) {
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
 	evt_test->assert_numeric_param(8, (uint16_t)0);
 
+	/* Parameter 9: semid (type: PT_INT32) */
+	evt_test->assert_numeric_param(9, (int32_t)semid);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
 }
 
 TEST(SyscallExit, semopX_1_operation) {
@@ -206,9 +212,12 @@ TEST(SyscallExit, semopX_1_operation) {
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
 	evt_test->assert_numeric_param(8, (uint16_t)0);
 
+	/* Parameter 9: semid (type: PT_INT32) */
+	evt_test->assert_numeric_param(9, (int32_t)semid);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
 }
 
 TEST(SyscallExit, semopX_2_operation) {
@@ -280,9 +289,12 @@ TEST(SyscallExit, semopX_2_operation) {
 	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
 	evt_test->assert_numeric_param(8, (uint16_t)PPM_IPC_NOWAIT);
 
+	/* Parameter 9: semid (type: PT_INT32) */
+	evt_test->assert_numeric_param(9, (int32_t)semid);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
 }
 
 #endif
