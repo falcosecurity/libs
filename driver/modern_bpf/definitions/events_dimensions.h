@@ -160,7 +160,7 @@
 #define SETNS_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define SETNS_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define FLOCK_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
-#define FLOCK_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define FLOCK_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define CPU_HOTPLUG_E_SIZE HEADER_LEN + sizeof(uint32_t) * 2 + PARAM_LEN * 2
 #define ACCEPT_E_SIZE HEADER_LEN
 #define SEMOP_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN

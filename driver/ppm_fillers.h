@@ -111,6 +111,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_setns_x)                      \
 	FN(sys_unshare_e)                    \
 	FN(sys_flock_e)                      \
+	FN(sys_flock_x)                      \
 	FN(cpu_hotplug_e)                    \
 	FN(sys_semop_x)                      \
 	FN(sys_semget_e)                     \
