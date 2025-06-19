@@ -642,8 +642,10 @@ TEST_F(sys_call_test, mmap) {
 
 	uint32_t enter_vmsize;
 	uint32_t enter_vmrss;
+	uint32_t enter_vmswap;
 	uint32_t exit_vmsize;
 	uint32_t exit_vmrss;
+	uint32_t exit_vmswap;
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
@@ -654,6 +656,7 @@ TEST_F(sys_call_test, mmap) {
 
 			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
 			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
+			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
 
 			switch(callnum) {
 			case 1:
@@ -678,19 +681,32 @@ TEST_F(sys_call_test, mmap) {
 
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
+			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 2:
 				EXPECT_EQ("EINVAL", e->get_param_value_str("res"));
 				EXPECT_EQ("-22", e->get_param_value_str("res", false));
+				EXPECT_EQ("50", e->get_param_value_str("addr"));
+				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 8:
+			case 8: {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
-				EXPECT_GE(enter_vmrss, enter_vmrss);
+				EXPECT_GE(enter_vmrss, exit_vmrss);
+				EXPECT_GE(enter_vmswap, exit_vmswap);
+				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
+#ifdef __LP64__
+				EXPECT_EQ((uint64_t)p, addr);
+#else
+				EXPECT_EQ(((uint32_t)p), addr);
+#endif
+				EXPECT_EQ("1003520", e->get_param_value_str("length"));
 				break;
+			}
 			default:
 				callnum--;
 			}
@@ -699,6 +715,7 @@ TEST_F(sys_call_test, mmap) {
 
 			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
 			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
+			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
 
 			switch(callnum) {
 			case 3:
@@ -745,13 +762,32 @@ TEST_F(sys_call_test, mmap) {
 
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
+			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 4: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ(-errno2, (int64_t)res);
+				EXPECT_EQ("0", e->get_param_value_str("addr"));
+				EXPECT_EQ("0", e->get_param_value_str("length"));
+				EXPECT_EQ("PROT_READ|PROT_WRITE|PROT_EXEC", e->get_param_value_str("prot"));
+				EXPECT_EQ("MAP_SHARED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_DENYWRITE",
+				          e->get_param_value_str("flags"));
+#ifdef __LP64__
+				// It looks that starting from kernel 4.9, fd is -1 also on 64bit
+				EXPECT_TRUE(e->get_param_value_str("fd", false) == "4294967295" ||
+				            e->get_param_value_str("fd", false) == "-1");
+#else
+				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
+#endif
+				if(type == PPME_SYSCALL_MMAP_X) {
+					EXPECT_EQ("0", e->get_param_value_str("offset"));
+				} else {
+					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
+				}
 				break;
 			}
 			case 6: {
@@ -759,6 +795,23 @@ TEST_F(sys_call_test, mmap) {
 				EXPECT_EQ((uint64_t)p, res);
 				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
 				EXPECT_GE(exit_vmrss, enter_vmrss);
+				EXPECT_GE(exit_vmswap, enter_vmswap);
+
+				EXPECT_EQ("0", e->get_param_value_str("addr"));
+				EXPECT_EQ("1003520", e->get_param_value_str("length"));
+				EXPECT_EQ("PROT_READ|PROT_WRITE", e->get_param_value_str("prot"));
+				EXPECT_EQ("MAP_PRIVATE|MAP_ANONYMOUS", e->get_param_value_str("flags"));
+#ifdef __LP64__
+				EXPECT_TRUE(e->get_param_value_str("fd", false) == "4294967295" ||
+				            e->get_param_value_str("fd", false) == "-1");
+#else
+				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
+#endif
+				if(type == PPME_SYSCALL_MMAP_X) {
+					EXPECT_EQ("0", e->get_param_value_str("offset"));
+				} else {
+					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
+				}
 				break;
 			}
 			default:
@@ -1791,8 +1844,10 @@ TEST_F(sys_call_test32, mmap) {
 
 	uint32_t enter_vmsize;
 	uint32_t enter_vmrss;
+	uint32_t enter_vmswap;
 	uint32_t exit_vmsize;
 	uint32_t exit_vmrss;
+	uint32_t exit_vmswap;
 
 	//
 	// OUTPUT VALDATION
@@ -1806,6 +1861,7 @@ TEST_F(sys_call_test32, mmap) {
 
 			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
 			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
+			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
 
 			switch(callnum) {
 			case 1:
@@ -1830,19 +1886,32 @@ TEST_F(sys_call_test32, mmap) {
 
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
+			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 2:
 				EXPECT_EQ("EINVAL", e->get_param_value_str("res"));
 				EXPECT_EQ("-22", e->get_param_value_str("res", false));
+				EXPECT_EQ("50", e->get_param_value_str("addr"));
+				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 8:
+			case 8: {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
-				EXPECT_GE(enter_vmrss, enter_vmrss);
+				EXPECT_GE(enter_vmrss, exit_vmrss);
+				EXPECT_GE(enter_vmswap, exit_vmswap);
+				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
+#ifdef __LP64__
+				EXPECT_EQ((uint64_t)p, addr);
+#else
+				EXPECT_EQ(((uint32_t)p), addr);
+#endif
+				EXPECT_EQ("1003520", e->get_param_value_str("length"));
 				break;
+			}
 			default:
 				callnum--;
 			}
@@ -1851,6 +1920,7 @@ TEST_F(sys_call_test32, mmap) {
 
 			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
 			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
+			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
 
 			switch(callnum) {
 			case 3:
@@ -1888,20 +1958,56 @@ TEST_F(sys_call_test32, mmap) {
 
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
+			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 4: {
-				auto res = e->get_param_by_name("res")->as<int64_t>();
-				EXPECT_EQ(-errno2, res);
+				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
+				EXPECT_EQ(-errno2, (int64_t)res);
+				EXPECT_EQ("0", e->get_param_value_str("addr"));
+				EXPECT_EQ("0", e->get_param_value_str("length"));
+				EXPECT_EQ("PROT_READ|PROT_WRITE|PROT_EXEC", e->get_param_value_str("prot"));
+				EXPECT_EQ("MAP_SHARED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_DENYWRITE",
+				          e->get_param_value_str("flags"));
+#ifdef __LP64__
+				// It looks that starting from kernel 4.9, fd is -1 also on 64bit
+				EXPECT_TRUE(e->get_param_value_str("fd", false) == "4294967295" ||
+				            e->get_param_value_str("fd", false) == "-1");
+#else
+				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
+#endif
+				if(type == PPME_SYSCALL_MMAP_X) {
+					EXPECT_EQ("0", e->get_param_value_str("offset"));
+				} else {
+					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
+				}
 				break;
 			}
 			case 6: {
-				auto res = e->get_param_by_name("res")->as<int64_t>();
-				EXPECT_EQ(p, res);
+				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
+				EXPECT_EQ((uint64_t)p, res);
 				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
 				EXPECT_GE(exit_vmrss, enter_vmrss);
+				EXPECT_GE(exit_vmswap, enter_vmswap);
+
+				EXPECT_EQ("0", e->get_param_value_str("addr"));
+				EXPECT_EQ("1003520", e->get_param_value_str("length"));
+				EXPECT_EQ("PROT_READ|PROT_WRITE", e->get_param_value_str("prot"));
+				EXPECT_EQ("MAP_PRIVATE|MAP_ANONYMOUS", e->get_param_value_str("flags"));
+#ifdef __LP64__
+				EXPECT_TRUE(e->get_param_value_str("fd", false) == "4294967295" ||
+				            e->get_param_value_str("fd", false) == "-1");
+#else
+				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
+#endif
+				if(type == PPME_SYSCALL_MMAP_X) {
+					EXPECT_EQ("0", e->get_param_value_str("offset"));
+				} else {
+					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
+				}
 				break;
 			}
 			default:

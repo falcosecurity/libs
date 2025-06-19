@@ -941,6 +941,7 @@ FILLER(sys_munmap_x, true) {
 	long swap = 0;
 	long retval;
 	int res;
+	unsigned long val;
 
 	task = (struct task_struct *)bpf_get_current_task();
 	mm = NULL;
@@ -967,7 +968,17 @@ FILLER(sys_munmap_x, true) {
 	CHECK_RES(res);
 
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
-	return bpf_push_u32_to_ring(data, swap);
+	res = bpf_push_u32_to_ring(data, swap);
+	CHECK_RES(res);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u64_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	val = bpf_syscall_get_argument(data, 1);
+	return bpf_push_u64_to_ring(data, val);
 }
 
 FILLER(sys_mmap_x, true) {
