@@ -36,21 +36,22 @@ TEST_F(scap_file_test, same_number_of_events) {
 
 	open_filename("kexec_arm64.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_PREAD_E, 3216},    {PPME_SYSCALL_PREAD_X, 3216},
-	        {PPME_SOCKET_LISTEN_E, 1},       {PPME_SOCKET_LISTEN_X, 1},
-	        {PPME_SYSCALL_SETUID_E, 2},      {PPME_SYSCALL_SETUID_X, 2},
-	        {PPME_SOCKET_RECVFROM_E, 82},    {PPME_SOCKET_RECVFROM_X, 82},
-	        {PPME_SOCKET_SENDTO_E, 162},     {PPME_SOCKET_SENDTO_X, 162},
-	        {PPME_SOCKET_SHUTDOWN_E, 9},     {PPME_SOCKET_SHUTDOWN_X, 9},
-	        {PPME_SOCKET_SOCKETPAIR_E, 114}, {PPME_SOCKET_SOCKETPAIR_X, 114},
-	        {PPME_SOCKET_SENDMSG_E, 26},     {PPME_SOCKET_SENDMSG_X, 26},
-	        {PPME_SOCKET_RECVMSG_E, 522},    {PPME_SOCKET_RECVMSG_X, 522},
-	        {PPME_SYSCALL_IOCTL_3_E, 1164},  {PPME_SYSCALL_IOCTL_3_X, 1164},
-	        {PPME_SYSCALL_FSTAT_E, 1962},    {PPME_SYSCALL_FSTAT_X, 1962},
-	        {PPME_SYSCALL_BRK_4_E, 659},     {PPME_SYSCALL_BRK_4_X, 659},
-	        {PPME_SYSCALL_GETRLIMIT_E, 2},   {PPME_SYSCALL_GETRLIMIT_X, 2},
-	        {PPME_SYSCALL_CLOSE_E, 19860},   {PPME_SYSCALL_CLOSE_X, 19860},
-	        {PPME_SYSCALL_MUNMAP_E, 2965},   {PPME_SYSCALL_MUNMAP_X, 2965},
+	        {PPME_SYSCALL_PREAD_E, 3216},      {PPME_SYSCALL_PREAD_X, 3216},
+	        {PPME_SOCKET_LISTEN_E, 1},         {PPME_SOCKET_LISTEN_X, 1},
+	        {PPME_SYSCALL_SETUID_E, 2},        {PPME_SYSCALL_SETUID_X, 2},
+	        {PPME_SOCKET_RECVFROM_E, 82},      {PPME_SOCKET_RECVFROM_X, 82},
+	        {PPME_SOCKET_SENDTO_E, 162},       {PPME_SOCKET_SENDTO_X, 162},
+	        {PPME_SOCKET_SHUTDOWN_E, 9},       {PPME_SOCKET_SHUTDOWN_X, 9},
+	        {PPME_SOCKET_SOCKETPAIR_E, 114},   {PPME_SOCKET_SOCKETPAIR_X, 114},
+	        {PPME_SOCKET_SENDMSG_E, 26},       {PPME_SOCKET_SENDMSG_X, 26},
+	        {PPME_SOCKET_RECVMSG_E, 522},      {PPME_SOCKET_RECVMSG_X, 522},
+	        {PPME_SYSCALL_IOCTL_3_E, 1164},    {PPME_SYSCALL_IOCTL_3_X, 1164},
+	        {PPME_SYSCALL_FSTAT_E, 1962},      {PPME_SYSCALL_FSTAT_X, 1962},
+	        {PPME_SYSCALL_BRK_4_E, 659},       {PPME_SYSCALL_BRK_4_X, 659},
+	        {PPME_SYSCALL_GETRLIMIT_E, 2},     {PPME_SYSCALL_GETRLIMIT_X, 2},
+	        {PPME_SYSCALL_CLOSE_E, 19860},     {PPME_SYSCALL_CLOSE_X, 19860},
+	        {PPME_SYSCALL_MUNMAP_E, 2965},     {PPME_SYSCALL_MUNMAP_X, 2965},
+	        {PPME_SYSCALL_GETDENTS64_E, 1870}, {PPME_SYSCALL_GETDENTS64_X, 1870},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1156,6 +1157,43 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	                                             scap_const_sized_buffer{data, sizeof(data)},
 	                                             request,
 	                                             pid));
+}
+
+////////////////////////////
+// GETDENTS
+////////////////////////////
+
+// We don't have scap-files with GETDENTS events (scap_2013 contains only PPME_GENERIC_* events
+// originated from unsupported getdents events, but since they formally have another event type, we
+// cannot leverage them) . Add it if we face a failure.
+
+////////////////////////////
+// GETDENTS64
+////////////////////////////
+
+TEST_F(scap_file_test, getdents64_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `902321` is the following:
+	// - type=PPME_SYSCALL_GETDENTS64_X,
+	// - ts=1687966733947098286
+	// - tid=114095
+	// - args=res=144
+	//
+	// And its corresponding enter event `902320` is the following:
+	// - type=PPME_SYSCALL_GETDENTS64_E
+	// - ts=1687966733947092756
+	// - tid=114095
+	// -
+	// args=fd=19(<f>/var/lib/kubelet/pods/506a980e-4d84-43bf-9c8f-c8811e541ce2/volumes/kubernetes.io~projected/kube-api-access-hknbt/..2023_06_28_15_37_47.388872689
+	//
+	// Let's see the new PPME_SYSCALL_GETDENTS64_X event!
+
+	constexpr uint64_t ts = 1687966733947098286;
+	constexpr int64_t tid = 114095;
+	constexpr int64_t res = 144;
+	constexpr int64_t fd = 19;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 2, res, fd));
 }
 
 ////////////////////////////

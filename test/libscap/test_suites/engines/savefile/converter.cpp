@@ -2492,6 +2492,102 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_to_MKDIR_2_with_enter) {
 }
 
 ////////////////////////////
+// GETDENTS
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETDENTS_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETDENTS_1_X_to_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr int64_t fd = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS_X, 2, res, fd));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETDENTS_1_X_to_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fd = 25;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS_X, 2, res, fd));
+}
+
+////////////////////////////
+// GETDENTS64
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETDENTS64_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETDENTS64_1_X_to_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr int64_t fd = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 2, res, fd));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_GETDENTS64_1_X_to_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fd = 25;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 2, res, fd));
+}
+
+////////////////////////////
 // SETNS
 ////////////////////////////
 
