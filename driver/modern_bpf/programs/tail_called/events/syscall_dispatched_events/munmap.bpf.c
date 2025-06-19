@@ -71,6 +71,14 @@ int BPF_PROG(munmap_x, struct pt_regs *regs, long ret) {
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, swap_size);
 
+	/* Parameter 5: addr (type: PT_UINT64) */
+	unsigned long val = extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, val);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	val = extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, val);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

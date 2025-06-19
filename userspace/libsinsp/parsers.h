@@ -120,7 +120,7 @@ private:
 	void parse_fcntl_exit(sinsp_evt& evt) const;
 	static void parse_prctl_exit_event(sinsp_evt& evt);
 	static void parse_context_switch(sinsp_evt& evt);
-	static void parse_brk_munmap_mmap_exit(sinsp_evt& evt);
+	static void parse_brk_mmap_mmap2_munmap__exit(sinsp_evt& evt);
 	void parse_setresuid_exit(sinsp_evt& evt) const;
 	void parse_setreuid_exit(sinsp_evt& evt) const;
 	void parse_setresgid_exit(sinsp_evt& evt) const;

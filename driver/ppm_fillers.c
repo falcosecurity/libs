@@ -5475,6 +5475,7 @@ int f_sys_munmap_x(struct event_filler_arguments *args) {
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
+	unsigned long val;
 
 	/* Parameter 1: ret (type: PT_UINT64) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -5497,6 +5498,16 @@ int f_sys_munmap_x(struct event_filler_arguments *args) {
 
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	res = val_to_ring(args, swap, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: addr (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: length (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

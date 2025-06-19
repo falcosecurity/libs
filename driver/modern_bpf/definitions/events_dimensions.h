@@ -112,7 +112,7 @@
 #define MMAP2_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 2 + sizeof(uint64_t) * 3 + PARAM_LEN * 6
 #define MMAP2_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) * 5 + sizeof(uint64_t) * 3 + PARAM_LEN * 10
 #define MUNMAP_E_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + PARAM_LEN * 2
-#define MUNMAP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
+#define MUNMAP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 6
 #define SPLICE_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 4
 #define SPLICE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define PTRACE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2

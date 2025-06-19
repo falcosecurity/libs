@@ -592,7 +592,9 @@ int32_t fill_event_munmap_e(scap_sized_buffer scap_buf,
 int32_t fill_event_munmap_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
-                            int64_t res);
+                            int64_t res,
+                            uint64_t addr,
+                            uint64_t length);
 
 }  // namespace fillers
 }  // namespace scap_gvisor

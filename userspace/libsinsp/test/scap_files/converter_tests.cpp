@@ -50,6 +50,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_BRK_4_E, 659},     {PPME_SYSCALL_BRK_4_X, 659},
 	        {PPME_SYSCALL_GETRLIMIT_E, 2},   {PPME_SYSCALL_GETRLIMIT_X, 2},
 	        {PPME_SYSCALL_CLOSE_E, 19860},   {PPME_SYSCALL_CLOSE_X, 19860},
+	        {PPME_SYSCALL_MUNMAP_E, 2965},   {PPME_SYSCALL_MUNMAP_X, 2965},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1076,6 +1077,47 @@ TEST_F(scap_file_test, mmap_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with MMAP2 events. Add it if we face a failure.
+
+////////////////////////////
+// MUNMAP
+////////////////////////////
+
+TEST_F(scap_file_test, munmap_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `897614` is the following:
+	// - type=PPME_SYSCALL_MUNMAP_X,
+	// - ts=1687966733729451471
+	// - tid=141707
+	// - args=res=0 vm_size=5188 vm_rss=1380 vm_swap=0
+	//
+	// And its corresponding enter event `897613` is the following:
+	// - type=PPME_SYSCALL_MUNMAP_E
+	// - ts=1687966733729445022
+	// - tid=141707
+	// - args=addr=FFFFA778E000 length=139264
+	//
+	// Let's see the new PPME_SYSCALL_MUNMAP_X event!
+
+	constexpr uint64_t ts = 1687966733729451471;
+	constexpr int64_t tid = 141707;
+	constexpr int64_t res = 0;
+	constexpr uint32_t vm_size = 5188;
+	constexpr uint32_t vm_rss = 1380;
+	constexpr uint32_t vm_swap = 0;
+	constexpr uint64_t addr = 0xFFFFA778E000;
+	constexpr uint64_t length = 139264;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_MUNMAP_X,
+	                                             6,
+	                                             res,
+	                                             vm_size,
+	                                             vm_rss,
+	                                             vm_swap,
+	                                             addr,
+	                                             length));
+}
 
 ////////////////////////////
 // PTRACE
