@@ -46,8 +46,16 @@ TEST(SyscallExit, ppollX) {
 	/* The pointer is NULL so we should have no `fd` collected */
 	evt_test->assert_fd_list(2, NULL, (uint16_t)0);
 
+	/* Parameter 2: timeout (type: PT_RELTIME) */
+	/* The pointer is NULL so we should have `0` */
+	evt_test->assert_numeric_param(3, (uint64_t)0);
+
+	/* Parameter 3: sigmask (type: PT_SIGSET) */
+	/* The pointer is NULL so we should have `0` */
+	evt_test->assert_numeric_param(4, (uint32_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif

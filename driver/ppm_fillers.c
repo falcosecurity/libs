@@ -4162,8 +4162,8 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 }
 
 int f_sys_ppoll_e(struct event_filler_arguments *args) {
-	unsigned long val = 0;
-	int res = 0;
+	int res;
+	unsigned long val;
 
 	/* Parameter 1: fds (type: PT_FDLIST) */
 	res = poll_parse_fds(args, true);
@@ -4188,14 +4188,28 @@ int f_sys_ppoll_e(struct event_filler_arguments *args) {
 int f_sys_ppoll_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
+	unsigned long val;
 
-	/* Parameter 1: ret (type: PT_FD) */
-	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: fds (type: PT_FDLIST) */
 	res = poll_parse_fds(args, false);
+	CHECK_RES(res);
+
+	/* Parameter 3: timeout (type: PT_RELTIME) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = timespec_parse(args, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: sigmask (type: PT_SIGSET) */
+	syscall_get_arguments_deprecated(args, 3, 1, &val);
+	if(val == (unsigned long)NULL || ppm_copy_from_user(&val, (void __user *)val, sizeof(val))) {
+		val = 0;
+	}
+	res = val_to_ring(args, (uint32_t)val, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

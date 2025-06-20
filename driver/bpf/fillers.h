@@ -5419,15 +5419,12 @@ FILLER(sys_mount_e, true) {
 }
 
 FILLER(sys_ppoll_e, true) {
-	unsigned long val;
-	int res;
-
 	/* Parameter 1: fds (type: PT_FDLIST) */
-	res = bpf_poll_parse_fds(data, true);
+	int res = bpf_poll_parse_fds(data, true);
 	CHECK_RES(res);
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
-	val = bpf_syscall_get_argument(data, 2);
+	unsigned long val = bpf_syscall_get_argument(data, 2);
 	res = timespec_parse(data, val);
 	CHECK_RES(res);
 
@@ -5439,13 +5436,25 @@ FILLER(sys_ppoll_e, true) {
 }
 
 FILLER(sys_ppoll_x, true) {
-	/* Parameter 1: ret (type: PT_FD) */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: fds (type: PT_FDLIST) */
-	return bpf_poll_parse_fds(data, false);
+	res = bpf_poll_parse_fds(data, false);
+	CHECK_RES(res);
+
+	/* Parameter 3: timeout (type: PT_RELTIME) */
+	unsigned long val = bpf_syscall_get_argument(data, 2);
+	res = timespec_parse(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: sigmask (type: PT_SIGSET) */
+	long unsigned int sigmask[1] = {0};
+	unsigned long sigmask_pointer = bpf_syscall_get_argument(data, 3);
+	bpf_probe_read_user(&sigmask, sizeof(sigmask), (void *)sigmask_pointer);
+	return bpf_push_u32_to_ring(data, sigmask[0]);
 }
 
 FILLER(sys_semop_x, true) {
