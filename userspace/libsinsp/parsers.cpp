@@ -159,7 +159,7 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	case PPME_SYSCALL_SELECT_E:
 	case PPME_SYSCALL_POLL_X:
-	case PPME_SYSCALL_PPOLL_E:
+	case PPME_SYSCALL_PPOLL_X:
 	case PPME_SYSCALL_EPOLLWAIT_X:
 		parse_select_poll_ppoll_epollwait(evt);
 		break;
@@ -4211,6 +4211,7 @@ void sinsp_parser::parse_select_poll_ppoll_epollwait(sinsp_evt &evt) {
 	}
 	*(uint64_t *)evt.get_tinfo()->get_last_event_data() = evt.get_ts();
 }
+
 void sinsp_parser::parse_fcntl_enter(sinsp_evt &evt) {
 	if(evt.get_tinfo() == nullptr) {
 		return;

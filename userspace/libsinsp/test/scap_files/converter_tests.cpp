@@ -52,6 +52,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_CLOSE_E, 19860},     {PPME_SYSCALL_CLOSE_X, 19860},
 	        {PPME_SYSCALL_MUNMAP_E, 2965},     {PPME_SYSCALL_MUNMAP_X, 2965},
 	        {PPME_SYSCALL_GETDENTS64_E, 1870}, {PPME_SYSCALL_GETDENTS64_X, 1870},
+	        {PPME_SYSCALL_PPOLL_E, 1093},      {PPME_SYSCALL_PPOLL_X, 1093},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1239,6 +1240,43 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 // We don't have scap-files with SEMOP events (scap_2013 contains only PPME_GENERIC_* events
 // originated from unsupported semop events, but since they formally have another event type, we
 // cannot leverage them) . Add it if we face a failure.
+
+////////////////////////////
+// PPOLL
+////////////////////////////
+
+TEST_F(scap_file_test, ppoll_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `903273` is the following:
+	// - type=PPME_SYSCALL_PPOLL_X,
+	// - ts=1687966733988132906
+	// - tid=129339
+	// - args=res=1 fds=4:44
+	//
+	// And its corresponding enter event `903272` is the following:
+	// - type=PPME_SYSCALL_PPOLL_E
+	// - ts=1687966733988129698
+	// - tid=129339
+	// - args=fds=4:41 4:44 10:p1 12:p1 7:41 11:41 timeout=0(0s) sigmask=
+	//
+	// Let's see the new PPME_SYSCALL_PPOLL_X event!
+
+	constexpr uint64_t ts = 1687966733988132906;
+	constexpr int64_t tid = 129339;
+	constexpr int64_t res = 1;
+	constexpr uint8_t fds[] = {0x1, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x4, 0x0};
+	constexpr uint64_t timeout = 0;
+	constexpr uint32_t sigmask = 0;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_PPOLL_X,
+	                                             4,
+	                                             res,
+	                                             scap_const_sized_buffer{fds, sizeof(fds)},
+	                                             timeout,
+	                                             sigmask));
+}
 
 ////////////////////////////
 // SEMCTL

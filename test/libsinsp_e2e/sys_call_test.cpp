@@ -1385,7 +1385,11 @@ TEST_F(sys_call_test, ppoll_timeout) {
 			string fds = e->get_param_value_str("fds");
 
 			EXPECT_TRUE(fds == "3:p0 4:p4" || fds == "4:p0 5:p4");
-
+			// The Linux system call implementation updates the timeout to reflect the amount of
+			// time not slept, so we obtain here a value that is less than or equal to the
+			// configured timeout.
+			EXPECT_LE(e->get_param_by_name("timeout")->as<uint64_t>(), 1000000);
+			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
 			callnum++;
 		}
 	};
@@ -2087,6 +2091,11 @@ TEST_F(sys_call_test32, ppoll_timeout) {
 				FAIL();
 			}
 
+			// The Linux system call implementation updates the timeout to reflect the amount of
+			// time not slept, so we obtain here a value that is less than or equal to the
+			// configured timeout.
+			EXPECT_LE(e->get_param_by_name("timeout")->as<uint64_t>(), 1000000);
+			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
 			callnum++;
 		}
 	};

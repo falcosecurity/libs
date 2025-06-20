@@ -142,6 +142,7 @@ static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
 	case PT_UID:
 	case PT_GID:
 	case PT_MODE:
+	case PT_SIGSET:
 		return 4;
 
 	case PT_INT64:
