@@ -102,7 +102,7 @@ struct scap_vtable;
 // and handle the result
 //
 #define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(8, 0, 0)
-#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(3, 39, 0)
+#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(3, 40, 0)
 
 //
 // This is the dimension we used before introducing the variable buffer size.

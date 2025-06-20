@@ -6481,58 +6481,89 @@ FILLER(sys_setresuid_x, true) {
 }
 
 FILLER(sys_semget_e, true) {
-	unsigned long val;
-	int res;
-
-	/*
-	 * key
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s32_to_ring(data, val);
+	/* Parameter 1: key (type: PT_INT32) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s32_to_ring(data, val);
 	CHECK_RES(res);
 
-	/*
-	 * nsems
-	 */
+	/* Parameter 2: nsems (type: PT_INT32) */
 	val = bpf_syscall_get_argument(data, 1);
 	res = bpf_push_s32_to_ring(data, val);
 	CHECK_RES(res);
 
-	/*
-	 * semflg
-	 */
+	/* Parameter 3: semflg (type: PT_FLAGS32) */
+	val = bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, semget_flags_to_scap(val));
+}
+
+FILLER(sys_semget_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: key (type: PT_INT32) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s32_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 3: nsems (type: PT_INT32) */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s32_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: semflg (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 2);
 	return bpf_push_u32_to_ring(data, semget_flags_to_scap(val));
 }
 
 FILLER(sys_semctl_e, true) {
-	unsigned long val;
-	int res;
-
-	/*
-	 * semid
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s32_to_ring(data, val);
+	/* Parameter 1: semid (type: PT_INT32) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s32_to_ring(data, val);
 	CHECK_RES(res);
 
-	/*
-	 * semnum
-	 */
+	/* Parameter 2: semnum (type: PT_INT32) */
 	val = bpf_syscall_get_argument(data, 1);
 	res = bpf_push_s32_to_ring(data, val);
 	CHECK_RES(res);
 
-	/*
-	 * cmd
-	 */
+	/* Parameter 3: cmd (type: PT_FLAGS16) */
 	val = bpf_syscall_get_argument(data, 2);
 	res = bpf_push_u16_to_ring(data, semctl_cmd_to_scap(val));
 	CHECK_RES(res);
 
-	/*
-	 * optional argument semun/val
-	 */
+	/* Parameter 4: val (type: PT_INT32) */
+	if(val == SETVAL)
+		val = bpf_syscall_get_argument(data, 3);
+	else
+		val = 0;
+
+	return bpf_push_s32_to_ring(data, val);
+}
+
+FILLER(sys_semctl_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: semid (type: PT_INT32) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s32_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 3: semnum (type: PT_INT32) */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s32_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: cmd (type: PT_FLAGS16) */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u16_to_ring(data, semctl_cmd_to_scap(val));
+	CHECK_RES(res);
+
+	/* Parameter 5: val (type: PT_INT32) */
 	if(val == SETVAL)
 		val = bpf_syscall_get_argument(data, 3);
 	else

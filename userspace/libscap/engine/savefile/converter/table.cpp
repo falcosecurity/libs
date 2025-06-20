@@ -284,6 +284,23 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_SEMOP_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SEMOP_X, 8},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        /*====================== SEMCTL ======================*/
+        {conversion_key{PPME_SYSCALL_SEMCTL_E, 4}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_SEMCTL_X, 1},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1},
+                          {C_INSTR_FROM_ENTER, 2},
+                          {C_INSTR_FROM_ENTER, 3}})},
+        /*====================== SEMGET ======================*/
+        {conversion_key{PPME_SYSCALL_SEMGET_E, 3}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_SEMGET_X, 1},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1},
+                          {C_INSTR_FROM_ENTER, 2}})},
         /*====================== SETGID ======================*/
         {conversion_key{PPME_SYSCALL_SETGID_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SETGID_X, 1},

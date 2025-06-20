@@ -54,6 +54,18 @@ int BPF_PROG(semget_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
+	/* Parameter 2: key (type: PT_INT32) */
+	int32_t key = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s32(&ringbuf, key);
+
+	/* Parameter 3: nsems (type: PT_INT32) */
+	int32_t nsems = (int32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_s32(&ringbuf, nsems);
+
+	/* Parameter 4: semflg (type: PT_FLAGS32) */
+	uint32_t semflg = (uint32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, semget_flags_to_scap(semflg));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

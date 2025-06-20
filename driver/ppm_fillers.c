@@ -7795,23 +7795,45 @@ int f_sys_semget_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
-	/*
-	 * key
-	 */
+	/* Parameter 1: key (type: PT_INT32) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-	/*
-	 * nsems
-	 */
+	/* Parameter 2: nsems (type: PT_INT32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-	/*
-	 * semflg
-	 */
+	/* Parameter 3: semflg (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_semget_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	unsigned long val;
+	int res;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: key (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: nsems (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: semflg (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
 	CHECK_RES(res);
@@ -7823,30 +7845,58 @@ int f_sys_semctl_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
-	/*
-	 * semid
-	 */
+	/* Parameter 1: semid (type: PT_INT32) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-	/*
-	 * semnum
-	 */
+	/* Parameter 2: semnum (type: PT_INT32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-	/*
-	 * cmd
-	 */
+	/* Parameter 3: cmd (type: PT_FLAGS16) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, semctl_cmd_to_scap(val), 0, true, 0);
 	CHECK_RES(res);
 
-	/*
-	 * optional argument semun/val
-	 */
+	/* Parameter 4: val (type: PT_INT32) */
+	if(val == SETVAL)
+		syscall_get_arguments_deprecated(args, 3, 1, &val);
+	else
+		val = 0;
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_semctl_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: semid (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: semnum (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: cmd (type: PT_FLAGS16) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, semctl_cmd_to_scap(val), 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: val (type: PT_INT32) */
 	if(val == SETVAL)
 		syscall_get_arguments_deprecated(args, 3, 1, &val);
 	else
