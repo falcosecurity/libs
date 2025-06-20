@@ -2704,7 +2704,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_8_X_to_9_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_X_8_to_9_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -2748,7 +2748,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_8_X_to_9_params_no_enter) {
 	                                                        semid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_1_X_to_3_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_X_8_to_9_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -2795,6 +2795,133 @@ TEST_F(convert_event_test, PPME_SYSCALL_SEMOP_1_X_to_3_params_with_enter) {
 	                                                        sem_op_1,
 	                                                        sem_flg_1,
 	                                                        semid));
+}
+
+////////////////////////////
+// SEMCTL
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMCTL_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t semid = 50;
+	constexpr int32_t semnum = 51;
+	constexpr uint16_t cmd = 52;
+	constexpr int32_t val = 53;
+
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMCTL_E, 4, semid, semnum, cmd, val);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMCTL_X_1_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr int32_t semid = 0;
+	constexpr int32_t semnum = 0;
+	constexpr uint16_t cmd = 0;
+	constexpr int32_t val = 0;
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMCTL_X, 1, res),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SEMCTL_X,
+	                                                        5,
+	                                                        res,
+	                                                        semid,
+	                                                        semnum,
+	                                                        cmd,
+	                                                        val));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMCTL_X_1_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t semid = 50;
+	constexpr int32_t semnum = 51;
+	constexpr uint16_t cmd = 52;
+	constexpr int32_t val = 53;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMCTL_E, 4, semid, semnum, cmd, val);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMCTL_X, 1, res),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SEMCTL_X,
+	                                                        5,
+	                                                        res,
+	                                                        semid,
+	                                                        semnum,
+	                                                        cmd,
+	                                                        val));
+}
+
+////////////////////////////
+// SEMGET
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMGET_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t key = 50;
+	constexpr int32_t nsems = 51;
+	constexpr uint32_t semflg = 52;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMGET_E, 3, key, nsems, semflg);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMGET_X_1_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr int32_t key = 0;
+	constexpr int32_t nsems = 0;
+	constexpr uint32_t semflg = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMGET_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMGET_X, 4, res, key, nsems, semflg));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SEMGET_X_1_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t key = 50;
+	constexpr int32_t nsems = 51;
+	constexpr uint32_t semflg = 52;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMGET_E, 3, key, nsems, semflg);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMGET_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SEMGET_X, 4, res, key, nsems, semflg));
 }
 
 ////////////////////////////

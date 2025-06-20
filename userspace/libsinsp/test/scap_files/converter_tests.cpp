@@ -1241,6 +1241,18 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 // cannot leverage them) . Add it if we face a failure.
 
 ////////////////////////////
+// SEMCTL
+////////////////////////////
+
+// We don't have scap-files with SEMCTL events. Add it if we face a failure.
+
+////////////////////////////
+// SEMGET
+////////////////////////////
+
+// We don't have scap-files with SEMGET events. Add it if we face a failure.
+
+////////////////////////////
 // FCHDIR
 ////////////////////////////
 

@@ -39,8 +39,20 @@ TEST(SyscallExit, semctlX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: semid (type: PT_INT32) */
+	evt_test->assert_numeric_param(2, (int32_t)semid);
+
+	/* Parameter 3: semnum (type: PT_INT32) */
+	evt_test->assert_numeric_param(3, (int32_t)semnum);
+
+	/* Parameter 4: cmd (type: PT_FLAGS16) */
+	evt_test->assert_numeric_param(4, (uint16_t)PPM_SETVAL);
+
+	/* Parameter 5: val (type: PT_INT32) */
+	evt_test->assert_numeric_param(5, (int32_t)val);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif

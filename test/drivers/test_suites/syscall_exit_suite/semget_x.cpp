@@ -38,8 +38,17 @@ TEST(SyscallExit, semgetX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: key (type: PT_INT32) */
+	evt_test->assert_numeric_param(2, (int32_t)key);
+
+	/* Parameter 3: nsems (type: PT_INT32) */
+	evt_test->assert_numeric_param(3, (int32_t)nsems);
+
+	/* Parameter 4: semflg (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(4, (int32_t)PPM_IPC_CREAT);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif

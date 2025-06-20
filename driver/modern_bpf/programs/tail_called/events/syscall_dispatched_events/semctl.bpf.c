@@ -61,6 +61,25 @@ int BPF_PROG(semctl_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
+	/* Parameter 2: semid (type: PT_INT32) */
+	int32_t semid = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s32(&ringbuf, semid);
+
+	/* Parameter 3: semnum (type: PT_INT32) */
+	int32_t semnum = (int32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_s32(&ringbuf, semnum);
+
+	/* Parameter 4: cmd (type: PT_FLAGS16) */
+	uint16_t cmd = (uint16_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u16(&ringbuf, semctl_cmd_to_scap(cmd));
+
+	/* Parameter 5: val (type: PT_INT32) */
+	int32_t val = 0;
+	if(cmd == SETVAL) {
+		val = (int32_t)extract__syscall_argument(regs, 3);
+	}
+	ringbuf__store_s32(&ringbuf, val);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

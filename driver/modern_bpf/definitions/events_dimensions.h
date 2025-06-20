@@ -166,10 +166,10 @@
 #define SEMOP_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
 #define SEMOP_X_SIZE HEADER_LEN + sizeof(int16_t) * 2 + sizeof(int32_t) + sizeof(int64_t) + sizeof(uint16_t) * 4 + sizeof(uint32_t) + PARAM_LEN * 9
 #define SEMCTL_E_SIZE HEADER_LEN + sizeof(int32_t) * 3 + sizeof(uint16_t) + PARAM_LEN * 4
-#define SEMCTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SEMCTL_X_SIZE HEADER_LEN + sizeof(int32_t) * 3 + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 5
 #define MOUNT_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define SEMGET_E_SIZE HEADER_LEN + sizeof(int32_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
-#define SEMGET_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SEMGET_X_SIZE HEADER_LEN + sizeof(int32_t) * 2 + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 4
 #define ACCESS_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define CHROOT_E_SIZE HEADER_LEN
 #define SETSID_E_SIZE HEADER_LEN
