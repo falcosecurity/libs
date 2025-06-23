@@ -58,24 +58,16 @@ TEST_F(scap_file_test, same_number_of_events) {
 
 	open_filename("kexec_x86.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_EPOLLWAIT_E, 2051},
-	        {PPME_SYSCALL_EPOLLWAIT_X, 2051},
-	        {PPME_SYSCALL_POLL_E, 2682},
-	        {PPME_SYSCALL_POLL_X, 2683},
-	        {PPME_SYSCALL_SETNS_E, 5},
-	        {PPME_SYSCALL_SETNS_X, 5},
-	        {PPME_SYSCALL_SETPGID_E, 4},
-	        {PPME_SYSCALL_SETPGID_X, 4},
-	        {PPME_SYSCALL_SETGID_E, 3},
-	        {PPME_SYSCALL_SETGID_X, 3},
-	        {PPME_SYSCALL_SETRLIMIT_E, 1},
-	        {PPME_SYSCALL_SETRLIMIT_X, 1},
-	        {PPME_SYSCALL_MMAP_E, 2123},
-	        {PPME_SYSCALL_MMAP_X, 2123},
-	        {PPME_SYSCALL_SETRESGID_E, 10},
-	        {PPME_SYSCALL_SETRESGID_X, 10},
-	        {PPME_SYSCALL_SETRESUID_E, 17},
-	        {PPME_SYSCALL_SETRESUID_X, 17},
+	        {PPME_SYSCALL_EPOLLWAIT_E, 2051}, {PPME_SYSCALL_EPOLLWAIT_X, 2051},
+	        {PPME_SYSCALL_POLL_E, 2682},      {PPME_SYSCALL_POLL_X, 2683},
+	        {PPME_SYSCALL_SETNS_E, 5},        {PPME_SYSCALL_SETNS_X, 5},
+	        {PPME_SYSCALL_SETPGID_E, 4},      {PPME_SYSCALL_SETPGID_X, 4},
+	        {PPME_SYSCALL_SETGID_E, 3},       {PPME_SYSCALL_SETGID_X, 3},
+	        {PPME_SYSCALL_SETRLIMIT_E, 1},    {PPME_SYSCALL_SETRLIMIT_X, 1},
+	        {PPME_SYSCALL_MMAP_E, 2123},      {PPME_SYSCALL_MMAP_X, 2123},
+	        {PPME_SYSCALL_SETRESGID_E, 10},   {PPME_SYSCALL_SETRESGID_X, 10},
+	        {PPME_SYSCALL_SETRESUID_E, 17},   {PPME_SYSCALL_SETRESUID_X, 17},
+	        {PPME_SYSCALL_MOUNT_E, 2},        {PPME_SYSCALL_MOUNT_X, 2},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1276,6 +1268,42 @@ TEST_F(scap_file_test, ppoll_x_check_final_converted_event) {
 	                                             scap_const_sized_buffer{fds, sizeof(fds)},
 	                                             timeout,
 	                                             sigmask));
+}
+
+////////////////////////////
+// MOUNT
+////////////////////////////
+
+TEST_F(scap_file_test, mount_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `155639` is the following:
+	// - type=PPME_SYSCALL_MOUNT_X,
+	// - ts=1687889193604667914
+	// - tid=107361
+	// - args=res=0 dev=
+	// dir=/run/containerd/runc/k8s.io/d7717c36108697b040257e6d78a8980a763d3b22e437cf199477b9a142537c67/runc.J8eCT9
+	// type=
+	//
+	// And its corresponding enter event `155638` is the following:
+	// - type=PPME_SYSCALL_MOUNT_E
+	// - ts=1687889193604651991
+	// - tid=107361
+	// - args=flags=4129(RDONLY|REMOUNT|BIND)
+	//
+	// Let's see the new PPME_SYSCALL_MOUNT_X event!
+
+	constexpr uint64_t ts = 1687889193604667914;
+	constexpr int64_t tid = 107361;
+	constexpr int64_t res = 0;
+	constexpr char dev[] = "";
+	constexpr char dir[] =
+	        "/run/containerd/runc/k8s.io/"
+	        "d7717c36108697b040257e6d78a8980a763d3b22e437cf199477b9a142537c67/runc.J8eCT9";
+	constexpr char fstype[] = "";
+	constexpr uint32_t flags = 4129;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MOUNT_X, 5, res, dev, dir, fstype, flags));
 }
 
 ////////////////////////////

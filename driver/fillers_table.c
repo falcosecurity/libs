@@ -240,7 +240,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_PPOLL_E] = {FILLER_REF(sys_ppoll_e)},
         [PPME_SYSCALL_PPOLL_X] = {FILLER_REF(sys_ppoll_x)},
         [PPME_SYSCALL_MOUNT_E] = {FILLER_REF(sys_mount_e)},
-        [PPME_SYSCALL_MOUNT_X] = {FILLER_REF(sys_autofill),
+        [PPME_SYSCALL_MOUNT_X] = {FILLER_REF(sys_mount_x),
                                   4,
                                   APT_REG,
                                   {{AF_ID_RETVAL}, {0}, {1}, {2}}},

@@ -4219,6 +4219,46 @@ int f_sys_mount_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	/*
+	 * Fix mount flags in arg 3.
+	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
+	 */
+	syscall_get_arguments_deprecated(args, 3, 1, &val);
+	if((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
+		val &= ~PPM_MS_MGC_MSK;
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_mount_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	unsigned long val;
+	int res;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: dev (type: PT_CHARBUF) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: dir (type: PT_FSPATH) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: type (type: PT_CHARBUF) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
 	/*
 	 * Fix mount flags in arg 3.
 	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650

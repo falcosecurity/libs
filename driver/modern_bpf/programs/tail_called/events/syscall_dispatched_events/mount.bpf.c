@@ -75,6 +75,22 @@ int BPF_PROG(mount_x, struct pt_regs *regs, long ret) {
 	unsigned long fstype_pointer = extract__syscall_argument(regs, 2);
 	auxmap__store_charbuf_param(auxmap, fstype_pointer, MAX_PARAM_SIZE, USER);
 
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 3);
+
+	/* The `mountflags` argument may have the magic number 0xC0ED
+	 * (MS_MGC_VAL) in the top 16 bits. (All of the other flags
+	 * occupy the low order 16 bits of `mountflags`.)
+	 * Specifying MS_MGC_VAL was required in kernel
+	 * versions prior to 2.4, but since Linux 2.4 is no longer required
+	 * and is ignored if specified.
+	 */
+	/* Check the magic number 0xC0ED in the top 16 bits and ignore it if specified. */
+	if((flags & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL) {
+		flags &= ~PPM_MS_MGC_MSK;
+	}
+	auxmap__store_u32_param(auxmap, flags);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
