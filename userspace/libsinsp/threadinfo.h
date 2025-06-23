@@ -58,6 +58,25 @@ struct erase_fd_params {
  */
 
 /*!
+  \brief Container holding parameters to be provided to sinsp_threadinfo constructor.
+  An instance of this struct is meant to be shared among all sinsp_threadinfo instances.
+*/
+struct sinsp_threadinfo_ctor_params {
+	// The following fields are externally provided and access to them is expected to be
+	// read-only.
+	const sinsp_network_interfaces& network_interfaces;
+	const sinsp_fdinfo_factory& fdinfo_factory;
+	const sinsp_fdtable_factory& fdtable_factory;
+	const std::shared_ptr<libsinsp::state::table_entry::dynamic_struct::field_infos>&
+	        thread_manager_dyn_fields;
+
+	// The following fields are externally provided and expected to be populated/updated by the
+	// thread info.
+	std::shared_ptr<sinsp_thread_manager>& thread_manager;
+	std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager;
+};
+
+/*!
   \brief Thread/process information class.
   This class contains the full state for a thread, and a bunch of functions to
   manipulate threads and retrieve thread information.
@@ -70,23 +89,7 @@ struct erase_fd_params {
 */
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
-	/*!
-	  \brief Container holding parameters to be provided to sinsp_threadinfo constructor.
-	  An instance of this struct is meant to be shared among all sinsp_threadinfo instances.
-	*/
-	struct ctor_params {
-		// The following fields are externally provided and access to them is expected to be
-		// read-only.
-		const sinsp_network_interfaces& network_interfaces;
-		const sinsp_fdinfo_factory& fdinfo_factory;
-		const sinsp_fdtable_factory& fdtable_factory;
-		const std::shared_ptr<dynamic_struct::field_infos>& thread_manager_dyn_fields;
-
-		// The following fields are externally provided and expected to be populated/updated by the
-		// thread info.
-		std::shared_ptr<sinsp_thread_manager>& thread_manager;
-		std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager;
-	};
+	using ctor_params = sinsp_threadinfo_ctor_params;
 
 	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
 	~sinsp_threadinfo() override;

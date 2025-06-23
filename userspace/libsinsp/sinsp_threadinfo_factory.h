@@ -31,27 +31,7 @@ class sinsp_threadinfo_factory {
 	libsinsp::event_processor* const& m_external_event_processor;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& m_fdtable_dyn_fields;
 
-	// `create_unique` is only provided in order to let an external event processor create a
-	// threadinfo without tracking all the needed dependencies and, at the same time, avoiding code
-	// repetition. The access is granted through the
-	// `sinsp_threadinfo_factory::create_unique_attorney` class (see its definition for more
-	// details).
-	std::unique_ptr<sinsp_threadinfo> create_unique() const {
-		return std::make_unique<sinsp_threadinfo>(m_params);
-	}
-
 public:
-	/*!
-	  \brief This class follows the attorney-client idiom to limit the access to
-	  `sinsp_threadinfo_factory::create_unique()` only to `libsinsp::event_processor`.
-	*/
-	class create_unique_attorney {
-		static std::unique_ptr<sinsp_threadinfo> create(sinsp_threadinfo_factory const& factory) {
-			return factory.create_unique();
-		}
-		friend libsinsp::event_processor;
-	};
-
 	sinsp_threadinfo_factory(sinsp* sinsp,
 	                         const std::shared_ptr<sinsp_threadinfo::ctor_params>& params,
 	                         libsinsp::event_processor* const& external_event_processor,
@@ -64,8 +44,8 @@ public:
 
 	std::unique_ptr<sinsp_threadinfo> create() const {
 		std::unique_ptr<sinsp_threadinfo> tinfo =
-		        m_external_event_processor ? m_external_event_processor->build_threadinfo(m_sinsp)
-		                                   : create_unique();
+		        m_external_event_processor ? m_external_event_processor->build_threadinfo(m_params)
+		                                   : std::make_unique<sinsp_threadinfo>(m_params);
 		if(tinfo->dynamic_fields() == nullptr) {
 			tinfo->set_dynamic_fields(m_params->thread_manager_dyn_fields);
 		}

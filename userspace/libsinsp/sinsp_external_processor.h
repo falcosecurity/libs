@@ -11,7 +11,8 @@
  */
 
 class sinsp;
-class threadinfo;
+class sinsp_threadinfo;
+class sinsp_threadinfo_ctor_params;
 
 namespace libsinsp {
 enum event_return {
@@ -45,7 +46,8 @@ public:
 	 * If this is overridden by the event processor, the processor MUST be registered
 	 * before the sinsp object is init-ed
 	 */
-	virtual std::unique_ptr<sinsp_threadinfo> build_threadinfo(sinsp* inspector);
+	virtual std::unique_ptr<sinsp_threadinfo> build_threadinfo(
+	        const std::shared_ptr<sinsp_threadinfo_ctor_params>& params);
 
 	/**
 	 * Some event processors allocate different fd info types with extra data.
