@@ -72,6 +72,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_SETRESUID_E, 17},   {PPME_SYSCALL_SETRESUID_X, 17},
 	        {PPME_SYSCALL_MOUNT_E, 2},        {PPME_SYSCALL_MOUNT_X, 2},
 	        {PPME_SYSCALL_ACCESS_E, 350},     {PPME_SYSCALL_ACCESS_X, 350},
+	        {PPME_SYSCALL_MPROTECT_E, 584},   {PPME_SYSCALL_MPROTECT_X, 584},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1466,6 +1467,37 @@ TEST_F(scap_file_test, seccomp_x_check_final_converted_event) {
 	constexpr uint64_t flags = 0;  // Defaulted.
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 3, res, op, flags));
+}
+
+////////////////////////////
+// MPROTECT
+////////////////////////////
+
+TEST_F(scap_file_test, mprotect_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `513074` is the following:
+	// - type=PPME_SYSCALL_MPROTECT_X,
+	// - ts=1687889198695780437
+	// - tid=107452
+	// - args=res=0
+	//
+	// And its corresponding enter event `513073` is the following:
+	// - type=PPME_SYSCALL_MPROTECT_E
+	// - ts=1687889198695776877
+	// - tid=107452
+	// - args=addr=7EFE8F2D7000 length=8192 prot=1(PROT_READ)
+	//
+	// Let's see the new PPME_SYSCALL_MPROTECT_X event!
+
+	constexpr uint64_t ts = 1687889198695780437;
+	constexpr int64_t tid = 107452;
+	constexpr int64_t res = 0;
+	constexpr uint64_t addr = 0x7EFE8F2D7000;
+	constexpr uint64_t len = 8192;
+	constexpr uint32_t proto = 1;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 4, res, addr, len, proto));
 }
 
 ////////////////////////////

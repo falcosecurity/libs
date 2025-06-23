@@ -5784,23 +5784,17 @@ int f_sys_mprotect_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
-	/*
-	 * addr
-	 */
+	/* Parameter 1: addr (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * length
-	 */
+	/* Parameter 2: length (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * prot
-	 */
+	/* Parameter 3: prot (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
@@ -5809,11 +5803,28 @@ int f_sys_mprotect_e(struct event_filler_arguments *args) {
 }
 
 int f_sys_mprotect_x(struct event_filler_arguments *args) {
-	int res;
 	int64_t retval;
+	int res;
+	unsigned long val;
 
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: addr (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: length (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: prot (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

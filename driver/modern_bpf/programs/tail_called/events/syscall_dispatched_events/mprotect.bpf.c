@@ -58,6 +58,18 @@ int BPF_PROG(mprotect_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: addr (type: PT_UINT64) */
+	uint64_t addr = extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, addr);
+
+	/* Parameter 3: length (type: PT_UINT64) */
+	uint64_t length = extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, length);
+
+	/* Parameter 4: prot (type: PT_FLAGS32) */
+	uint32_t flags = extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, prot_flags_to_scap(flags));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
