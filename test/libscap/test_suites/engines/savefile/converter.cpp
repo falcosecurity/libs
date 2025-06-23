@@ -3317,6 +3317,62 @@ TEST_F(convert_event_test, PPME_SYSCALL_SECCOMP_X_1_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// MPROTECT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_MPROTECT_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t addr = 66;
+	constexpr uint64_t length = 67;
+	constexpr uint32_t prot = 68;
+
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_E, 3, addr, length, prot);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_MPROTECT_X_1_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr uint64_t addr = 0;
+	constexpr uint64_t length = 0;
+	constexpr uint32_t prot = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 4, res, addr, length, prot));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_MPROTECT_X_1_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t addr = 66;
+	constexpr uint64_t length = 67;
+	constexpr uint32_t prot = 68;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_E, 3, addr, length, prot);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 4, res, addr, length, prot));
+}
+
+////////////////////////////
 // SETGID
 ////////////////////////////
 
