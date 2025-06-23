@@ -21,10 +21,11 @@ int BPF_PROG(seccomp_e, struct pt_regs *regs, long id) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: operation (type: PT_UINT64)*/
+	/* Parameter 1: op (type: PT_UINT64) */
 	uint64_t operation = (uint64_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, operation);
 
+	/* Parameter 2: flags (type: PT_UINT64) */
 	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u64(&ringbuf, (uint64_t)flags);
 
@@ -50,8 +51,16 @@ int BPF_PROG(seccomp_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: op (type: PT_UINT64) */
+	uint64_t operation = (uint64_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, operation);
+
+	/* Parameter 2: flags (type: PT_UINT64) */
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, (uint64_t)flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

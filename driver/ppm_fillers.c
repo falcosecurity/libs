@@ -8143,6 +8143,33 @@ int f_sys_bpf_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_seccomp_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+	uint64_t op;
+	uint64_t flags;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: op (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	op = (uint64_t)(uint32_t)val;
+	res = val_to_ring(args, op, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	flags = (uint64_t)val;
+	res = val_to_ring(args, flags, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_mkdirat_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;

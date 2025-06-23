@@ -6777,6 +6777,22 @@ FILLER(sys_bpf_x, true) {
 	return bpf_push_s32_to_ring(data, (int32_t)bpf_cmd_to_scap(cmd));
 }
 
+FILLER(sys_seccomp_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: op (type: PT_UINT64) */
+	uint64_t op = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u64_to_ring(data, op);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_UINT64) */
+	uint64_t flags = (uint64_t)(uint32_t)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u64_to_ring(data, flags);
+}
+
 FILLER(sys_unlinkat_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
