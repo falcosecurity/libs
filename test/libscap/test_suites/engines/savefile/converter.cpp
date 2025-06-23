@@ -3219,26 +3219,26 @@ TEST_F(convert_event_test, PPME_SYSCALL_FCHDIR_X_to_2_params_with_enter) {
 ////////////////////////////
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_E_store) {
-	uint64_t ts = 12;
-	int64_t tid = 25;
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
 
-	int64_t pid = 66;
-	int64_t pgid = 100;
+	constexpr int64_t pid = 66;
+	constexpr int64_t pgid = 100;
 
-	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_E, 2, pid, pgid);
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_E, 2, pid, pgid);
 	assert_single_conversion_skip(evt);
 	assert_event_storage_presence(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_to_3_params_no_enter) {
-	uint64_t ts = 12;
-	int64_t tid = 25;
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
 
-	int64_t res = 89;
+	constexpr int64_t res = 89;
 
 	// Defaulted to 0
-	int64_t pid = 0;
-	int64_t pgid = 0;
+	constexpr int64_t pid = 0;
+	constexpr int64_t pgid = 0;
 
 	assert_single_conversion_success(
 	        conversion_result::CONVERSION_COMPLETED,
@@ -3247,15 +3247,15 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_to_3_params_no_enter) {
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_to_3_params_with_enter) {
-	uint64_t ts = 12;
-	int64_t tid = 25;
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
 
-	int64_t res = 89;
-	int64_t pid = 66;
-	int64_t pgid = 100;
+	constexpr int64_t res = 89;
+	constexpr int64_t pid = 66;
+	constexpr int64_t pgid = 100;
 
 	// After the first conversion we should have the storage
-	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_E, 2, pid, pgid);
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_E, 2, pid, pgid);
 	assert_single_conversion_skip(evt);
 	assert_event_storage_presence(evt);
 
@@ -3263,6 +3263,57 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_to_3_params_with_enter) {
 	        conversion_result::CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 1, res),
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 3, res, pid, pgid));
+}
+
+////////////////////////////
+// SECCOMP
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SECCOMP_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t op = 66;
+	constexpr uint64_t flags = 100;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_E, 2, op, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SECCOMP_X_1_to_3_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr uint64_t op = 0;
+	constexpr uint64_t flags = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 3, res, op, flags));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SECCOMP_X_1_to_3_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t op = 66;
+	constexpr uint64_t flags = 100;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_E, 2, op, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 3, res, op, flags));
 }
 
 ////////////////////////////

@@ -54,6 +54,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_GETDENTS64_E, 1870}, {PPME_SYSCALL_GETDENTS64_X, 1870},
 	        {PPME_SYSCALL_PPOLL_E, 1093},      {PPME_SYSCALL_PPOLL_X, 1093},
 	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
+	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
+	        {PPME_SYSCALL_SECCOMP_E, 18},      {PPME_SYSCALL_SECCOMP_X, 18},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1434,6 +1436,36 @@ TEST_F(scap_file_test, setpgid_x_check_final_converted_event) {
 	int64_t pgid = 107344;  // zsh process ID
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 3, res, pid, pgid));
+}
+
+////////////////////////////
+// SECCOMP
+////////////////////////////
+
+TEST_F(scap_file_test, seccomp_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `62555` is the following:
+	// - type=PPME_SYSCALL_SECCOMP_X,
+	// - ts=1687966709992615590
+	// - tid=141446
+	// - args=res=-14(EFAULT)
+	//
+	// And its corresponding enter event `62554` is the following:
+	// - type=PPME_SYSCALL_SECCOMP_E
+	// - ts=1687966709992615023
+	// - tid=141446
+	// - args=op=1
+	//
+	// Let's see the new PPME_SYSCALL_SECCOMP_X event!
+
+	constexpr uint64_t ts = 1687966709992615590;
+	constexpr int64_t tid = 141446;
+	constexpr int64_t res = -14;
+	constexpr uint64_t op = 1;
+	constexpr uint64_t flags = 0;  // Defaulted.
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 3, res, op, flags));
 }
 
 ////////////////////////////
