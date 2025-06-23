@@ -29,14 +29,17 @@ TEST(SyscallExit, accessX) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-	/* Parameter 2: path (type: PT_FSPATH)*/
+	/* Parameter 2: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, pathname);
+
+	/* Parameter 3: mode (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (uint32_t)PPM_W_OK);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

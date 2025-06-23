@@ -29,7 +29,7 @@ TEST(SyscallEnter, accessE) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: mode (type: PT_UINT32)*/
+	/* Parameter 1: mode (type: PT_UINT32) */
 	evt_test->assert_numeric_param(1, (uint32_t)PPM_W_OK);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

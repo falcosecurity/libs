@@ -68,6 +68,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_SETRESGID_E, 10},   {PPME_SYSCALL_SETRESGID_X, 10},
 	        {PPME_SYSCALL_SETRESUID_E, 17},   {PPME_SYSCALL_SETRESUID_X, 17},
 	        {PPME_SYSCALL_MOUNT_E, 2},        {PPME_SYSCALL_MOUNT_X, 2},
+	        {PPME_SYSCALL_ACCESS_E, 350},     {PPME_SYSCALL_ACCESS_X, 350},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1317,6 +1318,36 @@ TEST_F(scap_file_test, mount_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with SEMGET events. Add it if we face a failure.
+
+////////////////////////////
+// ACCESS
+////////////////////////////
+
+TEST_F(scap_file_test, access_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `513024` is the following:
+	// - type=PPME_SYSCALL_ACCESS_X,
+	// - ts=1687889198695606972
+	// - tid=107452
+	// - args=res=-2(ENOENT) name=/etc/ld.so.preload
+	//
+	// And its corresponding enter event `513023` is the following:
+	// - type=PPME_SYSCALL_ACCESS_E
+	// - ts=1687889198695603284
+	// - tid=107452
+	// - args=mode=4(R_OK)
+	//
+	// Let's see the new PPME_SYSCALL_ACCESS_X event!
+
+	constexpr uint64_t ts = 1687889198695606972;
+	constexpr int64_t tid = 107452;
+	constexpr int64_t res = -2;
+	constexpr char name[] = "/etc/ld.so.preload";
+	constexpr uint32_t mode = 4;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_X, 3, res, name, mode));
+}
 
 ////////////////////////////
 // FCHDIR
