@@ -3069,6 +3069,56 @@ TEST_F(convert_event_test, PPME_SYSCALL_SEMGET_X_1_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// ACCESS
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_ACCESS_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t mode = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_E, 1, mode);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_ACCESS_X_2_to_3_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char name[] = "/hello";
+
+	// Defaulted to 0
+	constexpr uint32_t mode = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_X, 2, res, name),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_X, 3, res, name, mode));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_ACCESS_X_2_to_3_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char name[] = "/hello";
+	constexpr uint32_t mode = 50;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_E, 1, mode);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_X, 2, res, name),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_X, 3, res, name, mode));
+}
+
+////////////////////////////
 // FCHDIR
 ////////////////////////////
 

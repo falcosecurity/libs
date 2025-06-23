@@ -1253,6 +1253,22 @@ FILLER(sys_access_e, true) {
 	return bpf_push_u32_to_ring(data, (uint32_t)access_flags_to_scap(mode));
 }
 
+FILLER(sys_access_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: name (type: PT_FSPATH) */
+	unsigned long name_pointer = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_mem(data, name_pointer, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: mode (type: PT_UINT32) */
+	int mode = (int)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u32_to_ring(data, (uint32_t)access_flags_to_scap(mode));
+}
+
 FILLER(sys_getrlimit_setrlimit_e, true) {
 	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
 	uint32_t resource = bpf_syscall_get_argument(data, 0);

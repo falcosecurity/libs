@@ -123,6 +123,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mount_e)                      \
 	FN(sys_mount_x)                      \
 	FN(sys_access_e)                     \
+	FN(sys_access_x)                     \
 	FN(sys_socket_x)                     \
 	FN(sys_bpf_x)                        \
 	FN(sys_unlinkat_x)                   \
