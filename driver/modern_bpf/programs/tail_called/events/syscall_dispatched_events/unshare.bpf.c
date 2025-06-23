@@ -47,8 +47,12 @@ int BPF_PROG(unshare_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: flags (type: PT_FLAGS32) */
+	unsigned long flags = extract__syscall_argument(regs, 0);
+	ringbuf__store_u32(&ringbuf, clone_flags_to_scap((int)flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

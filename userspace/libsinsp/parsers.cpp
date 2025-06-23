@@ -163,9 +163,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EPOLLWAIT_X:
 		parse_select_poll_ppoll_epollwait(evt);
 		break;
-	case PPME_SYSCALL_UNSHARE_E:
-		store_event(evt);
-		break;
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_SETNS_X:
 		parse_unshare_setns_exit(evt);
@@ -4592,45 +4589,31 @@ void sinsp_parser::parse_capset_exit(sinsp_evt &evt) {
 	tinfo->m_cap_effective = evt.get_param(3)->as<uint64_t>();
 }
 
-void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) const {
-	sinsp_evt *enter_evt = &m_tmp_evt;
-	sinsp_threadinfo *tinfo;
-	int64_t retval;
-	uint32_t flags = 0;
-
-	retval = evt.get_syscall_return_value();
-
-	if(retval < 0 || evt.get_tinfo() == nullptr) {
+void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
+	if(evt.get_syscall_return_value() < 0 || evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	uint16_t etype = evt.get_scap_evt()->type;
+	const auto etype = evt.get_scap_evt()->type;
 
-	//
-	// Retrieve flags from enter event
-	//
+	// Retrieve flags.
+	uint32_t flags = 0;
 	if(etype == PPME_SYSCALL_UNSHARE_X) {
-		if(!retrieve_enter_event(*enter_evt, evt)) {
-			return;
-		}
-		flags = enter_evt->get_param(0)->as<uint32_t>();
+		flags = evt.get_param(1)->as<uint32_t>();
 	} else if(etype == PPME_SYSCALL_SETNS_X) {
-		//
-		// Retrieve the flags from the exit event
-		//
 		flags = evt.get_param(2)->as<uint32_t>();
 	}
 
-	//
-	// Update capabilities
-	//
-	if(flags & PPM_CL_CLONE_NEWUSER) {
-		tinfo = evt.get_tinfo();
-		uint64_t max_caps = sinsp_utils::get_max_caps();
-		tinfo->m_cap_inheritable = max_caps;
-		tinfo->m_cap_permitted = max_caps;
-		tinfo->m_cap_effective = max_caps;
+	// Update capabilities.
+	if((flags & PPM_CL_CLONE_NEWUSER) == 0) {
+		return;
 	}
+
+	const auto tinfo = evt.get_tinfo();
+	const auto max_caps = sinsp_utils::get_max_caps();
+	tinfo->m_cap_inheritable = max_caps;
+	tinfo->m_cap_permitted = max_caps;
+	tinfo->m_cap_effective = max_caps;
 }
 
 void sinsp_parser::free_event_buffer(uint8_t *ptr) {

@@ -38,8 +38,11 @@ TEST(SyscallExit, unshareX) {
 	/* Parameter 1: res (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (uint64_t)0);
 
+	/* Parameter 2: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(2, (uint32_t)flags);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
