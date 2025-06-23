@@ -134,7 +134,7 @@ private:
 	static void parse_setsid_exit(sinsp_evt& evt);
 	void parse_getsockopt_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	static void parse_capset_exit(sinsp_evt& evt);
-	void parse_unshare_setns_exit(sinsp_evt& evt) const;
+	static void parse_unshare_setns_exit(sinsp_evt& evt);
 
 	static inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo& fdinfo,
 	                                                   uint32_t tsip,

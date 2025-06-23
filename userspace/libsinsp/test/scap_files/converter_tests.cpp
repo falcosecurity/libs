@@ -53,6 +53,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_MUNMAP_E, 2965},     {PPME_SYSCALL_MUNMAP_X, 2965},
 	        {PPME_SYSCALL_GETDENTS64_E, 1870}, {PPME_SYSCALL_GETDENTS64_X, 1870},
 	        {PPME_SYSCALL_PPOLL_E, 1093},      {PPME_SYSCALL_PPOLL_X, 1093},
+	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -854,6 +855,34 @@ TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 	uint32_t mode = 0x1ff;  // 0777 in octal
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+}
+
+////////////////////////////
+// UNSHARE
+////////////////////////////
+
+TEST_F(scap_file_test, unshare_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `61225` is the following:
+	// - type=PPME_SYSCALL_UNSHARE_X,
+	// - ts=1687966709958564213
+	// - tid=141445
+	// - args=res=0
+	//
+	// And its corresponding enter event `61224` is the following:
+	// - type=PPME_SYSCALL_UNSHARE_E
+	// - ts=1687966709958563138
+	// - tid=141445
+	// - args=flags=0
+	//
+	// Let's see the new PPME_SYSCALL_UNSHARE_X event!
+
+	constexpr uint64_t ts = 1687966709958564213;
+	constexpr int64_t tid = 141445;
+	constexpr int64_t res = 0;
+	constexpr uint32_t flags = 0;
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_UNSHARE_X, 2, res, flags));
 }
 
 ////////////////////////////

@@ -3353,11 +3353,21 @@ FILLER(sys_setresgid_x, true) {
 }
 
 FILLER(sys_unshare_e, true) {
-	unsigned long val;
-	uint32_t flags;
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	uint32_t flags = clone_flags_to_scap((int)val);
+	return bpf_push_u32_to_ring(data, flags);
+}
 
-	val = bpf_syscall_get_argument(data, 0);
-	flags = clone_flags_to_scap((int)val);
+FILLER(sys_unshare_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_FLAGS32) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	uint32_t flags = clone_flags_to_scap((int)val);
 	return bpf_push_u32_to_ring(data, flags);
 }
 

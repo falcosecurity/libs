@@ -1251,13 +1251,9 @@ TEST_F(sys_call_test, unshare_) {
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
-		switch(type) {
-		case PPME_SYSCALL_UNSHARE_E:
-			EXPECT_EQ("CLONE_NEWUTS", e->get_param_value_str("flags"));
-			break;
-		case PPME_SYSCALL_UNSHARE_X:
+		EXPECT_EQ("CLONE_NEWUTS", e->get_param_value_str("flags"));
+		if(type == PPME_SYSCALL_UNSHARE_X) {
 			EXPECT_EQ("0", e->get_param_value_str("res"));
-			break;
 		}
 		++callnum;
 	};

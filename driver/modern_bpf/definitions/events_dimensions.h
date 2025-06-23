@@ -177,7 +177,7 @@
 #define MKDIR_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define RMDIR_E_SIZE HEADER_LEN
 #define UNSHARE_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
-#define UNSHARE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define UNSHARE_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define PAGE_FAULT_SIZE HEADER_LEN + sizeof(uint32_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
 #define SETPGID_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
 #define SETPGID_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + PARAM_LEN * 3
