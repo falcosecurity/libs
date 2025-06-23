@@ -49,8 +49,14 @@ TEST(SyscallExit, mountX) {
 	/* Parameter 4: type (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(4, filesystemtype);
 
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	/* According to the driver logic `MS_MGC_VAL` should be removed so here
+	 * we will obtain only `MS_RDONLY`
+	 */
+	evt_test->assert_numeric_param(5, (uint32_t)MS_RDONLY);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif

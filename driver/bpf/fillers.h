@@ -5407,6 +5407,40 @@ FILLER(sys_eventfd2_x, true) {
 }
 
 FILLER(sys_mount_e, true) {
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	/*
+	 * Fix mount flags in arg 3.
+	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
+	 */
+	unsigned long val = bpf_syscall_get_argument(data, 3);
+	if((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
+		val &= ~PPM_MS_MGC_MSK;
+
+	return bpf_push_u32_to_ring(data, val);
+}
+
+FILLER(sys_mount_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: dev (type: PT_CHARBUF) */
+	unsigned long source_pointer = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_mem(data, source_pointer, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: dir (type: PT_FSPATH) */
+	unsigned long target_pointer = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring_mem(data, target_pointer, USER);
+	CHECK_RES(res);
+
+	/* Parameter 4: type (type: PT_CHARBUF) */
+	unsigned long fstype = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring_mem(data, fstype, USER);
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
 	/*
 	 * Fix mount flags in arg 3.
 	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650

@@ -915,12 +915,13 @@ TEST_F(fspath, mount) {
 	                        mountpath,
 	                        mountpath,
 	                        PPME_SYSCALL_MOUNT_X,
-	                        4,
+	                        5,
 	                        res,
 	                        devpath,
 	                        mountpath,
-	                        mounttype);
-	test_failed_exit(PPME_SYSCALL_MOUNT_X, 4, failed_res, devpath, mountpath, mounttype);
+	                        mounttype,
+	                        flags);
+	test_failed_exit(PPME_SYSCALL_MOUNT_X, 5, failed_res, devpath, mountpath, mounttype, flags);
 }
 
 TEST_F(fspath, umount) {
