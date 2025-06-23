@@ -2005,9 +2005,9 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 	return true;
 }
 
-std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(sinsp* inspector) {
-	return sinsp_threadinfo_factory::create_unique_attorney::create(
-	        inspector->get_threadinfo_factory());
+std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(
+        const std::shared_ptr<sinsp_threadinfo_ctor_params>& params) {
+	return std::make_unique<sinsp_threadinfo>(params);
 }
 
 std::unique_ptr<sinsp_fdinfo> libsinsp::event_processor::build_fdinfo(sinsp* inspector) {
