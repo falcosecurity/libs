@@ -3569,3 +3569,53 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_to_4_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 1, res),
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
 }
+
+////////////////////////////
+// UMOUNT2
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT2_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t flags = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT2_X_2_to_3_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char name[] = "/hello";
+
+	// Defaulted to 0
+	constexpr uint32_t flags = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 2, res, name),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 3, res, name, flags));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT2_X_2_to_3_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t flags = 50;
+	constexpr int64_t res = 89;
+	constexpr char name[] = "/hello";
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 2, res, name),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 3, res, name, flags));
+}

@@ -55,6 +55,10 @@ int BPF_PROG(umount2_x, struct pt_regs *regs, long ret) {
 	unsigned long target_pointer = extract__syscall_argument(regs, 0);
 	auxmap__store_charbuf_param(auxmap, target_pointer, MAX_PATH, USER);
 
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	int flags = (int)extract__syscall_argument(regs, 1);
+	auxmap__store_u32_param(auxmap, umount2_flags_to_scap(flags));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

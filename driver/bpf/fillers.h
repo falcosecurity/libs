@@ -7330,7 +7330,12 @@ FILLER(sys_umount2_x, true) {
 
 	/* Parameter 2: name (type: PT_FSPATH) */
 	unsigned long target_pointer = bpf_syscall_get_argument(data, 0);
-	return bpf_val_to_ring(data, target_pointer);
+	res = bpf_val_to_ring(data, target_pointer);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	int flags = (int)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u32_to_ring(data, umount2_flags_to_scap(flags));
 }
 
 FILLER(sys_getcwd_x, true) {
