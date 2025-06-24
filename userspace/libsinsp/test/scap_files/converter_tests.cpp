@@ -1635,3 +1635,9 @@ TEST_F(scap_file_test, umount2_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with EVENTFD2 events. Add it if we face a failure.
+
+////////////////////////////
+// SIGNALFD4
+////////////////////////////
+
+// We don't have scap-files with SIGNALFD4 events. Add it if we face a failure.

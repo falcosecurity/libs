@@ -4154,8 +4154,8 @@ FILLER(sys_signalfd_e, true) {
 
 FILLER(sys_signalfd4_e, true) {
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, fd);
 	CHECK_RES(res);
 
 	/* Parameter 2: mask (type: PT_UINT32) */
@@ -4165,13 +4165,23 @@ FILLER(sys_signalfd4_e, true) {
 
 FILLER(sys_signalfd4_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
-	long retval = bpf_syscall_get_retval(data->ctx);
+	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
 	int32_t flags = (int32_t)bpf_syscall_get_argument(data, 3);
-	return bpf_push_u16_to_ring(data, signalfd4_flags_to_scap(flags));
+	res = bpf_push_u16_to_ring(data, signalfd4_flags_to_scap(flags));
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: mask (type: PT_UINT32) */
+	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
+	return bpf_push_u32_to_ring(data, 0);
 }
 
 FILLER(sys_epoll_create_e, true) {

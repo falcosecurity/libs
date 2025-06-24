@@ -229,12 +229,15 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_SIGNALFD4_X,
-	                           2,
+	                           4,
 	                           (int64_t)-1,
-	                           (uint16_t)512);
+	                           (uint16_t)512,
+	                           (int64_t)9,
+	                           (uint32_t)0);
 	// 512 in hex is 200
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.flags"), "200");
 	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags < 515"));
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.fd"), "9");
 
 	// [PPME_SYSCALL_TIMERFD_CREATE_E] = {"timerfd_create",EC_TIME | EC_SYSCALL,EF_CREATES_FD |
 	// EF_MODIFIES_STATE,2,{{"clockid", PT_UINT8, PF_DEC},{"flags", PT_UINT8, PF_HEX}}},
