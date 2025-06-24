@@ -245,7 +245,7 @@
 #define INOTIFY_INIT1_E_SIZE HEADER_LEN
 #define INOTIFY_INIT1_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
 #define EVENTFD2_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
-#define EVENTFD2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
+#define EVENTFD2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define SIGNALFD4_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define SIGNALFD4_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
 #define PRCTL_E_SIZE HEADER_LEN

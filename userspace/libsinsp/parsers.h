@@ -105,7 +105,7 @@ private:
 	void parse_fspath_related_exit(sinsp_evt& evt) const;
 	inline void parse_rw_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_sendfile_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
-	void parse_eventfd_exit(sinsp_evt& evt) const;
+	void parse_eventfd_eventfd2_exit(sinsp_evt& evt) const;
 	void parse_bind_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	static void parse_chdir_exit(sinsp_evt& evt);
 	static void parse_fchdir_exit(sinsp_evt& evt);

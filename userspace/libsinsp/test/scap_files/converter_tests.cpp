@@ -1629,3 +1629,9 @@ TEST_F(scap_file_test, umount2_x_check_final_converted_event) {
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 3, res, name, flags));
 }
+
+////////////////////////////
+// EVENTFD2
+////////////////////////////
+
+// We don't have scap-files with EVENTFD2 events. Add it if we face a failure.

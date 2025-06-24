@@ -38,9 +38,12 @@ TEST(SyscallExit, eventfd2X_success) {
 	/* Parameter 2: flags (type: PT_FLAGS16) */
 	evt_test->assert_numeric_param(2, (uint16_t)(PPM_O_NONBLOCK | PPM_O_CLOEXEC));
 
+	/* Parameter 3: initval (type: PT_UINT64) */
+	evt_test->assert_numeric_param(3, (uint64_t)initval);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 TEST(SyscallExit, eventfd2X_failure) {
@@ -78,8 +81,11 @@ TEST(SyscallExit, eventfd2X_failure) {
 	/* if the driver is not able to recognize any known flag it returns `0` */
 	evt_test->assert_numeric_param(2, (uint16_t)0);
 
+	/* Parameter 3: initval (type: PT_UINT64) */
+	evt_test->assert_numeric_param(3, (uint64_t)initval);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

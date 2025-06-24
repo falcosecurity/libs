@@ -366,4 +366,9 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_UMOUNT2_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_UMOUNT2_X, 2},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        /*====================== EVENTFD2 ======================*/
+        {conversion_key{PPME_SYSCALL_EVENTFD2_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_EVENTFD2_X, 2},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+
 };

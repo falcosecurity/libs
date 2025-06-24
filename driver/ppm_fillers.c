@@ -3814,6 +3814,11 @@ int f_sys_eventfd2_x(struct event_filler_arguments *args) {
 	res = val_to_ring(args, eventfd2_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 3: initval (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 

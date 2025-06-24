@@ -5451,7 +5451,12 @@ FILLER(sys_eventfd2_x, true) {
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
 	int32_t flags = bpf_syscall_get_argument(data, 1);
-	return bpf_push_u16_to_ring(data, eventfd2_flags_to_scap(flags));
+	res = bpf_push_u16_to_ring(data, eventfd2_flags_to_scap(flags));
+	CHECK_RES(res);
+
+	/* Parameter 3: initval (type: PT_UINT64) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	return bpf_push_u64_to_ring(data, val);
 }
 
 FILLER(sys_mount_e, true) {
