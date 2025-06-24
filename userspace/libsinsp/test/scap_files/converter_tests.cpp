@@ -56,6 +56,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
 	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
 	        {PPME_SYSCALL_SECCOMP_E, 18},      {PPME_SYSCALL_SECCOMP_X, 18},
+	        {PPME_SYSCALL_EPOLL_CREATE1_E, 5}, {PPME_SYSCALL_EPOLL_CREATE1_X, 5},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1498,6 +1499,41 @@ TEST_F(scap_file_test, mprotect_x_check_final_converted_event) {
 	constexpr uint32_t proto = 1;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 4, res, addr, len, proto));
+}
+
+////////////////////////////
+// EPOLL_CREATE
+////////////////////////////
+
+// We don't have scap-files with EPOLL_CREATE events. Add it if we face a failure.
+
+////////////////////////////
+// EPOLL_CREATE1
+////////////////////////////
+
+TEST_F(scap_file_test, epoll_create1_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `597328` is the following:
+	// - type=PPME_SYSCALL_EPOLL_CREATE1_X,
+	// - ts=1687966725514490462
+	// - tid=141635
+	// - args=res=7
+	//
+	// And its corresponding enter event `597327` is the following:
+	// - type=PPME_SYSCALL_EPOLL_CREATE1_E
+	// - ts=1687966725514488017
+	// - tid=141635
+	// - args=flags=1(EPOLL_CLOEXEC)
+	//
+	// Let's see the new PPME_SYSCALL_EPOLL_CREATE1_X event!
+
+	constexpr uint64_t ts = 1687966725514490462;
+	constexpr int64_t tid = 141635;
+	constexpr int64_t res = 7;
+	constexpr uint32_t flags = 1;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_X, 2, res, flags));
 }
 
 ////////////////////////////

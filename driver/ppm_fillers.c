@@ -6738,9 +6738,7 @@ int f_sys_epoll_create_e(struct event_filler_arguments *args) {
 	unsigned long size;
 	int res;
 
-	/*
-	 * size
-	 */
+	/* Parameter 1: size (type: PT_INT32) */
 	syscall_get_arguments_deprecated(args, 0, 1, &size);
 	res = val_to_ring(args, size, 0, false, 0);
 	CHECK_RES(res);
@@ -6751,9 +6749,16 @@ int f_sys_epoll_create_e(struct event_filler_arguments *args) {
 int f_sys_epoll_create_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
+	unsigned long size;
 
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &size);
+	res = val_to_ring(args, size, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -6763,9 +6768,7 @@ int f_sys_epoll_create1_e(struct event_filler_arguments *args) {
 	unsigned long flags;
 	int res;
 
-	/*
-	 * flags
-	 */
+	/* Parameter 1: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 0, 1, &flags);
 	res = val_to_ring(args, epoll_create1_flags_to_scap(flags), 0, false, 0);
 	CHECK_RES(res);
@@ -6776,9 +6779,16 @@ int f_sys_epoll_create1_e(struct event_filler_arguments *args) {
 int f_sys_epoll_create1_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
+	unsigned long flags;
 
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &flags);
+	res = val_to_ring(args, epoll_create1_flags_to_scap(flags), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
