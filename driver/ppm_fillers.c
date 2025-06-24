@@ -8571,6 +8571,11 @@ int f_sys_umount2_x(struct event_filler_arguments *args) {
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, umount2_flags_to_scap(val), 0, true, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 

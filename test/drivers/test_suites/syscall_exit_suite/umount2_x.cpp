@@ -38,8 +38,11 @@ TEST(SyscallExit, umount2X) {
 	/* Parameter 2: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, target);
 
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(3, (uint32_t)(PPM_MNT_FORCE));
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

@@ -74,6 +74,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_MOUNT_E, 2},        {PPME_SYSCALL_MOUNT_X, 2},
 	        {PPME_SYSCALL_ACCESS_E, 350},     {PPME_SYSCALL_ACCESS_X, 350},
 	        {PPME_SYSCALL_MPROTECT_E, 584},   {PPME_SYSCALL_MPROTECT_X, 584},
+	        {PPME_SYSCALL_UMOUNT2_E, 2},      {PPME_SYSCALL_UMOUNT2_X, 2},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1593,4 +1594,38 @@ TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
 	uint32_t sgid = (uint32_t)-1;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
+}
+
+////////////////////////////
+// UMOUNT2
+////////////////////////////
+
+TEST_F(scap_file_test, umount2_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `156249` is the following:
+	// - type=PPME_SYSCALL_UMOUNT2_X,
+	// - ts=1687889193605753138
+	// - tid=100562
+	// - args=res=-2(ENOENT)
+	// name=/run/credentials/run-containerd-runc-k8s.io-d7717c36108697b040257e6d78a8980a763d3b22e437cf199477b9a142537c67-runc.J8eCT9.mount
+	//
+	// And its corresponding enter event `156248` is the following:
+	// - type=PPME_SYSCALL_UMOUNT2_E
+	// - ts=1687889193605748887
+	// - tid=100562
+	// - args=flags=10(DETACH|NOFOLLOW)
+	//
+	// Let's see the new PPME_SYSCALL_UMOUNT2_X event!
+
+	constexpr uint64_t ts = 1687889193605753138;
+	constexpr int64_t tid = 100562;
+	constexpr int64_t res = -2;
+	constexpr char name[] =
+	        "/run/credentials/"
+	        "run-containerd-runc-k8s.io-"
+	        "d7717c36108697b040257e6d78a8980a763d3b22e437cf199477b9a142537c67-runc.J8eCT9.mount";
+	constexpr uint32_t flags = 10;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 3, res, name, flags));
 }
