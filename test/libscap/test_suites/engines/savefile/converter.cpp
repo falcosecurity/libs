@@ -3373,6 +3373,102 @@ TEST_F(convert_event_test, PPME_SYSCALL_MPROTECT_X_1_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// EPOLL_CREATE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_EPOLL_CREATE_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t size = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE_E, 1, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EPOLL_CREATE_X_1_to_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr int32_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE_X, 2, res, size));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EPOLL_CREATE_X_1_to_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t size = 50;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE_E, 1, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE_X, 2, res, size));
+}
+
+////////////////////////////
+// EPOLL_CREATE1
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_EPOLL_CREATE1_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t flags = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EPOLL_CREATE1_X_1_to_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr uint32_t flags = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_X, 2, res, flags));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EPOLL_CREATE1_X_1_to_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t flags = 50;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_X, 2, res, flags));
+}
+
+////////////////////////////
 // SETGID
 ////////////////////////////
 

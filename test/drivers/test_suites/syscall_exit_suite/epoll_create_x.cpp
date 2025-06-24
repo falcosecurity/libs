@@ -32,8 +32,11 @@ TEST(SyscallExit, epoll_createX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)fd);
 
+	/* Parameter 2: size (type: PT_INT32) */
+	evt_test->assert_numeric_param(2, size);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif

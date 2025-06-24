@@ -229,9 +229,9 @@
 #define MLOCK2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 4
 #define FSCONFIG_E_SIZE HEADER_LEN
 #define EPOLL_CREATE_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
-#define EPOLL_CREATE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define EPOLL_CREATE_X_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(int64_t) + PARAM_LEN * 2
 #define EPOLL_CREATE1_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
-#define EPOLL_CREATE1_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define EPOLL_CREATE1_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define CHOWN_E_SIZE HEADER_LEN
 #define LCHOWN_E_SIZE HEADER_LEN
 #define FCHOWN_E_SIZE HEADER_LEN

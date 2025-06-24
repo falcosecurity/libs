@@ -26,8 +26,12 @@ TEST_F(sinsp_with_test_input, signed_int_compare) {
 
 	open_inspector();
 
-	sinsp_evt* evt =
-	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t)-22);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_EPOLL_CREATE_X,
+	                                      2,
+	                                      (uint64_t)-22,
+	                                      (int32_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.cpu"), "1");
 

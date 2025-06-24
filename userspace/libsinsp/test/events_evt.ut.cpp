@@ -83,8 +83,9 @@ TEST_F(sinsp_with_test_input, event_res) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_EPOLL_CREATE_X,
-	                           1,
-	                           (int64_t)-SE_EINVAL);
+	                           2,
+	                           (int64_t)-SE_EINVAL,
+	                           (int32_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "EINVAL");
 	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "-22");
@@ -92,8 +93,13 @@ TEST_F(sinsp_with_test_input, event_res) {
 	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "true");
 	EXPECT_EQ(get_field_as_string(evt, "evt.count.error"), "1");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t)100);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t)0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (int32_t)100);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_EPOLL_CREATE_X,
+	                           2,
+	                           (uint64_t)0,
+	                           (int32_t)100);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
 	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "0");

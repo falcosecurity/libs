@@ -47,8 +47,12 @@ int BPF_PROG(epoll_create_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: size (type: PT_INT32) */
+	int32_t size = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s32(&ringbuf, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
