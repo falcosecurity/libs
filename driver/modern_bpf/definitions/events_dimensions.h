@@ -247,7 +247,7 @@
 #define EVENTFD2_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
 #define EVENTFD2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define SIGNALFD4_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
-#define SIGNALFD4_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
+#define SIGNALFD4_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint16_t) + sizeof(uint32_t) + PARAM_LEN * 4
 #define PRCTL_E_SIZE HEADER_LEN
 #define MEMFD_CREATE_E_SIZE HEADER_LEN
 #define PIDFD_GETFD_E_SIZE HEADER_LEN

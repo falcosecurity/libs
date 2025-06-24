@@ -4067,25 +4067,16 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 }
 
 void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type type) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	//
-	// Check if the syscall was successful
-	//
+	const int64_t retval = evt.get_syscall_return_value();
 	if(retval < 0) {
 		return;
 	}
 
-	//
-	// Populate the new fdi
-	//
+	// Populate the new fd info.
 	auto fdi = m_fdinfo_factory.create();
 	fdi->m_type = type;
 
@@ -4097,9 +4088,7 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
 	}
 
-	//
 	// Add the fd to the table.
-	//
 	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 

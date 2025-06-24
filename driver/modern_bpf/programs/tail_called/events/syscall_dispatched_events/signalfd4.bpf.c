@@ -22,8 +22,8 @@ int BPF_PROG(signalfd4_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd);
 
 	/* Parameter 2: mask (type: PT_UINT32) */
 	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
@@ -51,12 +51,20 @@ int BPF_PROG(signalfd4_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD)*/
-	ringbuf__store_s64(&ringbuf, ret);
+	/* Parameter 1: res (type: PT_FD) */
+	ringbuf__store_s64(&ringbuf, (int64_t)(int32_t)ret);
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
 	int32_t flags = (int32_t)extract__syscall_argument(regs, 3);
 	ringbuf__store_u16(&ringbuf, signalfd4_flags_to_scap(flags));
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd);
+
+	/* Parameter 4: mask (type: PT_UINT32) */
+	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
+	ringbuf__store_u32(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
