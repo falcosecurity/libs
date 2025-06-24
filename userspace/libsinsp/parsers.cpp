@@ -101,7 +101,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_OPENAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
-	case PPME_SYSCALL_EVENTFD2_E:
 	case PPME_SYSCALL_LINK_E:
 	case PPME_SYSCALL_LINKAT_E:
 	case PPME_SYSCALL_RMDIR_E:
@@ -239,7 +238,7 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	case PPME_SYSCALL_EVENTFD_X:
 	case PPME_SYSCALL_EVENTFD2_X:
-		parse_eventfd_exit(evt);
+		parse_eventfd_eventfd2_exit(evt);
 		break;
 	case PPME_SYSCALL_CHDIR_X:
 		parse_chdir_exit(evt);
@@ -3857,7 +3856,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 	}
 }
 
-void sinsp_parser::parse_eventfd_exit(sinsp_evt &evt) const {
+void sinsp_parser::parse_eventfd_eventfd2_exit(sinsp_evt &evt) const {
 	// Lookup the thread info.
 	if(evt.get_tinfo() == nullptr) {
 		return;
