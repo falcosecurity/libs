@@ -41,9 +41,18 @@ TEST(SyscallExit, sendfileX_null_pointer) {
 	/* The pointer is NULL so the offset should be 0 */
 	evt_test->assert_numeric_param(2, (uint64_t)0);
 
+	/* Parameter 3: out_fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)out_fd);
+
+	/* Parameter 4: in_fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)in_fd);
+
+	/* Parameter 5: size (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)size);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, sendfileX) {
@@ -85,8 +94,17 @@ TEST(SyscallExit, sendfileX) {
 	/* The syscall fails so the offsite is not overwritten by the kernel */
 	evt_test->assert_numeric_param(2, (uint64_t)offsite);
 
+	/* Parameter 3: out_fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)out_fd);
+
+	/* Parameter 4: in_fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)in_fd);
+
+	/* Parameter 5: size (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)size);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif

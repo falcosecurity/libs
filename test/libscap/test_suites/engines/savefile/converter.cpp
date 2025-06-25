@@ -2424,6 +2424,93 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_with_enter) {
 }
 
 ////////////////////////////
+// SENDFILE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SENDFILE_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t out_fd = 50;
+	constexpr int64_t in_fd = 51;
+	constexpr uint64_t offset = 52;
+	constexpr uint64_t size = 53;
+
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_SENDFILE_E,
+	                                        4,
+	                                        out_fd,
+	                                        in_fd,
+	                                        offset,
+	                                        size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SENDFILE_X_2_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint64_t offset = 52;
+
+	// Defaulted to 0
+	constexpr int64_t out_fd = 0;
+	constexpr int64_t in_fd = 0;
+	constexpr uint64_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SENDFILE_X, 2, res, offset),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_SENDFILE_X,
+	                               5,
+	                               res,
+	                               offset,
+	                               out_fd,
+	                               in_fd,
+	                               size));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SENDFILE_X_2_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t out_fd = 50;
+	constexpr int64_t in_fd = 51;
+	constexpr uint64_t offset = 52;
+	constexpr uint64_t size = 53;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_SENDFILE_E,
+	                                        4,
+	                                        out_fd,
+	                                        in_fd,
+	                                        offset,
+	                                        size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SENDFILE_X, 2, res, offset),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_SENDFILE_X,
+	                               5,
+	                               res,
+	                               offset,
+	                               out_fd,
+	                               in_fd,
+	                               size));
+}
+
+////////////////////////////
 // MKDIR
 ////////////////////////////
 

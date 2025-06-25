@@ -22,12 +22,12 @@ int BPF_PROG(sendfile_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: out_fd (type: PT_FD) */
-	int32_t out_fd = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)out_fd);
+	int64_t out_fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, out_fd);
 
 	/* Parameter 2: in_fd (type: PT_FD) */
-	int32_t in_fd = (int32_t)extract__syscall_argument(regs, 1);
-	ringbuf__store_s64(&ringbuf, (int64_t)in_fd);
+	int64_t in_fd = (int64_t)(int32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_s64(&ringbuf, in_fd);
 
 	/* Parameter 3: offset (type: PT_UINT64) */
 	unsigned long offset = 0;
@@ -69,6 +69,18 @@ int BPF_PROG(sendfile_x, struct pt_regs *regs, long ret) {
 	unsigned long offset_pointer = extract__syscall_argument(regs, 2);
 	bpf_probe_read_user((void *)&offset, sizeof(offset), (void *)offset_pointer);
 	ringbuf__store_u64(&ringbuf, offset);
+
+	/* Parameter 3: out_fd (type: PT_FD) */
+	int64_t out_fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, out_fd);
+
+	/* Parameter 4: in_fd (type: PT_FD) */
+	int64_t in_fd = (int64_t)(int32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_s64(&ringbuf, in_fd);
+
+	/* Parameter 5: size (type: PT_UINT64) */
+	uint64_t size = extract__syscall_argument(regs, 3);
+	ringbuf__store_u64(&ringbuf, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

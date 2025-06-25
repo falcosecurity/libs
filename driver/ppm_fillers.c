@@ -7092,22 +7092,22 @@ int f_sys_procexit_e(struct event_filler_arguments *args) {
 }
 
 int f_sys_sendfile_e(struct event_filler_arguments *args) {
-	unsigned long val = 0;
-	int res = 0;
+	unsigned long val;
+	int64_t out_fd;
+	int64_t in_fd;
+	int res;
 	off_t offset = 0;
-	int32_t out_fd = 0;
-	int32_t in_fd = 0;
 
 	/* Parameter 1: out_fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	out_fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)out_fd, 0, true, 0);
+	out_fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, out_fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: in_fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	in_fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)in_fd, 0, true, 0);
+	in_fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, in_fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: offset (type: PT_UINT64) */
@@ -7141,21 +7141,19 @@ int f_sys_sendfile_e(struct event_filler_arguments *args) {
 }
 
 int f_sys_sendfile_x(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
 	int64_t retval;
+	int res;
+	unsigned long val;
 	off_t offset;
+	int64_t out_fd;
+	int64_t in_fd;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * offset
-	 */
+	/* Parameter 2: offset (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 
 	if(val != 0) {
@@ -7174,6 +7172,23 @@ int f_sys_sendfile_x(struct event_filler_arguments *args) {
 			val = offset;
 	}
 
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: out_fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	out_fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, out_fd, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: in_fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	in_fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, in_fd, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: size (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
