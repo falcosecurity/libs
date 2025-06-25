@@ -57,6 +57,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
 	        {PPME_SYSCALL_SECCOMP_E, 18},      {PPME_SYSCALL_SECCOMP_X, 18},
 	        {PPME_SYSCALL_EPOLL_CREATE1_E, 5}, {PPME_SYSCALL_EPOLL_CREATE1_X, 5},
+	        {PPME_SYSCALL_KILL_E, 156},        {PPME_SYSCALL_KILL_X, 156},
+	        {PPME_SYSCALL_TGKILL_E, 1010},     {PPME_SYSCALL_TGKILL_X, 1010},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -219,6 +221,72 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	                               fd,
 	                               size,
 	                               pos));
+}
+
+////////////////////////////
+// KILL
+////////////////////////////
+
+TEST_F(scap_file_test, kill_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `900011` is the following:
+	// - type=PPME_SYSCALL_KILL_X,
+	// - ts=1687966733867745508
+	// - tid=132533
+	// - args=res=0
+	//
+	// And its corresponding enter event `900010` is the following:
+	// - type=PPME_SYSCALL_KILL_E
+	// - ts=1687966733867740060
+	// - tid=132533
+	// - args=pid=121080(cpptools) sig=0
+	//
+	// Let's see the new PPME_SYSCALL_KILL_X event!
+	constexpr uint64_t ts = 1687966733867745508;
+	constexpr int64_t tid = 132533;
+	constexpr int64_t res = 0;
+	constexpr int64_t pid = 121080;
+	constexpr uint8_t sig = 0;
+
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_KILL_X, 3, res, pid, sig));
+}
+
+////////////////////////////
+// TKILL
+////////////////////////////
+
+// We don't have scap-files with TKILL events. Add it if we face a failure.
+
+////////////////////////////
+// TGKILL
+////////////////////////////
+
+TEST_F(scap_file_test, tgkill_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `907496` is the following:
+	// - type=PPME_SYSCALL_TGKILL_X,
+	// - ts=1687966734248771138
+	// - tid=114087
+	// - args=res=0
+	//
+	// And its corresponding enter event `907489` is the following:
+	// - type=PPME_SYSCALL_TGKILL_E
+	// - ts=1687966734248751978
+	// - tid=114087
+	// - args=pid=672 tid=678 sig=23(SIGURG)
+	//
+	// Let's see the new PPME_SYSCALL_TGKILL_X event!
+	constexpr uint64_t ts = 1687966734248771138;
+	constexpr int64_t tid = 114087;
+	constexpr int64_t res = 0;
+	constexpr int64_t pid = 672;
+	constexpr int64_t tid_param = 678;
+	constexpr uint8_t sig = 23;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_TGKILL_X, 4, res, pid, tid_param, sig));
 }
 
 ////////////////////////////

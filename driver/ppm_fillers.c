@@ -6751,6 +6751,93 @@ int f_sys_signalfd4_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_kill_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+	pid_t pid;
+	uint8_t sig;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	pid = (int32_t)val;
+	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	sig = (uint8_t)val;
+	res = val_to_ring(args, sig, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_tkill_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+	pid_t tid;
+	uint8_t sig;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: tid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	tid = (int32_t)val;
+	res = val_to_ring(args, (int64_t)tid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	sig = (uint8_t)val;
+	res = val_to_ring(args, sig, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_tgkill_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+	pid_t pid, tid;
+	uint8_t sig;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: pid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	pid = (int32_t)val;
+	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: tid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	tid = (int32_t)val;
+	res = val_to_ring(args, (int64_t)tid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	sig = (uint8_t)val;
+	res = val_to_ring(args, sig, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_epoll_create_e(struct event_filler_arguments *args) {
 	unsigned long size;
 	int res;

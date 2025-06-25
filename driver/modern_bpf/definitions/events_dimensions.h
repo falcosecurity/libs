@@ -83,11 +83,11 @@
 #define SIGNALFD_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint8_t) + PARAM_LEN * 3
 #define SIGNALFD_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define KILL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
-#define KILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define KILL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
 #define TKILL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
-#define TKILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define TKILL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
 #define TGKILL_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
-#define TGKILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define TGKILL_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint8_t) + PARAM_LEN * 4
 #define NANOSLEEP_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
 #define NANOSLEEP_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define TIMERFD_CREATE_E_SIZE HEADER_LEN + sizeof(uint8_t) * 2 + PARAM_LEN * 2

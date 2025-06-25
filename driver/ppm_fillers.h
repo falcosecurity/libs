@@ -211,6 +211,9 @@ or GPL2.txt for full copies of the license.
 	FN(sys_eventfd2_x)                   \
 	FN(sys_signalfd4_e)                  \
 	FN(sys_signalfd4_x)                  \
+	FN(sys_kill_x)                       \
+	FN(sys_tkill_x)                      \
+	FN(sys_tgkill_x)                     \
 	FN(sys_prctl_x)                      \
 	FN(sys_memfd_create_x)               \
 	FN(sys_pidfd_getfd_x)                \
