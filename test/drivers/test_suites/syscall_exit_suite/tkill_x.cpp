@@ -33,8 +33,14 @@ TEST(SyscallExit, tkillX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, errno_value);
 
+	/* Parameter 2: tid (type: PT_PID) */
+	evt_test->assert_numeric_param(2, (int64_t)mock_tid);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	evt_test->assert_numeric_param(3, (uint8_t)signal);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

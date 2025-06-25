@@ -51,8 +51,16 @@ int BPF_PROG(kill_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (int64_t)pid);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	uint8_t sig = (uint8_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_u8(&ringbuf, sig);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

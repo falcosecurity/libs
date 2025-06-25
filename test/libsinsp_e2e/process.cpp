@@ -203,8 +203,21 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_KILL_X) {
-			EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
-			callnum++;
+			if(callnum == 4) {
+				EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
+				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
+				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
+				EXPECT_EQ("SIGTERM", e->get_param_value_str("sig"));
+				EXPECT_EQ(SIGTERM, std::stoi(e->get_param_value_str("sig", false)));
+				callnum++;
+			} else if(callnum == 6) {
+				EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
+				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
+				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
+				EXPECT_EQ("SIGINT", e->get_param_value_str("sig"));
+				EXPECT_EQ(SIGINT, std::stoi(e->get_param_value_str("sig", false)));
+				callnum++;
+			}
 		}
 	};
 

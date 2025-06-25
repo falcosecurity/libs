@@ -126,6 +126,7 @@ static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
 	case PT_UINT8:
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
+	case PT_SIGTYPE:
 		return 1;
 
 	case PT_INT16:

@@ -4184,6 +4184,59 @@ FILLER(sys_signalfd4_x, true) {
 	return bpf_push_u32_to_ring(data, 0);
 }
 
+FILLER(sys_kill_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)pid);
+	CHECK_RES(res);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	uint8_t sig = (uint8_t)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u8_to_ring(data, sig);
+}
+
+FILLER(sys_tkill_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: tid (type: PT_PID) */
+	pid_t tid = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)tid);
+	CHECK_RES(res);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
+	uint8_t sig = (uint8_t)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u8_to_ring(data, sig);
+}
+
+FILLER(sys_tgkill_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)pid);
+	CHECK_RES(res);
+
+	/* Parameter 3: tid (type: PT_PID) */
+	pid_t tid = (int32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s64_to_ring(data, (int64_t)tid);
+	CHECK_RES(res);
+
+	/* Parameter 4: sig (type: PT_SIGTYPE) */
+	uint8_t sig = (uint8_t)bpf_syscall_get_argument(data, 2);
+	return bpf_push_u8_to_ring(data, sig);
+}
+
 FILLER(sys_epoll_create_e, true) {
 	/* Parameter 1: size (type: PT_INT32) */
 	int32_t size = (int32_t)bpf_syscall_get_argument(data, 0);
