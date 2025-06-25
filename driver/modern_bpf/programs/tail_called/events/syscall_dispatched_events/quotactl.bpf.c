@@ -205,6 +205,29 @@ int BPF_PROG(quotactl_x, struct pt_regs *regs, long ret) {
 	}
 	auxmap__store_u8_param(auxmap, quota_fmt_out);
 
+	/* Parameter 15: cmd (type: PT_FLAGS16) */
+	auxmap__store_u16_param(auxmap, scap_cmd);
+
+	/* Parameter 16: type (type: PT_FLAGS8) */
+	auxmap__store_u8_param(auxmap, quotactl_type_to_scap(cmd));
+
+	/* Parameter 17: id (type: PT_UINT32) */
+	uint32_t id = (uint32_t)extract__syscall_argument(regs, 2);
+	if(scap_cmd != PPM_Q_GETQUOTA && scap_cmd != PPM_Q_SETQUOTA && scap_cmd != PPM_Q_XGETQUOTA &&
+	   scap_cmd != PPM_Q_XSETQLIM) {
+		/* In this case `id` don't represent a `userid` or a `groupid` */
+		auxmap__store_u32_param(auxmap, 0);
+	} else {
+		auxmap__store_u32_param(auxmap, id);
+	}
+
+	/* Parameter 18: quota_fmt (type: PT_FLAGS8) */
+	uint8_t quota_fmt = PPM_QFMT_NOT_USED;
+	if(scap_cmd == PPM_Q_QUOTAON) {
+		quota_fmt = quotactl_fmt_to_scap(id);
+	}
+	auxmap__store_u8_param(auxmap, quota_fmt);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

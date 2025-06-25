@@ -1194,6 +1194,12 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 // We don't have scap-files with SENDFILE events. Add it if we face a failure.
 
 ////////////////////////////
+// QUOTACTL
+////////////////////////////
+
+// We don't have scap-files with QUOTACTL events. Add it if we face a failure.
+
+////////////////////////////
 // GETDENTS
 ////////////////////////////
 

@@ -6441,24 +6441,17 @@ FILLER(sys_quotactl_x, true) {
 	unsigned long val;
 	long retval;
 	int res;
-	uint16_t cmd;
 
-	/*
-	 * extract cmd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	cmd = quotactl_cmd_to_scap(val);
+	/* Extract cmd. */
+	uint32_t cmd = (uint32_t)bpf_syscall_get_argument(data, 0);
+	uint16_t scap_cmd = quotactl_cmd_to_scap(cmd);
 
-	/*
-	 * return value
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/*
-	 * Add special
-	 */
+	/* Parameter 2: special (type: PT_CHARBUF) */
 	val = bpf_syscall_get_argument(data, 1);
 	res = bpf_val_to_ring_type_mem(data, val, PT_CHARBUF, USER);
 	CHECK_RES(res);
@@ -6468,10 +6461,11 @@ FILLER(sys_quotactl_x, true) {
 	 */
 	val = bpf_syscall_get_argument(data, 3);
 
+	/* Parameter 3: quotafilepath (type: PT_CHARBUF) */
 	/*
 	 * get quotafilepath only for QUOTAON
 	 */
-	if(cmd == PPM_Q_QUOTAON) {
+	if(scap_cmd == PPM_Q_QUOTAON) {
 		res = bpf_val_to_ring_type_mem(data, val, PT_CHARBUF, USER);
 		CHECK_RES(res);
 	} else {
@@ -6482,24 +6476,29 @@ FILLER(sys_quotactl_x, true) {
 	/*
 	 * dqblk fields if present
 	 */
-	if(cmd == PPM_Q_GETQUOTA || cmd == PPM_Q_SETQUOTA) {
+	if(scap_cmd == PPM_Q_GETQUOTA || scap_cmd == PPM_Q_SETQUOTA) {
 		if(bpf_probe_read_user(&dqblk, sizeof(dqblk), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 	if(dqblk.dqb_valid & QIF_BLIMITS) {
+		/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_bhardlimit);
 		CHECK_RES(res);
 
+		/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_bsoftlimit);
 		CHECK_RES(res);
 	} else {
+		/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, 0);
 		CHECK_RES(res);
 
+		/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, 0);
 		CHECK_RES(res);
 	}
 
+	/* Parameter 6: dqb_curspace (type: PT_UINT64) */
 	if(dqblk.dqb_valid & QIF_SPACE) {
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_curspace);
 		CHECK_RES(res);
@@ -6509,17 +6508,22 @@ FILLER(sys_quotactl_x, true) {
 	}
 
 	if(dqblk.dqb_valid & QIF_ILIMITS) {
+		/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_ihardlimit);
 		CHECK_RES(res);
+		/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_isoftlimit);
 		CHECK_RES(res);
 	} else {
+		/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, 0);
 		CHECK_RES(res);
+		/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
 		res = bpf_push_u64_to_ring(data, 0);
 		CHECK_RES(res);
 	}
 
+	/* Parameter 9: dqb_btime (type: PT_RELTIME) */
 	if(dqblk.dqb_valid & QIF_BTIME) {
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_btime);
 		CHECK_RES(res);
@@ -6528,6 +6532,7 @@ FILLER(sys_quotactl_x, true) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 10: dqb_itime (type: PT_RELTIME) */
 	if(dqblk.dqb_valid & QIF_ITIME) {
 		res = bpf_push_u64_to_ring(data, dqblk.dqb_itime);
 		CHECK_RES(res);
@@ -6539,11 +6544,12 @@ FILLER(sys_quotactl_x, true) {
 	/*
 	 * dqinfo fields if present
 	 */
-	if(cmd == PPM_Q_GETINFO || cmd == PPM_Q_SETINFO) {
+	if(scap_cmd == PPM_Q_GETINFO || scap_cmd == PPM_Q_SETINFO) {
 		if(bpf_probe_read_user(&dqinfo, sizeof(dqinfo), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
+	/* Parameter 11: dqi_bgrace (type: PT_RELTIME) */
 	if(dqinfo.dqi_valid & IIF_BGRACE) {
 		res = bpf_push_u64_to_ring(data, dqinfo.dqi_bgrace);
 		CHECK_RES(res);
@@ -6552,6 +6558,7 @@ FILLER(sys_quotactl_x, true) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
 	if(dqinfo.dqi_valid & IIF_IGRACE) {
 		res = bpf_push_u64_to_ring(data, dqinfo.dqi_igrace);
 		CHECK_RES(res);
@@ -6560,6 +6567,7 @@ FILLER(sys_quotactl_x, true) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
 	if(dqinfo.dqi_valid & IIF_FLAGS) {
 		res = bpf_push_u8_to_ring(data, dqinfo.dqi_flags);
 		CHECK_RES(res);
@@ -6568,8 +6576,9 @@ FILLER(sys_quotactl_x, true) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 14: quota_fmt_out (type: PT_FLAGS8) */
 	quota_fmt_out = PPM_QFMT_NOT_USED;
-	if(cmd == PPM_Q_GETFMT) {
+	if(scap_cmd == PPM_Q_GETFMT) {
 		uint32_t tmp;
 
 		if(bpf_probe_read_user(&tmp, sizeof(tmp), (void *)val))
@@ -6577,7 +6586,33 @@ FILLER(sys_quotactl_x, true) {
 		quota_fmt_out = quotactl_fmt_to_scap(tmp);
 	}
 
-	return bpf_push_u8_to_ring(data, quota_fmt_out);
+	res = bpf_push_u8_to_ring(data, quota_fmt_out);
+	CHECK_RES(res);
+
+	/* Parameter 15: cmd (type: PT_FLAGS16) */
+	res = bpf_push_u16_to_ring(data, scap_cmd);
+	CHECK_RES(res);
+
+	/* Parameter 16: type (type: PT_FLAGS8) */
+	res = bpf_push_u8_to_ring(data, quotactl_type_to_scap(cmd));
+	CHECK_RES(res);
+
+	/* Parameter 17: id (type: PT_UINT32) */
+	uint32_t id = (uint32_t)bpf_syscall_get_argument(data, 2);
+	if(scap_cmd != PPM_Q_GETQUOTA && scap_cmd != PPM_Q_SETQUOTA && scap_cmd != PPM_Q_XGETQUOTA &&
+	   scap_cmd != PPM_Q_XSETQLIM) {
+		/* In this case `id` don't represent a `userid` or a `groupid` */
+		res = bpf_push_u32_to_ring(data, 0);
+	} else {
+		res = bpf_push_u32_to_ring(data, id);
+	}
+
+	/* Parameter 18: quota_fmt (type: PT_FLAGS8) */
+	uint8_t quota_fmt = PPM_QFMT_NOT_USED;
+	if(scap_cmd == PPM_Q_QUOTAON) {
+		quota_fmt = quotactl_fmt_to_scap(id);
+	}
+	return bpf_push_u8_to_ring(data, quota_fmt);
 }
 
 FILLER(sys_setresuid_x, true) {

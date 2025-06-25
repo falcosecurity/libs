@@ -2511,6 +2511,165 @@ TEST_F(convert_event_test, PPME_SYSCALL_SENDFILE_X_2_to_5_params_with_enter) {
 }
 
 ////////////////////////////
+// QUOTACTL
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_QUOTACTL_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint16_t cmd = 61;
+	constexpr uint8_t typ = 62;
+	constexpr uint32_t id = 63;
+	constexpr uint8_t quota_fmt = 64;
+
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_QUOTACTL_E, 4, cmd, typ, id, quota_fmt);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_QUOTACTL_X_14_to_18_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char special[] = "special";
+	constexpr char quotafilepath[] = "quotafilepath";
+	constexpr uint64_t dqb_bhardlimit = 50;
+	constexpr uint64_t dqb_bsoftlimit = 51;
+	constexpr uint64_t dqb_curspace = 52;
+	constexpr uint64_t dqb_ihardlimit = 53;
+	constexpr uint64_t dqb_isoftlimit = 54;
+	constexpr uint64_t dqb_btime = 55;
+	constexpr uint64_t dqb_itime = 56;
+	constexpr uint64_t dqi_bgrace = 57;
+	constexpr uint64_t dqi_igrace = 58;
+	constexpr uint8_t dqi_flags = 59;
+	constexpr uint8_t quota_fmt_out = 60;
+
+	// Defaulted to 0
+	constexpr uint16_t cmd = 0;
+	constexpr uint8_t typ = 0;
+	constexpr uint32_t id = 0;
+	constexpr uint8_t quota_fmt = 0;
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_QUOTACTL_X,
+	                                                        14,
+	                                                        res,
+	                                                        special,
+	                                                        quotafilepath,
+	                                                        dqb_bhardlimit,
+	                                                        dqb_bsoftlimit,
+	                                                        dqb_curspace,
+	                                                        dqb_ihardlimit,
+	                                                        dqb_isoftlimit,
+	                                                        dqb_btime,
+	                                                        dqb_itime,
+	                                                        dqi_bgrace,
+	                                                        dqi_igrace,
+	                                                        dqi_flags,
+	                                                        quota_fmt_out),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_QUOTACTL_X,
+	                                                        18,
+	                                                        res,
+	                                                        special,
+	                                                        quotafilepath,
+	                                                        dqb_bhardlimit,
+	                                                        dqb_bsoftlimit,
+	                                                        dqb_curspace,
+	                                                        dqb_ihardlimit,
+	                                                        dqb_isoftlimit,
+	                                                        dqb_btime,
+	                                                        dqb_itime,
+	                                                        dqi_bgrace,
+	                                                        dqi_igrace,
+	                                                        dqi_flags,
+	                                                        quota_fmt_out,
+	                                                        cmd,
+	                                                        typ,
+	                                                        id,
+	                                                        quota_fmt));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_QUOTACTL_X_14_to_18_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint16_t cmd = 61;
+	constexpr uint8_t typ = 62;
+	constexpr uint32_t id = 63;
+	constexpr uint8_t quota_fmt = 64;
+	constexpr int64_t res = 89;
+	constexpr char special[] = "special";
+	constexpr char quotafilepath[] = "quotafilepath";
+	constexpr uint64_t dqb_bhardlimit = 50;
+	constexpr uint64_t dqb_bsoftlimit = 51;
+	constexpr uint64_t dqb_curspace = 52;
+	constexpr uint64_t dqb_ihardlimit = 53;
+	constexpr uint64_t dqb_isoftlimit = 54;
+	constexpr uint64_t dqb_btime = 55;
+	constexpr uint64_t dqb_itime = 56;
+	constexpr uint64_t dqi_bgrace = 57;
+	constexpr uint64_t dqi_igrace = 58;
+	constexpr uint8_t dqi_flags = 59;
+	constexpr uint8_t quota_fmt_out = 60;
+
+	// After the first conversion we should have the storage
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_QUOTACTL_E, 4, cmd, typ, id, quota_fmt);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_QUOTACTL_X,
+	                                                        14,
+	                                                        res,
+	                                                        special,
+	                                                        quotafilepath,
+	                                                        dqb_bhardlimit,
+	                                                        dqb_bsoftlimit,
+	                                                        dqb_curspace,
+	                                                        dqb_ihardlimit,
+	                                                        dqb_isoftlimit,
+	                                                        dqb_btime,
+	                                                        dqb_itime,
+	                                                        dqi_bgrace,
+	                                                        dqi_igrace,
+	                                                        dqi_flags,
+	                                                        quota_fmt_out),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_QUOTACTL_X,
+	                                                        18,
+	                                                        res,
+	                                                        special,
+	                                                        quotafilepath,
+	                                                        dqb_bhardlimit,
+	                                                        dqb_bsoftlimit,
+	                                                        dqb_curspace,
+	                                                        dqb_ihardlimit,
+	                                                        dqb_isoftlimit,
+	                                                        dqb_btime,
+	                                                        dqb_itime,
+	                                                        dqi_bgrace,
+	                                                        dqi_igrace,
+	                                                        dqi_flags,
+	                                                        quota_fmt_out,
+	                                                        cmd,
+	                                                        typ,
+	                                                        id,
+	                                                        quota_fmt));
+}
+
+////////////////////////////
 // MKDIR
 ////////////////////////////
 

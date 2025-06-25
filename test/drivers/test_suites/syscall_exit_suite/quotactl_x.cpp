@@ -81,9 +81,23 @@ TEST(SyscallExit, quotactlX) {
 	/* Parameter 14: quota_fmt_out (type: PT_FLAGS8) */
 	evt_test->assert_numeric_param(14, (uint8_t)PPM_QFMT_NOT_USED);
 
+	/* Parameter 15: cmd (type: PT_FLAGS16) */
+	evt_test->assert_numeric_param(15, (uint16_t)PPM_Q_SYNC);
+
+	/* Parameter 16: type (type: PT_FLAGS8) */
+	evt_test->assert_numeric_param(16, (uint8_t)PPM_USRQUOTA);
+
+	/* Parameter 17: id (type: PT_UINT32) */
+	/* With `PPM_Q_SYNC` we expect `0` */
+	evt_test->assert_numeric_param(17, (uint32_t)0);
+
+	/* Parameter 18: quota_fmt (type: PT_FLAGS8) */
+	/* With `PPM_Q_SYNC` we expect `PPM_QFMT_NOT_USED` */
+	evt_test->assert_numeric_param(18, (uint8_t)PPM_QFMT_NOT_USED);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(14);
+	evt_test->assert_num_params_pushed(18);
 }
 
 /// TODO: Probably we can add further tests on this exit event

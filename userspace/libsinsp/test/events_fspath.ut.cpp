@@ -641,7 +641,7 @@ TEST_F(fspath, quotactl) {
 	test_exit_path(path,
 	               path,
 	               PPME_SYSCALL_QUOTACTL_X,
-	               14,
+	               18,
 	               res,
 	               path,
 	               quotafilepath,
@@ -655,9 +655,13 @@ TEST_F(fspath, quotactl) {
 	               dqi_bgrace,
 	               dqi_igrace,
 	               dqi_flags,
-	               quota_fmt_out);
+	               quota_fmt_out,
+	               cmd,
+	               type,
+	               id,
+	               quota_fmt);
 	test_failed_exit(PPME_SYSCALL_QUOTACTL_X,
-	                 14,
+	                 18,
 	                 failed_res,
 	                 path,
 	                 quotafilepath,
@@ -671,7 +675,11 @@ TEST_F(fspath, quotactl) {
 	                 dqi_bgrace,
 	                 dqi_igrace,
 	                 dqi_flags,
-	                 quota_fmt_out);
+	                 quota_fmt_out,
+	                 cmd,
+	                 type,
+	                 id,
+	                 quota_fmt);
 }
 
 TEST_F(fspath, rename) {

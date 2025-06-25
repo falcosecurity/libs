@@ -7241,27 +7241,25 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	unsigned long val, len;
 	int res;
 	int64_t retval;
-	uint16_t cmd;
+	uint32_t cmd;
 	struct if_dqblk dqblk;
 	struct if_dqinfo dqinfo;
 	uint32_t quota_fmt_out;
+	uint16_t scap_cmd;
+	uint32_t id;
+	uint8_t quota_fmt;
 
-	/*
-	 * extract cmd
-	 */
+	/* Extract cmd. */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	cmd = quotactl_cmd_to_scap(val);
+	cmd = (uint32_t)val;
+	scap_cmd = quotactl_cmd_to_scap(cmd);
 
-	/*
-	 * return value
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * Add special
-	 */
+	/* Parameter 2: special (type: PT_CHARBUF) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
@@ -7271,10 +7269,9 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	 */
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
 
-	/*
-	 * get quotafilepath only for QUOTAON
-	 */
-	if(cmd == PPM_Q_QUOTAON)
+	/* Parameter 3: quotafilepath (type: PT_CHARBUF) */
+	/* We get `quotafilepath` only for `QUOTAON` command. */
+	if(scap_cmd == PPM_Q_QUOTAON)
 		res = val_to_ring(args, val, 0, true, 0);
 	else
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -7285,23 +7282,28 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	 * dqblk fields if present
 	 */
 	dqblk.dqb_valid = 0;
-	if((cmd == PPM_Q_GETQUOTA) || (cmd == PPM_Q_SETQUOTA)) {
+	if((scap_cmd == PPM_Q_GETQUOTA) || (scap_cmd == PPM_Q_SETQUOTA)) {
 		len = ppm_copy_from_user(&dqblk, (void *)val, sizeof(struct if_dqblk));
 		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 	if(dqblk.dqb_valid & QIF_BLIMITS) {
+		/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
 		res = val_to_ring(args, dqblk.dqb_bhardlimit, 0, false, 0);
 		CHECK_RES(res);
+		/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
 		res = val_to_ring(args, dqblk.dqb_bsoftlimit, 0, false, 0);
 		CHECK_RES(res);
 	} else {
+		/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
+		/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
 	}
 
+	/* Parameter 6: dqb_curspace (type: PT_UINT64) */
 	if(dqblk.dqb_valid & QIF_SPACE) {
 		res = val_to_ring(args, dqblk.dqb_curspace, 0, false, 0);
 		CHECK_RES(res);
@@ -7311,17 +7313,22 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	}
 
 	if(dqblk.dqb_valid & QIF_ILIMITS) {
+		/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
 		res = val_to_ring(args, dqblk.dqb_ihardlimit, 0, false, 0);
 		CHECK_RES(res);
+		/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
 		res = val_to_ring(args, dqblk.dqb_isoftlimit, 0, false, 0);
 		CHECK_RES(res);
 	} else {
+		/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
+		/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
 	}
 
+	/* Parameter 9: dqb_btime (type: PT_RELTIME) */
 	if(dqblk.dqb_valid & QIF_BTIME) {
 		res = val_to_ring(args, dqblk.dqb_btime, 0, false, 0);
 		CHECK_RES(res);
@@ -7330,6 +7337,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 10: dqb_itime (type: PT_RELTIME) */
 	if(dqblk.dqb_valid & QIF_ITIME) {
 		res = val_to_ring(args, dqblk.dqb_itime, 0, false, 0);
 		CHECK_RES(res);
@@ -7342,12 +7350,13 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	 * dqinfo fields if present
 	 */
 	dqinfo.dqi_valid = 0;
-	if((cmd == PPM_Q_GETINFO) || (cmd == PPM_Q_SETINFO)) {
+	if((scap_cmd == PPM_Q_GETINFO) || (scap_cmd == PPM_Q_SETINFO)) {
 		len = ppm_copy_from_user(&dqinfo, (void *)val, sizeof(struct if_dqinfo));
 		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
+	/* Parameter 11: dqi_bgrace (type: PT_RELTIME) */
 	if(dqinfo.dqi_valid & IIF_BGRACE) {
 		res = val_to_ring(args, dqinfo.dqi_bgrace, 0, false, 0);
 		CHECK_RES(res);
@@ -7356,6 +7365,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
 	if(dqinfo.dqi_valid & IIF_IGRACE) {
 		res = val_to_ring(args, dqinfo.dqi_igrace, 0, false, 0);
 		CHECK_RES(res);
@@ -7364,6 +7374,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
 	if(dqinfo.dqi_valid & IIF_FLAGS) {
 		res = val_to_ring(args, dqinfo.dqi_flags, 0, false, 0);
 		CHECK_RES(res);
@@ -7372,14 +7383,43 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 		CHECK_RES(res);
 	}
 
+	/* Parameter 14: quota_fmt_out (type: PT_FLAGS8) */
 	quota_fmt_out = PPM_QFMT_NOT_USED;
-	if(cmd == PPM_Q_GETFMT) {
+	if(scap_cmd == PPM_Q_GETFMT) {
 		len = ppm_copy_from_user(&quota_fmt_out, (void *)val, sizeof(uint32_t));
 		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		quota_fmt_out = quotactl_fmt_to_scap(quota_fmt_out);
 	}
 	res = val_to_ring(args, quota_fmt_out, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 15: cmd (type: PT_FLAGS16) */
+	res = val_to_ring(args, scap_cmd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 16: type (type: PT_FLAGS8) */
+	res = val_to_ring(args, quotactl_type_to_scap(cmd), 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 17: id (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	id = (uint32_t)val;
+	if((scap_cmd != PPM_Q_GETQUOTA) && (scap_cmd != PPM_Q_SETQUOTA) &&
+	   (scap_cmd != PPM_Q_XGETQUOTA) && (scap_cmd != PPM_Q_XSETQLIM)) {
+		/* In this case `id` don't represent a `userid` or a `groupid` */
+		res = val_to_ring(args, 0, 0, false, 0);
+	} else {
+		res = val_to_ring(args, id, 0, false, 0);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 18: quota_fmt (type: PT_FLAGS8) */
+	quota_fmt = PPM_QFMT_NOT_USED;
+	if(scap_cmd == PPM_Q_QUOTAON) {
+		quota_fmt = quotactl_fmt_to_scap(id);
+	}
+	res = val_to_ring(args, quota_fmt, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
