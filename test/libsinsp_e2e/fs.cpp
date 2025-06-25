@@ -940,6 +940,9 @@ TEST_F(sys_call_test, fs_sendfile) {
 		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
+			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			callnum++;
 		}
 	};
@@ -998,6 +1001,9 @@ TEST_F(sys_call_test, fs_sendfile_nulloff) {
 		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
+			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			callnum++;
 		}
 	};
@@ -1044,6 +1050,9 @@ TEST_F(sys_call_test, fs_sendfile_failed) {
 			EXPECT_NO_THROW({
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
+				EXPECT_EQ("-1", e->get_param_value_str("out_fd", false));
+				EXPECT_EQ("-2", e->get_param_value_str("in_fd", false));
+				EXPECT_EQ(444, std::stoll(e->get_param_value_str("size", false)));
 			});
 			callnum++;
 		}
@@ -1103,6 +1112,9 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff) {
 		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
+			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			callnum++;
 		}
 	};
@@ -1163,6 +1175,9 @@ TEST_F(sys_call_test, fs_sendfile64) {
 		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
+			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			callnum++;
 		}
 	};

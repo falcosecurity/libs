@@ -4231,13 +4231,13 @@ FILLER(sys_epoll_wait_x, true) {
 
 FILLER(sys_sendfile_e, true) {
 	/* Parameter 1: out_fd (type: PT_FD) */
-	int32_t out_fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)out_fd);
+	int64_t out_fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, out_fd);
 	CHECK_RES(res);
 
 	/* Parameter 2: in_fd (type: PT_FD) */
-	int32_t in_fd = (int32_t)bpf_syscall_get_argument(data, 1);
-	res = bpf_push_s64_to_ring(data, (int64_t)in_fd);
+	int64_t in_fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s64_to_ring(data, in_fd);
 	CHECK_RES(res);
 
 	/* Parameter 3: offset (type: PT_UINT64) */
@@ -4262,7 +4262,22 @@ FILLER(sys_sendfile_x, true) {
 	unsigned long offset = 0;
 	unsigned long offset_pointer = bpf_syscall_get_argument(data, 2);
 	bpf_probe_read_user((void *)&offset, sizeof(offset), (void *)offset_pointer);
-	return bpf_push_u64_to_ring(data, offset);
+	res = bpf_push_u64_to_ring(data, offset);
+	CHECK_RES(res);
+
+	/* Parameter 3: out_fd (type: PT_FD) */
+	int64_t out_fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, out_fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: in_fd (type: PT_FD) */
+	int64_t in_fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s64_to_ring(data, in_fd);
+	CHECK_RES(res);
+
+	/* Parameter 5: size (type: PT_UINT64) */
+	uint64_t size = bpf_syscall_get_argument(data, 3);
+	return bpf_push_u64_to_ring(data, size);
 }
 
 FILLER(sys_prlimit_e, true) {

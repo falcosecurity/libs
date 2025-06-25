@@ -1188,6 +1188,12 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// SENDFILE
+////////////////////////////
+
+// We don't have scap-files with SENDFILE events. Add it if we face a failure.
+
+////////////////////////////
 // GETDENTS
 ////////////////////////////
 

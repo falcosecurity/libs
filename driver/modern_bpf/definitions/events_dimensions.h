@@ -124,7 +124,7 @@
 #define SYMLINKAT_E_SIZE HEADER_LEN
 #define PROCEXIT_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint8_t) * 2 + PARAM_LEN * 5
 #define SENDFILE_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) * 2 + PARAM_LEN * 4
-#define SENDFILE_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
+#define SENDFILE_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
 #define QUOTACTL_E_SIZE HEADER_LEN + sizeof(uint16_t) + sizeof(uint32_t) + sizeof(uint8_t) * 2 + PARAM_LEN * 4
 #define SETRESUID_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
 #define SETRESUID_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4

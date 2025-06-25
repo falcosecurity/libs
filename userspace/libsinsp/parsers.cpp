@@ -105,7 +105,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_LINKAT_E:
 	case PPME_SYSCALL_RMDIR_E:
 	case PPME_SYSCALL_PRLIMIT_E:
-	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
 	case PPME_SYSCALL_EXECVE_18_E:
@@ -3825,35 +3824,16 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
+	// If the operation was successful and there's a listener, add a callback to later invoke it.
 	const int64_t retval = evt.get_syscall_return_value();
-
-	//
-	// If the operation was successful, validate that the fd exists
-	//
-	if(retval >= 0) {
-		sinsp_evt *enter_evt = &m_tmp_evt;
-
-		if(!retrieve_enter_event(*enter_evt, evt)) {
-			return;
-		}
-
-		//
-		// Extract the in FD
-		//
-		int64_t fdin = enter_evt->get_param(1)->as<int64_t>();
-
-		//
-		// If there's a listener, add a callback to later invoke it.
-		//
-		if(m_observer) {
-			verdict.add_post_process_cbs([fdin, retval](sinsp_observer *observer, sinsp_evt *evt) {
-				observer->on_sendfile(evt, fdin, (uint32_t)retval);
-			});
-		}
+	if(retval < 0 || !m_observer) {
+		return;
 	}
+
+	const int64_t in_fd = evt.get_param(3)->as<int64_t>();
+	verdict.add_post_process_cbs([in_fd, retval](sinsp_observer *observer, sinsp_evt *evt) {
+		observer->on_sendfile(evt, in_fd, (uint32_t)retval);
+	});
 }
 
 void sinsp_parser::parse_eventfd_eventfd2_exit(sinsp_evt &evt) const {
