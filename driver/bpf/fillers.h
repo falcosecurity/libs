@@ -3188,6 +3188,64 @@ FILLER(execve_extra_tail_2, true) {
 }
 
 FILLER(sys_accept4_e, true) {
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	/*
+	 * push the flags into the ring.
+	 * XXX we don't support flags yet and so we just return zero
+	 *     If implemented, special handling for SYS_ACCEPT socketcall is needed.
+	 */
+	return bpf_push_s32_to_ring(data, 0);
+}
+
+FILLER(sys_accept4_x, true) {
+	/* Parameter 1: fd (type: PT_FD) */
+	/* Retrieve the fd and push it to the ring.
+	 * Note that, even if we are in the exit callback, the arguments are still
+	 * in the stack, and therefore we can consume them.
+	 */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	uint32_t queuelen = 0;
+	uint32_t queuemax = 0;
+	uint8_t queuepct = 0;
+
+	if(fd >= 0) {
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		long size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true, data->tmp_scratch);
+		data->curarg_already_on_frame = true;
+		res = __bpf_val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false, KERNEL);
+		CHECK_RES(res);
+
+		/* Get the listening socket (first syscall parameter) */
+		int32_t listening_fd = (int32_t)bpf_syscall_get_argument(data, 0);
+		struct socket *sock = bpf_sockfd_lookup(data, listening_fd);
+		struct sock *sk = _READ(sock->sk);
+		queuelen = _READ(sk->sk_ack_backlog);
+		queuemax = _READ(sk->sk_max_ack_backlog);
+		if(queuelen && queuemax) {
+			queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
+		}
+	} else {
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		res = bpf_push_empty_param(data);
+		CHECK_RES(res);
+	}
+
+	/* Parameter 3: queuepct (type: PT_UINT8) */
+	res = bpf_push_u8_to_ring(data, queuepct);
+	CHECK_RES(res);
+
+	/* Parameter 4: queuelen (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, queuelen);
+	CHECK_RES(res);
+
+	/* Parameter 5: queuemax (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, queuemax);
+	CHECK_RES(res);
+
+	/* Parameter 6: flags (type: PT_FLAGS32) */
 	/*
 	 * push the flags into the ring.
 	 * XXX we don't support flags yet and so we just return zero

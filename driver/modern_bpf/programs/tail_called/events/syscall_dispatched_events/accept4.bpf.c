@@ -105,6 +105,12 @@ int BPF_PROG(accept4_x, struct pt_regs *regs, long ret) {
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	auxmap__store_u32_param(auxmap, queuemax);
 
+	/* Parameter 6: flags (type: PT_FLAGS32) */
+	/// TODO: we don't support flags yet and so we just return zero.
+	///    If implemented, special handling for SYS_ACCEPT socketcall is needed.
+	uint32_t flags = 0;
+	auxmap__store_u32_param(auxmap, flags);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

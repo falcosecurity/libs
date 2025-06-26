@@ -59,6 +59,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_EPOLL_CREATE1_E, 5}, {PPME_SYSCALL_EPOLL_CREATE1_X, 5},
 	        {PPME_SYSCALL_KILL_E, 156},        {PPME_SYSCALL_KILL_X, 156},
 	        {PPME_SYSCALL_TGKILL_E, 1010},     {PPME_SYSCALL_TGKILL_X, 1010},
+	        {PPME_SOCKET_ACCEPT4_6_E, 207},    {PPME_SOCKET_ACCEPT4_6_X, 207},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1674,6 +1675,46 @@ TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
 	uint32_t sgid = (uint32_t)-1;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
+}
+
+////////////////////////////
+// ACCEPT4
+////////////////////////////
+
+TEST_F(scap_file_test, accept4_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `901231` is the following:
+	// - type=PPME_SOCKET_ACCEPT4_6_X,
+	// - ts=1687966733926550576
+	// - tid=115187
+	// - args=fd=-11(EAGAIN) tuple=NULL queuepct=0 queuelen=0 queuemax=0
+	//
+	// And its corresponding enter event `901230` is the following:
+	// - type=PPME_SOCKET_ACCEPT4_6_E
+	// - ts=1687966733926547983
+	// - tid=115187
+	// - args=flags=0
+	//
+	// Let's see the new PPME_SOCKET_ACCEPT4_6_X event!
+
+	constexpr uint64_t ts = 1687966733926550576;
+	constexpr int64_t tid = 115187;
+	constexpr int64_t fd = -11;
+	constexpr uint8_t queuepct = 0;
+	constexpr uint32_t queuelen = 0;
+	constexpr uint32_t queuemax = 0;
+	constexpr int32_t flags = 0;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SOCKET_ACCEPT4_6_X,
+	                                             6,
+	                                             fd,
+	                                             scap_const_sized_buffer{nullptr, 0},
+	                                             queuepct,
+	                                             queuelen,
+	                                             queuemax,
+	                                             flags));
 }
 
 ////////////////////////////

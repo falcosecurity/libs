@@ -399,6 +399,32 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({{C_INSTR_FROM_ENTER, 0},
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
+        /*====================== ACCEPT4 ======================*/
+        {conversion_key{PPME_SOCKET_ACCEPT4_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SOCKET_ACCEPT4_X, 3},
+         conversion_info()
+                 .desired_type(PPME_SOCKET_ACCEPT4_6_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({{C_INSTR_FROM_OLD, 0},
+                          {C_INSTR_FROM_OLD, 1},
+                          {C_INSTR_FROM_OLD, 2},
+                          {C_INSTR_FROM_DEFAULT, 0},
+                          {C_INSTR_FROM_DEFAULT, 0},
+                          {C_INSTR_FROM_ENTER, 0}})},
+        {conversion_key{PPME_SOCKET_ACCEPT4_5_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SOCKET_ACCEPT4_5_X, 5},
+         conversion_info()
+                 .desired_type(PPME_SOCKET_ACCEPT4_6_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({{C_INSTR_FROM_OLD, 0},
+                          {C_INSTR_FROM_OLD, 1},
+                          {C_INSTR_FROM_OLD, 2},
+                          {C_INSTR_FROM_OLD, 3},
+                          {C_INSTR_FROM_OLD, 4},
+                          {C_INSTR_FROM_ENTER, 0}})},
+        {conversion_key{PPME_SOCKET_ACCEPT4_6_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SOCKET_ACCEPT4_6_X, 5},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
         /*====================== UMOUNT2 ======================*/
         {conversion_key{PPME_SYSCALL_UMOUNT2_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_UMOUNT2_X, 2},
