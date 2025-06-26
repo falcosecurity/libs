@@ -1182,13 +1182,19 @@ int32_t fill_event_signalfd_e(scap_sized_buffer scap_buf,
 int32_t fill_event_signalfd_x(scap_sized_buffer scap_buf,
                               size_t* event_size,
                               char* scap_err,
-                              int64_t res) {
+                              int64_t res,
+                              int64_t fd,
+                              uint32_t mask,
+                              uint8_t flags) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_SIGNALFD_X,
-	                                1,
-	                                res);
+	                                4,
+	                                res,
+	                                fd,
+	                                mask,
+	                                flags);
 }
 
 // PPME_SYSCALL_CHROOT_E

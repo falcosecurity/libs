@@ -225,6 +225,12 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// SIGNALFD
+////////////////////////////
+
+// We don't have scap-files with SIGNALFD events. Add it if we face a failure.
+
+////////////////////////////
 // KILL
 ////////////////////////////
 
