@@ -7340,24 +7340,20 @@ FILLER(sys_splice_e, true) {
 }
 
 FILLER(sys_dup_e, true) {
-	/* Parameter 1: oldfd (type: PT_FD) */
-	int32_t oldfd = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, (int64_t)oldfd);
+	/* Parameter 1: fd (type: PT_FD) */
+	int64_t oldfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_s64_to_ring(data, oldfd);
 }
 
 FILLER(sys_dup_x, true) {
-	unsigned long val;
-	unsigned long retval;
-	unsigned long res;
-
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	/* Parameter 1: res (type: PT_FD) */
+	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
-	/*
-	 * oldfd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, val);
+
+	/* Parameter 2: oldfd (type: PT_FD) */
+	int64_t oldfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_s64_to_ring(data, oldfd);
 }
 
 FILLER(sys_dup2_e, true) {
@@ -7368,7 +7364,7 @@ FILLER(sys_dup2_e, true) {
 
 FILLER(sys_dup2_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
-	unsigned long retval = bpf_syscall_get_retval(data->ctx);
+	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
@@ -7390,7 +7386,7 @@ FILLER(sys_dup3_e, true) {
 
 FILLER(sys_dup3_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
-	unsigned long retval = bpf_syscall_get_retval(data->ctx);
+	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
