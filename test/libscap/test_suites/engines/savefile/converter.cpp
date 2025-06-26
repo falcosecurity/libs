@@ -3973,6 +3973,192 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// ACCEPT4
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t flags = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT4_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_X_to_PPME_SOCKET__ACCEPT4_6_X_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t flags = 50;
+	constexpr int64_t fd = 10;
+	constexpr char tuple[] = "tuple";
+	constexpr uint8_t queuepct = 3;
+
+	// Defaulted to 0
+	constexpr uint32_t queuelen = 0;
+	constexpr uint32_t queuemax = 0;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT4_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SOCKET_ACCEPT4_X,
+	                                              3,
+	                                              fd,
+	                                              scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                                              queuepct),
+	                       create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SOCKET_ACCEPT4_6_X,
+	                                              6,
+	                                              fd,
+	                                              scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                                              queuepct,
+	                                              queuelen,
+	                                              queuemax,
+	                                              flags));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_5_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t flags = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT4_5_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_5_X_to_PPME_SOCKET__ACCEPT4_6_X_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t flags = 50;
+	constexpr int64_t fd = 10;
+	constexpr char tuple[] = "tuple";
+	constexpr uint8_t queuepct = 3;
+	constexpr uint32_t queuelen = 4;
+	constexpr uint32_t queuemax = 5;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT4_5_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SOCKET_ACCEPT4_5_X,
+	                                              5,
+	                                              fd,
+	                                              scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                                              queuepct,
+	                                              queuelen,
+	                                              queuemax),
+	                       create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SOCKET_ACCEPT4_6_X,
+	                                              6,
+	                                              fd,
+	                                              scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                                              queuepct,
+	                                              queuelen,
+	                                              queuemax,
+	                                              flags));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_6_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t flags = 50;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT4_6_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_6_X_5_to_6_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 10;
+	constexpr char tuple[] = "tuple";
+	constexpr uint8_t queuepct = 3;
+	constexpr uint32_t queuelen = 4;
+	constexpr uint32_t queuemax = 5;
+
+	// Defaulted to 0
+	constexpr int32_t flags = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT4_6_X,
+	                               5,
+	                               fd,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               queuepct,
+	                               queuelen,
+	                               queuemax),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT4_6_X,
+	                               6,
+	                               fd,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               queuepct,
+	                               queuelen,
+	                               queuemax,
+	                               flags));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT4_6_X_5_to_6_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int32_t flags = 50;
+	constexpr int64_t fd = 10;
+	constexpr char tuple[] = "tuple";
+	constexpr uint8_t queuepct = 3;
+	constexpr uint32_t queuelen = 4;
+	constexpr uint32_t queuemax = 5;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT4_6_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT4_6_X,
+	                               5,
+	                               fd,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               queuepct,
+	                               queuelen,
+	                               queuemax),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT4_6_X,
+	                               6,
+	                               fd,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               queuepct,
+	                               queuelen,
+	                               queuemax,
+	                               flags));
+}
+
+////////////////////////////
 // UMOUNT2
 ////////////////////////////
 

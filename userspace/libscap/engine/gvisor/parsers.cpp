@@ -890,7 +890,8 @@ static parse_result parse_accept(uint32_t id,
 			        &ret.size,
 			        scap_err,
 			        gvisor_evt.fd(),
-			        scap_const_sized_buffer{targetbuf, size});
+			        scap_const_sized_buffer{targetbuf, size},
+			        gvisor_evt.flags());
 			break;
 
 		case __NR_accept:

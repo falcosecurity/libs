@@ -77,9 +77,13 @@ TEST(SyscallExit, accept4X_INET) {
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, (uint32_t)QUEUE_LENGTH);
 
+	/* Parameter 6: flags (type: PT_FLAGS32) */
+	/* Right now `flags` are not supported so we will catch always `0` */
+	evt_test->assert_numeric_param(6, (uint32_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, accept4X_INET6) {
@@ -152,9 +156,13 @@ TEST(SyscallExit, accept4X_INET6) {
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, (uint32_t)QUEUE_LENGTH);
 
+	/* Parameter 6: flags (type: PT_FLAGS32) */
+	/* Right now `flags` are not supported so we will catch always `0` */
+	evt_test->assert_numeric_param(6, (uint32_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(6);
 }
 
 #ifdef __NR_unlinkat
@@ -225,9 +233,13 @@ TEST(SyscallExit, accept4X_UNIX) {
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, (uint32_t)QUEUE_LENGTH);
 
+	/* Parameter 6: flags (type: PT_FLAGS32) */
+	/* Right now `flags` are not supported so we will catch always `0` */
+	evt_test->assert_numeric_param(6, (uint32_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(6);
 }
 #endif /* __NR_unlinkat */
 
@@ -278,8 +290,12 @@ TEST(SyscallExit, accept4X_failure) {
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, (uint32_t)0);
 
+	/* Parameter 6: flags (type: PT_FLAGS32) */
+	/* Right now `flags` are not supported so we will catch always `0` */
+	evt_test->assert_numeric_param(6, (uint32_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(6);
 }
 #endif

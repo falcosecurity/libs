@@ -475,7 +475,9 @@ void runtest_ipv4m(iotype iot,
 			if(!exit_no_close) {
 				EXPECT_EQ(SERVER_PORT_STR, dst_port);
 			}
-
+			if(evt->get_type() == PPME_SOCKET_ACCEPT4_6_X) {
+				EXPECT_EQ("0", evt->get_param_value_str("flags"));
+			}
 			callnum++;
 		}
 

@@ -2207,6 +2207,80 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args) {
 int f_sys_accept4_e(struct event_filler_arguments *args) {
 	int res;
 
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	/*
+	 * push the flags into the ring.
+	 * XXX we don't support flags yet and so we just return zero
+	 */
+	/* res = val_to_ring(args, args->socketcall_args[3]); */
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_accept4_x(struct event_filler_arguments *args) {
+	int res;
+	int64_t fd;
+	char *targetbuf = args->str_storage;
+	uint16_t size = 0;
+	unsigned long queuepct = 0;
+	unsigned long ack_backlog = 0;
+	unsigned long max_ack_backlog = 0;
+	unsigned long srvskfd;
+	int err = 0;
+	struct socket *sock;
+
+	/* Parameter 1: fd (type: PT_FD) */
+	fd = (int64_t)(int32_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	if(fd >= 0) {
+		/*
+		 * Convert the fd into socket endpoint information
+		 */
+		size = fd_to_socktuple(fd, NULL, 0, false, true, targetbuf, STR_STORAGE_SIZE);
+		/*
+		 * queuepct
+		 */
+		syscall_get_arguments_deprecated(args, 0, 1, &srvskfd);
+
+		sock = sockfd_lookup(srvskfd, &err);
+
+		if(sock && sock->sk) {
+			ack_backlog = sock->sk->sk_ack_backlog;
+			max_ack_backlog = sock->sk->sk_max_ack_backlog;
+		}
+
+		if(sock)
+			sockfd_put(sock);
+
+		if(max_ack_backlog)
+			queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
+
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
+		CHECK_RES(res);
+	} else {
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+	}
+
+	/* Parameter 3: queuepct (type: PT_UINT8) */
+	res = val_to_ring(args, queuepct, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: queuelen (type: PT_UINT32) */
+	res = val_to_ring(args, ack_backlog, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: queuemax (type: PT_UINT32) */
+	res = val_to_ring(args, max_ack_backlog, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: flags (type: PT_FLAGS32) */
 	/*
 	 * push the flags into the ring.
 	 * XXX we don't support flags yet and so we just return zero
@@ -2220,7 +2294,7 @@ int f_sys_accept4_e(struct event_filler_arguments *args) {
 
 int f_sys_accept_x(struct event_filler_arguments *args) {
 	int res;
-	int fd;
+	int64_t fd;
 	char *targetbuf = args->str_storage;
 	uint16_t size = 0;
 	unsigned long queuepct = 0;
@@ -2230,11 +2304,9 @@ int f_sys_accept_x(struct event_filler_arguments *args) {
 	int err = 0;
 	struct socket *sock;
 
-	/*
-	 * Push the fd
-	 */
-	fd = syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	/* Parameter 1: fd (type: PT_FD) */
+	fd = (int64_t)(int32_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, fd, 0, false, 0);
 	CHECK_RES(res);
 
 	if(fd >= 0) {

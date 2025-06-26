@@ -474,7 +474,8 @@ int32_t fill_event_accept4_6_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
                                int64_t fd,
-                               scap_const_sized_buffer tuple);
+                               scap_const_sized_buffer tuple,
+                               int32_t flags);
 
 int32_t fill_event_timerfd_create_e(scap_sized_buffer scap_buf,
                                     size_t* event_size,

@@ -64,7 +64,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.exe": "nginx: master proces",
         }, {
             "container.id": destination['id'],
-            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511",
+            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511 flags=0",
             "evt.category": "net",
             "evt.type": "accept4",
             "fd.name": f"{origin['ip']}->{destination['ip']}",

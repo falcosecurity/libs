@@ -1320,17 +1320,19 @@ int32_t fill_event_accept4_6_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
                                int64_t fd,
-                               scap_const_sized_buffer tuple) {
+                               scap_const_sized_buffer tuple,
+                               int32_t flags) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SOCKET_ACCEPT4_6_X,
-	                                5,
+	                                6,
 	                                fd,
 	                                tuple,  // local address portion hardcoded to 0 -- INVALID
 	                                0,      // queuepct -- INVALID
 	                                0,      // queuelen -- INVALID
-	                                0);     // queuemax -- INVALID
+	                                0,      // queuemax -- INVALID
+	                                flags);
 }
 
 // PPME_SYSCALL_TIMERFD_CREATE_E

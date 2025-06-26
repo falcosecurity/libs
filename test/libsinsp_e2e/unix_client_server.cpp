@@ -183,6 +183,10 @@ TEST_F(sys_call_test, unix_client_server) {
 			EXPECT_NE("0000000000000000", fdsrcstr);
 			EXPECT_NE("0000000000000000", fddststr);
 
+			if(evt->get_type() == PPME_SOCKET_ACCEPT4_6_X) {
+				EXPECT_EQ("0", evt->get_param_value_str("flags"));
+			}
+
 			callnum++;
 		}
 

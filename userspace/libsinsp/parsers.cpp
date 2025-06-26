@@ -2973,64 +2973,42 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 }
 
 void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	const sinsp_evt_param *parinfo;
-	int64_t fd;
-	uint8_t *packed_data;
-	const char *parstr;
-
-	//
-	// Lookup the thread
-	//
+	// Lookup the thread.
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	//
-	// Extract the fd
-	//
-	fd = evt.get_syscall_return_value();
+	// Extract the fd.
+	const int64_t fd = evt.get_syscall_return_value();
 
 	if(fd < 0) {
-		//
-		// Accept failure.
-		// Do nothing.
-		//
+		// Accept failure: do nothing.
 		return;
 	}
 
-	//
-	// Update the last event fd. It's needed by the filtering engine
-	//
+	// Update the last event fd. It's needed by the filtering engine.
 	evt.get_tinfo()->m_lastevent_fd = fd;
 
-	//
-	// Extract the address
-	//
-	parinfo = evt.get_param(1);
+	// Extract the address.
+	const sinsp_evt_param *parinfo = evt.get_param(1);
 	if(parinfo->m_len == 0) {
-		//
 		// No address, there's nothing we can really do with this.
 		// This happens for socket types that we don't support, so we have the assertion
 		// to make sure that this is not a type of socket that we support.
-		//
 		return;
 	}
 
-	packed_data = (uint8_t *)parinfo->m_val;
+	auto packed_data = (uint8_t *)parinfo->m_val;
 
-	//
-	// Populate the fd info class
-	//
+	// Populate the fd info class.
 	std::shared_ptr fdi = m_fdinfo_factory.create();
 	if(*packed_data == PPM_AF_INET) {
 		set_ipv4_addresses_and_ports(*fdi, packed_data);
 		fdi->m_type = SCAP_FD_IPV4_SOCK;
 		fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 	} else if(*packed_data == PPM_AF_INET6) {
-		//
 		// Check to see if it's an IPv4-mapped IPv6 address
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-		//
 		uint8_t *sip = packed_data + 1;
 		uint8_t *dip = packed_data + 19;
 
@@ -3047,18 +3025,15 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		fdi->m_type = SCAP_FD_UNIX_SOCK;
 		fdi->set_unix_info(packed_data);
 	} else {
-		//
 		// Unsupported family
-		//
 		return;
 	}
 
+	const char *parstr;
 	fdi->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 	fdi->m_flags = 0;
 
-	//
 	// If there's a listener, add a callback to later invoke it.
-	//
 	if(m_observer) {
 		verdict.add_post_process_cbs(
 		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
@@ -3070,19 +3045,13 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		        });
 	}
 
-	//
-	// Mark this fd as a server
-	//
+	// Mark this fd as a server.
 	fdi->set_role_server();
 
-	//
-	// Mark this fd as a connected socket
-	//
+	// Mark this fd as a connected socket.
 	fdi->set_socket_connected();
 
-	//
-	// Add the entry to the table
-	//
+	// Add the entry to the table.
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
