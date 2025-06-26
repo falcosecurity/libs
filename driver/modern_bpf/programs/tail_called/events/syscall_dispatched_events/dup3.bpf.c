@@ -48,7 +48,7 @@ int BPF_PROG(dup3_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_FD) */
-	ringbuf__store_s64(&ringbuf, ret);
+	ringbuf__store_s64(&ringbuf, (int64_t)(int32_t)ret);
 
 	/* Parameter 2: oldfd (type: PT_FD) */
 	int64_t oldfd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
