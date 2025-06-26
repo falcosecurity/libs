@@ -36,11 +36,21 @@ TEST(SyscallExit, signalfdX) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)mock_fd);
+
+	/* Parameter 3: mask (type: PT_UINT32) */
+	/* Right now we don't catch any mask, so we expect `0` as a second parameter. */
+	evt_test->assert_numeric_param(3, (uint32_t)0);
+
+	/* Parameter 4: flags (type: PT_FLAGS8) */
+	evt_test->assert_numeric_param(4, (uint8_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif

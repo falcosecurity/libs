@@ -81,7 +81,7 @@
 #define PREADV_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
 #define PWRITEV_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define SIGNALFD_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint8_t) + PARAM_LEN * 3
-#define SIGNALFD_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SIGNALFD_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + sizeof(uint8_t) + PARAM_LEN * 4
 #define KILL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define KILL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
 #define TKILL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2

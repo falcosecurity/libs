@@ -22,8 +22,8 @@ int BPF_PROG(signalfd_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd);
 
 	/* Parameter 2: mask (type: PT_UINT32) */
 	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
@@ -57,8 +57,22 @@ int BPF_PROG(signalfd_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD)*/
+	/* Parameter 1: res (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd);
+
+	/* Parameter 3: mask (type: PT_UINT32) */
+	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
+	ringbuf__store_u32(&ringbuf, 0);
+
+	/* Parameter 4: flags (type: PT_UINT8) */
+	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
+	 * For compatibility with the event definition here we send `0` as flags.
+	 */
+	ringbuf__store_u8(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

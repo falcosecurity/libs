@@ -6749,14 +6749,14 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args) {
 }
 
 int f_sys_signalfd_e(struct event_filler_arguments *args) {
-	unsigned long val = 0;
-	int res = 0;
-	int32_t fd = 0;
+	unsigned long val;
+	int64_t fd;
+	int res;
 
 	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: mask (type: PT_UINT32) */
@@ -6765,6 +6765,38 @@ int f_sys_signalfd_e(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_UINT8) */
+	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
+	 * For compatibility with the event definition here we send `0` as flags.
+	 */
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_signalfd_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+	int64_t fd;
+
+	/* Parameter 1: res (type: PT_FD) */
+	retval = (int64_t)(int32_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: mask (type: PT_UINT32) */
+	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: flags (type: PT_UINT8) */
 	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */

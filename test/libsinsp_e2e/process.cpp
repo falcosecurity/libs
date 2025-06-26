@@ -175,6 +175,9 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 			callnum++;
 		} else if(type == PPME_SYSCALL_SIGNALFD_X) {
 			ssfd = std::stoi(e->get_param_value_str("res", false));
+			EXPECT_EQ(-1, std::stoi(e->get_param_value_str("fd", false)));
+			EXPECT_EQ(0, std::stoll(e->get_param_value_str("mask")));
+			EXPECT_EQ(0, std::stol(e->get_param_value_str("flags")));
 			callnum++;
 		}
 		if(type == PPME_SYSCALL_SIGNALFD4_X) {
