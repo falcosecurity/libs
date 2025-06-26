@@ -139,7 +139,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_TGKILL_E] = {FILLER_REF(sys_autofill), 3, APT_REG, {{0}, {1}, {2}}},
         [PPME_SYSCALL_TGKILL_X] = {FILLER_REF(sys_tgkill_x)},
         [PPME_SYSCALL_NANOSLEEP_E] = {FILLER_REF(sys_nanosleep_e)},
-        [PPME_SYSCALL_NANOSLEEP_X] = {FILLER_REF(sys_single_x)},
+        [PPME_SYSCALL_NANOSLEEP_X] = {FILLER_REF(sys_nanosleep_x)},
         [PPME_SYSCALL_TIMERFD_CREATE_E] = {FILLER_REF(sys_autofill),
                                            2,
                                            APT_REG,

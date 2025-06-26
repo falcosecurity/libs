@@ -446,6 +446,54 @@ TEST_F(convert_event_test, PPME_SYSCALL_TGKILL_X_1_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// NANOSLEEP
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_NANOSLEEP_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t interval = 20;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_E, 1, interval);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_NANOSLEEP_X_1_to_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr uint64_t interval = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_X, 2, res, interval));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_NANOSLEEP_X_1_to_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint64_t interval = 20;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_E, 1, interval);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_X, 2, res, interval));
+}
+
+////////////////////////////
 // GETRLIMIT
 ////////////////////////////
 
