@@ -19,7 +19,7 @@ TEST_F(sinsp_with_test_input, EPOLL_CREATE1_parse) {
 	add_default_init_thread();
 	open_inspector();
 
-	int64_t return_value = 0;
+	int64_t return_value = 10;
 	uint32_t flags = 50;
 	const auto evt = add_event_advance_ts(increasing_ts(),
 	                                      INIT_TID,
@@ -32,4 +32,14 @@ TEST_F(sinsp_with_test_input, EPOLL_CREATE1_parse) {
 	ASSERT_EQ(evt->get_param_by_name("res")->as<int64_t>(), return_value);
 	// Check that the flags value is as expected.
 	ASSERT_EQ(evt->get_param_by_name("flags")->as<uint32_t>(), flags);
+
+	// Check that fd info associated with the event are as expected.
+	auto fdinfo = evt->get_fd_info();
+	ASSERT_TRUE(fdinfo);
+
+	// Check that fd info associated with the thread are as expected.
+	const auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
+	ASSERT_TRUE(init_tinfo);
+	fdinfo = init_tinfo->get_fd(return_value);
+	ASSERT_TRUE(fdinfo);
 }
