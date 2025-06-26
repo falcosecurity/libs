@@ -277,6 +277,14 @@ TEST_F(sys_call_test, DISABLED_process_usleep) {
 			}
 		} else if(type == PPME_SYSCALL_NANOSLEEP_X) {
 			EXPECT_EQ(0, stoi(e->get_param_value_str("res", false)));
+			if(callnum == 1) {
+				if(std::stoll(e->get_param_value_str("interval", false)) == 123456000) {
+					callnum++;
+				}
+			} else if(callnum == 3) {
+				EXPECT_EQ(5000000000, std::stoll(e->get_param_value_str("interval", false)));
+				callnum++;
+			}
 			callnum++;
 		}
 	};

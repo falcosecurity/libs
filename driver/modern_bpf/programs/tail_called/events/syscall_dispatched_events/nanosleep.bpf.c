@@ -21,7 +21,7 @@ int BPF_PROG(nanosleep_e, struct pt_regs *regs, long id) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: req (type: PT_RELTIME) */
+	/* Parameter 1: interval (type: PT_RELTIME) */
 	uint64_t nanosec = 0;
 	unsigned long ts_pointer = extract__syscall_argument(regs, 0);
 	if(bpf_core_type_exists(struct __kernel_timespec)) {
@@ -59,6 +59,20 @@ int BPF_PROG(nanosleep_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: interval (type: PT_RELTIME) */
+	uint64_t nanosec = 0;
+	unsigned long ts_pointer = extract__syscall_argument(regs, 0);
+	if(bpf_core_type_exists(struct __kernel_timespec)) {
+		struct __kernel_timespec ts = {0};
+		bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
+		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+	} else {
+		struct modern_bpf__kernel_timespec ts = {0};
+		bpf_probe_read_user(&ts, sizeof(ts), (void *)ts_pointer);
+		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+	}
+	ringbuf__store_u64(&ringbuf, nanosec);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

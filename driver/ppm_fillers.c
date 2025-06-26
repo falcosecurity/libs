@@ -5072,6 +5072,25 @@ int f_sys_nanosleep_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
+	/* Parameter 1: interval (type: PT_RELTIME) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = timespec_parse(args, val);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_nanosleep_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+	unsigned long val;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: interval (type: PT_RELTIME) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = timespec_parse(args, val);
 	CHECK_RES(res);

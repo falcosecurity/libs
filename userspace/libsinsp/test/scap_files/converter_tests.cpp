@@ -99,6 +99,8 @@ TEST_F(scap_file_test, same_number_of_events) {
 	assert_num_event_types({
 	        {PPME_SYSCALL_FUTEX_E, 15},
 	        {PPME_SYSCALL_FUTEX_X, 15},
+	        {PPME_SYSCALL_NANOSLEEP_E, 38},
+	        {PPME_SYSCALL_NANOSLEEP_X, 38},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -294,6 +296,35 @@ TEST_F(scap_file_test, tgkill_x_check_final_converted_event) {
 
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_TGKILL_X, 4, res, pid, tid_param, sig));
+}
+
+////////////////////////////
+// NANOSLEEP
+////////////////////////////
+
+TEST_F(scap_file_test, nanosleep_x_check_final_converted_event) {
+	open_filename("sample.scap");
+
+	// Inside the scap-file the event `559` is the following:
+	// - type=PPME_SYSCALL_NANOSLEEP_X,
+	// - ts=1690557263532873130
+	// - tid=762
+	// - args=res=0
+	//
+	// And its corresponding enter event `543` is the following:
+	// - type=PPME_SYSCALL_NANOSLEEP_E
+	// - ts=1690557263532781075
+	// - tid=762
+	// - args=interval=0(0s)
+	//
+	// Let's see the new PPME_SYSCALL_NANOSLEEP_X event!
+	constexpr uint64_t ts = 1690557263532873130;
+	constexpr int64_t tid = 762;
+	constexpr int64_t res = 0;
+	constexpr uint64_t interval = 0;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_X, 2, res, interval));
 }
 
 ////////////////////////////
