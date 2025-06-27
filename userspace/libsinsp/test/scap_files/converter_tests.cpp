@@ -60,6 +60,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_KILL_E, 156},        {PPME_SYSCALL_KILL_X, 156},
 	        {PPME_SYSCALL_TGKILL_E, 1010},     {PPME_SYSCALL_TGKILL_X, 1010},
 	        {PPME_SOCKET_ACCEPT4_6_E, 207},    {PPME_SOCKET_ACCEPT4_6_X, 207},
+	        {PPME_SYSCALL_SPLICE_E, 253},      {PPME_SYSCALL_SPLICE_X, 253},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1288,6 +1289,46 @@ TEST_F(scap_file_test, munmap_x_check_final_converted_event) {
 	                                             vm_swap,
 	                                             addr,
 	                                             length));
+}
+
+////////////////////////////
+// SPLICE
+////////////////////////////
+
+TEST_F(scap_file_test, splice_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `862252` is the following:
+	// - type=PPME_SYSCALL_SPLICE_X,
+	// - ts=1687966733234462655
+	// - tid=112950
+	// - args=res=0
+	//
+	// And its corresponding enter event `862251` is the following:
+	// - type=PPME_SYSCALL_SPLICE_E
+	// - ts=1687966733234461540
+	// - tid=112950
+	// - args=fd_in=5(<4t>172.18.0.1:40470->172.18.0.2:6443) fd_out=12(<p>pipe:[268409])
+	// size=4194304 flags=2(SPLICE_F_NONBLOCK)
+	//
+	// Let's see the new PPME_SYSCALL_SPLICE_X event!
+
+	constexpr uint64_t ts = 1687966733234462655;
+	constexpr int64_t tid = 112950;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd_in = 5;
+	constexpr int64_t fd_out = 12;
+	constexpr uint64_t size = 4194304;
+	constexpr uint32_t flags = 2;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_SPLICE_X,
+	                                             5,
+	                                             res,
+	                                             fd_in,
+	                                             fd_out,
+	                                             size,
+	                                             flags));
 }
 
 ////////////////////////////
