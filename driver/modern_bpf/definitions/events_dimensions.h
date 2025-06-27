@@ -198,7 +198,7 @@
 #define MPROTECT_E_SIZE HEADER_LEN + sizeof(uint32_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
 #define MPROTECT_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 4
 #define COPY_FILE_RANGE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
-#define COPY_FILE_RANGE_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 3
+#define COPY_FILE_RANGE_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) * 3 + PARAM_LEN * 6
 #define CLONE3_E_SIZE HEADER_LEN
 #define OPEN_BY_HANDLE_AT_E_SIZE HEADER_LEN
 #define IO_URING_SETUP_E_SIZE HEADER_LEN

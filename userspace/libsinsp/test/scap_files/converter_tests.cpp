@@ -1698,6 +1698,12 @@ TEST_F(scap_file_test, mprotect_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// COPY_FILE_RANGE
+////////////////////////////
+
+// We don't have scap-files with COPY_FILE_RANGE events. Add it if we face a failure.
+
+////////////////////////////
 // EPOLL_CREATE
 ////////////////////////////
 
