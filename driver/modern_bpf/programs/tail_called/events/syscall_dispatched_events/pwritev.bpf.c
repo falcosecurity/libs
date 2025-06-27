@@ -23,8 +23,8 @@ int BPF_PROG(pwritev_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd);
 
 	unsigned long iov_pointer = extract__syscall_argument(regs, 1);
 	unsigned long iov_cnt = extract__syscall_argument(regs, 2);
@@ -81,6 +81,17 @@ int BPF_PROG(pwritev_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	auxmap__store_s64_param(auxmap, fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	auxmap__store_iovec_size_param(auxmap, iov_pointer, iov_cnt);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	uint64_t pos = (uint64_t)extract__syscall_argument(regs, 3);
+	auxmap__store_u64_param(auxmap, pos);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

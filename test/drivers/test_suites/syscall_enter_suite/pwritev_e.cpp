@@ -36,10 +36,10 @@ TEST(SyscallEnter, pwritevE_empty_iovec) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: size (type: PT_UINT32)*/
+	/* Parameter 2: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(2, (uint32_t)0);
 
-	/* Parameter 3: pos (type: PT_UINT64)*/
+	/* Parameter 3: pos (type: PT_UINT64) */
 	evt_test->assert_numeric_param(3, (uint64_t)off);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -84,10 +84,10 @@ TEST(SyscallEnter, pwritevE_full_iovec) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: size (type: PT_UINT32)*/
+	/* Parameter 2: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(2, (uint32_t)DEFAULT_SNAPLEN * 2 + 1);
 
-	/* Parameter 3: pos (type: PT_UINT64)*/
+	/* Parameter 3: pos (type: PT_UINT64) */
 	evt_test->assert_numeric_param(3, (uint64_t)off);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
