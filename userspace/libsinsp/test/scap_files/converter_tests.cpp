@@ -78,6 +78,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_ACCESS_E, 350},     {PPME_SYSCALL_ACCESS_X, 350},
 	        {PPME_SYSCALL_MPROTECT_E, 584},   {PPME_SYSCALL_MPROTECT_X, 584},
 	        {PPME_SYSCALL_UMOUNT2_E, 2},      {PPME_SYSCALL_UMOUNT2_X, 2},
+	        {PPME_SYSCALL_INOTIFY_INIT_E, 1}, {PPME_SYSCALL_INOTIFY_INIT_X, 1},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -332,6 +333,35 @@ TEST_F(scap_file_test, nanosleep_x_check_final_converted_event) {
 ////////////////////////////
 
 // We don't have scap-files with TIMERFD_CREATE events. Add it if we face a failure.
+
+////////////////////////////
+// INOTIFY_INIT
+////////////////////////////
+
+TEST_F(scap_file_test, inotify_init_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `161340` is the following:
+	// - type=PPME_SYSCALL_INOTIFY_INIT_X,
+	// - ts=1687889193632611044
+	// - tid=107370
+	// - args=res=4(<i>)
+	//
+	// And its corresponding enter event `161339` is the following:
+	// - type=PPME_SYSCALL_INOTIFY_INIT_E
+	// - ts=1687889193632606569
+	// - tid=107370
+	// - args=flags=0
+	//
+	// Let's see the new PPME_SYSCALL_INOTIFY_INIT_X event!
+	constexpr uint64_t ts = 1687889193632611044;
+	constexpr int64_t tid = 107370;
+	constexpr int64_t res = 4;
+	constexpr uint8_t flags = 0;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_INOTIFY_INIT_X, 2, res, flags));
+}
 
 ////////////////////////////
 // GETRLIMIT

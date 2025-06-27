@@ -210,6 +210,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_pipe2_x)                      \
 	FN(sys_timerfd_create_x)             \
 	FN(sys_inotify_init_e)               \
+	FN(sys_inotify_init_x)               \
 	FN(sys_inotify_init1_x)              \
 	FN(sys_eventfd2_e)                   \
 	FN(sys_eventfd2_x)                   \

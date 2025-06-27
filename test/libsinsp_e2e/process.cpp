@@ -362,7 +362,11 @@ TEST_F(sys_call_test, process_inotify) {
 			callnum++;
 		} else if(type == PPME_SYSCALL_INOTIFY_INIT1_E) {
 			callnum++;
-		} else if(type == PPME_SYSCALL_INOTIFY_INIT_X || type == PPME_SYSCALL_INOTIFY_INIT1_X) {
+		} else if(type == PPME_SYSCALL_INOTIFY_INIT_X) {
+			EXPECT_EQ(fd, std::stoi(e->get_param_value_str("res", false)));
+			EXPECT_EQ(0, std::stoi(e->get_param_value_str("flags")));
+			callnum++;
+		} else if(type == PPME_SYSCALL_INOTIFY_INIT1_X) {
 			EXPECT_EQ(fd, std::stoi(e->get_param_value_str("res", false)));
 			callnum++;
 		} else if(name.find("read") != std::string::npos && e->get_direction() == SCAP_ED_IN) {

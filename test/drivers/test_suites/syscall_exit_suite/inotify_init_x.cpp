@@ -31,8 +31,12 @@ TEST(SyscallExit, inotify_initX) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)fd);
 
+	/* Parameter 2: flags (type: PT_FLAGS8) */
+	/* All drivers always send 0. */
+	evt_test->assert_numeric_param(2, (uint8_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
