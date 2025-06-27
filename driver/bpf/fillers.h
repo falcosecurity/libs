@@ -732,59 +732,86 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 }
 
 FILLER(sys_readv_e, true) {
-	int32_t fd;
-
 	/* Parameter 1: fd (type: PT_FD) */
-	fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_s64_to_ring(data, fd);
+}
+
+FILLER(sys_readv_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	if(retval > 0) {
+		const struct iovec __user *iov =
+		        (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
+		unsigned long iovcnt = bpf_syscall_get_argument(data, 2);
+
+		/* Parameter 2: size (type: PT_UINT32) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+		res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+	} else {
+		/* Parameter 2: size (type: PT_UINT32) */
+		res = bpf_push_u32_to_ring(data, 0);
+		CHECK_RES(res);
+
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+		res = bpf_push_empty_param(data);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 4: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	return bpf_push_s64_to_ring(data, fd);
 }
 
 FILLER(sys_preadv_e, true) {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
 #endif
-	unsigned long val;
-	int32_t fd;
-	int res;
-
 	/* Parameter 1: fd (type: PT_FD) */
-	fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, fd);
 	CHECK_RES(res);
 
 	/* Parameter 2: pos (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 3);
+	unsigned long val = bpf_syscall_get_argument(data, 3);
 	return bpf_push_u64_to_ring(data, (uint64_t)val);
 }
 
-FILLER(sys_readv_preadv_x, true) {
-	const struct iovec __user *iov;
-	unsigned long iovcnt;
-	long retval;
-	int res;
-
+FILLER(sys_preadv_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/*
-	 * data and size
-	 */
 	if(retval > 0) {
-		iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
-		iovcnt = bpf_syscall_get_argument(data, 2);
+		const struct iovec __user *iov =
+		        (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
+		unsigned long iovcnt = bpf_syscall_get_argument(data, 2);
 
+		/* Parameter 2: size (type: PT_UINT32) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
 		res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
 	} else {
 		/* Parameter 2: size (type: PT_UINT32) */
 		res = bpf_push_u32_to_ring(data, 0);
+		CHECK_RES(res);
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		res = bpf_push_empty_param(data);
 	}
+	CHECK_RES(res);
 
-	return res;
+	/* Parameter 4: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	unsigned long val = bpf_syscall_get_argument(data, 3);
+	return bpf_push_u64_to_ring(data, (uint64_t)val);
 }
 
 FILLER(sys_writev_e, true) {

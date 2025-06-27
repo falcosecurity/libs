@@ -223,7 +223,8 @@ int32_t fill_event_readv_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
                            int64_t res,
-                           uint32_t size);
+                           uint32_t size,
+                           int64_t fd);
 
 int32_t fill_event_preadv_e(scap_sized_buffer scap_buf,
                             size_t* event_size,
@@ -235,7 +236,9 @@ int32_t fill_event_preadv_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
                             int64_t res,
-                            uint32_t size);
+                            uint32_t size,
+                            int64_t fd,
+                            uint64_t pos);
 
 int32_t fill_event_connect_e(scap_sized_buffer scap_buf,
                              size_t* event_size,

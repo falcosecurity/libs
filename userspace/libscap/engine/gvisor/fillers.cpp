@@ -680,15 +680,17 @@ int32_t fill_event_readv_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
                            int64_t res,
-                           uint32_t size) {
+                           uint32_t size,
+                           int64_t fd) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_READV_X,
-	                                3,
+	                                4,
 	                                res,
 	                                size,
-	                                scap_const_sized_buffer{NULL, 0});  // data -- INVALID
+	                                scap_const_sized_buffer{NULL, 0},  // data -- INVALID
+	                                fd);
 }
 
 // PPME_SYSCALL_PREADV_E
@@ -715,15 +717,19 @@ int32_t fill_event_preadv_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
                             int64_t res,
-                            uint32_t size) {
+                            uint32_t size,
+                            int64_t fd,
+                            uint64_t pos) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_PREADV_X,
-	                                3,
+	                                5,
 	                                res,
 	                                size,
-	                                scap_const_sized_buffer{NULL, 0});  // data -- INVALID
+	                                scap_const_sized_buffer{NULL, 0},  // data -- INVALID
+	                                fd,
+	                                pos);
 }
 
 // PPME_SYSCALL_CONNECT_E

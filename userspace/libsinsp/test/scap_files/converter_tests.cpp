@@ -621,6 +621,18 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 // We don't have scap-files with PWRITE events. Add it if we face a failure.
 
 ////////////////////////////
+// READV
+////////////////////////////
+
+// We don't have scap-files with READV events. Add it if we face a failure.
+
+////////////////////////////
+// PREADV
+////////////////////////////
+
+// We don't have scap-files with PREADV events. Add it if we face a failure.
+
+////////////////////////////
 // SETRESUID
 ////////////////////////////
 

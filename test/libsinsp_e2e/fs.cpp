@@ -533,6 +533,7 @@ TEST_F(sys_call_test, fs_readv) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", (e->get_param_value_str("data")).substr(0, 15));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
+				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
 		}
@@ -669,6 +670,8 @@ TEST_F(sys_call_test, fs_preadv) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbb", e->get_param_value_str("data"));
 				EXPECT_EQ(30, std::stoll(e->get_param_value_str("size")));
+				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
 				callnum++;
 			}
 		}
@@ -1373,6 +1376,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 					EXPECT_EQ(p->m_len, SNAPLEN_MAX);
 					EXPECT_EQ(0, memcmp(buf, p->m_val, SNAPLEN_MAX));
 				}
+				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 
 				callnum++;
 			}

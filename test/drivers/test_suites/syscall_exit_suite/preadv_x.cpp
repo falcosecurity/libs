@@ -44,9 +44,15 @@ TEST(SyscallExit, preadvX_fail) {
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(3);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)fd);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(5);
 }
 
 #endif

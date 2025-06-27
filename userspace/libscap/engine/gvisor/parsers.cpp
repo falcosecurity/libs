@@ -493,7 +493,8 @@ static parse_result parse_read(uint32_t id,
 			                                                      &ret.size,
 			                                                      scap_err,
 			                                                      gvisor_evt.exit().result(),
-			                                                      gvisor_evt.count());
+			                                                      gvisor_evt.count(),
+			                                                      gvisor_evt.fd());
 			break;
 
 		case __NR_preadv:
@@ -501,7 +502,9 @@ static parse_result parse_read(uint32_t id,
 			                                                       &ret.size,
 			                                                       scap_err,
 			                                                       gvisor_evt.exit().result(),
-			                                                       gvisor_evt.count());
+			                                                       gvisor_evt.count(),
+			                                                       gvisor_evt.fd(),
+			                                                       gvisor_evt.offset());
 			break;
 
 		default:
