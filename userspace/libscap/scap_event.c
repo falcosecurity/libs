@@ -562,6 +562,7 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SOCKET_SENDTO_X:
 	case PPME_SOCKET_SENDMSG_X:
 	case PPME_SYSCALL_SENDFILE_X:
+	case PPME_SYSCALL_SPLICE_X:
 		location = 2;
 		break;
 	case PPME_SOCKET_RECVFROM_X:

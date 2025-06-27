@@ -15,43 +15,43 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, SENDFILE_success) {
+TEST_F(sinsp_with_test_input, SPLICE_success) {
 	add_default_init_thread();
 	open_inspector();
 
 	// Notice: we need to generate socket events in order to let the parser logic populate the
 	// socket fdinfos.
-	constexpr int64_t in_fd = 4;
-	constexpr int64_t out_fd = 5;
+	constexpr int64_t fd_in = 4;
+	constexpr int64_t fd_out = 5;
 	sinsp_test_input::socket_params sock_params = {};  // Use default values.
-	sock_params.fd = in_fd;
+	sock_params.fd = fd_in;
 	auto evt = generate_socket_events(sock_params);
-	sock_params.fd = out_fd;
+	sock_params.fd = fd_out;
 	evt = generate_socket_events(sock_params);
 
-	constexpr int64_t return_value = 55;
-	constexpr uint64_t offset = 52;
+	constexpr int64_t return_value = 52;
 	constexpr uint64_t size = 53;
+	constexpr uint32_t flags = 54;
 	evt = add_event_advance_ts(increasing_ts(),
 	                           INIT_TID,
-	                           PPME_SYSCALL_SENDFILE_X,
+	                           PPME_SYSCALL_SPLICE_X,
 	                           5,
 	                           return_value,
-	                           offset,
-	                           out_fd,
-	                           in_fd,
-	                           size);
+	                           fd_in,
+	                           fd_out,
+	                           size,
+	                           flags);
 
 	// Check that the returned value is as expected.
 	ASSERT_EQ(evt->get_param_by_name("res")->as<int64_t>(), return_value);
-	// Check that the offset value is as expected.
-	ASSERT_EQ(evt->get_param_by_name("offset")->as<uint64_t>(), offset);
-	// Check that the out_fd value is as expected.
-	ASSERT_EQ(evt->get_param_by_name("out_fd")->as<int64_t>(), out_fd);
-	// Check that the in_fd value is as expected.
-	ASSERT_EQ(evt->get_param_by_name("in_fd")->as<int64_t>(), in_fd);
+	// Check that the fd_in value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("fd_in")->as<int64_t>(), fd_in);
+	// Check that the fd_out value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("fd_out")->as<int64_t>(), fd_out);
 	// Check that the size value is as expected.
 	ASSERT_EQ(evt->get_param_by_name("size")->as<uint64_t>(), size);
+	// Check that the flags value is as expected.
+	ASSERT_EQ(evt->get_param_by_name("flags")->as<uint32_t>(), flags);
 
 	// Check that fd info associated with the event are as expected.
 	auto fdinfo = evt->get_fd_info();
@@ -60,6 +60,6 @@ TEST_F(sinsp_with_test_input, SENDFILE_success) {
 	// Check that fd info associated with the thread are as expected.
 	const auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
 	ASSERT_TRUE(init_tinfo);
-	fdinfo = init_tinfo->get_fd(out_fd);
+	fdinfo = init_tinfo->get_fd(fd_out);
 	ASSERT_TRUE(fdinfo);
 }

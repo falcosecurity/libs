@@ -22,12 +22,12 @@ int BPF_PROG(splice_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd_in (type: PT_FD) */
-	int32_t fd_in = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd_in);
+	int64_t fd_in = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd_in);
 
 	/* Parameter 2: fd_out (type: PT_FD) */
-	int32_t fd_out = (int32_t)extract__syscall_argument(regs, 2);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd_out);
+	int64_t fd_out = (int64_t)(int32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_s64(&ringbuf, fd_out);
 
 	/* Parameter 3: size (type: PT_UINT64) */
 	uint64_t size = extract__syscall_argument(regs, 4);
@@ -61,6 +61,22 @@ int BPF_PROG(splice_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, (int64_t)ret);
+
+	/* Parameter 2: fd_in (type: PT_FD) */
+	int64_t fd_in = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fd_in);
+
+	/* Parameter 3: fd_out (type: PT_FD) */
+	int64_t fd_out = (int64_t)(int32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_s64(&ringbuf, fd_out);
+
+	/* Parameter 4: size (type: PT_UINT64) */
+	uint64_t size = extract__syscall_argument(regs, 4);
+	ringbuf__store_u64(&ringbuf, size);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	uint32_t flags = extract__syscall_argument(regs, 5);
+	ringbuf__store_u32(&ringbuf, splice_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
