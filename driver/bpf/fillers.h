@@ -4011,6 +4011,17 @@ FILLER(sys_inotify_init_e, true) {
 	return bpf_push_u8_to_ring(data, 0);
 }
 
+FILLER(sys_inotify_init_x, true) {
+	/* Parameter 1: res (type: PT_FD) */
+	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_UINT8) */
+	/* Send `0` to unify handling with inotify_init1. */
+	return bpf_push_u8_to_ring(data, 0);
+}
+
 FILLER(sys_inotify_init1_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);

@@ -146,7 +146,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
                                            {{AF_ID_USEDEFAULT, 0}, {AF_ID_USEDEFAULT, 0}}},
         [PPME_SYSCALL_TIMERFD_CREATE_X] = {FILLER_REF(sys_timerfd_create_x)},
         [PPME_SYSCALL_INOTIFY_INIT_E] = {FILLER_REF(sys_inotify_init_e)},
-        [PPME_SYSCALL_INOTIFY_INIT_X] = {FILLER_REF(sys_single_x)},
+        [PPME_SYSCALL_INOTIFY_INIT_X] = {FILLER_REF(sys_inotify_init_x)},
         [PPME_SYSCALL_GETRLIMIT_E] = {FILLER_REF(sys_getrlimit_setrlimit_e)},
         [PPME_SYSCALL_GETRLIMIT_X] = {FILLER_REF(sys_getrlimit_x)},
         [PPME_SYSCALL_SETRLIMIT_E] = {FILLER_REF(sys_getrlimit_setrlimit_e)},

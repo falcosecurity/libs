@@ -53,6 +53,11 @@ int BPF_PROG(inotify_init_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: flags (type: PT_UINT8) */
+	/* Send `0` to unify handling with inotify_init1. */
+	uint8_t flags = 0;
+	ringbuf__store_u8(&ringbuf, flags);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
