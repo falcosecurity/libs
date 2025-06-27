@@ -7346,11 +7346,9 @@ FILLER(sys_fchownat_x, true) {
 }
 
 FILLER(sys_copy_file_range_e, true) {
-	int res = 0;
-
 	/* Parameter 1: fdin (type: PT_FD) */
-	int32_t fdin = (int32_t)bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s64_to_ring(data, (int64_t)fdin);
+	int64_t fdin = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, fdin);
 	CHECK_RES(res);
 
 	/* Parameter 2: offin (type: PT_UINT64) */
@@ -7364,27 +7362,34 @@ FILLER(sys_copy_file_range_e, true) {
 }
 
 FILLER(sys_copy_file_range_x, true) {
-	int fdout;
-	unsigned long offout;
-	long retval;
-	int res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
-
-	/*
-	 * fdout
-	 */
-	fdout = bpf_syscall_get_argument(data, 2);
+	/* Parameter 2: fdout (type: PT_FD) */
+	int64_t fdout = (int64_t)(int32_t)bpf_syscall_get_argument(data, 2);
 	res = bpf_push_s64_to_ring(data, fdout);
 	CHECK_RES(res);
 
-	/*
-	 * offout
-	 */
-	offout = bpf_syscall_get_argument(data, 3);
+	/* Parameter 3: offout (type: PT_UINT64) */
+	uint64_t offout = bpf_syscall_get_argument(data, 3);
 	res = bpf_push_u64_to_ring(data, offout);
 	CHECK_RES(res);
+
+	/* Parameter 4: fdin (type: PT_FD) */
+	int64_t fdin = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fdin);
+	CHECK_RES(res);
+
+	/* Parameter 5: offin (type: PT_UINT64) */
+	uint64_t offin = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u64_to_ring(data, offin);
+	CHECK_RES(res);
+
+	/* Parameter 6: len (type: PT_UINT64) */
+	uint64_t len = bpf_syscall_get_argument(data, 4);
+	return bpf_push_u64_to_ring(data, len);
 
 	return res;
 }

@@ -6246,28 +6246,24 @@ int f_sys_openat2_x(struct event_filler_arguments *args) {
 }
 
 int f_sys_copy_file_range_e(struct event_filler_arguments *args) {
-	unsigned long val = 0;
-	int32_t fdin = 0;
-	unsigned long offin = 0;
-	unsigned long len = 0;
-	int res = 0;
+	unsigned long val;
+	int64_t fdin;
+	int res;
+	unsigned long offin;
+	unsigned long len;
 
 	/* Parameter 1: fdin (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fdin = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fdin, 0, false, 0);
+	fdin = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fdin, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * offin
-	 */
+	/* Parameter 2: offin (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 1, 1, &offin);
 	res = val_to_ring(args, offin, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * len
-	 */
+	/* Parameter 3: len (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 4, 1, &len);
 	res = val_to_ring(args, len, 0, false, 0);
 	CHECK_RES(res);
@@ -6276,11 +6272,11 @@ int f_sys_copy_file_range_e(struct event_filler_arguments *args) {
 }
 
 int f_sys_copy_file_range_x(struct event_filler_arguments *args) {
-	unsigned long val = 0;
-	unsigned long offout = 0;
-	int64_t retval = 0;
-	int res = 0;
-	int32_t fdout = 0;
+	int64_t retval;
+	int res;
+	unsigned long val;
+	int64_t fdout, fdin;
+	unsigned long offout, offin, len;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -6289,13 +6285,29 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args) {
 
 	/* Parameter 2: fdout (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	fdout = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fdout, 0, false, 0);
+	fdout = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fdout, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: offout (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 3, 1, &offout);
 	res = val_to_ring(args, offout, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: fdin (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fdin = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fdin, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: offin (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 1, 1, &offin);
+	res = val_to_ring(args, offin, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: len (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 4, 1, &len);
+	res = val_to_ring(args, len, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

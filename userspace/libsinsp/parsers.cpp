@@ -584,12 +584,6 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	// Handling section for events using FDs.
 	//
 
-	// The copy_file_range syscall has the peculiarity of using two fds. Set as m_lastevent_fd the
-	// output fd.
-	if(etype == PPME_SYSCALL_COPY_FILE_RANGE_X) {
-		tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
-	}
-
 	// sendmmsg and recvmmsg send all data in the exit event, fd included.
 	if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
 	   evt.get_num_params() > 0) {

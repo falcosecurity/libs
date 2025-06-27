@@ -44,8 +44,17 @@ TEST(SyscallExit, copy_file_rangeX) {
 	/* Parameter 3: offout (type: PT_UINT64) */
 	evt_test->assert_numeric_param(3, (uint64_t)off_out);
 
+	/* Parameter 4: fdin (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)fd_in);
+
+	/* Parameter 5: offin (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)off_in);
+
+	/* Parameter 6: len (type: PT_UINT64) */
+	evt_test->assert_numeric_param(6, (uint64_t)len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(6);
 }
 #endif

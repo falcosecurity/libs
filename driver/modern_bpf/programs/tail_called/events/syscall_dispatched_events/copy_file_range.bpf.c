@@ -25,8 +25,8 @@ int BPF_PROG(copy_file_range_e, struct pt_regs *regs, long id) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fdin (type: PT_FD) */
-	int32_t fdin = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)fdin);
+	int64_t fdin = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fdin);
 
 	/* Parameter 2: offin (type: PT_UINT64) */
 	uint64_t offin = extract__syscall_argument(regs, 1);
@@ -58,16 +58,28 @@ int BPF_PROG(copy_file_range_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: fdout (type: PT_FD) */
-	int32_t fdout = (int32_t)extract__syscall_argument(regs, 2);
-	ringbuf__store_s64(&ringbuf, (int64_t)fdout);
+	int64_t fdout = (int64_t)(int32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_s64(&ringbuf, fdout);
 
 	/* Parameter 3: offout (type: PT_UINT64) */
 	uint64_t offout = extract__syscall_argument(regs, 3);
 	ringbuf__store_u64(&ringbuf, offout);
+
+	/* Parameter 4: fdin (type: PT_FD) */
+	int64_t fdin = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, fdin);
+
+	/* Parameter 5: offin (type: PT_UINT64) */
+	uint64_t offin = extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, offin);
+
+	/* Parameter 6: len (type: PT_UINT64) */
+	uint64_t len = extract__syscall_argument(regs, 4);
+	ringbuf__store_u64(&ringbuf, len);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -4064,6 +4064,84 @@ TEST_F(convert_event_test, PPME_SYSCALL_MPROTECT_X_1_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// COPY_FILE_RANGE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_COPY_FILE_RANGE_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fdin = 50;
+	constexpr uint64_t offin = 51;
+	constexpr uint64_t len = 52;
+
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_COPY_FILE_RANGE_E, 3, fdin, offin, len);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_COPY_FILE_RANGE_X_3_to_6_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fdout = 60;
+	constexpr uint64_t offout = 61;
+
+	// Defaulted to 0
+	constexpr int64_t fdin = 0;
+	constexpr uint64_t offin = 0;
+	constexpr uint64_t len = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_COPY_FILE_RANGE_X, 3, res, fdout, offout),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_COPY_FILE_RANGE_X,
+	                               6,
+	                               res,
+	                               fdout,
+	                               offout,
+	                               fdin,
+	                               offin,
+	                               len));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_COPY_FILE_RANGE_X_3_to_6_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fdin = 50;
+	constexpr uint64_t offin = 51;
+	constexpr uint64_t len = 52;
+	constexpr int64_t res = 89;
+	constexpr int64_t fdout = 60;
+	constexpr uint64_t offout = 61;
+
+	// After the first conversion we should have the storage
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_COPY_FILE_RANGE_E, 3, fdin, offin, len);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_COPY_FILE_RANGE_X, 3, res, fdout, offout),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_COPY_FILE_RANGE_X,
+	                               6,
+	                               res,
+	                               fdout,
+	                               offout,
+	                               fdin,
+	                               offin,
+	                               len));
+}
+
+////////////////////////////
 // EPOLL_CREATE
 ////////////////////////////
 
