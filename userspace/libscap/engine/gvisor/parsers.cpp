@@ -1997,14 +1997,19 @@ static parse_result parse_write(uint32_t id,
 			ret.status = scap_gvisor::fillers::fill_event_writev_x(scap_buf,
 			                                                       &ret.size,
 			                                                       scap_err,
-			                                                       gvisor_evt.exit().result());
+			                                                       gvisor_evt.exit().result(),
+			                                                       gvisor_evt.fd(),
+			                                                       gvisor_evt.count());
 			break;
 
 		case __NR_pwritev:
 			ret.status = scap_gvisor::fillers::fill_event_pwritev_x(scap_buf,
 			                                                        &ret.size,
 			                                                        scap_err,
-			                                                        gvisor_evt.exit().result());
+			                                                        gvisor_evt.exit().result(),
+			                                                        gvisor_evt.fd(),
+			                                                        gvisor_evt.count(),
+			                                                        gvisor_evt.offset());
 			break;
 
 		default:

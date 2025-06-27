@@ -145,12 +145,26 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_READV_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_READV_X, 3},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        /*====================== WRITEV ======================*/
+        {conversion_key{PPME_SYSCALL_WRITEV_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_WRITEV_X, 2},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
         /*====================== PREADV ======================*/
         {conversion_key{PPME_SYSCALL_PREADV_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_PREADV_X, 3},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
+        /*====================== PWRITEV ======================*/
+        {conversion_key{PPME_SYSCALL_PWRITEV_E, 3}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_PWRITEV_X, 2},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1},
+                          {C_INSTR_FROM_ENTER, 2}})},
         /*====================== SETRESUID ======================*/
         {conversion_key{PPME_SYSCALL_SETRESUID_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SETRESUID_X, 1},

@@ -819,8 +819,8 @@ FILLER(sys_writev_e, true) {
 #error Implement this
 #endif
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, fd);
 	CHECK_RES(res);
 
 	unsigned long iov_pointer = bpf_syscall_get_argument(data, 1);
@@ -833,44 +833,53 @@ FILLER(sys_writev_e, true) {
 	                                  0,
 	                                  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 
-	/* if there was an error we send a size equal to `0`.
-	 * we can improve this in the future but at least we don't lose the whole event.
-	 */
+	/* If there was an error we send a size equal to `0`.
+	 * We can improve this in the future but at least we don't lose the whole event. */
 	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
 		res = bpf_push_u32_to_ring(data, (uint32_t)0);
 	}
 	return res;
 }
 
-FILLER(sys_writev_pwritev_x, true) {
-	unsigned long iovcnt;
-	unsigned long val;
-	long retval;
-	int res;
-
+FILLER(sys_writev_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/*
-	 * data
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	iovcnt = bpf_syscall_get_argument(data, 2);
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	unsigned long iov_pointer = bpf_syscall_get_argument(data, 1);
+	unsigned long iov_cnt = bpf_syscall_get_argument(data, 2);
 	res = bpf_parse_readv_writev_bufs(data,
-	                                  (const struct iovec __user *)val,
-	                                  iovcnt,
+	                                  (const struct iovec __user *)iov_pointer,
+	                                  iov_cnt,
 	                                  0,
 	                                  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 
-	/* if there was an error we send an empty param.
-	 * we can improve this in the future but at least we don't lose the whole event.
-	 */
+	/* If there was an error we send an empty param.
+	 * We can improve this in the future but at least we don't lose the whole event. */
 	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
 		res = bpf_push_empty_param(data);
 	}
+	CHECK_RES(res);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	res = bpf_parse_readv_writev_bufs(data,
+	                                  (const struct iovec __user *)iov_pointer,
+	                                  iov_cnt,
+	                                  0,
+	                                  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+
+	/* If there was an error we send a size equal to `0`.
+	 * We can improve this in the future but at least we don't lose the whole event. */
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
+		res = bpf_push_u32_to_ring(data, (uint32_t)0);
+	}
 	return res;
 }
 
@@ -4543,8 +4552,8 @@ FILLER(sys_prlimit_x, true) {
 
 FILLER(sys_pwritev_e, true) {
 	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, fd);
 	CHECK_RES(res);
 
 	unsigned long iov_pointer = bpf_syscall_get_argument(data, 1);
@@ -4557,15 +4566,60 @@ FILLER(sys_pwritev_e, true) {
 	                                  0,
 	                                  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 
-	/* if there was an error we send a size equal to `0`.
-	 * we can improve this in the future but at least we don't lose the whole event.
-	 */
+	/* If there was an error we send a size equal to `0`.
+	 * We can improve this in the future but at least we don't lose the whole event. */
 	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
 		res = bpf_push_u32_to_ring(data, 0);
 	}
 	CHECK_RES(res);
 
 	/* Parameter 3: pos (type: PT_UINT64) */
+	uint64_t pos = (uint64_t)bpf_syscall_get_argument(data, 3);
+	return bpf_push_u64_to_ring(data, pos);
+}
+
+FILLER(sys_pwritev_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	unsigned long iov_pointer = bpf_syscall_get_argument(data, 1);
+	unsigned long iov_cnt = bpf_syscall_get_argument(data, 2);
+	res = bpf_parse_readv_writev_bufs(data,
+	                                  (const struct iovec __user *)iov_pointer,
+	                                  iov_cnt,
+	                                  0,
+	                                  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+
+	/* If there was an error we send an empty param.
+	 * We can improve this in the future but at least we don't lose the whole event. */
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
+		res = bpf_push_empty_param(data);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	res = bpf_parse_readv_writev_bufs(data,
+	                                  (const struct iovec __user *)iov_pointer,
+	                                  iov_cnt,
+	                                  0,
+	                                  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+
+	/* If there was an error we send a size equal to `0`.
+	 * We can improve this in the future but at least we don't lose the whole event. */
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
+		res = bpf_push_u32_to_ring(data, (uint32_t)0);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
 	uint64_t pos = (uint64_t)bpf_syscall_get_argument(data, 3);
 	return bpf_push_u64_to_ring(data, pos);
 }

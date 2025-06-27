@@ -61,6 +61,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_TGKILL_E, 1010},     {PPME_SYSCALL_TGKILL_X, 1010},
 	        {PPME_SOCKET_ACCEPT4_6_E, 207},    {PPME_SOCKET_ACCEPT4_6_X, 207},
 	        {PPME_SYSCALL_SPLICE_E, 253},      {PPME_SYSCALL_SPLICE_X, 253},
+	        {PPME_SYSCALL_WRITEV_E, 5},        {PPME_SYSCALL_WRITEV_X, 5},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -627,10 +628,61 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 // We don't have scap-files with READV events. Add it if we face a failure.
 
 ////////////////////////////
+// WRITEV
+////////////////////////////
+
+TEST_F(scap_file_test, writev_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `881318` is the following:
+	// - type=PPME_SYSCALL_WRITEV_X,
+	// - ts=1687966733260040207
+	// - tid=129563
+	// - args=res=168 data=1687966733.2580034733
+	// _p9k_vcs_resume 1.1./home/ubuntu/libs.f45051394208e04ef35f
+	//
+	// And its corresponding enter event `881317` is the following:
+	// - type=PPME_SYSCALL_WRITEV_E
+	// - ts=1687966733260035546
+	// - tid=129563
+	// - args=fd=1(<p>pipe:[339160]) size=168
+	//
+	// Let's see the new PPME_SYSCALL_WRITEV_X event!
+
+	constexpr uint64_t ts = 1687966733260040207;
+	constexpr int64_t tid = 129563;
+	constexpr int64_t res = 168;
+	constexpr char data[] =
+	        "1687966733.2580034733 _p9k_vcs_resume 1"
+	        "\x1f"
+	        "1"
+	        "\x1f"
+	        "/home/ubuntu/libs"
+	        "\x1f"
+	        "f45051394208e04ef35f";
+	constexpr int64_t fd = 1;
+	constexpr uint32_t size = 168;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_WRITEV_X,
+	                                             4,
+	                                             res,
+	                                             scap_const_sized_buffer{data, sizeof(data) - 1},
+	                                             fd,
+	                                             size));
+}
+
+////////////////////////////
 // PREADV
 ////////////////////////////
 
 // We don't have scap-files with PREADV events. Add it if we face a failure.
+
+////////////////////////////
+// PWRITEV
+////////////////////////////
+
+// We don't have scap-files with PWRITEV events. Add it if we face a failure.
 
 ////////////////////////////
 // SETRESUID

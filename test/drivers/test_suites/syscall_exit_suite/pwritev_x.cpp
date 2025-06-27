@@ -48,9 +48,18 @@ TEST(SyscallExit, pwritevX_no_snaplen) {
 	/* This proves that even if the syscall fails we can collect less than DEFAULT_SNAPLEN */
 	evt_test->assert_bytebuf_param(2, sent_data_1, DEFAULT_SNAPLEN / 2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)DEFAULT_SNAPLEN / 2);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)off);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, pwritevX_snaplen) {
@@ -103,9 +112,18 @@ TEST(SyscallExit, pwritevX_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, sent_data_1, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)DEFAULT_SNAPLEN * 2);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)off);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, pwritevX_empty) {
@@ -146,9 +164,18 @@ TEST(SyscallExit, pwritevX_empty) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)0);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	evt_test->assert_numeric_param(5, (uint64_t)off);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 #endif
