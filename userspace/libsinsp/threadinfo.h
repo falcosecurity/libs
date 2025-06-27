@@ -628,6 +628,14 @@ public:
 	 */
 	static static_struct::field_infos get_static_fields();
 
+protected:
+	// Parameters provided at thread info construction phase.
+	// Notice: the struct instance is shared among all the thread info instances.
+	// Notice 2: this should be a plain const reference, but use a shared_ptr or the compiler will
+	// complain about referencing a member (m_input_plugin) whose lifetime is shorter than the
+	// ctor_params object in sinsp constructor.
+	const std::shared_ptr<ctor_params> m_params;
+
 private:
 	sinsp_threadinfo* get_cwd_root();
 	bool set_env_from_proc();
@@ -642,13 +650,6 @@ private:
 	                  struct iovec& iov,
 	                  uint32_t& alen,
 	                  std::string& rem) const;
-
-	// Parameters provided at thread info construction phase.
-	// Notice: the struct instance is shared among all the thread info instances.
-	// Notice 2: this should be a plain const reference, but use a shared_ptr or the compiler will
-	// complain about referencing a member (m_input_plugin) whose lifetime is shorter than the
-	// ctor_params object in sinsp constructor.
-	const std::shared_ptr<ctor_params> m_params;
 
 	//
 	// Parameters that can't be accessed directly because they could be in the
