@@ -91,7 +91,7 @@
 #define NANOSLEEP_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
 #define NANOSLEEP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
 #define TIMERFD_CREATE_E_SIZE HEADER_LEN + sizeof(uint8_t) * 2 + PARAM_LEN * 2
-#define TIMERFD_CREATE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define TIMERFD_CREATE_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) * 2 + PARAM_LEN * 3
 #define INOTIFY_INIT_E_SIZE HEADER_LEN + sizeof(uint8_t) + PARAM_LEN
 #define INOTIFY_INIT_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define GETRLIMIT_E_SIZE HEADER_LEN + sizeof(uint8_t) + PARAM_LEN

@@ -51,8 +51,16 @@ int BPF_PROG(timerfd_create_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD)*/
+	/* Parameter 1: res (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: clockid (type: PT_UINT8) */
+	/* Like in the old probe we send `0` */
+	ringbuf__store_u8(&ringbuf, 0);
+
+	/* Parameter 3: flags (type: PT_UINT8) */
+	/* Like in the old probe we send `0` */
+	ringbuf__store_u8(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -6524,6 +6524,28 @@ int f_sys_io_uring_register_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_timerfd_create_x(struct event_filler_arguments *args) {
+	int64_t retval;
+	int res;
+
+	/* Parameter 1: res (type: PT_FD) */
+	retval = (int64_t)(int32_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: clockid (type: PT_UINT8) */
+	/* Send `0`. */
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_UINT8) */
+	/* Send `0`. */
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_inotify_init_e(struct event_filler_arguments *args) {
 	/* Parameter 1: flags (type: PT_UINT8) */
 	/* We have nothing to extract from the kernel here so we send `0`.

@@ -489,7 +489,9 @@ int32_t fill_event_timerfd_create_e(scap_sized_buffer scap_buf,
 int32_t fill_event_timerfd_create_x(scap_sized_buffer scap_buf,
                                     size_t* event_size,
                                     char* scap_err,
-                                    int64_t res);
+                                    int64_t res,
+                                    uint8_t clockid,
+                                    uint8_t flags);
 
 int32_t fill_event_inotify_init_e(scap_sized_buffer scap_buf,
                                   size_t* event_size,
