@@ -83,7 +83,8 @@ public:
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
 
 protected:
-	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
+	virtual void get_dynamic_field(const dynamic_struct::field_info& i,
+	                               void* out) const override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to pair_table_entry_adapter::get_dynamic_field");
@@ -115,7 +116,9 @@ private:
 	std::pair<Tfirst, Tsecond>* m_value;
 
 	template<typename T>
-	inline void get_dynamic_field(const dynamic_struct::field_info& i, const T* value, void* out) {
+	inline void get_dynamic_field(const dynamic_struct::field_info& i,
+	                              const T* value,
+	                              void* out) const {
 		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)value)->c_str();
 		} else {
@@ -169,7 +172,8 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 protected:
-	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
+	virtual void get_dynamic_field(const dynamic_struct::field_info& i,
+	                               void* out) const override final {
 		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::get_dynamic_field");
