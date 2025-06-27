@@ -1403,6 +1403,88 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREADV_X_3_to_5_params_with_enter) {
 }
 
 ////////////////////////////
+// PWRITEV
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_PWRITEV_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint32_t size = 36;
+	constexpr uint64_t pos = 50;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PWRITEV_E, 3, fd, size, pos);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PWRITEV_X_2_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr uint32_t data_size = sizeof(data);
+
+	// Defaulted
+	constexpr int64_t fd = 0;
+	constexpr uint32_t size = 0;
+	constexpr uint64_t pos = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITEV_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITEV_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd,
+	                               size,
+	                               pos));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PWRITEV_X_2_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr char data[] = "hello";
+	constexpr uint32_t data_size = sizeof(data);
+	constexpr uint64_t pos = 50;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PWRITEV_E, 3, fd, data_size, pos);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITEV_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITEV_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd,
+	                               data_size,
+	                               pos));
+}
+
+////////////////////////////
 // SETRESUID
 ////////////////////////////
 
