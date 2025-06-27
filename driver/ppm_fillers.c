@@ -4781,21 +4781,95 @@ int f_sys_pwrite64_x(struct event_filler_arguments *args) {
 
 int f_sys_preadv_e(struct event_filler_arguments *args) {
 	unsigned long val;
+	int64_t fd;
 	int res;
-	int32_t fd;
 	unsigned long pos64;
 
-	/*
-	 * fd
-	 */
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * pos
-	 */
+	/* Parameter 2: pos (type: PT_UINT64) */
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+	{
+		unsigned long pos0;
+		unsigned long pos1;
+		/*
+		 * Note that in preadv and pwritev have NO 64-bit arguments in the
+		 * syscall (despite having one in the userspace API), so no alignment
+		 * requirements apply here. For an overly-detailed discussion about
+		 * this, see https://lwn.net/Articles/311630/
+		 */
+		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
+
+		pos64 = merge_64(pos1, pos0);
+	}
+#else
+	syscall_get_arguments_deprecated(args, 3, 1, &pos64);
+#endif
+
+	res = val_to_ring(args, pos64, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_preadv_x(struct event_filler_arguments *args) {
+	unsigned long val;
+	int64_t retval;
+	int res;
+	unsigned long iovcnt;
+	int64_t fd;
+	unsigned long pos64;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	if(retval > 0) {
+		syscall_get_arguments_deprecated(args, 1, 1, &val);
+		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
+
+		/* Parameter 2: size (type: PT_UINT32) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+#ifdef CONFIG_COMPAT
+		if(unlikely(args->compat)) {
+			const struct compat_iovec __user *compat_iov =
+			        (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args,
+			                                     compat_iov,
+			                                     iovcnt,
+			                                     retval,
+			                                     PRB_FLAG_PUSH_ALL);
+		} else
+#endif
+		{
+			const struct iovec __user *iov = (const struct iovec __user *)val;
+			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		}
+
+		CHECK_RES(res);
+	} else {
+		/* Parameter 2: size (type: PT_UINT32) */
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+	}
+
+	/* Parameter 4: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 	{
 		unsigned long pos0;
@@ -4823,29 +4897,26 @@ int f_sys_preadv_e(struct event_filler_arguments *args) {
 
 int f_sys_readv_e(struct event_filler_arguments *args) {
 	unsigned long val;
-	int32_t fd;
+	int64_t fd;
 	int res;
 
-	/*
-	 * fd
-	 */
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_readv_preadv_x(struct event_filler_arguments *args) {
+int f_sys_readv_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int64_t retval;
 	int res;
 	unsigned long iovcnt;
+	int64_t fd;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
@@ -4854,6 +4925,8 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args) {
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
+		/* Parameter 2: size (type: PT_UINT32) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
 #ifdef CONFIG_COMPAT
 		if(unlikely(args->compat)) {
 			const struct compat_iovec __user *compat_iov =
@@ -4872,14 +4945,20 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args) {
 
 		CHECK_RES(res);
 	} else {
-		/* pushing a zero size */
+		/* Parameter 2: size (type: PT_UINT32) */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
 
-		/* pushing empty data */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
 		res = push_empty_param(args);
 		CHECK_RES(res);
 	}
+
+	/* Parameter 4: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int64_t)(int32_t)val;
+	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

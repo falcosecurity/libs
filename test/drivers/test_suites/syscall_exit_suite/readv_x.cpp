@@ -41,9 +41,12 @@ TEST(SyscallExit, readvX_fail) {
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(3);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readvX_success) {
@@ -109,9 +112,12 @@ TEST(SyscallExit, readvX_success) {
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(3, test_string, strlen(test_string) + 1);
 
+	/* Parameter 4: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(4, (int64_t)pipefds[0]);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 #endif

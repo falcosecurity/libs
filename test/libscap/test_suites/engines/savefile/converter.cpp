@@ -1166,6 +1166,165 @@ TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// READV
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_READV_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_READV_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_READV_X_3_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr uint32_t data_size = sizeof(data);
+
+	// Defaulted
+	constexpr int64_t fd = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_READV_X,
+	                               3,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_READV_X,
+	                               4,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_READV_X_3_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr uint32_t data_size = sizeof(data);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_READV_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_READV_X,
+	                               3,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_READV_X,
+	                               4,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd));
+}
+
+////////////////////////////
+// PREADV
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_PREADV_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint64_t pos = 50;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PREADV_E, 2, fd, pos);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PREADV_X_3_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr uint32_t data_size = sizeof(data);
+
+	// Defaulted
+	constexpr int64_t fd = 0;
+	constexpr uint64_t pos = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PREADV_X,
+	                               3,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PREADV_X,
+	                               5,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd,
+	                               pos));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PREADV_X_3_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint64_t pos = 50;
+	constexpr int64_t res = 89;
+	constexpr char data[] = "hello";
+	constexpr uint32_t data_size = sizeof(data);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PREADV_E, 2, fd, pos);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PREADV_X,
+	                               3,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PREADV_X,
+	                               5,
+	                               res,
+	                               data_size,
+	                               scap_const_sized_buffer{data, data_size},
+	                               fd,
+	                               pos));
+}
+
+////////////////////////////
 // SETRESUID
 ////////////////////////////
 

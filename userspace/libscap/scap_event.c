@@ -567,6 +567,8 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 		location = 2;
 		break;
 	case PPME_SOCKET_RECVFROM_X:
+	case PPME_SYSCALL_READV_X:
+	case PPME_SYSCALL_PREADV_X:
 		location = 3;
 		break;
 	case PPME_SOCKET_RECVMSG_X:
