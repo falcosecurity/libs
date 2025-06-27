@@ -273,7 +273,13 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	                     2,
 	                     (uint8_t)0,
 	                     (uint8_t)0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_X, 1, fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_TIMERFD_CREATE_X,
+	                           3,
+	                           fd,
+	                           (uint8_t)0,
+	                           (uint8_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "timerfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "t");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "6");

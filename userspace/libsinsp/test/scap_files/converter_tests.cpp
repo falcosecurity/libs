@@ -328,6 +328,12 @@ TEST_F(scap_file_test, nanosleep_x_check_final_converted_event) {
 }
 
 ////////////////////////////
+// TIMERFD_CREATE
+////////////////////////////
+
+// We don't have scap-files with TIMERFD_CREATE events. Add it if we face a failure.
+
+////////////////////////////
 // GETRLIMIT
 ////////////////////////////
 

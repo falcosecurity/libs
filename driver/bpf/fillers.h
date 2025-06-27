@@ -3987,6 +3987,22 @@ FILLER(sys_io_uring_register_x, true) {
 	return bpf_push_u32_to_ring(data, nr_args);
 }
 
+FILLER(sys_timerfd_create_x, true) {
+	/* Parameter 1: res (type: PT_FD) */
+	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: clockid (type: PT_UINT8) */
+	/* Send `0`. */
+	res = bpf_push_u8_to_ring(data, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_UINT8) */
+	/* Send `0`. */
+	return bpf_push_u8_to_ring(data, 0);
+}
+
 FILLER(sys_inotify_init_e, true) {
 	/* Parameter 1: flags (type: PT_UINT8) */
 	/* We have nothing to extract from the kernel here so we send `0`.

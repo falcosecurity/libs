@@ -1362,13 +1362,17 @@ int32_t fill_event_timerfd_create_e(scap_sized_buffer scap_buf,
 int32_t fill_event_timerfd_create_x(scap_sized_buffer scap_buf,
                                     size_t* event_size,
                                     char* scap_err,
-                                    int64_t res) {
+                                    int64_t res,
+                                    uint8_t clockid,
+                                    uint8_t flags) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_TIMERFD_CREATE_X,
-	                                1,
-	                                res);
+	                                3,
+	                                res,
+	                                clockid,
+	                                flags);
 }
 
 // PPME_SYSCALL_INOTIFY_INIT_E
