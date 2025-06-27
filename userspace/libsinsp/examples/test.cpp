@@ -122,7 +122,7 @@ Options:
   -k, --kmod                                 Kernel module
   -G <config_path>, --gvisor <config_path>   Gvisor engine
   -s <path>, --scap_file <path>              Scap file
-  -p <path>, --plugin <path>                 Plugin. Path can follow the pattern "filepath.so|init_cfg|open_params".
+  -p <path>, --plugin <path>                 Plugin. Path can follow the pattern "filepath.so|init_cfg|open_params". Must come after the "-s" option when reading events from a file.
   -d <dim>, --buffer_dim <dim>               Dimension in bytes that every buffer will have.
   -c <num>, --cpus-for-each-buffer <num>     (modern eBPF probe only) Allocate a ring buffer every <num> CPU(s) (default: 1).
   -A, --all-cpus                             (modern eBPF probe only) Allocate ring buffers for all available CPUs (default: allocate ring buffers for online CPU(s) only).
@@ -244,7 +244,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				exit(EXIT_FAILURE);
 			}
 			if(plugin->caps() & CAP_SOURCING) {
-				select_engine(SOURCE_PLUGIN_ENGINE);
+				if(engine_string != SAVEFILE_ENGINE) {
+					select_engine(SOURCE_PLUGIN_ENGINE);
+				}
 				filter_list->add_filter_check(inspector.new_generic_filtercheck());
 			}
 			if(plugin->caps() & CAP_EXTRACTION) {
