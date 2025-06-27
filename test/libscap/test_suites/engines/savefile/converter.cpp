@@ -2712,6 +2712,80 @@ TEST_F(convert_event_test, PPME_SYSCALL_MUNMAP_X_to_6_params_with_enter) {
 }
 
 ////////////////////////////
+// SPLICE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_SPLICE_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd_in = 10;
+	constexpr int64_t fd_out = 20;
+	constexpr uint64_t size = 30;
+	constexpr uint32_t flags = 40;
+
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SPLICE_E, 4, fd_in, fd_out, size, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SPLICE_X_1_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted to 0
+	constexpr int64_t fd_in = 0;
+	constexpr int64_t fd_out = 0;
+	constexpr uint64_t size = 0;
+	constexpr uint32_t flags = 0;
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SPLICE_X, 1, res),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SPLICE_X,
+	                                                        5,
+	                                                        res,
+	                                                        fd_in,
+	                                                        fd_out,
+	                                                        size,
+	                                                        flags));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_SPLICE_X_1_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd_in = 10;
+	constexpr int64_t fd_out = 20;
+	constexpr uint64_t size = 30;
+	constexpr uint32_t flags = 40;
+	constexpr int64_t res = 89;
+
+	// After the first conversion we should have the storage
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SPLICE_E, 4, fd_in, fd_out, size, flags);
+
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(conversion_result::CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SPLICE_X, 1, res),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_SPLICE_X,
+	                                                        5,
+	                                                        res,
+	                                                        fd_in,
+	                                                        fd_out,
+	                                                        size,
+	                                                        flags));
+}
+
+////////////////////////////
 // PTRACE
 ////////////////////////////
 

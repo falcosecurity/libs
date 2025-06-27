@@ -37,8 +37,20 @@ TEST(SyscallExit, spliceX) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: fd_in (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)fd_in);
+
+	/* Parameter 3: fd_out (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)fd_out);
+
+	/* Parameter 4: size (type: PT_UINT64) */
+	evt_test->assert_numeric_param(4, size);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(5, (uint32_t)PPM_SPLICE_F_MOVE);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
