@@ -5575,6 +5575,28 @@ FILLER(sys_lseek_e, true) {
 	return bpf_push_u8_to_ring(data, flags);
 }
 
+FILLER(sys_lseek_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: offset (type: PT_UINT64) */
+	unsigned long offset = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u64_to_ring(data, offset);
+	CHECK_RES(res);
+
+	/* Parameter 4: whence (type: PT_ENUMFLAGS8) */
+	unsigned long val = bpf_syscall_get_argument(data, 2);
+	unsigned long flags = lseek_whence_to_scap(val);
+	return bpf_push_u8_to_ring(data, flags);
+}
+
 FILLER(sys_llseek_e, true) {
 	/* Parameter 1: fd (type: PT_FD) */
 	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
