@@ -61,6 +61,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_TGKILL_E, 1010},     {PPME_SYSCALL_TGKILL_X, 1010},
 	        {PPME_SOCKET_ACCEPT4_6_E, 207},    {PPME_SOCKET_ACCEPT4_6_X, 207},
 	        {PPME_SYSCALL_SPLICE_E, 253},      {PPME_SYSCALL_SPLICE_X, 253},
+	        {PPME_SYSCALL_LSEEK_E, 329},       {PPME_SYSCALL_LSEEK_X, 329},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -1167,6 +1168,39 @@ TEST_F(scap_file_test, poll_x_check_final_converted_event) {
 	                                             res,
 	                                             scap_const_sized_buffer{fds, sizeof(fds)},
 	                                             timeout));
+}
+
+////////////////////////////
+///// LSEEK
+////////////////////////////
+
+TEST_F(scap_file_test, lseek_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `896635` is the following:
+	// - type=PPME_SYSCALL_LSEEK_X,
+	// - ts=1687966733725654218
+	// - tid=141698
+	// - args=res=971
+	//
+	// And its corresponding enter event `896634` is the following:
+	// - type=PPME_SYSCALL_LSEEK_E
+	// - ts=1687966733725652701
+	// - tid=141698
+	// -
+	// args=fd=255(<f>/home/ubuntu/.vscode-server/bin/695af097c7bd098fbf017ce3ac85e09bbc5dda06/out/vs/base/node/cpuUsage.sh)
+	// offset=-751 whence=1(SEEK_CUR)
+	//
+	// Let's see the new PPME_SYSCALL_LSEEK_X event!
+
+	constexpr uint64_t ts = 1687966733725654218;
+	constexpr int64_t tid = 141698;
+	constexpr int64_t res = 971;
+	constexpr int64_t fd = 255;
+	constexpr uint64_t offset = -751;
+	constexpr uint8_t whence = 1;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 4, res, fd, offset, whence));
 }
 
 ////////////////////////////
