@@ -2447,6 +2447,60 @@ TEST_F(convert_event_test, PPME_SYSCALL_POLL_X_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// LSEEK
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint64_t offset = 1234;
+	constexpr uint8_t whence = 100;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_E, 3, fd, offset, whence);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_X_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Defaulted
+	constexpr int64_t fd = 0;
+	constexpr uint64_t offset = 0;
+	constexpr uint8_t whence = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 4, res, fd, offset, whence));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_LSEEK_X_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fd = 25;
+	constexpr uint64_t offset = 1234;
+	constexpr uint8_t whence = 100;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_E, 3, fd, offset, whence);
+
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 4, res, fd, offset, whence));
+}
+
+////////////////////////////
 // LLSEEK
 ////////////////////////////
 
