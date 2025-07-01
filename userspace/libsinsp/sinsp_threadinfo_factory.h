@@ -20,24 +20,19 @@ limitations under the License.
 #include <libsinsp/sinsp_external_processor.h>
 #include <libsinsp/threadinfo.h>
 
-class sinsp;
-
 /*!
   \brief Factory hiding sinsp_threadinfo creation details.
 */
 class sinsp_threadinfo_factory {
-	sinsp* m_sinsp;
 	const std::shared_ptr<sinsp_threadinfo::ctor_params>& m_params;
 	libsinsp::event_processor* const& m_external_event_processor;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& m_fdtable_dyn_fields;
 
 public:
-	sinsp_threadinfo_factory(sinsp* sinsp,
-	                         const std::shared_ptr<sinsp_threadinfo::ctor_params>& params,
+	sinsp_threadinfo_factory(const std::shared_ptr<sinsp_threadinfo::ctor_params>& params,
 	                         libsinsp::event_processor* const& external_event_processor,
 	                         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                                 fdtable_dyn_fields):
-	        m_sinsp{sinsp},
 	        m_params{params},
 	        m_external_event_processor{external_event_processor},
 	        m_fdtable_dyn_fields{fdtable_dyn_fields} {}
