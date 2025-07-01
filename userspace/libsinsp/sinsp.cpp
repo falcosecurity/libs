@@ -169,7 +169,6 @@ sinsp::sinsp(bool with_metrics):
                                               m_thread_manager,
                                               m_usergroup_manager})},
         m_threadinfo_factory{
-                this,
                 m_threadinfo_ctor_params,
                 m_external_event_processor,
                 m_fdtable_dyn_fields,
