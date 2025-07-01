@@ -37,8 +37,7 @@ limitations under the License.
 // Still, to compile properly on non-Linux, provide implementations
 // of scap_linux_alloc_platform() and scap_linux_hostinfo_alloc_platform() that always fail at
 // runtime.
-struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback,
-                                                void* proc_callback_context) {
+struct scap_platform* scap_linux_alloc_platform(scap_proc_callbacks proc_callbacks) {
 	return NULL;
 }
 struct scap_platform* scap_linux_hostinfo_alloc_platform() {

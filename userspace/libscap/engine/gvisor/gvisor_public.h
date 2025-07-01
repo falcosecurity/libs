@@ -34,8 +34,7 @@ struct scap_gvisor_engine_params {
 };
 
 struct scap_platform;
-struct scap_platform* scap_gvisor_alloc_platform(proc_entry_callback proc_callback,
-                                                 void* proc_callback_context);
+struct scap_platform* scap_gvisor_alloc_platform(scap_proc_callbacks callbacks);
 
 #ifdef __cplusplus
 };

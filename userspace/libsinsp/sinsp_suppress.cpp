@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libsinsp/sinsp_suppress.h>
 #include <libsinsp/sinsp_exception.h>
+#include <libsinsp/logger.h>
 #include <driver/ppm_events_public.h>
 #include <libscap/scap_const.h>
 #include <libscap/scap_assert.h>
@@ -40,7 +41,11 @@ void libsinsp::sinsp_suppress::clear_suppress_tid() {
 	m_suppressed_tids.clear();
 }
 
-bool libsinsp::sinsp_suppress::check_suppressed_comm(uint64_t tid, const std::string &comm) {
+bool libsinsp::sinsp_suppress::check_suppressed_comm(uint64_t tid,
+                                                     uint64_t parent_tid,
+                                                     const std::string &comm) {
+	handle_thread(tid, parent_tid, comm);
+
 	if(m_suppressed_comms.find(comm) != m_suppressed_comms.end()) {
 		m_suppressed_tids.insert(tid);
 		m_num_suppressed_events++;
@@ -111,7 +116,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 			return SCAP_FILTERED_EVENT;
 		}
 
-		if(check_suppressed_comm(tid, comm)) {
+		if(check_suppressed_comm(tid, ptid, comm)) {
 			return SCAP_FILTERED_EVENT;
 		}
 
@@ -144,4 +149,50 @@ bool libsinsp::sinsp_suppress::is_suppressed_tid(uint64_t tid) const {
 		return false;
 	}
 	return m_suppressed_tids.find(tid) != m_suppressed_tids.end();
+}
+void libsinsp::sinsp_suppress::initialize() {
+	// Defensive check — we expect m_tids_tree to be a nullptr
+	if(m_tids_tree == nullptr) {
+		m_tids_tree = std::make_unique<std::map<uint64_t, tid_tree_node>>();
+	} else {
+		m_tids_tree->clear();
+	}
+}
+
+void libsinsp::sinsp_suppress::handle_thread(uint64_t tid,
+                                             uint64_t parent_tid,
+                                             const std::string &comm) {
+	if(tid == 0) {
+		return;
+	}
+
+	// Defensive check — this shouldn't happen under normal conditions.
+	if(m_tids_tree == nullptr) {
+		return;
+	}
+
+	// Add the comm to tid
+	(*m_tids_tree)[tid].m_comm = comm;
+	(*m_tids_tree)[tid].m_tid = tid;
+
+	// Add child to parent
+	(*m_tids_tree)[parent_tid].m_children.push_back(tid);
+}
+
+void libsinsp::sinsp_suppress::finalize() {
+	// We generate the suppressed tids from the tid tree.
+	// The tree is built during the /proc scan, so we can
+	// use it to find all the children of a given tid.
+
+	for(auto it = m_tids_tree->begin(); it != m_tids_tree->end(); it++) {
+		auto &[_, node] = *it;
+
+		if(is_suppressed_tid(node.m_tid)) {
+			for(auto child_tid : node.m_children) {
+				suppress_tid(child_tid);
+			}
+		}
+	}
+	// delete the map. We don't need it anymore.
+	m_tids_tree.reset(nullptr);
 }

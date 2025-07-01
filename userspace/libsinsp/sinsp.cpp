@@ -134,6 +134,9 @@ int32_t on_new_entry_from_proc(void* context,
                                scap_fdinfo* fdinfo,
                                scap_threadinfo** new_tinfo);
 
+void on_proc_table_refresh_start(void* context);
+void on_proc_table_refresh_end(void* context);
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -559,7 +562,10 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim,
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	oargs.engine_params = &params;
 
-	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform({::on_proc_table_refresh_start,
+	                                                     ::on_proc_table_refresh_end,
+	                                                     ::on_new_entry_from_proc,
+	                                                     this});
 	if(platform) {
 		auto linux_plat = (scap_linux_platform*)platform;
 		linux_plat->m_linux_vtable = &scap_kmod_linux_vtable;
@@ -578,7 +584,8 @@ void sinsp::open_bpf(const std::string& bpf_path,
 	/* Validate the BPF path. */
 	if(bpf_path.empty()) {
 		throw sinsp_exception(
-		        "When you use the 'BPF' engine you need to provide a path to the bpf object file.");
+		        "When you use the 'BPF' engine you need to provide a path to the bpf object "
+		        "file.");
 	}
 
 	scap_open_args oargs{};
@@ -592,7 +599,10 @@ void sinsp::open_bpf(const std::string& bpf_path,
 	params.bpf_probe = bpf_path.data();
 	oargs.engine_params = &params;
 
-	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform({::on_proc_table_refresh_start,
+	                                                     ::on_proc_table_refresh_end,
+	                                                     ::on_new_entry_from_proc,
+	                                                     this});
 	open_common(&oargs, &scap_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("BPF engine is not supported in this build");
@@ -602,7 +612,10 @@ void sinsp::open_bpf(const std::string& bpf_path,
 void sinsp::open_nodriver(bool full_proc_scan) {
 #ifdef HAS_ENGINE_NODRIVER
 	scap_open_args oargs{};
-	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform({::on_proc_table_refresh_start,
+	                                                     ::on_proc_table_refresh_end,
+	                                                     ::on_new_entry_from_proc,
+	                                                     this});
 	if(platform) {
 		if(!full_proc_scan) {
 			auto linux_plat = (scap_linux_platform*)platform;
@@ -610,7 +623,10 @@ void sinsp::open_nodriver(bool full_proc_scan) {
 			linux_plat->m_minimal_scan = true;
 		}
 	} else {
-		platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
+		platform = scap_generic_alloc_platform({::on_proc_table_refresh_start,
+		                                        ::on_proc_table_refresh_end,
+		                                        ::on_new_entry_from_proc,
+		                                        this});
 	}
 
 	open_common(&oargs, &scap_nodriver_engine, platform, SINSP_MODE_NODRIVER);
@@ -635,7 +651,8 @@ void sinsp::open_savefile(const std::string& filename, int fd) {
 	} else {
 		if(filename.empty()) {
 			throw sinsp_exception(
-			        "When you use the 'savefile' engine you need to provide a path to the file.");
+			        "When you use the 'savefile' engine you need to provide a path to the "
+			        "file.");
 		}
 
 		params.fname = filename.c_str();
@@ -652,7 +669,11 @@ void sinsp::open_savefile(const std::string& filename, int fd) {
 	params.fbuffer_size = 0;
 	oargs.engine_params = &params;
 
-	scap_platform* platform = scap_savefile_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_savefile_alloc_platform({::on_proc_table_refresh_start,
+	                                                        ::on_proc_table_refresh_end,
+	                                                        ::on_new_entry_from_proc,
+	                                                        this});
+	;
 	params.platform = platform;
 	open_common(&oargs, &scap_savefile_engine, platform, SINSP_MODE_CAPTURE);
 #else
@@ -676,7 +697,11 @@ void sinsp::open_plugin(const std::string& plugin_name,
 	switch(platform_type) {
 	case sinsp_plugin_platform::SINSP_PLATFORM_GENERIC:
 		mode = SINSP_MODE_PLUGIN;
-		platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
+		platform = scap_generic_alloc_platform({::on_proc_table_refresh_start,
+		                                        ::on_proc_table_refresh_end,
+		                                        ::on_new_entry_from_proc,
+		                                        this});
+		;
 		break;
 	case sinsp_plugin_platform::SINSP_PLATFORM_HOSTINFO:
 		mode = SINSP_MODE_PLUGIN;
@@ -684,7 +709,10 @@ void sinsp::open_plugin(const std::string& plugin_name,
 		break;
 	case sinsp_plugin_platform::SINSP_PLATFORM_FULL:
 		mode = SINSP_MODE_LIVE;
-		platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+		platform = scap_linux_alloc_platform({::on_proc_table_refresh_start,
+		                                      ::on_proc_table_refresh_end,
+		                                      ::on_new_entry_from_proc,
+		                                      this});
 		break;
 	default:
 		throw sinsp_exception("Unsupported mode for SOURCE_PLUGIN engine");
@@ -702,7 +730,8 @@ void sinsp::open_gvisor(const std::string& config_path,
 #ifdef HAS_ENGINE_GVISOR
 	if(config_path.empty()) {
 		throw sinsp_exception(
-		        "When you use the 'gvisor' engine you need to provide a path to the config file.");
+		        "When you use the 'gvisor' engine you need to provide a path to the config "
+		        "file.");
 	}
 
 	scap_open_args oargs{};
@@ -712,7 +741,11 @@ void sinsp::open_gvisor(const std::string& config_path,
 	params.no_events = no_events;
 	params.gvisor_epoll_timeout = epoll_timeout;
 
-	scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_gvisor_alloc_platform({::on_proc_table_refresh_start,
+	                                                      ::on_proc_table_refresh_end,
+	                                                      ::on_new_entry_from_proc,
+	                                                      this});
+	;
 	params.gvisor_platform = reinterpret_cast<scap_gvisor_platform*>(platform);
 
 	oargs.engine_params = &params;
@@ -742,7 +775,10 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 	params.allocate_online_only = online_only;
 	oargs.engine_params = &params;
 
-	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform({::on_proc_table_refresh_start,
+	                                                     ::on_proc_table_refresh_end,
+	                                                     ::on_new_entry_from_proc,
+	                                                     this});
 	open_common(&oargs, &scap_modern_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("MODERN_BPF engine is not supported in this build");
@@ -759,10 +795,16 @@ void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode) {
 	scap_platform* platform;
 	switch(mode) {
 	case SINSP_MODE_TEST:
-		platform = scap_test_input_alloc_platform(::on_new_entry_from_proc, this);
+		platform = scap_test_input_alloc_platform({default_refresh_start_end_callback,
+		                                           default_refresh_start_end_callback,
+		                                           ::on_new_entry_from_proc,
+		                                           this});
 		break;
 	case SINSP_MODE_LIVE:
-		platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+		platform = scap_linux_alloc_platform({default_refresh_start_end_callback,
+		                                      default_refresh_start_end_callback,
+		                                      ::on_new_entry_from_proc,
+		                                      this});
 		break;
 	default:
 		throw sinsp_exception("Unsupported mode for TEST_INPUT engine");
@@ -937,7 +979,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 		}
 	}
 
-	if(tinfo && m_suppress.check_suppressed_comm(tid, tinfo->comm)) {
+	if(tinfo && m_suppress.check_suppressed_comm(tid, tinfo->ptid, tinfo->comm)) {
 		return;
 	}
 
@@ -1088,6 +1130,14 @@ void sinsp::on_new_entry_from_proc(void* context,
 	}
 }
 
+void sinsp::on_proc_table_refresh_start() {
+	m_suppress.initialize();
+}
+
+void sinsp::on_proc_table_refresh_end() {
+	m_suppress.finalize();
+}
+
 int32_t on_new_entry_from_proc(void* context,
                                char* error,
                                int64_t tid,
@@ -1102,6 +1152,14 @@ int32_t on_new_entry_from_proc(void* context,
 	}
 
 	return SCAP_SUCCESS;
+}
+
+void on_proc_table_refresh_start(void* context) {
+	static_cast<sinsp*>(context)->on_proc_table_refresh_start();
+}
+
+void on_proc_table_refresh_end(void* context) {
+	static_cast<sinsp*>(context)->on_proc_table_refresh_end();
 }
 
 void sinsp::import_ifaddr_list() {

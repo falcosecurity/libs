@@ -130,12 +130,11 @@ const scap_platform_vtable scap_gvisor_platform_vtable = {
         .free_platform = scap_gvisor_free_platform,
 };
 
-scap_platform* scap_gvisor_alloc_platform(proc_entry_callback proc_callback,
-                                          void* proc_callback_context) {
+scap_platform* scap_gvisor_alloc_platform(scap_proc_callbacks callbacks) {
 	auto platform = new scap_gvisor_platform();
 	platform->m_generic.m_vtable = &scap_gvisor_platform_vtable;
 
-	init_proclist(&platform->m_generic.m_proclist, proc_callback, proc_callback_context);
+	init_proclist(&platform->m_generic.m_proclist, callbacks);
 
 	return &platform->m_generic;
 }

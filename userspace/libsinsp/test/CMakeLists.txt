@@ -108,6 +108,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_transformer.ut.cpp
 	user.ut.cpp
 	sinsp_utils.ut.cpp
+	sinsp_suppress.ut.cpp
 	state.ut.cpp
 	suppress.ut.cpp
 	dns_manager.ut.cpp
