@@ -781,12 +781,12 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// Done. Add the entry to the process table, or fire the notification callback
 	//
-	proclist->m_proc_callback(proclist->m_proc_callback_context,
-	                          error,
-	                          tinfo.tid,
-	                          &tinfo,
-	                          NULL,
-	                          &new_tinfo);
+	proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
+	                                      error,
+	                                      tinfo.tid,
+	                                      &tinfo,
+	                                      NULL,
+	                                      &new_tinfo);
 
 	//
 	// Only add fds for processes, not threads
@@ -829,7 +829,12 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
                               char* error,
                               bool scan_sockets) {
 	struct scap_proclist single_thread_proclist;
-	init_proclist(&single_thread_proclist, single_thread_proc_callback, tinfo);
+
+	init_proclist(&single_thread_proclist,
+	              (scap_proc_callbacks){default_refresh_start_end_callback,
+	                                    default_refresh_start_end_callback,
+	                                    single_thread_proc_callback,
+	                                    tinfo});
 
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
@@ -1180,11 +1185,13 @@ int32_t scap_linux_refresh_proc_table(struct scap_platform* platform,
 
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
 	scap_cgroup_enable_cache(&linux_platform->m_cgroups);
+	proclist->m_callbacks.m_refresh_start_cb(proclist->m_callbacks.m_callback_context);
 	int32_t ret = _scap_proc_scan_proc_dir_impl(linux_platform,
 	                                            proclist,
 	                                            procdirname,
 	                                            -1,
 	                                            linux_platform->m_lasterr);
+	proclist->m_callbacks.m_refresh_end_cb(proclist->m_callbacks.m_callback_context);
 	scap_cgroup_clear_cache(&linux_platform->m_cgroups);
 	return ret;
 }

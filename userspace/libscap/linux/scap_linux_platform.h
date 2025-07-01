@@ -98,8 +98,7 @@ struct scap_linux_platform {
 	const struct scap_linux_vtable* m_linux_vtable;
 };
 
-struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback,
-                                                void* proc_callback_context);
+struct scap_platform* scap_linux_alloc_platform(scap_proc_callbacks proc_callbacks);
 
 /**
  * @brief A lightweight Linux platform that only collects static host information
