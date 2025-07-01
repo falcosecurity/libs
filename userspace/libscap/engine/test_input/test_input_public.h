@@ -29,8 +29,7 @@ struct scap_test_input_engine_params {
 };
 
 struct scap_platform;
-struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_callback,
-                                                     void* proc_callback_context);
+struct scap_platform* scap_test_input_alloc_platform(scap_proc_callbacks proc_callback);
 #ifdef __cplusplus
 };
 #endif
