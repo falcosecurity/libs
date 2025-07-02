@@ -315,7 +315,7 @@ def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: di
         'privileged': True,
         'pid_mode': 'host',
         'network_mode': 'host',
-        'init_wait': 2,
+        'init_wait': 5,
         'post_validation': sinsp_validation,
     }
 
@@ -325,7 +325,7 @@ def process_spec(path: str, args: list, env: dict) -> dict:
         'path': path,
         'args': args,
         'env': env,
-        'init_wait': 2,
+        'init_wait': 5,
     }
 
 
