@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/state_struct.h>
 #include <libsinsp/state/type_info.h>
 
 #include <string>
@@ -111,7 +112,7 @@ public:
 	 * @tparam T Type of the field.
 	 */
 	template<typename T>
-	class field_accessor {
+	class field_accessor : public typed_accessor<T> {
 	public:
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
