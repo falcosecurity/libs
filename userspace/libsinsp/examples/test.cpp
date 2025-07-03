@@ -28,6 +28,7 @@ limitations under the License.
 #include <memory>
 #include "util.h"
 #include <libsinsp/filter/ppm_codes.h>
+#include <libsinsp/state/table_registry.h>
 #include <unordered_set>
 #include <memory>
 #include <thread>
@@ -62,6 +63,7 @@ static bool ppm_sc_repair_state = false;
 static bool ppm_sc_state_remove_io_sc = false;
 static bool enable_glogger = false;
 static bool perftest = false;
+static bool print_tables = false;
 static string engine_string;
 static string filter_string = "";
 static string file_path = "";
@@ -77,6 +79,62 @@ static std::unique_ptr<filter_check_list> filter_list;
 static std::shared_ptr<sinsp_filter_factory> filter_factory;
 
 sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
+
+const char* state_type_to_string(ss_plugin_state_type type) {
+	switch(type) {
+	case SS_PLUGIN_ST_INT8:
+		return "int8";
+	case SS_PLUGIN_ST_INT16:
+		return "int16";
+	case SS_PLUGIN_ST_INT32:
+		return "int32";
+	case SS_PLUGIN_ST_INT64:
+		return "int64";
+	case SS_PLUGIN_ST_UINT8:
+		return "uint8";
+	case SS_PLUGIN_ST_UINT16:
+		return "uint16";
+	case SS_PLUGIN_ST_UINT32:
+		return "uint32";
+	case SS_PLUGIN_ST_UINT64:
+		return "uint64";
+	case SS_PLUGIN_ST_STRING:
+		return "string";
+	case SS_PLUGIN_ST_TABLE:
+		return "table";
+	case SS_PLUGIN_ST_BOOL:
+		return "bool";
+	default:
+		return "unknown";
+	}
+}
+
+void print_all_tables(sinsp& inspector) {
+	auto& reg = inspector.get_table_registry();
+	const auto& tables = reg->tables();
+
+	std::cout << "Available tables (" << tables.size() << "):\n\n";
+	for(const auto& [table_name, table] : tables) {
+		std::cout << "Table: " << table_name << "\n";
+		std::cout << "  Key type: " << table->key_info().name() << std::endl;
+
+		// Create a temporary owner to call list_fields
+		libsinsp::state::sinsp_table_owner owner;
+		uint32_t nfields = 0;
+		const auto* fields = table->list_fields(&owner, &nfields);
+
+		std::cout << "  Fields (" << nfields << "):" << std::endl;
+		for(uint32_t i = 0; i < nfields; i++) {
+			const auto& field = fields[i];
+			std::cout << "    " << field.name
+			          << " (type: " << state_type_to_string(field.field_type)
+			          << ", read_only: " << (field.read_only ? "true" : "false") << ")"
+			          << std::endl;
+		}
+
+		std::cout << std::endl;
+	}
+}
 
 #define EVENT_HEADER                        \
 	"%evt.num %evt.time cat=%evt.category " \
@@ -135,6 +193,7 @@ Options:
   -g, --enable-glogger                       Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust the test binary source and re-compile.
   -r, --raw                                  raw event ouput
   -t, --perftest                             Run in performance test mode
+  -T, --tables                               Print all tables with their fields and types
 )";
 	cout << usage << endl;
 }
@@ -174,6 +233,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	        {"raw", no_argument, nullptr, 'r'},
 	        {"gvisor", optional_argument, nullptr, 'G'},
 	        {"perftest", no_argument, nullptr, 't'},
+	        {"tables", no_argument, nullptr, 'T'},
 	        {nullptr, 0, nullptr, 0}};
 
 	bool format_set = false;
@@ -181,7 +241,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	int long_index = 0;
 	while((op = getopt_long(argc,
 	                        argv,
-	                        "hf:jab:mks:p:d:c:Ao:En:zxqgrtG::",
+	                        "hf:jab:mks:p:d:c:Ao:En:zxqgrtTG::",
 	                        long_options,
 	                        &long_index)) != -1) {
 		switch(op) {
@@ -300,6 +360,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			break;
 		case 't':
 			perftest = true;
+			break;
+		case 'T':
+			print_tables = true;
 			break;
 		default:
 			break;
@@ -538,6 +601,11 @@ int main(int argc, char** argv) {
 				plugin_output += " " + fmt;
 			}
 		}
+	}
+
+	if(print_tables) {
+		print_all_tables(inspector);
+		return 0;
 	}
 
 	open_engine(inspector, events_sc_codes);
