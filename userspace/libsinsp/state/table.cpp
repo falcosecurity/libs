@@ -15,61 +15,9 @@ limitations under the License.
 
 */
 
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libsinsp/state/table.h>
 #include <libsinsp/plugin.h>
-
-#define __CATCH_ERR_MSG(_ERR, _F)           \
-	{                                       \
-		try {                               \
-			_F;                             \
-		} catch(const std::exception& _e) { \
-			_ERR = _e.what();               \
-		} catch(...) {                      \
-			_ERR = "unknown error";         \
-		}                                   \
-	}
-
-#define __PLUGIN_STATETYPE_SWITCH(_kt)                                              \
-	{                                                                               \
-		switch(_kt) {                                                               \
-		case ss_plugin_state_type::SS_PLUGIN_ST_INT8:                               \
-			_X(int8_t, s8);                                                         \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_INT16:                              \
-			_X(int16_t, s16);                                                       \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_INT32:                              \
-			_X(int32_t, s32);                                                       \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_INT64:                              \
-			_X(int64_t, s64);                                                       \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_UINT8:                              \
-			_X(uint8_t, u8);                                                        \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_UINT16:                             \
-			_X(uint16_t, u16);                                                      \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_UINT32:                             \
-			_X(uint32_t, u32);                                                      \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_UINT64:                             \
-			_X(uint64_t, u64);                                                      \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_STRING:                             \
-			_X(std::string, str);                                                   \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_BOOL:                               \
-			_X(bool, b);                                                            \
-			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_TABLE:                              \
-			_X(libsinsp::state::base_table*, table);                                \
-			break;                                                                  \
-		default:                                                                    \
-			throw sinsp_exception("can't convert plugin state type to typeinfo: " + \
-			                      std::to_string(_kt));                             \
-		}                                                                           \
-	}
 
 template<typename From, typename To>
 static inline void convert_types(const From& from, To& to) {
@@ -384,70 +332,20 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-	libsinsp::state::static_struct::field_infos::const_iterator fixed_it;
-	std::unordered_map<std::string, libsinsp::state::dynamic_struct::field_info>::const_iterator
-	        dyn_it;
+#define _X(_type, _dtype)                                                                     \
+	{                                                                                         \
+		sinsp_field_accessor_wrapper acc_wrap = this->get_field(name, typeinfo::of<_type>()); \
+		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                        \
+		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();               \
+		return this->m_field_accessors[name];                                                 \
+	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);
 		if(it != this->m_field_accessors.end()) {
 			return static_cast<ss_plugin_table_field_t*>(it->second);
 		}
 
-		fixed_it = this->static_fields()->find(name);
-		dyn_it = this->dynamic_fields()->fields().find(name);
-		if(fixed_it != this->static_fields()->end() &&
-		   dyn_it != this->dynamic_fields()->fields().end()) {
-			// todo(jasondellaluce): plugins are not aware of the difference
-			// between static and dynamic fields. Do we want to enforce
-			// this limitation in the sinsp tables implementation as well?
-			throw sinsp_exception("field is defined as both static and dynamic: " +
-			                      std::string(name));
-		}
-	});
-
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
-		acc_wrap.dynamic = false;                                                           \
-		acc_wrap.data_type = data_type;                                                     \
-		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
-		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                      \
-		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();             \
-		return this->m_field_accessors[name];                                               \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		if(fixed_it != this->static_fields()->end()) {
-			if(data_type != fixed_it->second.info().type_id()) {
-				throw sinsp_exception("incompatible data types for static field: " +
-				                      std::string(name));
-			}
-			__PLUGIN_STATETYPE_SWITCH(data_type);
-		}
-	});
-#undef _X
-
-#define _X(_type, _dtype)                                                                    \
-	{                                                                                        \
-		auto acc = dyn_it->second.new_accessor<_type>();                                     \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
-		acc_wrap.dynamic = true;                                                             \
-		acc_wrap.data_type = data_type;                                                      \
-		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
-		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                       \
-		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();              \
-		return this->m_field_accessors[name];                                                \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		if(dyn_it != this->dynamic_fields()->fields().end()) {
-			if(data_type != dyn_it->second.info().type_id()) {
-				throw sinsp_exception("incompatible data types for dynamic field: " +
-				                      std::string(name));
-			}
-			__PLUGIN_STATETYPE_SWITCH(data_type);
-		}
-		throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-		                      std::string(this->name()) + "'");
+		__PLUGIN_STATETYPE_SWITCH(data_type);
 	});
 #undef _X
 

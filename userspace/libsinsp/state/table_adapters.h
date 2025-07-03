@@ -14,6 +14,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libsinsp/state/table.h>
 
 namespace libsinsp {
@@ -224,6 +225,29 @@ public:
 	}
 
 	size_t entries_count() const override { return m_container.size(); }
+
+	sinsp_field_accessor_wrapper get_field(const char* name, const typeinfo& type_info) override {
+		auto dyn_it = this->dynamic_fields()->fields().find(name);
+#define _X(_type, _dtype)                                                                    \
+	{                                                                                        \
+		auto acc = dyn_it->second.template new_accessor<_type>();                            \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
+		acc_wrap.dynamic = true;                                                             \
+		acc_wrap.data_type = type_info.type_id();                                            \
+		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
+		return acc_wrap;                                                                     \
+	}
+		if(dyn_it != this->dynamic_fields()->fields().end()) {
+			if(type_info.type_id() != dyn_it->second.info().type_id()) {
+				throw sinsp_exception("incompatible data types for dynamic field: " +
+				                      std::string(name));
+			}
+			__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+		}
+		throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
+		                      std::string(this->name()) + "'");
+#undef _X
+	}
 
 	void clear_entries() override { m_container.clear(); }
 

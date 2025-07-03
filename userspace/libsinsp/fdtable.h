@@ -95,6 +95,10 @@ public:
 
 	size_t entries_count() const override { return size(); }
 
+	libsinsp::state::sinsp_field_accessor_wrapper get_field(
+	        const char* name,
+	        const libsinsp::state::typeinfo& type_info) override;
+
 	void clear_entries() override { clear(); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;

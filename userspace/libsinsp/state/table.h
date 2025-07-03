@@ -255,6 +255,8 @@ public:
 	 */
 	virtual size_t entries_count() const = 0;
 
+	virtual sinsp_field_accessor_wrapper get_field(const char* name, const typeinfo& type_info) = 0;
+
 	/**
 	 * @brief Returns a pointer to an entry present in the table at the given
 	 * key. The pointer is owned by the table, and will remain valid up until
