@@ -134,34 +134,6 @@ public:
 
 		friend class dynamic_struct;
 	};
-
-	/**
-	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
-	 * @tparam T Type of the field.
-	 */
-	template<typename T>
-	class field_accessor {
-	public:
-		/**
-		 * @brief Returns the info about the field to which this accessor is tied.
-		 */
-		inline const field_info& info() const { return m_info; }
-
-	private:
-		inline explicit field_accessor(const field_info& info): m_info(info) {};
-
-		field_info m_info;
-
-		friend class dynamic_struct;
-		friend class dynamic_struct::field_info;
-	};
-
-	/**
-	 * @brief Dynamic fields metadata of a given struct or class
-	 * that are discoverable and accessible dynamically at runtime.
-	 * All instances of the same struct or class must share the same
-	 * instance of field_infos.
-	 */
 	class field_infos {
 	public:
 		inline field_infos(): m_defs_id((uintptr_t)this) {};
@@ -222,15 +194,43 @@ public:
 		friend class dynamic_struct;
 	};
 
+	/**
+	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
+	 * @tparam T Type of the field.
+	 */
+	template<typename T>
+	class field_accessor : public typed_accessor<T> {
+	public:
+		/**
+		 * @brief Returns the info about the field to which this accessor is tied.
+		 */
+		inline const field_info& info() const { return m_info; }
+
+	private:
+		inline explicit field_accessor(const field_info& info): m_info(info) {};
+
+		field_info m_info;
+
+		friend class dynamic_struct;
+		friend class dynamic_struct::field_info;
+	};
+
+	/**
+	 * @brief Dynamic fields metadata of a given struct or class
+	 * that are discoverable and accessible dynamically at runtime.
+	 * All instances of the same struct or class must share the same
+	 * instance of field_infos.
+	 */
+
 	inline explicit dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields):
 	        m_fields(),
 	        m_dynamic_fields(dynamic_fields) {}
 
 	inline dynamic_struct(dynamic_struct&&) = default;
 
-	inline dynamic_struct& operator=(dynamic_struct&&) = default;
-
 	inline dynamic_struct(const dynamic_struct& s) { deep_fields_copy(s); }
+
+	inline dynamic_struct& operator=(dynamic_struct&&) = default;
 
 	inline dynamic_struct& operator=(const dynamic_struct& s) {
 		if(this == &s) {
@@ -239,6 +239,7 @@ public:
 		deep_fields_copy(s);
 		return *this;
 	}
+	inline const std::shared_ptr<field_infos>& dynamic_fields() const { return m_dynamic_fields; }
 
 	virtual ~dynamic_struct() { dynamic_struct::destroy_dynamic_fields(); }
 
@@ -266,7 +267,6 @@ public:
 	/**
 	 * @brief Returns information about all the dynamic fields accessible in a struct.
 	 */
-	inline const std::shared_ptr<field_infos>& dynamic_fields() const { return m_dynamic_fields; }
 
 	/**
 	 * @brief Sets the shared definitions for the dynamic fields accessible in a struct.
