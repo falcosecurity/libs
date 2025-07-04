@@ -227,7 +227,7 @@ private:
  * @brief A base class for classes and structs that allow dynamic programming
  * by being extensible and allowing adding and accessing new data fields at runtime.
  */
-class dynamic_struct {
+class dynamic_struct : state_struct {
 public:
 	inline explicit dynamic_struct(const std::shared_ptr<dynamic_field_infos>& dynamic_fields):
 	        m_fields(),
@@ -349,6 +349,42 @@ protected:
 		m_fields.clear();
 	}
 
+	struct reader {
+		const dynamic_struct* self;
+		const accessor* acc;
+
+		template<typename T>
+		const void* operator()() const {
+			auto field_acc = dynamic_cast<const dynamic_field_accessor<T>*>(acc);
+			self->_check_defsptr(field_acc->info(), false);
+			return self->_access_dynamic_field_for_read(field_acc->info().index());
+		}
+	};
+
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
+	}
+
+	struct writer {
+		dynamic_struct* self;
+		const accessor* acc;
+		const void* in;
+
+		template<typename T>
+		void operator()() const {
+			auto field_acc = dynamic_cast<const dynamic_field_accessor<T>*>(acc);
+			self->_check_defsptr(field_acc->info(), true);
+			auto ptr = static_cast<T*>(
+			        self->_access_dynamic_field_for_write(field_acc->info().index()));
+			auto val = static_cast<const T*>(in);
+			*ptr = *val;
+		}
+	};
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
+	}
+
 private:
 	inline void _check_defsptr(const dynamic_field_info& i, bool write) const {
 		if(!i.valid()) {
@@ -415,8 +451,6 @@ private:
 
 	std::vector<void*> m_fields;
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
-
-	friend class extensible_struct;
 };
 
 };  // namespace libsinsp::state
