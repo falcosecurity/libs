@@ -80,6 +80,56 @@ public:
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
 
 protected:
+	struct reader {
+		const pair_table_entry_adapter* self;
+		const accessor* acc;
+
+		template<typename U>
+		const void* operator()() const {
+			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
+			const auto& i = field_acc->info();
+
+			if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to pair_table_entry_adapter::read_field");
+			}
+			if(i.index() == 0) {
+				return &self->m_value->first;
+			}
+			return &self->m_value->second;
+		}
+	};
+
+	const void* raw_read_field(const accessor& a) const override {
+		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
+	}
+
+	struct writer {
+		pair_table_entry_adapter* self;
+		const accessor* acc;
+		const void* in;
+
+		template<typename U>
+		void operator()() const {
+			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
+			const auto& i = field_acc->info();
+
+			if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to pair_table_entry_adapter::write_field");
+			}
+
+			if(i.index() == 0) {
+				self->m_value->first = *static_cast<const Tfirst*>(in);
+			} else {
+				self->m_value->second = *static_cast<const Tsecond*>(in);
+			}
+		}
+	};
+	void raw_write_field(const accessor& a, const void* in) override {
+		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
+	}
+
 	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
@@ -165,6 +215,51 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 protected:
+	struct reader {
+		const value_table_entry_adapter* self;
+		const accessor* acc;
+
+		template<typename U>
+		const void* operator()() const {
+			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
+			const auto& i = field_acc->info();
+
+			if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to value_table_entry_adapter::read_field");
+			}
+
+			return self->m_value;
+		}
+	};
+
+	const void* raw_read_field(const accessor& a) const override {
+		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
+	}
+
+	struct writer {
+		value_table_entry_adapter* self;
+		const accessor* acc;
+		const void* in;
+
+		template<typename U>
+		void operator()() const {
+			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
+			const auto& i = field_acc->info();
+
+			if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to value_table_entry_adapter::write_field");
+			}
+
+			*self->m_value = *static_cast<const T*>(in);
+		}
+	};
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
+	}
+
 	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) override final {
 		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
