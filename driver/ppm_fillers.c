@@ -1703,121 +1703,107 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args) {
 }
 
 int f_sys_connect_e(struct event_filler_arguments *args) {
+	unsigned long val;
+	int64_t fd;
 	int res;
-	int err = 0;
-	int fd;
 	struct sockaddr __user *usrsockaddr;
-	uint16_t size = 0;
+	unsigned long usrsockaddr_len;
+	uint16_t addr_size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
-	unsigned long val;
 
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int)val;
-
+	fd = (int64_t)(int32_t)val;
 	res = val_to_ring(args, fd, 0, true, 0);
 	CHECK_RES(res);
 
-	if(fd >= 0) {
-		/*
-		 * Get the address
-		 */
-		syscall_get_arguments_deprecated(args, 1, 1, &val);
+	/* Get the sockaddr pointer and its length. */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	usrsockaddr = (struct sockaddr __user *)val;
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	usrsockaddr_len = val;
 
-		usrsockaddr = (struct sockaddr __user *)val;
-
-		/*
-		 * Get the address len
-		 */
-		syscall_get_arguments_deprecated(args, 2, 1, &val);
-
-		if(usrsockaddr != NULL && val != 0) {
-			/*
-			 * Copy the address
-			 */
-			err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-			if(likely(err >= 0)) {
-				/*
-				 * Convert the fd into socket endpoint information
-				 */
-				size = pack_addr((struct sockaddr *)&address, val, targetbuf, STR_STORAGE_SIZE);
-			}
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory. */
+		res = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
+		if(likely(res >= 0)) {
+			/* Convert the fd into socket endpoint information. */
+			addr_size = pack_addr((struct sockaddr *)&address, val, targetbuf, STR_STORAGE_SIZE);
 		}
 	}
 
-	/*
-	 * Copy the endpoint info into the ring
-	 */
-	res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	res = val_to_ring(args, (uint64_t)targetbuf, addr_size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
 int f_sys_connect_x(struct event_filler_arguments *args) {
-	int res;
 	int64_t retval;
-	int err = 0;
+	int res;
+	unsigned long val;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
-	uint16_t size = 0;
-	char *targetbuf = args->str_storage;
+	unsigned long usrsockaddr_len;
 	struct sockaddr_storage address;
-	unsigned long val;
+	struct sockaddr *ksockaddr = NULL;
+	unsigned long sockaddr_len = 0;
+	bool use_sockaddr = false;
+	char *targetbuf = args->str_storage;
+	uint16_t tuple_size = 0;
 
-	/*
-	 * Push the result
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 
-	/*
-	 * Retrieve the fd and push it to the ring.
-	 * Note that, even if we are in the exit callback, the arguments are still
-	 * in the stack, and therefore we can consume them.
-	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int)val;
+	fd = (int64_t)(int32_t)val;
 
-	if(fd >= 0) {
-		/*
-		 * Get the address
-		 */
-		syscall_get_arguments_deprecated(args, 1, 1, &val);
+	if(retval != 0 && retval != -EINPROGRESS) {
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
 
-		usrsockaddr = (struct sockaddr __user *)val;
+		/* Parameter 3: fd (type: PT_FD) */
+		res = val_to_ring(args, fd, 0, false, 0);
+		CHECK_RES(res);
 
-		/*
-		 * Get the address len
-		 */
-		syscall_get_arguments_deprecated(args, 2, 1, &val);
+		return add_sentinel(args);
+	}
 
-		if(usrsockaddr != NULL && val != 0) {
-			/*
-			 * Copy the address
-			 */
-			err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-			if(likely(err >= 0)) {
-				/*
-				 * Convert the fd into socket endpoint information
-				 */
-				size = fd_to_socktuple(fd,
-				                       (struct sockaddr *)&address,
-				                       val,
-				                       true,
-				                       false,
-				                       targetbuf,
-				                       STR_STORAGE_SIZE);
-			}
+	/* Get the address */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	usrsockaddr = (struct sockaddr __user *)val;
+
+	/* Get the address len */
+	syscall_get_arguments_deprecated(args, 2, 1, &usrsockaddr_len);
+
+	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
+		/* Copy the address into kernel memory */
+		res = addr_to_kernel(usrsockaddr, usrsockaddr_len, (struct sockaddr *)&address);
+		if(likely(res >= 0)) {
+			ksockaddr = (struct sockaddr *)&address;
+			sockaddr_len = usrsockaddr_len;
+			use_sockaddr = true;
 		}
 	}
 
-	/*
-	 * Copy the endpoint info into the ring
-	 */
-	res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
+	/* Convert the fd into socket endpoint information */
+	tuple_size = fd_to_socktuple((int)fd,
+	                             ksockaddr,
+	                             sockaddr_len,
+	                             use_sockaddr,
+	                             false,
+	                             targetbuf,
+	                             STR_STORAGE_SIZE);
+
+	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 3: fd (type: PT_FD) */
 	res = val_to_ring(args, fd, 0, false, 0);
 	CHECK_RES(res);
 

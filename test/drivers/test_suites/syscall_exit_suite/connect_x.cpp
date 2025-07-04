@@ -335,17 +335,7 @@ TEST(SyscallExit, connectX_failure_ECONNREFUSED) {
 	evt_test->assert_numeric_param(1, (int64_t)-ECONNREFUSED);
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-	/* Modern BPF doesn't return the tuple in case of failure */
-	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_empty_param(2);
-	} else {
-		evt_test->assert_tuple_inet_param(2,
-		                                  PPM_AF_INET,
-		                                  IPV4_CLIENT,
-		                                  IPV4_SERVER,
-		                                  IPV4_PORT_CLIENT_STRING,
-		                                  IPV4_PORT_SERVER_STRING);
-	}
+	evt_test->assert_empty_param(2);
 
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
@@ -421,9 +411,7 @@ TEST(SyscallExit, connectX_failure_EINPROGRESS) {
 	evt_test->assert_numeric_param(1, (int64_t)-EINPROGRESS);
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-	/* `EINPROGRESS` is the unique failure case that the modern bpf probe
-	 * can catch.
-	 */
+	/* `EINPROGRESS` is the unique failure case that drivers can catch. */
 	evt_test->assert_tuple_inet_param(2,
 	                                  PPM_AF_INET,
 	                                  IPV4_CLIENT,

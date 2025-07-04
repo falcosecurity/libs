@@ -161,18 +161,8 @@ TEST(SyscallEnter, socketcall_connectE) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
-	 */
-	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
-	} else {
-		evt_test->assert_empty_param(2);
-		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
-		                "see the code"
-		             << std::endl;
-	}
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

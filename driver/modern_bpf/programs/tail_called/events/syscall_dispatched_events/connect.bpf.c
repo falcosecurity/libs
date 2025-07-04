@@ -24,11 +24,11 @@ int BPF_PROG(connect_e, struct pt_regs *regs, long id) {
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
-	/* Parameter 1: fd (type: PT_FD)*/
-	int32_t socket_fd = (int32_t)args[0];
-	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
+	/* Parameter 1: fd (type: PT_FD) */
+	int64_t socket_fd = (int64_t)(int32_t)args[0];
+	auxmap__store_s64_param(auxmap, socket_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	unsigned long sockaddr_ptr = args[1];
 	uint16_t addrlen = (uint16_t)args[2];
 	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
@@ -57,25 +57,25 @@ int BPF_PROG(connect_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	unsigned long socket_fd = 0;
-	extract__network_args(&socket_fd, 1, regs);
+	unsigned long args[2] = {0};
+	extract__network_args(args, 2, regs);
+	int64_t socket_fd = (int64_t)(int32_t)args[0];
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-	/* We need a valid sockfd to extract source data.*/
 	if(ret == 0 || ret == -EINPROGRESS) {
-		auxmap__store_socktuple_param(auxmap, (int32_t)socket_fd, OUTBOUND, NULL);
+		struct sockaddr *usrsockaddr = (struct sockaddr *)args[1];
+		/* Notice: the following will push an empty parameter if
+		 * something goes wrong (e.g.: fd not valid). */
+		auxmap__store_socktuple_param(auxmap, (int32_t)socket_fd, OUTBOUND, usrsockaddr);
 	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 
-	/* Parameter 3: fd (type: PT_FD)*/
-	/* We need the double cast to extract the first 4 bytes and then
-	 * convert them to a signed integer on 64-bit
-	 */
-	auxmap__store_s64_param(auxmap, (int64_t)(int32_t)socket_fd);
+	/* Parameter 3: fd (type: PT_FD) */
+	auxmap__store_s64_param(auxmap, socket_fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
