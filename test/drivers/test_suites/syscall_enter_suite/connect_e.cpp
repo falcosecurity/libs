@@ -36,18 +36,8 @@ TEST(SyscallEnter, connectE_INET_failure) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
-	 */
-	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
-	} else {
-		evt_test->assert_empty_param(2);
-		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
-		                "see the code"
-		             << std::endl;
-	}
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -88,21 +78,8 @@ TEST(SyscallEnter, connectE_INET6_failure) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
-	 */
-	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_addr_info_inet6_param(2,
-		                                       PPM_AF_INET6,
-		                                       IPV6_SERVER,
-		                                       IPV6_PORT_SERVER_STRING);
-	} else {
-		evt_test->assert_empty_param(2);
-		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
-		                "see the code"
-		             << std::endl;
-	}
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet6_param(2, PPM_AF_INET6, IPV6_SERVER, IPV6_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -146,18 +123,8 @@ TEST(SyscallEnter, connectE_UNIX_failure) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
-	 */
-	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
-	} else {
-		evt_test->assert_empty_param(2);
-		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
-		                "see the code"
-		             << std::endl;
-	}
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -213,18 +180,8 @@ TEST(SyscallEnter, connectE_UNIX_max_path_failure) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
-	 */
-	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, EXPECTED_UNIX_LONG_PATH);
-	} else {
-		evt_test->assert_empty_param(2);
-		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
-		                "see the code"
-		             << std::endl;
-	}
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, EXPECTED_UNIX_LONG_PATH);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -265,7 +222,7 @@ TEST(SyscallEnter, connectE_null_sockaddr_failure) {
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
-	/* Parameter 2: addr (type: PT_SOCKADDR)*/
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	/* Since the pointer to the `sockaddr` is `NULL` we expect an empty param here. */
 	evt_test->assert_empty_param(2);
 
