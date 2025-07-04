@@ -82,6 +82,42 @@ public:
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
 
 protected:
+	const void* raw_read_field(const accessor& a) const override {
+		auto reader = [&]<typename U>() {
+			auto acc = dynamic_cast<const dynamic_struct::field_accessor<U>*>(&a);
+			const auto& i = acc->info();
+
+			if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to pair_table_entry_adapter::read_field");
+			}
+			if(i.index() == 0) {
+				return &m_value->first;
+			}
+			return &m_value->second;
+		};
+		return dispatch_lambda(a.type_info().type_id(), reader);
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto writer = [&]<typename U>() {
+			auto acc = dynamic_cast<const dynamic_struct::field_accessor<U>*>(&a);
+			const auto& i = acc->info();
+
+			if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to pair_table_entry_adapter::write_field");
+			}
+
+			if(i.index() == 0) {
+				m_value->first = *static_cast<const Tfirst*>(in);
+			} else {
+				m_value->second = *static_cast<const Tsecond*>(in);
+			}
+		};
+		return dispatch_lambda(a.type_info().type_id(), writer);
+	}
+
 	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
@@ -168,6 +204,36 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 protected:
+	const void* raw_read_field(const accessor& a) const override {
+		auto reader = [&]<typename U>() {
+			auto acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(&a);
+			const auto& i = acc->info();
+
+			if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to value_table_entry_adapter::read_field");
+			}
+
+			return m_value;
+		};
+		return dispatch_lambda(a.type_info().type_id(), reader);
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto writer = [&]<typename U>() {
+			auto acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(&a);
+			const auto& i = acc->info();
+
+			if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
+				throw sinsp_exception(
+				        "invalid field info passed to value_table_entry_adapter::write_field");
+			}
+
+			*m_value = *static_cast<const T*>(in);
+		};
+		return dispatch_lambda(a.type_info().type_id(), writer);
+	}
+
 	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
 		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
