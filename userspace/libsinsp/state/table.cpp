@@ -488,7 +488,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		} else {                                                                            \
 			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
 			        a->accessor);                                                           \
-			e->get_static_field<_type>(*aa, out->_dtype);                                   \
+			e->read_field<_type>(*aa, out->_dtype);                                         \
 		}                                                                                   \
 		res = SS_PLUGIN_SUCCESS;                                                            \
 		break;                                                                              \
