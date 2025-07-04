@@ -479,19 +479,12 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		if(a->dynamic) {                                                                    \
-			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
-			        a->accessor);                                                           \
-			e->read_field<_type>(*aa, out->_dtype);                                         \
-		} else {                                                                            \
-			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
-			        a->accessor);                                                           \
-			e->read_field<_type>(*aa, out->_dtype);                                         \
-		}                                                                                   \
-		res = SS_PLUGIN_SUCCESS;                                                            \
-		break;                                                                              \
+#define _X(_type, _dtype)                                                            \
+	{                                                                                \
+		auto aa = static_cast<libsinsp::state::typed_accessor<_type>*>(a->accessor); \
+		e->read_field<_type>(*aa, out->_dtype);                                      \
+		res = SS_PLUGIN_SUCCESS;                                                     \
+		break;                                                                       \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
 #undef _X
