@@ -28,13 +28,12 @@ limitations under the License.
 #include <vector>
 
 namespace libsinsp::state {
-class extensible_struct;
 
 /**
  * @brief A base class for classes and structs that allow dynamic programming
  * by being extensible and allowing adding and accessing new data fields at runtime.
  */
-class dynamic_struct {
+class dynamic_struct : virtual public state_struct {
 public:
 	template<typename T>
 	class field_accessor;
@@ -341,6 +340,30 @@ protected:
 		m_fields.clear();
 	}
 
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		auto reader = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			_check_defsptr(acc->info(), false);
+			return _access_dynamic_field_for_read(acc->info().index());
+		};
+		return dispatch_lambda(a.type_info().type_id(), reader);
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto writer = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			_check_defsptr(acc->info(), true);
+			if(acc->info().readonly()) {
+				throw sinsp_exception("can't set a read-only dynamic struct field: " +
+				                      acc->info().name());
+			}
+			auto ptr = static_cast<T*>(_access_dynamic_field_for_write(acc->info().index()));
+			auto val = static_cast<const T*>(in);
+			*ptr = *val;
+		};
+		return dispatch_lambda(a.type_info().type_id(), writer);
+	}
+
 private:
 	inline void _check_defsptr(const field_info& i, bool write) const {
 		if(!i.valid()) {
@@ -407,8 +430,6 @@ private:
 
 	std::vector<void*> m_fields;
 	std::shared_ptr<field_infos> m_dynamic_fields;
-
-	friend class extensible_struct;
 };
 
 };  // namespace libsinsp::state

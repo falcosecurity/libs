@@ -36,9 +36,7 @@ protected:
 			}
 
 			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(&a)) {
-				_check_defsptr(dynamic_acc->info(), false);
-				return const_cast<const void*>(
-				        _access_dynamic_field_for_read(dynamic_acc->info().index()));
+				return dynamic_struct::raw_read_field(a);
 			}
 
 			__builtin_unreachable();
@@ -54,11 +52,7 @@ protected:
 			}
 
 			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(&a)) {
-				_check_defsptr(dynamic_acc->info(), true);
-				auto ptr = static_cast<T*>(
-				        _access_dynamic_field_for_write(dynamic_acc->info().index()));
-				auto val = static_cast<const T*>(in);
-				*ptr = *val;
+				dynamic_struct::raw_write_field(a, in);
 				return;
 			}
 
