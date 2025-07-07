@@ -127,6 +127,7 @@ static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
 	case PT_SIGTYPE:
+	case PT_SOCKADDR:  // Sockaddr default parameter is a single-byte PPM_AF_UNSPEC family value.
 		return 1;
 
 	case PT_INT16:
@@ -157,7 +158,6 @@ static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
 
 	case PT_BYTEBUF:
 	case PT_CHARBUF:
-	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 	case PT_FSPATH:
@@ -179,24 +179,38 @@ static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
 // This writes len + the param
 static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
 	// Please ensure that `new_evt->type` is already the final type you want to obtain.
-	// Otherwise we will access the wrong entry in the event table.
-	const struct ppm_event_info *event_info = &(g_event_info[evt->type]);
-	uint16_t len = get_size_bytes_from_type(event_info->params[param_num].type);
-	uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
+	// Otherwise, we will access the wrong entry in the event table.
+	const struct ppm_event_info *event_info = &g_event_info[evt->type];
+	const auto param_type = event_info->params[param_num].type;
+	const uint16_t len = get_size_bytes_from_type(param_type);
+	const uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
 
 	PRINT_MESSAGE(
 	        "push default param (%d, type: %d) with len (%d) at {params_offest (%d), "
 	        "lens_offset (%d)}\n",
 	        param_num,
-	        event_info->params[param_num].type,
+	        param_type,
 	        len,
 	        *params_offset,
 	        lens_offset);
 
-	// The default param will be always 0 so we just need to copy the right number of 0 bytes.
+	// The default param will be always 0 (apart from some exception accounted below), so we just
+	// need to copy the right number of 0 bytes.
 	// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
-	// have `len==0`
+	// have `len==0`.
 	uint64_t val = 0;
+
+	// Account for some specific params having custom default values.
+	switch(param_type) {
+	case PT_SOCKADDR: {
+		val = PPM_AF_UNSPEC;
+		break;
+	}
+	default: {
+		break;
+	}
+	}
+
 	memcpy((char *)evt + *params_offset, (char *)&val, len);
 	*params_offset += len;
 	memcpy((char *)evt + lens_offset, &len, sizeof(uint16_t));

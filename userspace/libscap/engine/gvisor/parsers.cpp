@@ -697,13 +697,14 @@ static parse_result parse_connect(uint32_t id,
 			return ret;
 		}
 
-		ret.status =
-		        scap_gvisor::fillers::fill_event_connect_x(scap_buf,
-		                                                   &ret.size,
-		                                                   scap_err,
-		                                                   gvisor_evt.exit().result(),
-		                                                   scap_const_sized_buffer{targetbuf, size},
-		                                                   gvisor_evt.fd());
+		ret.status = scap_gvisor::fillers::fill_event_connect_x(
+		        scap_buf,
+		        &ret.size,
+		        scap_err,
+		        gvisor_evt.exit().result(),
+		        scap_const_sized_buffer{targetbuf, size},
+		        gvisor_evt.fd(),
+		        scap_const_sized_buffer{targetbuf, size});
 	} else {
 		char targetbuf[socktuple_buffer_size];
 

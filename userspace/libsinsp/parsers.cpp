@@ -2697,91 +2697,82 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
  * Register a socket in pending state
  */
 void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
-	const sinsp_evt_param *parinfo;
-	const char *parstr;
-	uint8_t *packed_data;
-
-	if(evt.get_fd_info() == nullptr) {
+	const auto fdinfo = evt.get_fd_info();
+	if(fdinfo == nullptr) {
 		return;
 	}
 
 	if(m_track_connection_status) {
-		evt.get_fd_info()->set_socket_pending();
+		fdinfo->set_socket_pending();
 	}
 
-	if(evt.get_num_params() < 2) {
-		switch(evt.get_fd_info()->m_type) {
-		case SCAP_FD_IPV4_SOCK:
-			evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_dip = 0;
-			evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_dport = 0;
-			break;
-		case SCAP_FD_IPV6_SOCK:
-			evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_dip = ipv6addr::empty_address;
-			evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_dport = 0;
-			break;
-		default:
-			break;
-		}
-		sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
-		                             evt.get_fd_info()->m_type,
-		                             &evt.get_paramstr_storage()[0],
-		                             (uint32_t)evt.get_paramstr_storage().size(),
-		                             m_hostname_and_port_resolution_enabled);
+	auto &sockinfo = fdinfo->m_sockinfo;
 
-		evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
-		return;
-	}
-
-	parinfo = evt.get_param(1);
-	if(parinfo->m_len == 0) {
-		//
+	const sinsp_evt_param *addr_param = evt.get_param(1);
+	if(addr_param->m_len == 0) {
 		// Address can be nullptr:
 		// sk is a TCP fastopen active socket and
 		// TCP_FASTOPEN_CONNECT sockopt is set and
 		// we already have a valid cookie for this socket.
-		//
 		return;
 	}
 
-	packed_data = (uint8_t *)parinfo->m_val;
+	// TODO(ekoops): remove const_cast once we adapt used APIs to accept const pointers/references.
+	auto packed_data = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(addr_param->m_val));
 
-	uint8_t family = *packed_data;
-
-	if(family == PPM_AF_INET) {
-		evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-		memcpy(&evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_dip,
-		       packed_data + 1,
-		       sizeof(uint32_t));
-		memcpy(&evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_dport,
-		       packed_data + 5,
-		       sizeof(uint16_t));
-	} else if(family == PPM_AF_INET6) {
+	switch(const uint8_t family = *packed_data; family) {
+	case PPM_AF_INET: {
+		fdinfo->m_type = SCAP_FD_IPV4_SOCK;
+		memcpy(&sockinfo.m_ipv4info.m_fields.m_dip, packed_data + 1, sizeof(uint32_t));
+		memcpy(&sockinfo.m_ipv4info.m_fields.m_dport, packed_data + 5, sizeof(uint16_t));
+		break;
+	}
+	case PPM_AF_INET6: {
 		uint16_t port;
 		memcpy(&port, packed_data + 17, sizeof(uint16_t));
 		uint8_t *ip = packed_data + 1;
 		if(sinsp_utils::is_ipv4_mapped_ipv6(ip)) {
-			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-			memcpy(&evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_dip,
-			       packed_data + 13,
-			       sizeof(uint32_t));
-			evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_dport = port;
+			fdinfo->m_type = SCAP_FD_IPV4_SOCK;
+			memcpy(&sockinfo.m_ipv4info.m_fields.m_dip, packed_data + 13, sizeof(uint32_t));
+			sockinfo.m_ipv4info.m_fields.m_dport = port;
 		} else {
-			evt.get_fd_info()->m_type = SCAP_FD_IPV6_SOCK;
-			evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_dport = port;
-			memcpy(evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b,
-			       ip,
-			       sizeof(ipv6addr));
+			fdinfo->m_type = SCAP_FD_IPV6_SOCK;
+			sockinfo.m_ipv6info.m_fields.m_dport = port;
+			memcpy(sockinfo.m_ipv6info.m_fields.m_dip.m_b, ip, sizeof(ipv6addr));
 		}
-	} else {
-		//
-		// Add the friendly name to the fd info
-		//
-		evt.get_fd_info()->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		break;
+	}
+	case PPM_AF_UNSPEC: {
+		switch(fdinfo->m_type) {
+		case SCAP_FD_IPV4_SOCK:
+			sockinfo.m_ipv4info.m_fields.m_dip = 0;
+			sockinfo.m_ipv4info.m_fields.m_dport = 0;
+			break;
+		case SCAP_FD_IPV6_SOCK:
+			sockinfo.m_ipv6info.m_fields.m_dip = ipv6addr::empty_address;
+			sockinfo.m_ipv6info.m_fields.m_dport = 0;
+			break;
+		default:
+			break;
+		}
+		sinsp_utils::sockinfo_to_str(&sockinfo,
+		                             fdinfo->m_type,
+		                             &evt.get_paramstr_storage()[0],
+		                             (uint32_t)evt.get_paramstr_storage().size(),
+		                             m_hostname_and_port_resolution_enabled);
+
+		fdinfo->m_name = &evt.get_paramstr_storage()[0];
+		return;
+	}
+	default: {
+		// Add the friendly name to the fd info.
+		const char *parstr;
+		fdinfo->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		break;
+	}
 	}
 
-	//
-	// If there's a listener callback and we're tracking connection status, invoke it
-	//
+	// If there's a listener callback, and we're tracking connection status, invoke it.
 	if(m_track_connection_status && m_observer) {
 		m_observer->on_connect(&evt, packed_data);
 	}
@@ -2878,44 +2869,33 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 }
 
 void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	const sinsp_evt_param *parinfo;
-	int64_t retval;
-	int64_t fd;
-	bool force_overwrite_stale_data = false;
-
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
+	bool force_overwrite_stale_data = false;
+
 	if(evt.get_fd_info() == nullptr) {
 		// Perhaps we dropped the connect enter event.
 		// try harder to be resilient.
-		if(evt.get_num_params() > 2) {
-			fd = evt.get_param(2)->as<int64_t>();
-			if(fd < 0) {
-				//
-				// Accept failure.
-				// Do nothing.
-				//
-				return;
-			}
-			evt.get_tinfo()->m_lastevent_fd = fd;
-			evt.set_fd_info(evt.get_tinfo()->get_fd(evt.get_tinfo()->m_lastevent_fd));
-			if(evt.get_fd_info() == nullptr) {
-				// Ok this is a completely new fd;
-				// we probably lost too many events.
-				// Bye.
-				return;
-			}
-			// ok we got stale data; we probably missed the connect enter event on this thread.
-			// Force overwrite existing fdinfo socket data
-			force_overwrite_stale_data = true;
-		} else {
+		const int64_t fd = evt.get_param(2)->as<int64_t>();
+		if(fd < 0) {
+			// Accept failure. Do nothing.
 			return;
 		}
+		evt.get_tinfo()->m_lastevent_fd = fd;
+		evt.set_fd_info(evt.get_tinfo()->get_fd(evt.get_tinfo()->m_lastevent_fd));
+		if(evt.get_fd_info() == nullptr) {
+			// Ok this is a completely new fd; we probably lost too many events.
+			// Bye.
+			return;
+		}
+		// ok we got stale data; we probably missed the connect enter event on this thread.
+		// Force overwrite existing fdinfo socket data
+		force_overwrite_stale_data = true;
 	}
 
-	retval = evt.get_syscall_return_value();
+	const int64_t retval = evt.get_syscall_return_value();
 
 	if(m_track_connection_status) {
 		if(retval == -SE_EINPROGRESS) {
@@ -2928,32 +2908,28 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	} else {
 		if(retval < 0 && retval != -SE_EINPROGRESS) {
 			return;
-		} else {
-			evt.get_fd_info()->set_socket_connected();
 		}
+		evt.get_fd_info()->set_socket_connected();
 	}
 
-	parinfo = evt.get_param(1);
-	if(parinfo->m_len == 0) {
-		//
+	const sinsp_evt_param *tuple_param = evt.get_param(1);
+	if(tuple_param->m_len == 0) {
 		// Address can be nullptr:
 		// sk is a TCP fastopen active socket and
 		// TCP_FASTOPEN_CONNECT sockopt is set and
 		// we already have a valid cookie for this socket.
-		//
 		return;
 	}
 
-	uint8_t *packed_data = (uint8_t *)parinfo->m_val;
+	// TODO(ekoops): remove const_cast once we adapt used APIs to accept const pointers/references.
+	auto packed_data = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tuple_param->m_val));
 
 	fill_client_socket_info(evt,
 	                        packed_data,
 	                        force_overwrite_stale_data,
 	                        m_hostname_and_port_resolution_enabled);
 
-	//
 	// If there's a listener, add a callback to later invoke it.
-	//
 	if(m_observer) {
 		verdict.add_post_process_cbs([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_connect(evt, packed_data);

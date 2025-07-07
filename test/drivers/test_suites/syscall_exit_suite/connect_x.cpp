@@ -74,9 +74,12 @@ TEST(SyscallExit, connectX_INET) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet_param(4, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, connectX_INET6) {
@@ -146,9 +149,12 @@ TEST(SyscallExit, connectX_INET6) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet6_param(4, PPM_AF_INET6, IPV6_SERVER, IPV6_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 #ifdef __NR_unlinkat
@@ -235,9 +241,12 @@ TEST(SyscallExit, connectX_UNIX) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_unix_param(4, PPM_AF_UNIX, server_symlink);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif /* __NR_unlinkat */
 
@@ -279,9 +288,12 @@ TEST(SyscallExit, connectX_failure) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_empty_param(4);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, connectX_failure_ECONNREFUSED) {
@@ -340,9 +352,12 @@ TEST(SyscallExit, connectX_failure_ECONNREFUSED) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet_param(4, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, connectX_failure_EINPROGRESS) {
@@ -422,8 +437,11 @@ TEST(SyscallExit, connectX_failure_EINPROGRESS) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet_param(4, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif

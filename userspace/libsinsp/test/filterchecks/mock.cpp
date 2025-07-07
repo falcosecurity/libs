@@ -364,13 +364,15 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
-	auto evt = add_event_advance_ts(increasing_ts(),
-	                                1,
-	                                PPME_SOCKET_CONNECT_X,
-	                                3,
-	                                (int64_t)0,
-	                                scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                                sinsp_test_input::socket_params::default_fd);
+	auto evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	{
 		// fd.cip will extract an ipv6 we cannot compare it with an ipv4, so we expect false

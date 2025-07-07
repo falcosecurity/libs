@@ -143,7 +143,8 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	sinsp_evt* evt = NULL;
 	const sinsp_evt_param* param = NULL;
 
-	int64_t fd = 0;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd = 3;
 
 	/* `PPME_SOCKET_CONNECT_E` is a simple event that uses a `PT_SOCKADDR` */
 	scap_const_sized_buffer sockaddr_param;
@@ -160,10 +161,11 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SOCKET_CONNECT_X,
-	                           3,
-	                           fd,
+	                           4,
+	                           res,
 	                           socktuple_param,
-	                           fd);
+	                           fd,
+	                           sockaddr_param);
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 0);
 
@@ -171,7 +173,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	scap_const_sized_buffer fdlist_param;
 	fdlist_param.buf = NULL;
 	fdlist_param.size = 0;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_POLL_X, 2, fd, fdlist_param);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_POLL_X, 2, res, fdlist_param);
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 0);
 }

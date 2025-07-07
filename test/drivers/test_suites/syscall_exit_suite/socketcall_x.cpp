@@ -220,9 +220,12 @@ TEST(SyscallExit, socketcall_connectX) {
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
 
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	evt_test->assert_addr_info_inet_param(4, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif
 

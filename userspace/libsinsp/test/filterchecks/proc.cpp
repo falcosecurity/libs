@@ -260,13 +260,15 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SOCKET_CONNECT_X,
-	                           3,
-	                           (int64_t)0,
-	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                           sinsp_test_input::socket_params::default_fd);
+	evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	// The socket is duped to stdin, stdout, stderr
 	evt = add_event_advance_ts(increasing_ts(),
