@@ -32,6 +32,7 @@ limitations under the License.
 #include <unordered_set>
 #include <memory>
 #include <thread>
+#include <json/json.h>
 
 #ifndef _WIN32
 extern "C" {
@@ -63,7 +64,7 @@ static bool ppm_sc_repair_state = false;
 static bool ppm_sc_state_remove_io_sc = false;
 static bool enable_glogger = false;
 static bool perftest = false;
-static bool print_tables = false;
+static string table_mode = "";
 static string engine_string;
 static string filter_string = "";
 static string file_path = "";
@@ -136,6 +137,152 @@ void print_all_tables(sinsp& inspector) {
 	}
 }
 
+// Table iteration
+struct table_iteration_state {
+	const ss_plugin_table_fieldinfo* fields;
+	uint32_t nfields;
+	libsinsp::state::sinsp_table_owner* owner;
+	libsinsp::state::base_table* table;
+	std::vector<ss_plugin_table_field_t*>* field_accessors;
+	Json::Value* table_obj;
+	uint32_t n_items{0};
+};
+
+Json::Value serialize_table(const std::string& table_name, libsinsp::state::base_table* table);
+
+ss_plugin_bool table_iterate_entries(void* s, ss_plugin_table_entry_t* entry) {
+	auto* state = static_cast<table_iteration_state*>(s);
+
+	Json::Value entry_obj;
+
+	std::map<ss_plugin_state_type, std::function<void(Json::Value&, ss_plugin_state_data&)>>
+	        type_to_json_converter = {
+	                {SS_PLUGIN_ST_INT8,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = (int)field_data.s8;
+	                 }},
+	                {SS_PLUGIN_ST_INT16,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = field_data.s16;
+	                 }},
+	                {SS_PLUGIN_ST_INT32,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = field_data.s32;
+	                 }},
+	                {SS_PLUGIN_ST_INT64,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = (Json::Value::Int64)field_data.s64;
+	                 }},
+	                {SS_PLUGIN_ST_UINT8,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = (unsigned)field_data.u8;
+	                 }},
+	                {SS_PLUGIN_ST_UINT16,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = field_data.u16;
+	                 }},
+	                {SS_PLUGIN_ST_UINT32,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = field_data.u32;
+	                 }},
+	                {SS_PLUGIN_ST_UINT64,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = (Json::Value::UInt64)field_data.u64;
+	                 }},
+	                {SS_PLUGIN_ST_STRING,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = field_data.str ? field_data.str : "";
+	                 }},
+	                {SS_PLUGIN_ST_BOOL,
+	                 [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 field = field_data.b;
+	                 }},
+	                {SS_PLUGIN_ST_TABLE, [](Json::Value& field, ss_plugin_state_data& field_data) {
+		                 if(field_data.table != nullptr) {
+			                 libsinsp::state::table_input_adapter subtable(field_data.table);
+			                 field = serialize_table(subtable.name(),
+			                                         (libsinsp::state::base_table*)&subtable);
+		                 } else {
+			                 field = "<error: table is null>";
+		                 }
+	                 }}};
+
+	for(uint32_t i = 0; i < state->nfields; i++) {
+		auto& field = entry_obj[state->fields[i].name];
+		try {
+			ss_plugin_state_data field_data;
+			auto rc = state->table->read_entry_field(state->owner,
+			                                         entry,
+			                                         (*state->field_accessors)[i],
+			                                         &field_data);
+			if(rc == SS_PLUGIN_SUCCESS) {
+				auto field_type = state->fields[i].field_type;
+				if(auto it = type_to_json_converter.find(field_type);
+				   it != type_to_json_converter.end()) {
+					it->second(field, field_data);
+				} else {
+					std::string error{"<unsupported type: "};
+					error += state_type_to_string(field_type);
+					error += ">";
+					field = error;
+				}
+			} else {
+				field = "<error>";
+			}
+		} catch(const std::exception& e) {
+			std::string error{"<error: "};
+			error += e.what();
+			error += ">";
+			field = error;
+		}
+	}
+
+	(*state->table_obj)["entries"].append(entry_obj);
+	state->n_items++;
+	// We're recycling `-n` option here
+	return (state->n_items < max_events);
+}
+
+Json::Value serialize_table(const std::string& table_name, libsinsp::state::base_table* table) {
+	Json::Value table_obj;
+	table_obj["name"] = table_name;
+	table_obj["entries"] = Json::Value(Json::arrayValue);
+
+	// Create a temporary owner to call list_fields
+	libsinsp::state::sinsp_table_owner owner;
+	uint32_t nfields = 0;
+	const auto* fields = table->list_fields(&owner, &nfields);
+
+	std::vector<ss_plugin_table_field_t*> field_accessors;
+	for(uint32_t i = 0; i < nfields; i++) {
+		auto field_accessor = table->get_field(&owner, fields[i].name, fields[i].field_type);
+		field_accessors.push_back(field_accessor);
+	}
+
+	table_iteration_state state{fields, nfields, &owner, table, &field_accessors, &table_obj};
+	table->iterate_entries(&owner, &table_iterate_entries, &state);
+	return table_obj;
+}
+
+void print_table_entries(sinsp& inspector) {
+	auto& reg = inspector.get_table_registry();
+	const auto& tables = reg->tables();
+
+	Json::Value root;
+	Json::Value tables_array(Json::arrayValue);
+
+	for(const auto& [table_name, table] : tables) {
+		tables_array.append(serialize_table(table_name, table));
+	}
+
+	root["tables"] = tables_array;
+	Json::StreamWriterBuilder builder;
+	builder["indentation"] = "  ";
+	std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+	writer->write(root, &std::cout);
+	std::cout << std::endl;
+}
+
 #define EVENT_HEADER                        \
 	"%evt.num %evt.time cat=%evt.category " \
 	"proc=%proc.name(%proc.pid.%thread.tid) "
@@ -193,7 +340,7 @@ Options:
   -g, --enable-glogger                       Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust the test binary source and re-compile.
   -r, --raw                                  raw event ouput
   -t, --perftest                             Run in performance test mode
-  -T, --tables                               Print all tables with their fields and types
+  -T, --tables                               -T or -Tbrief print tables descriptions. -Tlist print table entries, if -n is specified, print only the first n entries.
 )";
 	cout << usage << endl;
 }
@@ -233,7 +380,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	        {"raw", no_argument, nullptr, 'r'},
 	        {"gvisor", optional_argument, nullptr, 'G'},
 	        {"perftest", no_argument, nullptr, 't'},
-	        {"tables", no_argument, nullptr, 'T'},
+	        {"tables", optional_argument, nullptr, 'T'},
 	        {nullptr, 0, nullptr, 0}};
 
 	bool format_set = false;
@@ -241,7 +388,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	int long_index = 0;
 	while((op = getopt_long(argc,
 	                        argv,
-	                        "hf:jab:mks:p:d:c:Ao:En:zxqgrtTG::",
+	                        "hf:jab:mks:p:d:c:Ao:En:zxqgrtT::G::",
 	                        long_options,
 	                        &long_index)) != -1) {
 		switch(op) {
@@ -362,7 +509,12 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			perftest = true;
 			break;
 		case 'T':
-			print_tables = true;
+			table_mode = optarg ? optarg : "brief";
+			if(table_mode != "brief" && table_mode != "list") {
+				std::cerr << "Invalid table mode: " << table_mode << ". Use 'brief' or 'list'."
+				          << std::endl;
+				exit(EXIT_FAILURE);
+			}
 			break;
 		default:
 			break;
@@ -603,12 +755,16 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if(print_tables) {
+	open_engine(inspector, events_sc_codes);
+
+	if(table_mode == "brief") {
 		print_all_tables(inspector);
 		return 0;
 	}
-
-	open_engine(inspector, events_sc_codes);
+	if(table_mode == "list") {
+		print_table_entries(inspector);
+		return 0;
+	}
 
 	std::cout << "-- Start capture" << std::endl;
 	double max_throughput = 0.0;

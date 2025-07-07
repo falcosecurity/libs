@@ -23,7 +23,7 @@ endif()
 
 add_executable(sinsp-example ${sources})
 
-target_link_libraries(sinsp-example sinsp)
+target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}")
 
 if(EMSCRIPTEN)
 	target_compile_options(sinsp-example PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
