@@ -44,6 +44,8 @@ public:
 		                      std::string(typeid(T).name()));
 	}
 
+	static typeinfo from(ss_plugin_state_type state_type);
+
 	inline typeinfo() = delete;
 	inline ~typeinfo() = default;
 	inline typeinfo(typeinfo&&) = default;
@@ -178,6 +180,36 @@ inline typeinfo typeinfo::of<libsinsp::state::base_table*>() {
 template<>
 inline typeinfo typeinfo::of<const libsinsp::state::base_table*>() {
 	return _build<const libsinsp::state::base_table*>("table", SS_PLUGIN_ST_TABLE);
+}
+
+inline typeinfo typeinfo::from(ss_plugin_state_type state_type) {
+	switch(state_type) {
+	case SS_PLUGIN_ST_INT8:
+		return typeinfo::of<int8_t>();
+	case SS_PLUGIN_ST_INT16:
+		return typeinfo::of<int16_t>();
+	case SS_PLUGIN_ST_INT32:
+		return typeinfo::of<int32_t>();
+	case SS_PLUGIN_ST_INT64:
+		return typeinfo::of<int64_t>();
+	case SS_PLUGIN_ST_UINT8:
+		return typeinfo::of<uint8_t>();
+	case SS_PLUGIN_ST_UINT16:
+		return typeinfo::of<uint16_t>();
+	case SS_PLUGIN_ST_UINT32:
+		return typeinfo::of<uint32_t>();
+	case SS_PLUGIN_ST_UINT64:
+		return typeinfo::of<uint64_t>();
+	case SS_PLUGIN_ST_STRING:
+		return typeinfo::of<std::string>();
+	case SS_PLUGIN_ST_TABLE:
+		return typeinfo::of<libsinsp::state::base_table*>();
+	case SS_PLUGIN_ST_BOOL:
+		return typeinfo::of<bool>();
+	default:
+		throw sinsp_exception("state::typeinfo::of invoked for unsupported state_type: " +
+		                      std::to_string(state_type));
+	}
 }
 
 };  // namespace state
