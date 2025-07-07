@@ -64,6 +64,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_LSEEK_E, 329},       {PPME_SYSCALL_LSEEK_X, 329},
 	        {PPME_SYSCALL_WRITEV_E, 5},        {PPME_SYSCALL_WRITEV_X, 5},
 	        {PPME_SYSCALL_FCNTL_E, 9817},      {PPME_SYSCALL_FCNTL_X, 9817},
+	        {PPME_SOCKET_CONNECT_E, 238},      {PPME_SOCKET_CONNECT_X, 238},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -509,27 +510,72 @@ TEST_F(scap_file_test, socket_x_check_final_converted_event) {
 	open_filename("scap_2013.scap");
 
 	// Inside the scap-file the event `515881` is the following:
-	// - type=PPME_SOCKET_SOCKET_E
-	// - ts=1380933088295478275
-	// - tid=44106
-	// - args=domain=2(AF_INET) type=524289 proto=0
-	//
-	// And its corresponding enter event `511520` is the following:
 	// - type=PPME_SOCKET_SOCKET_X
 	// - ts=1380933088295552884
 	// - tid=44106,
 	// - args=fd=19(<4>)
 	//
-	uint64_t ts = 1380933088295552884;
-	int64_t tid = 44106;
-	int64_t fd = 19;
-	uint32_t domain = 2;
-	uint32_t type = 524289;
-	uint32_t proto = 0;
+	// And its corresponding enter event `511520` is the following:
+	// - type=PPME_SOCKET_SOCKET_E
+	// - ts=1380933088295478275
+	// - tid=44106
+	// - args=domain=2(AF_INET) type=524289 proto=0
+	//
+	constexpr uint64_t ts = 1380933088295552884;
+	constexpr int64_t tid = 44106;
+	constexpr int64_t fd = 19;
+	constexpr uint32_t domain = 2;
+	constexpr uint32_t type = 524289;
+	constexpr uint32_t proto = 0;
 
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
 }
+
+////////////////////////////
+// CONNECT
+////////////////////////////
+
+// Compile out this test if test_utils helpers are not defined.
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+TEST_F(scap_file_test, connect_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `907953` is the following:
+	// - type=PPME_SOCKET_CONNECT_X
+	// - ts=1687966734290916318
+	// - tid=115186
+	// - args=res=-101(ENETUNREACH) tuple=:::47437->2001:4860:4860::8888:53 fd=13(<6>)
+	//
+	// And its corresponding enter event `907952` is the following:
+	// - type=PPME_SOCKET_CONNECT_E
+	// - ts=1687966734290903534
+	// - tid=115186
+	// - args=fd=13(<6>) addr=2001:4860:4860::8888:53
+	//
+	constexpr uint64_t ts = 1687966734290916318;
+	constexpr int64_t tid = 115186;
+	constexpr int64_t res = -101;
+	constexpr int64_t fd = 13;
+	sockaddr_in6 client_sockaddr = test_utils::fill_sockaddr_in6(47437, "::");
+	sockaddr_in6 server_sockaddr = test_utils::fill_sockaddr_in6(53, "2001:4860:4860::8888");
+	const std::vector<uint8_t> tuple =
+	        test_utils::pack_socktuple(reinterpret_cast<struct sockaddr *>(&client_sockaddr),
+	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
+	const std::vector<uint8_t> packed_server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr *>(&server_sockaddr));
+
+	assert_event_presence(create_safe_scap_event(
+	        ts,
+	        tid,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        res,
+	        scap_const_sized_buffer{tuple.data(), tuple.size()},
+	        fd,
+	        scap_const_sized_buffer{packed_server_sockaddr.data(), packed_server_sockaddr.size()}));
+}
+#endif
 
 ////////////////////////////
 // LISTEN

@@ -908,6 +908,101 @@ TEST_F(convert_event_test, PPME_SOCKET_BIND_X_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// CONNECT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_CONNECT_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	struct sockaddr_in sockaddr = {};
+	sockaddr.sin_family = AF_INET;
+	sockaddr.sin_port = htons(1234);
+	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SOCKET_CONNECT_E,
+	                                        2,
+	                                        fd,
+	                                        scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)});
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char tuple[] = "tuple";
+	constexpr int64_t fd = 25;
+
+	// Defaulted
+	constexpr uint8_t addr = PPM_AF_UNSPEC;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_CONNECT_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               fd),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_CONNECT_X,
+	                               4,
+	                               res,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               fd,
+	                               scap_const_sized_buffer{&addr, sizeof(addr)}));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	struct sockaddr_in sockaddr = {};
+	sockaddr.sin_family = AF_INET;
+	sockaddr.sin_port = htons(1234);
+	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	constexpr int64_t res = 89;
+	constexpr char tuple[] = "tuple";
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SOCKET_CONNECT_E,
+	                                        2,
+	                                        fd,
+	                                        scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)});
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_CONNECT_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               fd),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_CONNECT_X,
+	                               4,
+	                               res,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               fd,
+	                               scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)}));
+}
+
+////////////////////////////
 // SOCKET
 ////////////////////////////
 

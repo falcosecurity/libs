@@ -29,9 +29,9 @@ int BPF_PROG(connect_e, struct pt_regs *regs, long id) {
 	auxmap__store_s64_param(auxmap, socket_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
-	unsigned long sockaddr_ptr = args[1];
-	uint16_t addrlen = (uint16_t)args[2];
-	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
+	unsigned long usrsockaddr = args[1];
+	uint16_t usrsockaddr_len = (uint16_t)args[2];
+	auxmap__store_sockaddr_param(auxmap, usrsockaddr, usrsockaddr_len);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -57,16 +57,17 @@ int BPF_PROG(connect_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	unsigned long args[2] = {0};
-	extract__network_args(args, 2, regs);
+	unsigned long args[3] = {0};
+	extract__network_args(args, 3, regs);
 	int64_t socket_fd = (int64_t)(int32_t)args[0];
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
+	struct sockaddr *usrsockaddr = (struct sockaddr *)args[1];
+
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	if(ret == 0 || ret == -EINPROGRESS) {
-		struct sockaddr *usrsockaddr = (struct sockaddr *)args[1];
 		/* Notice: the following will push an empty parameter if
 		 * something goes wrong (e.g.: fd not valid). */
 		auxmap__store_socktuple_param(auxmap, (int32_t)socket_fd, OUTBOUND, usrsockaddr);
@@ -76,6 +77,10 @@ int BPF_PROG(connect_x, struct pt_regs *regs, long ret) {
 
 	/* Parameter 3: fd (type: PT_FD) */
 	auxmap__store_s64_param(auxmap, socket_fd);
+
+	/* Parameter 4: addr (type: PT_SOCKADDR) */
+	uint16_t usrsockaddr_len = (uint16_t)args[2];
+	auxmap__store_sockaddr_param(auxmap, (unsigned long)usrsockaddr, usrsockaddr_len);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

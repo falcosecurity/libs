@@ -156,7 +156,7 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 			break;
 
 		default:
-			printf("-  error\n");
+			printf("- error\n");
 			break;
 		}
 		break;

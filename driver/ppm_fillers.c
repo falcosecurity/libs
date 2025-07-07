@@ -1726,10 +1726,13 @@ int f_sys_connect_e(struct event_filler_arguments *args) {
 
 	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
 		/* Copy the address into kernel memory. */
-		res = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
+		res = addr_to_kernel(usrsockaddr, usrsockaddr_len, (struct sockaddr *)&address);
 		if(likely(res >= 0)) {
 			/* Convert the fd into socket endpoint information. */
-			addr_size = pack_addr((struct sockaddr *)&address, val, targetbuf, STR_STORAGE_SIZE);
+			addr_size = pack_addr((struct sockaddr *)&address,
+			                      usrsockaddr_len,
+			                      targetbuf,
+			                      STR_STORAGE_SIZE);
 		}
 	}
 
@@ -1750,61 +1753,61 @@ int f_sys_connect_x(struct event_filler_arguments *args) {
 	struct sockaddr_storage address;
 	struct sockaddr *ksockaddr = NULL;
 	unsigned long sockaddr_len = 0;
-	bool use_sockaddr = false;
+	bool can_use_sockaddr_data = false;
 	char *targetbuf = args->str_storage;
-	uint16_t tuple_size = 0;
+	uint16_t tuple_size = 0, addr_size = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
 
+	/* Get socket file descriptor, sockaddr pointer and length. */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int64_t)(int32_t)val;
-
-	if(retval != 0 && retval != -EINPROGRESS) {
-		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-		res = push_empty_param(args);
-		CHECK_RES(res);
-
-		/* Parameter 3: fd (type: PT_FD) */
-		res = val_to_ring(args, fd, 0, false, 0);
-		CHECK_RES(res);
-
-		return add_sentinel(args);
-	}
-
-	/* Get the address */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	usrsockaddr = (struct sockaddr __user *)val;
-
-	/* Get the address len */
 	syscall_get_arguments_deprecated(args, 2, 1, &usrsockaddr_len);
 
+	/* Copy the user-provided sockaddr into kernel memory, if possible. */
 	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
-		/* Copy the address into kernel memory */
 		res = addr_to_kernel(usrsockaddr, usrsockaddr_len, (struct sockaddr *)&address);
 		if(likely(res >= 0)) {
 			ksockaddr = (struct sockaddr *)&address;
 			sockaddr_len = usrsockaddr_len;
-			use_sockaddr = true;
+			can_use_sockaddr_data = true;
 		}
 	}
 
-	/* Convert the fd into socket endpoint information */
-	tuple_size = fd_to_socktuple((int)fd,
-	                             ksockaddr,
-	                             sockaddr_len,
-	                             use_sockaddr,
-	                             false,
-	                             targetbuf,
-	                             STR_STORAGE_SIZE);
-
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
+	if(retval != 0 && retval != -EINPROGRESS) {
+		res = push_empty_param(args);
+	} else {
+		/* Use the file descriptor (and possibly the sockaddr) to obtain the socket tuple.
+		 * The socket tuple is stored into the provided target buffer. */
+		tuple_size = fd_to_socktuple((int)fd,
+		                             ksockaddr,
+		                             sockaddr_len,
+		                             can_use_sockaddr_data,
+		                             false,
+		                             targetbuf,
+		                             STR_STORAGE_SIZE);
+
+		res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
+	}
 	CHECK_RES(res);
 
 	/* Parameter 3: fd (type: PT_FD) */
 	res = val_to_ring(args, fd, 0, false, 0);
+	CHECK_RES(res);
+
+	if(can_use_sockaddr_data) {
+		/* Encode the address and store it into the target buffer. */
+		addr_size = pack_addr(ksockaddr, sockaddr_len, targetbuf, STR_STORAGE_SIZE);
+	}
+
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	res = val_to_ring(args, (uint64_t)targetbuf, addr_size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

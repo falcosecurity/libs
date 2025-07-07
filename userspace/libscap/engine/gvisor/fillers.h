@@ -251,7 +251,8 @@ int32_t fill_event_connect_x(scap_sized_buffer scap_buf,
                              char* scap_err,
                              int64_t res,
                              scap_const_sized_buffer tuple,
-                             int64_t fd);
+                             int64_t fd,
+                             scap_const_sized_buffer addr);
 
 int32_t fill_event_socket_e(scap_sized_buffer scap_buf,
                             size_t* event_size,

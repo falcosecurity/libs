@@ -757,15 +757,17 @@ int32_t fill_event_connect_x(scap_sized_buffer scap_buf,
                              char* scap_err,
                              int64_t res,
                              scap_const_sized_buffer tuple,
-                             int64_t fd) {
+                             int64_t fd,
+                             scap_const_sized_buffer addr) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SOCKET_CONNECT_X,
-	                                3,
+	                                4,
 	                                res,
 	                                tuple,  // local addr hardcoded 0 -- INVALID
-	                                fd);
+	                                fd,
+	                                addr);
 }
 
 // PPME_SYSCALL_SOCKET_E
