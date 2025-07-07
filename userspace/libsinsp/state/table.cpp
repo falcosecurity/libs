@@ -545,7 +545,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 			        a->accessor);                                                           \
 			_type val;                                                                      \
 			convert_types(in->_dtype, val);                                                 \
-			e->set_static_field<_type>(*aa, val);                                           \
+			e->write_field<_type>(*aa, val);                                                \
 		}                                                                                   \
 		return SS_PLUGIN_SUCCESS;                                                           \
 	}
