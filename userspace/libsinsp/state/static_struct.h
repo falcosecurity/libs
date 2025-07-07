@@ -135,21 +135,6 @@ public:
 	using field_infos = std::unordered_map<std::string, field_info>;
 
 	/**
-	 * @brief Accesses a field with the given accessor and writes its value.
-	 * An exception is thrown if the field is read-only.
-	 */
-	template<typename T, typename Val = T>
-	inline void set_static_field(const field_accessor<T>& a, const Val& in) {
-		if(!a.info().valid()) {
-			throw sinsp_exception("can't set invalid field in static struct");
-		}
-		if(a.info().readonly()) {
-			throw sinsp_exception("can't set a read-only static struct field: " + a.info().name());
-		}
-		*(reinterpret_cast<T*>((void*)(((uintptr_t)this) + a.info().m_offset))) = in;
-	}
-
-	/**
 	 * @brief Returns information about all the static fields accessible in a struct.
 	 */
 	virtual field_infos static_fields() const { return {}; }
