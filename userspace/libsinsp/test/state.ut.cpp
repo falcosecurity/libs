@@ -617,7 +617,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_NE(entry, nullptr);
 	ASSERT_EQ(table->entries_count(), 1);
 
-	// getting the fd tables from the newly created threads
+	// getting the "env" tables from the newly created threads
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
@@ -647,7 +647,7 @@ TEST(thread_manager, env_vars_access) {
 		// get non-existing entry
 		ASSERT_EQ(subtable->get_entry(i), nullptr);
 
-		// creating and adding a fd to the table
+		// creating and adding an entry to the subtable
 		auto t = subtable->add_entry(i, subtable->new_entry());
 		ASSERT_NE(t, nullptr);
 		ASSERT_NE(subtable->get_entry(i), nullptr);
@@ -681,11 +681,11 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_ANY_THROW(subtable->foreach_entry(
 	        [&](libsinsp::state::table_entry& e) -> bool { throw sinsp_exception("some error"); }));
 
-	// erasing an unknown fd
+	// erasing an unknown entry
 	ASSERT_EQ(subtable->erase_entry(max_iterations), false);
 	ASSERT_EQ(subtable->entries_count(), max_iterations);
 
-	// erase one of the newly-created fd
+	// erase one of the newly-created entries
 	ASSERT_EQ(subtable->erase_entry(0), true);
 	ASSERT_EQ(subtable->entries_count(), max_iterations - 1);
 
@@ -696,6 +696,30 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(tinfo->m_env.size(), max_iterations - 1);
 	for(const auto& v : tinfo->m_env) {
 		EXPECT_EQ(v, "hello");
+	}
+
+	// Access with table_input_adapter
+	{
+		libsinsp::state::sinsp_table_owner owner;
+		auto* field_accessor = table->get_field(&owner, "env", SS_PLUGIN_ST_TABLE);
+		ss_plugin_state_data field_data;
+		auto rc = table->read_entry_field(&owner, &entry, field_accessor, &field_data);
+		EXPECT_EQ(rc, 0);
+		EXPECT_NE(field_data.table, nullptr);
+		libsinsp::state::table_input_adapter tia{field_data.table};
+		EXPECT_EQ(std::string_view(tia.name()), "env");
+
+		EXPECT_EQ(tia.key_info().type_id(), SS_PLUGIN_ST_UINT64);
+		ss_plugin_state_data key;
+		key.u64 = 0;
+		auto* subtable_entry = tia.get_entry(&owner, &key);
+		EXPECT_NE(subtable_entry, nullptr);
+
+		field_accessor = tia.get_field(&owner, "value", SS_PLUGIN_ST_STRING);
+		rc = tia.read_entry_field(&owner, subtable_entry, field_accessor, &field_data);
+		EXPECT_EQ(rc, 0);
+		EXPECT_NE(field_data.str, nullptr);
+		EXPECT_EQ(std::string_view(field_data.str), "hello");
 	}
 
 	// clear all

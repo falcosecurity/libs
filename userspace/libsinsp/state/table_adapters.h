@@ -320,5 +320,100 @@ private:
 	std::list<TWrap> m_wrappers;  // using lists for ptr stability
 };
 
+// Simple adapter for ss_plugin_table_input that implements the base_table interface
+class table_input_adapter : public libsinsp::state::base_table {
+private:
+	ss_plugin_table_input* m_input;
+	std::string m_name;
+
+public:
+	explicit table_input_adapter(ss_plugin_table_input* input):
+	        libsinsp::state::base_table(libsinsp::state::typeinfo::from(input->key_type)),
+	        m_input(input),
+	        m_name(input->name ? input->name : "unknown") {}
+
+	// ss_plugin_table_t is an opaque pointer to ss_plugin_table_input
+	explicit table_input_adapter(ss_plugin_table_t* table):
+	        table_input_adapter(static_cast<ss_plugin_table_input*>(table)) {}
+
+	const char* name() const override { return m_name.c_str(); }
+
+	const ss_plugin_table_fieldinfo* list_fields(libsinsp::state::sinsp_table_owner* owner,
+	                                             uint32_t* nfields) override {
+		return m_input->fields.list_table_fields(m_input->table, nfields);
+	}
+
+	ss_plugin_table_field_t* get_field(libsinsp::state::sinsp_table_owner* owner,
+	                                   const char* name,
+	                                   ss_plugin_state_type data_type) override {
+		return m_input->fields.get_table_field(m_input->table, name, data_type);
+	}
+
+	ss_plugin_table_field_t* add_field(libsinsp::state::sinsp_table_owner* owner,
+	                                   const char* name,
+	                                   ss_plugin_state_type data_type) override {
+		return m_input->fields.add_table_field(m_input->table, name, data_type);
+	}
+
+	uint64_t get_size(libsinsp::state::sinsp_table_owner* owner) override {
+		return m_input->reader.get_table_size(m_input->table);
+	}
+
+	ss_plugin_table_entry_t* get_entry(libsinsp::state::sinsp_table_owner* owner,
+	                                   const ss_plugin_state_data* key) override {
+		return m_input->reader.get_table_entry(m_input->table, key);
+	}
+
+	void release_table_entry(libsinsp::state::sinsp_table_owner* owner,
+	                         ss_plugin_table_entry_t* _e) override {
+		m_input->reader_ext->release_table_entry(m_input->table, _e);
+	}
+
+	ss_plugin_bool iterate_entries(libsinsp::state::sinsp_table_owner* owner,
+	                               ss_plugin_table_iterator_func_t it,
+	                               ss_plugin_table_iterator_state_t* s) override {
+		return m_input->reader_ext->iterate_entries(m_input->table, it, s);
+	}
+
+	ss_plugin_rc read_entry_field(libsinsp::state::sinsp_table_owner* owner,
+	                              ss_plugin_table_entry_t* _e,
+	                              const ss_plugin_table_field_t* f,
+	                              ss_plugin_state_data* out) override {
+		return m_input->reader.read_entry_field(m_input->table, _e, f, out);
+	}
+
+	ss_plugin_rc clear_entries(libsinsp::state::sinsp_table_owner* owner) override {
+		return m_input->writer.clear_table(m_input->table);
+	}
+
+	ss_plugin_rc erase_entry(libsinsp::state::sinsp_table_owner* owner,
+	                         const ss_plugin_state_data* key) override {
+		return m_input->writer.erase_table_entry(m_input->table, key);
+	}
+
+	ss_plugin_table_entry_t* create_table_entry(
+	        libsinsp::state::sinsp_table_owner* owner) override {
+		return m_input->writer.create_table_entry(m_input->table);
+	}
+
+	void destroy_table_entry(libsinsp::state::sinsp_table_owner* owner,
+	                         ss_plugin_table_entry_t* _e) override {
+		m_input->writer.destroy_table_entry(m_input->table, _e);
+	}
+
+	ss_plugin_table_entry_t* add_entry(libsinsp::state::sinsp_table_owner* owner,
+	                                   const ss_plugin_state_data* key,
+	                                   ss_plugin_table_entry_t* _e) override {
+		return m_input->writer.add_table_entry(m_input->table, key, _e);
+	}
+
+	ss_plugin_rc write_entry_field(libsinsp::state::sinsp_table_owner* owner,
+	                               ss_plugin_table_entry_t* _e,
+	                               const ss_plugin_table_field_t* f,
+	                               const ss_plugin_state_data* in) override {
+		return m_input->writer.write_entry_field(m_input->table, _e, f, in);
+	}
+};
+
 };  // namespace state
 };  // namespace libsinsp
