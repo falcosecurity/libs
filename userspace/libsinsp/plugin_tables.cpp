@@ -35,9 +35,7 @@ std::string plugin_tables::get_container_id(sinsp_threadinfo& threadinfo) const 
 	if(!m_container_id_field) {
 		return {};
 	}
-	std::string container_id;
-	threadinfo.get_dynamic_field(*m_container_id_field, container_id);
-	return container_id;
+	return threadinfo.read_field(*m_container_id_field);
 }
 
 std::string plugin_tables::get_container_user(sinsp_threadinfo& threadinfo) const {
