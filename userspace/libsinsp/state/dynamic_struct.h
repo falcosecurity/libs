@@ -111,7 +111,7 @@ public:
 		 * all instances of structs where it is defined.
 		 */
 		template<typename T>
-		inline field_accessor<T> new_accessor() const {
+		inline std::unique_ptr<field_accessor<T>> new_accessor() const {
 			if(!valid()) {
 				throw sinsp_exception(
 				        "can't create dynamic struct field accessor for invalid field");
@@ -122,7 +122,7 @@ public:
 				        "incompatible type for dynamic struct field accessor: field=" + m_name +
 				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 			}
-			return field_accessor<T>(*this);
+			return std::make_unique<field_accessor<T>>(*this);
 		}
 
 	private:
@@ -206,9 +206,9 @@ public:
 		 */
 		inline const field_info& info() const { return m_info; }
 
-	private:
 		inline explicit field_accessor(const field_info& info): m_info(info) {};
 
+	private:
 		field_info m_info;
 
 		friend class dynamic_struct;

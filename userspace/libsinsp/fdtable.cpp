@@ -221,11 +221,8 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::get_field(
 	}
 #undef _X
 
-#define _X(_type, _dtype)                                                                \
-	{                                                                                    \
-		return std::make_unique<libsinsp::state::dynamic_struct::field_accessor<_type>>( \
-		        dyn_it->second.new_accessor<_type>());                                   \
-	}
+#define _X(_type, _dtype) \
+	{ return dyn_it->second.new_accessor<_type>(); }
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
 		if(type_info.type_id() != dyn_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for dynamic field: " +
