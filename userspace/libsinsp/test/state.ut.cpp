@@ -344,7 +344,6 @@ TEST(table_registry, defs_and_access) {
 	{                                                                                       \
 		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
 		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		acc_wrap.dynamic = false;                                                           \
 		acc_wrap.data_type = type_info.type_id();                                           \
 		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
 		return acc_wrap;                                                                    \
@@ -362,7 +361,6 @@ TEST(table_registry, defs_and_access) {
 	{                                                                                        \
 		auto acc = dyn_it->second.new_accessor<_type>();                                     \
 		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
-		acc_wrap.dynamic = true;                                                             \
 		acc_wrap.data_type = type_info.type_id();                                            \
 		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
 		return acc_wrap;                                                                     \
