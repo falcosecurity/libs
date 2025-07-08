@@ -1059,7 +1059,7 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
 }
 
-libsinsp::state::sinsp_field_accessor_wrapper sinsp_thread_manager::get_field(
+std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::get_field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
 	auto fixed_it = this->static_fields()->find(name);
@@ -1072,13 +1072,10 @@ libsinsp::state::sinsp_field_accessor_wrapper sinsp_thread_manager::get_field(
 		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
 	}
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
-		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		acc_wrap.data_type = type_info.type_id();                                           \
-		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
-		return acc_wrap;                                                                    \
+#define _X(_type, _dtype)                                                               \
+	{                                                                                   \
+		return std::make_unique<libsinsp::state::static_struct::field_accessor<_type>>( \
+		        fixed_it->second.new_accessor<_type>());                                \
 	}
 	if(fixed_it != this->static_fields()->end()) {
 		if(type_info.type_id() != fixed_it->second.info().type_id()) {
@@ -1088,13 +1085,10 @@ libsinsp::state::sinsp_field_accessor_wrapper sinsp_thread_manager::get_field(
 	}
 #undef _X
 
-#define _X(_type, _dtype)                                                                    \
-	{                                                                                        \
-		auto acc = dyn_it->second.new_accessor<_type>();                                     \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
-		acc_wrap.data_type = type_info.type_id();                                            \
-		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
-		return acc_wrap;                                                                     \
+#define _X(_type, _dtype)                                                                \
+	{                                                                                    \
+		return std::make_unique<libsinsp::state::dynamic_struct::field_accessor<_type>>( \
+		        dyn_it->second.new_accessor<_type>());                                   \
 	}
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
 		if(type_info.type_id() != dyn_it->second.info().type_id()) {
@@ -1125,7 +1119,7 @@ void sinsp_thread_manager::list_fields(std::vector<ss_plugin_table_fieldinfo>& o
 	}
 }
 
-libsinsp::state::sinsp_field_accessor_wrapper sinsp_thread_manager::add_field(
+std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::add_field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {

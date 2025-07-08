@@ -30,20 +30,6 @@ namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
 
-// wraps instances of libsinsp::state::XXX_struct::field_accessor and
-// help making them comply to the plugin API state tables definitions
-struct sinsp_field_accessor_wrapper {
-	libsinsp::state::accessor* accessor = nullptr;
-	ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-
-	inline sinsp_field_accessor_wrapper() = default;
-	~sinsp_field_accessor_wrapper();
-	inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
-	inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) = delete;
-	sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
-	sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
-};
-
 /**
  * @brief Base class for entries of a state table.
  */
@@ -252,8 +238,8 @@ public:
 	virtual size_t entries_count() const = 0;
 
 	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const = 0;
-	virtual sinsp_field_accessor_wrapper get_field(const char* name, const typeinfo& type_info) = 0;
-	virtual sinsp_field_accessor_wrapper add_field(const char* name, const typeinfo& type_info) = 0;
+	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) = 0;
+	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) = 0;
 
 	/**
 	 * @brief Returns a pointer to an entry present in the table at the given
@@ -389,7 +375,7 @@ private:
 	std::string m_name;
 	const static_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
-	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
+	std::unordered_map<std::string, accessor*> m_field_accessors;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 };
 
@@ -407,7 +393,7 @@ protected:
 	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;  // note: lists have pointer stability
-	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
+	std::list<std::unique_ptr<libsinsp::state::accessor>>
 	        m_accessed_table_fields;  // note: lists have pointer stability
 
 	bool m_ephemeral_tables_clear = false;

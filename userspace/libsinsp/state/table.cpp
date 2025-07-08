@@ -45,29 +45,6 @@ void extract_key<int64_t>(const ss_plugin_state_data& key, int64_t& out) {
 }
 
 //
-// sinsp_field_accessor_wrapper implementation
-//
-libsinsp::state::sinsp_field_accessor_wrapper::~sinsp_field_accessor_wrapper() {
-	delete accessor;
-}
-
-libsinsp::state::sinsp_field_accessor_wrapper::sinsp_field_accessor_wrapper(
-        libsinsp::state::sinsp_field_accessor_wrapper&& s) {
-	this->accessor = s.accessor;
-	this->data_type = s.data_type;
-	s.accessor = nullptr;
-}
-
-libsinsp::state::sinsp_field_accessor_wrapper&
-libsinsp::state::sinsp_field_accessor_wrapper::operator=(
-        libsinsp::state::sinsp_field_accessor_wrapper&& s) {
-	this->accessor = s.accessor;
-	this->data_type = s.data_type;
-	s.accessor = nullptr;
-	return *this;
-}
-
-//
 // table_accessor implementation
 //
 template<typename T>
@@ -303,12 +280,12 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-#define _X(_type, _dtype)                                                                     \
-	{                                                                                         \
-		sinsp_field_accessor_wrapper acc_wrap = this->get_field(name, typeinfo::of<_type>()); \
-		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                        \
-		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();               \
-		return this->m_field_accessors[name];                                                 \
+#define _X(_type, _dtype)                                                            \
+	{                                                                                \
+		auto acc = this->get_field(name, typeinfo::of<_type>());                     \
+		owner->m_accessed_table_fields.emplace_back(std::move(acc));                 \
+		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get(); \
+		return this->m_field_accessors[name];                                        \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);
@@ -459,18 +436,19 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
         ss_plugin_table_entry_t* _e,
         const ss_plugin_table_field_t* f,
         ss_plugin_state_data* out) {
-	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
+	auto a = static_cast<const libsinsp::state::accessor*>(f);
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
-#define _X(_type, _dtype)                                                            \
-	{                                                                                \
-		auto aa = static_cast<libsinsp::state::typed_accessor<_type>*>(a->accessor); \
-		e->read_field<_type>(*aa, out->_dtype);                                      \
-		res = SS_PLUGIN_SUCCESS;                                                     \
-		break;                                                                       \
+#define _X(_type, _dtype)                                                         \
+	{                                                                             \
+		auto aa = dynamic_cast<const libsinsp::state::typed_accessor<_type>*>(a); \
+		e->read_field<_type>(*aa, out->_dtype);                                   \
+		res = SS_PLUGIN_SUCCESS;                                                  \
+		break;                                                                    \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err,
+	                { __PLUGIN_STATETYPE_SWITCH(a->type_info().type_id()); });
 #undef _X
 
 #define _X(_type, _dtype)                                                    \
@@ -480,7 +458,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		slot.set<_type>(owner, st);                                          \
 		out->table = &slot.input;                                            \
 	};
-	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+	if(a->type_info().type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		auto* subtable_ptr = static_cast<libsinsp::state::base_table*>(out->table);
 		if(!subtable_ptr) {
 			owner->m_last_owner_err.clear();
@@ -500,24 +478,25 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
         ss_plugin_table_entry_t* _e,
         const ss_plugin_table_field_t* f,
         const ss_plugin_state_data* in) {
-	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
+	auto a = static_cast<const libsinsp::state::accessor*>(f);
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 
 	// todo(jasondellaluce): drop this check once we start supporting this
-	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+	if(a->type_info().type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		owner->m_last_owner_err = "writing to table fields is currently not supported";
 		return SS_PLUGIN_FAILURE;
 	}
 
-#define _X(_type, _dtype)                                                            \
-	{                                                                                \
-		auto aa = static_cast<libsinsp::state::typed_accessor<_type>*>(a->accessor); \
-		_type val;                                                                   \
-		convert_types(in->_dtype, val);                                              \
-		e->write_field<_type>(*aa, val);                                             \
-		return SS_PLUGIN_SUCCESS;                                                    \
+#define _X(_type, _dtype)                                                         \
+	{                                                                             \
+		auto aa = dynamic_cast<const libsinsp::state::typed_accessor<_type>*>(a); \
+		_type val;                                                                \
+		convert_types(in->_dtype, val);                                           \
+		e->write_field<_type>(*aa, val);                                          \
+		return SS_PLUGIN_SUCCESS;                                                 \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err,
+	                { __PLUGIN_STATETYPE_SWITCH(a->type_info().type_id()); });
 #undef _X
 	return SS_PLUGIN_FAILURE;
 }
