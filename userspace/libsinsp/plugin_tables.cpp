@@ -4,14 +4,21 @@
 
 void plugin_tables::init(const sinsp& inspector) {
 	// Add "container_id" accessor.
-	const auto& fields = inspector.m_thread_manager->dynamic_fields()->fields();
-	if(const auto field = fields.find("container_id"); field != fields.end()) {
-		m_container_id_field =
-		        std::make_unique<libsinsp::state::dynamic_struct::field_accessor<std::string>>(
-		                field->second.new_accessor<std::string>());
-	} else {
+	auto container_id_field =
+	        inspector.m_thread_manager->get_field("container_id",
+	                                              libsinsp::state::typeinfo::of<std::string>());
+	if(container_id_field == nullptr) {
 		throw sinsp_exception("failed to find dynamic field 'container_id' in threadinfo");
 	}
+
+	auto container_id_field_ptr = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(
+	        container_id_field.release());
+	if(container_id_field_ptr == nullptr) {
+		delete container_id_field_ptr;
+		throw sinsp_exception("invalid type of field 'container_id' in threadinfo");
+	}
+	m_container_id_field =
+	        std::unique_ptr<libsinsp::state::typed_accessor<std::string>>(container_id_field_ptr);
 
 	// Add "containers" table.
 	auto containers_table = inspector.get_table_registry()->get_table<std::string>("containers");
