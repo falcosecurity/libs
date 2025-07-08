@@ -486,17 +486,18 @@ TEST(SyscallExit, socketcall_acceptX_INET) {
 	evt_test->assert_numeric_param(5, (uint32_t)QUEUE_LENGTH);
 
 #ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/* Right now `flags` are not supported so we will catch always `0` */
-	evt_test->assert_numeric_param(6, (uint32_t)0);
-#endif
+	/* Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
+	   However, The kmod/bpf can correctly handle accept also on s390x (see also above) */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine()) {
+		evt_test->assert_num_params_pushed(5);
+	} else {
+		/* accept4 is used */
+		/* Parameter 6: flags (type: PT_FLAGS32) */
+		/* Right now `flags` are not supported so we will catch always `0` */
+		evt_test->assert_numeric_param(6, (uint32_t)0);
 
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-#ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	evt_test->assert_num_params_pushed(6);
+		evt_test->assert_num_params_pushed(6);
+	}
 #else
 	evt_test->assert_num_params_pushed(5);
 #endif
@@ -585,18 +586,21 @@ TEST(SyscallExit, socketcall_acceptX_INET6) {
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, (uint32_t)QUEUE_LENGTH);
 
-#ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/* Right now `flags` are not supported so we will catch always `0` */
-	evt_test->assert_numeric_param(6, (uint32_t)0);
-#endif
-
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 #ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	evt_test->assert_num_params_pushed(6);
+	/* Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
+	   However, The kmod/bpf can correctly handle accept also on s390x (see also above) */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine()) {
+		evt_test->assert_num_params_pushed(5);
+	} else {
+		/* accept4 is used */
+		/* Parameter 6: flags (type: PT_FLAGS32) */
+		/* Right now `flags` are not supported so we will catch always `0` */
+		evt_test->assert_numeric_param(6, (uint32_t)0);
+
+		evt_test->assert_num_params_pushed(6);
+	}
 #else
 	evt_test->assert_num_params_pushed(5);
 #endif
@@ -684,17 +688,18 @@ TEST(SyscallExit, socketcall_acceptX_UNIX) {
 	evt_test->assert_numeric_param(5, (uint32_t)QUEUE_LENGTH);
 
 #ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/* Right now `flags` are not supported so we will catch always `0` */
-	evt_test->assert_numeric_param(6, (uint32_t)0);
-#endif
+	/* Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
+	   However, The kmod/bpf can correctly handle accept also on s390x (see also above) */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine()) {
+		evt_test->assert_num_params_pushed(5);
+	} else {
+		/* accept4 is used */
+		/* Parameter 6: flags (type: PT_FLAGS32) */
+		/* Right now `flags` are not supported so we will catch always `0` */
+		evt_test->assert_numeric_param(6, (uint32_t)0);
 
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-#ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	evt_test->assert_num_params_pushed(6);
+		evt_test->assert_num_params_pushed(6);
+	}
 #else
 	evt_test->assert_num_params_pushed(5);
 #endif
@@ -763,17 +768,18 @@ TEST(SyscallExit, socketcall_acceptX_failure) {
 	evt_test->assert_numeric_param(5, (uint32_t)0);
 
 #ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/* Right now `flags` are not supported so we will catch always `0` */
-	evt_test->assert_numeric_param(6, (uint32_t)0);
-#endif
+	/* Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
+	   However, The kmod/bpf can correctly handle accept also on s390x (see also above) */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine()) {
+		evt_test->assert_num_params_pushed(5);
+	} else {
+		/* accept4 is used */
+		/* Parameter 6: flags (type: PT_FLAGS32) */
+		/* Right now `flags` are not supported so we will catch always `0` */
+		evt_test->assert_numeric_param(6, (uint32_t)0);
 
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-#ifdef __s390x__
-	// Under s390x we use accept4 instead of accept, and we collect the flags parameter for it.
-	evt_test->assert_num_params_pushed(6);
+		evt_test->assert_num_params_pushed(6);
+	}
 #else
 	evt_test->assert_num_params_pushed(5);
 #endif
