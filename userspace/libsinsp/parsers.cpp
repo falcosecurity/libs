@@ -1116,7 +1116,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	}
 	child_tinfo->set_group(gid, must_notify_thread_group_update());
 
-	/* Set cgroups and heuristically detect container id */
+	// Set cgroups
 	switch(etype) {
 	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_20_X:
@@ -1636,7 +1636,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	}
 	child_tinfo->set_group(gid, must_notify_thread_group_update());
 
-	/* Set cgroups and heuristically detect container id */
+	// Set cgroups
 	switch(etype) {
 	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_20_X:
@@ -1872,9 +1872,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		parinfo = evt.get_param(15);
 		evt.get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
 
-		//
-		// Set cgroups and heuristically detect container id
-		//
+		// Set cgroups
 		evt.get_tinfo()->set_cgroups(evt.get_param(14)->as<std::vector<std::string>>());
 		break;
 	default:
