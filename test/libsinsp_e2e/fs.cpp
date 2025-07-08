@@ -40,6 +40,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <iostream>
 #include <list>
 #include <mutex>
