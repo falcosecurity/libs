@@ -525,22 +525,13 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 		return SS_PLUGIN_FAILURE;
 	}
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		if(a->dynamic) {                                                                    \
-			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
-			        a->accessor);                                                           \
-			_type val;                                                                      \
-			convert_types(in->_dtype, val);                                                 \
-			e->write_field<_type>(*aa, val);                                                \
-		} else {                                                                            \
-			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
-			        a->accessor);                                                           \
-			_type val;                                                                      \
-			convert_types(in->_dtype, val);                                                 \
-			e->write_field<_type>(*aa, val);                                                \
-		}                                                                                   \
-		return SS_PLUGIN_SUCCESS;                                                           \
+#define _X(_type, _dtype)                                                            \
+	{                                                                                \
+		auto aa = static_cast<libsinsp::state::typed_accessor<_type>*>(a->accessor); \
+		_type val;                                                                   \
+		convert_types(in->_dtype, val);                                              \
+		e->write_field<_type>(*aa, val);                                             \
+		return SS_PLUGIN_SUCCESS;                                                    \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
 #undef _X
