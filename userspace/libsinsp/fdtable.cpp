@@ -211,11 +211,8 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::get_field(
 		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
 	}
 
-#define _X(_type, _dtype)                                                               \
-	{                                                                                   \
-		return std::make_unique<libsinsp::state::static_struct::field_accessor<_type>>( \
-		        fixed_it->second.new_accessor<_type>());                                \
-	}
+#define _X(_type, _dtype) \
+	{ return fixed_it->second.new_accessor<_type>(); }
 	if(fixed_it != this->static_fields()->end()) {
 		if(type_info.type_id() != fixed_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
