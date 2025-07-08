@@ -262,15 +262,12 @@ public:
 		}
 	}
 
-	sinsp_field_accessor_wrapper get_field(const char* name, const typeinfo& type_info) override {
+	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) override {
 		auto dyn_it = this->dynamic_fields()->fields().find(name);
-#define _X(_type, _dtype)                                                                    \
-	{                                                                                        \
-		auto acc = dyn_it->second.template new_accessor<_type>();                            \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
-		acc_wrap.data_type = type_info.type_id();                                            \
-		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
-		return acc_wrap;                                                                     \
+#define _X(_type, _dtype)                                                                \
+	{                                                                                    \
+		return std::make_unique<libsinsp::state::dynamic_struct::field_accessor<_type>>( \
+		        dyn_it->second.template new_accessor<_type>());                          \
 	}
 		if(dyn_it != this->dynamic_fields()->fields().end()) {
 			if(type_info.type_id() != dyn_it->second.info().type_id()) {
@@ -284,7 +281,7 @@ public:
 #undef _X
 	}
 
-	sinsp_field_accessor_wrapper add_field(const char* name, const typeinfo& type_info) override {
+	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override {
 		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " +
 		                      std::string(name));
 	}

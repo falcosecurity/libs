@@ -326,7 +326,7 @@ TEST(table_registry, defs_and_access) {
 			}
 		}
 
-		libsinsp::state::sinsp_field_accessor_wrapper get_field(
+		std::unique_ptr<libsinsp::state::accessor> get_field(
 		        const char* name,
 		        const libsinsp::state::typeinfo& type_info) override {
 			auto fixed_it = this->static_fields()->find(name);
@@ -340,13 +340,10 @@ TEST(table_registry, defs_and_access) {
 				                      std::string(name));
 			}
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
-		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		acc_wrap.data_type = type_info.type_id();                                           \
-		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
-		return acc_wrap;                                                                    \
+#define _X(_type, _dtype)                                                               \
+	{                                                                                   \
+		return std::make_unique<libsinsp::state::static_struct::field_accessor<_type>>( \
+		        fixed_it->second.new_accessor<_type>());                                \
 	}
 			if(fixed_it != this->static_fields()->end()) {
 				if(type_info.type_id() != fixed_it->second.info().type_id()) {
@@ -357,13 +354,10 @@ TEST(table_registry, defs_and_access) {
 			}
 #undef _X
 
-#define _X(_type, _dtype)                                                                    \
-	{                                                                                        \
-		auto acc = dyn_it->second.new_accessor<_type>();                                     \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
-		acc_wrap.data_type = type_info.type_id();                                            \
-		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
-		return acc_wrap;                                                                     \
+#define _X(_type, _dtype)                                                                \
+	{                                                                                    \
+		return std::make_unique<libsinsp::state::dynamic_struct::field_accessor<_type>>( \
+		        dyn_it->second.new_accessor<_type>());                                   \
 	}
 			if(dyn_it != this->dynamic_fields()->fields().end()) {
 				if(type_info.type_id() != dyn_it->second.info().type_id()) {
@@ -377,7 +371,7 @@ TEST(table_registry, defs_and_access) {
 #undef _X
 		}
 
-		libsinsp::state::sinsp_field_accessor_wrapper add_field(
+		std::unique_ptr<libsinsp::state::accessor> add_field(
 		        const char* name,
 		        const libsinsp::state::typeinfo& type_info) override {
 			if(this->static_fields()->find(name) != this->static_fields()->end()) {
