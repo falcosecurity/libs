@@ -229,9 +229,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_CLOSE_X:
 		parse_close_exit(evt, verdict);
 		break;
-	case PPME_SYSCALL_FCNTL_E:
-		parse_fcntl_enter(evt);
-		break;
 	case PPME_SYSCALL_FCNTL_X:
 		parse_fcntl_exit(evt);
 		break;
@@ -4138,20 +4135,10 @@ void sinsp_parser::parse_select_poll_ppoll_epollwait(sinsp_evt &evt) {
 	*(uint64_t *)evt.get_tinfo()->get_last_event_data() = evt.get_ts();
 }
 
-void sinsp_parser::parse_fcntl_enter(sinsp_evt &evt) {
+void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
-
-	const auto cmd = evt.get_param(1)->as<int8_t>();
-
-	if(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC) {
-		store_event(evt);
-	}
-}
-
-void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
-	sinsp_evt *enter_evt = &m_tmp_evt;
 
 	//
 	// Extract the return value
@@ -4159,9 +4146,14 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
 	const int64_t retval = evt.get_syscall_return_value();
 
 	//
-	// If this is not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore it
+	// Extract the command
 	//
-	if(!retrieve_enter_event(*enter_evt, evt)) {
+	const auto cmd = evt.get_param(2)->as<int8_t>();
+
+	//
+	// If not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore the event
+	//
+	if(!(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC)) {
 		return;
 	}
 

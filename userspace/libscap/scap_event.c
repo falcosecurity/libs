@@ -552,6 +552,7 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SYSCALL_GETDENTS64_X:
 	case PPME_SYSCALL_FLOCK_X:
 	case PPME_SYSCALL_COPY_FILE_RANGE_X:
+	case PPME_SYSCALL_FCNTL_X:
 		location = 1;
 		break;
 	case PPME_SYSCALL_READ_X:
