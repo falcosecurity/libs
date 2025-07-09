@@ -116,7 +116,6 @@ private:
 	void parse_getrlimit_setrlimit_exit(sinsp_evt& evt) const;
 	void parse_prlimit_exit(sinsp_evt& evt) const;
 	void parse_select_poll_ppoll_epollwait(sinsp_evt& evt);
-	void parse_fcntl_enter(sinsp_evt& evt);
 	void parse_fcntl_exit(sinsp_evt& evt) const;
 	static void parse_prctl_exit_event(sinsp_evt& evt);
 	static void parse_context_switch(sinsp_evt& evt);
