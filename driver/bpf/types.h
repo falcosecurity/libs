@@ -143,6 +143,16 @@ struct sys_stash_args {
 #ifdef CAPTURE_SCHED_PROC_EXEC
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct sched_process_exec_args {
+	unsigned short common_type;
+	unsigned char common_flags;
+	unsigned char common_preempt_count;
+	int common_pid;
+	__u32 filename;  // This is actually defined as "__data_loc char[] filename;".
+	pid_t pid;
+	pid_t old_pid;
+};
+#else
 /* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
  * Taken from `/include/trace/events/sched.h`
  */
@@ -150,16 +160,6 @@ struct sched_process_exec_args {
 	struct task_struct *p;
 	pid_t old_pid;
 	struct linux_binprm *bprm;
-};
-#else
-struct sched_process_exec_args {
-	unsigned short common_type;
-	unsigned char common_flags;
-	unsigned char common_preempt_count;
-	int common_pid;
-	int filename;
-	pid_t pid;
-	pid_t old_pid;
 };
 #endif /* BPF_SUPPORTS_RAW_TRACEPOINTS */
 
