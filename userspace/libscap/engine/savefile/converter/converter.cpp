@@ -23,6 +23,7 @@ limitations under the License.
 #include <stdarg.h>
 #include <cstdio>
 #include <cassert>
+#include <limits>
 #include <string>
 #include <stdexcept>
 #include <memory>
@@ -120,7 +121,7 @@ static char *get_param_ptr(scap_evt *evt, uint8_t num_param) {
 	return ptr + ptr_off;
 }
 
-static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
+static uint8_t get_size_bytes_from_type(const ppm_param_type t) {
 	switch(t) {
 	case PT_INT8:
 	case PT_UINT8:
@@ -176,6 +177,20 @@ static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
 	return 0;
 }
 
+// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
+// have `len==0`. Just remember that the returned value effective content and size should be aligned
+// with what is returned by `get_size_bytes_from_type()`
+static uint64_t get_default_value_from_type(const ppm_param_type t) {
+	switch(t) {
+	case PT_UID:
+		return std::numeric_limits<uint32_t>::max();
+	case PT_SOCKADDR:
+		return PPM_AF_UNSPEC;
+	default:
+		return 0;
+	}
+}
+
 // This writes len + the param
 static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
 	// Please ensure that `new_evt->type` is already the final type you want to obtain.
@@ -194,23 +209,7 @@ static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8
 	        *params_offset,
 	        lens_offset);
 
-	// The default param will be always 0 (apart from some exception accounted below), so we just
-	// need to copy the right number of 0 bytes.
-	// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
-	// have `len==0`.
-	uint64_t val = 0;
-
-	// Account for some specific params having custom default values.
-	switch(param_type) {
-	case PT_SOCKADDR: {
-		val = PPM_AF_UNSPEC;
-		break;
-	}
-	default: {
-		break;
-	}
-	}
-
+	uint64_t val = get_default_value_from_type(param_type);
 	memcpy((char *)evt + *params_offset, (char *)&val, len);
 	*params_offset += len;
 	memcpy((char *)evt + lens_offset, &len, sizeof(uint16_t));

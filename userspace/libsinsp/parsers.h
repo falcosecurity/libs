@@ -135,6 +135,11 @@ private:
 	static void parse_capset_exit(sinsp_evt& evt);
 	static void parse_unshare_setns_exit(sinsp_evt& evt);
 
+	// Set the event thread user to the user corresponding to the provided effective user id. This
+	// is no-op if there is no thread associated with the provided event or the effective user id is
+	// invalid.
+	void set_evt_thread_user(sinsp_evt& evt, uint32_t euid) const;
+
 	static inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo& fdinfo,
 	                                                   uint32_t tsip,
 	                                                   uint16_t tsport,
