@@ -104,7 +104,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_LINK_E:
 	case PPME_SYSCALL_LINKAT_E:
 	case PPME_SYSCALL_RMDIR_E:
-	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
 	case PPME_SYSCALL_EXECVE_18_E:
@@ -4035,67 +4034,61 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
-	int64_t retval;
-	sinsp_evt *enter_evt = &m_tmp_evt;
-	uint8_t resource;
 	int64_t newcur;
 	int64_t tid;
 
 	//
-	// Extract the return value
-	//
-	retval = evt.get_syscall_return_value();
-
-	//
 	// Check if the syscall was successful
 	//
-	if(retval >= 0) {
+	if(evt.get_syscall_return_value() != 0) {
+		return;
+	}
+
+	//
+	// Extract the resource number
+	//
+	const sinsp_evt_param *resource = evt.get_param(6);
+	if(resource->empty()) {
+		return;
+	}
+
+	if(resource->as<uint8_t>() == PPM_RLIMIT_NOFILE) {
 		//
-		// Load the enter event so we can access its arguments
+		// Extract the current value for the resource
 		//
-		if(!retrieve_enter_event(*enter_evt, evt)) {
+		newcur = evt.get_param(1)->as<uint64_t>();
+		if(newcur == -1) {
 			return;
 		}
 
 		//
-		// Extract the resource number
+		// Extract the tid and look for its process info
 		//
-		resource = enter_evt->get_param(1)->as<uint8_t>();
-
-		if(resource == PPM_RLIMIT_NOFILE) {
-			//
-			// Extract the current value for the resource
-			//
-			newcur = evt.get_param(1)->as<uint64_t>();
-
-			if(newcur != -1) {
-				//
-				// Extract the tid and look for its process info
-				//
-				tid = enter_evt->get_param(0)->as<int64_t>();
-
-				if(tid == 0) {
-					tid = evt.get_tid();
-				}
-
-				sinsp_threadinfo *ptinfo = m_thread_manager->get_thread_ref(tid, true, true).get();
-				/* If the thread info is invalid we cannot recover the main thread because we don't
-				 * even have the `pid` of the thread.
-				 */
-				if(ptinfo == nullptr || ptinfo->is_invalid()) {
-					return;
-				}
-
-				//
-				// update the process fdlimit
-				//
-				auto main_thread = ptinfo->get_main_thread();
-				if(main_thread == nullptr) {
-					return;
-				}
-				main_thread->m_fdlimit = newcur;
-			}
+		const sinsp_evt_param *tid_evt = evt.get_param(5);
+		if(tid_evt->empty()) {
+			return;
 		}
+		tid = tid_evt->as<int64_t>();
+		if(tid == 0) {
+			tid = evt.get_tid();
+		}
+
+		sinsp_threadinfo *ptinfo = m_thread_manager->get_thread_ref(tid, true, true).get();
+		/* If the thread info is invalid we cannot recover the main thread because we don't
+		 * even have the `pid` of the thread.
+		 */
+		if(ptinfo == nullptr || ptinfo->is_invalid()) {
+			return;
+		}
+
+		//
+		// update the process fdlimit
+		//
+		auto main_thread = ptinfo->get_main_thread();
+		if(main_thread == nullptr) {
+			return;
+		}
+		main_thread->m_fdlimit = newcur;
 	}
 }
 

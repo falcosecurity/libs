@@ -91,6 +91,13 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_SETRLIMIT_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SETRLIMIT_X, 3},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        /*====================== PRLIMIT ======================*/
+        {conversion_key{PPME_SYSCALL_PRLIMIT_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_PRLIMIT_X, 5},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},
+                          {C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY}})},
         /*====================== FCNTL ======================*/
         {conversion_key{PPME_SYSCALL_FCNTL_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_FCNTL_X, 1},

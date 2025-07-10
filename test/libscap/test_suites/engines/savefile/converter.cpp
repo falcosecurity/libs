@@ -711,6 +711,102 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRLIMIT_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// PRLIMIT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t pid = 10;
+	constexpr uint8_t resource = 20;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PRLIMIT_E, 2, pid, resource);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_X_5_to_7_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 66;
+	constexpr int64_t oldcur = 88;
+	constexpr int64_t oldmax = 89;
+	constexpr int64_t newcur = 90;
+	constexpr int64_t newmax = 91;
+
+	// Set to empty values
+	constexpr auto pid = empty_value<int64_t>();
+	constexpr auto resource = empty_value<uint8_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{5, 6};
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_PRLIMIT_X,
+	                                                        5,
+	                                                        res,
+	                                                        newcur,
+	                                                        newmax,
+	                                                        oldcur,
+	                                                        oldmax),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_PRLIMIT_X,
+	                                                        7,
+	                                                        res,
+	                                                        newcur,
+	                                                        newmax,
+	                                                        oldcur,
+	                                                        oldmax,
+	                                                        pid,
+	                                                        resource),
+	                                 expected_empty_param_indexes);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_X_5_to_7_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t pid = 10;
+	constexpr uint8_t resource = 20;
+	constexpr int64_t res = 66;
+	constexpr int64_t oldcur = 88;
+	constexpr int64_t oldmax = 89;
+	constexpr int64_t newcur = 90;
+	constexpr int64_t newmax = 91;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PRLIMIT_E, 2, pid, resource);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_PRLIMIT_X,
+	                                                        5,
+	                                                        res,
+	                                                        newcur,
+	                                                        newmax,
+	                                                        oldcur,
+	                                                        oldmax),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SYSCALL_PRLIMIT_X,
+	                                                        7,
+	                                                        res,
+	                                                        newcur,
+	                                                        newmax,
+	                                                        oldcur,
+	                                                        oldmax,
+	                                                        pid,
+	                                                        resource));
+}
+
+////////////////////////////
 // FCNTL
 ////////////////////////////
 
