@@ -1653,10 +1653,10 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_to_4_params_no_enter) {
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr uint32_t ruid = 0;
-	constexpr uint32_t euid = 0;
-	constexpr uint32_t suid = 0;
+	// Defaulted.
+	constexpr uint32_t ruid = std::numeric_limits<uint32_t>::max();
+	constexpr uint32_t euid = std::numeric_limits<uint32_t>::max();
+	constexpr uint32_t suid = std::numeric_limits<uint32_t>::max();
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
@@ -1705,8 +1705,8 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_no_enter) {
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr uint32_t uid = 0;
+	// Defaulted.
+	constexpr uint32_t uid = std::numeric_limits<uint32_t>::max();
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
