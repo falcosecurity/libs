@@ -12,7 +12,7 @@
 
 class sinsp;
 class sinsp_threadinfo;
-class sinsp_threadinfo_ctor_params;
+struct sinsp_threadinfo_ctor_params;
 
 namespace libsinsp {
 enum event_return {
