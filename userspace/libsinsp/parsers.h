@@ -139,6 +139,10 @@ private:
 	// is no-op if there is no thread associated with the provided event or the effective user id is
 	// invalid.
 	void set_evt_thread_user(sinsp_evt& evt, uint32_t euid) const;
+	// Set the event thread group to the group corresponding to the provided effective group id.
+	// This is no-op if there is no thread associated with the provided event or the effective group
+	// id is invalid.
+	void set_evt_thread_group(sinsp_evt& evt, uint32_t egid) const;
 
 	static inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo& fdinfo,
 	                                                   uint32_t tsip,

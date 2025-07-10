@@ -1607,7 +1607,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->set_user(uid, must_notify_thread_user_update());
 
 	/* gid */
-	int32_t gid = 0;
+	int32_t gid = std::numeric_limits<uint32_t>::max();
 	switch(etype) {
 	case PPME_SYSCALL_CLONE_11_X:
 		gid = evt.get_param(10)->as<int32_t>();
@@ -2101,6 +2101,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	// Get gid
 	if(evt.get_num_params() > 29) {
+		// Notice: this can potentially set gid to UINT32_MAX, which is used to denote a gid invalid
+		// value.
 		evt.get_tinfo()->set_group(evt.get_param(29)->as<uint32_t>(),
 		                           must_notify_thread_group_update());
 	}
@@ -4196,6 +4198,19 @@ void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const uint32_t euid) cons
 	ti->set_user(euid, must_notify_thread_user_update());
 }
 
+void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const uint32_t egid) const {
+	if(egid == std::numeric_limits<uint32_t>::max()) {
+		return;
+	}
+
+	sinsp_threadinfo *ti = evt.get_thread_info();
+	if(ti == nullptr) {
+		return;
+	}
+
+	ti->set_group(egid, must_notify_thread_group_update());
+}
+
 void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
 	if(evt.get_syscall_return_value() != 0) {
 		return;
@@ -4213,39 +4228,19 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_setresgid_exit(sinsp_evt &evt) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval == 0) {
-		uint32_t new_egid = evt.get_param(2)->as<uint32_t>();
-
-		if(new_egid < std::numeric_limits<uint32_t>::max()) {
-			sinsp_threadinfo *ti = evt.get_thread_info();
-			if(ti) {
-				ti->set_group(new_egid, must_notify_thread_group_update());
-			}
-		}
+	if(evt.get_syscall_return_value() != 0) {
+		return;
 	}
+
+	set_evt_thread_group(evt, evt.get_param(2)->as<uint32_t>());
 }
 
 void sinsp_parser::parse_setregid_exit(sinsp_evt &evt) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval == 0) {
-		uint32_t new_egid = evt.get_param(2)->as<uint32_t>();
-
-		if(new_egid < std::numeric_limits<uint32_t>::max()) {
-			sinsp_threadinfo *ti = evt.get_thread_info();
-			if(ti) {
-				ti->set_group(new_egid, must_notify_thread_group_update());
-			}
-		}
+	if(evt.get_syscall_return_value() != 0) {
+		return;
 	}
+
+	set_evt_thread_group(evt, evt.get_param(2)->as<uint32_t>());
 }
 
 void sinsp_parser::parse_setuid_exit(sinsp_evt &evt) const {
@@ -4257,18 +4252,11 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_setgid_exit(sinsp_evt &evt) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval == 0 && evt.get_num_params() > 1) {
-		uint32_t new_egid = evt.get_param(1)->as<uint32_t>();
-		sinsp_threadinfo *ti = evt.get_thread_info();
-		if(ti) {
-			ti->set_group(new_egid, must_notify_thread_group_update());
-		}
+	if(evt.get_syscall_return_value() != 0) {
+		return;
 	}
+
+	set_evt_thread_group(evt, evt.get_param(1)->as<uint32_t>());
 }
 
 void sinsp_parser::parse_user_evt(sinsp_evt &evt) const {
