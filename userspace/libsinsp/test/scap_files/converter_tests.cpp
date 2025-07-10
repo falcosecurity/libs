@@ -167,16 +167,16 @@ TEST_F(scap_file_test, read_x_check_final_converted_event) {
 	// - args=fd=33(<4t>127.0.0.1:38308->127.0.0.1:80) size=8192
 	//
 	// Let's see the new PPME_SYSCALL_READ_X event!
-	uint64_t ts = 1380933088076148247;
-	int64_t tid = 44106;
-	int64_t res = 270;
+	constexpr uint64_t ts = 1380933088076148247;
+	constexpr int64_t tid = 44106;
+	constexpr int64_t res = 270;
 	// this is NULL termiinated so we have 81 bytes but in the scap-file we want only 80 bytes
 	// without the NULL terminator
-	char read_buf[] = {
+	constexpr char read_buf[] = {
 	        "HTTP/1.1 302 Found\r\nDate: Sat, 05 Oct 2013 00:31:28 GMT\r\nServer: Apache/2.4.4 "
 	        "(U"};
-	int64_t fd = 33;
-	uint32_t size = 8192;
+	constexpr int64_t fd = 33;
+	constexpr uint32_t size = 8192;
 	assert_event_presence(
 	        create_safe_scap_event(ts,
 	                               tid,
@@ -209,17 +209,17 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	// - args=fd=19(<f>/var/run/utmp) size=400 pos=800
 	//
 	// Let's see the new PPME_SYSCALL_PREAD_X event!
-	uint64_t ts = 1687966733234634809;
-	int64_t tid = 552;
-	int64_t res = 400;
-	uint8_t read_buf[] = {6,   0, 0, 0, '_', 2, 0, 0, 't', 't', 'y', '1', 0,   0,   0,   0,
-	                      0,   0, 0, 0, 0,   0, 0, 0, 0,   0,   0,   0,   0,   0,   0,   0,
-	                      0,   0, 0, 0, 0,   0, 0, 0, 't', 't', 'y', '1', 'L', 'O', 'G', 'I',
-	                      'N', 0, 0, 0, 0,   0, 0, 0, 0,   0,   0,   0,   0,   0,   0,   0,
-	                      0,   0, 0, 0, 0,   0, 0, 0, 0,   0,   0,   0,   0,   0,   0,   0};
-	int64_t fd = 19;
-	uint32_t size = 400;
-	int64_t pos = 800;
+	constexpr uint64_t ts = 1687966733234634809;
+	constexpr int64_t tid = 552;
+	constexpr int64_t res = 400;
+	constexpr uint8_t read_buf[] = {
+	        6,   0,   0,   0,   '_', 2,   0,   0,   't', 't', 'y', '1', 0, 0, 0, 0, 0, 0, 0, 0,
+	        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, 0, 0,
+	        't', 't', 'y', '1', 'L', 'O', 'G', 'I', 'N', 0,   0,   0,   0, 0, 0, 0, 0, 0, 0, 0,
+	        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, 0, 0};
+	constexpr int64_t fd = 19;
+	constexpr uint32_t size = 400;
+	constexpr int64_t pos = 800;
 	assert_event_presence(
 	        create_safe_scap_event(ts,
 	                               tid,
@@ -598,11 +598,11 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SOCKET_LISTEN_X event!
 
-	uint64_t ts = 1687966709944348874;
-	int64_t tid = 141291;
-	int64_t res = 0;
-	int64_t fd = 25;
-	int32_t backlog = 4096;
+	constexpr uint64_t ts = 1687966709944348874;
+	constexpr int64_t tid = 141291;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd = 25;
+	constexpr int32_t backlog = 4096;
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
 }
@@ -631,17 +631,17 @@ TEST_F(scap_file_test, accept_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SOCKET_ACCEPT_5_X event!
 
-	uint64_t ts = 1380933088302022447;
-	int64_t tid = 43625;
-	int64_t fd = 13;
+	constexpr uint64_t ts = 1380933088302022447;
+	constexpr int64_t tid = 43625;
+	constexpr int64_t fd = 13;
 	sockaddr_in client_sockaddr = test_utils::fill_sockaddr_in(38873, "127.0.0.1");
 	sockaddr_in server_sockaddr = test_utils::fill_sockaddr_in(80, "127.0.0.1");
 	const std::vector<uint8_t> tuple =
 	        test_utils::pack_socktuple(reinterpret_cast<struct sockaddr *>(&client_sockaddr),
 	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
-	int32_t queuepct = 37;
-	int32_t queuelen = 0;
-	int32_t queuemax = 0;
+	constexpr int32_t queuepct = 37;
+	constexpr int32_t queuelen = 0;
+	constexpr int32_t queuemax = 0;
 	assert_event_presence(
 	        create_safe_scap_event(ts,
 	                               tid,
@@ -675,16 +675,16 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 	// - tid=44106,
 	// - args=fd=13(<4t>127.0.0.1:38904->127.0.0.1:80) size=77
 	//
-	uint64_t ts = 1380933088286397273;
-	int64_t tid = 44106;
-	int64_t res = 77;
+	constexpr uint64_t ts = 1380933088286397273;
+	constexpr int64_t tid = 44106;
+	constexpr int64_t res = 77;
 	// this is NULL termiinated so we have 81 bytes but in the scap-file we want only 80 bytes
 	// without the NULL terminator
-	char buf[] = {
+	constexpr char buf[] = {
 	        "GET / HTTP/1.0\r\nHost: 127.0.0.1\r\nUser-Agent: ApacheBench/2.3\r\nAccept: "
 	        "*/*\r\n\r\n"};
-	int64_t fd = 13;
-	uint32_t size = 77;
+	constexpr int64_t fd = 13;
+	constexpr uint32_t size = 77;
 	assert_event_presence(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_WRITE_X,
@@ -789,8 +789,8 @@ TEST_F(scap_file_test, setresuid_x_check_final_converted_event) {
 	constexpr int64_t tid = 107389;
 	constexpr int64_t res = 0;
 	constexpr uint32_t ruid = 1000;
-	constexpr uint32_t euid = (uint32_t)-1;
-	constexpr uint32_t suid = (uint32_t)-1;
+	constexpr uint32_t euid = static_cast<uint32_t>(-1);
+	constexpr uint32_t suid = static_cast<uint32_t>(-1);
 
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid));
@@ -817,10 +817,10 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_SETUID_X event!
 
-	uint64_t ts = 1687966709959025387;
-	int64_t tid = 141446;
-	int64_t res = 0;
-	int32_t uid = 0;
+	constexpr uint64_t ts = 1687966709959025387;
+	constexpr int64_t tid = 141446;
+	constexpr int64_t res = 0;
+	constexpr int32_t uid = 0;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
 }
 
@@ -910,12 +910,12 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SOCKET_SENDTO_X event!
 
-	uint64_t ts = 1687966733172651252;
-	int64_t tid = 114093;
-	int64_t res = 17;
+	constexpr uint64_t ts = 1687966733172651252;
+	constexpr int64_t tid = 114093;
+	constexpr int64_t res = 17;
 	constexpr char data[] = "\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0";
 	constexpr uint32_t size = sizeof(data);
-	int64_t fd = 22;
+	constexpr int64_t fd = 22;
 	assert_event_presence(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SOCKET_SENDTO_X,
@@ -947,11 +947,11 @@ TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SOCKET_SHUTDOWN_X event!
 
-	uint64_t ts = 1687966733231918487;
-	int64_t tid = 112954;
-	int64_t res = -107;
-	int64_t fd = 13;
-	uint8_t how = 1;
+	constexpr uint64_t ts = 1687966733231918487;
+	constexpr int64_t tid = 112954;
+	constexpr int64_t res = -107;
+	constexpr int64_t fd = 13;
+	constexpr uint8_t how = 1;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
 }
 
@@ -1140,11 +1140,11 @@ TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_MKDIR_2_X event!
 
-	uint64_t ts = 1749017847850665826;
-	int64_t tid = 1163259;
-	int64_t res = -13;
+	constexpr uint64_t ts = 1749017847850665826;
+	constexpr int64_t tid = 1163259;
+	constexpr int64_t res = -13;
 	constexpr char path[] = "/hello";
-	uint32_t mode = 0x1ff;  // 0777 in octal
+	constexpr uint32_t mode = 0x1ff;  // 0777 in octal
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
 }
@@ -1529,13 +1529,13 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_PTRACE_X event!
 
-	uint64_t ts = 1747834548577695347;
-	int64_t tid = 368860;
-	int64_t res = 0;
-	uint8_t addr[] = {0x00, 0x78, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-	uint8_t data[] = {0x00, 0x3b, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-	uint16_t request = 4;
-	int64_t pid = 368861;
+	constexpr uint64_t ts = 1747834548577695347;
+	constexpr int64_t tid = 368860;
+	constexpr int64_t res = 0;
+	constexpr uint8_t addr[] = {0x00, 0x78, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+	constexpr uint8_t data[] = {0x00, 0x3b, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+	constexpr uint16_t request = 4;
+	constexpr int64_t pid = 368861;
 	assert_event_presence(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_PTRACE_X,
@@ -1617,11 +1617,11 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_SETNS_X event!
 
-	uint64_t ts = 1687889193606963670;
-	int64_t tid = 107363;
-	int64_t res = 0;
-	int64_t fd = 6;
-	uint32_t nstype = 8;  // CLONE_NEWIPC
+	constexpr uint64_t ts = 1687889193606963670;
+	constexpr int64_t tid = 107363;
+	constexpr int64_t res = 0;
+	constexpr int64_t fd = 6;
+	constexpr uint32_t nstype = 8;  // CLONE_NEWIPC
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 3, res, fd, nstype));
 }
@@ -1776,10 +1776,10 @@ TEST_F(scap_file_test, fchdir_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_FCHDIR_X event!
 
-	uint64_t ts = 1749117249748433380;
-	int64_t tid = 1377498;
-	int64_t res = -9;
-	int64_t fd = 25;
+	constexpr uint64_t ts = 1749117249748433380;
+	constexpr int64_t tid = 1377498;
+	constexpr int64_t res = -9;
+	constexpr int64_t fd = 25;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 2, res, fd));
 }
 
@@ -1804,11 +1804,11 @@ TEST_F(scap_file_test, setpgid_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_SETPGID_X event!
 
-	uint64_t ts = 1687889193490376726;
-	int64_t tid = 107344;
-	int64_t res = 0;
-	int64_t pid = 0;
-	int64_t pgid = 107344;  // zsh process ID
+	constexpr uint64_t ts = 1687889193490376726;
+	constexpr int64_t tid = 107344;
+	constexpr int64_t res = 0;
+	constexpr int64_t pid = 0;
+	constexpr int64_t pgid = 107344;  // zsh process ID
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 3, res, pid, pgid));
 }
@@ -1936,10 +1936,10 @@ TEST_F(scap_file_test, setgid_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_SETPGID_X event!
 
-	uint64_t ts = 1687889193630645846;
-	int64_t tid = 107364;
-	int64_t res = 0;
-	uint32_t gid = 0;
+	constexpr uint64_t ts = 1687889193630645846;
+	constexpr int64_t tid = 107364;
+	constexpr int64_t res = 0;
+	constexpr uint32_t gid = 0;
 	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid));
 }
 
@@ -1964,12 +1964,12 @@ TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
 	//
 	// Let's see the new PPME_SYSCALL_SETRESGID_X event!
 
-	uint64_t ts = 1687889196229751724;
-	int64_t tid = 107389;
-	int64_t res = 0;
-	uint32_t rgid = (uint32_t)-1;
-	uint32_t egid = 1000;
-	uint32_t sgid = (uint32_t)-1;
+	constexpr uint64_t ts = 1687889196229751724;
+	constexpr int64_t tid = 107389;
+	constexpr int64_t res = 0;
+	constexpr uint32_t rgid = static_cast<uint32_t>(-1);
+	constexpr uint32_t egid = 1000;
+	constexpr uint32_t sgid = static_cast<uint32_t>(-1);
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
 }
