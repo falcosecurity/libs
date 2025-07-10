@@ -84,6 +84,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_MPROTECT_E, 584},   {PPME_SYSCALL_MPROTECT_X, 584},
 	        {PPME_SYSCALL_UMOUNT2_E, 2},      {PPME_SYSCALL_UMOUNT2_X, 2},
 	        {PPME_SYSCALL_INOTIFY_INIT_E, 1}, {PPME_SYSCALL_INOTIFY_INIT_X, 1},
+	        {PPME_SYSCALL_PRLIMIT_E, 173},    {PPME_SYSCALL_PRLIMIT_X, 173},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -428,6 +429,49 @@ TEST_F(scap_file_test, setrlimit_x_check_final_converted_event) {
 
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 4, res, cur, max, resource));
+}
+
+////////////////////////////
+// PRLIMIT
+////////////////////////////
+
+TEST_F(scap_file_test, prlimit_x_check_final_converted_event) {
+	open_filename("kexec_x86.scap");
+
+	// Inside the scap-file the event `513076` is the following:
+	// - type=PPME_SYSCALL_PRLIMIT_X,
+	// - ts=1687889198695794034
+	// - tid=107452
+	// - args=res=0 newcur=-1 newmax=-1 oldcur=8388608 oldmax=-1
+	//
+	// And its corresponding enter event `513075` is the following:
+	// - type=PPME_SYSCALL_PRLIMIT_E
+	// - ts=1687889198695793141
+	// - tid=107452
+	// - args=pid=0 resource=3(RLIMIT_STACK)
+	//
+	// Let's see the new PPME_SYSCALL_PRLIMIT_X event!
+	constexpr uint64_t ts = 1687889198695794034;
+	constexpr int64_t tid = 107452;
+	constexpr int64_t res = 0;
+	constexpr int64_t newcur = -1;
+	constexpr int64_t newmax = -1;
+	constexpr int64_t oldcur = 8388608;
+	constexpr int64_t oldmax = -1;
+	constexpr int64_t pid = 0;
+	constexpr uint8_t resource = 3;
+
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_PRLIMIT_X,
+	                                             7,
+	                                             res,
+	                                             newcur,
+	                                             newmax,
+	                                             oldcur,
+	                                             oldmax,
+	                                             pid,
+	                                             resource));
 }
 
 ////////////////////////////
