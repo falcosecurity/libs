@@ -20,11 +20,21 @@ limitations under the License.
 #include <vector>
 #include <cstdint>
 
-enum conversion_instruction_flags {
+enum conversion_instruction_code {
 	C_NO_INSTR = 0,        // This should be never called
 	C_INSTR_FROM_OLD,      // Take the parameter from the old event
 	C_INSTR_FROM_ENTER,    // Take the parameter from the enter event
 	C_INSTR_FROM_DEFAULT,  // Generate the default parameter
+	C_INSTR_FROM_EMPTY,    // Generate the empty parameter
+};
+
+// TODO(ekoops): remove CIF_FALLBACK_TO_EMPTY and fallback to empty by default once sinsp is able to
+//   handle empty parameters for all the EF_TMP_CONVERTER_MANAGED entries in the converter table.
+enum conversion_instruction_flags {
+	CIF_NO_FLAGS = 0,
+	CIF_FALLBACK_TO_EMPTY,  // C_INSTR_FROM_ENTER-only flag: fallback to the empty value instead of
+	                        // the default one if for some reason the converter is not able to
+	                        // obtain the parameter.
 };
 
 // Conversion actions
@@ -37,8 +47,9 @@ enum conversion_action {
 };
 
 struct conversion_instruction {
-	uint8_t flags = 0;
+	conversion_instruction_code code = C_NO_INSTR;
 	uint8_t param_num = 0;
+	conversion_instruction_flags flags = CIF_NO_FLAGS;
 };
 
 struct conversion_key {
