@@ -182,7 +182,7 @@ public:
 };
 
 template<typename KeyType>
-class built_in_table : public table<KeyType> {
+class built_in_table : public table<KeyType>, public table_fields {
 public:
 	inline built_in_table(const std::string& name,
 	                      const static_struct::field_infos* static_fields,
@@ -232,10 +232,6 @@ public:
 	 * @brief Returns the number of entries present in the table.
 	 */
 	virtual size_t entries_count() const = 0;
-
-	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const = 0;
-	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) = 0;
-	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) = 0;
 
 	/**
 	 * @brief Returns a pointer to an entry present in the table at the given

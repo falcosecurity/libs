@@ -1059,7 +1059,7 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
 }
 
-std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::get_field(
+std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
 	auto fixed_it = this->static_fields()->find(name);
@@ -1096,7 +1096,7 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::get_field(
 #undef _X
 }
 
-void sinsp_thread_manager::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
+void sinsp_thread_manager::fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
 	for(auto& info : *this->static_fields()) {
 		ss_plugin_table_fieldinfo i;
 		i.name = info.second.name().c_str();
@@ -1113,7 +1113,7 @@ void sinsp_thread_manager::list_fields(std::vector<ss_plugin_table_fieldinfo>& o
 	}
 }
 
-std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::add_field(
+std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::new_field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
@@ -1127,7 +1127,7 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::add_field(
 		break;                                                   \
 	}
 	__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
-	return get_field(name, type_info);
+	return field(name, type_info);
 #undef _X
 }
 

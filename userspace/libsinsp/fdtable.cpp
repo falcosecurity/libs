@@ -181,7 +181,7 @@ sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>
 	return add_ref(fd, std::move(fdinfo)).get();
 }
 
-void sinsp_fdtable::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
+void sinsp_fdtable::fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
 	for(auto& info : *this->static_fields()) {
 		ss_plugin_table_fieldinfo i;
 		i.name = info.second.name().c_str();
@@ -198,7 +198,7 @@ void sinsp_fdtable::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) con
 	}
 }
 
-std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::get_field(
+std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
 	auto fixed_it = this->static_fields()->find(name);
@@ -235,7 +235,7 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::get_field(
 #undef _X
 }
 
-std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::add_field(
+std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::new_field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
@@ -249,7 +249,7 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::add_field(
 		break;                                                   \
 	}
 	__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
-	return get_field(name, type_info);
+	return field(name, type_info);
 #undef _X
 }
 
