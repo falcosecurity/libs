@@ -192,6 +192,33 @@ protected:
 	}
 };
 
+class static_table_fields : virtual public table_fields {
+public:
+	explicit static_table_fields(const static_struct::field_infos* const m_static_fields):
+	        m_static_fields(m_static_fields) {}
+
+	using table_fields::list_fields;
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
+
+	using table_fields::get_field;
+	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) override;
+
+	using table_fields::add_field;
+	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override;
+
+	/**
+	 * @brief Returns the fields metadata list for the static fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table.
+	 */
+	[[nodiscard]] const static_struct::field_infos* static_fields() const {
+		return m_static_fields;
+	}
+
+private:
+	const static_struct::field_infos* const m_static_fields;
+};
+
 };  // namespace state
 };  // namespace libsinsp
 

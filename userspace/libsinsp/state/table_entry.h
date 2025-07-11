@@ -92,7 +92,21 @@ public:
 	virtual ~table_fields() = default;
 
 	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const = 0;
+
+	template<typename T>
+	std::unique_ptr<typed_accessor<T>> get_field(const char* name) {
+		auto ptr = static_cast<typed_accessor<T>*>(get_field(name, typeinfo::of<T>()).release());
+		return std::unique_ptr<typed_accessor<T>>(ptr);
+	}
+
 	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) = 0;
+
+	template<typename T>
+	std::unique_ptr<typed_accessor<T>> add_field(const char* name) {
+		auto ptr = static_cast<typed_accessor<T>*>(add_field(name, typeinfo::of<T>()).release());
+		return std::unique_ptr<typed_accessor<T>>(ptr);
+	}
+
 	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) = 0;
 };
 

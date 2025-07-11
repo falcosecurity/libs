@@ -29,7 +29,8 @@ limitations under the License.
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
 sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
-        built_in_table{"file_descriptors", &s_fdtable_static_fields},
+        built_in_table{"file_descriptors"},
+        static_table_fields{&s_fdtable_static_fields},
         m_params{params},
         m_tid{0} {
 	reset_cache();
@@ -182,13 +183,7 @@ sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>
 }
 
 void sinsp_fdtable::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
-	for(auto& info : *this->static_fields()) {
-		ss_plugin_table_fieldinfo i;
-		i.name = info.second.name().c_str();
-		i.field_type = info.second.info().type_id();
-		i.read_only = info.second.readonly();
-		out.push_back(i);
-	}
+	static_table_fields::list_fields(out);
 	for(auto& info : this->dynamic_fields()->fields()) {
 		ss_plugin_table_fieldinfo i;
 		i.name = info.second.name().c_str();
