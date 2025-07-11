@@ -230,9 +230,8 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::field(
 		}
 		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
 	}
-	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-	                      std::string(this->name()) + "'");
 #undef _X
+	return nullptr;  // field not found
 }
 
 std::unique_ptr<libsinsp::state::accessor> sinsp_fdtable::new_field(
