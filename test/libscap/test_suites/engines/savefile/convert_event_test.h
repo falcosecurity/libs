@@ -192,3 +192,8 @@ protected:
 
 	struct scap_convert_buffer *m_converter_buf = nullptr;
 };
+
+template<>
+constexpr scap_const_sized_buffer convert_event_test::empty_value() {
+	return {nullptr, 0};
+}

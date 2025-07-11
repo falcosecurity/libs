@@ -3328,7 +3328,83 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_3_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty
+	constexpr auto res = empty_value<int64_t>();
+	constexpr auto addr = empty_value<scap_const_sized_buffer>();
+	constexpr auto data = empty_value<scap_const_sized_buffer>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{0, 1, 2};
+
+	assert_single_conversion_success(
+	        CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 3, res, addr, data),
+	        expected_empty_param_indexes);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty
+	constexpr auto res = empty_value<int64_t>();
+	constexpr auto addr = empty_value<scap_const_sized_buffer>();
+	constexpr auto data = empty_value<scap_const_sized_buffer>();
+	constexpr auto pid = empty_value<int64_t>();
+	constexpr auto request = empty_value<uint16_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{0, 1, 2, 3, 4};
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
+	                       create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SYSCALL_PTRACE_X,
+	                                              5,
+	                                              res,
+	                                              addr,
+	                                              data,
+	                                              request,
+	                                              pid),
+	                       expected_empty_param_indexes);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t pid = 66;
+	constexpr uint16_t request = PPM_PTRACE_PEEKSIGINFO;
+
+	// Set to empty
+	constexpr auto res = empty_value<int64_t>();
+	constexpr auto addr = empty_value<scap_const_sized_buffer>();
+	constexpr auto data = empty_value<scap_const_sized_buffer>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{0, 1, 2};
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_E, 2, request, pid);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
+	                       create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SYSCALL_PTRACE_X,
+	                                              5,
+	                                              res,
+	                                              addr,
+	                                              data,
+	                                              request,
+	                                              pid),
+	                       expected_empty_param_indexes);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -3336,9 +3412,11 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_no_enter) {
 	constexpr uint8_t addr[] = {'h', 'e', 'l', 'l', 'o'};
 	constexpr uint8_t data[] = {'w', 'o', 'r', 'l', 'd'};
 
-	// Defaulted to 0
-	constexpr int64_t pid = 0;
-	constexpr uint16_t request = 0;
+	// Set to empty
+	constexpr auto pid = empty_value<int64_t>();
+	constexpr auto request = empty_value<uint16_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{3, 4};
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
@@ -3357,10 +3435,11 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_no_enter) {
 	                               scap_const_sized_buffer{addr, sizeof(addr)},
 	                               scap_const_sized_buffer{data, sizeof(data)},
 	                               request,
-	                               pid));
+	                               pid),
+	        expected_empty_param_indexes);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_to_5_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
