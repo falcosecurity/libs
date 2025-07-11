@@ -210,15 +210,17 @@ public:
 
 	size_t entries_count() const override { return m_container.size(); }
 
+	using libsinsp::state::table_fields::fields;
 	void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
 		TWrap::list_fields(out);
 	}
 
+	using libsinsp::state::table_fields::field;
 	std::unique_ptr<accessor> field(const char* name, const typeinfo& type_info) override {
 		return TWrap::get_field(name, type_info);
 	}
 
-	using libsinsp::state::built_in_table<uint64_t>::add_field;
+	using libsinsp::state::table_fields::new_field;
 	std::unique_ptr<accessor> new_field(const char* name, const typeinfo& type_info) override {
 		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " +
 		                      std::string(name));

@@ -868,7 +868,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->field<libsinsp::state::base_table*>("file_descriptors");
 	ASSERT_NE(field, nullptr);
@@ -975,7 +974,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->field<libsinsp::state::base_table*>("env");
 	ASSERT_NE(field, nullptr);
@@ -1008,12 +1006,11 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(subtable->entries_count(), 0);
 
 	// get an accessor to a dynamic field representing the array's values
-	auto dfield = subtable->field("value", libsinsp::state::typeinfo::of<std::string>());
+	auto dfield = subtable->field<std::string>("value");
+	ASSERT_NE(dfield, nullptr);
 	// ASSERT_EQ(dfield->second.readonly(), false);
 	// ASSERT_EQ(dfield->second.valid(), true);
 	// ASSERT_EQ(dfield->second.name(), "value");
-	auto dfieldacc = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(dfield.get());
-	ASSERT_NE(dfieldacc, nullptr);
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),
@@ -1030,7 +1027,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string tmpstr;
-		e.read_field(*dfieldacc, tmpstr);
+		e.read_field(*dfield, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
@@ -1076,7 +1073,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	// Test "cgroups" field
 	auto field = table->field<libsinsp::state::base_table*>("cgroups");
@@ -1111,19 +1107,17 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(subtable->entries_count(), 0);
 	// get an accessor to a dynamic field representing the array's values
 
-	auto dfield_first = subtable->field("first", libsinsp::state::typeinfo::of<std::string>());
+	auto dfield_first = subtable->field<std::string>("first");
+	ASSERT_NE(dfield_first, nullptr);
 	// ASSERT_EQ(dfield_first->second.readonly(), false);
 	// ASSERT_EQ(dfield_first->second.valid(), true);
 	// ASSERT_EQ(dfield_first->second.name(), "first");
-	auto dfield_first_acc =
-	        dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(dfield_first.get());
 
-	auto dfield_second = subtable->field("second", libsinsp::state::typeinfo::of<std::string>());
+	auto dfield_second = subtable->field<std::string>("second");
+	ASSERT_NE(dfield_second, nullptr);
 	// ASSERT_EQ(dfield_second->second.readonly(), false);
 	// ASSERT_EQ(dfield_second->second.valid(), true);
 	// ASSERT_EQ(dfield_second->second.name(), "second");
-	auto dfield_second_acc =
-	        dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(dfield_second.get());
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),
@@ -1140,8 +1134,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string first, second;
-		e.read_field(*dfield_first_acc, first);
-		e.read_field(*dfield_second_acc, second);
+		e.read_field(*dfield_first, first);
+		e.read_field(*dfield_second, second);
 		EXPECT_EQ(first, "hello");
 		EXPECT_EQ(second, "world");
 		return true;
