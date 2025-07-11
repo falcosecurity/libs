@@ -182,24 +182,17 @@ public:
 };
 
 template<typename KeyType>
-class built_in_table : public table<KeyType>, public table_fields {
+class built_in_table : public table<KeyType>, virtual public table_fields {
 public:
 	inline built_in_table(const std::string& name,
-	                      const static_struct::field_infos* static_fields,
 	                      const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                              dynamic_fields = nullptr):
 	        table<KeyType>::table(),
 	        m_this_ptr(this),
 	        m_name(name),
-	        m_static_fields(static_fields),
 	        m_dynamic_fields(dynamic_fields != nullptr
 	                                 ? dynamic_fields
 	                                 : std::make_shared<dynamic_struct::field_infos>()) {}
-	inline built_in_table(const std::string& name):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name),
-	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
 
 	/**
 	 * @brief Returns a pointer to the area of memory in which this table
@@ -219,14 +212,11 @@ public:
 		return OFFSETOF_STATIC_FIELD(built_in_table<KeyType>, m_this_ptr);
 	}
 
-	const char* name() const override { return m_name.c_str(); }
+	using table_fields::field;
+	using table_fields::fields;
+	using table_fields::new_field;
 
-	/**
-	 * @brief Returns the fields metadata list for the static fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table.
-	 */
-	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
+	const char* name() const override { return m_name.c_str(); }
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -365,7 +355,6 @@ public:
 private:
 	const base_table* m_this_ptr;
 	std::string m_name;
-	const static_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, accessor*> m_field_accessors;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
