@@ -41,6 +41,7 @@ class sinsp_usergroup_manager;
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
+                                          public libsinsp::state::static_table_fields,
                                           public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(
@@ -167,6 +168,10 @@ public:
 	void set_proc_lookup_period_ms(uint64_t val) { m_proc_lookup_period = val * 1000000LL; }
 
 	// ---- libsinsp::state::table implementation ----
+
+	using table_fields::field;
+	using table_fields::fields;
+	using table_fields::new_field;
 
 	size_t entries_count() const override { return m_threadtable.size(); }
 

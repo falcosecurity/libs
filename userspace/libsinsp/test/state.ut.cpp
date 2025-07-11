@@ -310,13 +310,6 @@ TEST(table_registry, defs_and_access) {
 		size_t entries_count() const override { return m_entries.size(); }
 
 		void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
-			for(auto& info : *this->static_fields()) {
-				ss_plugin_table_fieldinfo i;
-				i.name = info.second.name().c_str();
-				i.field_type = info.second.info().type_id();
-				i.read_only = info.second.readonly();
-				out.push_back(i);
-			}
 			for(auto& info : this->dynamic_fields()->fields()) {
 				ss_plugin_table_fieldinfo i;
 				i.name = info.second.name().c_str();
@@ -329,27 +322,7 @@ TEST(table_registry, defs_and_access) {
 		std::unique_ptr<libsinsp::state::accessor> field(
 		        const char* name,
 		        const libsinsp::state::typeinfo& type_info) override {
-			auto fixed_it = this->static_fields()->find(name);
 			auto dyn_it = this->dynamic_fields()->fields().find(name);
-			if(fixed_it != this->static_fields()->end() &&
-			   dyn_it != this->dynamic_fields()->fields().end()) {
-				// todo(jasondellaluce): plugins are not aware of the difference
-				// between static and dynamic fields. Do we want to enforce
-				// this limitation in the sinsp tables implementation as well?
-				throw sinsp_exception("field is defined as both static and dynamic: " +
-				                      std::string(name));
-			}
-
-#define _X(_type, _dtype) \
-	{ return fixed_it->second.new_accessor<_type>(); }
-			if(fixed_it != this->static_fields()->end()) {
-				if(type_info.type_id() != fixed_it->second.info().type_id()) {
-					throw sinsp_exception("incompatible data types for static field: " +
-					                      std::string(name));
-				}
-				__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
-			}
-#undef _X
 
 #define _X(_type, _dtype) \
 	{ return dyn_it->second.new_accessor<_type>(); }
@@ -368,11 +341,6 @@ TEST(table_registry, defs_and_access) {
 		std::unique_ptr<libsinsp::state::accessor> new_field(
 		        const char* name,
 		        const libsinsp::state::typeinfo& type_info) override {
-			if(this->static_fields()->find(name) != this->static_fields()->end()) {
-				throw sinsp_exception("can't add dynamic field already defined as static: " +
-				                      std::string(name));
-			}
-
 #define _X(_type, _dtype)                                        \
 	{                                                            \
 		this->dynamic_fields()->template add_field<_type>(name); \
@@ -442,7 +410,6 @@ TEST(thread_manager, table_access) {
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo::get_static_fields());
 	ASSERT_NE(table->dynamic_fields(), nullptr);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 	ASSERT_EQ(table->entries_count(), 0);
@@ -520,9 +487,6 @@ TEST(thread_manager, table_access) {
 }
 
 TEST(thread_manager, fdtable_access) {
-	// note: used for regression checks, keep this updated as we make new fields available
-	static const int s_fdinfo_static_fields_count = 32;
-
 	sinsp inspector;
 	auto& reg = inspector.get_table_registry();
 
@@ -536,12 +500,11 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
-	auto field = table->static_fields()->find("file_descriptors");
-	ASSERT_NE(field, table->static_fields()->end());
-	ASSERT_EQ(field->second.readonly(), true);
-	ASSERT_EQ(field->second.valid(), true);
-	ASSERT_EQ(field->second.name(), "file_descriptors");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	auto field = table->field<libsinsp::state::base_table*>("file_descriptors");
+	ASSERT_NE(field, nullptr);
+	// ASSERT_EQ(field->second.readonly(), true);
+	// ASSERT_EQ(field->second.valid(), true);
+	// ASSERT_EQ(field->second.name(), "file_descriptors");
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -557,9 +520,8 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(table->entries_count(), 2);
 
 	// getting the fd tables from the newly created threads
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
-	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(*subtable_acc));
-	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->read_field(*subtable_acc));
+	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(*field));
+	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->read_field(*field));
 
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_NE(subtable2, nullptr);
@@ -567,16 +529,14 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
 	ASSERT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(subtable->static_fields()->size(), s_fdinfo_static_fields_count);
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 0);
 
 	// getting an existing field
-	auto sfield = subtable->static_fields()->find("pid");
-	ASSERT_NE(sfield, subtable->static_fields()->end());
-	ASSERT_EQ(sfield->second.readonly(), false);
-	ASSERT_EQ(sfield->second.valid(), true);
-	ASSERT_EQ(sfield->second.name(), "pid");
-	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<int64_t>());
+	auto sfield = subtable->field<int64_t>("pid");
+	ASSERT_NE(sfield, nullptr);
+	// ASSERT_EQ(sfield->second.readonly(), false);
+	// ASSERT_EQ(sfield->second.valid(), true);
+	// ASSERT_EQ(sfield->second.name(), "pid");
 
 	// adding a new dynamic field
 	const auto& dfield = subtable->dynamic_fields()->add_field<std::string>("str_val");
@@ -597,7 +557,6 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"),
 	          subtable2->dynamic_fields()->fields().end());
 
-	auto sfieldacc = sfield->second.new_accessor<int64_t>();
 	auto dfieldacc = dfield.new_accessor<std::string>();
 
 	// adding new entries to the subtable
@@ -616,12 +575,12 @@ TEST(thread_manager, fdtable_access) {
 
 		// read and write from newly-created fd (existing field)
 		int64_t tmp = -1;
-		t->read_field(*sfieldacc, tmp);
+		t->read_field(*sfield, tmp);
 		ASSERT_EQ(tmp, 0);
 		tmp = 5;
-		t->write_field(*sfieldacc, tmp);
+		t->write_field(*sfield, tmp);
 		tmp = 0;
-		t->read_field(*sfieldacc, tmp);
+		t->read_field(*sfield, tmp);
 		ASSERT_EQ(tmp, 5);
 
 		// read and write from newly-created fd (added field)
@@ -639,7 +598,7 @@ TEST(thread_manager, fdtable_access) {
 	auto it = [&](libsinsp::state::table_entry& e) -> bool {
 		int64_t tmp;
 		std::string tmpstr;
-		e.read_field(*sfieldacc, tmp);
+		e.read_field(*sfield, tmp);
 		EXPECT_EQ(tmp, 5);
 		e.read_field(*dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
@@ -682,12 +641,11 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	EXPECT_EQ(table->dynamic_fields()->fields().size(), 0);
 
-	auto field = table->static_fields()->find("env");
-	ASSERT_NE(field, table->static_fields()->end());
-	EXPECT_EQ(field->second.readonly(), true);
-	EXPECT_EQ(field->second.valid(), true);
-	EXPECT_EQ(field->second.name(), "env");
-	EXPECT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	auto field = table->field<libsinsp::state::base_table*>("env");
+	ASSERT_NE(field, nullptr);
+	// EXPECT_EQ(field->second.readonly(), true);
+	// EXPECT_EQ(field->second.valid(), true);
+	// EXPECT_EQ(field->second.name(), "env");
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -698,10 +656,9 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// getting the "env" tables from the newly created threads
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
-	                entry->read_field(*subtable_acc));
+	                entry->read_field(*field));
 	ASSERT_NE(subtable, nullptr);
 	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);

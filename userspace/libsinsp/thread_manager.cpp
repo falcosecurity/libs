@@ -124,7 +124,8 @@ sinsp_thread_manager::sinsp_thread_manager(
                 thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
         const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
-        built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
+        built_in_table{s_thread_table_name, thread_manager_dyn_fields},
+        static_table_fields{&s_threadinfo_static_fields},
         m_sinsp_mode{sinsp_mode},
         m_threadinfo_factory{threadinfo_factory},
         m_observer{observer},
@@ -1097,13 +1098,7 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::field(
 }
 
 void sinsp_thread_manager::fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
-	for(auto& info : *this->static_fields()) {
-		ss_plugin_table_fieldinfo i;
-		i.name = info.second.name().c_str();
-		i.field_type = info.second.info().type_id();
-		i.read_only = info.second.readonly();
-		out.push_back(i);
-	}
+	static_table_fields::fields(out);
 	for(auto& info : this->dynamic_fields()->fields()) {
 		ss_plugin_table_fieldinfo i;
 		i.name = info.second.name().c_str();
