@@ -1110,6 +1110,23 @@ libsinsp::state::sinsp_field_accessor_wrapper sinsp_thread_manager::get_field(
 #undef _X
 }
 
+void sinsp_thread_manager::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
+	for(auto& info : *this->static_fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = info.second.readonly();
+		out.push_back(i);
+	}
+	for(auto& info : this->dynamic_fields()->fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = false;
+		out.push_back(i);
+	}
+}
+
 libsinsp::state::sinsp_field_accessor_wrapper sinsp_thread_manager::add_field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {
