@@ -226,6 +226,16 @@ public:
 
 	size_t entries_count() const override { return m_container.size(); }
 
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
+		for(auto& info : this->dynamic_fields()->fields()) {
+			ss_plugin_table_fieldinfo i;
+			i.name = info.second.name().c_str();
+			i.field_type = info.second.info().type_id();
+			i.read_only = false;
+			out.push_back(i);
+		}
+	}
+
 	sinsp_field_accessor_wrapper get_field(const char* name, const typeinfo& type_info) override {
 		auto dyn_it = this->dynamic_fields()->fields().find(name);
 #define _X(_type, _dtype)                                                                    \

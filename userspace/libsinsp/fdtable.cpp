@@ -181,6 +181,23 @@ sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>
 	return add_ref(fd, std::move(fdinfo)).get();
 }
 
+void sinsp_fdtable::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
+	for(auto& info : *this->static_fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = info.second.readonly();
+		out.push_back(i);
+	}
+	for(auto& info : this->dynamic_fields()->fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = false;
+		out.push_back(i);
+	}
+}
+
 libsinsp::state::sinsp_field_accessor_wrapper sinsp_fdtable::get_field(
         const char* name,
         const libsinsp::state::typeinfo& type_info) {

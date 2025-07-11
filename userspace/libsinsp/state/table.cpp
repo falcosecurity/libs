@@ -307,20 +307,7 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
         uint32_t* nfields) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		this->m_field_list.clear();
-		for(auto& info : *this->static_fields()) {
-			ss_plugin_table_fieldinfo i;
-			i.name = info.second.name().c_str();
-			i.field_type = info.second.info().type_id();
-			i.read_only = info.second.readonly();
-			this->m_field_list.push_back(i);
-		}
-		for(auto& info : this->dynamic_fields()->fields()) {
-			ss_plugin_table_fieldinfo i;
-			i.name = info.second.name().c_str();
-			i.field_type = info.second.info().type_id();
-			i.read_only = false;
-			this->m_field_list.push_back(i);
-		}
+		this->list_fields(this->m_field_list);
 		*nfields = this->m_field_list.size();
 		return this->m_field_list.data();
 	});
