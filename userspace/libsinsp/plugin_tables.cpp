@@ -5,8 +5,8 @@
 void plugin_tables::init(const sinsp& inspector) {
 	// Add "container_id" accessor.
 	auto container_id_field =
-	        inspector.m_thread_manager->get_field("container_id",
-	                                              libsinsp::state::typeinfo::of<std::string>());
+	        inspector.m_thread_manager->field("container_id",
+	                                          libsinsp::state::typeinfo::of<std::string>());
 	if(container_id_field == nullptr) {
 		throw sinsp_exception("failed to find dynamic field 'container_id' in threadinfo");
 	}

@@ -20,6 +20,9 @@ limitations under the License.
 
 #include <libsinsp/state/type_info.h>
 
+#include <memory>
+#include <vector>
+
 namespace libsinsp::state {
 
 class accessor {
@@ -83,6 +86,15 @@ inline void table_entry::read_field(const typed_accessor<std::string>& a, const 
 		out = "";
 	}
 }
+
+class table_fields {
+public:
+	virtual ~table_fields() = default;
+
+	virtual void fields(std::vector<ss_plugin_table_fieldinfo>& out) const = 0;
+	virtual std::unique_ptr<accessor> field(const char* name, const typeinfo& type_info) = 0;
+	virtual std::unique_ptr<accessor> new_field(const char* name, const typeinfo& type_info) = 0;
+};
 
 template<typename F, typename... Args>
 auto dispatch_lambda(ss_plugin_state_type st, F&& f, Args&&... args) {

@@ -170,13 +170,14 @@ public:
 
 	size_t entries_count() const override { return m_threadtable.size(); }
 
-	std::unique_ptr<libsinsp::state::accessor> get_field(
+	std::unique_ptr<libsinsp::state::accessor> field(
 	        const char* name,
 	        const libsinsp::state::typeinfo& type_info) override;
 
-	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
+	void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
 
-	std::unique_ptr<libsinsp::state::accessor> add_field(
+	using built_in_table::add_field;
+	std::unique_ptr<libsinsp::state::accessor> new_field(
 	        const char* name,
 	        const libsinsp::state::typeinfo& type_info) override;
 

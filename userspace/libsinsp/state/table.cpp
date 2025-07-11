@@ -268,7 +268,7 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
         uint32_t* nfields) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		this->m_field_list.clear();
-		this->list_fields(this->m_field_list);
+		this->fields(this->m_field_list);
 		*nfields = this->m_field_list.size();
 		return this->m_field_list.data();
 	});
@@ -282,7 +282,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         ss_plugin_state_type data_type) {
 #define _X(_type, _dtype)                                                            \
 	{                                                                                \
-		auto acc = this->get_field(name, typeinfo::of<_type>());                     \
+		auto acc = this->field(name, typeinfo::of<_type>());                         \
 		owner->m_accessed_table_fields.emplace_back(std::move(acc));                 \
 		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get(); \
 		return this->m_field_accessors[name];                                        \
@@ -307,7 +307,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         ss_plugin_state_type data_type) {
 #define _X(_type, _dtype)                             \
 	{                                                 \
-		this->add_field(name, typeinfo::of<_type>()); \
+		this->new_field(name, typeinfo::of<_type>()); \
 		break;                                        \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(data_type); });
