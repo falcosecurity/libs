@@ -103,7 +103,7 @@ public:
 
 	template<typename T>
 	std::unique_ptr<typed_accessor<T>> new_field(const char* name) {
-		auto ptr = static_cast<typed_accessor<T>*>(add_field(name, typeinfo::of<T>()).release());
+		auto ptr = static_cast<typed_accessor<T>*>(new_field(name, typeinfo::of<T>()).release());
 		return std::unique_ptr<typed_accessor<T>>(ptr);
 	}
 

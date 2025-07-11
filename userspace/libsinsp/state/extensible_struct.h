@@ -83,4 +83,48 @@ protected:
 		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
 	}
 };
+
+class extensible_table_fields : public libsinsp::state::static_table_fields,
+                                public libsinsp::state::dynamic_table_fields {
+public:
+	explicit extensible_table_fields(
+	        const static_struct::field_infos* const m_static_fields,
+	        const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields = nullptr):
+	        static_table_fields(m_static_fields),
+	        dynamic_table_fields(dynamic_fields) {}
+
+	void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
+		static_table_fields::fields(out);
+		dynamic_table_fields::fields(out);
+	}
+
+	std::unique_ptr<accessor> field(const char* name, const typeinfo& type_info) override {
+		auto fixed_field = static_table_fields::field(name, type_info);
+		auto dynamic_field = dynamic_table_fields::field(name, type_info);
+
+		if(fixed_field != nullptr && dynamic_field != nullptr) {
+			// todo(jasondellaluce): plugins are not aware of the difference
+			// between static and dynamic fields. Do we want to enforce
+			// this limitation in the sinsp tables implementation as well?
+			throw sinsp_exception("field is defined as both static and dynamic: " +
+			                      std::string(name));
+		}
+
+		if(fixed_field != nullptr) {
+			return fixed_field;
+		}
+
+		return dynamic_field;
+	}
+
+	std::unique_ptr<accessor> new_field(const char* name, const typeinfo& type_info) override {
+		if(static_table_fields::field(name, type_info) != nullptr) {
+			throw sinsp_exception("can't add dynamic field already defined as static: " +
+			                      std::string(name));
+		}
+
+		return dynamic_table_fields::new_field(name, type_info);
+	}
+};
+
 }  // namespace libsinsp::state
