@@ -121,7 +121,7 @@ static char *get_param_ptr(scap_evt *evt, uint8_t num_param) {
 	return ptr + ptr_off;
 }
 
-static uint8_t get_size_bytes_from_type(const ppm_param_type t) {
+static uint8_t get_default_value_size_bytes_from_type(const ppm_param_type t) {
 	switch(t) {
 	case PT_INT8:
 	case PT_UINT8:
@@ -179,7 +179,7 @@ static uint8_t get_size_bytes_from_type(const ppm_param_type t) {
 
 // `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
 // have `len==0`. Just remember that the returned value effective content and size should be aligned
-// with what is returned by `get_size_bytes_from_type()`
+// with what is returned by `get_default_value_size_bytes_from_type()`.
 static uint64_t get_default_value_from_type(const ppm_param_type t) {
 	switch(t) {
 	case PT_UID:
@@ -193,11 +193,11 @@ static uint64_t get_default_value_from_type(const ppm_param_type t) {
 
 // This writes len + the param
 static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
-	// Please ensure that `new_evt->type` is already the final type you want to obtain.
+	// Please ensure that `evt->type` is already the final type you want to obtain.
 	// Otherwise, we will access the wrong entry in the event table.
-	const struct ppm_event_info *event_info = &g_event_info[evt->type];
+	const ppm_event_info *event_info = &g_event_info[evt->type];
 	const auto param_type = event_info->params[param_num].type;
-	const uint16_t len = get_size_bytes_from_type(param_type);
+	const uint16_t len = get_default_value_size_bytes_from_type(param_type);
 	const uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
 
 	PRINT_MESSAGE(
@@ -215,6 +215,89 @@ static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8
 	memcpy((char *)evt + lens_offset, &len, sizeof(uint16_t));
 }
 
+static uint8_t get_empty_value_size_bytes_from_type(const ppm_param_type t) {
+	switch(t) {
+	case PT_INT8:
+	case PT_UINT8:
+	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
+	case PT_SIGTYPE:
+		return 1;
+
+	case PT_INT16:
+	case PT_UINT16:
+	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
+	case PT_SYSCALLID:
+		return 2;
+
+	case PT_INT32:
+	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
+	case PT_UID:
+	case PT_GID:
+	case PT_MODE:
+	case PT_SIGSET:
+		return 4;
+
+	case PT_INT64:
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+	case PT_ERRNO:
+	case PT_FD:
+	case PT_PID:
+		return 8;
+
+	case PT_BYTEBUF:
+	case PT_CHARBUF:
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_FSPATH:
+	case PT_CHARBUFARRAY:
+	case PT_CHARBUF_PAIR_ARRAY:
+	case PT_FSRELPATH:
+	case PT_DYN:
+	case PT_SOCKADDR:
+		return 0;
+
+	default:
+		// We forgot to handle something
+		assert(false);
+		break;
+	}
+	assert(false);
+	return 0;
+}
+
+// This writes len + the param
+static void push_empty_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
+	// Please ensure that `evt->type` is already the final type you want to obtain.
+	// Otherwise, we will access the wrong entry in the event table.
+	const ppm_event_info *event_info = &g_event_info[evt->type];
+	const auto param_type = event_info->params[param_num].type;
+	const uint16_t len = get_empty_value_size_bytes_from_type(param_type);
+	const uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
+
+	PRINT_MESSAGE(
+	        "push empty param (%d, type: %d) with len (%d) at {params_offset (%d), "
+	        "lens_offset (%d)}\n",
+	        param_num,
+	        param_type,
+	        len,
+	        *params_offset,
+	        lens_offset);
+
+	// The empty param value will be always 0 so we just need to copy the right number of 0 bytes.
+	// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
+	// have `len==0`. The empty parameter length is always set to 0.
+	constexpr uint64_t zero = 0;
+	memcpy((char *)evt + *params_offset, (char *)&zero, len);
+	*params_offset += len;
+	memcpy((char *)evt + lens_offset, &zero, sizeof(uint16_t));
+}
+
 // This writes len + the param
 static void push_parameter(scap_evt *new_evt,
                            scap_evt *tmp_evt,
@@ -227,7 +310,7 @@ static void push_parameter(scap_evt *new_evt,
 	char *ptr = get_param_ptr(tmp_evt, tmp_evt_param_num);
 
 	PRINT_MESSAGE(
-	        "push param (%d, type: %d) with len (%d) at {params_offest: %d, "
+	        "push param (%d, type: %d) with len (%d) at {params_offset: %d, "
 	        "lens_offset: %d} from event type '%d', param '%d'\n",
 	        new_evt_param_num,
 	        g_event_info[tmp_evt->type].params[tmp_evt_param_num].type,
@@ -380,7 +463,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 	PRINT_MESSAGE("New event header (the len is still the old one):\n");
 	PRINT_EVENT(new_evt, PRINT_HEADER);
 
-	scap_evt *tmp_evt = NULL;
+	scap_evt *tmp_evt = nullptr;
 	// If this is true at the end of the for loop we will free its memory.
 	bool used_enter_event = false;
 
@@ -388,10 +471,15 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 	for(size_t i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
 		PRINT_MESSAGE("Instruction n° %d. Param to populate: %d\n", i, param_to_populate);
 
-		switch(ci.m_instrs[i].flags) {
+		auto &instr = ci.m_instrs[i];
+
+		switch(instr.code) {
+		case C_INSTR_FROM_EMPTY:
+			push_empty_parameter(new_evt, &params_offset, param_to_populate);
+			continue;
 		case C_INSTR_FROM_DEFAULT:
-			tmp_evt = NULL;
-			break;
+			push_default_parameter(new_evt, &params_offset, param_to_populate);
+			continue;
 
 		case C_INSTR_FROM_ENTER:
 			tmp_evt = retrieve_evt(evt_storage, evt_to_convert->tid);
@@ -422,7 +510,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 		case C_INSTR_FROM_OLD:
 			tmp_evt = evt_to_convert;
-			if(tmp_evt->nparams <= ci.m_instrs[i].param_num) {
+			if(tmp_evt->nparams <= instr.param_num) {
 				// todo!: this sounds like an error but let's see in the future. At the moment we
 				// fail
 				scap_errprintf(
@@ -430,7 +518,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 				        0,
 				        "We want to take parameter '%d' from event '%d' but this event has only "
 				        "'%d' parameters!",
-				        ci.m_instrs[i].param_num,
+				        instr.param_num,
 				        tmp_evt->type,
 				        tmp_evt->nparams);
 				return CONVERSION_ERROR;
@@ -440,21 +528,22 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 		default:
 			scap_errprintf(error,
 			               0,
-			               "Unknown instruction (flags: %d, param_num: %d).",
-			               ci.m_instrs[i].flags,
-			               ci.m_instrs[i].param_num);
+			               "Unknown instruction (code: %d, param_num: %d).",
+			               instr.code,
+			               instr.param_num);
 			return CONVERSION_ERROR;
 		}
 
 		if(!tmp_evt) {
-			push_default_parameter(new_evt, &params_offset, param_to_populate);
-		} else {
-			push_parameter(new_evt,
-			               tmp_evt,
-			               &params_offset,
-			               param_to_populate,
-			               ci.m_instrs[i].param_num);
+			if(instr.flags & CIF_FALLBACK_TO_EMPTY) {
+				push_empty_parameter(new_evt, &params_offset, param_to_populate);
+			} else {
+				push_default_parameter(new_evt, &params_offset, param_to_populate);
+			}
+			continue;
 		}
+
+		push_parameter(new_evt, tmp_evt, &params_offset, param_to_populate, instr.param_num);
 	}
 
 	if(used_enter_event) {
