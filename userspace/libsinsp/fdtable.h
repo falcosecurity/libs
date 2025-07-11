@@ -31,7 +31,7 @@ struct sinsp_stats_v2;
 // fd info table
 ///////////////////////////////////////////////////////////////////////////////
 class sinsp_fdtable : public libsinsp::state::built_in_table<int64_t>,
-                      libsinsp::state::static_table_fields {
+                      public libsinsp::state::extensible_table_fields {
 public:
 	typedef std::function<bool(int64_t, sinsp_fdinfo&)> fdtable_visitor_t;
 
@@ -96,17 +96,10 @@ public:
 
 	size_t entries_count() const override { return size(); }
 
-	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
-
-	using static_table_fields::get_field;
-	std::unique_ptr<libsinsp::state::accessor> get_field(
-	        const char* name,
-	        const libsinsp::state::typeinfo& type_info) override;
-
-	using static_table_fields::add_field;
-	std::unique_ptr<libsinsp::state::accessor> add_field(
-	        const char* name,
-	        const libsinsp::state::typeinfo& type_info) override;
+	using libsinsp::state::extensible_table_fields::add_field;
+	using libsinsp::state::extensible_table_fields::get_field;
+	using libsinsp::state::built_in_table<int64_t>::add_field;
+	using libsinsp::state::built_in_table<int64_t>::get_field;
 
 	void clear_entries() override { clear(); }
 

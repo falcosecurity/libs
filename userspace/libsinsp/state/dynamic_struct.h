@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
@@ -371,6 +372,81 @@ private:
 
 	std::vector<void*> m_fields;
 	std::shared_ptr<field_infos> m_dynamic_fields;
+};
+
+class dynamic_table_fields : virtual public table_fields {
+public:
+	explicit dynamic_table_fields(
+	        const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields = nullptr):
+	        m_dynamic_fields(dynamic_fields != nullptr
+	                                 ? dynamic_fields
+	                                 : std::make_shared<dynamic_struct::field_infos>()) {}
+
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
+		for(auto& info : this->dynamic_fields()->fields()) {
+			ss_plugin_table_fieldinfo i;
+			i.name = info.second.name().c_str();
+			i.field_type = info.second.info().type_id();
+			i.read_only = false;
+			out.push_back(i);
+		}
+	}
+
+	using table_fields::get_field;
+	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) override {
+		auto dyn_it = this->dynamic_fields()->fields().find(name);
+
+#define _X(_type, _dtype) \
+	{ return dyn_it->second.new_accessor<_type>(); }
+		if(dyn_it != this->dynamic_fields()->fields().end()) {
+			if(type_info.type_id() != dyn_it->second.info().type_id()) {
+				throw sinsp_exception("incompatible data types for dynamic field: " +
+				                      std::string(name));
+			}
+			__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+		}
+#undef _X
+		return nullptr;  // field not found
+	}
+
+	using table_fields::add_field;
+	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override {
+#define _X(_type, _dtype)                                        \
+	{                                                            \
+		this->dynamic_fields()->template add_field<_type>(name); \
+		break;                                                   \
+	}
+		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+		return get_field(name, type_info);
+#undef _X
+	}
+
+	/**
+	 * @brief Returns the fields metadata list for the dynamic fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table. The returned metadata list can
+	 * be expended at runtime by adding new dynamic fields, which will then
+	 * be allocated and accessible for all the present and future entries
+	 * present in the table.
+	 */
+	[[nodiscard]] const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
+	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
+		if(m_dynamic_fields.get() == dynf.get()) {
+			return;
+		}
+		if(!dynf) {
+			throw sinsp_exception("null definitions passed to set_dynamic_fields");
+		}
+		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
+			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
+		}
+		m_dynamic_fields = dynf;
+	}
+
+private:
+	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 };
 
 };  // namespace libsinsp::state

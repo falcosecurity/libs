@@ -41,7 +41,7 @@ class sinsp_usergroup_manager;
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
-                                          public libsinsp::state::static_table_fields,
+                                          public libsinsp::state::extensible_table_fields,
                                           public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(
@@ -171,15 +171,10 @@ public:
 
 	size_t entries_count() const override { return m_threadtable.size(); }
 
-	std::unique_ptr<libsinsp::state::accessor> get_field(
-	        const char* name,
-	        const libsinsp::state::typeinfo& type_info) override;
-
-	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
-
-	std::unique_ptr<libsinsp::state::accessor> add_field(
-	        const char* name,
-	        const libsinsp::state::typeinfo& type_info) override;
+	using libsinsp::state::extensible_table_fields::add_field;
+	using libsinsp::state::extensible_table_fields::get_field;
+	using libsinsp::state::built_in_table<int64_t>::add_field;
+	using libsinsp::state::built_in_table<int64_t>::get_field;
 
 	void clear_entries() override { m_threadtable.clear(); }
 

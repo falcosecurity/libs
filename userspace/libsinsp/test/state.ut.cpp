@@ -291,53 +291,17 @@ TEST(dynamic_struct, mem_ownership) {
 }
 
 TEST(table_registry, defs_and_access) {
-	class sample_table : public libsinsp::state::built_in_table<uint64_t> {
+	class sample_table : public libsinsp::state::built_in_table<uint64_t>,
+	                     public libsinsp::state::dynamic_table_fields {
 	public:
 		sample_table(): built_in_table("sample") {}
 
 		size_t entries_count() const override { return m_entries.size(); }
 
-		void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
-			for(auto& info : this->dynamic_fields()->fields()) {
-				ss_plugin_table_fieldinfo i;
-				i.name = info.second.name().c_str();
-				i.field_type = info.second.info().type_id();
-				i.read_only = false;
-				out.push_back(i);
-			}
-		}
-
-		std::unique_ptr<libsinsp::state::accessor> get_field(
-		        const char* name,
-		        const libsinsp::state::typeinfo& type_info) override {
-			auto dyn_it = this->dynamic_fields()->fields().find(name);
-
-#define _X(_type, _dtype) \
-	{ return dyn_it->second.new_accessor<_type>(); }
-			if(dyn_it != this->dynamic_fields()->fields().end()) {
-				if(type_info.type_id() != dyn_it->second.info().type_id()) {
-					throw sinsp_exception("incompatible data types for dynamic field: " +
-					                      std::string(name));
-				}
-				__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
-			}
-			throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-			                      std::string(this->name()) + "'");
-#undef _X
-		}
-
-		std::unique_ptr<libsinsp::state::accessor> add_field(
-		        const char* name,
-		        const libsinsp::state::typeinfo& type_info) override {
-#define _X(_type, _dtype)                                        \
-	{                                                            \
-		this->dynamic_fields()->template add_field<_type>(name); \
-		break;                                                   \
-	}
-			__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
-			return get_field(name, type_info);
-#undef _X
-		}
+		using dynamic_table_fields::add_field;
+		using built_in_table<uint64_t>::add_field;
+		using dynamic_table_fields::get_field;
+		using built_in_table<uint64_t>::get_field;
 
 		void clear_entries() override { m_entries.clear(); }
 
@@ -398,8 +362,6 @@ TEST(thread_manager, table_access) {
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_NE(table->dynamic_fields(), nullptr);
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->get_entry(999), nullptr);
 	ASSERT_EQ(table->erase_entry(999), false);
@@ -434,10 +396,7 @@ TEST(thread_manager, table_access) {
 
 	// add a dynamic field to table
 	std::string tmpstr;
-	auto dynf_acc = table->dynamic_fields()
-	                        ->add_field<std::string>("some_new_field")
-	                        .new_accessor<std::string>();
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
+	auto dynf_acc = table->add_field<std::string>("some_new_field");
 	addedt->read_field(*dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
 	addedt->write_field(*dynf_acc, std::string("hello"));
@@ -487,7 +446,6 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->get_field<libsinsp::state::base_table*>("file_descriptors");
 	ASSERT_NE(field, nullptr);
@@ -628,7 +586,6 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(table->name(), std::string("threads"));
 	EXPECT_EQ(table->entries_count(), 0);
 	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	EXPECT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->get_field<libsinsp::state::base_table*>("env");
 	ASSERT_NE(field, nullptr);
@@ -654,12 +611,11 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
 
 	// getting an existing field
-	auto sfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());
+	auto sfield = subtable->get_field<std::string>("value");
+	ASSERT_NE(sfield, nullptr);
 	// EXPECT_EQ(sfield->second.readonly(), false);
 	// EXPECT_EQ(sfield->second.valid(), true);
 	// EXPECT_EQ(sfield->second.name(), "value");
-
-	auto fieldacc = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(sfield.get());
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 10;
@@ -677,19 +633,19 @@ TEST(thread_manager, env_vars_access) {
 
 		// read and write from newly-created entry
 		std::string tmpstr = "test";
-		t->read_field(*fieldacc, tmpstr);
+		t->read_field(*sfield, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
-		t->write_field(*fieldacc, tmpstr);
+		t->write_field(*sfield, tmpstr);
 		tmpstr = "";
-		t->read_field(*fieldacc, tmpstr);
+		t->read_field(*sfield, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
 	}
 
 	// full iteration
 	auto it = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string tmpstr = "test";
-		e.read_field(*fieldacc, tmpstr);
+		e.read_field(*sfield, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
