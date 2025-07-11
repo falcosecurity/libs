@@ -3629,11 +3629,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			// Extract the data buffer
 			//
 			if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
-			   etype == PPME_SOCKET_RECVMSG_X || etype == PPME_SOCKET_RECV_X) {
+			   etype == PPME_SOCKET_RECVMSG_X) {
 				parinfo = evt.get_param(2);
 			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
 				parinfo = evt.get_param(3);
-			} else {  // PPME_SOCKET_RECVFROM_X
+			} else {  // PPME_SOCKET_RECVFROM_X, PPME_SOCKET_RECV_X
 				parinfo = evt.get_param(1);
 			}
 
