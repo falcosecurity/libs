@@ -280,12 +280,16 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-#define _X(_type, _dtype)                                                            \
-	{                                                                                \
-		auto acc = this->get_field(name, typeinfo::of<_type>());                     \
-		owner->m_accessed_table_fields.emplace_back(std::move(acc));                 \
-		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get(); \
-		return this->m_field_accessors[name];                                        \
+#define _X(_type, _dtype)                                                                    \
+	{                                                                                        \
+		auto acc = this->get_field(name, typeinfo::of<_type>());                             \
+		if(acc == nullptr) {                                                                 \
+			throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" + \
+			                      std::string(this->name()) + "'");                          \
+		}                                                                                    \
+		owner->m_accessed_table_fields.emplace_back(std::move(acc));                         \
+		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get();         \
+		return this->m_field_accessors[name];                                                \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);

@@ -1091,9 +1091,9 @@ std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::get_field(
 		}
 		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
 	}
-	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-	                      std::string(this->name()) + "'");
 #undef _X
+
+	return nullptr;  // field not found
 }
 
 void sinsp_thread_manager::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
