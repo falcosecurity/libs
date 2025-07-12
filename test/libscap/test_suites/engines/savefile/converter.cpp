@@ -916,7 +916,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_E_store) {
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t fd = 25;
-	struct sockaddr_in sockaddr = {};
+	sockaddr_in sockaddr = {};
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_port = htons(1234);
 	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -939,11 +939,11 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_no_enter) {
 	constexpr char tuple[] = "tuple";
 	constexpr int64_t fd = 25;
 
-	// Defaulted
+	// Defaulted.
 	constexpr uint8_t addr = PPM_AF_UNSPEC;
 
 	assert_single_conversion_success(
-	        conversion_result::CONVERSION_COMPLETED,
+	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_CONNECT_X,
@@ -966,7 +966,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t fd = 25;
-	struct sockaddr_in sockaddr = {};
+	sockaddr_in sockaddr = {};
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_port = htons(1234);
 	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -984,7 +984,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
 	assert_event_storage_presence(evt);
 
 	assert_single_conversion_success(
-	        conversion_result::CONVERSION_COMPLETED,
+	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_CONNECT_X,
@@ -4779,8 +4779,8 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_to_3_params_no_enter) {
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr uint32_t gid = 0;
+	// Defaulted.
+	constexpr uint32_t gid = std::numeric_limits<uint32_t>::max();
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
@@ -4829,10 +4829,10 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_to_4_params_no_enter) {
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr uint32_t rgid = 0;
-	constexpr uint32_t egid = 0;
-	constexpr uint32_t sgid = 0;
+	// Defaulted.
+	constexpr uint32_t rgid = std::numeric_limits<uint32_t>::max();
+	constexpr uint32_t egid = std::numeric_limits<uint32_t>::max();
+	constexpr uint32_t sgid = std::numeric_limits<uint32_t>::max();
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
