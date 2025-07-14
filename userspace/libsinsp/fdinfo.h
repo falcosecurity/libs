@@ -74,7 +74,7 @@ union sinsp_sockinfo {
    you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */
-class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::table_entry {
+class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::extensible_struct {
 public:
 	/*!
 	  \brief FD flags.

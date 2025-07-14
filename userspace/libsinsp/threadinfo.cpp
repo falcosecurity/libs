@@ -36,7 +36,7 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 }
 
 sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
-        table_entry(params->thread_manager_dyn_fields),
+        extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
         m_fdtable{params->fdtable_factory.create()},
         m_main_fdtable(m_fdtable.table_ptr()),
