@@ -133,11 +133,6 @@ public:
 	 */
 	using field_infos = std::unordered_map<std::string, field_info>;
 
-	/**
-	 * @brief Returns information about all the static fields accessible in a struct.
-	 */
-	virtual field_infos static_fields() const { return {}; }
-
 protected:
 	/**
 	 * @brief Defines the information about a field defined in the class or struct.
@@ -219,16 +214,6 @@ public:
 	std::unique_ptr<accessor> field(const char* name, const typeinfo& type_info) override;
 
 	std::unique_ptr<accessor> new_field(const char* name, const typeinfo& type_info) override;
-
-protected:
-	/**
-	 * @brief Returns the fields metadata list for the static fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table.
-	 */
-	[[nodiscard]] const static_struct::field_infos* static_fields() const {
-		return m_static_fields;
-	}
 
 private:
 	const static_struct::field_infos* const m_static_fields;
