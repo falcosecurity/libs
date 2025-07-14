@@ -46,10 +46,6 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
 	init();
 }
 
-libsinsp::state::extensible_struct::field_infos sinsp_threadinfo::static_fields() const {
-	return get_static_fields();
-}
-
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
