@@ -47,10 +47,6 @@ public:
 	 */
 	using field_infos = std::unordered_map<std::string, static_field_info>;
 
-	/**
-	 * @brief Returns information about all the static fields accessible in a struct.
-	 */
-	virtual field_infos static_fields() const { return {}; }
 	// end of static_struct interface
 
 	// dynamic_struct interface

@@ -34,8 +34,8 @@ TEST(static_struct, defs_and_access) {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
-		libsinsp::state::extensible_struct::field_infos
-		static_fields() const override {
+		static libsinsp::state::extensible_struct::field_infos
+		get_static_fields() {
 			libsinsp::state::extensible_struct::field_infos ret;
 			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
 			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
@@ -50,8 +50,8 @@ TEST(static_struct, defs_and_access) {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
-		libsinsp::state::extensible_struct::field_infos
-		static_fields() const override {
+		static libsinsp::state::extensible_struct::field_infos
+		get_static_fields() {
 			libsinsp::state::extensible_struct::field_infos ret;
 			DEFINE_STATIC_FIELD(ret, sample_struct, m_num, "num");
 			DEFINE_STATIC_FIELD_READONLY(ret, sample_struct, m_str, "str");
@@ -73,8 +73,8 @@ TEST(static_struct, defs_and_access) {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
-		libsinsp::state::extensible_struct::field_infos
-		static_fields() const override {
+		static libsinsp::state::extensible_struct::field_infos
+		get_static_fields() {
 			libsinsp::state::extensible_struct::field_infos ret;
 			DEFINE_STATIC_FIELD(ret, sample_struct2, m_num, "num");
 			return ret;
@@ -84,16 +84,16 @@ TEST(static_struct, defs_and_access) {
 	};
 
 	// test errors
-	ASSERT_ANY_THROW(err_multidef_struct().static_fields());
+	ASSERT_ANY_THROW(err_multidef_struct::get_static_fields());
 
 	sample_struct s;
-	const auto& fields = s.static_fields();
+	const auto& fields = sample_struct::get_static_fields();
 
 	// check field definitions
 	auto field_num = fields.find("num");
 	auto field_str = fields.find("str");
 	ASSERT_EQ(fields.size(), 2);
-	ASSERT_EQ(fields, sample_struct().static_fields());
+	ASSERT_EQ(fields, sample_struct::get_static_fields());
 
 	ASSERT_NE(field_num, fields.end());
 	ASSERT_EQ(field_num->second.name(), "num");
@@ -146,8 +146,8 @@ TEST(static_struct, defs_and_access) {
 	// note: this should supposedly be checked for and throw an exception,
 	// but for now we have no elegant way to do it efficiently.
 	// todo(jasondellaluce): find a good way to check for this
-	sample_struct2 s2;
-	auto acc_num2 = s2.static_fields().find("num")->second.new_accessor<uint32_t>();
+	auto acc_num2 =
+	        sample_struct2::get_static_fields().find("num")->second.new_accessor<uint32_t>();
 	ASSERT_NO_THROW(s.read_field(*acc_num2));
 }
 
