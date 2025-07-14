@@ -41,9 +41,7 @@ public:
 		std::unique_ptr<sinsp_threadinfo> tinfo =
 		        m_external_event_processor ? m_external_event_processor->build_threadinfo(m_params)
 		                                   : std::make_unique<sinsp_threadinfo>(m_params);
-		if(tinfo->dynamic_fields() == nullptr) {
-			tinfo->set_dynamic_fields(m_params->thread_manager_dyn_fields);
-		}
+		tinfo->set_dynamic_fields(m_params->thread_manager_dyn_fields);
 		tinfo->get_fdtable().set_dynamic_fields(m_fdtable_dyn_fields);
 		return tinfo;
 	}

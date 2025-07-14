@@ -264,10 +264,6 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 		create_thread_dependencies(tinfo_shared_ptr);
 	}
 
-	if(tinfo_shared_ptr->dynamic_fields() != dynamic_fields()) {
-		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
-	}
-
 	if(tinfo_shared_ptr->get_fdtable().dynamic_fields() != m_fdtable_dyn_fields) {
 		throw sinsp_exception(
 		        "adding entry with incompatible dynamic defs to of file descriptor sub-table");
