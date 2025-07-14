@@ -123,10 +123,6 @@ sinsp_fdinfo::sinsp_fdinfo(
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         extensible_struct(dyn_fields) {}
 
-libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const {
-	return get_static_fields();
-}
-
 libsinsp::state::static_struct::field_infos sinsp_fdinfo::get_static_fields() {
 	using self = sinsp_fdinfo;
 

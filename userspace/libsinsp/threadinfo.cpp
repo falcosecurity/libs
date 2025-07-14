@@ -46,10 +46,6 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
 	init();
 }
 
-libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() const {
-	return get_static_fields();
-}
-
 libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields() {
 	using self = sinsp_threadinfo;
 

@@ -111,8 +111,6 @@ public:
 
 	virtual ~sinsp_fdinfo() = default;
 
-	libsinsp::state::static_struct::field_infos static_fields() const override;
-
 	virtual std::unique_ptr<sinsp_fdinfo> clone() const {
 		return std::make_unique<sinsp_fdinfo>(*this);
 	}
