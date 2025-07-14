@@ -60,9 +60,7 @@ public:
 		const auto external_event_processor = get_external_event_processor();
 		auto fdinfo = external_event_processor ? external_event_processor->build_fdinfo(m_sinsp)
 		                                       : create_unique();
-		if(fdinfo->dynamic_fields() == nullptr) {
-			fdinfo->set_dynamic_fields(m_dyn_fields);
-		}
+		fdinfo->set_dynamic_fields(m_dyn_fields);
 		return fdinfo;
 	}
 };
