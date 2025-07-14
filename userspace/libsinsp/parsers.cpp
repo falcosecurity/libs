@@ -2630,7 +2630,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	}
 
 	parinfo = evt.get_param(1);
-	if(parinfo->m_len == 0) {
+	if(parinfo->empty()) {
 		//
 		// No address, there's nothing we can really do with this.
 		//
@@ -2713,7 +2713,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 	auto &sockinfo = fdinfo->m_sockinfo;
 
 	const sinsp_evt_param *addr_param = evt.get_param(1);
-	if(addr_param->m_len == 0) {
+	if(addr_param->empty()) {
 		// Address can be nullptr:
 		// sk is a TCP fastopen active socket and
 		// TCP_FASTOPEN_CONNECT sockopt is set and
@@ -2917,7 +2917,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	}
 
 	const sinsp_evt_param *tuple_param = evt.get_param(1);
-	if(tuple_param->m_len == 0) {
+	if(tuple_param->empty()) {
 		// Address can be nullptr:
 		// sk is a TCP fastopen active socket and
 		// TCP_FASTOPEN_CONNECT sockopt is set and
@@ -2960,7 +2960,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	// Extract the address.
 	const sinsp_evt_param *parinfo = evt.get_param(1);
-	if(parinfo->m_len == 0) {
+	if(parinfo->empty()) {
 		// No address, there's nothing we can really do with this.
 		// This happens for socket types that we don't support, so we have the assertion
 		// to make sure that this is not a type of socket that we support.
@@ -3339,7 +3339,7 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 	uint8_t *packed_data = (uint8_t *)parinfo.m_val;
 	uint8_t family = *packed_data;
 
-	if(parinfo.m_len == 0) {
+	if(parinfo.empty()) {
 		return false;
 	}
 
@@ -4183,8 +4183,8 @@ void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
 	evt.get_tinfo()->m_vmswap_kb = evt.get_param(3)->as<uint32_t>();
 }
 
-void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const uint32_t euid) const {
-	if(euid == std::numeric_limits<uint32_t>::max()) {
+void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const sinsp_evt_param &euid_param) const {
+	if(euid_param.empty()) {
 		return;
 	}
 
@@ -4193,7 +4193,7 @@ void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const uint32_t euid) cons
 		return;
 	}
 
-	ti->set_user(euid, must_notify_thread_user_update());
+	ti->set_user(euid_param.as<uint32_t>(), must_notify_thread_user_update());
 }
 
 void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
@@ -4201,7 +4201,7 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	set_evt_thread_user(evt, evt.get_param(2)->as<uint32_t>());
+	set_evt_thread_user(evt, *evt.get_param(2));
 }
 
 void sinsp_parser::parse_setreuid_exit(sinsp_evt &evt) const {
@@ -4209,7 +4209,7 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	set_evt_thread_user(evt, evt.get_param(2)->as<uint32_t>());
+	set_evt_thread_user(evt, *evt.get_param(2));
 }
 
 void sinsp_parser::parse_setresgid_exit(sinsp_evt &evt) const {
@@ -4253,7 +4253,7 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	set_evt_thread_user(evt, evt.get_param(1)->as<uint32_t>());
+	set_evt_thread_user(evt, *evt.get_param(1));
 }
 
 void sinsp_parser::parse_setgid_exit(sinsp_evt &evt) const {

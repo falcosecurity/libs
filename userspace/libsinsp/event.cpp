@@ -726,7 +726,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 	const sinsp_evt_param *param = get_param(id);
 	param_info = param->get_info();
 
-	if(param->m_len == 0) {
+	if(param->empty()) {
 		snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "NULL");
 		*resolved_str = &m_resolved_paramstr_storage[0];
 		return &m_paramstr_storage[0];
