@@ -50,7 +50,7 @@ class stl_table_entry_accessor : public libsinsp::state::typed_accessor<T>,
 template<typename Tfirst, typename Tsecond>
 class pair_table_entry_adapter : public libsinsp::state::table_entry {
 public:
-	inline explicit pair_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
+	inline explicit pair_table_entry_adapter(): m_value(nullptr) {}
 
 	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
 	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
@@ -83,10 +83,6 @@ public:
 	}
 
 protected:
-	virtual void destroy_dynamic_fields() override final {
-		// nothing to do
-	}
-
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
 		auto acc = dynamic_cast<const stl_table_raw_accessor*>(&a);
 		if(acc->index() == 0) {
@@ -136,7 +132,7 @@ private:
 template<typename T>
 class value_table_entry_adapter : public libsinsp::state::table_entry {
 public:
-	inline explicit value_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
+	inline explicit value_table_entry_adapter(): m_value(nullptr) {}
 
 	virtual ~value_table_entry_adapter() = default;
 
@@ -161,11 +157,6 @@ public:
 			return std::make_unique<stl_table_entry_accessor<T>>(tinfo, 0);
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
-	}
-
-protected:
-	virtual void destroy_dynamic_fields() override final {
-		// nothing to do
 	}
 
 protected:
