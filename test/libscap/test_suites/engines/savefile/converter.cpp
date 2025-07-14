@@ -1647,24 +1647,27 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_to_4_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_1_to_4_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = 89;
 
-	// Defaulted.
-	constexpr uint32_t ruid = std::numeric_limits<uint32_t>::max();
-	constexpr uint32_t euid = std::numeric_limits<uint32_t>::max();
-	constexpr uint32_t suid = std::numeric_limits<uint32_t>::max();
+	// Set to empty.
+	constexpr auto ruid = empty_value<uint32_t>();
+	constexpr auto euid = empty_value<uint32_t>();
+	constexpr auto suid = empty_value<uint32_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{1, 2, 3};
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid));
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid),
+	        expected_empty_param_indexes);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_to_4_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_1_to_4_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -1673,7 +1676,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_to_4_params_with_enter) {
 	constexpr uint32_t euid = 43;
 	constexpr uint32_t suid = 44;
 
-	// After the first conversion we should have the storage
+	// After the first conversion we should have the storage.
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_E, 3, ruid, euid, suid);
 	assert_single_conversion_skip(evt);
 	assert_event_storage_presence(evt);
@@ -1705,13 +1708,16 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_no_enter) {
 
 	constexpr int64_t res = 89;
 
-	// Defaulted.
-	constexpr uint32_t uid = std::numeric_limits<uint32_t>::max();
+	// Set to empty.
+	constexpr auto uid = empty_value<uint32_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{1};
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid),
+	        expected_empty_param_indexes);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_with_enter) {

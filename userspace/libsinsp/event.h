@@ -98,6 +98,11 @@ public:
 		return get_event_param_as<T>(*this);
 	}
 
+	/*!
+	 * @return true if the length is equal to zero.
+	 */
+	bool empty() const { return m_len == 0; }
+
 	const struct ppm_param_info* get_info() const;
 
 	// Throws a sinsp_exception detailing why the requested_len is incorrect.
@@ -132,7 +137,7 @@ inline T get_event_param_as(const sinsp_evt_param& param) {
 
 template<>
 inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_param& param) {
-	if(param.m_len == 0) {
+	if(param.empty()) {
 		return {};
 	}
 
@@ -149,7 +154,7 @@ inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_par
 
 template<>
 inline std::string get_event_param_as<std::string>(const sinsp_evt_param& param) {
-	if(param.m_len == 0) {
+	if(param.empty()) {
 		return "";
 	}
 
