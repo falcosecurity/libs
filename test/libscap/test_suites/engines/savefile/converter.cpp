@@ -916,7 +916,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_E_store) {
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t fd = 25;
-	struct sockaddr_in sockaddr = {};
+	sockaddr_in sockaddr = {};
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_port = htons(1234);
 	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -943,7 +943,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_no_enter) {
 	constexpr uint8_t addr = PPM_AF_UNSPEC;
 
 	assert_single_conversion_success(
-	        conversion_result::CONVERSION_COMPLETED,
+	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_CONNECT_X,
@@ -966,7 +966,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t fd = 25;
-	struct sockaddr_in sockaddr = {};
+	sockaddr_in sockaddr = {};
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_port = htons(1234);
 	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -984,7 +984,7 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
 	assert_event_storage_presence(evt);
 
 	assert_single_conversion_success(
-	        conversion_result::CONVERSION_COMPLETED,
+	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_CONNECT_X,
@@ -4779,22 +4779,25 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETGID_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_to_3_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_1_to_2_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr uint32_t gid = 0;
+	// Set to empty.
+	constexpr auto gid = empty_value<uint32_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{1};
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid));
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid),
+	        expected_empty_param_indexes);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_to_3_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_1_to_2_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -4829,24 +4832,27 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_to_4_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_1_to_4_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr uint32_t rgid = 0;
-	constexpr uint32_t egid = 0;
-	constexpr uint32_t sgid = 0;
+	// Set to empty.
+	constexpr auto rgid = empty_value<uint32_t>();
+	constexpr auto egid = empty_value<uint32_t>();
+	constexpr auto sgid = empty_value<uint32_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{1, 2, 3};
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid),
+	        expected_empty_param_indexes);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_to_4_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_1_to_4_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 

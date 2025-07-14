@@ -140,6 +140,11 @@ private:
 	// or the provided parameter is empty.
 	void set_evt_thread_user(sinsp_evt& evt, const sinsp_evt_param& euid_param) const;
 
+	// Set the event thread group to the group corresponding to the effective group id taken from
+	// the provided parameter. This is no-op if there is no thread associated with the provided
+	// event or the provided parameter is empty.
+	void set_evt_thread_group(sinsp_evt& evt, const sinsp_evt_param& egid_param) const;
+
 	static inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo& fdinfo,
 	                                                   uint32_t tsip,
 	                                                   uint16_t tsport,

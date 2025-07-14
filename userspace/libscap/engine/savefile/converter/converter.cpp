@@ -183,6 +183,7 @@ static uint8_t get_default_value_size_bytes_from_type(const ppm_param_type t) {
 static uint64_t get_default_value_from_type(const ppm_param_type t) {
 	switch(t) {
 	case PT_UID:
+	case PT_GID:
 		return std::numeric_limits<uint32_t>::max();
 	case PT_SOCKADDR:
 		return PPM_AF_UNSPEC;
