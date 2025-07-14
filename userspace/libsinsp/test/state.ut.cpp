@@ -482,7 +482,6 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
 	ASSERT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 0);
 
 	// getting an existing field
 	auto sfield = subtable->field<int64_t>("pid");
@@ -492,25 +491,17 @@ TEST(thread_manager, fdtable_access) {
 	// ASSERT_EQ(sfield->second.name(), "pid");
 
 	// adding a new dynamic field
-	const auto& dfield = subtable->dynamic_fields()->add_field<std::string>("str_val");
-	ASSERT_EQ(dfield, subtable->dynamic_fields()->fields().find("str_val")->second);
-	ASSERT_EQ(dfield.readonly(), false);
-	ASSERT_EQ(dfield.valid(), true);
-	ASSERT_EQ(dfield.index(), 0);
-	ASSERT_EQ(dfield.name(), "str_val");
-	ASSERT_EQ(dfield.info(), libsinsp::state::typeinfo::of<std::string>());
+	const auto& dfield = subtable->new_field<std::string>("str_val");
+	// ASSERT_EQ(dfield.readonly(), false);
+	// ASSERT_EQ(dfield.valid(), true);
+	// ASSERT_EQ(dfield.index(), 0);
+	// ASSERT_EQ(dfield.name(), "str_val");
 
 	// checking if the new field has been added
-	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
-	ASSERT_NE(subtable->dynamic_fields()->fields().find("str_val"),
-	          subtable->dynamic_fields()->fields().end());
+	ASSERT_NE(subtable->field<std::string>("str_val"), nullptr);
 
 	// checking if the new field has been added to the other subtable
-	ASSERT_EQ(subtable2->dynamic_fields()->fields().size(), 1);
-	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"),
-	          subtable2->dynamic_fields()->fields().end());
-
-	auto dfieldacc = dfield.new_accessor<std::string>();
+	ASSERT_NE(subtable2->field<std::string>("str_val"), nullptr);
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 4096;  // note: configured max entries in fd tables
@@ -538,12 +529,12 @@ TEST(thread_manager, fdtable_access) {
 
 		// read and write from newly-created fd (added field)
 		std::string tmpstr = "test";
-		t->read_field(*dfieldacc, tmpstr);
+		t->read_field(*dfield, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
-		t->write_field(*dfieldacc, tmpstr);
+		t->write_field(*dfield, tmpstr);
 		tmpstr = "";
-		t->read_field(*dfieldacc, tmpstr);
+		t->read_field(*dfield, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
 	}
 
@@ -553,7 +544,7 @@ TEST(thread_manager, fdtable_access) {
 		std::string tmpstr;
 		e.read_field(*sfield, tmp);
 		EXPECT_EQ(tmp, 5);
-		e.read_field(*dfieldacc, tmpstr);
+		e.read_field(*dfield, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
