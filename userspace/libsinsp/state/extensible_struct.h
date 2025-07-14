@@ -42,14 +42,6 @@ public:
 
 	// dynamic_struct interface
 
-	inline const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
-		return m_dynamic_fields;
-	}
-
-	/**
-	 * @brief Returns information about all the dynamic fields accessible in a struct.
-	 */
-
 	/**
 	 * @brief Sets the shared definitions for the dynamic fields accessible in a struct.
 	 * The definitions can be set to a non-null value only once, either at
@@ -69,6 +61,13 @@ public:
 	}
 
 protected:
+	/**
+	 * @brief Returns information about all the dynamic fields accessible in a struct.
+	 */
+	inline const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
+
 	/**
 	 * @brief Destroys all the dynamic field values currently allocated
 	 */
