@@ -4196,6 +4196,19 @@ void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const sinsp_evt_param &eu
 	ti->set_user(euid_param.as<uint32_t>(), must_notify_thread_user_update());
 }
 
+void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &egid_param) const {
+	if(egid_param.empty()) {
+		return;
+	}
+
+	sinsp_threadinfo *ti = evt.get_thread_info();
+	if(ti == nullptr) {
+		return;
+	}
+
+	ti->set_group(egid_param.as<uint32_t>(), must_notify_thread_group_update());
+}
+
 void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
 	if(evt.get_syscall_return_value() != 0) {
 		return;
@@ -4213,39 +4226,19 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_setresgid_exit(sinsp_evt &evt) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval == 0) {
-		uint32_t new_egid = evt.get_param(2)->as<uint32_t>();
-
-		if(new_egid < std::numeric_limits<uint32_t>::max()) {
-			sinsp_threadinfo *ti = evt.get_thread_info();
-			if(ti) {
-				ti->set_group(new_egid, must_notify_thread_group_update());
-			}
-		}
+	if(evt.get_syscall_return_value() != 0) {
+		return;
 	}
+
+	set_evt_thread_group(evt, *evt.get_param(2));
 }
 
 void sinsp_parser::parse_setregid_exit(sinsp_evt &evt) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval == 0) {
-		uint32_t new_egid = evt.get_param(2)->as<uint32_t>();
-
-		if(new_egid < std::numeric_limits<uint32_t>::max()) {
-			sinsp_threadinfo *ti = evt.get_thread_info();
-			if(ti) {
-				ti->set_group(new_egid, must_notify_thread_group_update());
-			}
-		}
+	if(evt.get_syscall_return_value() != 0) {
+		return;
 	}
+
+	set_evt_thread_group(evt, *evt.get_param(2));
 }
 
 void sinsp_parser::parse_setuid_exit(sinsp_evt &evt) const {
@@ -4257,18 +4250,11 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_setgid_exit(sinsp_evt &evt) const {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval == 0 && evt.get_num_params() > 1) {
-		uint32_t new_egid = evt.get_param(1)->as<uint32_t>();
-		sinsp_threadinfo *ti = evt.get_thread_info();
-		if(ti) {
-			ti->set_group(new_egid, must_notify_thread_group_update());
-		}
+	if(evt.get_syscall_return_value() != 0) {
+		return;
 	}
+
+	set_evt_thread_group(evt, *evt.get_param(1));
 }
 
 void sinsp_parser::parse_user_evt(sinsp_evt &evt) const {
