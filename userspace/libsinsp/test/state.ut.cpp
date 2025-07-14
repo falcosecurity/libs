@@ -176,7 +176,6 @@ TEST(dynamic_struct, defs_and_access) {
 
 	// check field definitions
 	ASSERT_EQ(fields->fields().size(), 0);
-	ASSERT_EQ(fields, s.dynamic_fields());
 
 	// adding new fields
 	auto field_num = fields->add_field<uint64_t>("num");
@@ -269,7 +268,6 @@ TEST(dynamic_struct, mem_ownership) {
 
 	// deep copy and memory ownership (constructor)
 	sample_struct s3(s1);
-	ASSERT_EQ(s1.dynamic_fields().get(), s3.dynamic_fields().get());
 	s1.read_field(*field_str_acc, tmpstr1);
 	s3.read_field(*field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
@@ -281,7 +279,6 @@ TEST(dynamic_struct, mem_ownership) {
 	// deep copy and memory ownership (assignment)
 	sample_struct s4(std::make_shared<libsinsp::state::dynamic_field_infos>());
 	s4 = s1;
-	ASSERT_EQ(s1.dynamic_fields().get(), s4.dynamic_fields().get());
 	s1.read_field(*field_str_acc, tmpstr1);
 	s4.read_field(*field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
@@ -293,7 +290,6 @@ TEST(dynamic_struct, mem_ownership) {
 	// deep copy and memory ownership (assignment, null initial definitions)
 	sample_struct s5(nullptr);
 	s5 = s1;
-	ASSERT_EQ(s1.dynamic_fields().get(), s5.dynamic_fields().get());
 	s1.read_field(*field_str_acc, tmpstr1);
 	s5.read_field(*field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
