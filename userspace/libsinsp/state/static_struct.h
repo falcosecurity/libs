@@ -206,6 +206,7 @@ public:
 	using table_fields::add_field;
 	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override;
 
+protected:
 	/**
 	 * @brief Returns the fields metadata list for the static fields defined
 	 * for the value data type of this table. This fields will be accessible

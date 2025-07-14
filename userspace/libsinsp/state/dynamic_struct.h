@@ -421,17 +421,6 @@ public:
 #undef _X
 	}
 
-	/**
-	 * @brief Returns the fields metadata list for the dynamic fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table. The returned metadata list can
-	 * be expended at runtime by adding new dynamic fields, which will then
-	 * be allocated and accessible for all the present and future entries
-	 * present in the table.
-	 */
-	[[nodiscard]] const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
-		return m_dynamic_fields;
-	}
 	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
 		if(m_dynamic_fields.get() == dynf.get()) {
 			return;
@@ -443,6 +432,19 @@ public:
 			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
 		}
 		m_dynamic_fields = dynf;
+	}
+
+protected:
+	/**
+	 * @brief Returns the fields metadata list for the dynamic fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table. The returned metadata list can
+	 * be expended at runtime by adding new dynamic fields, which will then
+	 * be allocated and accessible for all the present and future entries
+	 * present in the table.
+	 */
+	[[nodiscard]] const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
 	}
 
 private:

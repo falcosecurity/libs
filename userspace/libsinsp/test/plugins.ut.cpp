@@ -905,10 +905,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	// ASSERT_EQ(sfield->second.name(), "pid");
 
 	// get an accessor to a dynamic field declared by the plugin
-	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
-	auto dfield = subtable->dynamic_fields()->fields().find("custom");
-	ASSERT_NE(dfield, subtable->dynamic_fields()->fields().end());
-	auto dfieldacc = dfield->second.new_accessor<std::string>();
+	auto dfield = subtable->get_field<std::string>("custom");
+	ASSERT_NE(dfield, nullptr);
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),
@@ -928,7 +926,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 		std::string tmpstr;
 		e.read_field(*sfield, tmp);
 		EXPECT_EQ(tmp, 123);
-		e.read_field(*dfieldacc, tmpstr);
+		e.read_field(*dfield, tmpstr);
 		EXPECT_EQ(tmpstr, "world");
 		return true;
 	};
