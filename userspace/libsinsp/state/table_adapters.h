@@ -50,7 +50,7 @@ class stl_table_entry_accessor : public libsinsp::state::typed_accessor<T>,
 template<typename Tfirst, typename Tsecond>
 class pair_table_entry_adapter : public libsinsp::state::table_entry {
 public:
-	inline explicit pair_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
+	inline explicit pair_table_entry_adapter(): m_value(nullptr) {}
 
 	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
 	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
@@ -134,7 +134,7 @@ private:
 template<typename T>
 class value_table_entry_adapter : public libsinsp::state::table_entry {
 public:
-	inline explicit value_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
+	inline explicit value_table_entry_adapter(): m_value(nullptr) {}
 
 	virtual ~value_table_entry_adapter() = default;
 
@@ -206,7 +206,7 @@ template<typename T, typename TWrap = value_table_entry_adapter<typename T::valu
 class stl_container_table_adapter : public libsinsp::state::built_in_table<uint64_t> {
 public:
 	stl_container_table_adapter(const std::string& name, T& container):
-	        built_in_table(name, _static_fields()),
+	        built_in_table(name),
 	        m_container(container) {}
 
 	size_t entries_count() const override { return m_container.size(); }
@@ -283,11 +283,6 @@ public:
 	}
 
 private:
-	static inline const static_struct::field_infos* _static_fields() {
-		static const auto s_fields = TWrap{}.static_fields();
-		return &s_fields;
-	}
-
 	static inline void wrap_deleter(TWrap* v) { v->set_value(nullptr); }
 
 	// helps us dynamically allocate a batch of wrappers, creating new ones
