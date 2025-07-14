@@ -387,7 +387,7 @@ TEST(table_registry, defs_and_access) {
 
 		std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
 			return std::unique_ptr<libsinsp::state::table_entry>(
-			        new libsinsp::state::table_entry(dynamic_fields()));
+			        new libsinsp::state::dynamic_struct(dynamic_fields()));
 		}
 
 		bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
@@ -435,10 +435,6 @@ TEST(table_registry, defs_and_access) {
 }
 
 TEST(thread_manager, table_access) {
-	// note: used for regression checks, keep this updated as we make
-	// new fields available
-	static const int s_threadinfo_static_fields_count = 32;
-
 	sinsp inspector;
 	auto table = static_cast<libsinsp::state::built_in_table<int64_t>*>(
 	        inspector.m_thread_manager.get());
@@ -456,15 +452,16 @@ TEST(thread_manager, table_access) {
 	// create and add a thread
 	auto newt = table->new_entry();
 	auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
-	auto tid_acc = newt->static_fields().at("tid").new_accessor<int64_t>();
-	auto comm_acc = newt->static_fields().at("comm").new_accessor<std::string>();
-	auto fdtable_acc = newt->static_fields()
-	                           .at("file_descriptors")
-	                           .new_accessor<libsinsp::state::base_table*>();
+	auto tid_f = table->get_field("tid", libsinsp::state::typeinfo::of<int64_t>());
+	auto tid_acc = dynamic_cast<libsinsp::state::typed_accessor<int64_t>*>(tid_f.get());
+	auto comm_f = table->get_field("comm", libsinsp::state::typeinfo::of<std::string>());
+	auto comm_acc = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(comm_f.get());
+	auto fdtable_f =
+	        table->get_field("file_descriptors",
+	                         libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	auto fdtable_acc = dynamic_cast<libsinsp::state::typed_accessor<libsinsp::state::base_table*>*>(
+	        fdtable_f.get());
 	ASSERT_NE(newtinfo, nullptr);
-	ASSERT_EQ(newt->dynamic_fields(), table->dynamic_fields());
-	ASSERT_EQ(newt->static_fields(), *table->static_fields());
-	ASSERT_EQ(newt->static_fields().size(), s_threadinfo_static_fields_count);
 	newtinfo->m_tid = 999;
 	newtinfo->m_comm = "test";
 	ASSERT_EQ(newt->read_field(*tid_acc), (int64_t)999);
@@ -486,7 +483,6 @@ TEST(thread_manager, table_access) {
 	                        ->add_field<std::string>("some_new_field")
 	                        .new_accessor<std::string>();
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
-	ASSERT_EQ(addedt->dynamic_fields()->fields().size(), 1);
 	addedt->read_field(*dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
 	addedt->write_field(*dynf_acc, std::string("hello"));
@@ -711,7 +707,6 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);
 	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
-	EXPECT_EQ(subtable->static_fields()->size(), 0);
 
 	// getting an existing field
 	auto sfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());

@@ -33,10 +33,7 @@ class sinsp_table_owner;
 /**
  * @brief Base class for entries of a state table.
  */
-struct table_entry : public extensible_struct {
-	explicit table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
-	        extensible_struct(dyn_fields) {}
-};
+using table_entry = libsinsp::state::state_struct;
 
 template<typename KeyType>
 class table;
