@@ -76,7 +76,7 @@ struct sinsp_threadinfo_ctor_params {
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
+class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct {
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
 
