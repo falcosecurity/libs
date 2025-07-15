@@ -977,6 +977,7 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 	/*
 	 * Make sure the operation was successful
 	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
@@ -987,15 +988,11 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 		 * anyway, so I report empty ones */
 		*args->str_storage = 0;
 
-		/*
-		 * exe
-		 */
+		/* Parameter 2: exe (type: PT_CHARBUF) */
 		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
 		CHECK_RES(res);
 
-		/*
-		 * Args
-		 */
+		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -1068,15 +1065,11 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 		if(exe_len < args_len)
 			++exe_len;
 
-		/*
-		 * exe
-		 */
+		/* Parameter 2: exe (type: PT_CHARBUF) */
 		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
 		CHECK_RES(res);
 
-		/*
-		 * Args
-		 */
+		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		res = val_to_ring(args,
 		                  (int64_t)(long)args->str_storage + exe_len,
 		                  args_len - exe_len,
@@ -1085,21 +1078,17 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 		CHECK_RES(res);
 	}
 
-	/*
-	 * tid
-	 */
+	/* Parameter 4: tid (type: PT_PID) */
 	res = val_to_ring(args, (int64_t)current->pid, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * pid
-	 */
+	/* Parameter 5: pid (type: PT_PID) */
+	/* this is called `pid` but it is the `tgid`. */
 	res = val_to_ring(args, (int64_t)current->tgid, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * ptid
-	 */
+	/* Parameter 6: ptid (type: PT_PID) */
+	/* this is called `ptid` but it is the `pgid`. */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if(current->real_parent)
 		ptid = current->real_parent->pid;
@@ -1113,16 +1102,12 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * cwd, pushed empty to avoid breaking compatibility
-	 * with the older event format
-	 */
+	/* Parameter 7: cwd (type: PT_CHARBUF) */
+	/* Push empty to avoid breaking compatibility with the older event format. */
 	res = push_empty_param(args);
 	CHECK_RES(res);
 
-	/*
-	 * fdlimit
-	 */
+	/* Parameter 8: fdlimit (type: PT_UINT64) */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
 #else
@@ -1130,15 +1115,11 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 #endif
 	CHECK_RES(res);
 
-	/*
-	 * pgft_maj
-	 */
+	/* Parameter 9: pgft_maj (type: PT_UINT64) */
 	res = val_to_ring(args, current->maj_flt, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * pgft_min
-	 */
+	/* Parameter 10: pgft_min (type: PT_UINT64) */
 	res = val_to_ring(args, current->min_flt, 0, false, 0);
 	CHECK_RES(res);
 
@@ -1148,33 +1129,23 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
-	/*
-	 * vm_size
-	 */
+	/* Parameter 11: vm_size (type: PT_UINT32) */
 	res = val_to_ring(args, total_vm, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * vm_rss
-	 */
+	/* Parameter 12: vm_rss (type: PT_UINT32) */
 	res = val_to_ring(args, total_rss, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * vm_swap
-	 */
+	/* Parameter 13: vm_swap (type: PT_UINT32) */
 	res = val_to_ring(args, swap, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * comm
-	 */
+	/* Parameter 14: comm (type: PT_CHARBUF) */
 	res = val_to_ring(args, (uint64_t)current->comm, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * cgroups
-	 */
+	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
 	args->str_storage[0] = 0;
 #ifdef CONFIG_CGROUPS
 	rcu_read_lock();
@@ -1368,22 +1339,16 @@ cgroups_error:
 		if(env_len == 0)
 			*args->str_storage = 0;
 
-		/*
-		 * environ
-		 */
+		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, env_len, false, 0);
 		CHECK_RES(res);
 
-		/*
-		 * tty
-		 */
+		/* Parameter 17: tty (type: PT_INT32) */
 		tty_nr = ppm_get_tty();
 		res = val_to_ring(args, tty_nr, 0, false, 0);
 		CHECK_RES(res);
 
-		/*
-		 * pgid
-		 */
+		/* Parameter 18: vpgid (type: PT_PID) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		res = val_to_ring(args,
 		                  (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)),
@@ -1395,9 +1360,7 @@ cgroups_error:
 #endif
 		CHECK_RES(res);
 
-		/*
-		 * loginuid
-		 */
+		/* Parameter 19: loginuid (type: PT_UID) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
@@ -1498,9 +1461,7 @@ cgroups_error:
 
 		// write all the additional flags for execve family here...
 
-		/*
-		 * flags
-		 */
+		/* Parameter 20: flags (type: PT_FLAGS32) */
 		res = val_to_ring(args, flags, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1584,12 +1545,10 @@ cgroups_error:
 }
 
 int f_sys_execve_e(struct event_filler_arguments *args) {
-	int res;
 	unsigned long val;
+	int res;
 
-	/*
-	 * filename
-	 */
+	/* Parameter 1: filename (type: PT_FSPATH) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
@@ -9425,7 +9384,7 @@ cgroups_error:
 	res = val_to_ring(args, tty_nr, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 18: pgid (type: PT_PID) */
+	/* Parameter 18: vpgid (type: PT_PID) */
 	res = val_to_ring(args,
 	                  (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)),
 	                  0,

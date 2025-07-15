@@ -2599,7 +2599,6 @@ FILLER(proc_startupdate, true) {
 	unsigned long fdlimit;
 	struct mm_struct *mm;
 	long total_rss;
-	char empty = 0;
 	volatile long args_len;
 	long retval;
 	pid_t tgid;
@@ -2610,6 +2609,7 @@ FILLER(proc_startupdate, true) {
 	/*
 	 * Make sure the operation was successful
 	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
@@ -2690,9 +2690,7 @@ FILLER(proc_startupdate, true) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
-	/*
-	 * exe
-	 */
+	/* Parameter 2: exe (type: PT_CHARBUF) */
 	if(exe_len == 0) {
 		res = bpf_push_empty_param(data);
 	} else {
@@ -2703,9 +2701,7 @@ FILLER(proc_startupdate, true) {
 
 	args_len -= exe_len;
 
-	/*
-	 * Args
-	 */
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	if(args_len <= 0) {
 		res = bpf_push_empty_param(data);
 		CHECK_RES(res);
@@ -2715,56 +2711,43 @@ FILLER(proc_startupdate, true) {
 		CHECK_RES(res);
 	}
 
-	/*
-	 * tid
-	 */
+	/* Parameter 4: tid (type: PT_PID) */
+	/* this is called `tid` but it is the `pid`. */
 	pid = _READ(task->pid);
 	res = bpf_push_s64_to_ring(data, pid);
 	CHECK_RES(res);
 
-	/*
-	 * pid
-	 */
+	/* Parameter 5: pid (type: PT_PID) */
+	/* this is called `pid` but it is the `tgid`. */
 	tgid = _READ(task->tgid);
 	res = bpf_push_s64_to_ring(data, tgid);
 	CHECK_RES(res);
 
-	/*
-	 * ptid
-	 */
+	/* Parameter 6: ptid (type: PT_PID) */
+	/* this is called `ptid` but it is the `pgid`. */
 	real_parent = _READ(task->real_parent);
 	pid_t ptid = _READ(real_parent->pid);
 
 	res = bpf_push_s64_to_ring(data, ptid);
 	CHECK_RES(res);
 
-	/*
-	 * cwd, pushed empty to avoid breaking compatibility
-	 * with the older event format
-	 */
+	/* Parameter 7: cwd (type: PT_CHARBUF) */
+	/* Push empty to avoid breaking compatibility with the older event format. */
 	res = bpf_push_empty_param(data);
 	CHECK_RES(res);
 
-	/*
-	 * fdlimit
-	 */
+	/* Parameter 8: fdlimit (type: PT_UINT64) */
 	signal = _READ(task->signal);
 	fdlimit = _READ(signal->rlim[RLIMIT_NOFILE].rlim_cur);
-
 	res = bpf_push_u64_to_ring(data, fdlimit);
 	CHECK_RES(res);
 
-	/*
-	 * pgft_maj
-	 */
+	/* Parameter 9: pgft_maj (type: PT_UINT64) */
 	maj_flt = _READ(task->maj_flt);
-
 	res = bpf_push_u64_to_ring(data, maj_flt);
 	CHECK_RES(res);
 
-	/*
-	 * pgft_min
-	 */
+	/* Parameter 10: pgft_min (type: PT_UINT64) */
 	min_flt = _READ(task->min_flt);
 
 	res = bpf_push_u64_to_ring(data, min_flt);
@@ -2781,27 +2764,19 @@ FILLER(proc_startupdate, true) {
 		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
-	/*
-	 * vm_size
-	 */
+	/* Parameter 11: vm_size (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, total_vm);
 	CHECK_RES(res);
 
-	/*
-	 * vm_rss
-	 */
+	/* Parameter 12: vm_rss (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, total_rss);
 	CHECK_RES(res);
 
-	/*
-	 * vm_swap
-	 */
+	/* Parameter 13: vm_swap (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, swap);
 	CHECK_RES(res);
 
-	/*
-	 * comm
-	 */
+	/* Parameter 14: comm (type: PT_CHARBUF) */
 	res = bpf_val_to_ring_type_mem(data, (unsigned long)task->comm, PT_CHARBUF, KERNEL);
 	CHECK_RES(res);
 
@@ -2817,9 +2792,7 @@ FILLER(proc_startupdate_2, true) {
 
 	task = (struct task_struct *)bpf_get_current_task();
 
-	/*
-	 * cgroups
-	 */
+	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
 	res = bpf_append_cgroup(task, data->tmp_scratch, &cgroups_len);
 	CHECK_RES(res);
 
@@ -2976,9 +2949,7 @@ FILLER(proc_startupdate_3, true) {
 		uint32_t tty;
 		struct file *exe_file;
 
-		/*
-		 * environ
-		 */
+		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 		if(retval >= 0) {
 			/*
 			 * Already checked for mm validity
@@ -3034,23 +3005,17 @@ FILLER(proc_startupdate_3, true) {
 		res = __bpf_val_to_ring(data, 0, env_len, PT_BYTEBUF, -1, false, KERNEL);
 		CHECK_RES(res);
 
-		/*
-		 * tty
-		 */
+		/* Parameter 17: tty (type: PT_INT32) */
 		tty = bpf_ppm_get_tty(task);
 
 		res = bpf_push_u32_to_ring(data, tty);
 		CHECK_RES(res);
 
-		/*
-		 * pgid
-		 */
+		/* Parameter 18: vpgid (type: PT_PID) */
 		res = bpf_push_s64_to_ring(data, bpf_task_pgrp_vnr(task));
 		CHECK_RES(res);
 
-		/*
-		 * loginuid
-		 */
+		/* Parameter 19: loginuid (type: PT_UID) */
 		/* TODO: implement user namespace support */
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) && CONFIG_AUDIT) || \
         (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) && CONFIG_AUDITSYSCALL)
@@ -7941,7 +7906,7 @@ FILLER(sched_prog_exec_3, false) {
 	res = bpf_push_u32_to_ring(data, tty);
 	CHECK_RES(res);
 
-	/* Parameter 18: pgid (type: PT_PID) */
+	/* Parameter 18: vpgid (type: PT_PID) */
 	res = bpf_push_s64_to_ring(data, bpf_task_pgrp_vnr(task));
 	CHECK_RES(res);
 

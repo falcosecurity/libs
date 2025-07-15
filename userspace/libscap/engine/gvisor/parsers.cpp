@@ -209,11 +209,11 @@ static parse_result parse_container_start(uint32_t id,
 	}
 
 	// encode execve entry
-	ret.status = scap_gvisor::fillers::fill_event_execve_19_e(
-	        event_buf,
-	        &event_size,
-	        scap_err,
-	        gvisor_evt.args(0).c_str());  // TODO actual exe missing
+	ret.status =
+	        scap_gvisor::fillers::fill_event_execve_19_e(event_buf,
+	                                                     &event_size,
+	                                                     scap_err,
+	                                                     exe.c_str());  // TODO actual exe missing
 
 	if(ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
@@ -248,7 +248,9 @@ static parse_result parse_container_start(uint32_t id,
 	        comm.c_str(),
 	        scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
 	        scap_const_sized_buffer{env.data(), env.size()},
-	        context_data.credentials().effective_uid());  // uid
+	        context_data.credentials().effective_uid(),  // uid
+	        context_data.credentials().effective_gid()   // gid
+	);
 
 	if(ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
@@ -336,7 +338,9 @@ static parse_result parse_execve(uint32_t id,
 			        comm.c_str(),                                            // comm
 			        scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
 			        scap_const_sized_buffer{env.data(), env.size()},
-			        0);  // uid -- INVALID/not available in gVisor evt
+			        0,  // uid -- INVALID/not available in gVisor evt
+			        0   // gid -- INVALID/not available in gVisor evt
+			);
 			break;
 
 		case __NR_execveat:

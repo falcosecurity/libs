@@ -286,7 +286,7 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 	return add_event_advance_ts(increasing_ts(),
 	                            new_tid,
 	                            PPME_SYSCALL_EXECVE_19_X,
-	                            29,
+	                            30,
 	                            retval,
 	                            pathname.c_str(),
 	                            empty_bytebuf,
@@ -315,7 +315,8 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 	                            not_relevant_64,
 	                            not_relevant_32,
 	                            resolved_kernel_path.c_str(),
-	                            pgid);
+	                            pgid,
+	                            not_relevant_32);
 }
 
 void sinsp_with_test_input::remove_thread(int64_t tid_to_remove, int64_t reaper_tid) {

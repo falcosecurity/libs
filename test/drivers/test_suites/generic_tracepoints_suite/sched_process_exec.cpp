@@ -85,7 +85,7 @@ TEST(GenericTracepoints, sched_proc_exec) {
 
 	/* Please note here we cannot assert all the params, we check only the possible ones. */
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
@@ -230,7 +230,7 @@ TEST(GenericTracepoints, sched_proc_exec_success_memfd) {
 
 	/* Please note here we cannot assert all the params, we check only the possible ones. */
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the

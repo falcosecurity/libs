@@ -31,7 +31,7 @@ TEST(SyscallEnter, execveE) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: pathname (type: PT_FSRELPATH) */
+	/* Parameter 1: filename (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(1, pathname);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

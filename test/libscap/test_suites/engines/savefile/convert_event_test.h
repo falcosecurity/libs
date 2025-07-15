@@ -197,3 +197,8 @@ template<>
 constexpr scap_const_sized_buffer convert_event_test::empty_value() {
 	return {nullptr, 0};
 }
+
+template<>
+constexpr char *convert_event_test::empty_value() {
+	return nullptr;
+}

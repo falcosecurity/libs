@@ -262,7 +262,7 @@ int32_t fill_event_execve_19_e(scap_sized_buffer scap_buf,
 // - F11/vm_rss -- hardcoded to 0
 // - F12/vm_swap -- hardcoded to 0
 // - F16/tty -- hardcoded to 0
-// - F17/pgid -- hardcoded to 0
+// - F17/vpgid -- hardcoded to 0
 // - F18/loginuid -- hardcoded to UINT32_MAX
 // - F19/flags -- hardcoded to 0
 // - F20/cap_inheritable -- hardcoded to 0
@@ -275,6 +275,7 @@ int32_t fill_event_execve_19_e(scap_sized_buffer scap_buf,
 // B) Provided by caller, but caller sometimes specifies a hardcoded value
 //    due to value not available in native gVisor event:
 // - F26/uid -- some callers pass in hardcoded value of 0
+// - F26/gid -- some callers pass in hardcoded value of 0
 int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
@@ -287,12 +288,13 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
                                const char* comm,
                                scap_const_sized_buffer cgroups,
                                scap_const_sized_buffer env,
-                               uint32_t uid) {
+                               uint32_t uid,
+                               uint32_t gid) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_EXECVE_19_X,
-	                                27,
+	                                30,
 	                                res,
 	                                exe,
 	                                args,
@@ -310,7 +312,7 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
 	                                cgroups,
 	                                env,
 	                                0,           // tty -- INVALID
-	                                0,           // pgid -- INVALID
+	                                0,           // vpgid -- INVALID
 	                                UINT32_MAX,  // loginuid -- INVALID
 	                                0,           // flags -- INVALID
 	                                0,           // cap_inheritable -- INVALID
@@ -319,7 +321,11 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
 	                                0,           // exe_ino -- INVALID
 	                                0,           // exe_ino_ctime -- INVALID
 	                                0,           // exe_ino_mtime -- INVALID
-	                                uid);        // uid
+	                                uid,         // uid
+	                                exe,         // trusted_exepath
+	                                0,           // pgid -- INVALID
+	                                gid          // gid
+	);
 }
 
 // PPME_SYSCALL_EXECVEAT_E
