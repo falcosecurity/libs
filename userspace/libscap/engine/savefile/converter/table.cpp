@@ -108,6 +108,39 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_BRK_4_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_BRK_4_X, 4},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+        /*====================== EXECVE ======================*/
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 18},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // loginuid
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 19},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // flags
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 20},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({
+                         {C_INSTR_FROM_EMPTY, 0},  // cap_inheritable
+                         {C_INSTR_FROM_EMPTY, 0},  // cap_permitted
+                         {C_INSTR_FROM_EMPTY, 0},  // cap_effective
+                 })},
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 23},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({
+                         {C_INSTR_FROM_EMPTY, 0},  // exe_ino
+                         {C_INSTR_FROM_EMPTY, 0},  // exe_ino_ctime
+                         {C_INSTR_FROM_EMPTY, 0},  // exe_ino_mtime
+                 })},
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 26},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // uid
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 27},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // trusted_exepath
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 28},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pgid
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 29},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // gid
         /*====================== BIND ======================*/
         {conversion_key{PPME_SOCKET_BIND_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SOCKET_BIND_X, 2},

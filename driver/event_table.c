@@ -1912,7 +1912,7 @@ const struct ppm_event_info g_event_info[] = {
                                       {{"filename", PT_FSPATH, PF_NA}}},
         [PPME_SYSCALL_EXECVE_19_X] = {"execve",
                                       EC_PROCESS | EC_SYSCALL,
-                                      EF_MODIFIES_STATE,
+                                      EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED,
                                       30,
                                       {{"res", PT_ERRNO, PF_DEC},
                                        {"exe", PT_CHARBUF, PF_NA},

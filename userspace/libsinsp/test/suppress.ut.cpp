@@ -26,7 +26,7 @@ limitations under the License.
 	add_event_advance_ts(increasing_ts(),                                           \
 	                     pid,                                                       \
 	                     PPME_SYSCALL_EXECVE_19_X,                                  \
-	                     29,                                                        \
+	                     30,                                                        \
 	                     (int64_t)0,                          /* res */             \
 	                     file_to_run,                         /* exe */             \
 	                     scap_const_sized_buffer{nullptr, 0}, /* args */            \
@@ -55,7 +55,9 @@ limitations under the License.
 	                     (uint64_t)0,                         /* exe_ino_mtime */   \
 	                     (uint32_t)0,                         /* uid */             \
 	                     "",                                  /* trusted_exepath */ \
-	                     (uint64_t)0)                         /* pgid */
+	                     (uint64_t)0,                         /* pgid */            \
+	                     (uint32_t)0                          /* gid */             \
+	)
 
 TEST_F(sinsp_with_test_input, suppress_comm) {
 	//

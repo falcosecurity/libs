@@ -179,9 +179,9 @@ int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux
 	uint32_t tty = exctract__tty(task);
 	auxmap__store_u32_param(auxmap, (uint32_t)tty);
 
-	/* Parameter 18: pgid (type: PT_PID) */
-	pid_t pgid = extract__task_xid_vnr(task, PIDTYPE_PGID);
-	auxmap__store_s64_param(auxmap, (int64_t)pgid);
+	/* Parameter 18: vpgid (type: PT_PID) */
+	pid_t vpgid = extract__task_xid_vnr(task, PIDTYPE_PGID);
+	auxmap__store_s64_param(auxmap, (int64_t)vpgid);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
 	uint32_t loginuid;

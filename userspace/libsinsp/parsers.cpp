@@ -1896,13 +1896,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	/*
 	 * Get `exepath`
 	 */
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 27) {
 		/* In new event versions, with 28 parameters, we can obtain the full exepath with resolved
 		 * symlinks directly from the kernel.
 		 */
 
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-		evt.get_tinfo()->set_exepath(evt.get_param(27)->as<std::string>());
+		if(const auto trusted_exepath_param = evt.get_param(27); !trusted_exepath_param->empty()) {
+			evt.get_tinfo()->set_exepath(trusted_exepath_param->as<std::string>());
+		}
 	} else {
 		/* ONLY VALID FOR OLD SCAP-FILES:
 		 * In older event versions we can only rely on our userspace reconstruction
@@ -2036,72 +2040,106 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	// }
 
 	// Get the loginuid
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 18) {
-		// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an uid
-		// invalid value.
-		evt.get_tinfo()->set_loginuid(evt.get_param(18)->as<uint32_t>());
+		if(const auto loginuid_param = evt.get_param(18); !loginuid_param->empty()) {
+			// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an
+			// uid invalid value.
+			evt.get_tinfo()->set_loginuid(loginuid_param->as<uint32_t>());
+		}
 	}
 
 	// Get execve flags
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 19) {
-		uint32_t flags = evt.get_param(19)->as<uint32_t>();
-
-		evt.get_tinfo()->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
-		evt.get_tinfo()->m_exe_upper_layer = ((flags & PPM_EXE_UPPER_LAYER) != 0);
-		evt.get_tinfo()->m_exe_from_memfd = ((flags & PPM_EXE_FROM_MEMFD) != 0);
-		evt.get_tinfo()->m_exe_lower_layer = ((flags & PPM_EXE_LOWER_LAYER) != 0);
+		if(const auto flags_param = evt.get_param(19); !flags_param->empty()) {
+			const auto flags = flags_param->as<uint32_t>();
+			evt.get_tinfo()->m_exe_writable = (flags & PPM_EXE_WRITABLE) != 0;
+			evt.get_tinfo()->m_exe_upper_layer = (flags & PPM_EXE_UPPER_LAYER) != 0;
+			evt.get_tinfo()->m_exe_from_memfd = (flags & PPM_EXE_FROM_MEMFD) != 0;
+			evt.get_tinfo()->m_exe_lower_layer = (flags & PPM_EXE_LOWER_LAYER) != 0;
+		}
 	}
 
 	// Get capabilities
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 22) {
 		if(etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X) {
-			evt.get_tinfo()->m_cap_inheritable = evt.get_param(20)->as<uint64_t>();
-
-			evt.get_tinfo()->m_cap_permitted = evt.get_param(21)->as<uint64_t>();
-
-			evt.get_tinfo()->m_cap_effective = evt.get_param(22)->as<uint64_t>();
+			const auto cap_inheritable_param = evt.get_param(20);
+			const auto cap_permitted_param = evt.get_param(21);
+			const auto cap_effective_param = evt.get_param(22);
+			// If one capability set is present, so is for the other ones, so just check the
+			// presence of one of them.
+			if(!cap_effective_param->empty()) {
+				evt.get_tinfo()->m_cap_inheritable = cap_inheritable_param->as<uint64_t>();
+				evt.get_tinfo()->m_cap_permitted = cap_permitted_param->as<uint64_t>();
+				evt.get_tinfo()->m_cap_effective = cap_effective_param->as<uint64_t>();
+			}
 		}
 	}
 
 	// Get exe ino fields
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 25) {
-		evt.get_tinfo()->m_exe_ino = evt.get_param(23)->as<uint64_t>();
+		const auto exe_ino_param = evt.get_param(23);
+		const auto exe_ino_ctime_param = evt.get_param(24);
+		const auto exe_ino_mtime_param = evt.get_param(25);
+		// If one of these parameters is present, so is for the other ones, so just check the
+		// presence of one of them.
+		if(!exe_ino_mtime_param->empty()) {
+			evt.get_tinfo()->m_exe_ino = exe_ino_param->as<uint64_t>();
 
-		evt.get_tinfo()->m_exe_ino_ctime = evt.get_param(24)->as<uint64_t>();
+			evt.get_tinfo()->m_exe_ino_ctime = exe_ino_ctime_param->as<uint64_t>();
 
-		evt.get_tinfo()->m_exe_ino_mtime = evt.get_param(25)->as<uint64_t>();
+			evt.get_tinfo()->m_exe_ino_mtime = exe_ino_mtime_param->as<uint64_t>();
 
-		if(evt.get_tinfo()->m_clone_ts != 0) {
-			evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
-			        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
-		}
+			if(evt.get_tinfo()->m_clone_ts != 0) {
+				evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
+				        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
+			}
 
-		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
-		   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
-			evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
-			        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
+			if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
+			   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
+				evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
+				        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
+			}
 		}
 	}
 
 	// Get uid
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 26) {
-		// Notice: this can potentially set uid to UINT32_MAX, which is used to denote an uid
-		// invalid value.
-		evt.get_tinfo()->set_user(evt.get_param(26)->as<uint32_t>(),
-		                          must_notify_thread_user_update());
+		if(const auto uid_param = evt.get_param(26); !uid_param->empty()) {
+			// Notice: this can potentially set uid to UINT32_MAX, which is used to denote an uid
+			// invalid value.
+			evt.get_tinfo()->set_user(uid_param->as<uint32_t>(), must_notify_thread_user_update());
+		}
 	}
 
 	// Get pgid
+	int64_t pgid = -1;
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 28) {
-		evt.get_tinfo()->m_pgid = evt.get_param(28)->as<int64_t>();
-	} else {
-		evt.get_tinfo()->m_pgid = -1;
+		if(const auto pgid_param = evt.get_param(28); !pgid_param->empty()) {
+			pgid = pgid_param->as<int64_t>();
+		}
 	}
+	evt.get_tinfo()->m_pgid = pgid;
 
 	// Get gid
+	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
+	//   handled by this parser, and replace it with the below check on parameter emptiness.
 	if(evt.get_num_params() > 29) {
-		evt.get_tinfo()->set_group(evt.get_param(29)->as<uint32_t>(),
-		                           must_notify_thread_group_update());
+		if(const auto gid_param = evt.get_param(29); !gid_param->empty()) {
+			evt.get_tinfo()->set_group(gid_param->as<uint32_t>(),
+			                           must_notify_thread_group_update());
+		}
 	}
 
 	//
