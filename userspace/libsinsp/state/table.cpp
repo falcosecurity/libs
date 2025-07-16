@@ -284,26 +284,21 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-#define _X(_type, _dtype)                                                                    \
-	{                                                                                        \
-		auto acc = this->field(name, typeinfo::of<_type>());                                 \
-		if(acc == nullptr) {                                                                 \
-			throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" + \
-			                      std::string(this->name()) + "'");                          \
-		}                                                                                    \
-		owner->m_accessed_table_fields.emplace_back(std::move(acc));                         \
-		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().raw_ptr();     \
-		return cast(this->m_field_accessors[name]);                                          \
-	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);
 		if(it != this->m_field_accessors.end()) {
 			return cast(it->second);
 		}
 
-		__PLUGIN_STATETYPE_SWITCH(data_type);
+		auto acc = this->field(name, typeinfo::from(data_type));
+		if(acc == nullptr) {
+			throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
+			                      std::string(this->name()) + "'");
+		}
+		owner->m_accessed_table_fields.emplace_back(std::move(acc));
+		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().raw_ptr();
+		return cast(this->m_field_accessors[name]);
 	});
-#undef _X
 
 	return NULL;
 }
@@ -313,14 +308,8 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-#define _X(_type, _dtype)                             \
-	{                                                 \
-		this->new_field(name, typeinfo::of<_type>()); \
-		break;                                        \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(data_type); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { this->new_field(name, typeinfo::from(data_type)); });
 	return get_field(owner, name, data_type);
-#undef _X
 }
 
 template<typename KeyType>
