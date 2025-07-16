@@ -18,7 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
@@ -43,19 +42,11 @@ public:
 	 */
 	class field_info {
 	public:
-		template<typename T>
-		static inline field_info build(const std::string& name,
-		                               size_t index,
-		                               uintptr_t defsptr,
-		                               bool readonly = false) {
-			return field_info(name, index, libsinsp::state::typeinfo::of<T>(), defsptr, readonly);
-		}
-
 		inline field_info(const std::string& n,
 		                  size_t in,
 		                  const typeinfo& i,
 		                  uintptr_t defsptr,
-		                  bool r):
+		                  bool r = false):
 		        m_readonly(r),
 		        m_index(in),
 		        m_name(n),
@@ -144,12 +135,11 @@ public:
 		 * thrown if two fields are defined with the same name and with
 		 * incompatible types, otherwise the previous definition is returned.
 		 *
-		 * @tparam T Type of the field.
 		 * @param name Display name of the field.
+		 * @param type_info Type of the field.
 		 */
-		template<typename T>
-		inline const field_info& add_field(const std::string& name) {
-			auto field = field_info::build<T>(name, m_definitions.size(), id());
+		inline const field_info& add_field(const std::string& name, const typeinfo& type_info) {
+			auto field = field_info(name, m_definitions.size(), type_info, id());
 			return add_field_info(field);
 		}
 
@@ -398,14 +388,8 @@ public:
 
 	using table_fields::add_field;
 	accessor::ptr add_field(const char* name, const typeinfo& type_info) override {
-#define _X(_type, _dtype)                                        \
-	{                                                            \
-		this->dynamic_fields()->template add_field<_type>(name); \
-		break;                                                   \
-	}
-		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+		this->dynamic_fields()->add_field(name, type_info);
 		return get_field(name, type_info);
-#undef _X
 	}
 
 	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
