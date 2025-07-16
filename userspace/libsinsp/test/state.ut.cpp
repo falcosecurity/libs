@@ -106,10 +106,10 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_EQ(field_str->second.info(), libsinsp::state::typeinfo::of<std::string>());
 
 	// check field access
-	auto acc_num = field_num->second.new_accessor<uint32_t>().template into<uint32_t>();
-	auto acc_str = field_str->second.new_accessor<std::string>().template into<std::string>();
-	ASSERT_ANY_THROW(field_num->second.new_accessor<uint64_t>());
-	ASSERT_ANY_THROW(field_str->second.new_accessor<uint64_t>());
+	auto acc_num = field_num->second.new_accessor().template into<uint32_t>();
+	auto acc_str = field_str->second.new_accessor().template into<std::string>();
+	ASSERT_ANY_THROW((void)field_num->second.new_accessor().template into<uint64_t>());
+	ASSERT_ANY_THROW((void)field_str->second.new_accessor().template into<uint64_t>());
 
 	ASSERT_EQ(s.get_num(), 0);
 	ASSERT_EQ(s.read_field(acc_num), 0);
@@ -147,10 +147,8 @@ TEST(static_struct, defs_and_access) {
 	// but for now we have no elegant way to do it efficiently.
 	// todo(jasondellaluce): find a good way to check for this
 	sample_struct2 s2;
-	auto acc_num2 = s2.get_static_fields()
-	                        .find("num")
-	                        ->second.new_accessor<uint32_t>()
-	                        .template into<uint32_t>();
+	auto acc_num2 =
+	        s2.get_static_fields().find("num")->second.new_accessor().template into<uint32_t>();
 	ASSERT_NO_THROW(s.read_field(acc_num2));
 }
 
