@@ -29,50 +29,20 @@ public:
 	        dynamic_struct(dynamic_fields) {}
 
 protected:
-	struct reader {
-		const extensible_struct* self;
-		const accessor* acc;
-
-		template<typename T>
-		const void* operator()() const {
-			if(auto static_acc = dynamic_cast<const static_struct::field_accessor<T>*>(acc)) {
-				return self->static_struct::raw_read_field(*static_acc);
-			}
-
-			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(acc)) {
-				return self->dynamic_struct::raw_read_field(*acc);
-			}
-
-			__builtin_unreachable();
-		}
-	};
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
+		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
+			return static_struct::raw_read_field(a);
+		} else {
+			return dynamic_struct::raw_read_field(a);
+		}
 	}
 
-	struct writer {
-		extensible_struct* self;
-		const accessor* acc;
-		const void* in;
-
-		template<typename T>
-		void operator()() const {
-			if(auto static_acc = dynamic_cast<const static_struct::field_accessor<T>*>(acc)) {
-				self->static_struct::raw_write_field(*static_acc, in);
-				return;
-			}
-
-			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(acc)) {
-				self->dynamic_struct::raw_write_field(*acc, in);
-				return;
-			}
-
-			__builtin_unreachable();
-		}
-	};
-
 	void raw_write_field(const accessor& a, const void* in) override {
-		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
+		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
+			static_struct::raw_write_field(a, in);
+		} else {
+			dynamic_struct::raw_write_field(a, in);
+		}
 	}
 };
 
@@ -90,7 +60,7 @@ public:
 		dynamic_table_fields::fields(out);
 	}
 
-	std::unique_ptr<accessor> field(const char* name, const typeinfo& type_info) override {
+	accessor::ptr field(const char* name, const typeinfo& type_info) override {
 		auto fixed_field = static_table_fields::field(name, type_info);
 		auto dynamic_field = dynamic_table_fields::field(name, type_info);
 
@@ -109,7 +79,7 @@ public:
 		return dynamic_field;
 	}
 
-	std::unique_ptr<accessor> new_field(const char* name, const typeinfo& type_info) override {
+	accessor::ptr new_field(const char* name, const typeinfo& type_info) override {
 		if(static_table_fields::field(name, type_info) != nullptr) {
 			throw sinsp_exception("can't add dynamic field already defined as static: " +
 			                      std::string(name));

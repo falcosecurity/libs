@@ -214,13 +214,14 @@ public:
 		return false;
 	}
 
-	const libsinsp::state::typed_accessor<std::string>* get_field_accessor(
+	const libsinsp::state::accessor::typed_ref<std::string> get_field_accessor(
 	        const std::string& field) const {
-		if(auto it = m_foreign_fields_accessors.find(field);
-		   it != m_foreign_fields_accessors.end()) {
-			return it->second.get();
+		const auto& accessor = m_foreign_fields_accessors.find(field);
+		if(accessor != m_foreign_fields_accessors.end()) {
+			return accessor->second.as_ref();
 		}
-		return nullptr;
+
+		throw sinsp_exception("field " + field + " not found");
 	}
 
 	inline sinsp_table<std::string>* get_table(std::string table) {
@@ -343,7 +344,7 @@ private:
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	// State table API field accessors to foreign keys written by plugins.
-	std::map<std::string, std::unique_ptr<libsinsp::state::typed_accessor<std::string>>>
+	std::map<std::string, libsinsp::state::accessor::typed_ptr<std::string>>
 	        m_foreign_fields_accessors;
 	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;

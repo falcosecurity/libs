@@ -892,7 +892,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// obtain a pointer to the subtable (check typing too)
-	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(*field));
+	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(field));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
@@ -924,9 +924,9 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		int64_t tmp;
 		std::string tmpstr;
-		e.read_field(*sfield, tmp);
+		e.read_field(sfield, tmp);
 		EXPECT_EQ(tmp, 123);
-		e.read_field(*dfield, tmpstr);
+		e.read_field(dfield, tmpstr);
 		EXPECT_EQ(tmpstr, "world");
 		return true;
 	};
@@ -998,7 +998,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	// obtain a pointer to the subtable (check typing too)
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
-	                entry->read_field(*field));
+	                entry->read_field(field));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("env"));
 	ASSERT_EQ(subtable->entries_count(), 0);
@@ -1025,7 +1025,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string tmpstr;
-		e.read_field(*dfield, tmpstr);
+		e.read_field(dfield, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
@@ -1099,7 +1099,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<
 	        std::vector<std::pair<std::string, std::string>>,
 	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>*>(
-	        entry->read_field(*field));
+	        entry->read_field(field));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("cgroups"));
 	ASSERT_EQ(subtable->entries_count(), 0);
@@ -1132,8 +1132,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string first, second;
-		e.read_field(*dfield_first, first);
-		e.read_field(*dfield_second, second);
+		e.read_field(dfield_first, first);
+		e.read_field(dfield_second, second);
 		EXPECT_EQ(first, "hello");
 		EXPECT_EQ(second, "world");
 		return true;
