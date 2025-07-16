@@ -41,11 +41,11 @@ int32_t scap_proc_scan_vtable(char *error,
 		// Add the entry to the process table, or fire the notification callback
 		//
 		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-		                          error,
-		                          new_tinfo.tid,
-		                          &new_tinfo,
-		                          NULL,
-		                          &tinfo);
+		                                      error,
+		                                      new_tinfo.tid,
+		                                      &new_tinfo,
+		                                      NULL,
+		                                      &tinfo);
 
 		if(tinfo->pid != tinfo->tid) {
 			continue;
@@ -63,11 +63,11 @@ int32_t scap_proc_scan_vtable(char *error,
 		for(j = 0; j < n_fdinfos; j++) {
 			scap_fdinfo fdi = fdinfos[j];
 			proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-			                          error,
-			                          tinfo->tid,
-			                          tinfo,
-			                          &fdi,
-			                          NULL);
+							      error,
+							      tinfo->tid,
+							      tinfo,
+							      &fdi,
+							      NULL);
 		}
 	}
 

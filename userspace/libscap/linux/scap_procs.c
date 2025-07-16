@@ -782,11 +782,11 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	// Done. Add the entry to the process table, or fire the notification callback
 	//
 	proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-	                          error,
-	                          tinfo.tid,
-	                          &tinfo,
-	                          NULL,
-	                          &new_tinfo);
+					      error,
+					      tinfo.tid,
+					      &tinfo,
+					      NULL,
+					      &new_tinfo);
 
 	//
 	// Only add fds for processes, not threads
@@ -830,11 +830,11 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
                               bool scan_sockets) {
 	struct scap_proclist single_thread_proclist;
 
-	init_proclist(&single_thread_proclist, (scap_proc_callbacks){
-			.m_proc_entry_cb =  single_thread_proc_callback,
-			.m_callback_context =  tinfo,
-			.m_refresh_start_cb = default_refresh_start_end_callback,
-			.m_refresh_end_cb = default_refresh_start_end_callback});
+	init_proclist(&single_thread_proclist,
+		      (scap_proc_callbacks){.m_proc_entry_cb = single_thread_proc_callback,
+			                    .m_callback_context =  tinfo,
+			                    .m_refresh_start_cb = default_refresh_start_end_callback,
+			                    .m_refresh_end_cb = default_refresh_start_end_callback});
 
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 

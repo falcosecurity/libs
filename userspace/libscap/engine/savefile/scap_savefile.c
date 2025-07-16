@@ -691,11 +691,11 @@ static int32_t scap_read_proclist(scap_reader_t *r,
 		// All parsed. Add the entry to the table, or fire the notification callback
 		//
 		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-		                          error,
-		                          tinfo.tid,
-		                          &tinfo,
-		                          NULL,
-		                          NULL);
+						      error,
+						      tinfo.tid,
+						      &tinfo,
+						      NULL,
+						      NULL);
 
 		if(sub_len && subreadsize != sub_len) {
 			if(subreadsize > sub_len) {
@@ -1552,7 +1552,12 @@ static int32_t scap_read_fdlist(scap_reader_t *r,
 		//
 		// Add the entry to the table, or fire the notification callback
 		//
-		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context, error, tid, NULL, &fdi, NULL);
+		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
+						      error,
+						      tid,
+						      NULL,
+						      &fdi,
+						      NULL);
 	}
 
 	//

@@ -68,7 +68,7 @@ int32_t scap_fd_add(scap_threadinfo* tinfo, scap_fdinfo* fdinfo) {
 	}
 }
 
-void default_refresh_start_end_callback(void* context){}
+void default_refresh_start_end_callback(void* context) {}
 
 int32_t default_proc_entry_callback(void* context,
                                     char* error,
@@ -150,7 +150,7 @@ int32_t default_proc_entry_callback(void* context,
 }
 
 void init_proclist(struct scap_proclist* proclist, scap_proc_callbacks callbacks) {
-	if (callbacks.m_proc_entry_cb == NULL) {
+	if(callbacks.m_proc_entry_cb == NULL) {
 		callbacks.m_proc_entry_cb = default_proc_entry_callback;
 		callbacks.m_callback_context = proclist;
 	}
