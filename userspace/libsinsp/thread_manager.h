@@ -326,7 +326,7 @@ private:
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
 
 	// State table API field accessors to foreign keys written by plugins.
-	std::map<std::string, libsinsp::state::dynamic_field_accessor<std::string>>
+	std::map<std::string, libsinsp::state::accessor::typed_ptr<std::string>>
 	        m_foreign_fields_accessors;
 	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;

@@ -51,7 +51,7 @@ public:
 	}
 
 private:
-	std::unique_ptr<libsinsp::state::dynamic_field_accessor<std::string>> m_container_id_field;
+	libsinsp::state::accessor::typed_ptr<std::string> m_container_id_field;
 
 	std::unique_ptr<sinsp_table<std::string>> m_containers_table;
 	ss_plugin_table_field_t* m_container_user_field = nullptr;
