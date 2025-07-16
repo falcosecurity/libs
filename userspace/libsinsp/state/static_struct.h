@@ -35,9 +35,6 @@ namespace state {
  */
 class static_struct : public table_entry {
 public:
-	template<typename T>
-	class field_accessor;
-
 	/**
 	 * @brief Info about a given field in a static struct.
 	 */
@@ -78,7 +75,7 @@ public:
 		 * all instances of structs where it is defined.
 		 */
 		template<typename T>
-		inline std::unique_ptr<field_accessor<T>> new_accessor() const {
+		inline accessor::ptr new_accessor() const {
 			if(!valid()) {
 				throw sinsp_exception(
 				        "can't create static struct field accessor for invalid field");
@@ -89,7 +86,7 @@ public:
 				        "incompatible type for static struct field accessor: field=" + m_name +
 				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 			}
-			return std::make_unique<field_accessor<T>>(*this);
+			return accessor::ptr(std::make_unique<field_accessor>(*this));
 		}
 
 	private:
@@ -111,15 +108,14 @@ public:
 	 * @brief An strongly-typed accessor for accessing a field of a static struct.
 	 * @tparam T Type of the field.
 	 */
-	template<typename T>
-	class field_accessor : public typed_accessor<T> {
+	class field_accessor : public accessor {
 	public:
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
 		 */
 		[[nodiscard]] const field_info& info() const { return m_info; }
 
-		explicit field_accessor(field_info info): m_info(std::move(info)) {};
+		explicit field_accessor(field_info info): accessor(info.m_info), m_info(std::move(info)) {};
 
 	private:
 		field_info m_info;
@@ -159,48 +155,36 @@ protected:
 		return fields.at(name);
 	}
 
-	struct reader {
-		const static_struct* self;
-		const accessor* acc;
-
-		template<typename T>
-		const void* operator()() const {
-			auto field_acc = dynamic_cast<const field_accessor<T>*>(acc);
-			if(!field_acc->info().valid()) {
-				throw sinsp_exception("can't get invalid field in static struct");
-			}
-			return reinterpret_cast<const char*>(self) + field_acc->info().m_offset;
-		}
-	};
-
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
+		auto acc = dynamic_cast<const field_accessor*>(&a);
+		if(!acc->info().valid()) {
+			throw sinsp_exception("can't get invalid field in static struct");
+		}
+		return reinterpret_cast<const char*>(this) + acc->info().m_offset;
 	}
 
 	struct writer {
 		static_struct* self;
-		const accessor* acc;
+		const field_accessor* acc;
 		const void* in;
 
 		template<typename T>
 		void operator()() const {
-			auto field_acc = dynamic_cast<const field_accessor<T>*>(acc);
-			if(!field_acc->info().valid()) {
-				throw sinsp_exception("can't set invalid field in static struct");
-			}
-			if(field_acc->info().readonly()) {
-				throw sinsp_exception("can't set a read-only static struct field: " +
-				                      field_acc->info().name());
-			}
-			auto ptr = reinterpret_cast<T*>(reinterpret_cast<char*>(self) +
-			                                field_acc->info().m_offset);
 			auto val = static_cast<const T*>(in);
-			*ptr = *val;
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().m_offset) = *val;
 		}
 	};
 
 	void raw_write_field(const accessor& a, const void* in) override {
-		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
+		auto acc = dynamic_cast<const field_accessor*>(&a);
+		if(!acc->info().valid()) {
+			throw sinsp_exception("can't set invalid field in static struct");
+		}
+		if(acc->info().readonly()) {
+			throw sinsp_exception("can't set a read-only static struct field: " +
+			                      acc->info().name());
+		}
+		return dispatch_lambda(a.type_info().type_id(), writer{this, acc, in});
 	}
 };
 
@@ -211,9 +195,9 @@ public:
 
 	void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
 
-	std::unique_ptr<accessor> field(const char* name, const typeinfo& type_info) override;
+	accessor::ptr field(const char* name, const typeinfo& type_info) override;
 
-	std::unique_ptr<accessor> new_field(const char* name, const typeinfo& type_info) override;
+	accessor::ptr new_field(const char* name, const typeinfo& type_info) override;
 
 private:
 	const static_struct::field_infos* const m_static_fields;
