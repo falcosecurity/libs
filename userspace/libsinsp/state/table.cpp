@@ -347,6 +347,10 @@ void libsinsp::state::extensible_table<KeyType>::list_fields(
 	}
 }
 
+ss_plugin_table_field_t* cast(const libsinsp::state::accessor* ptr) {
+	return const_cast<ss_plugin_table_field_t*>(static_cast<const ss_plugin_table_field_t*>(ptr));
+}
+
 template<typename KeyType>
 ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
@@ -355,20 +359,20 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);
 		if(it != this->m_field_accessors.end()) {
-			return static_cast<ss_plugin_table_field_t*>(it->second);
+			return cast(it->second);
 		}
 
 		auto acc = this->get_field(name, typeinfo::from(data_type));
 		owner->m_accessed_table_fields.push_back(std::move(acc));
-		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get();
-		return this->m_field_accessors[name];
+		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().raw_ptr();
+		return cast(this->m_field_accessors[name]);
 	});
 
 	return NULL;
 }
 
 template<typename KeyType>
-std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<KeyType>::get_field(
+libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_field(
         const char* name,
         const typeinfo& data_type) {
 	auto fixed_it = this->static_fields()->find(name);
@@ -381,7 +385,8 @@ std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<Key
 		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
 	}
 
-#define _X(_type, _dtype) return fixed_it->second.template new_accessor<_type>();
+#define _X(_type, _dtype) \
+	return libsinsp::state::accessor::ptr(fixed_it->second.template new_accessor<_type>());
 	if(fixed_it != this->static_fields()->end()) {
 		if(data_type.type_id() != fixed_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
@@ -390,7 +395,8 @@ std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<Key
 	}
 #undef _X
 
-#define _X(_type, _dtype) return dyn_it->second.template new_accessor<_type>();
+#define _X(_type, _dtype) \
+	return libsinsp::state::accessor::ptr(dyn_it->second.template new_accessor<_type>());
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
 		if(data_type.type_id() != dyn_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for dynamic field: " +
@@ -416,7 +422,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 }
 
 template<typename KeyType>
-std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<KeyType>::add_field(
+libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::add_field(
         const char* name,
         const typeinfo& data_type) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
@@ -432,7 +438,6 @@ std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<Key
 	__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
 	return get_field(name, data_type);
 #undef _X
-	return NULL;
 }
 
 template<typename KeyType>
@@ -560,12 +565,11 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
-#define _X(_type, _dtype)                                                        \
-	{                                                                            \
-		auto aa = static_cast<const libsinsp::state::typed_accessor<_type>*>(a); \
-		e->read_field<_type>(*aa, out->_dtype);                                  \
-		res = SS_PLUGIN_SUCCESS;                                                 \
-		break;                                                                   \
+#define _X(_type, _dtype)                                  \
+	{                                                      \
+		e->read_field<_type>(a->as<_type>(), out->_dtype); \
+		res = SS_PLUGIN_SUCCESS;                           \
+		break;                                             \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err,
 	                { __PLUGIN_STATETYPE_SWITCH(a->type_info().type_id()); });
@@ -607,13 +611,12 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 		return SS_PLUGIN_FAILURE;
 	}
 
-#define _X(_type, _dtype)                                                        \
-	{                                                                            \
-		auto aa = static_cast<const libsinsp::state::typed_accessor<_type>*>(a); \
-		_type val;                                                               \
-		convert_types(in->_dtype, val);                                          \
-		e->write_field<_type>(*aa, val);                                         \
-		return SS_PLUGIN_SUCCESS;                                                \
+#define _X(_type, _dtype)                           \
+	{                                               \
+		_type val;                                  \
+		convert_types(in->_dtype, val);             \
+		e->write_field<_type>(a->as<_type>(), val); \
+		return SS_PLUGIN_SUCCESS;                   \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err,
 	                { __PLUGIN_STATETYPE_SWITCH(a->type_info().type_id()); });
