@@ -424,14 +424,8 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::add_f
 		                      std::string(name));
 	}
 
-#define _X(_type, _dtype)                                        \
-	{                                                            \
-		this->dynamic_fields()->template add_field<_type>(name); \
-		break;                                                   \
-	}
-	__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+	this->dynamic_fields()->add_field(name, data_type);
 	return get_field(name, data_type);
-#undef _X
 }
 
 template<typename KeyType>
