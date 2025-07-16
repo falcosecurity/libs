@@ -966,8 +966,9 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		// Allocate thread storage for the value
 		//
 		if(alloc_state) {
-			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>(
-			        "_tmp_sinsp_filter_thread_totexectime");
+			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field(
+			        "_tmp_sinsp_filter_thread_totexectime",
+			        libsinsp::state::typeinfo::of<uint64_t>());
 			m_thread_dyn_field_accessor = acc.new_accessor().into<uint64_t>();
 		}
 
@@ -979,8 +980,9 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		return extract_arg("thread.cgroup", val, NULL);
 	} else if(STR_MATCH("thread.cpu")) {
 		if(alloc_state) {
-			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>(
-			        "_tmp_sinsp_filter_thread_cpu");
+			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field(
+			        "_tmp_sinsp_filter_thread_cpu",
+			        libsinsp::state::typeinfo::of<uint64_t>());
 			m_thread_dyn_field_accessor = acc.new_accessor().into<uint64_t>();
 		}
 
