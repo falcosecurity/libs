@@ -27,7 +27,6 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
-template<typename T>
 class static_field_accessor;
 
 /**
@@ -75,7 +74,7 @@ public:
 	 * all instances of structs where it is defined.
 	 */
 	template<typename T>
-	inline std::unique_ptr<static_field_accessor<T>> new_accessor() const {
+	inline accessor::typed_ptr<T> new_accessor() const {
 		if(!valid()) {
 			throw sinsp_exception("can't create static struct field accessor for invalid field");
 		}
@@ -85,7 +84,7 @@ public:
 			        "incompatible type for static struct field accessor: field=" + m_name +
 			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 		}
-		return std::make_unique<static_field_accessor<T>>(*this);
+		return accessor::typed_ptr<T>(std::make_unique<static_field_accessor>(*this));
 	}
 
 	inline static_field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
@@ -104,18 +103,19 @@ private:
 };
 
 /**
- * @brief An strongly-typed accessor for accessing a field of a static struct.
+ * @brief An accessor for accessing a field of a static struct.
  * @tparam T Type of the field.
  */
-template<typename T>
-class static_field_accessor : public typed_accessor<T> {
+class static_field_accessor : public accessor {
 public:
 	/**
 	 * @brief Returns the info about the field to which this accessor is tied.
 	 */
 	[[nodiscard]] const static_field_info& info() const { return m_info; }
 
-	explicit static_field_accessor(static_field_info info): m_info(std::move(info)) {};
+	explicit static_field_accessor(static_field_info info):
+	        accessor(info.info()),
+	        m_info(std::move(info)) {};
 
 private:
 	static_field_info m_info;
