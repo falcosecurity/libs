@@ -37,18 +37,6 @@ class dynamic_field_accessor;
  */
 class dynamic_field_info {
 public:
-	template<typename T>
-	static inline dynamic_field_info build(const std::string& name,
-	                                       size_t index,
-	                                       uintptr_t defsptr,
-	                                       bool readonly = false) {
-		return dynamic_field_info(name,
-		                          index,
-		                          libsinsp::state::typeinfo::of<T>(),
-		                          defsptr,
-		                          readonly);
-	}
-
 	inline dynamic_field_info(const std::string& n,
 	                          size_t in,
 	                          const typeinfo& i,
@@ -144,12 +132,11 @@ public:
 	 * thrown if two fields are defined with the same name and with
 	 * incompatible types, otherwise the previous definition is returned.
 	 *
-	 * @tparam T Type of the field.
 	 * @param name Display name of the field.
+	 * @param type Type of the field.
 	 */
-	template<typename T>
-	inline const dynamic_field_info& add_field(const std::string& name) {
-		auto field = dynamic_field_info::build<T>(name, m_definitions.size(), id());
+	inline const dynamic_field_info& add_field(const std::string& name, const typeinfo& type) {
+		auto field = dynamic_field_info(name, m_definitions.size(), type, id(), false);
 		return add_field_info(field);
 	}
 
