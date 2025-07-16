@@ -27,19 +27,83 @@ namespace libsinsp::state {
 
 class accessor {
 public:
+	template<typename T>
+	class typed_ref {
+	public:
+		explicit typed_ref(const accessor& ref): m_ref(ref) {}
+
+		operator const accessor&() const { return m_ref; }
+
+	private:
+		const accessor& m_ref;
+	};
+
+	template<typename T>
+	class typed_ptr {
+	public:
+		typed_ptr(): m_ptr(nullptr) {}
+		explicit typed_ptr(std::unique_ptr<const accessor> m_ptr): m_ptr(std::move(m_ptr)) {}
+		bool operator==(const typed_ptr<T>& other) const { return m_ptr == other.m_ptr; }
+		bool operator==(std::nullptr_t) const { return m_ptr == nullptr; }
+		bool operator!=(const typed_ptr<T>& other) const { return m_ptr != other.m_ptr; }
+		bool operator!=(std::nullptr_t) const { return m_ptr != nullptr; }
+
+		typed_ref<T> as_ref() const { return m_ptr->as<T>(); }
+
+	private:
+		std::unique_ptr<const accessor> m_ptr;
+	};
+
+	class ptr {
+	public:
+		explicit ptr(std::unique_ptr<const accessor> m_ptr): m_ptr(std::move(m_ptr)) {}
+		bool operator==(const ptr& other) const { return m_ptr == other.m_ptr; }
+		bool operator==(std::nullptr_t) const { return m_ptr == nullptr; }
+		bool operator!=(const ptr& other) const { return m_ptr != other.m_ptr; }
+		bool operator!=(std::nullptr_t) const { return m_ptr != nullptr; }
+
+		template<typename T>
+		[[nodiscard]] typed_ptr<T> into() {
+			if(m_ptr) {
+				m_ptr->assert_type<T>();
+			}
+			return typed_ptr<T>(std::move(m_ptr));
+		}
+
+		template<typename T>
+		[[nodiscard]] typed_ref<T> as() const {
+			return m_ptr->as<T>();
+		}
+
+		[[nodiscard]] const accessor* raw_ptr() const { return m_ptr.get(); }
+
+	private:
+		std::unique_ptr<const accessor> m_ptr;
+	};
+
 	explicit accessor(const typeinfo& m_type_info): m_type_info(m_type_info) {}
 	virtual ~accessor() = default;
 
 	[[nodiscard]] typeinfo type_info() const { return m_type_info; }
 
-private:
-	typeinfo m_type_info;
-};
+	template<typename T>
+	void assert_type() const {
+		if(typeinfo::of<T>() != m_type_info) {
+			throw sinsp_exception(std::string("type mismatch in accessor: expected ") +
+			                      typeinfo::of<T>().name() + ", got " + m_type_info.name());
+		}
+	}
 
-template<typename T>
-class typed_accessor : public accessor {
-public:
-	typed_accessor(): accessor(typeinfo::of<T>()) {}
+	template<typename T>
+	[[nodiscard]] typed_ref<T> as() const {
+		assert_type<T>();
+		return typed_ref<T>(*this);
+	}
+
+	static ptr null() { return ptr(std::unique_ptr<const accessor>(nullptr)); }
+
+protected:
+	typeinfo m_type_info;
 };
 
 /**
@@ -50,7 +114,7 @@ public:
 	virtual ~table_entry() = default;
 
 	template<typename T>
-	T read_field(const typed_accessor<T>& a) const {
+	T read_field(const accessor::typed_ref<T>& a) const {
 		auto out = static_cast<const T*>(this->raw_read_field(a));
 		if(out == nullptr) {
 			return {};
@@ -59,17 +123,32 @@ public:
 	}
 
 	template<typename T, typename Val = T>
-	void read_field(const typed_accessor<T>& a, Val& out) const {
+	void read_field(const accessor::typed_ref<T>& a, Val& out) const {
 		out = this->read_field(a);
 	}
 
+	template<typename T>
+	T read_field(const accessor::typed_ptr<T>& a) const {
+		return this->read_field(a.as_ref());
+	}
+
 	template<typename T, typename Val = T>
-	void write_field(const typed_accessor<T>& a, const Val& in) {
+	void read_field(const accessor::typed_ptr<T>& a, Val& out) const {
+		this->read_field(a.as_ref(), out);
+	}
+
+	template<typename T, typename Val = T>
+	void write_field(const accessor::typed_ref<T>& a, const Val& in) {
 		// TODO: we could use a direct assignment of const char* to strings
 		//       but we'd have to handle it deep down in each individual
 		//       implementation of raw_write_field
 		T in_val = in;
 		this->raw_write_field(a, &in_val);
+	}
+
+	template<typename T, typename Val = T>
+	void write_field(const accessor::typed_ptr<T>& a, const Val& in) {
+		write_field(a.as_ref(), in);
 	}
 
 protected:
@@ -78,7 +157,8 @@ protected:
 };
 
 template<>
-inline void table_entry::read_field(const typed_accessor<std::string>& a, const char*& out) const {
+inline void table_entry::read_field(const accessor::typed_ref<std::string>& a,
+                                    const char*& out) const {
 	auto out_ptr = static_cast<const std::string*>(this->raw_read_field(a));
 	if(out_ptr) {
 		out = out_ptr->c_str();
@@ -94,20 +174,18 @@ public:
 	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const = 0;
 
 	template<typename T>
-	std::unique_ptr<typed_accessor<T>> get_field(const char* name) {
-		auto ptr = static_cast<typed_accessor<T>*>(get_field(name, typeinfo::of<T>()).release());
-		return std::unique_ptr<typed_accessor<T>>(ptr);
+	accessor::typed_ptr<T> get_field(const char* name) {
+		return get_field(name, typeinfo::of<T>()).template into<T>();
 	}
 
-	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) = 0;
+	virtual accessor::ptr get_field(const char* name, const typeinfo& type_info) = 0;
 
 	template<typename T>
-	std::unique_ptr<typed_accessor<T>> add_field(const char* name) {
-		auto ptr = static_cast<typed_accessor<T>*>(add_field(name, typeinfo::of<T>()).release());
-		return std::unique_ptr<typed_accessor<T>>(ptr);
+	accessor::typed_ptr<T> add_field(const char* name) {
+		return add_field(name, typeinfo::of<T>()).template into<T>();
 	}
 
-	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) = 0;
+	virtual accessor::ptr add_field(const char* name, const typeinfo& type_info) = 0;
 };
 
 template<typename F, typename... Args>

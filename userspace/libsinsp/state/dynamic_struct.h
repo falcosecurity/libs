@@ -36,7 +36,6 @@ namespace libsinsp::state {
  */
 class dynamic_struct : virtual public table_entry {
 public:
-	template<typename T>
 	class field_accessor;
 
 	/**
@@ -112,7 +111,7 @@ public:
 		 * all instances of structs where it is defined.
 		 */
 		template<typename T>
-		inline std::unique_ptr<field_accessor<T>> new_accessor() const {
+		inline accessor::ptr new_accessor() const {
 			if(!valid()) {
 				throw sinsp_exception(
 				        "can't create dynamic struct field accessor for invalid field");
@@ -123,7 +122,7 @@ public:
 				        "incompatible type for dynamic struct field accessor: field=" + m_name +
 				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 			}
-			return std::make_unique<field_accessor<T>>(*this);
+			return accessor::ptr(std::make_unique<field_accessor>(*this));
 		}
 
 	private:
@@ -199,15 +198,16 @@ public:
 	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
 	 * @tparam T Type of the field.
 	 */
-	template<typename T>
-	class field_accessor : public typed_accessor<T> {
+	class field_accessor : public accessor {
 	public:
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
 		 */
 		inline const field_info& info() const { return m_info; }
 
-		inline explicit field_accessor(const field_info& info): m_info(info) {};
+		inline explicit field_accessor(const field_info& info):
+		        accessor(info.m_info),
+		        m_info(info) {};
 
 	private:
 		field_info m_info;
@@ -282,22 +282,19 @@ protected:
 	}
 
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		auto reader = [&]<typename T>() {
-			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
-			_check_defsptr(acc->info(), false);
-			return _access_dynamic_field_for_read(acc->info().index());
-		};
-		return dispatch_lambda(a.type_info().type_id(), reader);
+		auto acc = dynamic_cast<const field_accessor*>(&a);
+		_check_defsptr(acc->info(), false);
+		return _access_dynamic_field_for_read(acc->info().index());
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
+		auto acc = dynamic_cast<const field_accessor*>(&a);
+		_check_defsptr(acc->info(), true);
+		if(acc->info().readonly()) {
+			throw sinsp_exception("can't set a read-only dynamic struct field: " +
+			                      acc->info().name());
+		}
 		auto writer = [&]<typename T>() {
-			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
-			_check_defsptr(acc->info(), true);
-			if(acc->info().readonly()) {
-				throw sinsp_exception("can't set a read-only dynamic struct field: " +
-				                      acc->info().name());
-			}
 			auto ptr = static_cast<T*>(_access_dynamic_field_for_write(acc->info().index()));
 			auto val = static_cast<const T*>(in);
 			*ptr = *val;
@@ -393,7 +390,7 @@ public:
 	}
 
 	using table_fields::get_field;
-	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) override {
+	accessor::ptr get_field(const char* name, const typeinfo& type_info) override {
 		auto dyn_it = this->dynamic_fields()->fields().find(name);
 
 #define _X(_type, _dtype) \
@@ -406,11 +403,11 @@ public:
 			__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
 		}
 #undef _X
-		return nullptr;  // field not found
+		return libsinsp::state::accessor::null();  // field not found
 	}
 
 	using table_fields::add_field;
-	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override {
+	accessor::ptr add_field(const char* name, const typeinfo& type_info) override {
 #define _X(_type, _dtype)                                        \
 	{                                                            \
 		this->dynamic_fields()->template add_field<_type>(name); \

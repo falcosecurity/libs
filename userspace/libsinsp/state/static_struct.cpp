@@ -12,12 +12,13 @@ void libsinsp::state::static_table_fields::list_fields(
 		out.push_back(i);
 	}
 }
-std::unique_ptr<libsinsp::state::accessor> libsinsp::state::static_table_fields::get_field(
+
+libsinsp::state::accessor::ptr libsinsp::state::static_table_fields::get_field(
         const char* name,
         const typeinfo& type_info) {
 	auto it = m_static_fields->find(name);
 	if(it == m_static_fields->end()) {
-		return nullptr;
+		return accessor::null();
 	}
 
 #define _X(_type, _dtype) \
@@ -29,7 +30,7 @@ std::unique_ptr<libsinsp::state::accessor> libsinsp::state::static_table_fields:
 #undef _X
 }
 
-std::unique_ptr<libsinsp::state::accessor> libsinsp::state::static_table_fields::add_field(
+libsinsp::state::accessor::ptr libsinsp::state::static_table_fields::add_field(
         const char* name,
         const typeinfo& type_info) {
 	throw sinsp_exception("cannot add static fields at runtime: " + std::string(name));

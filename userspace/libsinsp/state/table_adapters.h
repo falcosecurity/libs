@@ -14,29 +14,21 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libsinsp/state/table.h>
 
 namespace libsinsp {
 namespace state {
 
-class stl_table_raw_accessor {
+class stl_table_entry_accessor : public libsinsp::state::accessor {
 public:
-	stl_table_raw_accessor(const typeinfo& m_type_info, int m_index):
-	        m_type_info(m_type_info),
+	stl_table_entry_accessor(const typeinfo& m_type_info, int m_index):
+	        accessor(m_type_info),
 	        m_index(m_index) {}
 
 	[[nodiscard]] int index() const { return m_index; }
 
 private:
-	const typeinfo m_type_info;
 	const int m_index;
-};
-
-template<typename T>
-class stl_table_entry_accessor : public libsinsp::state::typed_accessor<T>,
-                                 public stl_table_raw_accessor {
-	using stl_table_raw_accessor::stl_table_raw_accessor;
 };
 
 /**
@@ -63,59 +55,41 @@ public:
 		out.emplace_back(second);
 	}
 
-	static std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) {
+	static accessor::ptr get_field(const char* name, const typeinfo& type_info) {
 		if(strcmp(name, "first") == 0) {
 			auto tinfo = typeinfo::of<Tfirst>();
 			if(type_info.type_id() != tinfo.type_id()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return std::make_unique<stl_table_entry_accessor<Tfirst>>(tinfo, 0);
+			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 0));
 		} else if(strcmp(name, "second") == 0) {
 			auto tinfo = typeinfo::of<Tsecond>();
 			if(type_info.type_id() != tinfo.type_id()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return std::make_unique<stl_table_entry_accessor<Tsecond>>(tinfo, 1);
+			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 1));
 		}
-		throw sinsp_exception(std::string("field ") + name + " not found");
+		return accessor::null();  // field not found
 	}
 
 protected:
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		auto acc = dynamic_cast<const stl_table_raw_accessor*>(&a);
+		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() == 0) {
-			auto reader = [&]<typename T>() {
-				auto acc = dynamic_cast<const stl_table_entry_accessor<T>&>(a);
-				return &m_value->first;
-			};
-			return dispatch_lambda(a.type_info().type_id(), reader);
+			return &m_value->first;
 		} else {
-			auto reader = [&]<typename T>() {
-				auto acc = dynamic_cast<const stl_table_entry_accessor<T>&>(a);
-				return &m_value->second;
-			};
-			return dispatch_lambda(a.type_info().type_id(), reader);
+			return &m_value->second;
 		}
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
-		auto acc = dynamic_cast<const stl_table_raw_accessor*>(&a);
+		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() == 0) {
-			if(a.type_info().type_id() != typeinfo::of<Tfirst>().type_id()) {
-				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-				                      std::string(a.type_info().name()));
-			}
 			m_value->first = *static_cast<const Tfirst*>(in);
-			return;
 		} else {
-			if(a.type_info().type_id() != typeinfo::of<Tsecond>().type_id()) {
-				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-				                      std::string(a.type_info().name()));
-			}
 			m_value->second = *static_cast<const Tsecond*>(in);
-			return;
 		}
 	}
 
@@ -136,8 +110,6 @@ class value_table_entry_adapter : public libsinsp::state::table_entry {
 public:
 	inline explicit value_table_entry_adapter(): m_value(nullptr) {}
 
-	virtual ~value_table_entry_adapter() = default;
-
 	inline T* value() { return m_value; }
 
 	inline const T* value() const { return m_value; }
@@ -149,25 +121,21 @@ public:
 		out.emplace_back(value);
 	}
 
-	static std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) {
+	static accessor::ptr get_field(const char* name, const typeinfo& type_info) {
 		if(strcmp(name, "value") == 0) {
 			auto tinfo = typeinfo::of<T>();
 			if(type_info.type_id() != tinfo.type_id()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return std::make_unique<stl_table_entry_accessor<T>>(tinfo, 0);
+			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 0));
 		}
-		throw sinsp_exception(std::string("field ") + name + " not found");
+		return accessor::null();  // field not found
 	}
 
 protected:
-	const void* raw_read_field(const accessor& a) const override {
-		if(a.type_info().type_id() != typeinfo::of<T>().type_id()) {
-			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
-			                      std::string(a.type_info().name()));
-		}
-		auto acc = dynamic_cast<const stl_table_entry_accessor<T>*>(&a);
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() != 0) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::read_field");
@@ -176,11 +144,7 @@ protected:
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
-		if(a.type_info().type_id() != typeinfo::of<T>().type_id()) {
-			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
-			                      std::string(a.type_info().name()));
-		}
-		auto acc = dynamic_cast<const stl_table_entry_accessor<T>*>(&a);
+		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() != 0) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::write_field");
@@ -217,12 +181,12 @@ public:
 	}
 
 	using libsinsp::state::built_in_table<uint64_t>::get_field;
-	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) override {
+	libsinsp::state::accessor::ptr get_field(const char* name, const typeinfo& type_info) override {
 		return TWrap::get_field(name, type_info);
 	}
 
 	using libsinsp::state::built_in_table<uint64_t>::add_field;
-	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override {
+	libsinsp::state::accessor::ptr add_field(const char* name, const typeinfo& type_info) override {
 		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " +
 		                      std::string(name));
 	}

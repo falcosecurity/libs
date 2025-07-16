@@ -321,7 +321,7 @@ private:
 	const base_table* m_this_ptr;
 	std::string m_name;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
-	std::unordered_map<std::string, accessor*> m_field_accessors;
+	std::unordered_map<std::string, const accessor*> m_field_accessors;
 };
 
 class sinsp_table_owner {
@@ -338,7 +338,7 @@ protected:
 	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;  // note: lists have pointer stability
-	std::list<std::unique_ptr<libsinsp::state::accessor>>
+	std::list<libsinsp::state::accessor::ptr>
 	        m_accessed_table_fields;  // note: lists have pointer stability
 
 	bool m_ephemeral_tables_clear = false;

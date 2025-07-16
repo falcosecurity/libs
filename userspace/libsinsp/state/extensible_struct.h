@@ -30,35 +30,19 @@ public:
 
 protected:
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		auto reader = [&]<typename T>() {
-			if(auto static_acc = dynamic_cast<const static_struct::field_accessor<T>*>(&a)) {
-				return static_struct::raw_read_field(a);
-			}
-
-			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(&a)) {
-				return dynamic_struct::raw_read_field(a);
-			}
-
-			__builtin_unreachable();
-		};
-		return dispatch_lambda(a.type_info().type_id(), reader);
+		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
+			return static_struct::raw_read_field(a);
+		} else {
+			return dynamic_struct::raw_read_field(a);
+		}
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
-		auto writer = [&]<typename T>() {
-			if(auto static_acc = dynamic_cast<const static_struct::field_accessor<T>*>(&a)) {
-				static_struct::raw_write_field(*static_acc, in);
-				return;
-			}
-
-			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(&a)) {
-				dynamic_struct::raw_write_field(a, in);
-				return;
-			}
-
-			__builtin_unreachable();
-		};
-		return dispatch_lambda(a.type_info().type_id(), writer);
+		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
+			static_struct::raw_write_field(a, in);
+		} else {
+			dynamic_struct::raw_write_field(a, in);
+		}
 	}
 };
 
@@ -77,7 +61,7 @@ public:
 	}
 
 	using static_table_fields::get_field;
-	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) override {
+	accessor::ptr get_field(const char* name, const typeinfo& type_info) override {
 		auto fixed_field = static_table_fields::get_field(name, type_info);
 		auto dynamic_field = dynamic_table_fields::get_field(name, type_info);
 
@@ -97,7 +81,7 @@ public:
 	}
 
 	using static_table_fields::add_field;
-	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& type_info) override {
+	accessor::ptr add_field(const char* name, const typeinfo& type_info) override {
 		if(static_table_fields::get_field(name, type_info) != nullptr) {
 			throw sinsp_exception("can't add dynamic field already defined as static: " +
 			                      std::string(name));
