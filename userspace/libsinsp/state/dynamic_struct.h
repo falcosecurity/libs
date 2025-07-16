@@ -110,17 +110,10 @@ public:
 		 * that can be used to reading and writing the field's value in
 		 * all instances of structs where it is defined.
 		 */
-		template<typename T>
 		inline accessor::ptr new_accessor() const {
 			if(!valid()) {
 				throw sinsp_exception(
 				        "can't create dynamic struct field accessor for invalid field");
-			}
-			auto t = libsinsp::state::typeinfo::of<T>();
-			if(m_info != t) {
-				throw sinsp_exception(
-				        "incompatible type for dynamic struct field accessor: field=" + m_name +
-				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 			}
 			return accessor::ptr(std::make_unique<field_accessor>(*this));
 		}
@@ -393,16 +386,13 @@ public:
 	accessor::ptr get_field(const char* name, const typeinfo& type_info) override {
 		auto dyn_it = this->dynamic_fields()->fields().find(name);
 
-#define _X(_type, _dtype) \
-	{ return dyn_it->second.new_accessor<_type>(); }
 		if(dyn_it != this->dynamic_fields()->fields().end()) {
 			if(type_info.type_id() != dyn_it->second.info().type_id()) {
 				throw sinsp_exception("incompatible data types for dynamic field: " +
 				                      std::string(name));
 			}
-			__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+			return dyn_it->second.new_accessor();
 		}
-#undef _X
 		return libsinsp::state::accessor::null();  // field not found
 	}
 

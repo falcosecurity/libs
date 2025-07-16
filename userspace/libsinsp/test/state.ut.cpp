@@ -187,10 +187,10 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_ANY_THROW(fields->add_field<uint32_t>("str"));
 
 	// check field access
-	auto acc_num = field_num.new_accessor<uint64_t>().template into<uint64_t>();
-	auto acc_str = field_str.new_accessor<std::string>().template into<std::string>();
-	ASSERT_ANY_THROW(field_num.new_accessor<uint32_t>());
-	ASSERT_ANY_THROW(field_str.new_accessor<uint32_t>());
+	auto acc_num = field_num.new_accessor().template into<uint64_t>();
+	auto acc_str = field_str.new_accessor().template into<std::string>();
+	ASSERT_ANY_THROW((void)field_num.new_accessor().template into<uint32_t>());
+	ASSERT_ANY_THROW((void)field_str.new_accessor().template into<uint32_t>());
 
 	uint64_t tmp;
 	s.read_field(acc_num, tmp);
@@ -219,7 +219,7 @@ TEST(dynamic_struct, defs_and_access) {
 	// illegal access from an accessor created from different definition list
 	auto fields2 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
 	auto field_num2 = fields2->add_field<uint64_t>("num");
-	auto acc_num2 = field_num2.new_accessor<uint64_t>().template into<uint64_t>();
+	auto acc_num2 = field_num2.new_accessor().template into<uint64_t>();
 	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
@@ -243,7 +243,7 @@ TEST(dynamic_struct, mem_ownership) {
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field<std::string>("str");
-	auto field_str_acc = field_str.new_accessor<std::string>().template into<std::string>();
+	auto field_str_acc = field_str.new_accessor().template into<std::string>();
 
 	// write same value in both structs, ensure they have two distinct copies
 	s1.write_field(field_str_acc, std::string("hello"));
