@@ -203,13 +203,13 @@ public:
 		return false;
 	}
 
-	const libsinsp::state::dynamic_field_accessor<std::string>* get_field_accessor(
+	const libsinsp::state::accessor::typed_ref<std::string> get_field_accessor(
 	        const std::string& field) const {
 		if(auto it = m_foreign_fields_accessors.find(field);
 		   it != m_foreign_fields_accessors.end()) {
-			return &it->second;
+			return it->second.as_ref();
 		}
-		return nullptr;
+		return libsinsp::state::accessor::null().as<std::string>();
 	}
 
 	inline sinsp_table<std::string>* get_table(std::string table) {
@@ -311,7 +311,7 @@ private:
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
 
 	// State table API field accessors to foreign keys written by plugins.
-	std::map<std::string, libsinsp::state::dynamic_field_accessor<std::string>>
+	std::map<std::string, libsinsp::state::accessor::typed_ptr<std::string>>
 	        m_foreign_fields_accessors;
 	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
