@@ -30,7 +30,6 @@ limitations under the License.
 namespace libsinsp::state {
 
 class extensible_struct;
-template<typename T>
 class dynamic_field_accessor;
 
 /**
@@ -110,7 +109,7 @@ public:
 	 * all instances of structs where it is defined.
 	 */
 	template<typename T>
-	inline std::unique_ptr<dynamic_field_accessor<T>> new_accessor() const {
+	inline accessor::typed_ptr<T> new_accessor() const {
 		if(!valid()) {
 			throw sinsp_exception("can't create dynamic struct field accessor for invalid field");
 		}
@@ -120,7 +119,7 @@ public:
 			        "incompatible type for dynamic struct field accessor: field=" + m_name +
 			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 		}
-		return std::make_unique<dynamic_field_accessor<T>>(*this);
+		return accessor::typed_ptr<T>(std::make_unique<dynamic_field_accessor>(*this));
 	}
 
 private:
@@ -202,18 +201,18 @@ protected:
 };
 
 /**
- * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
- * @tparam T Type of the field.
+ * @brief An accessor for accessing a field of a dynamic struct.
  */
-template<typename T>
-class dynamic_field_accessor : public typed_accessor<T> {
+class dynamic_field_accessor : public accessor {
 public:
 	/**
 	 * @brief Returns the info about the field to which this accessor is tied.
 	 */
 	inline const dynamic_field_info& info() const { return m_info; }
 
-	inline explicit dynamic_field_accessor(const dynamic_field_info& info): m_info(info) {};
+	inline explicit dynamic_field_accessor(const dynamic_field_info& info):
+	        accessor(info.info()),
+	        m_info(info) {};
 
 private:
 	dynamic_field_info m_info;

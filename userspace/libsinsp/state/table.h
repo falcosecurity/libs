@@ -225,7 +225,7 @@ public:
 	 * @param data_type Type of the field to be retrieved.
 	 * @return The accessor for * the requested field.
 	 */
-	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type) = 0;
+	virtual accessor::ptr get_field(const char* name, const typeinfo& data_type) = 0;
 
 	/**
 	 * @brief Adds a new field to the table with the given name and type.
@@ -234,7 +234,7 @@ public:
 	 * @param data_type Type of the field to be added.
 	 * @return The accessor for the newly-added field.
 	 */
-	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type) = 0;
+	virtual accessor::ptr add_field(const char* name, const typeinfo& data_type) = 0;
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -349,7 +349,7 @@ private:
 	const base_table* m_this_ptr;
 	std::string m_name;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
-	std::unordered_map<std::string, accessor*> m_field_accessors;
+	std::unordered_map<std::string, const accessor*> m_field_accessors;
 };
 
 template<typename KeyType>
@@ -404,10 +404,10 @@ public:
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override;
 
 	using built_in_table<KeyType>::get_field;
-	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type) override;
+	accessor::ptr get_field(const char* name, const typeinfo& data_type) override;
 
 	using built_in_table<KeyType>::add_field;
-	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type) override;
+	accessor::ptr add_field(const char* name, const typeinfo& data_type) override;
 
 private:
 	const static_field_infos* m_static_fields;
@@ -427,9 +427,8 @@ protected:
 	std::list<std::unique_ptr<libsinsp::state::table_entry>>
 	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
-	        m_ephemeral_tables;  // note: lists have pointer stability
-	std::list<std::unique_ptr<accessor>>
-	        m_accessed_table_fields;  // note: lists have pointer stability
+	        m_ephemeral_tables;                        // note: lists have pointer stability
+	std::list<accessor::ptr> m_accessed_table_fields;  // note: lists have pointer stability
 
 	bool m_ephemeral_tables_clear = false;
 	bool m_accessed_entries_clear = false;

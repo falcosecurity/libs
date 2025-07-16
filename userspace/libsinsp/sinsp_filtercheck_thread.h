@@ -155,5 +155,5 @@ private:
 		double d;
 	} m_val;
 	std::vector<uint64_t> m_last_proc_switch_times;
-	std::unique_ptr<libsinsp::state::dynamic_field_accessor<uint64_t>> m_thread_dyn_field_accessor;
+	libsinsp::state::accessor::typed_ptr<uint64_t> m_thread_dyn_field_accessor;
 };

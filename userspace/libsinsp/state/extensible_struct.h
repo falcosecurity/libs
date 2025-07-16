@@ -159,33 +159,24 @@ private:
 	// end of dynamic_struct interface
 
 protected:
-	struct reader {
-		const extensible_struct* self;
-		const accessor* acc;
-
-		template<typename T>
-		const void* operator()() const {
-			if(auto static_acc = dynamic_cast<const static_field_accessor<T>*>(acc)) {
-				if(!static_acc->info().valid()) {
-					throw sinsp_exception("can't get invalid field in static struct");
-				}
-				return reinterpret_cast<const char*>(self) + static_acc->info().offset();
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
+			if(!static_acc->info().valid()) {
+				throw sinsp_exception("can't get invalid field in static struct");
 			}
+			return reinterpret_cast<const char*>(this) + static_acc->info().offset();
+		}
 
-			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor<T>*>(acc)) {
-				self->_check_defsptr(dynamic_acc->info(), false);
-				return self->_access_dynamic_field_for_read(dynamic_acc->info().index());
-			}
+		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
+			_check_defsptr(dynamic_acc->info(), false);
+			return _access_dynamic_field_for_read(dynamic_acc->info().index());
+		}
 
 #ifdef _MSC_VER
-			_assume(0);
+		_assume(0);
 #else
-			__builtin_unreachable();
+		__builtin_unreachable();
 #endif
-		}
-	};
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
 	}
 
 	struct writer {
@@ -195,7 +186,7 @@ protected:
 
 		template<typename T>
 		void operator()() const {
-			if(auto static_acc = dynamic_cast<const static_field_accessor<T>*>(acc)) {
+			if(auto static_acc = dynamic_cast<const static_field_accessor*>(acc)) {
 				if(!static_acc->info().valid()) {
 					throw sinsp_exception("can't set invalid field in static struct");
 				}
@@ -210,7 +201,7 @@ protected:
 				return;
 			}
 
-			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor<T>*>(acc)) {
+			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(acc)) {
 				self->_check_defsptr(dynamic_acc->info(), true);
 				auto ptr = static_cast<T*>(
 				        self->_access_dynamic_field_for_write(dynamic_acc->info().index()));
