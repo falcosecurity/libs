@@ -153,8 +153,6 @@ void sinsp_filter_check_fspath::create_fspath_checks() {
 	std::shared_ptr<sinsp_filter_check> evt_arg_dev = create_event_check("evt.rawarg.dev");
 	std::shared_ptr<sinsp_filter_check> evt_arg_dir = create_event_check("evt.rawarg.dir");
 
-	m_success_checks->emplace(PPME_SYSCALL_MKDIR_X, evt_arg_res_eq_0);
-
 	m_path_checks->emplace(PPME_SYSCALL_MKDIR_2_X, evt_arg_path);
 	m_success_checks->emplace(PPME_SYSCALL_MKDIR_2_X, evt_arg_res_eq_0);
 
@@ -319,7 +317,6 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 
 		// For some event types we need to get the values from the enter event instead.
 		switch(evt->get_type()) {
-		case PPME_SYSCALL_MKDIR_X:
 		case PPME_SYSCALL_RMDIR_X:
 		case PPME_SYSCALL_UNLINK_X:
 			enter_param = evt->get_enter_evt_param("path");

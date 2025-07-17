@@ -3937,23 +3937,26 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_to_3_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_2_to_3_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = 89;
 	constexpr char path[] = "/hello";
 
-	// Defaulted to 0
-	constexpr uint32_t mode = 0;
+	// Set to empty values
+	constexpr auto mode = empty_value<uint32_t>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{2};
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 2, res, path),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode),
+	        expected_empty_param_indexes);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_to_3_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_2_to_3_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -3972,7 +3975,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_to_3_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_to_MKDIR_2_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_X_1_to_2_X_3_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
