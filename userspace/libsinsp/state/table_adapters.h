@@ -249,6 +249,11 @@ public:
 #undef _X
 	}
 
+	sinsp_field_accessor_wrapper add_field(const char* name, const typeinfo& type_info) override {
+		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " +
+		                      std::string(name));
+	}
+
 	void clear_entries() override { m_container.clear(); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {

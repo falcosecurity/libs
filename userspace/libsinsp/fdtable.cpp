@@ -232,6 +232,24 @@ libsinsp::state::sinsp_field_accessor_wrapper sinsp_fdtable::get_field(
 #undef _X
 }
 
+libsinsp::state::sinsp_field_accessor_wrapper sinsp_fdtable::add_field(
+        const char* name,
+        const libsinsp::state::typeinfo& type_info) {
+	if(this->static_fields()->find(name) != this->static_fields()->end()) {
+		throw sinsp_exception("can't add dynamic field already defined as static: " +
+		                      std::string(name));
+	}
+
+#define _X(_type, _dtype)                                        \
+	{                                                            \
+		this->dynamic_fields()->template add_field<_type>(name); \
+		break;                                                   \
+	}
+	__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	return get_field(name, type_info);
+#undef _X
+}
+
 std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
 	return m_params->m_fdinfo_factory.create();
 };
