@@ -124,8 +124,7 @@ static const struct scap_platform_vtable scap_linux_platform_vtable = {
         .free_platform = scap_linux_free_platform,
 };
 
-struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback,
-                                                void* proc_callback_context) {
+struct scap_platform* scap_linux_alloc_platform(scap_proc_callbacks callbacks) {
 	struct scap_linux_platform* platform = calloc(1, sizeof(*platform));
 
 	if(platform == NULL) {
@@ -135,7 +134,7 @@ struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callbac
 	struct scap_platform* generic = &platform->m_generic;
 	generic->m_vtable = &scap_linux_platform_vtable;
 
-	init_proclist(&generic->m_proclist, proc_callback, proc_callback_context);
+	init_proclist(&generic->m_proclist, callbacks);
 
 	return generic;
 }

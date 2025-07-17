@@ -670,6 +670,8 @@ public:
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
+	void on_proc_table_refresh_start();
+	void on_proc_table_refresh_end();
 	void on_new_entry_from_proc(void* context,
 	                            int64_t tid,
 	                            scap_threadinfo* tinfo,

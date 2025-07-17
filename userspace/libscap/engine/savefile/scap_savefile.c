@@ -690,12 +690,12 @@ static int32_t scap_read_proclist(scap_reader_t *r,
 		//
 		// All parsed. Add the entry to the table, or fire the notification callback
 		//
-		proclist->m_proc_callback(proclist->m_proc_callback_context,
-		                          error,
-		                          tinfo.tid,
-		                          &tinfo,
-		                          NULL,
-		                          NULL);
+		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
+		                                      error,
+		                                      tinfo.tid,
+		                                      &tinfo,
+		                                      NULL,
+		                                      NULL);
 
 		if(sub_len && subreadsize != sub_len) {
 			if(subreadsize > sub_len) {
@@ -1552,7 +1552,12 @@ static int32_t scap_read_fdlist(scap_reader_t *r,
 		//
 		// Add the entry to the table, or fire the notification callback
 		//
-		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tid, NULL, &fdi, NULL);
+		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
+		                                      error,
+		                                      tid,
+		                                      NULL,
+		                                      &fdi,
+		                                      NULL);
 	}
 
 	//
@@ -2135,8 +2140,7 @@ static const struct scap_platform_vtable scap_savefile_platform_vtable = {
         .free_platform = scap_savefile_free_platform,
 };
 
-struct scap_platform *scap_savefile_alloc_platform(proc_entry_callback proc_callback,
-                                                   void *proc_callback_context) {
+struct scap_platform *scap_savefile_alloc_platform(scap_proc_callbacks callbacks) {
 	struct scap_savefile_platform *platform = calloc(1, sizeof(*platform));
 
 	if(platform == NULL) {
@@ -2146,7 +2150,7 @@ struct scap_platform *scap_savefile_alloc_platform(proc_entry_callback proc_call
 	platform->m_generic.m_vtable = &scap_savefile_platform_vtable;
 	platform->m_generic.m_machine_info.num_cpus = (uint32_t)-1;
 
-	init_proclist(&platform->m_generic.m_proclist, proc_callback, proc_callback_context);
+	init_proclist(&platform->m_generic.m_proclist, callbacks);
 
 	return &platform->m_generic;
 }

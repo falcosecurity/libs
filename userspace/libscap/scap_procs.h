@@ -54,6 +54,25 @@ typedef int32_t (*proc_entry_callback)(void* context,
                                        scap_fdinfo* fdinfo,
                                        scap_threadinfo** new_tinfo);
 
+typedef void (*proc_table_refresh_start)(void* context);
+typedef void (*proc_table_refresh_end)(void* context);
+
+/*!
+  @brief Full set of callbacks for proc table refresh
+  @param refresh_start: callback to be called at the start of the proc table refresh
+  @param refresh_end: callback to be called at the end of the proc table refresh
+  @param proc_callback: callback to be called for each thread or fd found
+  @param callback_context: context to be passed to the proc_callback
+*/
+typedef struct scap_proc_callbacks {
+	proc_table_refresh_start m_refresh_start_cb;
+	proc_table_refresh_end m_refresh_end_cb;
+	proc_entry_callback m_proc_entry_cb;
+	void* m_callback_context;
+} scap_proc_callbacks;
+
+void default_refresh_start_end_callback(void* context);
+
 int32_t default_proc_entry_callback(void* context,
                                     char* error,
                                     int64_t tid,
@@ -62,15 +81,11 @@ int32_t default_proc_entry_callback(void* context,
                                     scap_threadinfo** new_tinfo);
 
 struct scap_proclist {
-	proc_entry_callback m_proc_callback;
-	void* m_proc_callback_context;
-
+	scap_proc_callbacks m_callbacks;
 	scap_threadinfo* m_proclist;
 };
 
-void init_proclist(struct scap_proclist* proclist,
-                   proc_entry_callback callback,
-                   void* callback_context);
+void init_proclist(struct scap_proclist* proclist, scap_proc_callbacks callbacks);
 
 #ifdef __cplusplus
 }
