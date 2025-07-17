@@ -305,12 +305,6 @@ TEST_F(fspath, mkdirat) {
 	test_failed_exit(PPME_SYSCALL_MKDIRAT_X, 4, failed_res, evt_dirfd, path, mode);
 }
 
-TEST_F(fspath, rmdir) {
-	test_enter(PPME_SYSCALL_RMDIR_E, 1, path);
-	test_exit_path(path, path, PPME_SYSCALL_RMDIR_X, 1, res);
-	test_failed_exit(PPME_SYSCALL_RMDIR_X, 1, failed_res);
-}
-
 TEST_F(fspath, rmdir_2) {
 	test_enter(PPME_SYSCALL_RMDIR_2_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_RMDIR_2_X, 2, res, path);

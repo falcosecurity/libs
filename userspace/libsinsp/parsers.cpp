@@ -103,7 +103,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_OPENAT2_E:
 	case PPME_SYSCALL_LINK_E:
 	case PPME_SYSCALL_LINKAT_E:
-	case PPME_SYSCALL_RMDIR_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
 	case PPME_SYSCALL_EXECVE_18_E:
@@ -111,7 +110,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EXECVEAT_E:
 		store_event(evt);
 		break;
-	case PPME_SYSCALL_RMDIR_X:
 	case PPME_SYSCALL_LINK_X:
 	case PPME_SYSCALL_LINKAT_X:
 	case PPME_SYSCALL_UNLINK_X:

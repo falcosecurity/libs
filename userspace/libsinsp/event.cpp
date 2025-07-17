@@ -1700,7 +1700,6 @@ void sinsp_evt::save_enter_event_params(sinsp_evt *enter_evt) {
 
 	std::vector<const char *> *pnames = NULL;
 	switch(get_type()) {
-	case PPME_SYSCALL_RMDIR_X:
 	case PPME_SYSCALL_UNLINK_X:
 		pnames = &path_param;
 		break;

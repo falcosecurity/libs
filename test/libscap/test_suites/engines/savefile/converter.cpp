@@ -3994,6 +3994,42 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_X_1_to_2_X_3_with_enter) {
 }
 
 ////////////////////////////
+// RMDIR
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_RMDIR_X_1_to_2_X_2_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty values
+	constexpr auto path = empty_value<scap_const_sized_buffer>();
+
+	const std::set<uint32_t> expected_empty_param_indexes{1};
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_X, 1, res),
+	                       create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_2_X, 2, res, path),
+	                       expected_empty_param_indexes);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_RMDIR_X_1_to_2_X_2_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char path[] = "/hello";
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_E, 1, path);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_X, 1, res),
+	                       create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_2_X, 2, res, path));
+}
+
+////////////////////////////
 // UNSHARE
 ////////////////////////////
 
