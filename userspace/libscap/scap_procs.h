@@ -64,7 +64,6 @@ typedef void (*proc_table_refresh_end)(void* context);
   @param proc_callback: callback to be called for each thread or fd found
   @param callback_context: context to be passed to the proc_callback
 */
-
 typedef struct scap_proc_callbacks {
 	proc_table_refresh_start m_refresh_start_cb;
 	proc_table_refresh_end m_refresh_end_cb;
