@@ -357,23 +357,14 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-	if(this->static_fields()->find(name) != this->static_fields()->end()) {
-		owner->m_last_owner_err =
-		        "can't add dynamic field already defined as static: " + std::string(name);
-		return NULL;
+#define _X(_type, _dtype)                             \
+	{                                                 \
+		this->add_field(name, typeinfo::of<_type>()); \
+		break;                                        \
 	}
-
-#define _X(_type, _dtype)                                        \
-	{                                                            \
-		this->dynamic_fields()->template add_field<_type>(name); \
-		break;                                                   \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		__PLUGIN_STATETYPE_SWITCH(data_type);
-		return get_field(owner, name, data_type);
-	});
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(data_type); });
+	return get_field(owner, name, data_type);
 #undef _X
-	return NULL;
 }
 
 template<typename KeyType>

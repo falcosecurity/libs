@@ -174,6 +174,10 @@ public:
 	        const char* name,
 	        const libsinsp::state::typeinfo& type_info) override;
 
+	libsinsp::state::sinsp_field_accessor_wrapper add_field(
+	        const char* name,
+	        const libsinsp::state::typeinfo& type_info) override;
+
 	void clear_entries() override { m_threadtable.clear(); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;
