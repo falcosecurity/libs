@@ -94,11 +94,11 @@ int32_t scap_fd_handle_pipe(struct scap_proclist *proclist,
 
 	fdi->ino = ino;
 	proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-					      error,
-					      tinfo->tid,
-					      tinfo,
-					      fdi,
-					      NULL);
+	                                      error,
+	                                      tinfo->tid,
+	                                      tinfo,
+	                                      fdi,
+	                                      NULL);
 	return SCAP_SUCCESS;
 }
 
@@ -319,11 +319,11 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
 	}
 
 	proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-					      error,
-					      tinfo->tid,
-					      tinfo,
-					      fdi,
-					      NULL);
+	                                      error,
+	                                      tinfo->tid,
+	                                      tinfo,
+	                                      fdi,
+	                                      NULL);
 	return SCAP_SUCCESS;
 }
 
@@ -382,11 +382,11 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 		// it's a kind of socket, but we don't support it right now
 		fdi->type = SCAP_FD_UNSUPPORTED;
 		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-						      error,
-						      tinfo->tid,
-						      tinfo,
-						      fdi,
-						      NULL);
+		                                      error,
+		                                      tinfo->tid,
+		                                      tinfo,
+		                                      fdi,
+		                                      NULL);
 		return SCAP_SUCCESS;
 	}
 
@@ -399,11 +399,11 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 		fdi->ino = ino;
 		fdi->type = tfdi->type;
 		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-		                          error,
-		                          tinfo->tid,
-		                          tinfo,
-		                          fdi,
-		                          NULL);
+		                                      error,
+		                                      tinfo->tid,
+		                                      tinfo,
+		                                      fdi,
+		                                      NULL);
 	}
 	return SCAP_SUCCESS;
 }

@@ -156,7 +156,7 @@ void init_proclist(struct scap_proclist* proclist, scap_proc_callbacks callbacks
 	}
 
 	proclist->m_callbacks = callbacks;
-	
+
 	proclist->m_proclist = NULL;
 }
 bool scap_alloc_proclist_info(struct ppm_proclist_info** proclist_p,

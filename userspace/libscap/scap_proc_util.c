@@ -63,11 +63,11 @@ int32_t scap_proc_scan_vtable(char *error,
 		for(j = 0; j < n_fdinfos; j++) {
 			scap_fdinfo fdi = fdinfos[j];
 			proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
-							      error,
-							      tinfo->tid,
-							      tinfo,
-							      &fdi,
-							      NULL);
+			                                      error,
+			                                      tinfo->tid,
+			                                      tinfo,
+			                                      &fdi,
+			                                      NULL);
 		}
 	}
 
