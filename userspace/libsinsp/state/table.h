@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <libscap/scap_assert.h>
 #include <libsinsp/sinsp_exception.h>
+#include <libsinsp/state/extensible_struct.h>
 #include <libsinsp/state/static_struct.h>
 #include <libsinsp/state/dynamic_struct.h>
 #include <plugin/plugin_api.h>
@@ -50,10 +51,9 @@ struct sinsp_field_accessor_wrapper {
 /**
  * @brief Base class for entries of a state table.
  */
-struct table_entry : public static_struct, dynamic_struct {
+struct table_entry : public extensible_struct {
 	explicit table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
-	        static_struct(),
-	        dynamic_struct(dyn_fields) {}
+	        extensible_struct(dyn_fields) {}
 };
 
 template<typename KeyType>
