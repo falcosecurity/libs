@@ -30,11 +30,6 @@ namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
 
-/**
- * @brief Base class for entries of a state table.
- */
-using table_entry = libsinsp::state::state_struct;
-
 template<typename KeyType>
 class table;
 
