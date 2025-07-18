@@ -27,8 +27,8 @@ limitations under the License.
 #include <cstring>
 #include <vector>
 
-namespace libsinsp {
-namespace state {
+namespace libsinsp::state {
+class extensible_struct;
 
 /**
  * @brief A base class for classes and structs that allow dynamic programming
@@ -407,10 +407,11 @@ private:
 
 	std::vector<void*> m_fields;
 	std::shared_ptr<field_infos> m_dynamic_fields;
+
+	friend class extensible_struct;
 };
 
-};  // namespace state
-};  // namespace libsinsp
+};  // namespace libsinsp::state
 
 // specializations for string types
 
