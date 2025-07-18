@@ -258,7 +258,7 @@ public:
 		return *this;
 	}
 
-	virtual ~dynamic_struct() { destroy_dynamic_fields(); }
+	virtual ~dynamic_struct() { dynamic_struct::destroy_dynamic_fields(); }
 
 	/**
 	 * @brief Accesses a field with the given accessor and reads its value.
