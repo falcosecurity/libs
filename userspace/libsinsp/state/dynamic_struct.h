@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/state/state_struct.h>
+#include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
 #include <string>
@@ -33,7 +33,7 @@ namespace libsinsp::state {
  * @brief A base class for classes and structs that allow dynamic programming
  * by being extensible and allowing adding and accessing new data fields at runtime.
  */
-class dynamic_struct : virtual public state_struct {
+class dynamic_struct : virtual public table_entry {
 public:
 	template<typename T>
 	class field_accessor;
