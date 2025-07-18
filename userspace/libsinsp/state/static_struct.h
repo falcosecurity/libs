@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/state/state_struct.h>
+#include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
 #include <string>
