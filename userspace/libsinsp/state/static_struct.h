@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/state/state_struct.h>
+#include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
 #include <string>
@@ -33,7 +33,7 @@ namespace state {
  * The structure of the class is predetermined at compile-time and its fields
  * are placed at a given offset within the class memory area.
  */
-class static_struct : public state_struct {
+class static_struct : public table_entry {
 public:
 	template<typename T>
 	class field_accessor;
