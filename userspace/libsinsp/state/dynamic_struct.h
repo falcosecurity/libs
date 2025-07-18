@@ -251,6 +251,9 @@ public:
 	inline dynamic_struct(const dynamic_struct& s) { deep_fields_copy(s); }
 
 	inline dynamic_struct& operator=(const dynamic_struct& s) {
+		if(this == &s) {
+			return *this;
+		}
 		deep_fields_copy(s);
 		return *this;
 	}
