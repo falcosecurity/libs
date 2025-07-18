@@ -22,7 +22,7 @@ limitations under the License.
 #include <libsinsp/state/static_struct.h>
 
 namespace libsinsp::state {
-class extensible_struct : public state_struct {
+class extensible_struct : public table_entry {
 public:
 	explicit extensible_struct(
 	        const std::shared_ptr<dynamic_field_infos>& dynamic_fields = nullptr):
