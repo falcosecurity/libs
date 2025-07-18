@@ -76,8 +76,6 @@ public:
 
 	inline explicit pair_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
 
-	virtual ~pair_table_entry_adapter() = default;
-
 	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
 	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
@@ -224,8 +222,6 @@ public:
 	        m_container(container) {
 		set_dynamic_fields(std::make_shared<DynFields>());
 	}
-
-	virtual ~stl_container_table_adapter() = default;
 
 	size_t entries_count() const override { return m_container.size(); }
 

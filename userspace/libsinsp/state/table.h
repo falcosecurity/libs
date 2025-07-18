@@ -51,14 +51,9 @@ struct sinsp_field_accessor_wrapper {
  * @brief Base class for entries of a state table.
  */
 struct table_entry : public static_struct, dynamic_struct {
-	table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
+	explicit table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
 	        static_struct(),
 	        dynamic_struct(dyn_fields) {}
-	virtual ~table_entry() = default;
-	table_entry(table_entry&&) = default;
-	table_entry& operator=(table_entry&&) = default;
-	table_entry(const table_entry& s) = default;
-	table_entry& operator=(const table_entry& s) = default;
 };
 
 template<typename KeyType>

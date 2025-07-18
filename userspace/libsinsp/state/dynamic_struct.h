@@ -153,13 +153,6 @@ public:
 	template<typename T>
 	class field_accessor {
 	public:
-		inline field_accessor() = default;
-		inline ~field_accessor() = default;
-		inline field_accessor(field_accessor&&) = default;
-		inline field_accessor& operator=(field_accessor&&) = default;
-		inline field_accessor(const field_accessor& s) = default;
-		inline field_accessor& operator=(const field_accessor& s) = default;
-
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
 		 */
