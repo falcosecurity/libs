@@ -33,7 +33,7 @@ namespace state {
  * The structure of the class is predetermined at compile-time and its fields
  * are placed at a given offset within the class memory area.
  */
-class static_struct {
+class static_struct : virtual public state_struct {
 public:
 	template<typename T>
 	class field_accessor;
@@ -197,6 +197,33 @@ protected:
 		// todo(jasondellaluce): add extra safety boundary checks here
 		fields.insert({name, field_info(name, offset, typeinfo::of<T>(), readonly)});
 		return fields.at(name);
+	}
+
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		auto reader = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			if(!acc->info().valid()) {
+				throw sinsp_exception("can't get invalid field in static struct");
+			}
+			return reinterpret_cast<const char*>(this) + acc->info().m_offset;
+		};
+		return dispatch_lambda(a.type_info().type_id(), reader);
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto writer = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			if(!acc->info().valid()) {
+				throw sinsp_exception("can't set invalid field in static struct");
+			}
+			if(acc->info().readonly()) {
+				throw sinsp_exception("can't set a read-only static struct field: " +
+				                      acc->info().name());
+			}
+			auto val = static_cast<const T*>(in);
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(this) + acc->info().m_offset) = *val;
+		};
+		return dispatch_lambda(a.type_info().type_id(), writer);
 	}
 };
 
