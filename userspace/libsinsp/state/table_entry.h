@@ -39,9 +39,12 @@ public:
 	typed_accessor(): accessor(typeinfo::of<T>()) {}
 };
 
-class state_struct {
+/**
+ * @brief Base class for entries of a state table.
+ */
+class table_entry {
 public:
-	virtual ~state_struct() = default;
+	virtual ~table_entry() = default;
 
 	template<typename T>
 	T read_field(const typed_accessor<T>& a) const {
@@ -72,7 +75,7 @@ protected:
 };
 
 template<>
-inline void state_struct::read_field(const typed_accessor<std::string>& a, const char*& out) const {
+inline void table_entry::read_field(const typed_accessor<std::string>& a, const char*& out) const {
 	auto out_ptr = static_cast<const std::string*>(this->raw_read_field(a));
 	if(out_ptr) {
 		out = out_ptr->c_str();
