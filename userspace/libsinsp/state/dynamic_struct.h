@@ -305,11 +305,20 @@ protected:
 	 * For strings, "out" is considered of type const char**.
 	 */
 	virtual void get_dynamic_field(const field_info& i, void* out) {
-		const auto* buf = _access_dynamic_field(i.m_index);
+		const auto* buf = _access_dynamic_field_for_read(i.m_index);
 		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
-			*((const char**)out) = ((const std::string*)buf)->c_str();
+			if(buf == nullptr) {
+				*((const char**)out) = "";
+			} else {
+				*((const char**)out) = ((const std::string*)buf)->c_str();
+			}
 		} else {
-			memcpy(out, buf, i.info().size());
+			if(buf == nullptr) {
+				// if the field is not set, we return a zeroed buffer
+				memset(out, 0, i.info().size());
+			} else {
+				memcpy(out, buf, i.info().size());
+			}
 		}
 	}
 
@@ -320,7 +329,7 @@ protected:
 	 * For strings, "in" is considered of type const char**.
 	 */
 	virtual void set_dynamic_field(const field_info& i, const void* in) {
-		auto* buf = _access_dynamic_field(i.m_index);
+		auto* buf = _access_dynamic_field_for_write(i.m_index);
 		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)buf) = *((const char**)in);
 		} else {
@@ -356,7 +365,7 @@ private:
 		}
 	}
 
-	inline void* _access_dynamic_field(size_t index) {
+	inline void* _access_dynamic_field_for_write(size_t index) {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
 		}
@@ -368,6 +377,19 @@ private:
 			void* fieldbuf = malloc(def->info().size());
 			def->info().construct(fieldbuf);
 			m_fields.push_back(fieldbuf);
+		}
+		return m_fields[index];
+	}
+
+	inline void* _access_dynamic_field_for_read(size_t index) const {
+		if(!m_dynamic_fields) {
+			throw sinsp_exception("dynamic struct has no field definitions");
+		}
+		if(index >= m_dynamic_fields->m_definitions_ordered.size()) {
+			throw sinsp_exception("dynamic struct access overflow: " + std::to_string(index));
+		}
+		if(m_fields.size() <= index) {
+			return nullptr;
 		}
 		return m_fields[index];
 	}
