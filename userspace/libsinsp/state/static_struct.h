@@ -131,20 +131,13 @@ public:
 	template<typename T>
 	class field_accessor {
 	public:
-		inline field_accessor() = default;
-		inline ~field_accessor() = default;
-		inline field_accessor(field_accessor&&) = default;
-		inline field_accessor& operator=(field_accessor&&) = default;
-		inline field_accessor(const field_accessor& s) = default;
-		inline field_accessor& operator=(const field_accessor& s) = default;
-
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
 		 */
-		inline const field_info& info() const { return m_info; }
+		[[nodiscard]] const field_info& info() const { return m_info; }
 
 	private:
-		field_accessor(const field_info& info): m_info(info) {};
+		explicit field_accessor(field_info info): m_info(std::move(info)) {};
 
 		field_info m_info;
 
@@ -158,12 +151,7 @@ public:
 	 */
 	using field_infos = std::unordered_map<std::string, field_info>;
 
-	inline static_struct() = default;
-	inline virtual ~static_struct() = default;
-	inline static_struct(static_struct&&) = default;
-	inline static_struct& operator=(static_struct&&) = default;
-	inline static_struct(const static_struct& s) = default;
-	inline static_struct& operator=(const static_struct& s) = default;
+	virtual ~static_struct() = default;
 
 	/**
 	 * @brief Accesses a field with the given accessor and reads its value.
