@@ -163,7 +163,7 @@ TEST(gvisor_parsers, parse_execve_x) {
 
 	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
 	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-	EXPECT_EQ(n, 27);
+	EXPECT_EQ(n, 30);
 	EXPECT_STREQ(static_cast<const char *>(decoded_params[1].buf), "/usr/bin/ls");  // exe
 	EXPECT_STREQ(static_cast<const char *>(decoded_params[2].buf), "a");  // args[0] must be argv[1]
 	EXPECT_STREQ(static_cast<const char *>(decoded_params[6].buf), "/root");  // cwd
@@ -190,7 +190,7 @@ TEST(gvisor_parsers, parse_execve_x) {
 	EXPECT_EQ(res.scap_events.size(), 1);
 
 	n = scap_event_decode_params(res.scap_events[0], decoded_params);
-	EXPECT_EQ(n, 27);
+	EXPECT_EQ(n, 30);
 	EXPECT_STREQ(static_cast<const char *>(decoded_params[1].buf), "/usr/bin/ls");  // exe
 	EXPECT_EQ(strlen(static_cast<const char *>(decoded_params[2].buf)),
 	          0);  // there must be no args
