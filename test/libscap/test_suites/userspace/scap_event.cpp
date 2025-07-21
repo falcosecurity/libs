@@ -54,7 +54,8 @@ static int32_t scap_event_generate(scap_evt **event,
 	size_t event_size;
 	va_list args;
 	va_start(args, n);
-	int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
+	int32_t ret =
+	        scap_event_encode_params_v(event_buf, &event_size, error, event_type, nullptr, n, args);
 	va_end(args);
 
 	if(ret != SCAP_INPUT_TOO_SMALL) {
@@ -83,7 +84,7 @@ static int32_t scap_event_generate(scap_evt **event,
 	}
 
 	va_start(args, n);
-	ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
+	ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, nullptr, n, args);
 	va_end(args);
 
 	if(ret != SCAP_SUCCESS) {

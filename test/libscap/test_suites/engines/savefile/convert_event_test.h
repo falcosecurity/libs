@@ -26,34 +26,6 @@ safe_scap_evt_t new_safe_scap_evt(scap_evt *evt) {
 class convert_event_test : public testing::Test {
 	static constexpr uint16_t safe_margin = 100;
 
-	static void set_empty_parameters(const safe_scap_evt_t &expected_evt,
-	                                 const std::set<uint32_t> &expected_empty_param_indexes) {
-		if(expected_empty_param_indexes.empty()) {
-			return;
-		}
-
-		const auto evt = expected_evt.get();
-
-		uint16_t params_offset = sizeof(scap_evt) + evt->nparams * sizeof(uint16_t);
-		constexpr uint64_t zero = 0;
-		for(size_t i = 0; i < expected_evt->nparams; i++) {
-			const auto len_offset = sizeof(scap_evt) + i * sizeof(uint16_t);
-			// Get original length value.
-			uint16_t len;
-			memcpy(&len, reinterpret_cast<char *>(evt) + len_offset, sizeof(uint16_t));
-
-			if(expected_empty_param_indexes.find(i) == expected_empty_param_indexes.end()) {
-				params_offset += len;
-				continue;
-			}
-
-			// Set the parameter length and value to zero.
-			memcpy(reinterpret_cast<char *>(evt) + len_offset, &zero, sizeof(uint16_t));
-			memcpy(reinterpret_cast<char *>(evt) + params_offset, &zero, len);
-			params_offset += len;
-		}
-	}
-
 protected:
 	// Return an empty value for the type T.
 	template<typename T>
@@ -76,7 +48,25 @@ protected:
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		va_list args;
 		va_start(args, n);
-		scap_evt *evt = scap_create_event_v(error, ts, tid, event_type, n, args);
+		scap_evt *evt = scap_create_event_v(error, ts, tid, event_type, nullptr, n, args);
+		va_end(args);
+		if(evt == NULL) {
+			throw std::runtime_error("Error creating event: " + std::string(error));
+		}
+		return new_safe_scap_evt(evt);
+	}
+
+	static safe_scap_evt_t create_safe_scap_event_with_empty_params(
+	        uint64_t ts,
+	        uint64_t tid,
+	        ppm_event_code event_type,
+	        const scap_empty_params_set *empty_params_set,
+	        uint32_t n,
+	        ...) {
+		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		va_list args;
+		va_start(args, n);
+		scap_evt *evt = scap_create_event_v(error, ts, tid, event_type, empty_params_set, n, args);
 		va_end(args);
 		if(evt == NULL) {
 			throw std::runtime_error("Error creating event: " + std::string(error));
@@ -85,11 +75,9 @@ protected:
 	}
 
 	// The expected result can be either CONVERSION_CONTINUE or CONVERSION_COMPLETED
-	void assert_single_conversion_success(
-	        const conversion_result expected_res,
-	        const safe_scap_evt_t &evt_to_convert,
-	        const safe_scap_evt_t &expected_evt,
-	        const std::set<uint32_t> &expected_empty_param_indexes = {}) const {
+	void assert_single_conversion_success(const conversion_result expected_res,
+	                                      const safe_scap_evt_t &evt_to_convert,
+	                                      const safe_scap_evt_t &expected_evt) const {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, expected_evt->len));
@@ -97,8 +85,6 @@ protected:
 		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
 		          expected_res)
 		        << "Different conversion results: " << error;
-
-		set_empty_parameters(expected_evt, expected_empty_param_indexes);
 
 		if(!scap_compare_events(storage.get(), expected_evt.get(), error)) {
 			printf("\nExpected event:\n");
@@ -128,8 +114,7 @@ protected:
 		        << "The conversion is not skipped: " << error;
 	}
 	void assert_full_conversion(const safe_scap_evt_t &evt_to_convert,
-	                            const safe_scap_evt_t &expected_evt,
-	                            const std::set<uint32_t> &expected_empty_param_indexes = {}) const {
+	                            const safe_scap_evt_t &expected_evt) const {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		// Here we need to allocate more space than the expected event because in the middle we
 		// could have larger events. We could also use `MAX_EVENT_SIZE` but probably it will just
@@ -167,8 +152,6 @@ protected:
 		default:
 			break;
 		}
-
-		set_empty_parameters(expected_evt, expected_empty_param_indexes);
 
 		if(!scap_compare_events(new_evt.get(), expected_evt.get(), error)) {
 			printf("\nExpected event:\n");

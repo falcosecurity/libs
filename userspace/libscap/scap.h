@@ -845,6 +845,19 @@ bool scap_check_current_engine(scap_t* handle, const char* engine_name);
  */
 uint32_t scap_event_decode_params(const scap_evt* e, struct scap_sized_buffer* params);
 
+typedef uint64_t scap_empty_params_set;
+
+void scap_empty_params_set_init(scap_empty_params_set* set, int n, ...);
+int scap_empty_params_set_is_set(const scap_empty_params_set* set, int index);
+
+#define SCAP_EMPTY_PARAMS_SET(...)                                          \
+	({                                                                      \
+		scap_empty_params_set set = 0;                                      \
+		const int VA_ARGS_NUM = sizeof((int[]){__VA_ARGS__}) / sizeof(int); \
+		scap_empty_params_set_init(&set, VA_ARGS_NUM, __VA_ARGS__);         \
+		set;                                                                \
+	})
+
 /*!
   \brief Create an event from the parameters given as arguments.
 
@@ -864,10 +877,12 @@ uint32_t scap_event_decode_params(const scap_evt* e, struct scap_sized_buffer* p
   \param error A pointer to a scap error string to be filled in case of error.
   \param event_type The event type (normally PPME_*)
   \param n The number of parameters for this event. This is required as the number of parameters
-  used for each event can change between versions. \param ... \return int32_t The error value. If
-  the event was written successfully, SCAP_SUCCESS is returned. If the supplied buffer is not large
-  enough for the event SCAP_INPUT_TOO_SMALL is returned and event_size is set with the required size
-  to contain the entire event. In other error cases, SCAP_FAILURE is returned.
+  used for each event can change between versions.
+  \param ... Variadic arguments defining the parameter values.
+  \return int32_t The error value. If the event was written successfully, SCAP_SUCCESS is returned.
+  If the supplied buffer is not large enough for the event SCAP_INPUT_TOO_SMALL is returned and
+  event_size is set with the required size to contain the entire event. In other error cases,
+  SCAP_FAILURE is returned.
 
  */
 int32_t scap_event_encode_params(struct scap_sized_buffer event_buf,
@@ -876,25 +891,60 @@ int32_t scap_event_encode_params(struct scap_sized_buffer event_buf,
                                  ppm_event_code event_type,
                                  uint32_t n,
                                  ...);
+/*!
+  \brief Create an event from the parameters given as arguments, setting empty some of them.
+
+  Provide a superset of the functionalities of scap_event_encode_params(), allowing to specify a set
+  of parameters that must be set to empty. The parameter values, provided as variadic arguments
+  and corresponding to indexes in the empty parameters set, are ignored.
+*/
+int32_t scap_event_encode_params_with_empty_params(struct scap_sized_buffer event_buf,
+                                                   size_t* event_size,
+                                                   char* error,
+                                                   ppm_event_code event_type,
+                                                   const scap_empty_params_set* empty_params_set,
+                                                   uint32_t n,
+                                                   ...);
 int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf,
                                    size_t* event_size,
                                    char* error,
                                    ppm_event_code event_type,
+                                   const scap_empty_params_set* empty_params_set,
                                    uint32_t n,
                                    va_list args);
 bool scap_compare_events(scap_evt* curr, scap_evt* expected, char* error);
-scap_evt* scap_create_event_v(char* error,
-                              uint64_t ts,
-                              uint64_t tid,
-                              ppm_event_code event_type,
-                              uint32_t n,
-                              va_list args);
+/*!
+ \brief Create an event from the parameters given as arguments.
+
+  Variant of scap_event_encode_params() allocating a new buffer to store the event.
+ */
 scap_evt* scap_create_event(char* error,
                             uint64_t ts,
                             uint64_t tid,
                             ppm_event_code event_type,
                             uint32_t n,
                             ...);
+/*!
+  \brief Create an event from the parameters given as arguments, setting empty some of them.
+
+  Provide a superset of the functionalities of scap_create_event(), allowing to specify a set of
+  parameters that must be set to empty. The parameter values, provided as variadic arguments and
+  corresponding to indexes in the empty parameters set, are ignored.
+*/
+scap_evt* scap_create_event_with_empty_params(char* error,
+                                              uint64_t ts,
+                                              uint64_t tid,
+                                              ppm_event_code event_type,
+                                              const scap_empty_params_set* empty_params_set,
+                                              uint32_t n,
+                                              ...);
+scap_evt* scap_create_event_v(char* error,
+                              uint64_t ts,
+                              uint64_t tid,
+                              ppm_event_code event_type,
+                              const scap_empty_params_set* empty_params_set,
+                              uint32_t n,
+                              va_list args);
 typedef enum scap_print_info {
 	PRINT_HEADER = 0,
 	PRINT_HEADER_LENGTHS,

@@ -189,25 +189,67 @@ protected:
 	_add_event(ts, tid, code, n, ##__VA_ARGS__); \
 	_check_event_params(__FILE__, __LINE__, code, n, ##__VA_ARGS__)
 
-	scap_evt* _add_event(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
-	sinsp_evt* advance_ts_get_event(uint64_t ts);
+#define add_event_with_empty_params(ts, tid, code, empty_params_set, n, ...)         \
+	_add_event_with_empty_params(ts, tid, code, empty_params_set, n, ##__VA_ARGS__); \
+	_check_event_params(__FILE__, __LINE__, code, n, ##__VA_ARGS__)
 
 #define add_event_advance_ts(ts, tid, code, n, ...)         \
 	_add_event_advance_ts(ts, tid, code, n, ##__VA_ARGS__); \
 	_check_event_params(__FILE__, __LINE__, code, n, ##__VA_ARGS__)
 
-	sinsp_evt* _add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
+#define add_event_advance_ts_with_empty_params(ts, tid, code, empty_params_set, n, ...)         \
+	_add_event_advance_ts_with_empty_params(ts, tid, code, empty_params_set, n, ##__VA_ARGS__); \
+	_check_event_params(__FILE__, __LINE__, code, n, ##__VA_ARGS__)
+
+	sinsp_evt* advance_ts_get_event(uint64_t ts);
+
+	scap_evt* _add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...);
+	scap_evt* _add_event_with_empty_params(uint64_t ts,
+	                                       uint64_t tid,
+	                                       ppm_event_code event_type,
+	                                       const scap_empty_params_set* empty_params_set,
+	                                       uint32_t n,
+	                                       ...);
+
+	sinsp_evt* _add_event_advance_ts(uint64_t ts,
+	                                 uint64_t tid,
+	                                 ppm_event_code event_type,
+	                                 uint32_t n,
+	                                 ...);
+	sinsp_evt* _add_event_advance_ts_with_empty_params(
+	        uint64_t ts,
+	        uint64_t tid,
+	        ppm_event_code event_type,
+	        const scap_empty_params_set* empty_params_set,
+	        uint32_t n,
+	        ...);
 	sinsp_evt* add_event_advance_ts_v(uint64_t ts,
 	                                  uint64_t tid,
-	                                  ppm_event_code,
+	                                  ppm_event_code event_type,
+	                                  const scap_empty_params_set* empty_params_set,
 	                                  uint32_t n,
 	                                  va_list args);
-	scap_evt* create_event_v(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, va_list args);
-	scap_evt* add_event_v(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, va_list args);
-	scap_evt* add_async_event(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
+	scap_evt* create_event_v(uint64_t ts,
+	                         uint64_t tid,
+	                         ppm_event_code event_type,
+	                         const scap_empty_params_set* empty_params_set,
+	                         uint32_t n,
+	                         va_list args);
+	scap_evt* add_event_v(uint64_t ts,
+	                      uint64_t tid,
+	                      ppm_event_code event_type,
+	                      const scap_empty_params_set* empty_params_set,
+	                      uint32_t n,
+	                      va_list args);
+	scap_evt* add_async_event(uint64_t ts,
+	                          uint64_t tid,
+	                          ppm_event_code event_type,
+	                          uint32_t n,
+	                          ...);
 	scap_evt* add_async_event_v(uint64_t ts,
 	                            uint64_t tid,
-	                            ppm_event_code,
+	                            ppm_event_code event_type,
+	                            const scap_empty_params_set* empty_params_set,
 	                            uint32_t n,
 	                            va_list args);
 
