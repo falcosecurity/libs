@@ -151,7 +151,29 @@ int32_t scap_event_encode_params(struct scap_sized_buffer event_buf,
                                  ...) {
 	va_list args;
 	va_start(args, n);
-	int32_t ret = scap_event_encode_params_v(event_buf, event_size, error, event_type, n, args);
+	int32_t ret =
+	        scap_event_encode_params_v(event_buf, event_size, error, event_type, NULL, n, args);
+	va_end(args);
+
+	return ret;
+}
+
+int32_t scap_event_encode_params_with_empty_params(struct scap_sized_buffer event_buf,
+                                                   size_t *event_size,
+                                                   char *error,
+                                                   ppm_event_code event_type,
+                                                   const scap_empty_params_set *empty_params_set,
+                                                   uint32_t n,
+                                                   ...) {
+	va_list args;
+	va_start(args, n);
+	int32_t ret = scap_event_encode_params_v(event_buf,
+	                                         event_size,
+	                                         error,
+	                                         event_type,
+	                                         empty_params_set,
+	                                         n,
+	                                         args);
 	va_end(args);
 
 	return ret;
@@ -161,6 +183,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
                                    size_t *event_size,
                                    char *error,
                                    ppm_event_code event_type,
+                                   const scap_empty_params_set *empty_params_set,
                                    uint32_t n,
                                    va_list args) {
 	scap_evt *event = NULL;
@@ -287,19 +310,20 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			                      pi->type);
 		}
 
-		uint16_t param_size_16;
-		uint32_t param_size_32;
+		// Write zero as parameter length if the caller specified to set it empty.
+		const size_t len_to_write =
+		        scap_empty_params_set_is_set(empty_params_set, i) ? 0 : param.size;
 
 		switch(len_size) {
-		case sizeof(uint16_t):
-			param_size_16 = (uint16_t)(param.size & 0xffff);
-			if(param_size_16 != param.size) {
+		case sizeof(uint16_t): {
+			const uint16_t param_size_16 = len_to_write & 0xffff;
+			if(param_size_16 != len_to_write) {
 				return scap_errprintf(
 				        error,
 				        0,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
-				        param.size,
+				        len_to_write,
 				        event_type,
 				        len_size);
 			}
@@ -307,15 +331,16 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 				scap_event_set_param_length_regular(event, i, param_size_16);
 			}
 			break;
-		case sizeof(uint32_t):
-			param_size_32 = (uint32_t)(param.size & 0xffffffff);
-			if(param_size_32 != param.size) {
+		}
+		case sizeof(uint32_t): {
+			const uint32_t param_size_32 = len_to_write & 0xffffffff;
+			if(param_size_32 != len_to_write) {
 				return scap_errprintf(
 				        error,
 				        0,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
-				        param.size,
+				        len_to_write,
 				        event_type,
 				        len_size);
 			}
@@ -323,7 +348,8 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 				scap_event_set_param_length_large(event, i, param_size_32);
 			}
 			break;
-		default:
+		}
+		default: {
 			ASSERT(false);
 			return scap_errprintf(error,
 			                      0,
@@ -332,9 +358,13 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			                      len_size,
 			                      event_type);
 		}
+		}
 
-		if(scap_buffer_can_fit(event_buf, len + param.size) && param.size != 0) {
-			memcpy(((char *)event_buf.buf + len), param.buf, param.size);
+		// Notice: even if the caller specified to set the parameter as empty, it will always occupy
+		// a number of bytes determined by its type (i.e.: param.size, not len_to_write).
+		const size_t value_len = param.size;
+		if(scap_buffer_can_fit(event_buf, len + value_len) && value_len != 0) {
+			memcpy(((char *)event_buf.buf + len), param.buf, value_len);
 		}
 		len = len + param.size;
 	}
@@ -457,17 +487,52 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 	return true;
 }
 
+// If this returns NULL, check the error message.
+scap_evt *scap_create_event(char *error,
+                            uint64_t ts,
+                            uint64_t tid,
+                            ppm_event_code event_type,
+                            uint32_t n,
+                            ...) {
+	va_list args;
+	va_start(args, n);
+	scap_evt *ret = scap_create_event_v(error, ts, tid, event_type, NULL, n, args);
+	va_end(args);
+	return ret;
+}
+
+scap_evt *scap_create_event_with_empty_params(char *error,
+                                              uint64_t ts,
+                                              uint64_t tid,
+                                              ppm_event_code event_type,
+                                              const scap_empty_params_set *empty_params_set,
+                                              uint32_t n,
+                                              ...) {
+	va_list args;
+	va_start(args, n);
+	scap_evt *ret = scap_create_event_v(error, ts, tid, event_type, empty_params_set, n, args);
+	va_end(args);
+	return ret;
+}
+
 scap_evt *scap_create_event_v(char *error,
                               uint64_t ts,
                               uint64_t tid,
                               ppm_event_code event_type,
+                              const scap_empty_params_set *empty_params_set,
                               uint32_t n,
                               va_list args) {
 	struct scap_sized_buffer event_buf = {NULL, 0};
 	size_t event_size = 0;
 	va_list args2;
 	va_copy(args2, args);
-	int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
+	int32_t ret = scap_event_encode_params_v(event_buf,
+	                                         &event_size,
+	                                         error,
+	                                         event_type,
+	                                         empty_params_set,
+	                                         n,
+	                                         args);
 	if(ret != SCAP_INPUT_TOO_SMALL) {
 		goto error;
 	}
@@ -477,7 +542,13 @@ scap_evt *scap_create_event_v(char *error,
 		scap_errprintf(error, 0, "cannot alloc %ld bytes.", event_size);
 		goto error;
 	}
-	ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args2);
+	ret = scap_event_encode_params_v(event_buf,
+	                                 &event_size,
+	                                 error,
+	                                 event_type,
+	                                 empty_params_set,
+	                                 n,
+	                                 args2);
 	if(ret != SCAP_SUCCESS) {
 		event_buf.size = 0;
 		free(event_buf.buf);
@@ -491,20 +562,6 @@ scap_evt *scap_create_event_v(char *error,
 error:
 	va_end(args2);
 	return NULL;
-}
-
-// If this returns NULL, check the error message.
-scap_evt *scap_create_event(char *error,
-                            uint64_t ts,
-                            uint64_t tid,
-                            ppm_event_code event_type,
-                            uint32_t n,
-                            ...) {
-	va_list args;
-	va_start(args, n);
-	scap_evt *ret = scap_create_event_v(error, ts, tid, event_type, n, args);
-	va_end(args);
-	return ret;
 }
 
 // Only enter events have a convention on the fd parameter position.

@@ -740,30 +740,31 @@ TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_X_5_to_7_params_no_enter) {
 	constexpr auto pid = empty_value<int64_t>();
 	constexpr auto resource = empty_value<uint8_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{5, 6};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(5, 6);
 
-	assert_single_conversion_success(CONVERSION_COMPLETED,
-	                                 create_safe_scap_event(ts,
-	                                                        tid,
-	                                                        PPME_SYSCALL_PRLIMIT_X,
-	                                                        5,
-	                                                        res,
-	                                                        newcur,
-	                                                        newmax,
-	                                                        oldcur,
-	                                                        oldmax),
-	                                 create_safe_scap_event(ts,
-	                                                        tid,
-	                                                        PPME_SYSCALL_PRLIMIT_X,
-	                                                        7,
-	                                                        res,
-	                                                        newcur,
-	                                                        newmax,
-	                                                        oldcur,
-	                                                        oldmax,
-	                                                        pid,
-	                                                        resource),
-	                                 expected_empty_param_indexes);
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PRLIMIT_X,
+	                               5,
+	                               res,
+	                               newcur,
+	                               newmax,
+	                               oldcur,
+	                               oldmax),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_PRLIMIT_X,
+	                                                 &empty_params_set,
+	                                                 7,
+	                                                 res,
+	                                                 newcur,
+	                                                 newmax,
+	                                                 oldcur,
+	                                                 oldmax,
+	                                                 pid,
+	                                                 resource));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_X_5_to_7_params_with_enter) {
@@ -970,8 +971,8 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 	constexpr auto pgid = empty_value<int64_t>();
 	constexpr auto gid = empty_value<uint32_t>();
 
-	const std::set<uint32_t>
-	        expected_empty_param_indexes{18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};
+	const auto empty_params_set =
+	        SCAP_EMPTY_PARAMS_SET(18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29);
 
 	assert_full_conversion(create_safe_scap_event(ts,
 	                                              tid_hdr,
@@ -995,41 +996,41 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 	                                              env,
 	                                              tty,
 	                                              vpgid),
-	                       create_safe_scap_event(ts,
-	                                              tid_hdr,
-	                                              PPME_SYSCALL_EXECVE_19_X,
-	                                              30,
-	                                              res,
-	                                              exe,
-	                                              args,
-	                                              tid,
-	                                              pid,
-	                                              ptid,
-	                                              cwd,
-	                                              fdlimit,
-	                                              pgft_maj,
-	                                              pgft_min,
-	                                              vm_size,
-	                                              vm_rss,
-	                                              vm_swap,
-	                                              comm,
-	                                              cgroups,
-	                                              env,
-	                                              tty,
-	                                              vpgid,
-	                                              loginuid,
-	                                              flags,
-	                                              cap_inheritable,
-	                                              cap_permitted,
-	                                              cap_effective,
-	                                              exe_ino,
-	                                              exe_ino_ctime,
-	                                              exe_ino_mtime,
-	                                              uid,
-	                                              trusted_exepath,
-	                                              pgid,
-	                                              gid),
-	                       expected_empty_param_indexes);
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid_hdr,
+	                                                                PPME_SYSCALL_EXECVE_19_X,
+	                                                                &empty_params_set,
+	                                                                30,
+	                                                                res,
+	                                                                exe,
+	                                                                args,
+	                                                                tid,
+	                                                                pid,
+	                                                                ptid,
+	                                                                cwd,
+	                                                                fdlimit,
+	                                                                pgft_maj,
+	                                                                pgft_min,
+	                                                                vm_size,
+	                                                                vm_rss,
+	                                                                vm_swap,
+	                                                                comm,
+	                                                                cgroups,
+	                                                                env,
+	                                                                tty,
+	                                                                vpgid,
+	                                                                loginuid,
+	                                                                flags,
+	                                                                cap_inheritable,
+	                                                                cap_permitted,
+	                                                                cap_effective,
+	                                                                exe_ino,
+	                                                                exe_ino_ctime,
+	                                                                exe_ino_mtime,
+	                                                                uid,
+	                                                                trusted_exepath,
+	                                                                pgid,
+	                                                                gid));
 }
 
 ////////////////////////////
@@ -1860,13 +1861,20 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_1_to_4_params_no_enter) {
 	constexpr auto euid = empty_value<uint32_t>();
 	constexpr auto suid = empty_value<uint32_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{1, 2, 3};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(1, 2, 3);
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid),
-	        expected_empty_param_indexes);
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_SETRESUID_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 ruid,
+	                                                 euid,
+	                                                 suid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETRESUID_X_1_to_4_params_with_enter) {
@@ -1913,13 +1921,17 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_no_enter) {
 	// Set to empty.
 	constexpr auto uid = empty_value<uint32_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{1};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(1);
 
-	assert_single_conversion_success(
-	        CONVERSION_COMPLETED,
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid),
-	        expected_empty_param_indexes);
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_SETUID_X,
+	                                                                          &empty_params_set,
+	                                                                          2,
+	                                                                          res,
+	                                                                          uid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETUID_X_to_2_params_with_enter) {
@@ -3539,13 +3551,18 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_3_params) {
 	constexpr auto addr = empty_value<scap_const_sized_buffer>();
 	constexpr auto data = empty_value<scap_const_sized_buffer>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{0, 1, 2};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(0, 1, 2);
 
-	assert_single_conversion_success(
-	        CONVERSION_CONTINUE,
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 3, res, addr, data),
-	        expected_empty_param_indexes);
+	assert_single_conversion_success(CONVERSION_CONTINUE,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_PTRACE_X,
+	                                                                          &empty_params_set,
+	                                                                          3,
+	                                                                          res,
+	                                                                          addr,
+	                                                                          data));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_no_enter) {
@@ -3559,19 +3576,19 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_no_enter) {
 	constexpr auto pid = empty_value<int64_t>();
 	constexpr auto request = empty_value<uint16_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{0, 1, 2, 3, 4};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(0, 1, 2, 3, 4);
 
 	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
-	                       create_safe_scap_event(ts,
-	                                              tid,
-	                                              PPME_SYSCALL_PTRACE_X,
-	                                              5,
-	                                              res,
-	                                              addr,
-	                                              data,
-	                                              request,
-	                                              pid),
-	                       expected_empty_param_indexes);
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SYSCALL_PTRACE_X,
+	                                                                &empty_params_set,
+	                                                                5,
+	                                                                res,
+	                                                                addr,
+	                                                                data,
+	                                                                request,
+	                                                                pid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_with_enter) {
@@ -3586,7 +3603,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_with_enter) {
 	constexpr auto addr = empty_value<scap_const_sized_buffer>();
 	constexpr auto data = empty_value<scap_const_sized_buffer>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{0, 1, 2};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(0, 1, 2);
 
 	// After the first conversion we should have the storage
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_E, 2, request, pid);
@@ -3594,16 +3611,16 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_with_enter) {
 	assert_event_storage_presence(evt);
 
 	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_PTRACE_X, 0),
-	                       create_safe_scap_event(ts,
-	                                              tid,
-	                                              PPME_SYSCALL_PTRACE_X,
-	                                              5,
-	                                              res,
-	                                              addr,
-	                                              data,
-	                                              request,
-	                                              pid),
-	                       expected_empty_param_indexes);
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SYSCALL_PTRACE_X,
+	                                                                &empty_params_set,
+	                                                                5,
+	                                                                res,
+	                                                                addr,
+	                                                                data,
+	                                                                request,
+	                                                                pid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_no_enter) {
@@ -3618,7 +3635,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_no_enter) {
 	constexpr auto pid = empty_value<int64_t>();
 	constexpr auto request = empty_value<uint16_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{3, 4};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(3, 4);
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
@@ -3629,16 +3646,16 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_no_enter) {
 	                               res,
 	                               scap_const_sized_buffer{addr, sizeof(addr)},
 	                               scap_const_sized_buffer{data, sizeof(data)}),
-	        create_safe_scap_event(ts,
-	                               tid,
-	                               PPME_SYSCALL_PTRACE_X,
-	                               5,
-	                               res,
-	                               scap_const_sized_buffer{addr, sizeof(addr)},
-	                               scap_const_sized_buffer{data, sizeof(data)},
-	                               request,
-	                               pid),
-	        expected_empty_param_indexes);
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_PTRACE_X,
+	                                                 &empty_params_set,
+	                                                 5,
+	                                                 res,
+	                                                 scap_const_sized_buffer{addr, sizeof(addr)},
+	                                                 scap_const_sized_buffer{data, sizeof(data)},
+	                                                 request,
+	                                                 pid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_with_enter) {
@@ -3947,13 +3964,19 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_2_to_3_params_no_enter) {
 	// Set to empty values
 	constexpr auto mode = empty_value<uint32_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{2};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(2);
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 2, res, path),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode),
-	        expected_empty_param_indexes);
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_MKDIR_2_X,
+	                                                 &empty_params_set,
+	                                                 3,
+	                                                 res,
+	                                                 path,
+	                                                 mode));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_2_to_3_params_with_enter) {
@@ -4006,11 +4029,16 @@ TEST_F(convert_event_test, PPME_SYSCALL_RMDIR_X_1_to_2_X_2_no_enter) {
 	// Set to empty values
 	constexpr auto path = empty_value<scap_const_sized_buffer>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{1};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(1);
 
 	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_X, 1, res),
-	                       create_safe_scap_event(ts, tid, PPME_SYSCALL_RMDIR_2_X, 2, res, path),
-	                       expected_empty_param_indexes);
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SYSCALL_RMDIR_2_X,
+	                                                                &empty_params_set,
+	                                                                2,
+	                                                                res,
+	                                                                path));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_RMDIR_X_1_to_2_X_2_with_enter) {
@@ -5108,13 +5136,17 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_1_to_2_params_no_enter) {
 	// Set to empty.
 	constexpr auto gid = empty_value<uint32_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{1};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(1);
 
-	assert_single_conversion_success(
-	        CONVERSION_COMPLETED,
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid),
-	        expected_empty_param_indexes);
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_SETGID_X,
+	                                                                          &empty_params_set,
+	                                                                          2,
+	                                                                          res,
+	                                                                          gid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETGID_X_1_to_2_params_with_enter) {
@@ -5163,13 +5195,20 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_1_to_4_params_no_enter) {
 	constexpr auto egid = empty_value<uint32_t>();
 	constexpr auto sgid = empty_value<uint32_t>();
 
-	const std::set<uint32_t> expected_empty_param_indexes{1, 2, 3};
+	const auto empty_params_set = SCAP_EMPTY_PARAMS_SET(1, 2, 3);
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid),
-	        expected_empty_param_indexes);
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_SETRESGID_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 rgid,
+	                                                 egid,
+	                                                 sgid));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_SETRESGID_X_1_to_4_params_with_enter) {

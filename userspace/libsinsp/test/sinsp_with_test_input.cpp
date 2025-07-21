@@ -41,19 +41,6 @@ void sinsp_with_test_input::open_inspector(sinsp_mode_t mode) {
 	m_inspector.open_test_input(&m_test_data, mode);
 }
 
-scap_evt* sinsp_with_test_input::_add_event(uint64_t ts,
-                                            uint64_t tid,
-                                            ppm_event_code event_type,
-                                            uint32_t n,
-                                            ...) {
-	va_list args;
-	va_start(args, n);
-	scap_evt* ret = add_event_v(ts, tid, event_type, n, args);
-	va_end(args);
-
-	return ret;
-}
-
 sinsp_evt* sinsp_with_test_input::advance_ts_get_event(uint64_t ts) {
 	for(sinsp_evt* evt = next_event(); evt != nullptr; evt = next_event()) {
 		if(evt->get_ts() == ts) {
@@ -64,6 +51,34 @@ sinsp_evt* sinsp_with_test_input::advance_ts_get_event(uint64_t ts) {
 	return nullptr;
 }
 
+scap_evt* sinsp_with_test_input::_add_event(uint64_t ts,
+                                            uint64_t tid,
+                                            ppm_event_code event_type,
+                                            uint32_t n,
+                                            ...) {
+	va_list args;
+	va_start(args, n);
+	scap_evt* ret = add_event_v(ts, tid, event_type, nullptr, n, args);
+	va_end(args);
+
+	return ret;
+}
+
+scap_evt* sinsp_with_test_input::_add_event_with_empty_params(
+        uint64_t ts,
+        uint64_t tid,
+        ppm_event_code event_type,
+        const scap_empty_params_set* empty_params_set,
+        uint32_t n,
+        ...) {
+	va_list args;
+	va_start(args, n);
+	scap_evt* ret = add_event_v(ts, tid, event_type, empty_params_set, n, args);
+	va_end(args);
+
+	return ret;
+}
+
 // adds an event and advances the inspector to the new timestamp
 sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts,
                                                         uint64_t tid,
@@ -72,18 +87,36 @@ sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts,
                                                         ...) {
 	va_list args;
 	va_start(args, n);
-	sinsp_evt* ret = add_event_advance_ts_v(ts, tid, event_type, n, args);
+	sinsp_evt* ret = add_event_advance_ts_v(ts, tid, event_type, nullptr, n, args);
 	va_end(args);
 
 	return ret;
 }
 
-sinsp_evt* sinsp_with_test_input::add_event_advance_ts_v(uint64_t ts,
-                                                         uint64_t tid,
-                                                         ppm_event_code event_type,
-                                                         uint32_t n,
-                                                         va_list args) {
-	add_event_v(ts, tid, event_type, n, args);
+// adds an event and advances the inspector to the new timestamp
+sinsp_evt* sinsp_with_test_input::_add_event_advance_ts_with_empty_params(
+        uint64_t ts,
+        uint64_t tid,
+        ppm_event_code event_type,
+        const scap_empty_params_set* empty_params_set,
+        uint32_t n,
+        ...) {
+	va_list args;
+	va_start(args, n);
+	sinsp_evt* ret = add_event_advance_ts_v(ts, tid, event_type, empty_params_set, n, args);
+	va_end(args);
+
+	return ret;
+}
+
+sinsp_evt* sinsp_with_test_input::add_event_advance_ts_v(
+        uint64_t ts,
+        uint64_t tid,
+        ppm_event_code event_type,
+        const scap_empty_params_set* empty_params_set,
+        uint32_t n,
+        va_list args) {
+	add_event_v(ts, tid, event_type, empty_params_set, n, args);
 	sinsp_evt* evt = advance_ts_get_event(ts);
 	if(evt != nullptr) {
 		return evt;
@@ -98,6 +131,7 @@ sinsp_evt* sinsp_with_test_input::add_event_advance_ts_v(uint64_t ts,
 scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
                                                 uint64_t tid,
                                                 ppm_event_code event_type,
+                                                const scap_empty_params_set* empty_params_set,
                                                 uint32_t n,
                                                 va_list args) {
 	struct scap_sized_buffer event_buf = {NULL, 0};
@@ -106,7 +140,13 @@ scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
 	va_list args2;
 	va_copy(args2, args);
 
-	int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
+	int32_t ret = scap_event_encode_params_v(event_buf,
+	                                         &event_size,
+	                                         error,
+	                                         event_type,
+	                                         empty_params_set,
+	                                         n,
+	                                         args);
 
 	if(ret != SCAP_INPUT_TOO_SMALL) {
 		va_end(args2);
@@ -121,7 +161,13 @@ scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
 		return nullptr;
 	}
 
-	ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args2);
+	ret = scap_event_encode_params_v(event_buf,
+	                                 &event_size,
+	                                 error,
+	                                 event_type,
+	                                 empty_params_set,
+	                                 n,
+	                                 args2);
 
 	if(ret != SCAP_SUCCESS) {
 		free(event_buf.buf);
@@ -141,6 +187,7 @@ scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
 scap_evt* sinsp_with_test_input::add_event_v(uint64_t ts,
                                              uint64_t tid,
                                              ppm_event_code event_type,
+                                             const scap_empty_params_set* empty_params_set,
                                              uint32_t n,
                                              va_list args) {
 	if(ts < m_last_recorded_timestamp) {
@@ -149,7 +196,7 @@ scap_evt* sinsp_with_test_input::add_event_v(uint64_t ts,
 		        "timestamps");
 	}
 
-	scap_evt* event = create_event_v(ts, tid, event_type, n, args);
+	scap_evt* event = create_event_v(ts, tid, event_type, empty_params_set, n, args);
 	if(event == nullptr) {
 		std::stringstream ss;
 		ss << "cannot create event type: " << event_type << ", ts: " << ts << ", tid: " << tid
@@ -173,7 +220,7 @@ scap_evt* sinsp_with_test_input::add_async_event(uint64_t ts,
                                                  ...) {
 	va_list args;
 	va_start(args, n);
-	scap_evt* ret = add_async_event_v(ts, tid, event_type, n, args);
+	scap_evt* ret = add_async_event_v(ts, tid, event_type, nullptr, n, args);
 	va_end(args);
 
 	return ret;
@@ -182,9 +229,10 @@ scap_evt* sinsp_with_test_input::add_async_event(uint64_t ts,
 scap_evt* sinsp_with_test_input::add_async_event_v(uint64_t ts,
                                                    uint64_t tid,
                                                    ppm_event_code event_type,
+                                                   const scap_empty_params_set* empty_params_set,
                                                    uint32_t n,
                                                    va_list args) {
-	scap_evt* scap_event = create_event_v(ts, tid, event_type, n, args);
+	scap_evt* scap_event = create_event_v(ts, tid, event_type, empty_params_set, n, args);
 	m_async_events.push_back(scap_event);
 
 	auto event = std::make_unique<sinsp_evt>();

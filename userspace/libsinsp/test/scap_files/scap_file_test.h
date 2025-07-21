@@ -93,7 +93,25 @@ protected:
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		va_list args;
 		va_start(args, n);
-		scap_evt* evt = scap_create_event_v(error, ts, tid, event_type, n, args);
+		scap_evt* evt = scap_create_event_v(error, ts, tid, event_type, nullptr, n, args);
+		va_end(args);
+		if(evt == NULL) {
+			throw std::runtime_error("Error creating event: " + std::string(error));
+		}
+		return create_safe_scap_evt(evt);
+	}
+
+	safe_scap_evt_t create_safe_scap_event_with_empty_params(
+	        uint64_t ts,
+	        uint64_t tid,
+	        ppm_event_code event_type,
+	        scap_empty_params_set* empty_params_set,
+	        uint32_t n,
+	        ...) {
+		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		va_list args;
+		va_start(args, n);
+		scap_evt* evt = scap_create_event_v(error, ts, tid, event_type, empty_params_set, n, args);
 		va_end(args);
 		if(evt == NULL) {
 			throw std::runtime_error("Error creating event: " + std::string(error));

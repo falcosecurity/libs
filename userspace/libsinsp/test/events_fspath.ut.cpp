@@ -190,7 +190,7 @@ protected:
 	void test_enter(ppm_event_code event_type, uint32_t n, ...) {
 		va_list args;
 		va_start(args, n);
-		sinsp_evt *evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
+		sinsp_evt *evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, nullptr, n, args);
 		va_end(args);
 
 		verify_no_fields(evt);
@@ -231,7 +231,7 @@ protected:
 			break;
 		}
 
-		evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
+		evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, nullptr, n, args);
 		va_end(args);
 
 		verify_fields(event_type, evt, expected_name, expected_name_raw, NULL, NULL, NULL, NULL);
@@ -270,7 +270,7 @@ protected:
 		default:
 			break;
 		}
-		evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
+		evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, nullptr, n, args);
 		va_end(args);
 
 		verify_fields(event_type,
@@ -286,7 +286,7 @@ protected:
 	void test_failed_exit(ppm_event_code event_type, uint32_t n, ...) {
 		va_list args;
 		va_start(args, n);
-		sinsp_evt *evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
+		sinsp_evt *evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, nullptr, n, args);
 		va_end(args);
 
 		verify_no_fields(evt);
