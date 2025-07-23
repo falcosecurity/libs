@@ -22,43 +22,6 @@ limitations under the License.
 #include <sinsp_with_test_input.h>
 #include <test_utils.h>
 
-#define generate_execve_x(pid, file_to_run, comm)                                   \
-	add_event_advance_ts(increasing_ts(),                                           \
-	                     pid,                                                       \
-	                     PPME_SYSCALL_EXECVE_19_X,                                  \
-	                     30,                                                        \
-	                     (int64_t)0,                          /* res */             \
-	                     file_to_run,                         /* exe */             \
-	                     scap_const_sized_buffer{nullptr, 0}, /* args */            \
-	                     (uint64_t)pid,                       /* tid */             \
-	                     (uint64_t)pid,                       /* pid */             \
-	                     (uint64_t)pid,                       /* ptid */            \
-	                     "",                                  /* cwd */             \
-	                     (uint64_t)0,                         /* fdlimit */         \
-	                     (uint64_t)0,                         /* pgft_maj */        \
-	                     (uint64_t)0,                         /* pgft_min */        \
-	                     0,                                   /* vm_size */         \
-	                     0,                                   /* vm_rss */          \
-	                     0,                                   /* vm_swap */         \
-	                     comm,                                /* comm */            \
-	                     scap_const_sized_buffer{nullptr, 0}, /* cgroups */         \
-	                     scap_const_sized_buffer{nullptr, 0}, /* env */             \
-	                     0,                                   /* tty */             \
-	                     (uint64_t)0,                         /* vpgid */           \
-	                     0,                                   /* loginuid */        \
-	                     0,                                   /* flags */           \
-	                     (uint64_t)0,                         /* cap_inheritable */ \
-	                     (uint64_t)0,                         /* cap_permitted */   \
-	                     (uint64_t)0,                         /* cap_effective */   \
-	                     (uint64_t)0,                         /* exe_ino */         \
-	                     (uint64_t)0,                         /* exe_ino_ctime */   \
-	                     (uint64_t)0,                         /* exe_ino_mtime */   \
-	                     (uint32_t)0,                         /* uid */             \
-	                     "",                                  /* trusted_exepath */ \
-	                     (uint64_t)0,                         /* pgid */            \
-	                     (uint32_t)0                          /* gid */             \
-	)
-
 TEST_F(sinsp_with_test_input, suppress_comm) {
 	//
 	// init (pid 1)
@@ -81,7 +44,7 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 
 	// Whenever we try to add an event to sinsp_with_test_input, if
 	// the event is suppressed we get an exception.
-	EXPECT_ANY_THROW(generate_execve_x(pid, file_to_run, "sh"));
+	EXPECT_ANY_THROW(generate_execve_exit_event_with_default_params(pid, file_to_run, "sh"));
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
@@ -126,14 +89,15 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 
 	// Whenever we try to add an event to sinsp_with_test_input, if
 	// the event is suppressed we get an exception.
-	EXPECT_ANY_THROW(generate_execve_x(pid, file_to_run, "sh"));
+	EXPECT_ANY_THROW(generate_execve_exit_event_with_default_params(pid, file_to_run, "sh"));
 
 	EXPECT_ANY_THROW(add_event_advance_ts(increasing_ts(),
 	                                      pid,
 	                                      PPME_SYSCALL_EXECVE_19_E,
 	                                      1,
 	                                      "/bin/test-exe"));
-	EXPECT_ANY_THROW(generate_execve_x(pid, "/bin/test-exe", "test-exe"));
+	EXPECT_ANY_THROW(
+	        generate_execve_exit_event_with_default_params(pid, "/bin/test-exe", "test-exe"));
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 

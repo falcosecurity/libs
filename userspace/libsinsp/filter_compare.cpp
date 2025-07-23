@@ -670,6 +670,8 @@ bool flt_compare(cmpop op,
 	case PT_FLAGS32:
 	case PT_ENUMFLAGS32:
 	case PT_MODE:
+	case PT_UID:
+	case PT_GID:
 		return flt_compare_numeric<uint64_t>(op,
 		                                     flt_cast<uint32_t, uint64_t>(operand1, op1_len),
 		                                     flt_cast<uint32_t, uint64_t>(operand2, op2_len));
