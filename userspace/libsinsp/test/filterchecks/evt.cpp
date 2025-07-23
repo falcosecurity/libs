@@ -281,6 +281,17 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	// Size is PF_DEC, 512 is 512
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.size"), "512");
 	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.size < 515"));
+
+	evt = generate_execve_exit_event_with_default_params(1, "/bin/test-exe", "test-exe");
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.uid = 0"));   // PT_UID
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.pgid = 0"));  // PT_PID
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.gid = 0"));   // PT_GID
+
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+	evt = generate_connect_events();
+	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));   // PT_SOCKADDR is not comparable
+	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.tuple > 0"));  // PT_TUPLE is not comparable
+#endif
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {

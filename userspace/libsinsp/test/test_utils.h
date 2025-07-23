@@ -40,6 +40,8 @@ limitations under the License.
 #define DEFAULT_IPV4_FDNAME "172.40.111.222:54321->142.251.111.147:443"
 #define DEFAULT_IPV6_FDNAME "::1:54321->2001:4860:4860::8888:443"
 
+#define DEFAULT_UNIX_SOCKET_PATH_STRING "/tmp/socket.sock"
+
 #define DEFAULT_IP_STRING_SIZE 100
 
 #if defined(__linux__)

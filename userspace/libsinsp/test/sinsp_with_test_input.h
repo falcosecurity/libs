@@ -72,6 +72,57 @@ struct socket_params {
 	};
 };
 
+struct connect_params {
+	static constexpr int64_t default_fd = 4;
+	static constexpr int64_t default_family = AF_INET;
+	static constexpr int64_t default_src_pointer = 0xaaaaaaaaaaaaaaaa;
+	static constexpr int64_t default_dst_pointer = 0xbbbbbbbbbbbbbbbb;
+
+	int64_t fd = default_fd;
+	int family = default_family;
+
+	// AF_INET parameters.
+	uint32_t client_in_port = DEFAULT_CLIENT_PORT;
+	uint32_t server_in_port = DEFAULT_SERVER_PORT;
+	const char* client_in_addr_string = DEFAULT_IPV4_CLIENT_STRING;
+	const char* server_in_addr_string = DEFAULT_IPV4_SERVER_STRING;
+
+	// AF_INET6 parameters.
+	uint32_t client_in6_port = DEFAULT_CLIENT_PORT;
+	uint32_t server_in6_port = DEFAULT_SERVER_PORT;
+	const char* client_in6_addr_string = DEFAULT_IPV6_CLIENT_STRING;
+	const char* server_in6_addr_string = DEFAULT_IPV6_SERVER_STRING;
+
+	// AF_UNIX parameters.
+	uint64_t un_src_pointer = default_src_pointer;
+	uint64_t un_dst_pointer = default_dst_pointer;
+	const char* un_path = DEFAULT_UNIX_SOCKET_PATH_STRING;
+
+	explicit connect_params(const int family): family{family} {}
+
+	connect_params() {
+		fd = default_fd;
+		family = default_family;
+
+		// AF_INET parameters.
+		client_in_port = DEFAULT_CLIENT_PORT;
+		server_in_port = DEFAULT_SERVER_PORT;
+		client_in_addr_string = DEFAULT_IPV4_CLIENT_STRING;
+		server_in_addr_string = DEFAULT_IPV4_SERVER_STRING;
+
+		// AF_INET6 parameters.
+		client_in6_port = DEFAULT_CLIENT_PORT;
+		server_in6_port = DEFAULT_SERVER_PORT;
+		client_in6_addr_string = DEFAULT_IPV6_CLIENT_STRING;
+		server_in6_addr_string = DEFAULT_IPV6_SERVER_STRING;
+
+		// AF_UNIX parameters.
+		un_src_pointer = default_src_pointer;
+		un_dst_pointer = default_dst_pointer;
+		un_path = DEFAULT_UNIX_SOCKET_PATH_STRING;
+	}
+};
+
 struct fd_info_fields {
 	std::optional<int64_t> fd_num = std::nullopt;
 	std::optional<std::string> fd_name = std::nullopt;
@@ -278,6 +329,11 @@ protected:
 	        const std::string& resolved_kernel_path = "/bin/test-exe",
 	        const std::vector<std::string>& cgroup_vec = {},
 	        int64_t pgid = 0);
+
+	sinsp_evt* generate_execve_exit_event_with_default_params(int64_t pid,
+	                                                          const std::string& file_to_run,
+	                                                          const std::string& comm);
+
 	void remove_thread(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_random_event(int64_t tid_caller = INIT_TID);
@@ -286,6 +342,11 @@ protected:
 	                                 int64_t tid_caller = INIT_TID);
 	sinsp_evt* generate_socket_events(sinsp_test_input::socket_params params = {},
 	                                  int64_t tid_caller = INIT_TID);
+
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+	sinsp_evt* generate_connect_events(const sinsp_test_input::connect_params& params = {},
+	                                   int64_t tid_caller = INIT_TID);
+#endif
 
 	//=============================== PROCESS GENERATION ===========================
 

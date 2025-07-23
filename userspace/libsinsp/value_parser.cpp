@@ -62,6 +62,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str,
 	case PT_INT64:
 	case PT_FD:
 	case PT_ERRNO:
+	case PT_PID:
 		check_storage_size(str, max_len, sizeof(int64_t));
 		*(int64_t*)storage = sinsp_numparser::parsed64(str);
 		parsed_len = sizeof(int64_t);
@@ -109,6 +110,8 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str,
 	case PT_UINT32:
 	case PT_MODE:
 	case PT_ENUMFLAGS32:
+	case PT_UID:
+	case PT_GID:
 		check_storage_size(str, max_len, sizeof(uint32_t));
 		*(uint32_t*)storage = sinsp_numparser::parseu32(str);
 		parsed_len = sizeof(uint32_t);
@@ -126,6 +129,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str,
 		break;
 	case PT_CHARBUF:
 	case PT_SOCKADDR:
+	case PT_SOCKTUPLE:
 	case PT_SOCKFAMILY:
 	case PT_FSPATH:
 	case PT_FSRELPATH: {

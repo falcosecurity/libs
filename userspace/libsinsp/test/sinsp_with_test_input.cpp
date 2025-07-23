@@ -367,6 +367,47 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 	                            not_relevant_32);
 }
 
+sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_default_params(
+        const int64_t pid,
+        const std::string& file_to_run,
+        const std::string& comm) {
+	return add_event_advance_ts(increasing_ts(),
+	                            pid,
+	                            PPME_SYSCALL_EXECVE_19_X,
+	                            30,
+	                            (int64_t)0,                          /* res */
+	                            file_to_run.c_str(),                 /* exe */
+	                            scap_const_sized_buffer{nullptr, 0}, /* args */
+	                            (uint64_t)pid,                       /* tid */
+	                            (uint64_t)pid,                       /* pid */
+	                            (uint64_t)pid,                       /* ptid */
+	                            "",                                  /* cwd */
+	                            (uint64_t)0,                         /* fdlimit */
+	                            (uint64_t)0,                         /* pgft_maj */
+	                            (uint64_t)0,                         /* pgft_min */
+	                            0,                                   /* vm_size */
+	                            0,                                   /* vm_rss */
+	                            0,                                   /* vm_swap */
+	                            comm.c_str(),                        /* comm */
+	                            scap_const_sized_buffer{nullptr, 0}, /* cgroups */
+	                            scap_const_sized_buffer{nullptr, 0}, /* env */
+	                            0,                                   /* tty */
+	                            (uint64_t)0,                         /* vpgid */
+	                            0,                                   /* loginuid */
+	                            0,                                   /* flags */
+	                            (uint64_t)0,                         /* cap_inheritable */
+	                            (uint64_t)0,                         /* cap_permitted */
+	                            (uint64_t)0,                         /* cap_effective */
+	                            (uint64_t)0,                         /* exe_ino */
+	                            (uint64_t)0,                         /* exe_ino_ctime */
+	                            (uint64_t)0,                         /* exe_ino_mtime */
+	                            (uint32_t)0,                         /* uid */
+	                            "",                                  /* trusted_exepath */
+	                            (uint64_t)0,                         /* pgid */
+	                            (uint32_t)0                          /* gid */
+	);
+}
+
 void sinsp_with_test_input::remove_thread(int64_t tid_to_remove, int64_t reaper_tid) {
 	generate_proc_exit_event(tid_to_remove, reaper_tid);
 	// Generate a random event on init to trigger the removal after proc exit
@@ -442,6 +483,61 @@ sinsp_evt* sinsp_with_test_input::generate_socket_events(sinsp_test_input::socke
 	                            params.type,
 	                            params.proto);
 }
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+sinsp_evt* sinsp_with_test_input::generate_connect_events(
+        const sinsp_test_input::connect_params& params,
+        const int64_t tid_caller) {
+	std::vector<uint8_t> server_sockaddr;
+	std::vector<uint8_t> socktuple;
+	switch(params.family) {
+	case AF_INET: {
+		std::cout << "AF_INET" << std::endl;
+		sockaddr_in client =
+		        test_utils::fill_sockaddr_in(params.client_in_port, params.client_in_addr_string);
+		sockaddr_in server =
+		        test_utils::fill_sockaddr_in(params.server_in_port, params.server_in_addr_string);
+		server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+		socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+		                                       reinterpret_cast<sockaddr*>(&server));
+		break;
+	}
+	case AF_INET6: {
+		sockaddr_in6 client = test_utils::fill_sockaddr_in6(params.client_in6_port,
+		                                                    params.client_in6_addr_string);
+		sockaddr_in6 server = test_utils::fill_sockaddr_in6(params.server_in6_port,
+		                                                    params.server_in6_addr_string);
+		server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+		socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+		                                       reinterpret_cast<sockaddr*>(&server));
+		break;
+	}
+	case AF_UNIX: {
+		sockaddr_un server = test_utils::fill_sockaddr_un(params.un_path);
+		server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+		socktuple = test_utils::pack_unix_socktuple(0x9c758d0f, 0x9c758d0a, params.un_path);
+		break;
+	}
+	default:
+		throw sinsp_exception("Unsupported socket family " + std::to_string(params.family));
+	}
+
+	add_event_advance_ts(increasing_ts(),
+	                     tid_caller,
+	                     PPME_SOCKET_CONNECT_E,
+	                     2,
+	                     params.fd,
+	                     scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	return add_event_advance_ts(
+	        increasing_ts(),
+	        tid_caller,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        params.fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+}
+#endif
 
 //=============================== PROCESS GENERATION ===========================
 
