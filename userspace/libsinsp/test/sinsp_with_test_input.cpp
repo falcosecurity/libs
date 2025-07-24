@@ -408,6 +408,49 @@ sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_default_params
 	);
 }
 
+sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_empty_params(
+        const int64_t pid,
+        const std::string& file_to_run,
+        const std::string& comm) {
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29);
+	return add_event_advance_ts_with_empty_params(
+	        increasing_ts(),
+	        1,
+	        PPME_SYSCALL_EXECVE_19_X,
+	        &empty_params_set,
+	        30,
+	        (int64_t)0,                             /* res */
+	        file_to_run.c_str(),                    /* exe */
+	        scap_const_sized_buffer{nullptr, 0},    /* args */
+	        (uint64_t)pid,                          /* tid */
+	        (uint64_t)pid,                          /* pid */
+	        (uint64_t)pid,                          /* ptid */
+	        "",                                     /* cwd */
+	        (uint64_t)0,                            /* fdlimit */
+	        (uint64_t)0,                            /* pgft_maj */
+	        (uint64_t)0,                            /* pgft_min */
+	        0,                                      /* vm_size */
+	        0,                                      /* vm_rss */
+	        0,                                      /* vm_swap */
+	        comm.c_str(),                           /* comm */
+	        empty_value<scap_const_sized_buffer>(), /* cgroups */
+	        empty_value<scap_const_sized_buffer>(), /* env */
+	        0,                                      /* tty */
+	        (uint64_t)0,                            /* vpgid */
+	        empty_value<uint32_t>(),                /* loginuid */
+	        empty_value<uint32_t>(),                /* flags */
+	        empty_value<uint64_t>(),                /* cap_inheritable */
+	        empty_value<uint64_t>(),                /* cap_permitted */
+	        empty_value<uint64_t>(),                /* cap_effective */
+	        empty_value<uint64_t>(),                /* exe_ino */
+	        empty_value<uint64_t>(),                /* exe_ino_ctime */
+	        empty_value<uint64_t>(),                /* exe_ino_mtime */
+	        empty_value<uint32_t>(),                /* uid */
+	        empty_value<scap_const_sized_buffer>(), /* trusted_exepath */
+	        empty_value<int64_t>(),                 /* pgid */
+	        empty_value<uint32_t>());               /* gid */
+}
+
 void sinsp_with_test_input::remove_thread(int64_t tid_to_remove, int64_t reaper_tid) {
 	generate_proc_exit_event(tid_to_remove, reaper_tid);
 	// Generate a random event on init to trigger the removal after proc exit

@@ -1692,7 +1692,7 @@ bool sinsp_filter_check_event::compare_nocache(sinsp_evt* evt) {
 		// class does not support multi-valued extraction
 		uint8_t* extracted_val = extract_single(evt, &len, sanitize_strings);
 
-		if(extracted_val == NULL) {
+		if(extracted_val == NULL || len == 0) {
 			return false;
 		}
 
