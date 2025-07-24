@@ -131,34 +131,6 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_upper_layer) {
 	ASSERT_EQ(evt->get_fd_info()->is_overlay_upper(), true);
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_int) {
-	add_default_init_thread();
-
-	open_inspector();
-
-	sinsp_evt* evt =
-	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, (uint32_t)1000);
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.uid"), "1000");
-}
-
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str) {
-	add_default_init_thread();
-
-	open_inspector();
-
-	std::string path = "/home/file.txt";
-
-	// In the enter event we don't send the `PPM_O_F_CREATED`
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
-	                                      1,
-	                                      PPME_SYSCALL_OPEN_E,
-	                                      3,
-	                                      path.c_str(),
-	                                      (uint32_t)0,
-	                                      (uint32_t)0);
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.name"), path);
-}
-
 TEST_F(sinsp_with_test_input, EVT_FILTER_cmd_str) {
 	add_default_init_thread();
 
@@ -210,88 +182,6 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "<NA>");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "<NA>");
 	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(<NA>)");
-}
-
-// Test that for rawarg.X we are correctly retrieving the correct field type/format.
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
-	add_default_init_thread();
-	open_inspector();
-
-	// [PPME_SYSCALL_EPOLL_CREATE_E] = {"epoll_create", EC_WAIT | EC_SYSCALL, EF_CREATES_FD |
-	// EF_MODIFIES_STATE, 1, { {"size", PT_INT32, PF_DEC} } },
-	sinsp_evt* evt =
-	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (int32_t)-22);
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.size"), "-22");
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.size < -20"));
-
-	// [PPME_SYSCALL_SIGNALFD4_X] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD |
-	// EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"flags", PT_FLAGS16, PF_HEX, file_flags}}},
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_SIGNALFD4_X,
-	                           4,
-	                           (int64_t)-1,
-	                           (uint16_t)512,
-	                           (int64_t)9,
-	                           (uint32_t)0);
-	// 512 in hex is 200
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.flags"), "200");
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags < 515"));
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.fd"), "9");
-
-	// [PPME_SYSCALL_TIMERFD_CREATE_E] = {"timerfd_create",EC_TIME | EC_SYSCALL,EF_CREATES_FD |
-	// EF_MODIFIES_STATE,2,{{"clockid", PT_UINT8, PF_DEC},{"flags", PT_UINT8, PF_HEX}}},
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_TIMERFD_CREATE_E,
-	                           2,
-	                           (uint8_t)-1,
-	                           (uint8_t)255);
-	// 255 in hex is FF
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.flags"), "FF");
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags <= 255"));
-
-	// [PPME_SYSCALL_BRK_4_E] = {"brk", EC_MEMORY | EC_SYSCALL, EF_NONE, 1, {{"addr", PT_UINT64,
-	// PF_HEX}}}
-	uint64_t addr = UINT64_MAX;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BRK_4_E, 1, addr);
-	// UINT64_MAX is FFFFFFFFFFFFFFFF
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.addr"), "FFFFFFFFFFFFFFFF");
-	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));  // PT_SOCKADDR is not comparable
-
-	/*
-	 * Now test the bugged case where `find_longest_matching_evt_param` returns a size,
-	 * but then real event has a size that is bigger than that.
-	 * In this case, `find_longest_matching_evt_param` will find `size` param
-	 * from PPME_SYSCALL_READ_E, that is {"size", PT_UINT32, PF_DEC},
-	 * but then we call evt.rawarg.size on a PPME_SYSCALL_SPLICE_E,
-	 * whose `size` param is 64bit: {"size", PT_UINT64, PF_DEC}.
-	 */
-	// [PPME_SYSCALL_SPLICE_E] = {"splice", EC_IO_OTHER | EC_SYSCALL, EF_USES_FD, 4, {
-	//	{"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size", PT_UINT64, PF_DEC}, {
-	//		"flags", PT_FLAGS32, PF_HEX, splice_flags}}}
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_SPLICE_E,
-	                           4,
-	                           (int64_t)-1,
-	                           (int64_t)-1,
-	                           (uint64_t)512,
-	                           (uint32_t)0);
-	// Size is PF_DEC, 512 is 512
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.size"), "512");
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.size < 515"));
-
-	evt = generate_execve_exit_event_with_default_params(1, "/bin/test-exe", "test-exe");
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.uid = 0"));   // PT_UID
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.pgid = 0"));  // PT_PID
-	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.gid = 0"));   // PT_GID
-
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-	evt = generate_connect_events();
-	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));   // PT_SOCKADDR is not comparable
-	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.tuple > 0"));  // PT_TUPLE is not comparable
-#endif
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {

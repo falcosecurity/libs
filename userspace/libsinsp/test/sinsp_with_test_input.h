@@ -333,6 +333,10 @@ protected:
 	sinsp_evt* generate_execve_exit_event_with_default_params(int64_t pid,
 	                                                          const std::string& file_to_run,
 	                                                          const std::string& comm);
+	// Generate a PPME_SYSCALL_EXECVE_19_X event with empty parameters in the range 18-29.
+	sinsp_evt* generate_execve_exit_event_with_empty_params(int64_t pid,
+	                                                        const std::string& file_to_run,
+	                                                        const std::string& comm);
 
 	void remove_thread(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid);
@@ -434,6 +438,12 @@ protected:
 
 	sinsp_evt* next_event();
 
+	// Return an empty value for the type T.
+	template<typename T>
+	constexpr static T empty_value() {
+		return static_cast<T>(0);
+	}
+
 	scap_test_input_data m_test_data;
 	std::vector<scap_evt*> m_events;
 	std::vector<scap_evt*> m_async_events;
@@ -446,3 +456,13 @@ protected:
 	uint64_t m_test_timestamp = 1566230400000000000;
 	uint64_t m_last_recorded_timestamp = 0;
 };
+
+template<>
+constexpr scap_const_sized_buffer sinsp_with_test_input::empty_value() {
+	return {nullptr, 0};
+}
+
+template<>
+constexpr char* sinsp_with_test_input::empty_value() {
+	return nullptr;
+}

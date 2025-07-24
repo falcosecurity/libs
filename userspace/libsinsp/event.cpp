@@ -727,7 +727,28 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 	param_info = param->get_info();
 
 	if(param->empty()) {
-		snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "NULL");
+		// Ideally, we should always <NA>, but this would break compatibility, so keep pushing NULL
+		// for parameters that could already be empty before the scap-converter introduced the
+		// notion of "empty parameters" for all types.
+		// TODO(ekoops): consistently send the same value.
+		switch(param_info->type) {
+		case PT_BYTEBUF:
+		case PT_CHARBUF:
+		case PT_SOCKTUPLE:
+		case PT_FDLIST:
+		case PT_FSPATH:
+		case PT_CHARBUFARRAY:
+		case PT_CHARBUF_PAIR_ARRAY:
+		case PT_FSRELPATH:
+		case PT_DYN: {
+			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "NULL");
+			break;
+		}
+		default: {
+			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "<NA>");
+			break;
+		}
+		}
 		*resolved_str = &m_resolved_paramstr_storage[0];
 		return &m_paramstr_storage[0];
 	}

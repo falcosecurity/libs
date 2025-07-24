@@ -78,6 +78,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	ast_exprs.ut.cpp
 	test_utils.cpp
 	sinsp_with_test_input.cpp
+	filter_eval_test.cpp
 	events_evt.ut.cpp
 	events_file.ut.cpp
 	events_fspath.ut.cpp
