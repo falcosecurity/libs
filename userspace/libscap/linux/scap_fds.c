@@ -1278,6 +1278,7 @@ int32_t scap_fd_get_fdinfo(struct scap_linux_platform const *const linux_platfor
 	// Get file descriptor stat.
 	snprintf(f_name, sizeof(f_name), "%sfd/%d", procdir, fd);
 	if(stat(f_name, &sb) == -1) {
+		scap_errprintf(error, 0, "error getting file status for %s", f_name);
 		return SCAP_NOTFOUND;
 	}
 	fdi.fd = fd;
