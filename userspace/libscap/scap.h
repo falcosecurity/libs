@@ -850,13 +850,13 @@ typedef uint64_t scap_empty_params_set;
 void scap_empty_params_set_init(scap_empty_params_set* set, int n, ...);
 int scap_empty_params_set_is_set(const scap_empty_params_set* set, int index);
 
-#define SCAP_EMPTY_PARAMS_SET(...)                                          \
-	({                                                                      \
-		scap_empty_params_set set = 0;                                      \
-		const int VA_ARGS_NUM = sizeof((int[]){__VA_ARGS__}) / sizeof(int); \
-		scap_empty_params_set_init(&set, VA_ARGS_NUM, __VA_ARGS__);         \
-		set;                                                                \
-	})
+#define SCAP_EMPTY_PARAMS_SET(set_name, ...)                                 \
+	scap_empty_params_set set_name = 0;                                      \
+	{ /* New scope to hide the following temporary variables. */             \
+		const int VA_ARGS_INT_ARR[] = {__VA_ARGS__};                         \
+		const int VA_ARGS_NUM = sizeof(VA_ARGS_INT_ARR) / sizeof(const int); \
+		scap_empty_params_set_init(&set_name, VA_ARGS_NUM, __VA_ARGS__);     \
+	}
 
 /*!
   \brief Create an event from the parameters given as arguments.
