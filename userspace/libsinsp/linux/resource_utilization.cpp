@@ -266,6 +266,12 @@ void linux_resource_utilization::get_container_memory_used() {
 		// No need for scap_get_host_root since we look at the container pid namespace (if
 		// applicable) Known collision for VM memory usage, but this default value is configurable
 		filepath = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
+	} else {
+		// Path validation to prevent directory traversal or empty paths
+		if(strstr(filepath, "..") != nullptr || strlen(filepath) == 0) {
+			// Fall back to default safe path if validation fails
+			filepath = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
+		}
 	}
 
 	FILE* f = fopen(filepath, "r");
