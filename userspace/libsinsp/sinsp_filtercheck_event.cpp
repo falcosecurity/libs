@@ -658,17 +658,19 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 uint8_t* sinsp_filter_check_event::extract_argraw(sinsp_evt* evt,
                                                   uint32_t* len,
                                                   const char* argname) {
-	auto pi = evt->get_param_by_name(argname);
-
-	if(pi != NULL) {
-		m_arginfo = pi->get_info();
-		m_customfield.m_type = m_arginfo->type;
-		m_customfield.m_print_format = m_arginfo->fmt;
-		*len = pi->m_len;
-		return (uint8_t*)pi->m_val;
-	} else {
-		return NULL;
+	const auto pi = evt->get_param_by_name(argname);
+	if(pi == nullptr) {
+		return nullptr;
 	}
+
+	m_arginfo = pi->get_info();
+	m_customfield.m_type = m_arginfo->type;
+	m_customfield.m_print_format = m_arginfo->fmt;
+	const auto [data, data_len] = pi->data_and_len_with_legacy_null_encoding();
+	*len = data_len;
+	// TODO(ekoops): remove const_cast once we update the signature to return a pointer to a
+	//   constant buffer.
+	return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data));
 }
 
 uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len) {
@@ -1019,7 +1021,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			RETURN_EXTRACT_CSTR("<");
 		}
 	case TYPE_TYPE: {
-		uint8_t* evname;
+		char* evname;
 		uint16_t etype = evt->get_scap_evt()->type;
 
 		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X) {
@@ -1036,15 +1038,19 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 				uint16_t nativeid = evt->get_param(1)->as<uint16_t>();
 				ppm_sc = scap_native_id_to_ppm_sc(nativeid);
 			}
-			evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
+			evname = (char*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 		} else {
 			// note: for async events, the event name is encoded
 			// inside the event itself. In this case libsinsp's evt.type
 			// field acts as an alias of evt.asynctype.
+			// TODO(ekoops): remove the following const_casts once the method signature is updated
+			//   to return a pointer to a const buffer.
 			if(etype == PPME_ASYNCEVENT_E) {
-				evname = (uint8_t*)evt->get_param(1)->m_val;
+				const auto name_param = evt->get_param(1);
+				const auto [data, _] = name_param->data_and_len_with_legacy_null_encoding();
+				evname = const_cast<char*>(data);
 			} else {
-				evname = (uint8_t*)evt->get_name();
+				evname = const_cast<char*>(evt->get_name());
 			}
 		}
 

@@ -726,20 +726,17 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 	const sinsp_evt_param *param = get_param(id);
 	param_info = param->get_info();
 
-	if(param->empty()) {
+	if(!param->used_legacy_null_encoding() && param->len() == 0) {
 		// Ideally, we should always <NA>, but this would break compatibility, so keep pushing NULL
 		// for parameters that could already be empty before the scap-converter introduced the
 		// notion of "empty parameters" for all types.
 		// TODO(ekoops): consistently send the same value.
 		switch(param_info->type) {
 		case PT_BYTEBUF:
-		case PT_CHARBUF:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
-		case PT_FSPATH:
 		case PT_CHARBUFARRAY:
 		case PT_CHARBUF_PAIR_ARRAY:
-		case PT_FSRELPATH:
 		case PT_DYN: {
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "NULL");
 			break;
@@ -757,16 +754,18 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 	// Get the parameter information
 	//
 	if(param_info->type == PT_DYN && param_info->info != NULL) {
+		const auto param_data = param->data();
+		const auto param_len = param->len();
 		uint8_t dyn_idx = 0;
-		memcpy(&dyn_idx, param->m_val, sizeof(uint8_t));
+		memcpy(&dyn_idx, param_data, sizeof(uint8_t));
 
 		if(dyn_idx < param_info->ninfo) {
-			auto dyn_params = (const ppm_param_info *)param_info->info;
+			auto dyn_params = static_cast<const ppm_param_info *>(param_info->info);
 
 			dyn_param = sinsp_evt_param(param->m_evt,
 			                            param->m_idx,
-			                            param->m_val + sizeof(uint8_t),
-			                            param->m_len - sizeof(uint8_t));
+			                            param_data + sizeof(uint8_t),
+			                            param_len - sizeof(uint8_t));
 
 			param = std::addressof(*dyn_param);
 			param_info = &dyn_params[dyn_idx];
@@ -913,11 +912,13 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 		}
 	} break;
 	case PT_BYTEBUF: {
+		auto param_data = param->data();
+		auto param_len = param->len();
 		while(true) {
 			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
-			                                        param->m_val,
+			                                        param_data,
 			                                        (uint32_t)m_paramstr_storage.size() - 1,
-			                                        param->m_len,
+			                                        param_len,
 			                                        fmt);
 
 			if(blen >= m_paramstr_storage.size() - 1) {
@@ -947,15 +948,17 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			break;
 		}
 	} break;
-	case PT_SOCKADDR:
-		sockfamily = param->m_val[0];
+	case PT_SOCKADDR: {
+		auto param_data = param->data();
+		auto param_len = param->len();
+		sockfamily = param_data[0];
 		if(sockfamily == PPM_AF_UNIX) {
-			ASSERT(param->m_len > 1);
+			ASSERT(param->len() > 1);
 
 			//
 			// Sanitize the file string.
 			//
-			std::string sanitized_str = param->m_val + 1;
+			std::string sanitized_str = param_data + 1;
 			sanitize_string(sanitized_str);
 
 			snprintf(&m_paramstr_storage[0],
@@ -963,10 +966,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			         "%s",
 			         sanitized_str.c_str());
 		} else if(sockfamily == PPM_AF_INET) {
-			if(param->m_len == 1 + 4 + 2) {
+			if(param_len == 1 + 4 + 2) {
 				ipv4serverinfo addr;
-				memcpy(&addr.m_ip, param->m_val + 1, sizeof(addr.m_ip));
-				memcpy(&addr.m_port, param->m_val + 5, sizeof(addr.m_port));
+				memcpy(&addr.m_ip, param_data + 1, sizeof(addr.m_ip));
+				memcpy(&addr.m_port, param_data + 5, sizeof(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv4serveraddr_to_string(
 				        addr,
@@ -977,12 +980,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "INVALID IPv4");
 			}
 		} else if(sockfamily == PPM_AF_INET6) {
-			if(param->m_len == 1 + 16 + 2) {
+			if(param_len == 1 + 16 + 2) {
 				ipv6serverinfo addr;
-				memcpy((uint8_t *)addr.m_ip.m_b,
-				       (uint8_t *)param->m_val + 1,
-				       sizeof(addr.m_ip.m_b));
-				memcpy(&addr.m_port, param->m_val + 17, sizeof(addr.m_port));
+				memcpy(addr.m_ip.m_b, param_data + 1, sizeof(addr.m_ip.m_b));
+				memcpy(&addr.m_port, param_data + 17, sizeof(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv6serveraddr_to_string(
 				        addr,
@@ -996,15 +997,18 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "family %d", sockfamily);
 		}
 		break;
-	case PT_SOCKTUPLE:
-		sockfamily = param->m_val[0];
+	}
+	case PT_SOCKTUPLE: {
+		const auto param_data = reinterpret_cast<const uint8_t *>(param->data());
+		const auto param_len = param->len();
+		sockfamily = param_data[0];
 		if(sockfamily == PPM_AF_INET) {
-			if(param->m_len == 1 + 4 + 2 + 4 + 2) {
+			if(param_len == 1 + 4 + 2 + 4 + 2) {
 				ipv4tuple addr;
-				memcpy(&addr.m_fields.m_sip, param->m_val + 1, sizeof(uint32_t));
-				memcpy(&addr.m_fields.m_sport, param->m_val + 5, sizeof(uint16_t));
-				memcpy(&addr.m_fields.m_dip, param->m_val + 7, sizeof(uint32_t));
-				memcpy(&addr.m_fields.m_dport, param->m_val + 11, sizeof(uint16_t));
+				memcpy(&addr.m_fields.m_sip, param_data + 1, sizeof(uint32_t));
+				memcpy(&addr.m_fields.m_sport, param_data + 5, sizeof(uint16_t));
+				memcpy(&addr.m_fields.m_dip, param_data + 7, sizeof(uint32_t));
+				memcpy(&addr.m_fields.m_dport, param_data + 11, sizeof(uint16_t));
 				addr.m_fields.m_l4proto =
 				        (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr =
@@ -1016,19 +1020,19 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "INVALID IPv4");
 			}
 		} else if(sockfamily == PPM_AF_INET6) {
-			if(param->m_len == 1 + 16 + 2 + 16 + 2) {
-				uint8_t *sip6 = (uint8_t *)param->m_val + 1;
-				uint8_t *dip6 = (uint8_t *)param->m_val + 19;
-				uint8_t *sip = (uint8_t *)param->m_val + 13;
-				uint8_t *dip = (uint8_t *)param->m_val + 31;
+			if(param_len == 1 + 16 + 2 + 16 + 2) {
+				const uint8_t *sip6 = param_data + 1;
+				const uint8_t *dip6 = param_data + 19;
+				const uint8_t *sip = param_data + 13;
+				const uint8_t *dip = param_data + 31;
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) &&
 				   sinsp_utils::is_ipv4_mapped_ipv6(dip6)) {
 					ipv4tuple addr;
 					memcpy(&addr.m_fields.m_sip, sip, sizeof(uint32_t));
-					memcpy(&addr.m_fields.m_sport, param->m_val + 17, sizeof(uint16_t));
+					memcpy(&addr.m_fields.m_sport, param_data + 17, sizeof(uint16_t));
 					memcpy(&addr.m_fields.m_dip, dip, sizeof(uint32_t));
-					memcpy(&addr.m_fields.m_dport, param->m_val + 35, sizeof(uint16_t));
+					memcpy(&addr.m_fields.m_dport, param_data + 35, sizeof(uint16_t));
 					addr.m_fields.m_l4proto =
 					        (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 					std::string straddr = ipv4tuple_to_string(
@@ -1046,8 +1050,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
 					   inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr))) {
 						uint16_t srcport, dstport;
-						memcpy(&srcport, param->m_val + 17, sizeof(srcport));
-						memcpy(&dstport, param->m_val + 35, sizeof(dstport));
+						memcpy(&srcport, param_data + 17, sizeof(srcport));
+						memcpy(&dstport, param_data + 35, sizeof(dstport));
 						snprintf(&m_paramstr_storage[0],
 						         m_paramstr_storage.size(),
 						         "%s:%s->%s:%s",
@@ -1073,17 +1077,17 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			ASSERT(false);
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "INVALID IPv6");
 		} else if(sockfamily == PPM_AF_UNIX) {
-			ASSERT(param->m_len > 17);
+			ASSERT(param->len() > 17);
 
 			//
 			// Sanitize the file string.
 			//
-			std::string sanitized_str = param->m_val + 17;
+			std::string sanitized_str = reinterpret_cast<const char *>(param_data) + 17;
 			sanitize_string(sanitized_str);
 
 			uint64_t src, dst;
-			memcpy(&src, param->m_val + 1, sizeof(uint64_t));
-			memcpy(&dst, param->m_val + 9, sizeof(uint64_t));
+			memcpy(&src, param_data + 1, sizeof(uint64_t));
+			memcpy(&dst, param_data + 9, sizeof(uint64_t));
 
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -1095,14 +1099,16 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "family %d", sockfamily);
 		}
 		break;
+	}
 	case PT_FDLIST: {
 		sinsp_threadinfo *tinfo = get_thread_info();
 		if(!tinfo) {
 			break;
 		}
 
+		const auto param_data = param->data();
 		uint16_t nfds = 0;
-		memcpy(&nfds, param->m_val, sizeof(nfds));
+		memcpy(&nfds, param_data, sizeof(nfds));
 		uint32_t pos = 2;
 		uint32_t spos = 0;
 
@@ -1111,7 +1117,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 		for(j = 0; j < nfds; j++) {
 			char tch;
 			int64_t fd = 0;
-			memcpy(&fd, param->m_val + pos, sizeof(uint64_t));
+			memcpy(&fd, param_data + pos, sizeof(uint64_t));
 
 			sinsp_fdinfo *fdinfo = tinfo->get_fd(fd);
 			if(fdinfo) {
@@ -1121,7 +1127,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			}
 
 			int16_t p8;
-			memcpy(&p8, param->m_val + pos + 8, sizeof(int16_t));
+			memcpy(&p8, param_data + pos + 8, sizeof(int16_t));
 
 			int r = snprintf(&m_paramstr_storage[0] + spos,
 			                 m_paramstr_storage.size() - spos,
@@ -1383,8 +1389,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 		break;
 	}
 	case PT_CHARBUFARRAY: {
-		ASSERT(param->m_len == sizeof(uint64_t));
-		std::vector<char *> *strvect = (std::vector<char *> *)*(uint64_t *)param->m_val;
+		ASSERT(param->len() == sizeof(uint64_t));
+		std::vector<char *> *strvect = (std::vector<char *> *)*(uint64_t *)param->data();
 
 		m_paramstr_storage[0] = 0;
 
@@ -1432,10 +1438,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 		}
 	} break;
 	case PT_CHARBUF_PAIR_ARRAY: {
-		ASSERT(param->m_len == sizeof(uint64_t));
+		ASSERT(param->len() == sizeof(uint64_t));
 		std::pair<std::vector<char *> *, std::vector<char *> *> *pairs =
 		        (std::pair<std::vector<char *> *, std::vector<char *> *> *)*(
-		                uint64_t *)param->m_val;
+		                uint64_t *)param->data();
 
 		m_paramstr_storage[0] = 0;
 
@@ -1762,18 +1768,21 @@ std::optional<std::reference_wrapper<const std::string>> sinsp_evt::get_enter_ev
 }
 
 void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const {
+	const auto param_data = data();
+	const auto param_len = len();
 	const ppm_param_info *parinfo = get_info();
 
 	std::stringstream ss;
 	ss << "could not parse param " << m_idx << " (" << parinfo->name << ") for event "
 	   << m_evt->get_num() << " of type " << m_evt->get_type() << " (" << m_evt->get_name()
 	   << "), for tid " << m_evt->get_tid() << ": expected length " << requested_length
-	   << ", found " << m_len;
+	   << ", found " << param_len;
 	std::string error_string = ss.str();
 
 	libsinsp_logger()->log(error_string, sinsp_logger::SEV_ERROR);
-	libsinsp_logger()->log("parameter raw data: \n" + buffer_to_multiline_hex(m_val, m_len),
-	                       sinsp_logger::SEV_ERROR);
+	libsinsp_logger()->log(
+	        "parameter raw data: \n" + buffer_to_multiline_hex(param_data, param_len),
+	        sinsp_logger::SEV_ERROR);
 
 	throw sinsp_exception(error_string);
 }

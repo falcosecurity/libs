@@ -923,8 +923,9 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const {
 	}
 
 	string ret = "";
-	auto datalen = evt->get_param(1)->m_len;
-	auto data = (const uint8_t*)evt->get_param(1)->m_val;
+	const auto data_param = evt->get_param(1);
+	const auto data = data_param->data();
+	const auto data_len = data_param->len();
 	if(m_state && m_handle->api.event_to_string) {
 		ss_plugin_event_input input;
 		input.evt = (const ss_plugin_event*)evt->get_scap_evt();
@@ -934,16 +935,16 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const {
 	}
 	if(ret.empty()) {
 		ret += "datalen=";
-		ret += std::to_string(datalen);
+		ret += std::to_string(data_len);
 		ret += " data=";
-		for(size_t i = 0; i < std::min(datalen, uint32_t(50)); ++i) {
+		for(size_t i = 0; i < std::min(data_len, uint32_t(50)); ++i) {
 			if(!std::isprint(data[i])) {
 				ret += "<binary>";
 				return ret;
 			}
 		}
-		ret.append((char*)data, std::min(datalen, uint32_t(50)));
-		if(datalen > 50) {
+		ret.append((char*)data, std::min(data_len, uint32_t(50)));
+		if(data_len > 50) {
 			ret += "...";
 		}
 	}

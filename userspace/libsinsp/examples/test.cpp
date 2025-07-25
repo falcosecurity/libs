@@ -937,7 +937,8 @@ void raw_dump(sinsp& inspector, sinsp_evt* ev) {
 		const sinsp_evt_param* p = ev->get_param(i);
 		const struct ppm_param_info* pi = ev->get_param_info(i);
 		cout << ' ' << i << ':' << pi->name << '=';
-		hexdump((const unsigned char*)p->m_val, p->m_len);
+		const auto [data, data_len] = p->data_and_len_with_legacy_null_encoding();
+		hexdump(reinterpret_cast<const unsigned char*>(data), data_len);
 	}
 
 	cout << endl;

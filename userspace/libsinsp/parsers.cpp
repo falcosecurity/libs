@@ -1717,7 +1717,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 }
 
 void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	uint16_t etype = evt.get_type();
 	sinsp_evt *enter_evt = &m_tmp_evt;
@@ -1743,7 +1742,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		// We probably missed the start event, so we will just do nothing
 		//
 		// fprintf(stderr, "comm = %s, args =
-		// %s\n",evt.get_param(1)->m_val,evt.get_param(1)->m_val); ASSERT(false);
+		// %s\n",evt.get_param(1)->data()),evt.get_param(1)->data())); ASSERT(false);
 		return;
 	}
 
@@ -1760,8 +1759,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	}
 
 	// Get the exe
-	parinfo = evt.get_param(1);
-	evt.get_tinfo()->m_exe = parinfo->m_val;
+	auto parinfo = evt.get_param(1);
+	evt.get_tinfo()->m_exe = parinfo->as<std::string>();
 	evt.get_tinfo()->m_lastexec_ts = evt.get_ts();
 
 	switch(etype) {
@@ -1850,12 +1849,12 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_14_X:
 		// Get the environment
 		parinfo = evt.get_param(13);
-		evt.get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
+		evt.get_tinfo()->set_env(parinfo->data(), parinfo->len(), can_load_env_from_proc);
 		break;
 	case PPME_SYSCALL_EXECVE_15_X:
 		// Get the environment
 		parinfo = evt.get_param(14);
-		evt.get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
+		evt.get_tinfo()->set_env(parinfo->data(), parinfo->len(), can_load_env_from_proc);
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
@@ -1864,7 +1863,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
 		parinfo = evt.get_param(15);
-		evt.get_tinfo()->set_env(parinfo->m_val, parinfo->m_len, can_load_env_from_proc);
+		evt.get_tinfo()->set_env(parinfo->data(), parinfo->len(), can_load_env_from_proc);
 
 		// Set cgroups
 		evt.get_tinfo()->set_cgroups(evt.get_param(14)->as<std::vector<std::string>>());
@@ -1902,9 +1901,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		 */
 
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-		if(const auto trusted_exepath_param = evt.get_param(27); !trusted_exepath_param->empty()) {
-			evt.get_tinfo()->set_exepath(trusted_exepath_param->as<std::string>());
-		}
+		// Notice: ->as<std::string>() already contains the logic to convert the PT_FSPATH param to
+		// <NA>.
+		evt.get_tinfo()->set_exepath(evt.get_param(27)->as<std::string>());
 	} else {
 		/* ONLY VALID FOR OLD SCAP-FILES:
 		 * In older event versions we can only rely on our userspace reconstruction
@@ -2422,8 +2421,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 
 	// XXX not implemented yet
 	// parinfo = evt.get_param(2);
-	// ASSERT(parinfo->m_len == sizeof(uint32_t));
-	// mode = *(uint32_t*)parinfo->m_val;
+	// ASSERT(parinfo->len() == sizeof(uint32_t));
+	// mode = *(uint32_t*)parinfo->data());
 
 	std::string fullpath = sinsp_utils::concatenate_paths(sdir, name);
 
@@ -2575,22 +2574,20 @@ inline void sinsp_parser::infer_send_sendto_sendmsg_fdinfo(sinsp_evt &evt) const
 		return;
 	}
 
-	constexpr uint32_t FILE_DESCRIPTOR_PARAM = 2;
-	constexpr uint32_t SOCKET_TUPLE_PARAM = 4;
-
-	const sinsp_evt_param *parinfo = nullptr;
+	constexpr uint32_t FILE_DESCRIPTOR_PARAM_ID = 2;
+	constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
 
 	if(evt.get_syscall_return_value() < 0) {
 		// Call to send*() failed so we cannot trust parameters provided by the user.
 		return;
 	}
 
-	ASSERT(evt.get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
-	const int64_t fd = evt.get_param(FILE_DESCRIPTOR_PARAM)->as<int64_t>();
+	ASSERT(evt.get_param_info(FILE_DESCRIPTOR_PARAM_ID)->type == PT_FD);
+	const int64_t fd = evt.get_param(FILE_DESCRIPTOR_PARAM_ID)->as<int64_t>();
 	ASSERT(fd >= 0);
 
-	parinfo = evt.get_param(SOCKET_TUPLE_PARAM);
-	const char addr_family = *((char *)parinfo->m_val);
+	const auto parinfo = evt.get_param(SOCKET_TUPLE_PARAM_ID);
+	const auto addr_family = *parinfo->data();
 
 	if((addr_family == AF_INET) || (addr_family == AF_INET6)) {
 		const uint32_t domain = (addr_family == AF_INET) ? PPM_AF_INET : PPM_AF_INET6;
@@ -2651,8 +2648,6 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	const char *parstr;
-	uint8_t *packed_data;
-	uint8_t family;
 
 	if(evt.get_fd_info() == nullptr) {
 		return;
@@ -2672,9 +2667,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		return;
 	}
 
-	packed_data = (uint8_t *)parinfo->m_val;
-
-	family = *packed_data;
+	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo->data());
+	const auto family = *packed_data;
 
 	//
 	// Update the FD info with this tuple, assume that if port > 0, means that
@@ -2694,7 +2688,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 			evt.get_fd_info()->set_role_server();
 		}
 	} else if(family == PPM_AF_INET6) {
-		uint8_t *ip = packed_data + 1;
+		const uint8_t *ip = packed_data + 1;
 		uint16_t port;
 		memcpy(&port, packed_data + 17, sizeof(uint16_t));
 		if(port > 0) {
@@ -2756,8 +2750,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 		return;
 	}
 
-	// TODO(ekoops): remove const_cast once we adapt used APIs to accept const pointers/references.
-	auto packed_data = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(addr_param->m_val));
+	const auto packed_data = reinterpret_cast<const uint8_t *>(addr_param->data());
 
 	switch(const uint8_t family = *packed_data; family) {
 	case PPM_AF_INET: {
@@ -2769,7 +2762,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 	case PPM_AF_INET6: {
 		uint16_t port;
 		memcpy(&port, packed_data + 17, sizeof(uint16_t));
-		uint8_t *ip = packed_data + 1;
+		const uint8_t *ip = packed_data + 1;
 		if(sinsp_utils::is_ipv4_mapped_ipv6(ip)) {
 			fdinfo->m_type = SCAP_FD_IPV4_SOCK;
 			memcpy(&sockinfo.m_ipv4info.m_fields.m_dip, packed_data + 13, sizeof(uint32_t));
@@ -2813,12 +2806,14 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 
 	// If there's a listener callback, and we're tracking connection status, invoke it.
 	if(m_track_connection_status && m_observer) {
-		m_observer->on_connect(&evt, packed_data);
+		// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to accept
+		//    const pointers/references.
+		m_observer->on_connect(&evt, const_cast<uint8_t *>(packed_data));
 	}
 }
 
 inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
-                                                  uint8_t *packed_data,
+                                                  const uint8_t *packed_data,
                                                   const bool overwrite_dest,
                                                   const bool can_resolve_hostname_and_port) {
 	uint8_t family;
@@ -2839,8 +2834,8 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 			//
-			uint8_t *sip = packed_data + 1;
-			uint8_t *dip = packed_data + 19;
+			const uint8_t *sip = packed_data + 1;
+			const uint8_t *dip = packed_data + 19;
 
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
 				evt.get_fd_info()->m_type = SCAP_FD_IPV6_SOCK;
@@ -2960,8 +2955,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 		return;
 	}
 
-	// TODO(ekoops): remove const_cast once we adapt used APIs to accept const pointers/references.
-	auto packed_data = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(tuple_param->m_val));
+	const auto packed_data = reinterpret_cast<const uint8_t *>(tuple_param->data());
 
 	fill_client_socket_info(evt,
 	                        packed_data,
@@ -2971,7 +2965,9 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	// If there's a listener, add a callback to later invoke it.
 	if(m_observer) {
 		verdict.add_post_process_cbs([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
-			observer->on_connect(evt, packed_data);
+			// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
+			//   accept const pointers/references.
+			observer->on_connect(evt, const_cast<uint8_t *>(packed_data));
 		});
 	}
 }
@@ -3002,7 +2998,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		return;
 	}
 
-	auto packed_data = (uint8_t *)parinfo->m_val;
+	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo->data());
 
 	// Populate the fd info class.
 	std::shared_ptr fdi = m_fdinfo_factory.create();
@@ -3013,8 +3009,8 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	} else if(*packed_data == PPM_AF_INET6) {
 		// Check to see if it's an IPv4-mapped IPv6 address
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-		uint8_t *sip = packed_data + 1;
-		uint8_t *dip = packed_data + 19;
+		const uint8_t *sip = packed_data + 1;
+		const uint8_t *dip = packed_data + 19;
 
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)) {
 			set_ipv4_mapped_ipv6_addresses_and_ports(*fdi, packed_data);
@@ -3045,7 +3041,9 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			        if(fd_info == nullptr) {
 				        fd_info = fdi.get();
 			        }
-			        observer->on_accept(evt, fd, packed_data, fd_info);
+			        // TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_accept API
+			        //   to accept const pointers/references.
+			        observer->on_accept(evt, fd, const_cast<uint8_t *>(packed_data), fd_info);
 		        });
 	}
 
@@ -3371,12 +3369,12 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo &fdinfo,
 
 // Return false if the update didn't happen (for example because the tuple is nullptr)
 bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) const {
-	uint8_t *packed_data = (uint8_t *)parinfo.m_val;
-	uint8_t family = *packed_data;
-
 	if(parinfo.empty()) {
 		return false;
 	}
+
+	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo.data());
+	const auto family = *packed_data;
 
 	if(family == PPM_AF_INET) {
 		if(evt.get_fd_info()->m_type == SCAP_FD_IPV4_SERVSOCK) {
@@ -3396,8 +3394,8 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 		// Check to see if it's an IPv4-mapped IPv6 address
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 		//
-		uint8_t *sip = packed_data + 1;
-		uint8_t *dip = packed_data + 19;
+		auto sip = packed_data + 1;
+		auto dip = packed_data + 19;
 
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)) {
 			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
@@ -3538,8 +3536,8 @@ inline void sinsp_parser::process_recvmsg_ancillary_data_fds(scap_platform *scap
 inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
                                                          const sinsp_evt_param &parinfo) const {
 	// Seek for SCM_RIGHTS control message headers and extract passed file descriptors.
-	char const *msg_ctrl = parinfo.m_val;
-	size_t const msg_ctrllen = parinfo.m_len;
+	char const *msg_ctrl = parinfo.data();
+	size_t const msg_ctrllen = parinfo.len();
 	for(ppm_cmsghdr *cmsg = PPM_CMSG_FIRSTHDR(msg_ctrl, msg_ctrllen); cmsg != nullptr;
 	    cmsg = PPM_CMSG_NXTHDR(msg_ctrl, msg_ctrllen, cmsg)) {
 		// Check for malformed control message buffer:
@@ -3672,22 +3670,22 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 				parinfo = evt.get_param(1);
 			}
 
-			uint32_t datalen = parinfo->m_len;
-			const char *data = parinfo->m_val;
+			const auto data = parinfo->data();
+			const auto data_len = parinfo->len();
 
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
 			if(m_observer) {
 				verdict.add_post_process_cbs(
-				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
+				        [tid, data, retval, data_len](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_read(evt,
 					                          tid,
 					                          evt->get_tinfo()->m_lastevent_fd,
 					                          evt->get_fd_info(),
 					                          data,
 					                          (uint32_t)retval,
-					                          datalen);
+					                          data_len);
 				        });
 			}
 
@@ -3719,9 +3717,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 				// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event.
 				// If the fd still doesn't contain tuple info (because the socket is a datagram one
 				// or because some event was lost), add it here.
-				constexpr uint32_t FILE_DESCRIPTOR_PARAM = 4;
+				constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
 
-				if(update_fd(evt, *evt.get_param(FILE_DESCRIPTOR_PARAM))) {
+				if(update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
 					scap_fd_type fdtype = evt.get_fd_info()->m_type;
 
 					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
@@ -3742,7 +3740,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 						evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
 					} else {
 						const char *parstr;
-						evt.get_fd_info()->m_name = evt.get_param_as_str(FILE_DESCRIPTOR_PARAM,
+						evt.get_fd_info()->m_name = evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID,
 						                                                 &parstr,
 						                                                 sinsp_evt::PF_SIMPLE);
 					}
@@ -3754,25 +3752,26 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			//
 			if(etype == PPME_SOCKET_SENDMMSG_X) {
 				parinfo = evt.get_param(2);
-			} else {
+			} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X, PPME_SOCKET_SENDMSG_X
 				parinfo = evt.get_param(1);
 			}
-			const uint32_t datalen = parinfo->m_len;
-			const char *data = parinfo->m_val;
+
+			const auto data = parinfo->data();
+			const auto data_len = parinfo->len();
 
 			//
 			// If there's a listener, add a callback to later invoke it.
 			//
 			if(m_observer) {
 				verdict.add_post_process_cbs(
-				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
+				        [tid, data, retval, data_len](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_write(evt,
 					                           tid,
 					                           evt->get_tinfo()->m_lastevent_fd,
 					                           evt->get_fd_info(),
 					                           data,
 					                           (uint32_t)retval,
-					                           datalen);
+					                           data_len);
 				        });
 			}
 		}
@@ -4405,7 +4404,6 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt &evt) {
 void sinsp_parser::parse_getsockopt_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	const sinsp_evt_param *parinfo;
 	int64_t retval;
-	int64_t err;
 	int64_t fd;
 	int8_t level, optname;
 
@@ -4448,11 +4446,12 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt &evt, sinsp_parser_verdict &v
 		}
 
 		parinfo = evt.get_param(4);
-		ASSERT(*parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO);
-		ASSERT(parinfo->m_len == sizeof(int64_t) + 1);
-		err = *(int64_t *)(parinfo->m_val + 1);  // add 1 byte to skip over PT_DYN param index
+		ASSERT(*parinfo->data() == PPM_SOCKOPT_IDX_ERRNO);
+		ASSERT(parinfo->len() == sizeof(int64_t) + 1);
+		const auto err = *reinterpret_cast<const int64_t *>(
+		        parinfo->data() + 1);  // add 1 byte to skip over PT_DYN param index
 
-		evt.set_errorcode((int32_t)err);
+		evt.set_errorcode(static_cast<int32_t>(err));
 		if(err < 0) {
 			evt.get_fd_info()->set_socket_failed();
 		} else {

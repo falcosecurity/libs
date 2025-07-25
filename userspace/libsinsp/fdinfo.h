@@ -214,7 +214,7 @@ public:
 
 	inline int64_t get_pid() const { return m_pid; }
 
-	inline void set_unix_info(uint8_t* packed_data) {
+	inline void set_unix_info(const uint8_t* packed_data) {
 		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_source, packed_data + 1, sizeof(uint64_t));
 		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, packed_data + 9, sizeof(uint64_t));
 	}

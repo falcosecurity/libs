@@ -152,7 +152,7 @@ private:
 	                                                   uint16_t tdport,
 	                                                   bool overwrite_dest = true);
 	static inline void fill_client_socket_info(sinsp_evt& evt,
-	                                           uint8_t* packed_data,
+	                                           const uint8_t* packed_data,
 	                                           bool overwrite_dest,
 	                                           bool can_resolve_hostname_and_port);
 	inline void add_socket(sinsp_evt& evt,

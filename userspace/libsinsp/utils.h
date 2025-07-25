@@ -120,7 +120,7 @@ public:
 	//
 	// Determines if an IPv6 address is IPv4-mapped
 	//
-	static bool is_ipv4_mapped_ipv6(uint8_t* paddr);
+	static bool is_ipv4_mapped_ipv6(const uint8_t* paddr);
 
 	//
 	// Given a string, scan the event list and find the longest argument that the input string

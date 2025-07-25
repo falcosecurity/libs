@@ -276,14 +276,18 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 			m_val.u32 = 0;
 		}
 		RETURN_EXTRACT_VAR(m_val.u32);
-	case TYPE_ASYNCTYPE:
+	case TYPE_ASYNCTYPE: {
 		if(!libsinsp::events::is_metaevent((ppm_event_code)evt->get_type())) {
 			return NULL;
 		}
-		if(evt->get_type() == PPME_ASYNCEVENT_E) {
-			RETURN_EXTRACT_CSTR(evt->get_param(1)->m_val);
+		if(evt->get_type() != PPME_ASYNCEVENT_E) {
+			RETURN_EXTRACT_CSTR(evt->get_name());
 		}
-		RETURN_EXTRACT_CSTR(evt->get_name());
+		const auto name_param = evt->get_param(1);
+		const auto [data, _] = name_param->data_and_len_with_legacy_null_encoding();
+		RETURN_EXTRACT_CSTR(data);
+	}
+
 	case TYPE_HOSTNAME:
 		minfo = m_inspector->get_machine_info();
 		if(!minfo) {

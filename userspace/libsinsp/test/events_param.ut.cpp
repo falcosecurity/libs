@@ -131,7 +131,7 @@ TEST_F(sinsp_with_test_input, bytebuf_empty_param) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.data"),
 	          "NULL");  // "NULL" is the string representation output of the empty buffer
 	ASSERT_TRUE(evt->get_param(1));
-	ASSERT_EQ(evt->get_param(1)->m_len, 0);
+	ASSERT_EQ(evt->get_param(1)->len(), 0);
 }
 
 /* Assert that empty (`PT_SOCKADDR`, `PT_SOCKTUPLE`, `PT_FDLIST`) params are NOT converted to `<NA>`
@@ -152,7 +152,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	sockaddr_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, fd, sockaddr_param);
 	param = evt->get_param(1);
-	ASSERT_EQ(param->m_len, 0);
+	ASSERT_EQ(param->len(), 0);
 
 	/* `PPME_SOCKET_CONNECT_X` is a simple event that uses a `PT_SOCKTUPLE` */
 	scap_const_sized_buffer socktuple_param;
@@ -167,7 +167,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	                           fd,
 	                           sockaddr_param);
 	param = evt->get_param(1);
-	ASSERT_EQ(param->m_len, 0);
+	ASSERT_EQ(param->len(), 0);
 
 	/* `PPME_SYSCALL_POLL_X` is a simple event that uses a `PT_FDLIST` */
 	scap_const_sized_buffer fdlist_param;
@@ -175,7 +175,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	fdlist_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_POLL_X, 2, res, fdlist_param);
 	param = evt->get_param(1);
-	ASSERT_EQ(param->m_len, 0);
+	ASSERT_EQ(param->len(), 0);
 }
 
 TEST_F(sinsp_with_test_input, filename_toctou) {
