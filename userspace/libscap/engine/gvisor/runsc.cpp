@@ -49,15 +49,15 @@ result runsc(char *argv[]) {
 
 		std::string line;
 
-		char buf[512]{};
+		char buf[512];
 		std::stringstream ss;
 		size_t len;
 
 		// Read until EOF
 		while((len = read(pipefds[0], buf, sizeof(buf) - 1)) != 0) {
+			// Null-terminate the buffer at the exact read length
+			buf[len] = '\0';
 			ss << buf;
-			// Be smart: only reset first len bytes
-			memset(buf, 0, len);
 		}
 
 		while(std::getline(ss, line)) {
