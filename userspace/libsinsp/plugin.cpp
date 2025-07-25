@@ -1181,17 +1181,17 @@ bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler) {
 
 	if(cur_handler == nullptr && new_handler != nullptr) {
 		if(rc != SS_PLUGIN_SUCCESS) {
-			// new handler rejected, restore current one
-			delete new_handler;
+			// new handler rejected, restore current one and clean up
 			m_async_evt_handler.store(cur_handler);
+			delete new_handler;
 		}
 	}
 
 	if(cur_handler != nullptr && new_handler == nullptr) {
 		if(rc == SS_PLUGIN_SUCCESS) {
 			// new handler accepted, delete current one
-			delete cur_handler;
 			m_async_evt_handler.store(new_handler);
+			delete cur_handler;
 		}
 	}
 
