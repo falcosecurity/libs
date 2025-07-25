@@ -69,18 +69,90 @@ inline T get_event_param_as(const class sinsp_evt_param& param);
   This class describes an event parameter coming from the driver.
 */
 class SINSP_PUBLIC sinsp_evt_param {
+	const char* m_data;  ///< Pointer to the event parameter data.
+	uint32_t m_len;      ///< Length of the parameter pointed by m_data_bufm_data.
+
 public:
+	const char* data() const { return m_data; }
+
+	uint32_t len() const { return m_len; }
+
+	/*!
+	 * @return true if the length is equal to zero.
+	 */
+	bool empty() const { return len() == 0; }
+
+	/*!
+	 *  @return a boolean indicating if, for this specific parameter "null" configuration (data and
+	 *  len configuration), the legacy null encoding ('<NA>') was used.
+	 *
+	 * Some specific types of parameter used a legacy encoding in specific scenarios. Specifically,
+	 * in the past, the parameters having the following types could be `<NA>` or `(NULL)` or empty:
+	 *
+	 *    - PT_CHARBUF
+	 *    - PT_FSRELPATH
+	 *    - PT_FSPATH
+	 *
+	 * Now they can be only empty (data: nullptr, len: 0)!
+	 *
+	 * The problem is that userspace is not able to manage `NULL` pointers... but it manages `<NA>`,
+	 * so we convert all these cases to `<NA>` when they are empty!
+	 *
+	 * If we read scap-files we could face `(NULL)` params, so also inthis case we convert them to
+	 *`<NA>`.
+	 *
+	 * To be honest there could be other corner cases, but right now we don't have to manage it:
+	 *
+	 *    - PT_SOCKADDR
+	 *    - PT_SOCKTUPLE
+	 *    - PT_FDLIST
+	 *
+	 * Could be empty, so we will have:
+	 * 	data = "pointer to the next param";
+	 *	len = 0;
+	 *
+	 * However, as we said in the previous case, the ideal outcome would be (data: nullptr, len: 0).
+	 *
+	 * The difference with the previous case is that the userspace can manage these params when they
+	 * have `len == 0`, so we don't have to use the `<NA>` workaround! We could also introduce the
+	 *`NULL` and so put in place the ideal solution for this parameter, but before doing this we
+	 * need to be sure that the userspace never tries to deference the pointer otherwise it will
+	 * trigger a segmentation fault at run-time. So as a first step we would keep them as they are.
+	 */
+	bool used_legacy_null_encoding() const {
+		switch(get_info()->type) {
+		case PT_CHARBUF:
+		case PT_FSRELPATH:
+		case PT_FSPATH: {
+			if(m_len == 0 || (m_len == 7 && strncmp(m_data, "(NULL)", 7) == 0)) {
+				return true;
+			}
+			return false;
+		}
+		default:
+			return false;
+		}
+	}
+
+	/*!
+	 * \brief A simple helper returning the untouched parameter data and len or a null-encoded
+	 * version of them depending on their values.
+	 */
+	std::pair<const char*, uint32_t> data_and_len_with_legacy_null_encoding() const {
+		if(!used_legacy_null_encoding()) {
+			return std::make_pair(m_data, m_len);
+		}
+		return {"<NA>", 5};
+	}
+
 	const sinsp_evt* m_evt;  ///< Pointer to the event that contains this param
 	uint32_t m_idx;          ///< Index of the parameter within the event
 
-	const char* m_val;  ///< Pointer to the event parameter data.
-	uint32_t m_len;     ///< Length of the parameter pointed by m_val.
-
-	sinsp_evt_param(const sinsp_evt* evt, uint32_t idx, const char* val, uint32_t len):
+	sinsp_evt_param(const sinsp_evt* evt, const uint32_t idx, const char* data, const uint32_t len):
+	        m_data(data),
+	        m_len(len),
 	        m_evt(evt),
-	        m_idx(idx),
-	        m_val(val),
-	        m_len(len) {}
+	        m_idx(idx) {}
 
 	/*!
 	  \brief Interpret the parameter as a specific type, like:
@@ -97,11 +169,6 @@ public:
 	inline T as() const {
 		return get_event_param_as<T>(*this);
 	}
-
-	/*!
-	 * @return true if the length is equal to zero.
-	 */
-	bool empty() const { return m_len == 0; }
 
 	const struct ppm_param_info* get_info() const;
 
@@ -124,49 +191,52 @@ inline T get_event_param_as(const sinsp_evt_param& param) {
 
 	T ret;
 
-	if(param.m_len != sizeof(T)) {
+	const auto [param_data, param_len] = param.data_and_len_with_legacy_null_encoding();
+	if(param_len != sizeof(T)) {
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
 		param.throw_invalid_len_error(sizeof(T));
 	}
 
-	memcpy(&ret, param.m_val, sizeof(T));
+	memcpy(&ret, param_data, sizeof(T));
 
 	return ret;
 }
 
 template<>
 inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_param& param) {
-	if(param.empty()) {
+	const auto [param_data, param_len] = param.data_and_len_with_legacy_null_encoding();
+	if(param_len == 0) {
 		return {};
 	}
 
-	size_t string_len = strnlen(param.m_val, param.m_len);
+	size_t string_len = strnlen(param_data, param_len);
 	// We expect the parameter to be exactly one null-terminated string
-	if(param.m_len != string_len + 1) {
+	if(param_len != string_len + 1) {
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
 		param.throw_invalid_len_error(string_len + 1);
 	}
 
-	return {param.m_val, string_len};
+	return {param_data, string_len};
 }
 
 template<>
 inline std::string get_event_param_as<std::string>(const sinsp_evt_param& param) {
-	if(param.empty()) {
+	const auto [param_data, param_len] = param.data_and_len_with_legacy_null_encoding();
+	if(param_len == 0) {
 		return "";
 	}
 
-	size_t string_len = strnlen(param.m_val, param.m_len);
+	size_t string_len = strnlen(param_data, param_len);
 	// We expect the parameter to be exactly one null-terminated string
-	if(param.m_len != string_len + 1) {
+	if(param_len != string_len + 1) {
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
 		param.throw_invalid_len_error(string_len + 1);
 	}
 
-	return std::string(param.m_val);
+	return std::string(param_data);
 }
 
 template<>
@@ -174,20 +244,23 @@ inline std::vector<std::string> get_event_param_as<std::vector<std::string>>(
         const sinsp_evt_param& param) {
 	// vector string parameters coming from the driver may be NUL-terminated or not. Either way,
 	// remove the NUL terminator
-	uint32_t len = param.m_len;
-	if(len > 0 && param.m_val[param.m_len - 1] == '\0') {
+	const auto [param_data, param_len] = param.data_and_len_with_legacy_null_encoding();
+	uint32_t len = param_len;
+	if(len > 0 && param_data[param_len - 1] == '\0') {
 		len--;
 	}
 
-	return sinsp_split({param.m_val, static_cast<std::string_view::size_type>(len)}, '\0');
+	return sinsp_split({param_data, static_cast<std::string_view::size_type>(len)}, '\0');
 }
 
 template<>
 inline std::vector<uint8_t> get_event_param_as<std::vector<uint8_t>>(const sinsp_evt_param& param) {
+	const auto [param_data, param_len] = param.data_and_len_with_legacy_null_encoding();
+
 	// copy content of the event parameter to a new vector
 	std::vector<uint8_t> res;
-	for(size_t i = 0; i < param.m_len; ++i) {
-		res.push_back(uint8_t(param.m_val[i]));
+	for(size_t i = 0; i < param_len; ++i) {
+		res.push_back(uint8_t(param_data[i]));
 	}
 
 	return res;
@@ -539,74 +612,14 @@ public:
 	}
 
 	inline void load_params() {
-		uint32_t j;
 		struct scap_sized_buffer params[PPM_MAX_EVENT_PARAMS];
 
 		m_params.clear();
 
 		uint32_t nparams = scap_event_decode_params(m_pevt, params);
 
-		/* We need the event info to overwrite some parameters if necessary. */
-		const struct ppm_event_info* event_info = &m_event_info_table[m_pevt->type];
-		int param_type = 0;
-
-		for(j = 0; j < nparams; j++) {
-			/* Here we need to manage a particular case:
-			 *
-			 *    - PT_CHARBUF
-			 *    - PT_FSRELPATH
-			 *    - PT_BYTEBUF
-			 *    - PT_BYTEBUF
-			 *
-			 * In the past these params could be `<NA>` or `(NULL)` or empty.
-			 * Now they can be only empty! The ideal solution would be:
-			 * 	params[i].buf = NULL;
-			 *	params[i].size = 0;
-			 *
-			 * The problem is that userspace is not
-			 * able to manage `NULL` pointers... but it manages `<NA>` so we
-			 * convert all these cases to `<NA>` when they are empty!
-			 *
-			 * If we read scap-files we could face `(NULL)` params, so also in
-			 * this case we convert them to `<NA>`.
-			 *
-			 * To be honest there could be another corner case, but right now
-			 * we don't have to manage it:
-			 *
-			 *    - PT_SOCKADDR
-			 *    - PT_SOCKTUPLE
-			 *    - PT_FDLIST
-			 *
-			 * Could be empty, so we will have:
-			 * 	params[i].buf = "pointer to the next param";
-			 *	params[i].size = 0;
-			 *
-			 * However, as we said in the previous case, the ideal outcome would be:
-			 * 	params[i].buf = NULL;
-			 *	params[i].size = 0;
-			 *
-			 * The difference with the previous case is that the userspace can manage
-			 * these params when they have `params[i].size == 0`, so we don't have
-			 * to use the `<NA>` workaround! We could also introduce the `NULL` and so
-			 * put in place the ideal solution for this parameter, but before doing this
-			 * we need to be sure that the userspace never tries to deference the pointer
-			 * otherwise it will trigger a segmentation fault at run-time. So as a first
-			 * step we would keep them as they are.
-			 */
-			param_type = event_info->params[j].type;
-
-			if((param_type == PT_CHARBUF || param_type == PT_FSRELPATH ||
-			    param_type == PT_FSPATH) &&
-			   (params[j].size == 0 ||
-			    (params[j].size == 7 && strncmp((char*)params[j].buf, "(NULL)", 7) == 0))) {
-				/* Overwrite the value and the size of the param.
-				 * 5 = strlen("<NA>") + `\0`.
-				 */
-				params[j].buf = (void*)"<NA>";
-				params[j].size = 5;
-			}
-
-			m_params.emplace_back(this, j, static_cast<const char*>(params[j].buf), params[j].size);
+		for(uint32_t i = 0; i < nparams; i++) {
+			m_params.emplace_back(this, i, static_cast<const char*>(params[i].buf), params[i].size);
 		}
 	}
 
@@ -753,7 +766,7 @@ public:
 		}
 
 		// the only return values should be on 32 or 64 bits
-		switch(p->m_len) {
+		switch(p->len()) {
 		case sizeof(int32_t):
 			return (int64_t)p->as<int32_t>();
 		case sizeof(int64_t):

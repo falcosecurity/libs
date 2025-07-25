@@ -481,7 +481,7 @@ TEST_F(sys_call_test, udp_client_server) {
 		std::string dst_port;
 
 		if(type == PPME_SOCKET_RECVFROM_E) {
-			memcpy(&fd_server_socket, e->get_param(0)->m_val, sizeof(fd_server_socket));
+			memcpy(&fd_server_socket, e->get_param(0)->data(), sizeof(fd_server_socket));
 		}
 		switch(state) {
 		case 0:

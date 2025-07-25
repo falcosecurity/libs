@@ -59,7 +59,7 @@ TEST_F(sinsp_with_test_input, RECVMSG_success) {
 	ASSERT_EQ(evt->get_param_value_str("data"), data);
 
 	// Check that msgcontrol is empty.
-	ASSERT_EQ(evt->get_param_by_name("msgcontrol")->m_len, 0);
+	ASSERT_EQ(evt->get_param_by_name("msgcontrol")->len(), 0);
 
 	// Check that fd value is as expected.
 	ASSERT_EQ(evt->get_param_by_name("fd")->as<int64_t>(), sock_params.fd);

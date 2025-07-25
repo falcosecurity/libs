@@ -767,7 +767,7 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 		} else if(param.m_evt->get_type() == PPME_PROCEXIT_1_E && param.m_evt->get_tid() == cpid) {
 			++callnum;
 		} else if(param.m_evt->get_type() == PPME_SYSCALL_READ_E) {
-			if(memcmp(&fd, param.m_evt->get_param(0)->m_val, sizeof(fd)) == 0) {
+			if(memcmp(&fd, param.m_evt->get_param(0)->data(), sizeof(fd)) == 0) {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
 				++callnum;
 			}

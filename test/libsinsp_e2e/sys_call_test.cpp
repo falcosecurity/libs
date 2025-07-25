@@ -960,25 +960,25 @@ TEST_F(sys_call_test, quotactl_ok) {
 				EXPECT_EQ("/dev/loop0", e->get_param_value_str("special"));
 				EXPECT_EQ(mydqblk.dqb_bhardlimit,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_bhardlimit")->m_val));
+				                  e->get_param_by_name("dqb_bhardlimit")->data()));
 				EXPECT_EQ(mydqblk.dqb_bsoftlimit,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_bsoftlimit")->m_val));
+				                  e->get_param_by_name("dqb_bsoftlimit")->data()));
 				EXPECT_EQ(mydqblk.dqb_curspace,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_curspace")->m_val));
+				                  e->get_param_by_name("dqb_curspace")->data()));
 				EXPECT_EQ(mydqblk.dqb_ihardlimit,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_ihardlimit")->m_val));
+				                  e->get_param_by_name("dqb_ihardlimit")->data()));
 				EXPECT_EQ(mydqblk.dqb_isoftlimit,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_isoftlimit")->m_val));
+				                  e->get_param_by_name("dqb_isoftlimit")->data()));
 				EXPECT_EQ(mydqblk.dqb_btime,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_btime")->m_val));
+				                  e->get_param_by_name("dqb_btime")->data()));
 				EXPECT_EQ(mydqblk.dqb_itime,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqb_itime")->m_val));
+				                  e->get_param_by_name("dqb_itime")->data()));
 				EXPECT_EQ("Q_GETQUOTA", e->get_param_value_str("cmd"));
 				EXPECT_EQ("USRQUOTA", e->get_param_value_str("type"));
 				EXPECT_EQ("0", e->get_param_value_str("id"));
@@ -988,10 +988,10 @@ TEST_F(sys_call_test, quotactl_ok) {
 				EXPECT_EQ("/dev/loop0", e->get_param_value_str("special"));
 				EXPECT_EQ(mydqinfo.dqi_bgrace,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqi_bgrace")->m_val));
+				                  e->get_param_by_name("dqi_bgrace")->data()));
 				EXPECT_EQ(mydqinfo.dqi_igrace,
 				          *reinterpret_cast<const uint64_t*>(
-				                  e->get_param_by_name("dqi_igrace")->m_val));
+				                  e->get_param_by_name("dqi_igrace")->data()));
 				EXPECT_EQ("Q_GETINFO", e->get_param_value_str("cmd"));
 				EXPECT_EQ("USRQUOTA", e->get_param_value_str("type"));
 				break;
@@ -1355,9 +1355,9 @@ TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS) {
 		sinsp_evt* e = param.m_evt;
 		if(e->get_num_params() >= 5) {
 			auto parinfo = e->get_param(4);
-			if(parinfo->m_len > sizeof(cmsghdr)) {
+			if(parinfo->len() > sizeof(cmsghdr)) {
 				cmsghdr cmsg = {};
-				memcpy(&cmsg, parinfo->m_val, sizeof(cmsghdr));
+				memcpy(&cmsg, parinfo->data(), sizeof(cmsghdr));
 				if(cmsg.cmsg_type == SCM_RIGHTS) {
 					++callnum;
 				}

@@ -1248,8 +1248,8 @@ TEST_F(sys_call_test, large_read_write) {
 			if(callnum == 1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
-				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
-				EXPECT_EQ(0, memcmp(buf.data(), p->m_val, SNAPLEN_MAX));
+				EXPECT_EQ(p->len(), SNAPLEN_MAX);
+				EXPECT_EQ(0, memcmp(buf.data(), p->data(), SNAPLEN_MAX));
 
 				callnum++;
 			}
@@ -1262,8 +1262,8 @@ TEST_F(sys_call_test, large_read_write) {
 			if(callnum == 3) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
-				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
-				EXPECT_EQ(0, memcmp(buf.data(), p->m_val, SNAPLEN_MAX));
+				EXPECT_EQ(p->len(), SNAPLEN_MAX);
+				EXPECT_EQ(0, memcmp(buf.data(), p->data(), SNAPLEN_MAX));
 
 				callnum++;
 			}
@@ -1360,11 +1360,11 @@ TEST_F(sys_call_test, large_readv_writev) {
 					// The driver doesn't have the correct behavior for accumulating
 					// readv/writev, and it uses a single page as a temporary storage area
 					//
-					EXPECT_EQ(p->m_len, max_kmod_buf);
-					EXPECT_EQ(0, memcmp(buf, p->m_val, max_kmod_buf));
+					EXPECT_EQ(p->len(), max_kmod_buf);
+					EXPECT_EQ(0, memcmp(buf, p->data(), max_kmod_buf));
 				} else {
-					EXPECT_EQ(p->m_len, SNAPLEN_MAX);
-					EXPECT_EQ(0, memcmp(buf, p->m_val, SNAPLEN_MAX));
+					EXPECT_EQ(p->len(), SNAPLEN_MAX);
+					EXPECT_EQ(0, memcmp(buf, p->data(), SNAPLEN_MAX));
 				}
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 
@@ -1379,11 +1379,11 @@ TEST_F(sys_call_test, large_readv_writev) {
 			if(callnum == 3) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 				if(event_capture::s_engine_string == KMOD_ENGINE) {
-					EXPECT_EQ(p->m_len, max_kmod_buf);
-					EXPECT_EQ(0, memcmp(buf, p->m_val, max_kmod_buf));
+					EXPECT_EQ(p->len(), max_kmod_buf);
+					EXPECT_EQ(0, memcmp(buf, p->data(), max_kmod_buf));
 				} else {
-					EXPECT_EQ(p->m_len, SNAPLEN_MAX);
-					EXPECT_EQ(0, memcmp(buf, p->m_val, SNAPLEN_MAX));
+					EXPECT_EQ(p->len(), SNAPLEN_MAX);
+					EXPECT_EQ(0, memcmp(buf, p->data(), SNAPLEN_MAX));
 				}
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 
@@ -1443,14 +1443,14 @@ TEST_F(sys_call_test, large_open) {
 			const sinsp_evt_param* p = e->get_param_by_name("name");
 
 			if(event_capture::s_engine_string == KMOD_ENGINE) {
-				EXPECT_EQ(p->m_len, PPM_MAX_ARG_SIZE);
-				EXPECT_EQ(buf.substr(0, PPM_MAX_ARG_SIZE - 1), std::string(p->m_val));
+				EXPECT_EQ(p->len(), PPM_MAX_ARG_SIZE);
+				EXPECT_EQ(buf.substr(0, PPM_MAX_ARG_SIZE - 1), std::string(p->data()));
 			} else if(event_capture::s_engine_string == BPF_ENGINE) {
-				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
-				EXPECT_EQ(buf.substr(0, SNAPLEN_MAX - 1), std::string(p->m_val));
+				EXPECT_EQ(p->len(), SNAPLEN_MAX);
+				EXPECT_EQ(buf.substr(0, SNAPLEN_MAX - 1), std::string(p->data()));
 			} else if(event_capture::s_engine_string == MODERN_BPF_ENGINE) {
-				EXPECT_EQ(p->m_len, PATH_MAX);
-				EXPECT_EQ(buf.substr(0, PATH_MAX - 1), std::string(p->m_val));
+				EXPECT_EQ(p->len(), PATH_MAX);
+				EXPECT_EQ(buf.substr(0, PATH_MAX - 1), std::string(p->data()));
 			}
 
 			callnum++;
