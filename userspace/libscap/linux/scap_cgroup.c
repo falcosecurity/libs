@@ -22,6 +22,7 @@ limitations under the License.
 #include <libscap/scap_const.h>
 #include <libscap/strerror.h>
 #include <libscap/uthash_ext.h>
+#include <libscap/debug_log_helpers.h>
 
 #include <dirent.h>
 #include <errno.h>
@@ -459,13 +460,10 @@ static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi,
 
 	char line[SCAP_MAX_PATH_SIZE];
 	snprintf(line, sizeof(line), "%s/cgroup.controllers", cgroup_mount);
-	if(access(line, F_OK) == -1) {
-		// If the file does not exist, return success. Skip
-		return SCAP_SUCCESS;
-	}
 
 	FILE* cgroup_controllers = fopen(line, "r");
 	if(!cgroup_controllers) {
+		scap_debug_log(cgi, "failed to open %s: %s", line, strerror(errno));
 		return SCAP_FAILURE;
 	}
 
@@ -520,8 +518,16 @@ static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi,
 // Since there is just one, we don't need to do anything fancy here, just glue the pieces together
 static int32_t scap_get_cgroup_mount_v2(struct mntent* de,
                                         char* mountpoint,
-                                        const char* host_root) {
-	snprintf(mountpoint, SCAP_MAX_PATH_SIZE, "%s/proc/1/root%s", host_root, de->mnt_dir);
+                                        const char* host_root,
+                                        char* error) {
+	int len_needed =
+	        snprintf(mountpoint, SCAP_MAX_PATH_SIZE, "%s/proc/1/root%s", host_root, de->mnt_dir);
+	if(len_needed < 0) {
+		return scap_errprintf(error, errno, "cgroup mount path encoding error");
+	}
+	if(len_needed >= SCAP_MAX_PATH_SIZE) {
+		return scap_errprintf(error, 0, "cgroup mount path too long");
+	}
 	return SCAP_SUCCESS;
 }
 
@@ -641,10 +647,35 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi,
 				                                 error);
 			}
 		} else if(strcmp(de->mnt_type, "cgroup2") == 0) {
-			scap_get_cgroup_mount_v2(de, cgi->m_mount_v2, host_root);
-			get_cgroup_subsystems_v2(cgi, &cgi->m_subsystems_v2, cgi->m_mount_v2);
-			if(cgi->m_in_cgroupns) {
-				scap_get_cgroup_self_v2_cgroupns(de, cgi->m_self_v2, host_root, pid_str);
+			scap_debug_log(cgi, "found cgroup v2 mountpoint %s", de->mnt_dir);
+			if(scap_get_cgroup_mount_v2(de, cgi->m_mount_v2, host_root, error) == SCAP_SUCCESS) {
+				if(get_cgroup_subsystems_v2(cgi, &cgi->m_subsystems_v2, cgi->m_mount_v2) ==
+				   SCAP_FAILURE) {
+					scap_errprintf(error,
+					               0,
+					               "failed to parse %s/cgroup.controllers",
+					               cgi->m_mount_v2);
+					// Reset the mountpoint as we failed to read the
+					// controllers
+					de->mnt_dir[0] = '\0';
+					continue;
+				}
+				if(cgi->m_in_cgroupns) {
+					scap_get_cgroup_self_v2_cgroupns(de, cgi->m_self_v2, host_root, pid_str);
+				}
+				// If we found a cgroup v2 mountpoint with controllers, we can
+				// stop searching
+				if(cgi->m_subsystems_v2.len > 0) {
+					scap_debug_log(cgi,
+					               "found cgroup v2 mountpoint with controllers: %s",
+					               cgi->m_mount_v2);
+					break;
+				}
+			} else {
+				scap_debug_log(cgi,
+				               "failed to get cgroup mount v2 path for mountpoint %s: %s",
+				               de->mnt_dir,
+				               error);
 			}
 		}
 	}
