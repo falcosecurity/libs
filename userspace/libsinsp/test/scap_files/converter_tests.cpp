@@ -65,6 +65,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_WRITEV_E, 5},        {PPME_SYSCALL_WRITEV_X, 5},
 	        {PPME_SYSCALL_FCNTL_E, 9817},      {PPME_SYSCALL_FCNTL_X, 9817},
 	        {PPME_SOCKET_CONNECT_E, 238},      {PPME_SOCKET_CONNECT_X, 238},
+	        {PPME_SYSCALL_EXECVE_19_E, 202},   {PPME_SYSCALL_EXECVE_19_X, 203},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
@@ -544,6 +545,126 @@ TEST_F(scap_file_test, brk_x_check_final_converted_event) {
 	                                             vm_rss,
 	                                             vm_swap,
 	                                             addr));
+}
+
+////////////////////////////
+///// EXECVE
+////////////////////////////
+
+TEST_F(scap_file_test, execve_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `897489` is the following:
+	// - type=PPME_SYSCALL_EXECVE_19_X,
+	// - ts=1687966733728778931
+	// - tid=141707
+	// - args=res=0 exe=cat args=/proc/129520/stat. tid=141707(cat) pid=141707(cat)
+	// ptid=141698(cpuUsage.sh) cwd=<NA> fdlimit=1048576 pgft_maj=0 pgft_min=56 vm_size=364 vm_rss=4
+	// vm_swap=0 comm=cat
+	// cgroups=cpuset=/user.slice.cpu=/user.slice.cpuacct=/.io=/user.slice.memory=/user.slic...
+	// env=SHELL=/bin/zsh.VSCODE_VERBOSE_LOGGING=true.LC_ADDRESS=it_IT.UTF-8.LC_NAME=it_... tty=0
+	// vpgid=118459 loginuid=1000(ubuntu) flags=0 cap_inheritable=0 cap_permitted=0 cap_effective=0
+	// exe_ino=1522 exe_ino_ctime=2023-03-03 03:16:21.531741984 exe_ino_mtime=2022-02-07
+	// 17:03:08.000000000 uid=1000(ubuntu)
+	//
+	// And its corresponding enter event `897487` is the following:
+	// - type=PPME_SYSCALL_EXECVE_19_E
+	// - ts=1687966733728593747
+	// - tid=141707
+	// - args=filename=/usr/bin/cat
+	//
+	// Let's see the new PPME_SYSCALL_EXECVE_19_X event!
+
+	constexpr uint64_t ts = 1687966733728778931;
+	constexpr int64_t tid_hdr = 141707;
+	constexpr int64_t res = 0;
+	constexpr char exe[] = "cat";
+	constexpr char args_data[] = "/proc/129520/stat";
+	const scap_const_sized_buffer args{args_data, sizeof(args_data)};
+	constexpr int64_t tid = 141707;
+	constexpr int64_t pid = 141707;
+	constexpr int64_t ptid = 141698;
+	constexpr auto cwd = empty_value<char *>();
+	constexpr uint64_t fdlimit = 1048576;
+	constexpr uint64_t pgft_maj = 0;
+	constexpr uint64_t pgft_min = 56;
+	constexpr uint32_t vm_size = 364;
+	constexpr uint32_t vm_rss = 4;
+	constexpr uint32_t vm_swap = 0;
+	constexpr char comm[] = "cat";
+	constexpr char cgroups_data[] =
+	        "cpuset=/user.slice\0cpu=/user.slice\0cpuacct=/\0io=/user.slice\0memory=/user.slice/"
+	        "user-1000.slice/session-21.scope\0devices=/\0freezer=/\0net_cls=/\0perf_event=/"
+	        "user.slice/user-1000.slice/session-21.scope\0net_prio=/\0hugetlb=/user.slice\0pids=/"
+	        "user.slice/user-1000.slice/session-21.scope\0rdma=/user.slice\0misc=/user.slice";
+	const scap_const_sized_buffer cgroups{cgroups_data, sizeof(cgroups_data)};
+	constexpr char env_data[] =
+	        "SHELL=/bin/"
+	        "zsh\0VSCODE_VERBOSE_LOGGING=true\0LC_ADDRESS=it_IT.UTF-8\0LC_NAME=it_IT.UTF-8\0VSCODE_"
+	        "PIPE_LOGGING=true\0LC_MONETARY=it_IT.UTF-8\0VSCODE_AMD_ENTRYPOINT=vs/platform/"
+	        "terminal/node/ptyHostMain\0PWD=/home/"
+	        "ubuntu\0LOGNAME=ubuntu\0XDG_SESSION_TYPE=tty\0MOTD_SHOWN=pam\0HOME=/home/"
+	        "ubuntu\0LC_PAPER=it_IT.UTF-8\0LANG=C.UTF-8\0VSCODE_AGENT_FOLDER=/home/ubuntu/"
+	        ".vscode-server\0SSH_CONNECTION=151.38.160.202 36824 172.31.24.0 "
+	        "22\0XDG_SESSION_CLASS=user\0VSCODE_HANDLES_SIGPIPE=true\0LC_IDENTIFICATION=it_IT.UTF-"
+	        "8\0USER=ubuntu\0SHLVL=1\0LC_TELEPHONE=it_IT.UTF-8\0LC_MEASUREMENT=it_IT.UTF-8\0VSCODE_"
+	        "CWD=/home/ubuntu\0XDG_SESSION_ID=21\0VSCODE_PARENT_PID=118516\0XDG_RUNTIME_DIR=/run/"
+	        "user/1000\0SSH_CLIENT=151.38.160.202 36824 "
+	        "22\0LC_TIME=it_IT.UTF-8\0PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/"
+	        "sbin:/bin:/usr/games:/usr/local/games:/snap/bin\0DBUS_SESSION_BUS_ADDRESS=unix:path=/"
+	        "run/user/1000/bus\0LC_NUMERIC=it_IT.UTF-8\0OLDPWD=/home/ubuntu\0_=/usr/bin/cat";
+	const scap_const_sized_buffer env{env_data, sizeof(env_data)};
+	constexpr uint32_t tty = 0;
+	constexpr int64_t vpgid = 118459;
+	constexpr uint32_t loginuid = 1000;
+	constexpr uint32_t flags = 0;
+	constexpr uint64_t cap_inheritable = 0;
+	constexpr uint64_t cap_permitted = 0;
+	constexpr uint64_t cap_effective = 0;
+	constexpr uint64_t exe_ino = 1522;
+	constexpr int64_t exe_ino_ctime = 1677809781531741984;
+	constexpr int64_t exe_ino_mtime = 1644249788000000000;
+	constexpr uint32_t uid = 1000;
+	constexpr auto trusted_exepath = empty_value<char *>();
+	constexpr auto pgid = empty_value<int64_t>();
+	constexpr auto gid = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 27, 28, 29);
+	assert_event_presence(create_safe_scap_event_with_empty_params(ts,
+	                                                               tid_hdr,
+	                                                               PPME_SYSCALL_EXECVE_19_X,
+	                                                               &empty_params_set,
+	                                                               30,
+	                                                               res,
+	                                                               exe,
+	                                                               args,
+	                                                               tid,
+	                                                               pid,
+	                                                               ptid,
+	                                                               cwd,
+	                                                               fdlimit,
+	                                                               pgft_maj,
+	                                                               pgft_min,
+	                                                               vm_size,
+	                                                               vm_rss,
+	                                                               vm_swap,
+	                                                               comm,
+	                                                               cgroups,
+	                                                               env,
+	                                                               tty,
+	                                                               vpgid,
+	                                                               loginuid,
+	                                                               flags,
+	                                                               cap_inheritable,
+	                                                               cap_permitted,
+	                                                               cap_effective,
+	                                                               exe_ino,
+	                                                               exe_ino_ctime,
+	                                                               exe_ino_mtime,
+	                                                               uid,
+	                                                               trusted_exepath,
+	                                                               pgid,
+	                                                               gid));
 }
 
 ////////////////////////////
