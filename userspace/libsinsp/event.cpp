@@ -1721,21 +1721,15 @@ uint64_t sinsp_evt::get_lastevent_ts() const {
 }
 
 void sinsp_evt::save_enter_event_params(sinsp_evt *enter_evt) {
-	static std::vector<const char *> path_param = {"path"};
 	static std::vector<const char *> oldpath_newpath_param = {"oldpath", "newpath"};
 	static std::vector<const char *> name_param = {"name"};
 
 	std::vector<const char *> *pnames = NULL;
 	switch(get_type()) {
-	case PPME_SYSCALL_UNLINK_X:
-		pnames = &path_param;
-		break;
-
 	case PPME_SYSCALL_LINK_X:
 	case PPME_SYSCALL_LINKAT_X:
 		pnames = &oldpath_newpath_param;
 		break;
-	case PPME_SYSCALL_UNLINKAT_X:
 	case PPME_SYSCALL_OPENAT_X:
 		pnames = &name_param;
 		break;

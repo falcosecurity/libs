@@ -32,6 +32,25 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
+        /*====================== UNLINK ======================*/
+        {conversion_key{PPME_SYSCALL_UNLINK_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_UNLINK_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_UNLINK_2_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({{C_INSTR_FROM_OLD, 0}, {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY}})},
+        /*====================== UNLINKAT ======================*/
+        {conversion_key{PPME_SYSCALL_UNLINKAT_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_UNLINKAT_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_UNLINKAT_2_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},
+                         {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},
+                         {C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY},
+                         {C_INSTR_FROM_EMPTY, 0},  // flags
+                 })},
         /*====================== PREAD ======================*/
         {conversion_key{PPME_SYSCALL_PREAD_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_PREAD_X, 2},

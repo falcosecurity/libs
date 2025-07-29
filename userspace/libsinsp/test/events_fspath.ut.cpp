@@ -311,18 +311,6 @@ TEST_F(fspath, rmdir_2) {
 	test_failed_exit(PPME_SYSCALL_RMDIR_2_X, 2, failed_res, path);
 }
 
-TEST_F(fspath, unlink) {
-	test_enter(PPME_SYSCALL_UNLINK_E, 1, path);
-	test_exit_path(path, path, PPME_SYSCALL_UNLINK_X, 1, res);
-	test_failed_exit(PPME_SYSCALL_UNLINK_X, 1, failed_res);
-}
-
-TEST_F(fspath, unlinkat) {
-	test_enter(PPME_SYSCALL_UNLINKAT_E, 2, evt_dirfd, name);
-	test_exit_path(resolved_name, name, PPME_SYSCALL_UNLINKAT_X, 1, res);
-	test_failed_exit(PPME_SYSCALL_UNLINKAT_X, 1, failed_res);
-}
-
 TEST_F(fspath, unlink_2) {
 	test_enter(PPME_SYSCALL_UNLINK_2_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_UNLINK_2_X, 2, res, path);
