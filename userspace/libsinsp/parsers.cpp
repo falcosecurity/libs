@@ -184,7 +184,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		parse_pidfd_getfd_exit(evt);
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt, verdict);
@@ -1758,7 +1757,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
 		// Old trace files didn't have comm, so just set it to exe
 		evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
 		break;
@@ -1809,7 +1807,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
 		break;
-	case PPME_SYSCALL_EXECVE_13_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
@@ -1834,13 +1831,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	const auto can_load_env_from_proc = is_large_envs_enabled();
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
-		parinfo = evt.get_param(15);
-		evt.get_tinfo()->set_env(parinfo->data(), parinfo->len(), can_load_env_from_proc);
+		if(const auto env_param = evt.get_param(15); !env_param->empty()) {
+			evt.get_tinfo()->set_env(env_param->data(), env_param->len(), can_load_env_from_proc);
+		}
 
 		// Set cgroups
 		if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -1853,7 +1850,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
@@ -1980,7 +1976,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:

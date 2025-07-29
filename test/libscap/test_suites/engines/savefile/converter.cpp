@@ -931,6 +931,79 @@ TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_X_to_5_params_with_enter) {
 // EXECVE
 ////////////////////////////
 
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_13_E_0_to_14_E_0) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	assert_single_conversion_success(CONVERSION_CONTINUE,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_13_E, 0),
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_14_E, 0));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_13_X_13_to_14_X_14_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid_hdr = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char exe[] = "exe";
+	constexpr uint8_t args_data[]{1, 2, 3, 4};
+	const scap_const_sized_buffer args{args_data, sizeof(args_data)};
+	constexpr int64_t tid = 100;
+	constexpr int64_t pid = 101;
+	constexpr int64_t ptid = 102;
+	constexpr char cwd[] = "cwd";
+	constexpr uint64_t fdlimit = 103;
+	constexpr uint64_t pgft_maj = 104;
+	constexpr uint64_t pgft_min = 105;
+	constexpr uint32_t vm_size = 106;
+	constexpr uint32_t vm_rss = 107;
+	constexpr uint32_t vm_swap = 108;
+
+	// Set to empty.
+	constexpr auto env = empty_value<scap_const_sized_buffer>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 13);
+
+	assert_single_conversion_success(
+	        CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts,
+	                               tid_hdr,
+	                               PPME_SYSCALL_EXECVE_13_X,
+	                               13,
+	                               res,
+	                               exe,
+	                               args,
+	                               tid,
+	                               pid,
+	                               ptid,
+	                               cwd,
+	                               fdlimit,
+	                               pgft_maj,
+	                               pgft_min,
+	                               vm_size,
+	                               vm_rss,
+	                               vm_swap),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid_hdr,
+	                                                 PPME_SYSCALL_EXECVE_14_X,
+	                                                 &empty_params_set,
+	                                                 14,
+	                                                 res,
+	                                                 exe,
+	                                                 args,
+	                                                 tid,
+	                                                 pid,
+	                                                 ptid,
+	                                                 cwd,
+	                                                 fdlimit,
+	                                                 pgft_maj,
+	                                                 pgft_min,
+	                                                 vm_size,
+	                                                 vm_rss,
+	                                                 vm_swap,
+	                                                 env));
+}
+
 TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_14_E_0_to_15_E_0) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
