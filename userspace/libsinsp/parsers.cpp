@@ -185,7 +185,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt, verdict);
@@ -1760,15 +1759,21 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
 		// Old trace files didn't have comm, so just set it to exe
 		evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
+	case PPME_SYSCALL_EXECVEAT_X: {
 		// Get the comm
-		evt.get_tinfo()->m_comm = evt.get_param(13)->as<std::string>();
+		const auto comm_param = evt.get_param(13);
+		// Old trace files didn't have comm, so just set it to exe
+		if(comm_param->empty()) {
+			evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
+			break;
+		}
+		evt.get_tinfo()->m_comm = comm_param->as<std::string>();
 		break;
+	}
 	default:
 		ASSERT(false);
 	}
@@ -1805,7 +1810,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_8_X:
 		break;
 	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
@@ -1832,11 +1836,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
 		break;
-	case PPME_SYSCALL_EXECVE_14_X:
-		// Get the environment
-		parinfo = evt.get_param(13);
-		evt.get_tinfo()->set_env(parinfo->data(), parinfo->len(), can_load_env_from_proc);
-		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
@@ -1855,7 +1854,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
@@ -1983,7 +1981,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:

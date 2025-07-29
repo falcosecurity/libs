@@ -16,7 +16,7 @@ TEST(events, check_unused_events) {
 /* Check the `is_old_version_event` API works correctly */
 TEST(events, check_old_version_events) {
 	/* `PPME_SYSCALL_EXECVE_8_E` has only the `EF_OLD_VERSION` flag */
-	ASSERT_EQ(libsinsp::events::is_old_version_event(PPME_SYSCALL_EXECVE_14_E), true);
+	ASSERT_EQ(libsinsp::events::is_old_version_event(PPME_SYSCALL_EXECVE_8_E), true);
 
 	/* `PPME_SCHEDSWITCH_6_X` has no the `EF_OLD_VERSION` flag */
 	ASSERT_EQ(libsinsp::events::is_old_version_event(PPME_SCHEDSWITCH_6_X), false);
