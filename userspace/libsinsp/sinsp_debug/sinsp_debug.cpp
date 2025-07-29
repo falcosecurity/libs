@@ -145,7 +145,6 @@ int main(int argc, char** argv) {
 		case PPME_SYSCALL_EXECVE_15_X:
 		case PPME_SYSCALL_EXECVE_16_X:
 		case PPME_SYSCALL_EXECVE_17_X:
-		case PPME_SYSCALL_EXECVE_18_X:
 		case PPME_SYSCALL_EXECVE_19_X:
 		case PPME_SYSCALL_EXECVEAT_X:
 			printf("🟢 EXECVE EXIT: evt_num(%ld)\n", ev->get_num());
