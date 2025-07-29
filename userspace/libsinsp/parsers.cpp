@@ -183,7 +183,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_PIDFD_GETFD_X:
 		parse_pidfd_getfd_exit(evt);
 		break;
-	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt, verdict);
@@ -1709,18 +1708,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 }
 
 void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	int64_t retval;
-	uint16_t etype = evt.get_type();
-	sinsp_evt *enter_evt = &m_tmp_evt;
-
-	// Validate the return value
-	retval = evt.get_syscall_return_value();
-
 	/* Some architectures like s390x send a `PPME_SYSCALL_EXECVEAT_X` exit event
 	 * when the `execveat` syscall succeeds, for this reason, we need to manage also
 	 * this event in the parser.
 	 */
-	if(retval < 0) {
+	if(evt.get_syscall_return_value() < 0) {
 		return;
 	}
 
@@ -1750,36 +1742,23 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->resurrect_thread();
 	}
 
-	// Get the exe
+	// Set the exe.
 	auto parinfo = evt.get_param(1);
 	evt.get_tinfo()->m_exe = parinfo->as<std::string>();
 	evt.get_tinfo()->m_lastexec_ts = evt.get_ts();
 
-	switch(etype) {
-	case PPME_SYSCALL_EXECVE_8_X:
-		// Old trace files didn't have comm, so just set it to exe
-		evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
-		break;
-	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X: {
-		// Get the comm
-		const auto comm_param = evt.get_param(13);
-		// Old trace files didn't have comm, so just set it to exe
-		if(comm_param->empty()) {
-			evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
-			break;
-		}
+	// Set the comm.
+	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
 		evt.get_tinfo()->m_comm = comm_param->as<std::string>();
-		break;
-	}
-	default:
-		ASSERT(false);
+	} else {
+		// Old trace files didn't have comm, so just set it to exe.
+		evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
 	}
 
-	// Get the command arguments
+	// Set the command arguments.
 	evt.get_tinfo()->set_args(evt.get_param(2)->as<std::vector<std::string>>());
 
-	// Get the pid
+	// Set the pid.
 	evt.get_tinfo()->m_pid = evt.get_param(4)->as<uint64_t>();
 
 	//
@@ -1801,77 +1780,42 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		m_thread_manager->create_thread_dependencies(tinfo);
 	}
 
-	// Get the fdlimit
+	// Set the fdlimit.
 	evt.get_tinfo()->m_fdlimit = evt.get_param(7)->as<int64_t>();
 
-	switch(etype) {
-	case PPME_SYSCALL_EXECVE_8_X:
-		break;
-	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
-		// Get the pgflt_maj
-		evt.get_tinfo()->m_pfmajor = evt.get_param(8)->as<uint64_t>();
-
-		// Get the pgflt_min
-		evt.get_tinfo()->m_pfminor = evt.get_param(9)->as<uint64_t>();
-
-		// Get the vm_size
-		evt.get_tinfo()->m_vmsize_kb = evt.get_param(10)->as<uint32_t>();
-
-		// Get the vm_rss
-		evt.get_tinfo()->m_vmrss_kb = evt.get_param(11)->as<uint32_t>();
-
-		// Get the vm_swap
-		evt.get_tinfo()->m_vmswap_kb = evt.get_param(12)->as<uint32_t>();
-		break;
-	default:
-		ASSERT(false);
+	// If one the following parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	const auto pgft_maj_param = evt.get_param(8);
+	const auto pgft_min_param = evt.get_param(9);
+	const auto vm_size_param = evt.get_param(10);
+	const auto vm_rss_param = evt.get_param(11);
+	const auto vm_swap_param = evt.get_param(12);
+	if(!vm_swap_param->empty()) {
+		evt.get_tinfo()->m_pfmajor = pgft_maj_param->as<uint64_t>();
+		evt.get_tinfo()->m_pfminor = pgft_min_param->as<uint64_t>();
+		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
+		evt.get_tinfo()->m_vmrss_kb = vm_rss_param->as<uint32_t>();
+		evt.get_tinfo()->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 	}
 
-	const auto can_load_env_from_proc = is_large_envs_enabled();
-	switch(etype) {
-	case PPME_SYSCALL_EXECVE_8_X:
-		break;
-	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
-		// Get the environment
-		if(const auto env_param = evt.get_param(15); !env_param->empty()) {
-			evt.get_tinfo()->set_env(env_param->data(), env_param->len(), can_load_env_from_proc);
-		}
-
-		// Set cgroups
-		if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
-			evt.get_tinfo()->set_cgroups(cgroups_param->as<std::vector<std::string>>());
-		}
-		break;
-	default:
-		ASSERT(false);
+	// Set the proc env.
+	if(const auto env_param = evt.get_param(15); !env_param->empty()) {
+		const auto can_load_env_from_proc = is_large_envs_enabled();
+		evt.get_tinfo()->set_env(env_param->data(), env_param->len(), can_load_env_from_proc);
 	}
 
-	switch(etype) {
-	case PPME_SYSCALL_EXECVE_8_X:
-		break;
-	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
-		// Get the tty
-		if(const auto tty_param = evt.get_param(16); !tty_param->empty()) {
-			evt.get_tinfo()->m_tty = tty_param->as<uint32_t>();
-		}
-		break;
-	default:
-		ASSERT(false);
+	// Set cgroups.
+	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
+		evt.get_tinfo()->set_cgroups(cgroups_param->as<std::vector<std::string>>());
 	}
 
-	/*
-	 * Get `exepath`
-	 */
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser.
-	if(evt.get_num_params() > 27 && !evt.get_param(27)->empty()) {
-		/* In new event versions, with 28 parameters, we can obtain the full exepath with resolved
-		 * symlinks directly from the kernel.
-		 */
+	// Set tty.
+	if(const auto tty_param = evt.get_param(16); !tty_param->empty()) {
+		evt.get_tinfo()->m_tty = tty_param->as<uint32_t>();
+	}
 
+	// Set the exepath.
+	if(!evt.get_param(27)->empty()) {
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 		evt.get_tinfo()->set_exepath(evt.get_param(27)->as<std::string>());
 	} else {
@@ -1879,12 +1823,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		 * In older event versions we can only rely on our userspace reconstruction
 		 */
 
-		/* We introduced the `filename` argument in the enter event only from version `EXECVE_18_E`
-		 * (which is currently scap-converted into `EXECVE_19_E`). Moreover, if we are not able to
-		 * retrieve the enter event we can do nothing.
-		 */
-		if((etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X) &&
-		   retrieve_enter_event(*enter_evt, evt)) {
+		// If we are not able to retrieve the enter event we can do nothing.
+		sinsp_evt *enter_evt = &m_tmp_evt;
+		if(retrieve_enter_event(*enter_evt, evt)) {
 			std::string fullpath;
 
 			/* We need to manage the 2 possible cases:
@@ -1974,132 +1915,77 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		}
 	}
 
-	switch(etype) {
-	case PPME_SYSCALL_EXECVE_8_X:
-		break;
-	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
-		// Get the vpgid
-		if(const auto vpgid_param = evt.get_param(17); !vpgid_param->empty()) {
-			evt.get_tinfo()->m_vpgid = vpgid_param->as<int64_t>();
-		}
-		break;
-	default:
-		ASSERT(false);
+	// Set the vpgid.
+	if(const auto vpgid_param = evt.get_param(17); !vpgid_param->empty()) {
+		evt.get_tinfo()->m_vpgid = vpgid_param->as<int64_t>();
 	}
 
-	// From scap version 1.2, event types of existent
-	// events are no longer changed.
-	// sinsp_evt::get_num_params() can instead be used
-	// to identify the version of the event.
-	// For example:
-	//
-	// if(evt.get_num_params() > 18)
-	// {
-	//   ...
-	// }
-
-	// Get the loginuid
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 18) {
-		if(const auto loginuid_param = evt.get_param(18); !loginuid_param->empty()) {
-			// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an
-			// uid invalid value.
-			evt.get_tinfo()->set_loginuid(loginuid_param->as<uint32_t>());
-		}
+	// Set the loginuid.
+	if(const auto loginuid_param = evt.get_param(18); !loginuid_param->empty()) {
+		// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an
+		// uid invalid value.
+		evt.get_tinfo()->set_loginuid(loginuid_param->as<uint32_t>());
 	}
 
-	// Get execve flags
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 19) {
-		if(const auto flags_param = evt.get_param(19); !flags_param->empty()) {
-			const auto flags = flags_param->as<uint32_t>();
-			evt.get_tinfo()->m_exe_writable = (flags & PPM_EXE_WRITABLE) != 0;
-			evt.get_tinfo()->m_exe_upper_layer = (flags & PPM_EXE_UPPER_LAYER) != 0;
-			evt.get_tinfo()->m_exe_from_memfd = (flags & PPM_EXE_FROM_MEMFD) != 0;
-			evt.get_tinfo()->m_exe_lower_layer = (flags & PPM_EXE_LOWER_LAYER) != 0;
-		}
+	// Set execve/execveat flags.
+	if(const auto flags_param = evt.get_param(19); !flags_param->empty()) {
+		const auto flags = flags_param->as<uint32_t>();
+		evt.get_tinfo()->m_exe_writable = (flags & PPM_EXE_WRITABLE) != 0;
+		evt.get_tinfo()->m_exe_upper_layer = (flags & PPM_EXE_UPPER_LAYER) != 0;
+		evt.get_tinfo()->m_exe_from_memfd = (flags & PPM_EXE_FROM_MEMFD) != 0;
+		evt.get_tinfo()->m_exe_lower_layer = (flags & PPM_EXE_LOWER_LAYER) != 0;
 	}
 
-	// Get capabilities
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 22) {
-		if(etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X) {
-			const auto cap_inheritable_param = evt.get_param(20);
-			const auto cap_permitted_param = evt.get_param(21);
-			const auto cap_effective_param = evt.get_param(22);
-			// If one capability set is present, so is for the other ones, so just check the
-			// presence of one of them.
-			if(!cap_effective_param->empty()) {
-				evt.get_tinfo()->m_cap_inheritable = cap_inheritable_param->as<uint64_t>();
-				evt.get_tinfo()->m_cap_permitted = cap_permitted_param->as<uint64_t>();
-				evt.get_tinfo()->m_cap_effective = cap_effective_param->as<uint64_t>();
-			}
+	// Set capabilities.
+	const auto cap_inheritable_param = evt.get_param(20);
+	const auto cap_permitted_param = evt.get_param(21);
+	const auto cap_effective_param = evt.get_param(22);
+	// If one capability set is present, so is for the other ones, so just check the
+	// presence of one of them.
+	if(!cap_effective_param->empty()) {
+		evt.get_tinfo()->m_cap_inheritable = cap_inheritable_param->as<uint64_t>();
+		evt.get_tinfo()->m_cap_permitted = cap_permitted_param->as<uint64_t>();
+		evt.get_tinfo()->m_cap_effective = cap_effective_param->as<uint64_t>();
+	}
+
+	// Set exe ino fields.
+	const auto exe_ino_param = evt.get_param(23);
+	const auto exe_ino_ctime_param = evt.get_param(24);
+	const auto exe_ino_mtime_param = evt.get_param(25);
+	// If one of these parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	if(!exe_ino_mtime_param->empty()) {
+		evt.get_tinfo()->m_exe_ino = exe_ino_param->as<uint64_t>();
+		evt.get_tinfo()->m_exe_ino_ctime = exe_ino_ctime_param->as<uint64_t>();
+		evt.get_tinfo()->m_exe_ino_mtime = exe_ino_mtime_param->as<uint64_t>();
+		if(evt.get_tinfo()->m_clone_ts != 0) {
+			evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
+			        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
+		}
+		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
+		   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
+			evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
+			        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
 		}
 	}
 
-	// Get exe ino fields
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 25) {
-		const auto exe_ino_param = evt.get_param(23);
-		const auto exe_ino_ctime_param = evt.get_param(24);
-		const auto exe_ino_mtime_param = evt.get_param(25);
-		// If one of these parameters is present, so is for the other ones, so just check the
-		// presence of one of them.
-		if(!exe_ino_mtime_param->empty()) {
-			evt.get_tinfo()->m_exe_ino = exe_ino_param->as<uint64_t>();
-
-			evt.get_tinfo()->m_exe_ino_ctime = exe_ino_ctime_param->as<uint64_t>();
-
-			evt.get_tinfo()->m_exe_ino_mtime = exe_ino_mtime_param->as<uint64_t>();
-
-			if(evt.get_tinfo()->m_clone_ts != 0) {
-				evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
-				        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
-			}
-
-			if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
-			   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
-				evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
-				        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
-			}
-		}
+	// Set uid.
+	if(const auto uid_param = evt.get_param(26); !uid_param->empty()) {
+		// Notice: this can potentially set uid to UINT32_MAX, which is used to denote an uid
+		// invalid value.
+		evt.get_tinfo()->set_user(uid_param->as<uint32_t>(), must_notify_thread_user_update());
 	}
 
-	// Get uid
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 26) {
-		if(const auto uid_param = evt.get_param(26); !uid_param->empty()) {
-			// Notice: this can potentially set uid to UINT32_MAX, which is used to denote an uid
-			// invalid value.
-			evt.get_tinfo()->set_user(uid_param->as<uint32_t>(), must_notify_thread_user_update());
-		}
-	}
-
-	// Get pgid
+	// Set pgid.
 	int64_t pgid = -1;
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 28) {
-		if(const auto pgid_param = evt.get_param(28); !pgid_param->empty()) {
-			pgid = pgid_param->as<int64_t>();
-		}
+	if(const auto pgid_param = evt.get_param(28); !pgid_param->empty()) {
+		pgid = pgid_param->as<int64_t>();
 	}
 	evt.get_tinfo()->m_pgid = pgid;
 
-	// Get gid
-	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 29) {
-		if(const auto gid_param = evt.get_param(29); !gid_param->empty()) {
-			evt.get_tinfo()->set_group(gid_param->as<uint32_t>(),
-			                           must_notify_thread_group_update());
-		}
+	// Set gid.
+	if(const auto gid_param = evt.get_param(29); !gid_param->empty()) {
+		evt.get_tinfo()->set_group(gid_param->as<uint32_t>(), must_notify_thread_group_update());
 	}
 
 	//

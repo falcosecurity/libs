@@ -139,7 +139,6 @@ int main(int argc, char** argv) {
 			display_thread_lineage(tinfo);
 		} break;
 
-		case PPME_SYSCALL_EXECVE_8_X:
 		case PPME_SYSCALL_EXECVE_19_X:
 		case PPME_SYSCALL_EXECVEAT_X:
 			printf("🟢 EXECVE EXIT: evt_num(%ld)\n", ev->get_num());
