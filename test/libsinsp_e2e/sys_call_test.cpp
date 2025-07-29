@@ -1125,7 +1125,7 @@ TEST_F(sys_call_test32, execve_ia32_emulation) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		auto tinfo = e->get_thread_info(true);
-		if(type == PPME_SYSCALL_EXECVE_19_E || type == PPME_SYSCALL_EXECVE_17_E) {
+		if(type == PPME_SYSCALL_EXECVE_19_E) {
 			++callnum;
 			switch(callnum) {
 			case 1:
@@ -1141,7 +1141,7 @@ TEST_F(sys_call_test32, execve_ia32_emulation) {
 				EXPECT_EQ(tinfo->m_comm, "execve");
 				break;
 			}
-		} else if(type == PPME_SYSCALL_EXECVE_19_X || type == PPME_SYSCALL_EXECVE_17_X) {
+		} else if(type == PPME_SYSCALL_EXECVE_19_X) {
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
 			auto comm = e->get_param_value_str("comm", false);
@@ -1764,7 +1764,7 @@ TEST_F(sys_call_test32, failing_execve) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		auto tinfo = e->get_thread_info(true);
-		if(type == PPME_SYSCALL_EXECVE_19_E || type == PPME_SYSCALL_EXECVE_17_E) {
+		if(type == PPME_SYSCALL_EXECVE_19_E) {
 			++callnum;
 			switch(callnum) {
 			case 1:
@@ -1785,7 +1785,7 @@ TEST_F(sys_call_test32, failing_execve) {
 			default:
 				FAIL() << "Wrong execve entry callnum (" << callnum << ")";
 			}
-		} else if(type == PPME_SYSCALL_EXECVE_19_X || type == PPME_SYSCALL_EXECVE_17_X) {
+		} else if(type == PPME_SYSCALL_EXECVE_19_X) {
 			++callnum;
 
 			auto res = e->get_param_value_str("res", false);

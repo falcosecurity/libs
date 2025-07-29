@@ -188,7 +188,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt, verdict);
@@ -1769,7 +1768,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		break;
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
@@ -1814,7 +1812,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
@@ -1852,7 +1849,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->set_env(parinfo->data(), parinfo->len(), can_load_env_from_proc);
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
@@ -1873,7 +1869,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 		break;
-	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
@@ -2001,7 +1996,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
