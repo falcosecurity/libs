@@ -154,6 +154,114 @@ TEST_F(convert_event_test, PPME_SYSCALL_READ_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// UNLINK
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_UNLINK_X_1_to_2_X_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty.
+	constexpr auto path = empty_value<char *>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINK_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_UNLINK_2_X,
+	                                                 &empty_params_set,
+	                                                 2,
+	                                                 res,
+	                                                 path));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_UNLINK_X_1_to_2_X_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char path[] = "/etc/ld.so.preload";
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINK_E, 1, path);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINK_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINK_2_X, 2, res, path));
+}
+
+////////////////////////////
+// UNLINKAT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_UNLINKAT_X_1_to_2_X_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty.
+	constexpr auto dirfd = empty_value<int64_t>();
+	constexpr auto name = empty_value<char *>();
+	constexpr auto flags = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINKAT_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_UNLINKAT_2_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 dirfd,
+	                                                 name,
+	                                                 flags));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_UNLINKAT_X_1_to_2_X_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t dirfd = 25;
+	constexpr char name[] = "/etc/ld.so.preload";
+
+	// Set to empty.
+	constexpr auto flags = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 3);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINKAT_E, 2, dirfd, name);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UNLINKAT_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_UNLINKAT_2_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 dirfd,
+	                                                 name,
+	                                                 flags));
+}
+
+////////////////////////////
 // PREAD
 ////////////////////////////
 

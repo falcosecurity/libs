@@ -724,7 +724,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 			dirfdarg = "newdir";
 			patharg = "newpath";
 		}
-	} else if(etype == PPME_SYSCALL_UNLINKAT_E || etype == PPME_SYSCALL_UNLINKAT_2_X) {
+	} else if(etype == PPME_SYSCALL_UNLINKAT_2_X) {
 		dirfdarg = "dirfd";
 		patharg = "name";
 	} else if(etype == PPME_SYSCALL_MKDIRAT_X) {
@@ -758,9 +758,15 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 		return 0;
 	}
 
-	int64_t dirfd = evt->get_param(dirfdargidx)->as<int64_t>();
+	// Make sure that the parameters are not empty.
+	const auto dirfd_param = evt->get_param(dirfdargidx);
+	const auto path_param = evt->get_param(pathargidx);
+	if(dirfd_param->empty() || path_param->empty()) {
+		return 0;
+	}
 
-	std::string_view path = evt->get_param(pathargidx)->as<std::string_view>();
+	const auto dirfd = dirfd_param->as<int64_t>();
+	const auto path = path_param->as<std::string_view>();
 
 	string sdir;
 

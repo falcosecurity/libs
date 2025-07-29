@@ -162,10 +162,6 @@ void sinsp_filter_check_fspath::create_fspath_checks() {
 	m_path_checks->emplace(PPME_SYSCALL_RMDIR_2_X, evt_arg_path);
 	m_success_checks->emplace(PPME_SYSCALL_RMDIR_2_X, evt_arg_res_eq_0);
 
-	m_success_checks->emplace(PPME_SYSCALL_UNLINK_X, evt_arg_res_eq_0);
-
-	m_success_checks->emplace(PPME_SYSCALL_UNLINKAT_X, evt_arg_res_eq_0);
-
 	m_path_checks->emplace(PPME_SYSCALL_UNLINK_2_X, evt_arg_path);
 	m_success_checks->emplace(PPME_SYSCALL_UNLINK_2_X, evt_arg_res_eq_0);
 
@@ -315,14 +311,6 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 
 		// For some event types we need to get the values from the enter event instead.
 		switch(evt->get_type()) {
-		case PPME_SYSCALL_UNLINK_X:
-			enter_param = evt->get_enter_evt_param("path");
-			if(!enter_param.has_value()) {
-				return NULL;
-			}
-			m_tstr = enter_param.value();
-			break;
-		case PPME_SYSCALL_UNLINKAT_X:
 		case PPME_SYSCALL_OPENAT_X:
 			enter_param = evt->get_enter_evt_param("name");
 			if(!enter_param.has_value()) {
