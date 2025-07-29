@@ -367,6 +367,75 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 	                            not_relevant_32);
 }
 
+sinsp_evt* sinsp_with_test_input::generate_execveat_enter_and_exit_event(
+        int64_t retval,
+        int64_t old_tid,
+        int64_t new_tid,
+        int64_t pid,
+        int64_t ppid,
+        const std::string& pathname,
+        const std::string& comm,
+        const std::string& resolved_kernel_path,
+        const std::vector<std::string>& cgroup_vec,
+        int64_t pgid) {
+	// Scaffolding needed to call the PPME_SYSCALL_EXECVEAT_X
+	uint64_t not_relevant_64 = 0;
+	uint32_t not_relevant_32 = 0;
+	scap_const_sized_buffer empty_bytebuf = {/*.buf =*/nullptr, /*.size =*/0};
+	scap_const_sized_buffer cgroup_byte_buf = empty_bytebuf;
+	std::string cgroupsv = test_utils::to_null_delimited(cgroup_vec);
+
+	// If the cgroup vector is not empty overwrite it
+	if(!cgroup_vec.empty()) {
+		cgroup_byte_buf = scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()};
+	}
+
+	int64_t dirfd = 3;
+	add_event_advance_ts(increasing_ts(),
+	                     old_tid,
+	                     PPME_SYSCALL_EXECVEAT_E,
+	                     3,
+	                     dirfd,
+	                     pathname.c_str(),
+	                     0);
+	// we have an `old_tid` and a `new_tid` because if a secondary thread calls the execve
+	// the thread leader will take control so the `tid` between enter and exit event will change
+	return add_event_advance_ts(increasing_ts(),
+	                            new_tid,
+	                            PPME_SYSCALL_EXECVEAT_X,
+	                            30,
+	                            retval,
+	                            pathname.c_str(),
+	                            empty_bytebuf,
+	                            new_tid,
+	                            pid,
+	                            ppid,
+	                            "",
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            comm.c_str(),
+	                            cgroup_byte_buf,
+	                            empty_bytebuf,
+	                            not_relevant_32,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            resolved_kernel_path.c_str(),
+	                            pgid,
+	                            not_relevant_32);
+}
+
 sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_default_params(
         const int64_t pid,
         const std::string& file_to_run,

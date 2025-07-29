@@ -2152,7 +2152,7 @@ const struct ppm_event_info g_event_info[] = {
                                       {"flags", PT_FLAGS32, PF_HEX, execveat_flags}}},
         [PPME_SYSCALL_EXECVEAT_X] = {"execveat",
                                      EC_PROCESS | EC_SYSCALL,
-                                     EF_MODIFIES_STATE,
+                                     EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED,
                                      30,
                                      {{"res", PT_ERRNO, PF_DEC},
                                       {"exe", PT_CHARBUF, PF_NA},

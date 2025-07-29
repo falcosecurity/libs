@@ -521,6 +521,35 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({{C_INSTR_FROM_ENTER, 0},
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
+        /*====================== EXECVEAT ======================*/
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 19},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // flags
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 20},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({
+                         {C_INSTR_FROM_EMPTY, 0},  // cap_inheritable
+                         {C_INSTR_FROM_EMPTY, 0},  // cap_permitted
+                         {C_INSTR_FROM_EMPTY, 0},  // cap_effective
+                 })},
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 23},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({
+                         {C_INSTR_FROM_EMPTY, 0},  // exe_ino
+                         {C_INSTR_FROM_EMPTY, 0},  // exe_ino_ctime
+                         {C_INSTR_FROM_EMPTY, 0},  // exe_ino_mtime
+                 })},
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 26},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // uid
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 27},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // trusted_exepath
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 28},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pgid
+        {conversion_key{PPME_SYSCALL_EXECVEAT_X, 29},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // gid
         /*====================== COPY_FILE_RANGE ======================*/
         {conversion_key{PPME_SYSCALL_COPY_FILE_RANGE_E, 3},
          conversion_info().action(C_ACTION_STORE)},

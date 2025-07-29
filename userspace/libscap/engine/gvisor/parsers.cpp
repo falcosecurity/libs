@@ -357,7 +357,9 @@ static parse_result parse_execve(uint32_t id,
 			        comm.c_str(),                                            // comm
 			        scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
 			        scap_const_sized_buffer{env.data(), env.size()},
-			        0);  // uid -- INVALID/not available in gVisor evt
+			        0,  // uid -- INVALID/not available in gVisor evt
+			        0   // gid -- INVALID/not available in gVisor evt
+			);
 			break;
 
 		default:

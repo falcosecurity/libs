@@ -168,5 +168,20 @@ protected:
 		}
 	}
 
+	// Return an empty value for the type T.
+	template<typename T>
+	constexpr static T empty_value() {
+		return static_cast<T>(0);
+	}
+
 	std::unique_ptr<sinsp> m_inspector;
 };
+
+template<>
+constexpr scap_const_sized_buffer scap_file_test::empty_value() {
+	return {nullptr, 0};
+}
+template<>
+constexpr char* scap_file_test::empty_value() {
+	return nullptr;
+}

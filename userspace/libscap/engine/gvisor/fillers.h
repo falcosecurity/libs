@@ -121,7 +121,8 @@ int32_t fill_event_execveat_x(scap_sized_buffer scap_buf,
                               const char* comm,
                               scap_const_sized_buffer cgroups,
                               scap_const_sized_buffer env,
-                              uint32_t uid);
+                              uint32_t uid,
+                              uint32_t gid);
 
 int32_t fill_event_procexit_1_e(scap_sized_buffer scap_buf,
                                 size_t* event_size,
