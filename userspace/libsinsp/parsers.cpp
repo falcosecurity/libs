@@ -105,7 +105,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_LINKAT_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
-	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
 	case PPME_SYSCALL_EXECVEAT_E:
 		store_event(evt);
@@ -190,7 +189,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt, verdict);
@@ -548,7 +546,7 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 		ASSERT(static_cast<int64_t>(tinfo->m_latency) >= 0);
 	}
 
-	if((etype == PPME_SYSCALL_EXECVE_18_X || etype == PPME_SYSCALL_EXECVE_19_X) &&
+	if(etype == PPME_SYSCALL_EXECVE_19_X &&
 	   tinfo->get_lastevent_type() == PPME_SYSCALL_EXECVEAT_E) {
 		tinfo->set_lastevent_data_validity(true);
 	} else if(etype == tinfo->get_lastevent_type() + 1) {
@@ -682,8 +680,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	 * only check for the same syscall event, so `PPME_SYSCALL_EXECVE_..._E`,
 	 * we have also to check for the `PPME_SYSCALL_EXECVEAT_E`.
 	 */
-	if((exit_evt.get_type() == PPME_SYSCALL_EXECVE_18_X ||
-	    exit_evt.get_type() == PPME_SYSCALL_EXECVE_19_X) &&
+	if(exit_evt.get_type() == PPME_SYSCALL_EXECVE_19_X &&
 	   enter_evt.get_type() == PPME_SYSCALL_EXECVEAT_E) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_retrieved_evts++;
@@ -1773,7 +1770,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
@@ -1819,7 +1815,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
@@ -1858,7 +1853,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
@@ -1880,7 +1874,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_16_X:
 		break;
 	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
@@ -1907,13 +1900,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		 * In older event versions we can only rely on our userspace reconstruction
 		 */
 
-		/* We introduced the `filename` argument in the enter event
-		 * only from version `EXECVE_18_E`.
-		 * Moreover if we are not able to retrieve the enter event
-		 * we can do nothing.
+		/* We introduced the `filename` argument in the enter event only from version `EXECVE_18_E`
+		 * (which is currently scap-converted into `EXECVE_19_E`). Moreover, if we are not able to
+		 * retrieve the enter event we can do nothing.
 		 */
-		if((etype == PPME_SYSCALL_EXECVE_18_X || etype == PPME_SYSCALL_EXECVE_19_X ||
-		    etype == PPME_SYSCALL_EXECVEAT_X) &&
+		if((etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X) &&
 		   retrieve_enter_event(*enter_evt, evt)) {
 			std::string fullpath;
 
@@ -1921,8 +1912,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			 * - enter event is an `EXECVE`
 			 * - enter event is an `EXECVEAT`
 			 */
-			if(enter_evt->get_type() == PPME_SYSCALL_EXECVE_18_E ||
-			   enter_evt->get_type() == PPME_SYSCALL_EXECVE_19_E) {
+			if(enter_evt->get_type() == PPME_SYSCALL_EXECVE_19_E) {
 				/*
 				 * Get filename
 				 */
@@ -2012,12 +2002,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the vpgid
-		evt.get_tinfo()->m_vpgid = evt.get_param(17)->as<int64_t>();
+		if(const auto vpgid_param = evt.get_param(17); !vpgid_param->empty()) {
+			evt.get_tinfo()->m_vpgid = vpgid_param->as<int64_t>();
+		}
 		break;
 	default:
 		ASSERT(false);
