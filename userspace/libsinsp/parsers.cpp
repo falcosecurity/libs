@@ -1894,15 +1894,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 * Get `exepath`
 	 */
 	// TODO(ekoops): remove the check on the num of params once we scap-convert all the events
-	//   handled by this parser, and replace it with the below check on parameter emptiness.
-	if(evt.get_num_params() > 27) {
+	//   handled by this parser.
+	if(evt.get_num_params() > 27 && !evt.get_param(27)->empty()) {
 		/* In new event versions, with 28 parameters, we can obtain the full exepath with resolved
 		 * symlinks directly from the kernel.
 		 */
 
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-		// Notice: ->as<std::string>() already contains the logic to convert the PT_FSPATH param to
-		// <NA>.
 		evt.get_tinfo()->set_exepath(evt.get_param(27)->as<std::string>());
 	} else {
 		/* ONLY VALID FOR OLD SCAP-FILES:

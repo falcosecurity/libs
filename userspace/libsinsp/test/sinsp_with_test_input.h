@@ -329,6 +329,17 @@ protected:
 	        const std::string& resolved_kernel_path = "/bin/test-exe",
 	        const std::vector<std::string>& cgroup_vec = {},
 	        int64_t pgid = 0);
+	sinsp_evt* generate_execveat_enter_and_exit_event(
+	        int64_t retval,
+	        int64_t old_tid,
+	        int64_t new_tid,
+	        int64_t pid,
+	        int64_t ppid,
+	        const std::string& pathname = "/bin/test-exe",
+	        const std::string& comm = "test-exe",
+	        const std::string& resolved_kernel_path = "/bin/test-exe",
+	        const std::vector<std::string>& cgroup_vec = {},
+	        int64_t pgid = 0);
 
 	sinsp_evt* generate_execve_exit_event_with_default_params(int64_t pid,
 	                                                          const std::string& file_to_run,
