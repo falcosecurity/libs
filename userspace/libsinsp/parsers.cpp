@@ -156,7 +156,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE3_X:
 		parse_clone_exit(evt, verdict);
@@ -383,8 +382,7 @@ static bool is_clone_exit_event(const uint16_t evt_type) {
  * \brief Indicate if the event is a fork or a vfork exit event.
  */
 static bool is_fork_exit_event(const uint16_t evt_type) {
-	return evt_type == PPME_SYSCALL_FORK_20_X || evt_type == PPME_SYSCALL_VFORK_X ||
-	       evt_type == PPME_SYSCALL_VFORK_20_X;
+	return evt_type == PPME_SYSCALL_FORK_20_X || evt_type == PPME_SYSCALL_VFORK_20_X;
 }
 
 static bool is_procexit_event(const uint16_t evt_type) {
@@ -688,7 +686,6 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
                                            sinsp_parser_verdict &verdict,
                                            const int64_t child_tid) const {
-	uint16_t etype = evt.get_type();
 	int64_t caller_tid = evt.get_tid();
 
 	/* We have a collision when we force a removal in the thread table because
@@ -740,27 +737,16 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		caller_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
 
 		/* vtid & vpid */
-		/* We preset them for old scap-files compatibility. */
-		caller_tinfo->m_vtid = caller_tid;
-		caller_tinfo->m_vpid = -1;
-		switch(etype) {
-		case PPME_SYSCALL_VFORK_X:
-			break;
-		case PPME_SYSCALL_CLONE_20_X:
-		case PPME_SYSCALL_FORK_20_X:
-		case PPME_SYSCALL_VFORK_20_X:
-		case PPME_SYSCALL_CLONE3_X: {
-			if(const auto vtid_param = evt.get_param(18); !vtid_param->empty()) {
-				caller_tinfo->m_vtid = vtid_param->as<int64_t>();
-			}
-
-			if(const auto vpid_param = evt.get_param(19); !vpid_param->empty()) {
-				caller_tinfo->m_vpid = vpid_param->as<int64_t>();
-			}
-			break;
-		}
-		default:
-			ASSERT(false);
+		// If one of these parameters is present, so is for the other ones, so just check the
+		// presence of one of them.
+		const auto vtid_param = evt.get_param(18);
+		const auto vpid_param = evt.get_param(19);
+		if(!vpid_param->empty()) {
+			caller_tinfo->m_vtid = vtid_param->as<int64_t>();
+			caller_tinfo->m_vpid = vpid_param->as<int64_t>();
+		} else {
+			caller_tinfo->m_vtid = caller_tid;
+			caller_tinfo->m_vpid = -1;
 		}
 
 		/* Create thread groups and parenting relationships */
@@ -783,20 +769,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * also the caller will be marked as a thread with the `PPM_CL_CLONE_THREAD` flag.
 	 */
 
-	uint32_t flags = 0;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		flags = evt.get_param(13)->as<uint32_t>();
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		flags = evt.get_param(15)->as<uint32_t>();
-		break;
-	default:
-		ASSERT(false);
-	}
+	const auto flags = evt.get_param(15)->as<uint32_t>();
 
 	/* PPM_CL_CHILD_IN_PIDNS is true when:
 	 * - the caller is running into a container and so the child
@@ -960,23 +933,10 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	child_tinfo->set_args(evt.get_param(2)->as<std::vector<std::string>>());
 
 	/* comm */
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
+	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
+		child_tinfo->m_comm = comm_param->as<std::string>();
+	} else {
 		child_tinfo->m_comm = child_tinfo->m_exe;
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X: {
-		if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-			child_tinfo->m_comm = comm_param->as<std::string>();
-		} else {
-			child_tinfo->m_comm = child_tinfo->m_exe;
-		}
-		break;
-	}
-	default:
-		ASSERT(false);
 	}
 
 	/* fdlimit */
@@ -999,50 +959,16 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	}
 
 	/* uid */
-	int32_t uid = 0;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		uid = evt.get_param(14)->as<int32_t>();
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		uid = evt.get_param(16)->as<int32_t>();
-		break;
-	default:
-		ASSERT(false);
-	}
+	const auto uid = evt.get_param(16)->as<int32_t>();
 	child_tinfo->set_user(uid, must_notify_thread_user_update());
 
 	/* gid */
-	int32_t gid = 0;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		gid = evt.get_param(15)->as<int32_t>();
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		gid = evt.get_param(17)->as<int32_t>();
-		break;
-	default:
-		ASSERT(false);
-	}
+	const auto gid = evt.get_param(17)->as<int32_t>();
 	child_tinfo->set_group(gid, must_notify_thread_group_update());
 
 	// Set cgroups
-	switch(etype) {
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_CLONE3_X: {
-		if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
-			child_tinfo->set_cgroups(cgroups_param->as<std::vector<std::string>>());
-		}
-		break;
-	}
+	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
+		child_tinfo->set_cgroups(cgroups_param->as<std::vector<std::string>>());
 	}
 
 	/* Initialize the thread clone time */
@@ -1136,7 +1062,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 }
 
 void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	uint16_t etype = evt.get_type();
 	int64_t child_tid = evt.get_tid();
 
 	int64_t tid_collision = -1;
@@ -1200,47 +1125,21 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* ptid. */
 	child_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
 
-	/* `vtid` and `vpid`
-	 * We preset these values for old scap-files compatibility.
-	 */
-	child_tinfo->m_vtid = child_tinfo->m_tid;
-	child_tinfo->m_vpid = -1;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X: {
-		if(const auto vtid_param = evt.get_param(18); !vtid_param->empty()) {
-			child_tinfo->m_vtid = vtid_param->as<int64_t>();
-		}
-
-		if(const auto vpid_param = evt.get_param(19); !vpid_param->empty()) {
-			child_tinfo->m_vpid = vpid_param->as<int64_t>();
-		}
-		break;
-	}
-	default:
-		ASSERT(false);
+	/* `vtid` and `vpid` */
+	// If one of these parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	const auto vtid_param = evt.get_param(18);
+	const auto vpid_param = evt.get_param(19);
+	if(!vpid_param->empty()) {
+		child_tinfo->m_vtid = vtid_param->as<int64_t>();
+		child_tinfo->m_vpid = vpid_param->as<int64_t>();
+	} else {
+		child_tinfo->m_vtid = child_tinfo->m_tid;
+		child_tinfo->m_vpid = -1;
 	}
 
 	/* flags */
-	uint32_t flags = 0;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		flags = evt.get_param(13)->as<uint32_t>();
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		flags = evt.get_param(15)->as<uint32_t>();
-		break;
-	default:
-		ASSERT(false);
-	}
-	child_tinfo->m_flags = flags;
+	child_tinfo->m_flags = evt.get_param(15)->as<uint32_t>();
 
 	/* We add this custom `PPM_CL_CLONE_INVERTED` flag.
 	 * It means that we received the child event before the caller one and
@@ -1323,23 +1222,10 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->m_exe = evt.get_param(1)->as<std::string>();
 
 	/* comm */
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
+	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
+		child_tinfo->m_comm = comm_param->as<std::string>();
+	} else {
 		child_tinfo->m_comm = child_tinfo->m_exe;
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X: {
-		if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-			child_tinfo->m_comm = comm_param->as<std::string>();
-		} else {
-			child_tinfo->m_comm = child_tinfo->m_exe;
-		}
-		break;
-	}
-	default:
-		ASSERT(false);
 	}
 
 	/* args */
@@ -1473,50 +1359,16 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	}
 
 	/* uid */
-	int32_t uid = 0;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		uid = evt.get_param(14)->as<int32_t>();
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		uid = evt.get_param(16)->as<int32_t>();
-		break;
-	default:
-		ASSERT(false);
-	}
+	const auto uid = evt.get_param(16)->as<int32_t>();
 	child_tinfo->set_user(uid, must_notify_thread_user_update());
 
 	/* gid */
-	int32_t gid = 0;
-	switch(etype) {
-	case PPME_SYSCALL_VFORK_X:
-		gid = evt.get_param(15)->as<int32_t>();
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		gid = evt.get_param(17)->as<int32_t>();
-		break;
-	default:
-		ASSERT(false);
-	}
+	const auto gid = evt.get_param(17)->as<int32_t>();
 	child_tinfo->set_group(gid, must_notify_thread_group_update());
 
 	// Set cgroups
-	switch(etype) {
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_CLONE3_X: {
-		if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
-			child_tinfo->set_cgroups(cgroups_param->as<std::vector<std::string>>());
-		}
-		break;
-	}
+	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
+		child_tinfo->set_cgroups(cgroups_param->as<std::vector<std::string>>());
 	}
 
 	/* Initialize the thread clone time */

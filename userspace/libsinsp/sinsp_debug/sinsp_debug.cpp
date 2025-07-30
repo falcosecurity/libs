@@ -119,7 +119,6 @@ int main(int argc, char** argv) {
 		switch(evt_type) {
 		case PPME_SYSCALL_CLONE_20_X:
 		case PPME_SYSCALL_FORK_20_X:
-		case PPME_SYSCALL_VFORK_X:
 		case PPME_SYSCALL_VFORK_20_X:
 		case PPME_SYSCALL_CLONE3_X: {
 			int64_t child_tid = ev->get_syscall_return_value();
