@@ -767,6 +767,12 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pidns_init_start_ts
+        /*====================== VFORK ======================*/
+        {conversion_key{PPME_SYSCALL_VFORK_20_E, 0}, conversion_info().action(C_ACTION_SKIP)},
+        {conversion_key{PPME_SYSCALL_VFORK_20_X, 20},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pidns_init_start_ts
         /*====================== SENDFILE ======================*/
         {conversion_key{PPME_SYSCALL_SENDFILE_E, 4}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SENDFILE_X, 2},
