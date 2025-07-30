@@ -670,6 +670,7 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
 	uint64_t exe_ino = 242048, ctime = 1676262698000004588, mtime = 1676262698000004577;
 	uint32_t loginuid = UINT32_MAX - 1, euid = 2000U, egid = 2000U;
+	uint64_t pidns_init_start_ts = 1234;
 
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
@@ -701,7 +702,7 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	add_event_advance_ts(increasing_ts(),
 	                     parent_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     child_tid,
 	                     "bash",
 	                     empty_bytebuf,
@@ -721,13 +722,14 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     parent_pid,
-	                     parent_tid);
+	                     parent_tid,
+	                     pidns_init_start_ts);
 
 	/* Child clone exit event */
 	add_event_advance_ts(increasing_ts(),
 	                     child_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     (uint64_t)0,
 	                     "bash",
 	                     empty_bytebuf,
@@ -747,7 +749,8 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     child_pid,
-	                     child_tid);
+	                     child_tid,
+	                     pidns_init_start_ts);
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
@@ -950,6 +953,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	uint64_t child2_vpid = 3, child2_vtid = 3;
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+	uint64_t pidns_init_start_ts = 1234;
 
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {"cpuset=/",
@@ -976,7 +980,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	add_event_advance_ts(increasing_ts(),
 	                     parent_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     child_tid,
 	                     "bash",
 	                     empty_bytebuf,
@@ -996,13 +1000,14 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     parent_pid,
-	                     parent_tid);
+	                     parent_tid,
+	                     pidns_init_start_ts);
 
 	/* Child clone exit event */
 	add_event_advance_ts(increasing_ts(),
 	                     child_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     (int64_t)0,
 	                     "bash",
 	                     empty_bytebuf,
@@ -1022,7 +1027,8 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     child_vpid,
-	                     child_vtid);
+	                     child_vtid,
+	                     pidns_init_start_ts);
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
@@ -1080,7 +1086,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	add_event_advance_ts(increasing_ts(),
 	                     child2_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     (int64_t)0,
 	                     "/bin/test-exe",
 	                     empty_bytebuf,
@@ -1100,13 +1106,14 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     child2_vpid,
-	                     child2_vtid);
+	                     child2_vtid,
+	                     pidns_init_start_ts);
 
 	/* Parent clone exit event */
 	add_event_advance_ts(increasing_ts(),
 	                     child_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     child2_tid,
 	                     "/bin/test-exe",
 	                     empty_bytebuf,
@@ -1126,7 +1133,8 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     child_vpid,
-	                     child_vtid);
+	                     child_vtid,
+	                     pidns_init_start_ts);
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(),
@@ -1199,6 +1207,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	uint64_t child_pid = 0x0000000100000010, child_tid = 0x0000000100000010;
 	uint64_t child_vpid = 2, child_vtid = 2;
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+	uint64_t pidns_init_start_ts = 1234;
 
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {"cpuset=/",
@@ -1223,7 +1232,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           parent_tid,
 	                           PPME_SYSCALL_CLONE_20_X,
-	                           20,
+	                           21,
 	                           child_tid,
 	                           "bash",
 	                           empty_bytebuf,
@@ -1243,7 +1252,8 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	                           (uint32_t)1000,
 	                           (uint32_t)1000,
 	                           parent_pid,
-	                           parent_tid);
+	                           parent_tid,
+	                           pidns_init_start_ts);
 
 	ASSERT_TRUE(evt->get_thread_info());
 	// Check we initialize lastexec time to zero
@@ -1252,7 +1262,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	add_event_advance_ts(increasing_ts(),
 	                     child_tid,
 	                     PPME_SYSCALL_CLONE_20_X,
-	                     20,
+	                     21,
 	                     (uint64_t)0,
 	                     "bash",
 	                     empty_bytebuf,
@@ -1272,7 +1282,8 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	                     (uint32_t)1000,
 	                     (uint32_t)1000,
 	                     child_vpid,
-	                     child_vtid);
+	                     child_vtid,
+	                     pidns_init_start_ts);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,

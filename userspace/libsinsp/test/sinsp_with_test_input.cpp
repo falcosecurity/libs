@@ -282,7 +282,7 @@ sinsp_evt* sinsp_with_test_input::generate_clone_x_event(int64_t retval,
 	return add_event_advance_ts(increasing_ts(),
 	                            tid,
 	                            event_type,
-	                            20,
+	                            21,
 	                            retval,
 	                            name.c_str(),
 	                            empty_bytebuf,
@@ -302,7 +302,8 @@ sinsp_evt* sinsp_with_test_input::generate_clone_x_event(int64_t retval,
 	                            not_relevant_32,
 	                            not_relevant_32,
 	                            vtid,
-	                            vpid);
+	                            vpid,
+	                            not_relevant_64);
 }
 
 sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
