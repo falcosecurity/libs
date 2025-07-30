@@ -155,7 +155,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		parse_memfd_create_exit(evt, SCAP_FD_MEMFD);
 		break;
 	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_VFORK_17_X:
@@ -385,9 +384,8 @@ static bool is_clone_exit_event(const uint16_t evt_type) {
  * \brief Indicate if the event is a fork or a vfork exit event.
  */
 static bool is_fork_exit_event(const uint16_t evt_type) {
-	return evt_type == PPME_SYSCALL_FORK_X || evt_type == PPME_SYSCALL_FORK_20_X ||
-	       evt_type == PPME_SYSCALL_VFORK_X || evt_type == PPME_SYSCALL_VFORK_17_X ||
-	       evt_type == PPME_SYSCALL_VFORK_20_X;
+	return evt_type == PPME_SYSCALL_FORK_20_X || evt_type == PPME_SYSCALL_VFORK_X ||
+	       evt_type == PPME_SYSCALL_VFORK_17_X || evt_type == PPME_SYSCALL_VFORK_20_X;
 }
 
 static bool is_procexit_event(const uint16_t evt_type) {
@@ -747,7 +745,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		caller_tinfo->m_vtid = caller_tid;
 		caller_tinfo->m_vpid = -1;
 		switch(etype) {
-		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_VFORK_X:
 		case PPME_SYSCALL_VFORK_17_X:
 			break;
@@ -790,7 +787,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	uint32_t flags = 0;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		flags = evt.get_param(13)->as<uint32_t>();
 		break;
@@ -970,7 +966,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/* comm */
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		child_tinfo->m_comm = child_tinfo->m_exe;
 		break;
@@ -1012,7 +1007,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/* uid */
 	int32_t uid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		uid = evt.get_param(14)->as<int32_t>();
 		break;
@@ -1033,7 +1027,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/* gid */
 	int32_t gid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		gid = evt.get_param(15)->as<int32_t>();
 		break;
@@ -1225,7 +1218,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->m_vtid = child_tinfo->m_tid;
 	child_tinfo->m_vpid = -1;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_VFORK_17_X:
 		break;
@@ -1249,7 +1241,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* flags */
 	uint32_t flags = 0;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		flags = evt.get_param(13)->as<uint32_t>();
 		break;
@@ -1349,7 +1340,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 	/* comm */
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		child_tinfo->m_comm = child_tinfo->m_exe;
 		break;
@@ -1502,7 +1492,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* uid */
 	int32_t uid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		uid = evt.get_param(14)->as<int32_t>();
 		break;
@@ -1523,7 +1512,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* gid */
 	int32_t gid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		gid = evt.get_param(15)->as<int32_t>();
 		break;
