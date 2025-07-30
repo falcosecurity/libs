@@ -218,7 +218,6 @@ struct user_group_updater {
 			// falltrough
 		case PPME_SYSCALL_CLONE_20_X:
 		case PPME_SYSCALL_FORK_X:
-		case PPME_SYSCALL_FORK_17_X:
 		case PPME_SYSCALL_FORK_20_X:
 		case PPME_SYSCALL_VFORK_X:
 		case PPME_SYSCALL_VFORK_17_X:
