@@ -1016,7 +1016,7 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 		ASSERT_TRUE((tinfo != NULL));
 
 		if((etype == PPME_SYSCALL_CLONE_11_X || etype == PPME_SYSCALL_CLONE_16_X ||
-		    etype == PPME_SYSCALL_CLONE_17_X || etype == PPME_SYSCALL_CLONE_20_X) &&
+		    etype == PPME_SYSCALL_CLONE_20_X) &&
 		   e->get_direction() == SCAP_ED_OUT) {
 			++clones_seen;
 		}
