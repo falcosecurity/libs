@@ -734,40 +734,6 @@ TEST_F(fspath, renameat2_relative) {
 	                        flags);
 }
 
-TEST_F(fspath, link) {
-	test_enter(PPME_SYSCALL_LINK_E, 2, oldpath, newpath);
-	test_exit_source_target(newpath, newpath, oldpath, oldpath, PPME_SYSCALL_LINK_X, 1, res);
-	test_failed_exit(PPME_SYSCALL_LINK_X, 1, failed_res);
-}
-
-TEST_F(fspath, link_relative) {
-	test_enter(PPME_SYSCALL_LINK_E, 2, rel_oldpath, rel_newpath);
-	test_exit_source_target(resolved_rel_newpath,
-	                        rel_newpath,
-	                        resolved_rel_oldpath,
-	                        rel_oldpath,
-	                        PPME_SYSCALL_LINK_X,
-	                        1,
-	                        res);
-}
-
-TEST_F(fspath, linkat) {
-	test_enter(PPME_SYSCALL_LINKAT_E, 4, olddirfd, oldpath, newdirfd, newpath);
-	test_exit_source_target(newpath, newpath, oldpath, oldpath, PPME_SYSCALL_LINKAT_X, 1, res);
-	test_failed_exit(PPME_SYSCALL_LINKAT_X, 1, failed_res);
-}
-
-TEST_F(fspath, linkat_relative) {
-	test_enter(PPME_SYSCALL_LINKAT_E, 4, olddirfd, rel_oldpath, newdirfd, rel_newpath);
-	test_exit_source_target(resolved_rel_newpath,
-	                        rel_newpath,
-	                        resolved_rel_oldpath,
-	                        rel_oldpath,
-	                        PPME_SYSCALL_LINKAT_X,
-	                        1,
-	                        res);
-}
-
 TEST_F(fspath, link_2) {
 	test_enter(PPME_SYSCALL_LINK_2_E, 0);
 	test_exit_source_target(newpath,

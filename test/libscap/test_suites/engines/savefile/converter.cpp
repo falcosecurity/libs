@@ -154,6 +154,131 @@ TEST_F(convert_event_test, PPME_SYSCALL_READ_X_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// LINK
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_LINK_X_1_to_2_X_3_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty.
+	constexpr auto oldpath = empty_value<char *>();
+	constexpr auto newpath = empty_value<char *>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_LINK_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_LINK_2_X,
+	                                                                          &empty_params_set,
+	                                                                          3,
+	                                                                          res,
+	                                                                          oldpath,
+	                                                                          newpath));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_LINK_X_1_to_2_X_3_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char oldpath[] = "/etc/ld.so.preload";
+	constexpr char newpath[] = "/etc/ld.so.preload.new";
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_LINK_E, 2, oldpath, newpath);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LINK_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LINK_2_X, 3, res, oldpath, newpath));
+}
+
+////////////////////////////
+// LINKAT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_LINKAT_X_1_to_2_X_6_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty.
+	constexpr auto olddirfd = empty_value<int64_t>();
+	constexpr auto oldpath = empty_value<char *>();
+	constexpr auto newdirfd = empty_value<int64_t>();
+	constexpr auto newpath = empty_value<char *>();
+	constexpr auto flags = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3, 4, 5);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LINKAT_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_LINKAT_2_X,
+	                                                 &empty_params_set,
+	                                                 6,
+	                                                 res,
+	                                                 olddirfd,
+	                                                 oldpath,
+	                                                 newdirfd,
+	                                                 newpath,
+	                                                 flags));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_LINKAT_X_1_to_2_X_6_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t olddirfd = 25;
+	constexpr char oldpath[] = "/etc/ld.so.preload";
+	constexpr int64_t newdirfd = 30;
+	constexpr char newpath[] = "/etc/ld.so.preload.new";
+
+	// Set to empty.
+	constexpr auto flags = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 5);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_LINKAT_E,
+	                                        4,
+	                                        olddirfd,
+	                                        oldpath,
+	                                        newdirfd,
+	                                        newpath);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LINKAT_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_LINKAT_2_X,
+	                                                 &empty_params_set,
+	                                                 6,
+	                                                 res,
+	                                                 olddirfd,
+	                                                 oldpath,
+	                                                 newdirfd,
+	                                                 newpath,
+	                                                 flags));
+}
+
+////////////////////////////
 // UNLINK
 ////////////////////////////
 

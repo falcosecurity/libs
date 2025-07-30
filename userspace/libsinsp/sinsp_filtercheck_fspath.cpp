@@ -215,10 +215,6 @@ void sinsp_filter_check_fspath::create_fspath_checks() {
 	m_target_checks->emplace(PPME_SYSCALL_RENAMEAT2_X, evt_arg_newpath);
 	m_success_checks->emplace(PPME_SYSCALL_RENAMEAT2_X, evt_arg_res_eq_0);
 
-	m_success_checks->emplace(PPME_SYSCALL_LINK_X, evt_arg_res_eq_0);
-
-	m_success_checks->emplace(PPME_SYSCALL_LINKAT_X, evt_arg_res_eq_0);
-
 	m_source_checks->emplace(PPME_SYSCALL_LINK_2_X, evt_arg_newpath);
 	m_target_checks->emplace(PPME_SYSCALL_LINK_2_X, evt_arg_oldpath);
 	m_success_checks->emplace(PPME_SYSCALL_LINK_2_X, evt_arg_res_eq_0);
@@ -329,44 +325,21 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_SOURCE:
 	case TYPE_SOURCERAW:
-		// For some event types we need to get the values from the enter event instead.
-		switch(evt->get_type()) {
-		case PPME_SYSCALL_LINK_X:
-		case PPME_SYSCALL_LINKAT_X:
-			enter_param = evt->get_enter_evt_param("newpath");
-			if(!enter_param.has_value()) {
-				return NULL;
-			}
-			m_tstr = enter_param.value();
-			break;
-		default:
-			if(!extract_fspath(evt, extract_values, m_source_checks)) {
-				return NULL;
-			}
-			m_tstr.assign((const char*)extract_values[0].ptr,
-			              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
-		};
+		// Extract from the exit event.
+		if(!extract_fspath(evt, extract_values, m_source_checks)) {
+			return NULL;
+		}
+		m_tstr.assign((const char*)extract_values[0].ptr,
+		              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
 		break;
 	case TYPE_TARGET:
 	case TYPE_TARGETRAW:
-
-		// For some event types we need to get the values from the enter event instead.
-		switch(evt->get_type()) {
-		case PPME_SYSCALL_LINK_X:
-		case PPME_SYSCALL_LINKAT_X:
-			enter_param = evt->get_enter_evt_param("oldpath");
-			if(!enter_param.has_value()) {
-				return NULL;
-			}
-			m_tstr = enter_param.value();
-			break;
-		default:
-			if(!extract_fspath(evt, extract_values, m_target_checks)) {
-				return NULL;
-			}
-			m_tstr.assign((const char*)extract_values[0].ptr,
-			              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
-		};
+		// Extract from the exit event.
+		if(!extract_fspath(evt, extract_values, m_target_checks)) {
+			return NULL;
+		}
+		m_tstr.assign((const char*)extract_values[0].ptr,
+		              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
 		break;
 	default:
 		return NULL;

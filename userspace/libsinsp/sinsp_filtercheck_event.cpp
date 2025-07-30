@@ -716,7 +716,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
-	} else if(etype == PPME_SYSCALL_LINKAT_E || etype == PPME_SYSCALL_LINKAT_2_X) {
+	} else if(etype == PPME_SYSCALL_LINKAT_2_X) {
 		if(m_argid == 0 || m_argid == 1) {
 			dirfdarg = "olddir";
 			patharg = "oldpath";
