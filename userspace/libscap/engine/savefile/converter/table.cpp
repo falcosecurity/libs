@@ -333,6 +333,29 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 29},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // gid
         /*====================== CLONE ======================*/
+        {conversion_key{PPME_SYSCALL_CLONE_11_E, 0}, conversion_info().action(C_ACTION_SKIP)},
+        {conversion_key{PPME_SYSCALL_CLONE_11_X, 11},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_CLONE_16_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},    // res
+                         {C_INSTR_FROM_OLD, 1},    // exe
+                         {C_INSTR_FROM_OLD, 2},    // args
+                         {C_INSTR_FROM_OLD, 3},    // tid
+                         {C_INSTR_FROM_OLD, 4},    // pid
+                         {C_INSTR_FROM_OLD, 5},    // ptid
+                         {C_INSTR_FROM_OLD, 6},    // cwd
+                         {C_INSTR_FROM_OLD, 7},    // fdlimit
+                         {C_INSTR_FROM_EMPTY, 0},  // pgft_maj
+                         {C_INSTR_FROM_EMPTY, 0},  // pgft_min
+                         {C_INSTR_FROM_EMPTY, 0},  // vm_size
+                         {C_INSTR_FROM_EMPTY, 0},  // vm_rss
+                         {C_INSTR_FROM_EMPTY, 0},  // vm_swap
+                         {C_INSTR_FROM_OLD, 8},    // flags
+                         {C_INSTR_FROM_OLD, 9},    // uid
+                         {C_INSTR_FROM_OLD, 10},   // gid
+                 })},
         {conversion_key{PPME_SYSCALL_CLONE_16_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CLONE_16_X, 16},
          conversion_info()

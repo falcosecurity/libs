@@ -1701,6 +1701,79 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 // CLONE
 ////////////////////////////
 
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE_11_E_0_skipped) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_11_E, 0));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE_11_X_11_to_16_X_16_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid_hdr = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char exe[] = "exe";
+	constexpr uint8_t args_data[]{1, 2, 3, 4};
+	const scap_const_sized_buffer args{args_data, sizeof(args_data)};
+	constexpr int64_t tid = 100;
+	constexpr int64_t pid = 101;
+	constexpr int64_t ptid = 102;
+	constexpr char cwd[] = "cwd";
+	constexpr uint64_t fdlimit = 103;
+	constexpr uint32_t flags = 109;
+	constexpr uint32_t uid = 110;
+	constexpr uint32_t gid = 111;
+
+	// Set to empty.
+	constexpr auto pgft_maj = empty_value<uint64_t>();
+	constexpr auto pgft_min = empty_value<uint64_t>();
+	constexpr auto vm_size = empty_value<uint32_t>();
+	constexpr auto vm_rss = empty_value<uint32_t>();
+	constexpr auto vm_swap = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 8, 9, 10, 11, 12);
+
+	assert_single_conversion_success(
+	        CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts,
+	                               tid_hdr,
+	                               PPME_SYSCALL_CLONE_11_X,
+	                               11,
+	                               res,
+	                               exe,
+	                               args,
+	                               tid,
+	                               pid,
+	                               ptid,
+	                               cwd,
+	                               fdlimit,
+	                               flags,
+	                               uid,
+	                               gid),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid_hdr,
+	                                                 PPME_SYSCALL_CLONE_16_X,
+	                                                 &empty_params_set,
+	                                                 16,
+	                                                 res,
+	                                                 exe,
+	                                                 args,
+	                                                 tid,
+	                                                 pid,
+	                                                 ptid,
+	                                                 cwd,
+	                                                 fdlimit,
+	                                                 pgft_maj,
+	                                                 pgft_min,
+	                                                 vm_size,
+	                                                 vm_rss,
+	                                                 vm_swap,
+	                                                 flags,
+	                                                 uid,
+	                                                 gid));
+}
+
 TEST_F(convert_event_test, PPME_SYSCALL_CLONE_16_E_0_skipped) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
