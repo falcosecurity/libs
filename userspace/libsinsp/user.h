@@ -216,7 +216,6 @@ struct user_group_updater {
 		case PPME_PROCEXIT_1_E:
 			m_check_cleanup = true;
 			// falltrough
-		case PPME_SYSCALL_CLONE_11_X:
 		case PPME_SYSCALL_CLONE_20_X:
 		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_FORK_17_X:

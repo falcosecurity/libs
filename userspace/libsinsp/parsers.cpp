@@ -160,7 +160,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_MEMFD_CREATE_X:
 		parse_memfd_create_exit(evt, SCAP_FD_MEMFD);
 		break;
-	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_FORK_17_X:
@@ -189,7 +188,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_PIPE2_X:
 		parse_pipe_exit(evt);
 		break;
-
 	case PPME_SOCKET_SOCKET_X:
 		parse_socket_exit(evt);
 		break;
@@ -387,8 +385,7 @@ void sinsp_parser::event_cleanup(sinsp_evt &evt) {
  * \brief Indicate if the event is a clone or a clone3 exit event.
  */
 static bool is_clone_exit_event(const uint16_t evt_type) {
-	return evt_type == PPME_SYSCALL_CLONE_11_X || evt_type == PPME_SYSCALL_CLONE_20_X ||
-	       evt_type == PPME_SYSCALL_CLONE3_X;
+	return evt_type == PPME_SYSCALL_CLONE_20_X || evt_type == PPME_SYSCALL_CLONE3_X;
 }
 
 /*!
@@ -757,7 +754,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		caller_tinfo->m_vtid = caller_tid;
 		caller_tinfo->m_vpid = -1;
 		switch(etype) {
-		case PPME_SYSCALL_CLONE_11_X:
 		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_FORK_17_X:
 		case PPME_SYSCALL_VFORK_X:
@@ -802,9 +798,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	uint32_t flags = 0;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		flags = evt.get_param(8)->as<uint32_t>();
-		break;
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		flags = evt.get_param(13)->as<uint32_t>();
@@ -986,7 +979,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/* comm */
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		child_tinfo->m_comm = child_tinfo->m_exe;
@@ -1012,42 +1004,24 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	child_tinfo->m_fdlimit = evt.get_param(7)->as<int64_t>();
 
 	/* Generic memory info */
-	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_X:
-	case PPME_SYSCALL_FORK_17_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_X:
-	case PPME_SYSCALL_VFORK_17_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		/* pgflt_maj */
-		child_tinfo->m_pfmajor = evt.get_param(8)->as<uint64_t>();
-
-		/* pgflt_min */
-		child_tinfo->m_pfminor = evt.get_param(9)->as<uint64_t>();
-
-		/* vm_size */
-		child_tinfo->m_vmsize_kb = evt.get_param(10)->as<uint32_t>();
-
-		/* vm_rss */
-		child_tinfo->m_vmrss_kb = evt.get_param(11)->as<uint32_t>();
-
-		/* vm_swap */
-		child_tinfo->m_vmswap_kb = evt.get_param(12)->as<uint32_t>();
-		break;
-	default:
-		ASSERT(false);
+	// If one of these parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	const auto pgft_maj_param = evt.get_param(8);
+	const auto pgft_min_param = evt.get_param(9);
+	const auto vm_size_param = evt.get_param(10);
+	const auto vm_rss_param = evt.get_param(11);
+	const auto vm_swap_param = evt.get_param(12);
+	if(!vm_swap_param->empty()) {
+		child_tinfo->m_pfmajor = pgft_maj_param->as<uint64_t>();
+		child_tinfo->m_pfminor = pgft_min_param->as<uint64_t>();
+		child_tinfo->m_vmsize_kb = vm_size_param->as<uint32_t>();
+		child_tinfo->m_vmrss_kb = vm_rss_param->as<uint32_t>();
+		child_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 	}
 
 	/* uid */
 	int32_t uid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		uid = evt.get_param(9)->as<int32_t>();
-		break;
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		uid = evt.get_param(14)->as<int32_t>();
@@ -1070,9 +1044,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/* gid */
 	int32_t gid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		gid = evt.get_param(10)->as<int32_t>();
-		break;
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		gid = evt.get_param(15)->as<int32_t>();
@@ -1266,7 +1237,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->m_vtid = child_tinfo->m_tid;
 	child_tinfo->m_vpid = -1;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_FORK_17_X:
 	case PPME_SYSCALL_VFORK_X:
@@ -1292,9 +1262,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* flags */
 	uint32_t flags = 0;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		flags = evt.get_param(8)->as<uint32_t>();
-		break;
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		flags = evt.get_param(13)->as<uint32_t>();
@@ -1396,7 +1363,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 	/* comm */
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		child_tinfo->m_comm = child_tinfo->m_exe;
@@ -1533,42 +1499,24 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->m_fdlimit = evt.get_param(7)->as<int64_t>();
 
 	/* Generic memory info */
-	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_X:
-	case PPME_SYSCALL_FORK_17_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_X:
-	case PPME_SYSCALL_VFORK_17_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		/* pgflt_maj */
-		child_tinfo->m_pfmajor = evt.get_param(8)->as<uint64_t>();
-
-		/* pgflt_min */
-		child_tinfo->m_pfminor = evt.get_param(9)->as<uint64_t>();
-
-		/* vm_size */
-		child_tinfo->m_vmsize_kb = evt.get_param(10)->as<uint32_t>();
-
-		/* vm_rss */
-		child_tinfo->m_vmrss_kb = evt.get_param(11)->as<uint32_t>();
-
-		/* vm_swap */
-		child_tinfo->m_vmswap_kb = evt.get_param(12)->as<uint32_t>();
-		break;
-	default:
-		ASSERT(false);
+	// If one of these parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	const auto pgft_maj_param = evt.get_param(8);
+	const auto pgft_min_param = evt.get_param(9);
+	const auto vm_size_param = evt.get_param(10);
+	const auto vm_rss_param = evt.get_param(11);
+	const auto vm_swap_param = evt.get_param(12);
+	if(!vm_swap_param->empty()) {
+		child_tinfo->m_pfmajor = pgft_maj_param->as<uint64_t>();
+		child_tinfo->m_pfminor = pgft_min_param->as<uint64_t>();
+		child_tinfo->m_vmsize_kb = vm_size_param->as<uint32_t>();
+		child_tinfo->m_vmrss_kb = vm_rss_param->as<uint32_t>();
+		child_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 	}
 
 	/* uid */
 	int32_t uid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		uid = evt.get_param(9)->as<int32_t>();
-		break;
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		uid = evt.get_param(14)->as<int32_t>();
@@ -1591,9 +1539,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* gid */
 	int32_t gid = 0;
 	switch(etype) {
-	case PPME_SYSCALL_CLONE_11_X:
-		gid = evt.get_param(10)->as<int32_t>();
-		break;
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		gid = evt.get_param(15)->as<int32_t>();
