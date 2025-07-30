@@ -332,6 +332,12 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pgid
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 29},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // gid
+        /*====================== CLONE ======================*/
+        {conversion_key{PPME_SYSCALL_CLONE_20_E, 0}, conversion_info().action(C_ACTION_SKIP)},
+        {conversion_key{PPME_SYSCALL_CLONE_20_X, 20},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pidns_init_start_ts
         /*====================== BIND ======================*/
         {conversion_key{PPME_SOCKET_BIND_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SOCKET_BIND_X, 2},

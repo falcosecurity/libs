@@ -1636,8 +1636,11 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		if(child_tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS ||
 		   child_tinfo->m_flags & PPM_CL_CLONE_NEWPID ||
 		   child_tinfo->m_tid != child_tinfo->m_vtid) {
-			child_tinfo->m_pidns_init_start_ts =
-			        evt.get_param(20)->as<uint64_t>() + m_machine_info->boot_ts_epoch;
+			if(const auto pidns_init_start_ts_param = evt.get_param(20);
+			   !pidns_init_start_ts_param->empty()) {
+				child_tinfo->m_pidns_init_start_ts =
+				        pidns_init_start_ts_param->as<uint64_t>() + m_machine_info->boot_ts_epoch;
+			}
 		} else {
 			child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
 		}
