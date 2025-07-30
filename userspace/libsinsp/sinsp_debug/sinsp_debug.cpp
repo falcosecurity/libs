@@ -118,7 +118,6 @@ int main(int argc, char** argv) {
 		uint16_t evt_type = ev->get_type();
 		switch(evt_type) {
 		case PPME_SYSCALL_CLONE_11_X:
-		case PPME_SYSCALL_CLONE_16_X:
 		case PPME_SYSCALL_CLONE_20_X:
 		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_FORK_17_X:
