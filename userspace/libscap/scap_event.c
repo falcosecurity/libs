@@ -613,6 +613,12 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SYSCALL_DUP_1_X:
 	case PPME_SYSCALL_DUP2_X:
 	case PPME_SYSCALL_DUP3_X:
+	case PPME_SYSCALL_NEWFSTATAT_X:
+	case PPME_SYSCALL_FCHOWNAT_X:
+	case PPME_SYSCALL_FCHMODAT_X:
+	case PPME_SYSCALL_MKDIRAT_X:
+	case PPME_SYSCALL_UNLINKAT_2_X:
+	case PPME_SYSCALL_MKNODAT_X:
 		location = 1;
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -629,6 +635,7 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SYSCALL_WRITEV_X:
 	case PPME_SYSCALL_PWRITEV_X:
 	case PPME_SOCKET_CONNECT_X:
+	case PPME_SYSCALL_SYMLINKAT_X:
 		location = 2;
 		break;
 	case PPME_SOCKET_RECVFROM_X:
