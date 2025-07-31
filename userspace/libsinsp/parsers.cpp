@@ -315,37 +315,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_PRCTL_X:
 		parse_prctl_exit_event(evt);
 		break;
-	case PPME_SYSCALL_NEWFSTATAT_X:
-	case PPME_SYSCALL_FCHOWNAT_X:
-	case PPME_SYSCALL_FCHMODAT_X:
-	case PPME_SYSCALL_MKDIRAT_X:
-	case PPME_SYSCALL_UNLINKAT_2_X:
-	case PPME_SYSCALL_MKNODAT_X: {
-		if(evt.get_tinfo() == nullptr) {
-			break;
-		}
-
-		auto res = evt.get_syscall_return_value();
-		if(res >= 0) {
-			// Only if successful
-			auto dirfd = evt.get_param(1)->as<int64_t>();
-			evt.set_fd_info(evt.get_tinfo()->get_fd(dirfd));
-		}
-		break;
-	}
-	case PPME_SYSCALL_SYMLINKAT_X: {
-		if(evt.get_tinfo() == nullptr) {
-			break;
-		}
-
-		auto res = evt.get_syscall_return_value();
-		if(res >= 0) {
-			// Only if successful
-			auto dirfd = evt.get_param(2)->as<int64_t>();
-			evt.set_fd_info(evt.get_tinfo()->get_fd(dirfd));
-		}
-		break;
-	}
 	default:
 		break;
 	}
@@ -558,7 +527,11 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	if(tinfo->m_lastevent_fd == -1) {
 		if(const int fd_location = get_exit_event_fd_location(static_cast<ppm_event_code>(etype));
 		   fd_location != -1) {
-			tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
+			const auto fd_param = evt.get_param(fd_location);
+			// It is possible that the fd_param is empty
+			if(!fd_param->empty()) {
+				tinfo->m_lastevent_fd = fd_param->as<int64_t>();
+			}
 		}
 	}
 
