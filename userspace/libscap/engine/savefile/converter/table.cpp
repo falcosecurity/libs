@@ -844,7 +844,9 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         /*====================== FCHDIR ======================*/
         {conversion_key{PPME_SYSCALL_FCHDIR_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_FCHDIR_X, 1},
-         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY}})},
         /*====================== GETDENTS ======================*/
         {conversion_key{PPME_SYSCALL_GETDENTS_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_GETDENTS_X, 1},
