@@ -141,12 +141,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		parse_fspath_related_exit(evt);
 		parse_open_openat_creat_exit(evt);
 		break;
-	case PPME_SYSCALL_SELECT_E:
-	case PPME_SYSCALL_POLL_X:
-	case PPME_SYSCALL_PPOLL_X:
-	case PPME_SYSCALL_EPOLLWAIT_X:
-		parse_select_poll_ppoll_epollwait(evt);
-		break;
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_SETNS_X:
 		parse_unshare_setns_exit(evt);
@@ -3687,22 +3681,6 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 		}
 		main_thread->m_fdlimit = newcur;
 	}
-}
-
-void sinsp_parser::parse_select_poll_ppoll_epollwait(sinsp_evt &evt) {
-	if(evt.get_tinfo() == nullptr) {
-		return;
-	}
-
-	if(evt.get_tinfo()->get_last_event_data() == nullptr) {
-		evt.get_tinfo()->set_last_event_data(reserve_event_buffer());
-		if(evt.get_tinfo()->get_last_event_data() == nullptr) {
-			throw sinsp_exception(
-			        "cannot reserve event buffer in "
-			        "sinsp_parser::parse_select_poll_ppoll_epollwait.");
-		}
-	}
-	*(uint64_t *)evt.get_tinfo()->get_last_event_data() = evt.get_ts();
 }
 
 void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
