@@ -74,13 +74,7 @@ sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
         m_tmp_evt{tmp_evt},
         m_scap_platform{scap_platform} {}
 
-sinsp_parser::~sinsp_parser() {
-	while(!m_tmp_events_buffer.empty()) {
-		auto ptr = m_tmp_events_buffer.top();
-		free(ptr);
-		m_tmp_events_buffer.pop();
-	}
-}
+sinsp_parser::~sinsp_parser() {}
 
 void sinsp_parser::set_track_connection_status(bool enabled) {
 	m_track_connection_status = enabled;
@@ -324,7 +318,8 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 void sinsp_parser::event_cleanup(sinsp_evt &evt) {
 	if(evt.get_direction() == SCAP_ED_OUT && evt.get_tinfo() &&
 	   evt.get_tinfo()->get_last_event_data()) {
-		free_event_buffer(evt.get_tinfo()->get_last_event_data());
+		uint8_t *ptr = evt.get_tinfo()->get_last_event_data();
+		free(ptr);
 		evt.get_tinfo()->set_last_event_data(nullptr);
 		evt.get_tinfo()->set_lastevent_data_validity(false);
 	}
@@ -569,12 +564,15 @@ void sinsp_parser::store_event(sinsp_evt &evt) {
 	// Copy the data
 	//
 	auto tinfo = evt.get_tinfo();
+	uint8_t *last_event_data = tinfo->get_last_event_data();
+	if(last_event_data != nullptr) {
+		free(last_event_data);
+	}
+	last_event_data = (uint8_t *)malloc(sizeof(uint8_t) * elen);
+	tinfo->set_last_event_data(last_event_data);
 	if(tinfo->get_last_event_data() == nullptr) {
-		tinfo->set_last_event_data(reserve_event_buffer());
-		if(tinfo->get_last_event_data() == nullptr) {
-			throw sinsp_exception("cannot reserve event buffer in sinsp_parser::store_event.");
-			return;
-		}
+		throw sinsp_exception("cannot reserve event buffer in sinsp_parser::store_event.");
+		return;
 	}
 	memcpy(tinfo->get_last_event_data(), evt.get_scap_evt(), elen);
 	tinfo->set_lastevent_cpuid(evt.get_cpuid());
@@ -3901,16 +3899,6 @@ void sinsp_parser::parse_prctl_exit_event(sinsp_evt &evt) {
 	}
 }
 
-uint8_t *sinsp_parser::reserve_event_buffer() {
-	if(m_tmp_events_buffer.empty()) {
-		return (uint8_t *)malloc(sizeof(uint8_t) * SP_EVT_BUF_SIZE);
-	} else {
-		auto ptr = m_tmp_events_buffer.top();
-		m_tmp_events_buffer.pop();
-		return ptr;
-	}
-}
-
 void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 	if(evt.get_tinfo() == nullptr) {
 		return;
@@ -4058,14 +4046,6 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
 	tinfo->m_cap_inheritable = max_caps;
 	tinfo->m_cap_permitted = max_caps;
 	tinfo->m_cap_effective = max_caps;
-}
-
-void sinsp_parser::free_event_buffer(uint8_t *ptr) {
-	if(m_tmp_events_buffer.size() < m_thread_manager->get_threads()->size()) {
-		m_tmp_events_buffer.push(ptr);
-	} else {
-		free(ptr);
-	}
 }
 
 void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type type) const {
