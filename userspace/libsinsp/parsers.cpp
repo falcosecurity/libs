@@ -1906,13 +1906,15 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 
 		sdir = evt.get_tinfo()->get_cwd();
 	} else if(etype == PPME_SYSCALL_OPENAT_X) {
-		name = enter_evt->get_param(1)->as<std::string_view>();
-
-		flags = enter_evt->get_param(2)->as<uint32_t>();
-
-		int64_t dirfd = enter_evt->get_param(0)->as<int64_t>();
-
-		sdir = parse_dirfd(evt, name, dirfd);
+		flags = 0;
+		sdir = "";
+		name = "<NA>";
+		if(lastevent_retrieved) {
+			name = enter_evt->get_param(1)->as<std::string_view>();
+			flags = enter_evt->get_param(2)->as<uint32_t>();
+			int64_t dirfd = enter_evt->get_param(0)->as<int64_t>();
+			sdir = parse_dirfd(evt, name, dirfd);
+		}
 	} else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X) {
 		name = evt.get_param(2)->as<std::string_view>();
 

@@ -348,7 +348,7 @@ TEST_F(fspath, open) {
 TEST_F(fspath, openat) {
 	test_enter(PPME_SYSCALL_OPENAT_E, 4, evt_dirfd, name, open_flags, mode);
 	test_exit_path(resolved_name, name, PPME_SYSCALL_OPENAT_X, 1, fd);
-	test_failed_exit(PPME_SYSCALL_OPENAT_X, 6, failed_res);
+	test_failed_exit(PPME_SYSCALL_OPENAT_X, 1, failed_res);
 }
 
 TEST_F(fspath, openat_2) {
