@@ -5865,23 +5865,31 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETNS_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETNS_1_X_to_3_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETNS_X_1_to_3_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr int64_t fd = 0;
-	constexpr uint32_t flags = 0;
+	// Set to empty.
+	constexpr auto fd = empty_value<int64_t>();
+	constexpr auto flags = empty_value<uint32_t>();
 
-	assert_single_conversion_success(
-	        CONVERSION_COMPLETED,
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 3, res, fd, flags));
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_SETNS_X,
+	                                                                          &empty_params_set,
+	                                                                          3,
+	                                                                          res,
+	                                                                          fd,
+	                                                                          flags));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETNS_1_X_to_3_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETNS_X_1_to_3_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -6451,23 +6459,32 @@ TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_to_3_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_1_to_3_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = 89;
 
-	// Defaulted to 0
-	constexpr int64_t pid = 0;
-	constexpr int64_t pgid = 0;
+	// Set to empty.
+	constexpr auto pid = empty_value<int64_t>();
+	constexpr auto pgid = empty_value<int64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2);
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 3, res, pid, pgid));
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_SETPGID_X,
+	                                                 &empty_params_set,
+	                                                 3,
+	                                                 res,
+	                                                 pid,
+	                                                 pgid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_to_3_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_SETPGID_X_1_to_3_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 

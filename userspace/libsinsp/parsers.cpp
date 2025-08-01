@@ -4042,7 +4042,11 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
 	if(etype == PPME_SYSCALL_UNSHARE_X) {
 		flags = evt.get_param(1)->as<uint32_t>();
 	} else if(etype == PPME_SYSCALL_SETNS_X) {
-		flags = evt.get_param(2)->as<uint32_t>();
+		const auto flags_param = evt.get_param(2);
+		if(flags_param->empty()) {
+			return;
+		}
+		flags = flags_param->as<uint32_t>();
 	}
 
 	// Update capabilities.
