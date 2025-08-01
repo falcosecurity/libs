@@ -9,41 +9,6 @@
 #include <helpers/interfaces/variable_size_event.h>
 #include <asm-generic/errno.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(connect_e, struct pt_regs *regs, long id) {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap) {
-		return 0;
-	}
-	auxmap__preload_event_header(auxmap, PPME_SOCKET_CONNECT_E);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	unsigned long args[3] = {0};
-	extract__network_args(args, 3, regs);
-
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t socket_fd = (int64_t)(int32_t)args[0];
-	auxmap__store_s64_param(auxmap, socket_fd);
-
-	/* Parameter 2: addr (type: PT_SOCKADDR) */
-	unsigned long usrsockaddr = args[1];
-	uint16_t usrsockaddr_len = (uint16_t)args[2];
-	auxmap__store_sockaddr_param(auxmap, usrsockaddr, usrsockaddr_len);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	auxmap__finalize_event_header(auxmap);
-
-	auxmap__submit_event(auxmap);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

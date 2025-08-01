@@ -160,6 +160,195 @@ int pman_attach_signal_deliver() {
 	return 0;
 }
 
+int pman_attach_sys_enter_socketcall() {
+	/* The programs are already attached. */
+	if(g_state.skel->links.socketcall_e != NULL && g_state.skel->links.ia32_socketcall_e != NULL &&
+	   g_state.skel->links.ia32_compat_socketcall_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.socketcall_e = bpf_program__attach(g_state.skel->progs.socketcall_e);
+	if(!g_state.skel->links.socketcall_e) {
+		pman_print_error("failed to attach the 'socketcall_e' program");
+		return errno;
+	}
+
+	if(bpf_program__fd(g_state.skel->progs.ia32_socketcall_e) >= 0) {
+		g_state.skel->links.ia32_socketcall_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_socketcall_e);
+		if(!g_state.skel->links.ia32_socketcall_e) {
+			pman_print_error("failed to attach the 'ia32_socketcall_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_compat_socketcall_e) >= 0) {
+		g_state.skel->links.ia32_compat_socketcall_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_socketcall_e);
+		if(!g_state.skel->links.ia32_compat_socketcall_e) {
+			pman_print_error("failed to attach the 'ia32_compat_socketcall_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
+int pman_attach_sys_enter_connect() {
+	/* The programs are already attached. */
+	if(g_state.skel->links.connect_e != NULL && g_state.skel->links.ia32_connect_e != NULL &&
+	   g_state.skel->links.ia32_compat_connect_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.connect_e = bpf_program__attach(g_state.skel->progs.connect_e);
+	if(!g_state.skel->links.connect_e) {
+		pman_print_error("failed to attach the 'connect_e' program");
+		return errno;
+	}
+
+	if(bpf_program__fd(g_state.skel->progs.ia32_connect_e) >= 0) {
+		g_state.skel->links.ia32_connect_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_connect_e);
+		if(!g_state.skel->links.ia32_connect_e) {
+			pman_print_error("failed to attach the 'ia32_connect_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_compat_connect_e) >= 0) {
+		g_state.skel->links.ia32_compat_connect_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_connect_e);
+		if(!g_state.skel->links.ia32_compat_connect_e) {
+			pman_print_error("failed to attach the 'ia32_compat_connect_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
+int pman_attach_sys_enter_creat() {
+	/* The programs are already attached. */
+	if(g_state.skel->links.creat_e != NULL && g_state.skel->links.ia32_creat_e != NULL &&
+	   g_state.skel->links.ia32_compat_creat_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.creat_e = bpf_program__attach(g_state.skel->progs.creat_e);
+	if(!g_state.skel->links.creat_e) {
+		pman_print_error("failed to attach the 'creat_e' program");
+		return errno;
+	}
+
+	if(bpf_program__fd(g_state.skel->progs.ia32_creat_e) >= 0) {
+		g_state.skel->links.ia32_creat_e = bpf_program__attach(g_state.skel->progs.ia32_creat_e);
+		if(!g_state.skel->links.ia32_creat_e) {
+			pman_print_error("failed to attach the 'ia32_creat_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_compat_creat_e) >= 0) {
+		g_state.skel->links.ia32_compat_creat_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_creat_e);
+		if(!g_state.skel->links.ia32_compat_creat_e) {
+			pman_print_error("failed to attach the 'ia32_compat_creat_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
+int pman_attach_sys_enter_open() {
+	/* The programs are already attached. */
+	if(g_state.skel->links.open_e != NULL && g_state.skel->links.ia32_open_e != NULL &&
+	   g_state.skel->links.ia32_compat_open_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.open_e = bpf_program__attach(g_state.skel->progs.open_e);
+	if(!g_state.skel->links.open_e) {
+		pman_print_error("failed to attach the 'open_e' program");
+		return errno;
+	}
+
+	if(bpf_program__fd(g_state.skel->progs.ia32_open_e) >= 0) {
+		g_state.skel->links.ia32_open_e = bpf_program__attach(g_state.skel->progs.ia32_open_e);
+		if(!g_state.skel->links.ia32_open_e) {
+			pman_print_error("failed to attach the 'ia32_open_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_compat_open_e) >= 0) {
+		g_state.skel->links.ia32_compat_open_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_open_e);
+		if(!g_state.skel->links.ia32_compat_open_e) {
+			pman_print_error("failed to attach the 'ia32_compat_open_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
+int pman_attach_sys_enter_openat() {
+	/* The programs are already attached. */
+	if(g_state.skel->links.openat_e != NULL && g_state.skel->links.ia32_openat_e != NULL &&
+	   g_state.skel->links.ia32_compat_openat_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.openat_e = bpf_program__attach(g_state.skel->progs.openat_e);
+	if(!g_state.skel->links.openat_e) {
+		pman_print_error("failed to attach the 'openat_e' program");
+		return errno;
+	}
+
+	if(bpf_program__fd(g_state.skel->progs.ia32_openat_e) >= 0) {
+		g_state.skel->links.ia32_openat_e = bpf_program__attach(g_state.skel->progs.ia32_openat_e);
+		if(!g_state.skel->links.ia32_openat_e) {
+			pman_print_error("failed to attach the 'ia32_openat_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_compat_openat_e) >= 0) {
+		g_state.skel->links.ia32_compat_openat_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_openat_e);
+		if(!g_state.skel->links.ia32_compat_openat_e) {
+			pman_print_error("failed to attach the 'ia32_compat_openat_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
+int pman_attach_sys_enter_openat2() {
+	/* The programs are already attached. */
+	if(g_state.skel->links.openat2_e != NULL && g_state.skel->links.ia32_openat2_e != NULL &&
+	   g_state.skel->links.ia32_compat_openat2_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.openat2_e = bpf_program__attach(g_state.skel->progs.openat2_e);
+	if(!g_state.skel->links.openat2_e) {
+		pman_print_error("failed to attach the 'openat2_e' program");
+		return errno;
+	}
+
+	if(bpf_program__fd(g_state.skel->progs.ia32_openat2_e) >= 0) {
+		g_state.skel->links.ia32_openat2_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_openat2_e);
+		if(!g_state.skel->links.ia32_openat2_e) {
+			pman_print_error("failed to attach the 'ia32_openat2_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_compat_openat2_e) >= 0) {
+		g_state.skel->links.ia32_compat_openat2_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_openat2_e);
+		if(!g_state.skel->links.ia32_compat_openat2_e) {
+			pman_print_error("failed to attach the 'ia32_compat_openat2_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
 /*=============================== ATTACH PROGRAMS ===============================*/
 
 /*=============================== DETACH PROGRAMS ===============================*/
@@ -252,6 +441,170 @@ int pman_detach_signal_deliver() {
 		return errno;
 	}
 	g_state.skel->links.signal_deliver = NULL;
+	return 0;
+}
+
+int pman_detach_sys_enter_socketcall() {
+	if(g_state.skel->links.socketcall_e && bpf_link__destroy(g_state.skel->links.socketcall_e)) {
+		pman_print_error("failed to detach the 'socketcall_e' program");
+		return errno;
+	}
+	g_state.skel->links.socketcall_e = NULL;
+
+	if(g_state.skel->links.ia32_socketcall_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_socketcall_e)) {
+		pman_print_error("failed to detach the 'ia32_socketcall_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_socketcall_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_socketcall_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_socketcall_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_socketcall_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_socketcall_e = NULL;
+
+	return 0;
+}
+
+int pman_detach_sys_enter_connect() {
+	if(g_state.skel->links.connect_e && bpf_link__destroy(g_state.skel->links.connect_e)) {
+		pman_print_error("failed to detach the 'connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.connect_e = NULL;
+
+	if(g_state.skel->links.ia32_connect_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_connect_e)) {
+		pman_print_error("failed to detach the 'ia32_connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_connect_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_connect_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_connect_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_connect_e = NULL;
+
+	return 0;
+}
+
+int pman_detach_sys_enter_creat() {
+	if(g_state.skel->links.creat_e && bpf_link__destroy(g_state.skel->links.creat_e)) {
+		pman_print_error("failed to detach the 'creat_e' program");
+		return errno;
+	}
+	g_state.skel->links.creat_e = NULL;
+
+	if(g_state.skel->links.ia32_creat_e && bpf_link__destroy(g_state.skel->links.ia32_creat_e)) {
+		pman_print_error("failed to detach the 'ia32_creat_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_creat_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_creat_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_creat_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_creat_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_creat_e = NULL;
+
+	return 0;
+}
+
+int pman_detach_sys_enter_open() {
+	if(g_state.skel->links.open_e && bpf_link__destroy(g_state.skel->links.open_e)) {
+		pman_print_error("failed to detach the 'open_e' program");
+		return errno;
+	}
+	g_state.skel->links.open_e = NULL;
+
+	if(g_state.skel->links.ia32_open_e && bpf_link__destroy(g_state.skel->links.ia32_open_e)) {
+		pman_print_error("failed to detach the 'ia32_open_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_open_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_open_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_open_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_open_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_open_e = NULL;
+
+	return 0;
+}
+
+int pman_detach_sys_enter_openat() {
+	if(g_state.skel->links.openat_e && bpf_link__destroy(g_state.skel->links.openat_e)) {
+		pman_print_error("failed to detach the 'openat_e' program");
+		return errno;
+	}
+	g_state.skel->links.openat_e = NULL;
+
+	if(g_state.skel->links.ia32_openat_e && bpf_link__destroy(g_state.skel->links.ia32_openat_e)) {
+		pman_print_error("failed to detach the 'ia32_openat_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_openat_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_openat_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_openat_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_openat_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_openat_e = NULL;
+
+	return 0;
+}
+
+// static int detach(struct bpf_link **64_bit_prog_link, struct bpf_link **ia32_compat_prog_link,
+// struct bpf_link **ia32_prog_link) { 	bpf_link 	if(openat_e && bpf_link__destroy(openat_e)) {
+// 		pman_print_error("failed to detach the 'openat_e' program");
+// 		return errno;
+// 	}
+// 	openat_e = NULL;
+//
+// 	if(ia32_openat_e && bpf_link__destroy(ia32_openat_e)) {
+// 		pman_print_error("failed to detach the 'ia32_openat_e' program");
+// 		return errno;
+// 	}
+// 	ia32_openat_e = NULL;
+//
+// 	if(ia32_compat_openat_e &&
+// 	   bpf_link__destroy(ia32_compat_openat_e)) {
+// 		pman_print_error("failed to detach the 'ia32_compat_openat_e' program");
+// 		return errno;
+// 	   }
+// 	ia32_compat_openat_e = NULL;
+//
+// 	return 0;
+// }
+
+int pman_detach_sys_enter_openat2() {
+	if(g_state.skel->links.openat2_e && bpf_link__destroy(g_state.skel->links.openat2_e)) {
+		pman_print_error("failed to detach the 'openat2_e' program");
+		return errno;
+	}
+	g_state.skel->links.openat2_e = NULL;
+
+	if(g_state.skel->links.ia32_openat2_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_openat2_e)) {
+		pman_print_error("failed to detach the 'ia32_openat2_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_openat2_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_openat2_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_openat2_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_openat2_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_openat2_e = NULL;
+
 	return 0;
 }
 

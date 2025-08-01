@@ -103,6 +103,14 @@ int pman_open_probe(void);
 int pman_prepare_progs_before_loading(void);
 
 /**
+ * @brief Prepares the bpf skeleton object checking if
+ * it satisfies each events_prog_name feature requirements for each prog.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_prepare_ttm_progs_before_loading(void);
+
+/**
  * @brief Load into the kernel all the programs and maps
  * contained into the skeleton.
  *
@@ -249,6 +257,90 @@ int pman_attach_signal_deliver(void);
  * @return `0` on success, `errno` in case of error.
  */
 int pman_detach_signal_deliver(void);
+
+/**
+ * @brief Attach only the sys_enter_socketcall tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_socketcall(void);
+
+/**
+ * @brief Detach only the sys_enter_socketcall tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_socketcall(void);
+
+/**
+ * @brief Attach only the sys_enter_connect tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_connect(void);
+
+/**
+ * @brief Detach only the sys_enter_connect tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_connect(void);
+
+/**
+ * @brief Attach only the sys_enter_creat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_creat(void);
+
+/**
+ * @brief Detach only the sys_enter_creat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_creat(void);
+
+/**
+ * @brief Attach only the sys_enter_open tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_open(void);
+
+/**
+ * @brief Detach only the sys_enter_open tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_open(void);
+
+/**
+ * @brief Attach only the sys_enter_openat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_openat(void);
+
+/**
+ * @brief Detach only the sys_enter_openat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_openat(void);
+
+/**
+ * @brief Attach only the sys_enter_openat2 tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_openat2(void);
+
+/**
+ * @brief Detach only the sys_enter_openat2 tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_openat2(void);
 
 /////////////////////////////
 // MANAGE RINGBUFFERS

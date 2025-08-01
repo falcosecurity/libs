@@ -29,21 +29,34 @@ int pman_open_probe() {
 	return 0;
 }
 
-int pman_prepare_progs_before_loading() {
+static void disable_prog_autoloading(char *msg, char *prog_name) {
+	snprintf(msg, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", prog_name);
+	pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg);
+	struct bpf_program *p = bpf_object__find_program_by_name(g_state.skel->obj, prog_name);
+	if(p && bpf_program__set_autoload(p, false) == 0) {
+		snprintf(msg, MAX_ERROR_MESSAGE_LEN, "disabled BPF program '%s'", prog_name);
+		pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg);
+	} else {
+		snprintf(msg, MAX_ERROR_MESSAGE_LEN, "failed to disable prog '%s'", prog_name);
+		pman_print_error(msg);
+	}
+}
+
+int pman_prepare_ttm_progs_before_loading() {
 	char msg[MAX_ERROR_MESSAGE_LEN];
 	/*
 	 * Probe required features for each bpf program, as requested
 	 */
 	errno = 0;
-	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
-		event_prog_t *progs = event_prog_table[ev];
-		int idx, chosen_idx = -1;
-		for(idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
+	for(int ev = 0; ev < TTM_MAX; ev++) {
+		event_prog_t *progs = ttm_event_prog_table[ev].prog_list;
+		int chosen_idx = -1;
+
+		for(int idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
 			bool should_disable = chosen_idx != -1;
 			if(!should_disable) {
 				if(progs[idx].feat > 0 &&
-				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
-				           0) {
+				   libbpf_probe_bpf_helper(progs[idx].prog_type, progs[idx].feat, NULL) == 0) {
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "BPF program '%s' did not satisfy required feature [%d]",
@@ -53,7 +66,7 @@ int pman_prepare_progs_before_loading() {
 					// Required feature not present
 					should_disable = true;
 				} else {
-					// We satified requested feature
+					// We satisfied requested feature
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "BPF program '%s' satisfied required feature [%d]",
@@ -66,23 +79,108 @@ int pman_prepare_progs_before_loading() {
 
 			// Disable autoloading for all programs except chosen one
 			if(should_disable) {
-				snprintf(msg, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", progs[idx].name);
-				pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
-				struct bpf_program *p =
-				        bpf_object__find_program_by_name(g_state.skel->obj, progs[idx].name);
-				if(p && bpf_program__set_autoload(p, false) == 0) {
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "disabled BPF program '%s'",
-					         progs[idx].name);
-					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+				disable_prog_autoloading(msg, progs[idx].name);
+			}
+		}
+
+		ia32_event_prog_t *ia32_progs = ttm_event_prog_table[ev].ia32_prog_list;
+		int chosen_ia32_idx = -1;
+		for(int idx = 0; idx < MAX_IA32_VARIANTS && ia32_progs[idx].name != NULL; idx++) {
+			bool should_disable = chosen_ia32_idx != -1;
+			if(!should_disable) {
+				if(libbpf_find_vmlinux_btf_id(ia32_progs[idx].kernel_symbol,
+				                              ia32_progs[idx].attach_type) < 0) {
+					printf("couldn't find BTF ID for symbol '%s' used by BPF program '%s'\n",
+					       ia32_progs[idx].kernel_symbol,
+					       ia32_progs[idx].name);
+					// pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					// Required feature not present
+					should_disable = true;
 				} else {
+					// We satisfied requested feature
+					printf("found BTF ID for symbol '%s' used by BPF program '%s'\n",
+					       ia32_progs[idx].kernel_symbol,
+					       ia32_progs[idx].name);
+					// pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					chosen_ia32_idx = idx;
+				}
+			}
+
+			// Disable autoloading for all programs except chosen one
+			if(should_disable) {
+				disable_prog_autoloading(msg, ia32_progs[idx].name);
+			}
+		}
+
+		// In case we couldn't find any program satisfying required features, give an error.
+		// As of today, this will never happen, but better safe than sorry.
+		if(chosen_idx == -1 && progs[0].name != NULL) {
+			snprintf(msg,
+			         MAX_ERROR_MESSAGE_LEN,
+			         "no program satisfies required features for event %d",
+			         ev);
+			pman_print_error(msg);
+			errno = ENXIO;
+			return errno;
+		}
+
+		event_prog_t old_prog = progs[0];
+		// Always move the selected program to index 0 to be easily accessed by maps.c
+		// If no programs are skipped, the following line expands to progs[0] = progs[0];
+		progs[0] = progs[chosen_idx];
+
+		// To be able to reload the probe, we need to still reference the old
+		// program to set its autoload to false.
+		// Ie: in case of:
+		// * open()
+		// * close()
+		// * open()
+		progs[chosen_idx] = old_prog;
+
+		// ia32_event_prog_t old_ia32_prog = ia32_progs[0];
+		// ia32_progs[0] = ia32_progs[chosen_ia32_idx];
+		// ia32_progs[chosen_ia32_idx] = old_ia32_prog;
+	}
+	return 0;
+}
+
+int pman_prepare_progs_before_loading() {
+	char msg[MAX_ERROR_MESSAGE_LEN];
+	/*
+	 * Probe required features for each bpf program, as requested
+	 */
+	errno = 0;
+	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
+		event_prog_t *progs = event_prog_table[ev];
+		int chosen_idx = -1;
+		for(int idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
+			bool should_disable = chosen_idx != -1;
+			if(!should_disable) {
+				if(progs[idx].feat > 0 &&
+				   libbpf_probe_bpf_helper(progs[idx].prog_type, progs[idx].feat, NULL) == 0) {
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
-					         "failed to disable prog '%s'",
-					         progs[idx].name);
-					pman_print_error(msg);
+					         "BPF program '%s' did not satisfy required feature [%d]",
+					         progs[idx].name,
+					         progs[idx].feat);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					// Required feature not present
+					should_disable = true;
+				} else {
+					// We satisfied requested feature
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "BPF program '%s' satisfied required feature [%d]",
+					         progs[idx].name,
+					         progs[idx].feat);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					chosen_idx = idx;
 				}
+			}
+
+			// Disable autoloading for all programs except chosen one
+			if(should_disable) {
+				disable_prog_autoloading(msg, progs[idx].name);
 			}
 		}
 
@@ -114,6 +212,14 @@ int pman_prepare_progs_before_loading() {
 	return 0;
 }
 
+static int bpf_prog_fd_or_default(struct bpf_program *prog) {
+	const int fd = bpf_program__fd(prog);
+	if(fd < 0) {
+		return -1;
+	}
+	return fd;
+}
+
 static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[0] = bpf_program__fd(g_state.skel->progs.sys_enter);
 	g_state.attached_progs_fds[1] = bpf_program__fd(g_state.skel->progs.sys_exit);
@@ -130,13 +236,38 @@ static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[7] = bpf_program__fd(g_state.skel->progs.pf_kernel);
 #endif
 	g_state.attached_progs_fds[8] = bpf_program__fd(g_state.skel->progs.signal_deliver);
+	g_state.attached_progs_fds[9] = bpf_program__fd(g_state.skel->progs.socketcall_e);
+	g_state.attached_progs_fds[10] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_socketcall_e);
+	g_state.attached_progs_fds[11] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_socketcall_e);
+	g_state.attached_progs_fds[12] = bpf_program__fd(g_state.skel->progs.connect_e);
+	g_state.attached_progs_fds[13] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_connect_e);
+	g_state.attached_progs_fds[14] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_connect_e);
+	g_state.attached_progs_fds[15] = bpf_program__fd(g_state.skel->progs.creat_e);
+	g_state.attached_progs_fds[16] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_creat_e);
+	g_state.attached_progs_fds[17] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_creat_e);
+	g_state.attached_progs_fds[18] = bpf_program__fd(g_state.skel->progs.open_e);
+	g_state.attached_progs_fds[19] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_open_e);
+	g_state.attached_progs_fds[20] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_open_e);
+	g_state.attached_progs_fds[21] = bpf_program__fd(g_state.skel->progs.openat_e);
+	g_state.attached_progs_fds[22] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat_e);
+	g_state.attached_progs_fds[23] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat_e);
+	g_state.attached_progs_fds[24] = bpf_program__fd(g_state.skel->progs.openat2_e);
+	g_state.attached_progs_fds[25] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat2_e);
+	g_state.attached_progs_fds[26] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat2_e);
 }
 
 int pman_load_probe() {
+	printf("BEFORE LOADING\n");
 	if(bpf_probe__load(g_state.skel)) {
 		pman_print_error("failed to load BPF object");
 		return errno;
 	}
+	printf("AFTER LOADING\n");
 	pman_save_attached_progs();
 	// Programs are loaded so we passed the verifier we can free the 16 MB
 	if(g_state.log_buf) {

@@ -8,36 +8,6 @@
 
 #include <helpers/interfaces/syscalls_dispatcher.h>
 
-// We don't want to send DROP_E/DROP_X events from the enter tracepoint because it would requires us
-// to create a dedicated tail table for the enter. It is enough to send DROP_E/DROP_X events from
-// the exit tracepoint.
-static __always_inline bool sampling_logic_enter(void* ctx, uint32_t id) {
-	/* If dropping mode is not enabled we don't perform any sampling
-	 * false: means don't drop the syscall
-	 * true: means drop the syscall
-	 */
-	if(!maps__get_dropping_mode()) {
-		return false;
-	}
-
-	uint8_t sampling_flag = maps__64bit_sampling_syscall_table(id);
-
-	if(sampling_flag == UF_NEVER_DROP) {
-		return false;
-	}
-
-	if(sampling_flag == UF_ALWAYS_DROP) {
-		return true;
-	}
-
-	// If we are in the sampling period we drop the event
-	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
-		return true;
-	}
-
-	return false;
-}
-
 /* From linux tree: /include/trace/events/syscall.h
  * TP_PROTO(struct pt_regs *regs, long id),
  */
@@ -65,20 +35,44 @@ int BPF_PROG(sys_enter, struct pt_regs* regs, long syscall_id) {
 #endif
 	}
 
-	/* we convert it here in this way the syscall will be treated exactly as the original one */
+	/* We convert it here in this way the syscall will be treated exactly as the original one. */
 	if(syscall_id == socketcall_syscall_id) {
-		syscall_id = convert_network_syscalls(regs);
+		int socketcall_call = (int)extract__syscall_argument(regs, 0);
+		syscall_id = convert_socketcall_call_to_syscall_id(socketcall_call);
 		if(syscall_id == -1) {
 			// We can't do anything since modern bpf filler jump table is syscall indexed
 			return 0;
 		}
 	}
 
+	// The following system calls are already handled by TOCTOU mitigation programs and will not
+	// have an entry in the syscall enter tail table, so simply return early, avoiding wasting
+	// resources on any additional filtering logic.
+	switch(syscall_id) {
+#if defined(__NR_connect) || defined(__NR_creat) || defined(__NR_open) || defined(__NR_openat)
+#ifdef __NR_connect
+	case __NR_connect:
+#endif  // __NR_connect
+#ifdef __NR_creat
+	case __NR_creat:
+#endif  // __NR_creat
+#ifdef __NR_open
+	case __NR_open:
+#endif  // __NR_open
+#ifdef __NR_openat
+	case __NR_openat:
+#endif  // __NR_openat
+		return 0;
+#endif  // __NR_connect ||__NR_creat || __NR_open || __NR_openat
+	default:
+		break;
+	}
+
 	if(!syscalls_dispatcher__64bit_interesting_syscall(syscall_id)) {
 		return 0;
 	}
 
-	if(sampling_logic_enter(ctx, syscall_id)) {
+	if(syscalls_dispatcher__sampling_logic_enter(syscall_id)) {
 		return 0;
 	}
 

@@ -31,7 +31,7 @@ limitations under the License.
 
 /* Pay attention this need to be bumped every time we add a new bpf program that is directly
  * attached into the kernel */
-#define MODERN_BPF_PROG_ATTACHED_MAX 9
+#define MODERN_BPF_PROG_ATTACHED_MAX 27
 
 #define BPF_LOG_BIG_BUF_SIZE \
 	(UINT32_MAX >> 8) /* Recommended log buffer size, taken from libbpf. Used for verifier logs */

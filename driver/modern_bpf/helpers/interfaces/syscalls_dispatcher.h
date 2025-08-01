@@ -13,14 +13,42 @@
 #include <helpers/base/read_from_task.h>
 #include <helpers/extract/extract_from_kernel.h>
 
+// We don't want to send DROP_E/DROP_X events from the enter tracepoint because it would requires us
+// to create a dedicated tail table for the enter. It is enough to send DROP_E/DROP_X events from
+// the exit tracepoint.
+static __always_inline bool syscalls_dispatcher__sampling_logic_enter(uint32_t syscall_id) {
+	/* If dropping mode is not enabled we don't perform any sampling
+	 * false: means don't drop the syscall
+	 * true: means drop the syscall
+	 */
+	if(!maps__get_dropping_mode()) {
+		return false;
+	}
+
+	uint8_t sampling_flag = maps__64bit_sampling_syscall_table(syscall_id);
+
+	if(sampling_flag == UF_NEVER_DROP) {
+		return false;
+	}
+
+	if(sampling_flag == UF_ALWAYS_DROP) {
+		return true;
+	}
+
+	// If we are in the sampling period we drop the event
+	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
+		return true;
+	}
+
+	return false;
+}
+
 static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint32_t syscall_id) {
 	return maps__interesting_syscall_64bit(syscall_id);
 }
 
-static __always_inline long convert_network_syscalls(struct pt_regs *regs) {
-	int socketcall_id = (int)extract__syscall_argument(regs, 0);
-
-	switch(socketcall_id) {
+static __always_inline long convert_socketcall_call_to_syscall_id(int socketcall_call) {
+	switch(socketcall_call) {
 #ifdef __NR_socket
 	case SYS_SOCKET:
 		return __NR_socket;
