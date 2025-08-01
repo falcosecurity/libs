@@ -187,8 +187,6 @@ private:
 	                                         bool overwrite_dest = true);
 
 	static void swap_addresses(sinsp_fdinfo& fdinfo);
-	uint8_t* reserve_event_buffer();
-	void free_event_buffer(uint8_t*);
 	void erase_fd(erase_fd_params& params, sinsp_parser_verdict& verdict) const;
 
 	bool is_syscall_plugin_enabled() const {
@@ -232,6 +230,4 @@ private:
 	scap_platform* const& m_scap_platform;
 
 	bool m_track_connection_status = false;
-
-	std::stack<uint8_t*> m_tmp_events_buffer;
 };
