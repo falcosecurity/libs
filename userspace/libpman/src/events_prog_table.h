@@ -24,6 +24,7 @@ limitations under the License.
 
 typedef struct {
 	char* name;
+	enum bpf_prog_type prog_type;
 	enum bpf_func_id feat;
 } event_prog_t;
 

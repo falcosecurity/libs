@@ -39,6 +39,21 @@ static const char* sys_exit_extra_event_names[SYS_EXIT_EXTRA_CODE_MAX] = {
         [T2_EXECVEAT_X] = "t2_execveat_x",
 };
 
+/* Some system calls can require TOCTOU mitigation, achieved by leveraging sys_enter_* tracepoint
+ * programs. After a shared preparation step performed by these programs, corresponding sys_enter_*
+ * tracepoint programs are tail-called (see
+ * driver/modern_bpf/programs/attached/events/toctou_mitigation/sys_enter_connect as an example).
+ * Each tail-called tracepoint programs is identified by a specific TOCTOU mitigation program code.
+ * The following table maps each code to the corresponding program name. */
+static const char*
+        sys_enter_toctou_mitigation_tail_prog_names[SYS_ENTER_TOCTOU_MITIGATION_PROG_CODE_MAX] = {
+                [TTM_SOCKETCALL_E] = "ttm_socketcall_e",
+                [TTM_CONNECT_E] = "ttm_connect_e",
+                [TTM_CREAT_E] = "ttm_creat_e",
+                [TTM_OPEN_E] = "ttm_open_e",
+                [TTM_OPENAT_E] = "ttm_openat_e",
+};
+
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 extern const int g_ia32_64_map[];
@@ -282,8 +297,6 @@ int pman_fill_syscalls_tail_table() {
 	int syscall_exit_tail_table_fd = 0;
 	int enter_event_type = 0;
 	int exit_event_type = 0;
-	const char* enter_prog_name;
-	const char* exit_prog_name;
 
 	syscall_enter_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_enter_tail_table);
 	if(syscall_enter_tail_table_fd <= 0) {
@@ -316,25 +329,36 @@ int pman_fill_syscalls_tail_table() {
 		 * event. Until we miss some syscalls, this is not true so we manage these cases as generic
 		 * events. We need to remove this workaround when all syscalls will be implemented.
 		 */
-		enter_prog_name = event_prog_table[enter_event_type]->name;
-		exit_prog_name = event_prog_table[exit_event_type]->name;
-
+		const event_prog_t* enter_prog = (const event_prog_t*)&event_prog_table[enter_event_type];
+		const char* enter_prog_name = enter_prog->name;
 		if(!enter_prog_name) {
-			enter_prog_name = event_prog_table[PPME_GENERIC_E]->name;
+			enter_prog = (const event_prog_t*)&event_prog_table[PPME_GENERIC_E];
+			enter_prog_name = enter_prog->name;
 		}
 
+		const event_prog_t* exit_prog = (const event_prog_t*)&event_prog_table[exit_event_type];
+		const char* exit_prog_name = exit_prog->name;
 		if(!exit_prog_name) {
-			exit_prog_name = event_prog_table[PPME_GENERIC_X]->name;
+			exit_prog = (const event_prog_t*)&event_prog_table[PPME_GENERIC_X];
+			exit_prog_name = exit_prog->name;
 		}
 
-		if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
-		                                 enter_prog_name,
-		                                 syscall_id)) {
-			goto clean_fill_syscalls_tail_table;
+		/* No tracepoint program is currently tail-called. */
+		if(enter_prog->prog_type != BPF_PROG_TYPE_TRACEPOINT) {
+			if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
+			                                 enter_prog_name,
+			                                 syscall_id)) {
+				goto clean_fill_syscalls_tail_table;
+			}
 		}
 
-		if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog_name, syscall_id)) {
-			goto clean_fill_syscalls_tail_table;
+		/* No tracepoint program is currently tail-called. */
+		if(exit_prog->prog_type != BPF_PROG_TYPE_TRACEPOINT) {
+			if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd,
+			                                 exit_prog_name,
+			                                 syscall_id)) {
+				goto clean_fill_syscalls_tail_table;
+			}
 		}
 	}
 	return 0;
@@ -364,6 +388,30 @@ int pman_fill_syscall_exit_extra_tail_table() {
 
 		if(add_bpf_program_to_tail_table(extra_sys_exit_tail_table_fd, tail_prog_name, j)) {
 			close(extra_sys_exit_tail_table_fd);
+			return errno;
+		}
+	}
+	return 0;
+}
+int pman_fill_syscall_enter_toctou_mitigation_tail_table() {
+	const int toctou_mit_sys_enter_tail_table_fd =
+	        bpf_map__fd(g_state.skel->maps.syscall_enter_toctou_mitigation_tail_table);
+	if(toctou_mit_sys_enter_tail_table_fd <= 0) {
+		pman_print_error("unable to get the TOCTOU mitigation sys enter tail table");
+		return errno;
+	}
+
+	const char* tail_prog_name = NULL;
+	for(int i = 0; i < SYS_ENTER_TOCTOU_MITIGATION_PROG_CODE_MAX; i++) {
+		tail_prog_name = sys_enter_toctou_mitigation_tail_prog_names[i];
+
+		if(!tail_prog_name) {
+			pman_print_error("unknown entry in the TOCTOU mitigation sys enter tail table");
+			return -1;
+		}
+
+		if(add_bpf_program_to_tail_table(toctou_mit_sys_enter_tail_table_fd, tail_prog_name, i)) {
+			close(toctou_mit_sys_enter_tail_table_fd);
 			return errno;
 		}
 	}
@@ -467,5 +515,6 @@ int pman_finalize_maps_after_loading() {
 	pman_fill_interesting_syscalls_table_64bit();
 	err = pman_fill_syscalls_tail_table();
 	err = err ?: pman_fill_syscall_exit_extra_tail_table();
+	err = err ?: pman_fill_syscall_enter_toctou_mitigation_tail_table();
 	return err;
 }

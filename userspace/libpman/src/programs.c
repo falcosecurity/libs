@@ -160,6 +160,76 @@ int pman_attach_signal_deliver() {
 	return 0;
 }
 
+int pman_attach_sys_enter_socketcall() {
+	/* The program is already attached. */
+	if(g_state.skel->links.socketcall_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.socketcall_e = bpf_program__attach(g_state.skel->progs.socketcall_e);
+	if(!g_state.skel->links.socketcall_e) {
+		pman_print_error("failed to attach the 'socketcall_e' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_sys_enter_connect() {
+	/* The program is already attached. */
+	if(g_state.skel->links.connect_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.connect_e = bpf_program__attach(g_state.skel->progs.connect_e);
+	if(!g_state.skel->links.connect_e) {
+		pman_print_error("failed to attach the 'connect_e' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_sys_enter_creat() {
+	/* The program is already attached. */
+	if(g_state.skel->links.creat_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.creat_e = bpf_program__attach(g_state.skel->progs.creat_e);
+	if(!g_state.skel->links.creat_e) {
+		pman_print_error("failed to attach the 'creat_e' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_sys_enter_open() {
+	/* The program is already attached. */
+	if(g_state.skel->links.open_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.open_e = bpf_program__attach(g_state.skel->progs.open_e);
+	if(!g_state.skel->links.open_e) {
+		pman_print_error("failed to attach the 'open_e' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_sys_enter_openat() {
+	/* The program is already attached. */
+	if(g_state.skel->links.openat_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.openat_e = bpf_program__attach(g_state.skel->progs.openat_e);
+	if(!g_state.skel->links.openat_e) {
+		pman_print_error("failed to attach the 'openat_e' program");
+		return errno;
+	}
+	return 0;
+}
+
 /*=============================== ATTACH PROGRAMS ===============================*/
 
 /*=============================== DETACH PROGRAMS ===============================*/
@@ -252,6 +322,51 @@ int pman_detach_signal_deliver() {
 		return errno;
 	}
 	g_state.skel->links.signal_deliver = NULL;
+	return 0;
+}
+
+int pman_detach_sys_enter_socketcall() {
+	if(g_state.skel->links.socketcall_e && bpf_link__destroy(g_state.skel->links.socketcall_e)) {
+		pman_print_error("failed to detach the 'socketcall_e' program");
+		return errno;
+	}
+	g_state.skel->links.socketcall_e = NULL;
+	return 0;
+}
+
+int pman_detach_sys_enter_connect() {
+	if(g_state.skel->links.connect_e && bpf_link__destroy(g_state.skel->links.connect_e)) {
+		pman_print_error("failed to detach the 'connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.connect_e = NULL;
+	return 0;
+}
+
+int pman_detach_sys_enter_creat() {
+	if(g_state.skel->links.creat_e && bpf_link__destroy(g_state.skel->links.creat_e)) {
+		pman_print_error("failed to detach the 'creat_e' program");
+		return errno;
+	}
+	g_state.skel->links.creat_e = NULL;
+	return 0;
+}
+
+int pman_detach_sys_enter_open() {
+	if(g_state.skel->links.open_e && bpf_link__destroy(g_state.skel->links.open_e)) {
+		pman_print_error("failed to detach the 'open_e' program");
+		return errno;
+	}
+	g_state.skel->links.open_e = NULL;
+	return 0;
+}
+
+int pman_detach_sys_enter_openat() {
+	if(g_state.skel->links.openat_e && bpf_link__destroy(g_state.skel->links.openat_e)) {
+		pman_print_error("failed to detach the 'openat_e' program");
+		return errno;
+	}
+	g_state.skel->links.openat_e = NULL;
 	return 0;
 }
 

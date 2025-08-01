@@ -250,6 +250,76 @@ int pman_attach_signal_deliver(void);
  */
 int pman_detach_signal_deliver(void);
 
+/**
+ * @brief Attach only the sys_enter_socketcall tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_socketcall(void);
+
+/**
+ * @brief Detach only the sys_enter_socketcall tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_socketcall(void);
+
+/**
+ * @brief Attach only the sys_enter_connect tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_connect(void);
+
+/**
+ * @brief Detach only the sys_enter_connect tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_connect(void);
+
+/**
+ * @brief Attach only the sys_enter_creat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_creat(void);
+
+/**
+ * @brief Detach only the sys_enter_creat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_creat(void);
+
+/**
+ * @brief Attach only the sys_enter_open tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_open(void);
+
+/**
+ * @brief Detach only the sys_enter_open tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_open(void);
+
+/**
+ * @brief Attach only the sys_enter_openat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_sys_enter_openat(void);
+
+/**
+ * @brief Detach only the sys_enter_openat tracepoint
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_sys_enter_openat(void);
+
 /////////////////////////////
 // MANAGE RINGBUFFERS
 /////////////////////////////
@@ -416,6 +486,14 @@ uint64_t pman_get_probe_schema_ver(void);
  * @return `0` on success, `errno` in case of error.
  */
 int pman_fill_syscall_exit_extra_tail_table(void);
+
+/**
+ * @brief Fill the syscall enter TOCTOU mitigation table that TOCTOU sys_enter_* programs will look
+ * to understand which programs they have to call.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_fill_syscall_enter_toctou_mitigation_tail_table(void);
 
 /**
  * @brief The syscall dispatchers will look into these tables

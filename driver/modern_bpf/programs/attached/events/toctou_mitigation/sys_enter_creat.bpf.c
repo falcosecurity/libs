@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
+/*
+ * Copyright (C) 2025 The Falco Authors.
+ *
+ * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+ * or GPL2.txt for full copies of the license.
+ */
+
+#include <helpers/interfaces/toctou_mitigation.h>
+#include <helpers/interfaces/variable_size_event.h>
+
+// This struct is defined according to the following format file:
+// /sys/kernel/tracing/events/syscalls/sys_enter_creat/format
+struct sys_enter_creat_args {
+	uint64_t pad;
+
+	uint32_t __syscall_nr;
+	uint64_t filename;
+	uint64_t mode;
+};
+
+/*=============================== ENTER DISPATCHER ===========================*/
+
+SEC("tracepoint/syscalls/sys_enter_creat")
+int creat_e(struct sys_enter_creat_args* ctx) {
+	return toctou_mitigation__call_prog(ctx, ctx->__syscall_nr, -1, TTM_CREAT_E);
+}
+
+/*=============================== ENTER DISPATCHER ===========================*/
+
+/*=============================== ENTER EVENT ===========================*/
+
+SEC("tracepoint/syscalls/sys_enter_creat")
+int ttm_creat_e(struct sys_enter_creat_args* ctx) {
+	struct auxiliary_map* auxmap = auxmap__get();
+	if(!auxmap) {
+		return 0;
+	}
+
+	auxmap__preload_event_header(auxmap, PPME_SYSCALL_CREAT_E);
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	/* Parameter 1: name (type: PT_FSPATH) */
+	unsigned long name_pointer = (unsigned long)ctx->filename;
+	auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
+
+	/* Parameter 2: mode (type: PT_UINT32) */
+	unsigned long mode = (unsigned long)ctx->mode;
+	auxmap__store_u32_param(auxmap, open_modes_to_scap(O_CREAT, mode));
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	auxmap__finalize_event_header(auxmap);
+
+	auxmap__submit_event(auxmap);
+
+	return 0;
+}
+
+/*=============================== ENTER EVENT ===========================*/

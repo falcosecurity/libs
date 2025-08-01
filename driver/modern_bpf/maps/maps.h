@@ -105,6 +105,18 @@ struct {
 } syscall_exit_tail_table __weak SEC(".maps");
 
 /**
+ * @brief This tail table is used by the TOCTOU mitigation sys_enter_* programs.
+ * Given a predefined tail-code (`sys_enter_toctou_mitigation_prog_code`), they call
+ * the right bpf program to generate the proper TOCTOU mitigation event.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, SYS_ENTER_TOCTOU_MITIGATION_PROG_CODE_MAX);
+	__type(key, uint32_t);
+	__type(value, uint32_t);
+} syscall_enter_toctou_mitigation_tail_table __weak SEC(".maps");
+
+/**
  * @brief This tail table is used when a sys exit bpf program needs another program
  * to complete its execution flow.
  * Given a predefined tail-code (`sys_exit_extra_code`), it calls
