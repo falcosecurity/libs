@@ -6395,22 +6395,29 @@ TEST_F(convert_event_test, PPME_SYSCALL_FCHDIR_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_FCHDIR_X_to_2_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_FCHDIR_X_1_to_2_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr int64_t res = -1;
 
-	// Defaulted to 0
-	constexpr int64_t fd = 0;
+	// Set to empty.
+	constexpr auto fd = empty_value<int64_t>();
 
-	assert_single_conversion_success(
-	        CONVERSION_COMPLETED,
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 1, res),
-	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 2, res, fd));
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_FCHDIR_X,
+	                                                                          &empty_params_set,
+	                                                                          2,
+	                                                                          res,
+	                                                                          fd));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_FCHDIR_X_to_2_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_FCHDIR_X_1_to_2_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
