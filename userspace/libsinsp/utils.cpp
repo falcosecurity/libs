@@ -1042,8 +1042,8 @@ std::string ipv4tuple_to_string(const ipv4tuple& tuple, const bool resolve) {
 }
 
 std::string ipv6serveraddr_to_string(const ipv6serverinfo& addr, const bool resolve) {
-	char address[100];
-	if(!inet_ntop(AF_INET6, addr.m_ip.m_b, address, 100)) {
+	char address[INET6_ADDRSTRLEN];
+	if(!inet_ntop(AF_INET6, addr.m_ip.m_b, address, INET6_ADDRSTRLEN)) {
 		return std::string();
 	}
 
@@ -1058,12 +1058,12 @@ std::string ipv6serveraddr_to_string(const ipv6serverinfo& addr, const bool reso
 
 std::string ipv6tuple_to_string(const ipv6tuple& tuple, const bool resolve) {
 	char source_address[INET6_ADDRSTRLEN];
-	if(!inet_ntop(AF_INET6, tuple.m_fields.m_sip.m_b, source_address, 100)) {
+	if(!inet_ntop(AF_INET6, tuple.m_fields.m_sip.m_b, source_address, INET6_ADDRSTRLEN)) {
 		return std::string();
 	}
 
 	char destination_address[INET6_ADDRSTRLEN];
-	if(!inet_ntop(AF_INET6, tuple.m_fields.m_dip.m_b, destination_address, 100)) {
+	if(!inet_ntop(AF_INET6, tuple.m_fields.m_dip.m_b, destination_address, INET6_ADDRSTRLEN)) {
 		return std::string();
 	}
 
