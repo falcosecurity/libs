@@ -99,9 +99,9 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	if(m_field_id == TYPE_NAME &&
 	   (evt->get_type() == PPME_CONTAINER_JSON_E || evt->get_type() == PPME_CONTAINER_JSON_2_E ||
 	    is_container_asyncevent)) {
-		auto user = tinfo->get_container_user();
-		if(!user.empty()) {
-			RETURN_EXTRACT_STRING(user);
+		m_strval = tinfo->get_container_user();
+		if(!m_strval.empty()) {
+			RETURN_EXTRACT_STRING(m_strval);
 		}
 	}
 
