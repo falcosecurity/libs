@@ -8,38 +8,6 @@
 
 #include <helpers/interfaces/variable_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(creat_e, struct pt_regs *regs, long id) {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap) {
-		return 0;
-	}
-
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_CREAT_E);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: name (type: PT_FSPATH) */
-	unsigned long name_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
-
-	/* Parameter 2: mode (type: PT_UINT32) */
-	unsigned long mode = extract__syscall_argument(regs, 1);
-	auxmap__store_u32_param(auxmap, open_modes_to_scap(O_CREAT, mode));
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	auxmap__finalize_event_header(auxmap);
-
-	auxmap__submit_event(auxmap);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

@@ -37,13 +37,12 @@ int pman_prepare_progs_before_loading() {
 	errno = 0;
 	for(int ev = 0; ev < PPM_EVENT_MAX; ev++) {
 		event_prog_t *progs = event_prog_table[ev];
-		int idx, chosen_idx = -1;
-		for(idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
+		int chosen_idx = -1;
+		for(int idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
 			bool should_disable = chosen_idx != -1;
 			if(!should_disable) {
 				if(progs[idx].feat > 0 &&
-				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) ==
-				           0) {
+				   libbpf_probe_bpf_helper(progs[idx].prog_type, progs[idx].feat, NULL) == 0) {
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "BPF program '%s' did not satisfy required feature [%d]",
@@ -53,7 +52,7 @@ int pman_prepare_progs_before_loading() {
 					// Required feature not present
 					should_disable = true;
 				} else {
-					// We satified requested feature
+					// We satisfied requested feature
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "BPF program '%s' satisfied required feature [%d]",
@@ -130,6 +129,11 @@ static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[7] = bpf_program__fd(g_state.skel->progs.pf_kernel);
 #endif
 	g_state.attached_progs_fds[8] = bpf_program__fd(g_state.skel->progs.signal_deliver);
+	g_state.attached_progs_fds[9] = bpf_program__fd(g_state.skel->progs.socketcall_e);
+	g_state.attached_progs_fds[10] = bpf_program__fd(g_state.skel->progs.connect_e);
+	g_state.attached_progs_fds[11] = bpf_program__fd(g_state.skel->progs.creat_e);
+	g_state.attached_progs_fds[12] = bpf_program__fd(g_state.skel->progs.open_e);
+	g_state.attached_progs_fds[13] = bpf_program__fd(g_state.skel->progs.openat_e);
 }
 
 int pman_load_probe() {

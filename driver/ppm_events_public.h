@@ -1541,6 +1541,23 @@ enum sys_exit_extra_code {
 	SYS_EXIT_EXTRA_CODE_MAX,
 };
 
+/* ----------- Used only by modern BPF probe -----------
+ * Some system calls can require TOCTOU mitigation, achieved by leveraging sys_enter_* tracepoint
+ * programs. After a shared preparation step performed by these programs, corresponding
+ * sys_enter_* tracepoint programs are tail-called (see
+ * driver/modern_bpf/programs/attached/events/toctou_mitigation/sys_enter_connect as an example).
+ * The tail-called tracepoint programs are identified by the following codes.
+ */
+enum sys_enter_toctou_mitigation_prog_code {
+	TTM_SOCKETCALL_E,
+	TTM_CONNECT_E,
+	TTM_CREAT_E,
+	TTM_OPEN_E,
+	TTM_OPENAT_E,
+	// Add new codes here...
+	SYS_ENTER_TOCTOU_MITIGATION_PROG_CODE_MAX,
+};
+
 /*
  * System-independent syscall codes
  */
