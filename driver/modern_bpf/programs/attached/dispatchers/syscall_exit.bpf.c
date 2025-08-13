@@ -207,9 +207,10 @@ int BPF_PROG(sys_exit, struct pt_regs *regs, long ret) {
 #endif
 	}
 
-	/* we convert it here in this way the syscall will be treated exactly as the original one */
+	/* We convert it here in this way the syscall will be treated exactly as the original one. */
 	if(syscall_id == socketcall_syscall_id) {
-		syscall_id = convert_network_syscalls(regs);
+		int socketcall_call = (int)extract__syscall_argument(regs, 0);
+		syscall_id = convert_socketcall_call_to_syscall_id(socketcall_call);
 		if(syscall_id == -1) {
 			// We can't do anything since modern bpf filler jump table is syscall indexed
 			return 0;

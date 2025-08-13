@@ -24,11 +24,39 @@ limitations under the License.
 
 typedef struct {
 	char* name;
+	char* kernel_symbol;
+	enum bpf_prog_type prog_type;
+	enum bpf_attach_type attach_type;
+} ia32_event_prog_t;
+
+// Maximum number of ia32 variants to be tried for each event
+#define MAX_IA32_VARIANTS 2
+
+typedef struct event_prog_t {
+	char* name;
+	enum bpf_prog_type prog_type;
 	enum bpf_func_id feat;
 } event_prog_t;
 
 // Maximum number of programs to be tried (requiring bpf feat checks) for each event
 #define MAX_FEATURE_CHECKS 3
+
+typedef struct {
+	event_prog_t prog_list[MAX_FEATURE_CHECKS];
+	ia32_event_prog_t ia32_prog_list[MAX_IA32_VARIANTS];
+} ttm_event_prog_lists;
+
+enum ttm_code {
+	TTM_CONNECT = 0,
+	TTM_CREAT = 1,
+	TTM_OPEN = 2,
+	TTM_OPENAT = 3,
+	TTM_OPENAT2 = 4,
+	TTM_SOCKETCALL = 5,
+	TTM_MAX = 6,
+};
+
+extern ttm_event_prog_lists ttm_event_prog_table[TTM_MAX];
 
 // Defined in events_prog_names.c
 extern event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS];

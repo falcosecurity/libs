@@ -282,8 +282,6 @@ int pman_fill_syscalls_tail_table() {
 	int syscall_exit_tail_table_fd = 0;
 	int enter_event_type = 0;
 	int exit_event_type = 0;
-	const char* enter_prog_name;
-	const char* exit_prog_name;
 
 	syscall_enter_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_enter_tail_table);
 	if(syscall_enter_tail_table_fd <= 0) {
@@ -316,25 +314,43 @@ int pman_fill_syscalls_tail_table() {
 		 * event. Until we miss some syscalls, this is not true so we manage these cases as generic
 		 * events. We need to remove this workaround when all syscalls will be implemented.
 		 */
-		enter_prog_name = event_prog_table[enter_event_type]->name;
-		exit_prog_name = event_prog_table[exit_event_type]->name;
+		if(enter_event_type != PPME_SYSCALL_OPEN_E && enter_event_type != PPME_SYSCALL_OPENAT_2_E &&
+		   enter_event_type != PPME_SYSCALL_OPENAT2_E && enter_event_type != PPME_SYSCALL_CREAT_E &&
+		   enter_event_type != PPME_SOCKET_CONNECT_E) {
+			const event_prog_t* enter_prog =
+			        (const event_prog_t*)&event_prog_table[enter_event_type];
+			const char* enter_prog_name = enter_prog->name;
+			if(!enter_prog_name) {
+				enter_prog = (const event_prog_t*)&event_prog_table[PPME_GENERIC_E];
+				enter_prog_name = enter_prog->name;
+			}
 
-		if(!enter_prog_name) {
-			enter_prog_name = event_prog_table[PPME_GENERIC_E]->name;
+			/* No programs other tail raw tracepoints are currently tail-called by the sys_enter
+			 * dispatcher. */
+			if(enter_prog->prog_type == BPF_PROG_TYPE_RAW_TRACEPOINT) {
+				if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
+				                                 enter_prog_name,
+				                                 syscall_id)) {
+					goto clean_fill_syscalls_tail_table;
+				}
+			}
 		}
 
+		const event_prog_t* exit_prog = (const event_prog_t*)&event_prog_table[exit_event_type];
+		const char* exit_prog_name = exit_prog->name;
 		if(!exit_prog_name) {
-			exit_prog_name = event_prog_table[PPME_GENERIC_X]->name;
+			exit_prog = (const event_prog_t*)&event_prog_table[PPME_GENERIC_X];
+			exit_prog_name = exit_prog->name;
 		}
 
-		if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
-		                                 enter_prog_name,
-		                                 syscall_id)) {
-			goto clean_fill_syscalls_tail_table;
-		}
-
-		if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog_name, syscall_id)) {
-			goto clean_fill_syscalls_tail_table;
+		/* No programs other tail raw tracepoints are currently tail-called by the sys_exit
+		 * dispatcher. */
+		if(exit_prog->prog_type == BPF_PROG_TYPE_RAW_TRACEPOINT) {
+			if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd,
+			                                 exit_prog_name,
+			                                 syscall_id)) {
+				goto clean_fill_syscalls_tail_table;
+			}
 		}
 	}
 	return 0;

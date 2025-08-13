@@ -17,6 +17,11 @@
 #include <sys/syscall.h>
 #endif
 
+#define __NR_ia32_connect 362
+#define __NR_ia32_creat 8
+#define __NR_ia32_open 5
+#define __NR_ia32_openat 295
+#define __NR_ia32_openat2 437
 #define __NR_ia32_socketcall 102
 
 /* Used to convert from page number to KB. */

@@ -266,6 +266,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs) {
 	ret = ret ?: pman_prepare_ringbuf_array_before_loading();
 	ret = ret ?: pman_prepare_maps_before_loading();
 	ret = ret ?: pman_prepare_progs_before_loading();
+	ret = ret ?: pman_prepare_ttm_progs_before_loading();
 	ret = ret ?: pman_load_probe();
 	ret = ret ?: pman_finalize_maps_after_loading();
 	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
