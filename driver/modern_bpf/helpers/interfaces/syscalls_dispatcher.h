@@ -44,10 +44,9 @@ static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint3
 	return maps__interesting_syscall_64bit(syscall_id);
 }
 
-static __always_inline long convert_network_syscalls(struct pt_regs *regs) {
-	int socketcall_id = (int)extract__syscall_argument(regs, 0);
-
-	switch(socketcall_id) {
+static __always_inline long syscalls_dispatcher__convert_socketcall_call_to_syscall_id(
+        int socketcall_call) {
+	switch(socketcall_call) {
 #ifdef __NR_socket
 	case SYS_SOCKET:
 		return __NR_socket;
