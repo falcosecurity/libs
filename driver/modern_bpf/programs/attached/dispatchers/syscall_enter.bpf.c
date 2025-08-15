@@ -8,36 +8,6 @@
 
 #include <helpers/interfaces/syscalls_dispatcher.h>
 
-// We don't want to send DROP_E/DROP_X events from the enter tracepoint because it would requires us
-// to create a dedicated tail table for the enter. It is enough to send DROP_E/DROP_X events from
-// the exit tracepoint.
-static __always_inline bool sampling_logic_enter(void* ctx, uint32_t id) {
-	/* If dropping mode is not enabled we don't perform any sampling
-	 * false: means don't drop the syscall
-	 * true: means drop the syscall
-	 */
-	if(!maps__get_dropping_mode()) {
-		return false;
-	}
-
-	uint8_t sampling_flag = maps__64bit_sampling_syscall_table(id);
-
-	if(sampling_flag == UF_NEVER_DROP) {
-		return false;
-	}
-
-	if(sampling_flag == UF_ALWAYS_DROP) {
-		return true;
-	}
-
-	// If we are in the sampling period we drop the event
-	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
-		return true;
-	}
-
-	return false;
-}
-
 /* From linux tree: /include/trace/events/syscall.h
  * TP_PROTO(struct pt_regs *regs, long id),
  */
@@ -78,7 +48,7 @@ int BPF_PROG(sys_enter, struct pt_regs* regs, long syscall_id) {
 		return 0;
 	}
 
-	if(sampling_logic_enter(ctx, syscall_id)) {
+	if(syscalls_dispatcher__sampling_logic_enter(syscall_id)) {
 		return 0;
 	}
 
