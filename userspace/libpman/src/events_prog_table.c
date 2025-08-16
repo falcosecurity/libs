@@ -47,7 +47,7 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_OPEN_X] = {{"open_x", 0}},
         [PPME_SYSCALL_OPENAT_2_E] = {{"openat_e", 0}},
         [PPME_SYSCALL_OPENAT_2_X] = {{"openat_x", 0}},
-        [PPME_SYSCALL_OPENAT2_E] = {{"openat2_e", 0}},
+        [PPME_SYSCALL_OPENAT2_E] = {{NULL}},
         [PPME_SYSCALL_OPENAT2_X] = {{"openat2_x", 0}},
         [PPME_SYSCALL_OPEN_BY_HANDLE_AT_E] = {{"open_by_handle_at_e", 0}},
         [PPME_SYSCALL_OPEN_BY_HANDLE_AT_X] = {{"open_by_handle_at_x", 0}},
@@ -340,3 +340,8 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_SETREGID_E] = {{"setregid_e", 0}},
         [PPME_SYSCALL_SETREGID_X] = {{"setregid_x", 0}},
 };
+
+ttm_progs_t ttm_progs_table[TTM_MAX] = {
+        [TTM_OPENAT2] = {{"openat2_e"},
+                         {{"ia32_compat_openat2_e", "__ia32_compat_sys_openat2"},
+                          {"ia32_openat2_e", "__ia32_sys_openat2"}}}};
