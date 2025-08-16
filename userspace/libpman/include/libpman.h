@@ -251,6 +251,20 @@ int pman_attach_signal_deliver(void);
 int pman_detach_signal_deliver(void);
 
 /**
+ * @brief Attach only the creat TOCTOU mitigation programs.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_creat_toctou_mitigation_progs(void);
+
+/**
+ * @brief Detach only the creat TOCTOU mitigation programs.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_creat_toctou_mitigation_progs(void);
+
+/**
  * @brief Attach only the openat2 TOCTOU mitigation programs.
  *
  * @return `0` on success, `errno` in case of error.
