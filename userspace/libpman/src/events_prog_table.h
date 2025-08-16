@@ -23,12 +23,38 @@ limitations under the License.
 #include <bpf/libbpf.h>
 
 typedef struct {
-	char* name;
+	char *name;
 	enum bpf_func_id feat;
 } event_prog_t;
 
 // Maximum number of programs to be tried (requiring bpf feat checks) for each event
 #define MAX_FEATURE_CHECKS 3
 
-// Defined in events_prog_names.c
+// Defined in events_prog_table.c
 extern event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS];
+
+// 64-bit system call TOCTOU mitigation program info.
+typedef struct {
+	char *name;
+} ttm_64bit_prog_t;
+
+// ia-32 system call TOCTOU mitigation program info.
+typedef struct {
+	char *name;
+	char *kernel_symbol;
+} ttm_ia32_prog_t;
+
+// TOCTOU mitigation for ia-32 system calls is implemented by two mutually exclusive programs
+// attached to symbols __ia32_compat_sys_<syscall> or __ia32_sys_<syscall> symbols, depending on
+// their availability.
+#define TTM_IA32_PROGS_NUM 2
+
+typedef struct {
+	ttm_64bit_prog_t ttm_64bit_prog;
+	ttm_ia32_prog_t ttm_ia32_progs[TTM_IA32_PROGS_NUM];
+} ttm_progs_t;
+
+enum ttm_sc_code { TTM_OPENAT2, TTM_MAX };
+
+// Defined in events_prog_table.c
+extern ttm_progs_t ttm_progs_table[TTM_MAX];

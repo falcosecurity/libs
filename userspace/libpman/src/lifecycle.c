@@ -29,6 +29,19 @@ int pman_open_probe() {
 	return 0;
 }
 
+static void disable_prog_autoloading(char *msg_buffer, const char *prog_name) {
+	snprintf(msg_buffer, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", prog_name);
+	pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg_buffer);
+	struct bpf_program *p = bpf_object__find_program_by_name(g_state.skel->obj, prog_name);
+	if(!p || bpf_program__set_autoload(p, false) < 0) {
+		snprintf(msg_buffer, MAX_ERROR_MESSAGE_LEN, "failed to disable prog '%s'", prog_name);
+		pman_print_error(msg_buffer);
+		return;
+	}
+	snprintf(msg_buffer, MAX_ERROR_MESSAGE_LEN, "disabled BPF program '%s'", prog_name);
+	pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg_buffer);
+}
+
 int pman_prepare_progs_before_loading() {
 	char msg[MAX_ERROR_MESSAGE_LEN];
 	/*
@@ -53,7 +66,7 @@ int pman_prepare_progs_before_loading() {
 					// Required feature not present
 					should_disable = true;
 				} else {
-					// We satified requested feature
+					// We satisfied requested feature
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "BPF program '%s' satisfied required feature [%d]",
@@ -66,23 +79,7 @@ int pman_prepare_progs_before_loading() {
 
 			// Disable autoloading for all programs except chosen one
 			if(should_disable) {
-				snprintf(msg, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", progs[idx].name);
-				pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
-				struct bpf_program *p =
-				        bpf_object__find_program_by_name(g_state.skel->obj, progs[idx].name);
-				if(p && bpf_program__set_autoload(p, false) == 0) {
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "disabled BPF program '%s'",
-					         progs[idx].name);
-					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
-				} else {
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "failed to disable prog '%s'",
-					         progs[idx].name);
-					pman_print_error(msg);
-				}
+				disable_prog_autoloading(msg, progs[idx].name);
 			}
 		}
 
@@ -111,7 +108,55 @@ int pman_prepare_progs_before_loading() {
 		// * open()
 		progs[chosen_idx] = old_prog;
 	}
+
+	// Keep autoloading enabled for all TOCTOU mitigation 64 bit programs.
+	// Disable autoloading for unsupported TOCTOU mitigation ia-32 programs.
+	for(int i = 0; i < TTM_MAX; i++) {
+		const ttm_ia32_prog_t *ia32_progs = ttm_progs_table[i].ttm_ia32_progs;
+		int chosen_idx = -1;
+		for(int j = 0; j < TTM_IA32_PROGS_NUM; j++) {
+			const ttm_ia32_prog_t *ia32_prog = &ia32_progs[j];
+			bool should_disable = chosen_idx != -1;
+			if(!should_disable) {
+				// Actually, 0 corresponds to BPF_CGROUP_INET_INGRESS, but use it as "no attach
+				// type" value as currently, the kernel reacts by searching for the availability of
+				// the requested symbol without adding any prefix to it (that is what we want).
+				const int NO_ATTACH_TYPE = 0;
+				if(libbpf_find_vmlinux_btf_id(ia32_prog->kernel_symbol, NO_ATTACH_TYPE) < 0) {
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "kernel symbol '%s' (required by BPF program '%s') not available",
+					         ia32_prog->kernel_symbol,
+					         ia32_prog->name);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg);
+					should_disable = true;
+				} else {
+					// We satisfied requested feature
+					snprintf(msg,
+					         MAX_ERROR_MESSAGE_LEN,
+					         "kernel symbol '%s' (required by BPF program '%s') is available",
+					         ia32_prog->kernel_symbol,
+					         ia32_prog->name);
+					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg);
+					chosen_idx = j;
+				}
+			}
+			// Disable autoloading for all programs except chosen one.
+			if(should_disable) {
+				disable_prog_autoloading(msg, ia32_prog->name);
+			}
+		}
+	}
+
 	return 0;
+}
+
+static int bpf_prog_fd_or_default(const struct bpf_program *prog) {
+	const int fd = bpf_program__fd(prog);
+	if(fd < 0) {
+		return -1;
+	}
+	return fd;
 }
 
 static void pman_save_attached_progs() {
@@ -130,6 +175,10 @@ static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[7] = bpf_program__fd(g_state.skel->progs.pf_kernel);
 #endif
 	g_state.attached_progs_fds[8] = bpf_program__fd(g_state.skel->progs.signal_deliver);
+	g_state.attached_progs_fds[9] = bpf_program__fd(g_state.skel->progs.openat2_e);
+	g_state.attached_progs_fds[10] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat2_e);
+	g_state.attached_progs_fds[11] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat2_e);
 }
 
 int pman_load_probe() {

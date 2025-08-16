@@ -20,6 +20,22 @@ limitations under the License.
 #include <libpman.h>
 #include <libscap/scap.h>
 
+/* If the provided error is ENOENT, logs a message and returns 0. Otherwise, simply returns the
+ * provided error. */
+static int ignore_and_log_enoent(const char *progs_name, const int err) {
+	if(err != ENOENT) {
+		return err;
+	}
+
+	char msg[MAX_ERROR_MESSAGE_LEN];
+	snprintf(msg,
+	         MAX_ERROR_MESSAGE_LEN,
+	         "couldn't attach '%s' programs. Skipped progs attachment",
+	         progs_name);
+	pman_print_msg(FALCOSECURITY_LOG_SEV_WARNING, msg);
+	return 0;
+}
+
 /* This function should be idempotent, every time it is called it should enforce again the state */
 int pman_enforce_sc_set(bool *sc_set) {
 	/* If we fail at initialization time the BPF skeleton
@@ -35,17 +51,20 @@ int pman_enforce_sc_set(bool *sc_set) {
 		sc_set = empty_sc_set;
 	}
 
-	int ret = 0;
-	int syscall_id = 0;
 	/* Special tracepoints, their attachment depends on interesting syscalls */
 	bool sys_enter = false;
 	bool sys_exit = false;
 	bool sched_prog_fork = false;
 	bool sched_prog_exec = false;
 
+	/* Special programs, for TOCTOU mitigation. */
+	bool attach_openat2_ttm_progs = false;
+
+	int ret = 0;
+
 	/* Enforce interesting syscalls */
 	for(int sc = 0; sc < PPM_SC_MAX; sc++) {
-		syscall_id = scap_ppm_sc_to_native_id(sc);
+		const int syscall_id = scap_ppm_sc_to_native_id(sc);
 		/* if `syscall_id` is -1 this is not a syscall */
 		if(syscall_id == -1) {
 			continue;
@@ -69,7 +88,32 @@ int pman_enforce_sc_set(bool *sc_set) {
 		sched_prog_exec = true;
 	}
 
-	/* Enable desired tracepoints */
+	// No need to attach TOCTOU mitigation programs, generating enter events, if the sys_exit
+	// dispatcher is not attached. The reason behind this is that enter events, are conceived to
+	// support exit events, and are not useful in isolation.
+	if(sys_exit) {
+		attach_openat2_ttm_progs = sc_set[PPM_SC_OPENAT2];
+	}
+
+	/* Enable/disable desired programs. */
+
+	/* TOCTOU mitigation section.
+	 * Notice: the 64 bit syscalls TOCTOU mitigation is handled through tracepoints; attach
+	 * tracepoints before the sys_exit dispatcher, because the tracepoint attachment procedure
+	 * generates an `openat` exit event on `/sys/kernel/tracing/events/.../id`, that would pollute
+	 * the stream of events read by our probe.
+	 * Notice 2: on some architectures, not all tracepoints are defined (e.g.:
+	 * `syscalls/sys_enter_creat` is not defined on ARM64): in this case, simply ignore the returned
+	 * ENOENT error and log something, as we don't have any other way to deal with it.
+	 */
+	if(attach_openat2_ttm_progs)
+		ret = ret
+		              ?: ignore_and_log_enoent("openat2_ttm",
+		                                       pman_attach_openat2_toctou_mitigation_progs());
+	else
+		ret = ret ?: pman_detach_openat2_toctou_mitigation_progs();
+
+	/* sys_enter and sys_exit dispatchers section. */
 	if(sys_enter)
 		ret = ret ?: pman_attach_syscall_enter_dispatcher();
 	else
@@ -80,6 +124,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 	else
 		ret = ret ?: pman_detach_syscall_exit_dispatcher();
 
+	/* Special tracepoints section. */
 	if(sched_prog_fork)
 		ret = ret ?: pman_attach_sched_proc_fork();
 	else

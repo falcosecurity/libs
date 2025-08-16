@@ -250,6 +250,20 @@ int pman_attach_signal_deliver(void);
  */
 int pman_detach_signal_deliver(void);
 
+/**
+ * @brief Attach only the openat2 TOCTOU mitigation programs.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_openat2_toctou_mitigation_progs(void);
+
+/**
+ * @brief Detach only the openat2 TOCTOU mitigation programs.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_openat2_toctou_mitigation_progs(void);
+
 /////////////////////////////
 // MANAGE RINGBUFFERS
 /////////////////////////////
