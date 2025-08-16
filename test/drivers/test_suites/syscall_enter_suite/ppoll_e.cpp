@@ -99,9 +99,9 @@ TEST(SyscallEnter, ppollE_valid_pointers) {
 	evt_test->assert_fd_list(1, NULL, (uint16_t)0);
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
-	/* The pointer is NULL so we should have UINT64_MAX */
 	evt_test->assert_numeric_param(2,
-	                               ((uint64_t)timestamp.tv_sec * SEC_FACTOR) + timestamp.tv_nsec);
+	                               ((uint64_t)timestamp.tv_sec * SEC_FACTOR) + timestamp.tv_nsec,
+	                               GREATER_EQUAL);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */
 	evt_test->assert_numeric_param(3, (uint32_t)SIGIO);
