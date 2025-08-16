@@ -17,6 +17,7 @@
 #include <sys/syscall.h>
 #endif
 
+#define __NR_ia32_creat 8
 #define __NR_ia32_openat2 437
 #define __NR_ia32_socketcall 102
 

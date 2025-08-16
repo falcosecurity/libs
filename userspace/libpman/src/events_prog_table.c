@@ -55,7 +55,7 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_CLOSE_X] = {{"close_x", 0}},
         [PPME_SYSCALL_COPY_FILE_RANGE_E] = {{"copy_file_range_e", 0}},
         [PPME_SYSCALL_COPY_FILE_RANGE_X] = {{"copy_file_range_x", 0}},
-        [PPME_SYSCALL_CREAT_E] = {{"creat_e", 0}},
+        [PPME_SYSCALL_CREAT_E] = {{NULL}},
         [PPME_SYSCALL_CREAT_X] = {{"creat_x", 0}},
         [PPME_SYSCALL_DUP_1_E] = {{"dup_e", 0}},
         [PPME_SYSCALL_DUP_1_X] = {{"dup_x", 0}},
@@ -342,6 +342,9 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
 };
 
 ttm_progs_t ttm_progs_table[TTM_MAX] = {
+        [TTM_CREAT] = {{"creat_e"},
+                       {{"ia32_compat_creat_e", "__ia32_compat_sys_creat"},
+                        {"ia32_creat_e", "__ia32_sys_creat"}}},
         [TTM_OPENAT2] = {{"openat2_e"},
                          {{"ia32_compat_openat2_e", "__ia32_compat_sys_openat2"},
                           {"ia32_openat2_e", "__ia32_sys_openat2"}}}};
