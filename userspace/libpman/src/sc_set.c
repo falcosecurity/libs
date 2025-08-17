@@ -59,6 +59,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 
 	/* Special programs, for TOCTOU mitigation. */
 	bool attach_creat_ttm_progs = false;
+	bool attach_open_ttm_progs = false;
 	bool attach_openat_ttm_progs = false;
 	bool attach_openat2_ttm_progs = false;
 
@@ -95,6 +96,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 	// support exit events, and are not useful in isolation.
 	if(sys_exit) {
 		attach_creat_ttm_progs = sc_set[PPM_SC_CREAT];
+		attach_open_ttm_progs = sc_set[PPM_SC_OPEN];
 		attach_openat_ttm_progs = sc_set[PPM_SC_OPENAT];
 		attach_openat2_ttm_progs = sc_set[PPM_SC_OPENAT2];
 	}
@@ -127,6 +129,11 @@ int pman_enforce_sc_set(bool *sc_set) {
 		                                       pman_attach_creat_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_creat_toctou_mitigation_progs();
+
+	if(attach_open_ttm_progs)
+		ret = ret ?: ignore_and_log_enoent("open_ttm", pman_attach_open_toctou_mitigation_progs());
+	else
+		ret = ret ?: pman_detach_open_toctou_mitigation_progs();
 
 	if(attach_openat2_ttm_progs)
 		ret = ret
