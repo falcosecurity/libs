@@ -265,6 +265,20 @@ int pman_attach_creat_toctou_mitigation_progs(void);
 int pman_detach_creat_toctou_mitigation_progs(void);
 
 /**
+ * @brief Attach only the open TOCTOU mitigation programs.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_attach_open_toctou_mitigation_progs(void);
+
+/**
+ * @brief Detach only the open TOCTOU mitigation programs.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+int pman_detach_open_toctou_mitigation_progs(void);
+
+/**
  * @brief Attach only the openat TOCTOU mitigation programs.
  *
  * @return `0` on success, `errno` in case of error.

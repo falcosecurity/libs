@@ -179,14 +179,17 @@ static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[10] =
 	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_creat_e);
 	g_state.attached_progs_fds[11] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_creat_e);
-	g_state.attached_progs_fds[12] = bpf_program__fd(g_state.skel->progs.openat_e);
-	g_state.attached_progs_fds[13] =
-	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat_e);
-	g_state.attached_progs_fds[14] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat_e);
-	g_state.attached_progs_fds[15] = bpf_program__fd(g_state.skel->progs.openat2_e);
+	g_state.attached_progs_fds[12] = bpf_program__fd(g_state.skel->progs.open_e);
+	g_state.attached_progs_fds[13] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_open_e);
+	g_state.attached_progs_fds[14] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_open_e);
+	g_state.attached_progs_fds[15] = bpf_program__fd(g_state.skel->progs.openat_e);
 	g_state.attached_progs_fds[16] =
+	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat_e);
+	g_state.attached_progs_fds[17] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat_e);
+	g_state.attached_progs_fds[18] = bpf_program__fd(g_state.skel->progs.openat2_e);
+	g_state.attached_progs_fds[19] =
 	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat2_e);
-	g_state.attached_progs_fds[17] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat2_e);
+	g_state.attached_progs_fds[20] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat2_e);
 }
 
 int pman_load_probe() {

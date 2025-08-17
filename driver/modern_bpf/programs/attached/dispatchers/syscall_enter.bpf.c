@@ -49,10 +49,13 @@ int BPF_PROG(sys_enter, struct pt_regs* regs, long syscall_id) {
 	// have an entry in the syscall enter tail table, so simply return early, avoiding wasting
 	// resources on any additional filtering logic.
 	switch(syscall_id) {
-#if defined(__NR_creat) || defined(__NR_openat) || defined(__NR_openat2)
+#if defined(__NR_creat) || defined(__NR_open) || defined(__NR_openat) || defined(__NR_openat2)
 #ifdef __NR_creat
 	case __NR_creat:
 #endif  // __NR_creat
+#ifdef __NR_open
+	case __NR_open:
+#endif  // __NR_open
 #ifdef __NR_openat
 	case __NR_openat:
 #endif  // __NR_openat
@@ -60,7 +63,7 @@ int BPF_PROG(sys_enter, struct pt_regs* regs, long syscall_id) {
 	case __NR_openat2:
 #endif  // __NR_openat2
 		return 0;
-#endif  // __NR_creat || __NR_openat || __NR_openat2
+#endif  // __NR_creat || __NR_open || __NR_openat || __NR_openat2
 	default:
 		break;
 	}

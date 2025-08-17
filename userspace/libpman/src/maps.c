@@ -280,6 +280,7 @@ clean_add_program_to_tail_table:
 int is_enter_event_generated_by_toctou_mitigation_progs(const int enter_event_type) {
 	switch(enter_event_type) {
 	case PPME_SYSCALL_CREAT_E:
+	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
 		return 1;
