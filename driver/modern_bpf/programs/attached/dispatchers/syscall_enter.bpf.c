@@ -36,6 +36,7 @@ int BPF_PROG(sys_enter, struct pt_regs* regs, long syscall_id) {
 	}
 
 	// We convert it here in this way the syscall will be treated exactly as the original one.
+	bool is_socketcall_connect = false;
 	if(syscall_id == socketcall_syscall_id) {
 		int socketcall_call = (int)extract__syscall_argument(regs, 0);
 		syscall_id = syscalls_dispatcher__convert_socketcall_call_to_syscall_id(socketcall_call);
@@ -43,29 +44,40 @@ int BPF_PROG(sys_enter, struct pt_regs* regs, long syscall_id) {
 			// We can't do anything since modern bpf filler jump table is syscall indexed
 			return 0;
 		}
+#ifdef __NR_connect
+		if(syscall_id == __NR_connect) {
+			is_socketcall_connect = true;
+		}
+#endif  // __NR_connect
 	}
 
-	// The following system calls are already handled by TOCTOU mitigation programs and will not
-	// have an entry in the syscall enter tail table, so simply return early, avoiding wasting
-	// resources on any additional filtering logic.
-	switch(syscall_id) {
-#if defined(__NR_creat) || defined(__NR_open) || defined(__NR_openat) || defined(__NR_openat2)
+	if(!is_socketcall_connect) {
+		// The following system calls are already handled by TOCTOU mitigation programs and will not
+		// have an entry in the syscall enter tail table, so simply return early, avoiding wasting
+		// resources on any additional filtering logic.
+		switch(syscall_id) {
+#if defined(__NR_connect) || defined(__NR_creat) || defined(__NR_open) || defined(__NR_openat) || \
+        defined(__NR_openat2)
+#ifdef __NR_connect
+		case __NR_connect:
+#endif  // __NR_connect
 #ifdef __NR_creat
-	case __NR_creat:
+		case __NR_creat:
 #endif  // __NR_creat
 #ifdef __NR_open
-	case __NR_open:
+		case __NR_open:
 #endif  // __NR_open
 #ifdef __NR_openat
-	case __NR_openat:
+		case __NR_openat:
 #endif  // __NR_openat
 #ifdef __NR_openat2
-	case __NR_openat2:
+		case __NR_openat2:
 #endif  // __NR_openat2
-		return 0;
-#endif  // __NR_creat || __NR_open || __NR_openat || __NR_openat2
-	default:
-		break;
+			return 0;
+#endif  // __NR_connect || __NR_creat || __NR_open || __NR_openat || __NR_openat2
+		default:
+			break;
+		}
 	}
 
 	if(!syscalls_dispatcher__64bit_interesting_syscall(syscall_id)) {

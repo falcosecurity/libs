@@ -103,7 +103,7 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_CAPSET_X] = {{"capset_x", 0}},
         [PPME_SOCKET_SOCKET_E] = {{"socket_e", 0}},
         [PPME_SOCKET_SOCKET_X] = {{"socket_x", 0}},
-        [PPME_SOCKET_CONNECT_E] = {{"connect_e", 0}},
+        [PPME_SOCKET_CONNECT_E] = {{"connect_e_raw_tp", 0}},
         [PPME_SOCKET_CONNECT_X] = {{"connect_x", 0}},
         [PPME_SOCKET_SOCKETPAIR_E] = {{"socketpair_e", 0}},
         [PPME_SOCKET_SOCKETPAIR_X] = {{"socketpair_x", 0}},
@@ -342,6 +342,9 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
 };
 
 ttm_progs_t ttm_progs_table[TTM_MAX] = {
+        [TTM_CONNECT] = {{"connect_e"},
+                         {{"ia32_compat_connect_e", "__ia32_compat_sys_connect"},
+                          {"ia32_connect_e", "__ia32_sys_connect"}}},
         [TTM_CREAT] = {{"creat_e"},
                        {{"ia32_compat_creat_e", "__ia32_compat_sys_creat"},
                         {"ia32_creat_e", "__ia32_sys_creat"}}},
@@ -353,4 +356,5 @@ ttm_progs_t ttm_progs_table[TTM_MAX] = {
                          {"ia32_openat_e", "__ia32_sys_openat"}}},
         [TTM_OPENAT2] = {{"openat2_e"},
                          {{"ia32_compat_openat2_e", "__ia32_compat_sys_openat2"},
-                          {"ia32_openat2_e", "__ia32_sys_openat2"}}}};
+                          {"ia32_openat2_e", "__ia32_sys_openat2"}}},
+};
