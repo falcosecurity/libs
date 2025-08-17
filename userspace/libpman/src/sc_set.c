@@ -59,6 +59,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 
 	/* Special programs, for TOCTOU mitigation. */
 	bool attach_creat_ttm_progs = false;
+	bool attach_openat_ttm_progs = false;
 	bool attach_openat2_ttm_progs = false;
 
 	int ret = 0;
@@ -94,19 +95,31 @@ int pman_enforce_sc_set(bool *sc_set) {
 	// support exit events, and are not useful in isolation.
 	if(sys_exit) {
 		attach_creat_ttm_progs = sc_set[PPM_SC_CREAT];
+		attach_openat_ttm_progs = sc_set[PPM_SC_OPENAT];
 		attach_openat2_ttm_progs = sc_set[PPM_SC_OPENAT2];
 	}
 
 	/* Enable/disable desired programs. */
 
 	/* TOCTOU mitigation section.
-	 * Notice: the 64 bit syscalls TOCTOU mitigation is handled through tracepoints; attach
-	 * tracepoints before the sys_exit dispatcher, because the tracepoint attachment procedure
-	 * generates an `openat` exit event on `/sys/kernel/tracing/events/.../id`, that would pollute
-	 * the stream of events read by our probe.
-	 * Notice 2: on some architectures, not all tracepoints are defined (e.g.:
-	 * `syscalls/sys_enter_creat` is not defined on ARM64): in this case, simply ignore the returned
-	 * ENOENT error and log something, as we don't have any other way to deal with it.
+	 *
+	 * Notice 1
+	 * The 64 bit syscalls TOCTOU mitigation is handled through tracepoints. Notice that:
+	 * - any tracepoint program attachment performed after the sys_exit dispatcher attachment would
+	 * generate an `openat` exit event on `/sys/kernel/tracing/events/.../id`
+	 * - any tracepoint program attachment performed after the `openat` TOCTOU mitigation tracepoint
+	 * program attachment would generate an `openat` enter event on
+	 * `/sys/kernel/tracing/events/.../id`
+	 *
+	 * Given the above considerations, it doesn't seem to exist any specific attachment order that
+	 * would prevent us from polluting the stream of events read by our probe.
+	 * For now, just attach the `openat` TOCTOU mitigation programs last compared to the other
+	 * TOCTOU mitigation programs.
+	 *
+	 * Notice 2
+	 * On some architectures, not all tracepoints are defined (e.g.: `syscalls/sys_enter_creat` is
+	 * not defined on ARM64): in this case, simply ignore the returned ENOENT error and log
+	 * something, as we don't have any other way to deal with it.
 	 */
 	if(attach_creat_ttm_progs)
 		ret = ret
@@ -121,6 +134,13 @@ int pman_enforce_sc_set(bool *sc_set) {
 		                                       pman_attach_openat2_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_openat2_toctou_mitigation_progs();
+
+	if(attach_openat_ttm_progs)
+		ret = ret
+		              ?: ignore_and_log_enoent("openat_ttm",
+		                                       pman_attach_openat_toctou_mitigation_progs());
+	else
+		ret = ret ?: pman_detach_openat_toctou_mitigation_progs();
 
 	/* sys_enter and sys_exit dispatchers section. */
 	if(sys_enter)

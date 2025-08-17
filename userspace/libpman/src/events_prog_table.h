@@ -54,7 +54,7 @@ typedef struct {
 	ttm_ia32_prog_t ttm_ia32_progs[TTM_IA32_PROGS_NUM];
 } ttm_progs_t;
 
-enum ttm_sc_code { TTM_CREAT, TTM_OPENAT2, TTM_MAX };
+enum ttm_sc_code { TTM_CREAT, TTM_OPENAT, TTM_OPENAT2, TTM_MAX };
 
 // Defined in events_prog_table.c
 extern ttm_progs_t ttm_progs_table[TTM_MAX];
