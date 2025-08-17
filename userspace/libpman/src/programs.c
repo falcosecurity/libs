@@ -160,6 +160,38 @@ int pman_attach_signal_deliver() {
 	return 0;
 }
 
+int pman_attach_connect_toctou_mitigation_progs() {
+	/* We enforce only the 64 bit program to be attached; if it is already attached, just return. */
+	if(g_state.skel->links.connect_e != NULL) {
+		return 0;
+	}
+
+	g_state.skel->links.connect_e = bpf_program__attach(g_state.skel->progs.connect_e);
+	if(!g_state.skel->links.connect_e) {
+		pman_print_error("failed to attach the 'connect_e' program");
+		return errno;
+	}
+
+	// For ia-32 TOCTOU mitigation, the compat version takes precedence.
+	if(bpf_program__fd(g_state.skel->progs.ia32_compat_connect_e) >= 0) {
+		g_state.skel->links.ia32_compat_connect_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_compat_connect_e);
+		if(!g_state.skel->links.ia32_compat_connect_e) {
+			pman_print_error("failed to attach the 'ia32_compat_connect_e' program");
+			return errno;
+		}
+	} else if(bpf_program__fd(g_state.skel->progs.ia32_connect_e) >= 0) {
+		g_state.skel->links.ia32_connect_e =
+		        bpf_program__attach(g_state.skel->progs.ia32_connect_e);
+		if(!g_state.skel->links.ia32_connect_e) {
+			pman_print_error("failed to attach the 'ia32_connect_e' program");
+			return errno;
+		}
+	}
+
+	return 0;
+}
+
 int pman_attach_creat_toctou_mitigation_progs() {
 	/* We enforce only the 64 bit program to be attached; if it is already attached, just return. */
 	if(g_state.skel->links.creat_e != NULL) {
@@ -380,6 +412,30 @@ int pman_detach_signal_deliver() {
 		return errno;
 	}
 	g_state.skel->links.signal_deliver = NULL;
+	return 0;
+}
+
+int pman_detach_connect_toctou_mitigation_progs() {
+	if(g_state.skel->links.connect_e && bpf_link__destroy(g_state.skel->links.connect_e)) {
+		pman_print_error("failed to detach the 'connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.connect_e = NULL;
+
+	if(g_state.skel->links.ia32_compat_connect_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_compat_connect_e)) {
+		pman_print_error("failed to detach the 'ia32_compat_connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_compat_connect_e = NULL;
+
+	if(g_state.skel->links.ia32_connect_e &&
+	   bpf_link__destroy(g_state.skel->links.ia32_connect_e)) {
+		pman_print_error("failed to detach the 'ia32_connect_e' program");
+		return errno;
+	}
+	g_state.skel->links.ia32_connect_e = NULL;
+
 	return 0;
 }
 

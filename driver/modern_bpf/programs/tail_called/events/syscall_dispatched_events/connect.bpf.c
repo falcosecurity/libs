@@ -12,7 +12,7 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(connect_e, struct pt_regs *regs, long id) {
+int BPF_PROG(connect_e_raw_tp, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {
 		return 0;

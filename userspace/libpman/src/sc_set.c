@@ -58,6 +58,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 	bool sched_prog_exec = false;
 
 	/* Special programs, for TOCTOU mitigation. */
+	bool attach_connect_ttm_progs = false;
 	bool attach_creat_ttm_progs = false;
 	bool attach_open_ttm_progs = false;
 	bool attach_openat_ttm_progs = false;
@@ -95,6 +96,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 	// dispatcher is not attached. The reason behind this is that enter events, are conceived to
 	// support exit events, and are not useful in isolation.
 	if(sys_exit) {
+		attach_connect_ttm_progs = sc_set[PPM_SC_CONNECT];
 		attach_creat_ttm_progs = sc_set[PPM_SC_CREAT];
 		attach_open_ttm_progs = sc_set[PPM_SC_OPEN];
 		attach_openat_ttm_progs = sc_set[PPM_SC_OPENAT];
@@ -123,6 +125,13 @@ int pman_enforce_sc_set(bool *sc_set) {
 	 * not defined on ARM64): in this case, simply ignore the returned ENOENT error and log
 	 * something, as we don't have any other way to deal with it.
 	 */
+	if(attach_connect_ttm_progs)
+		ret = ret
+		              ?: ignore_and_log_enoent("connect_ttm",
+		                                       pman_attach_connect_toctou_mitigation_progs());
+	else
+		ret = ret ?: pman_detach_connect_toctou_mitigation_progs();
+
 	if(attach_creat_ttm_progs)
 		ret = ret
 		              ?: ignore_and_log_enoent("creat_ttm",

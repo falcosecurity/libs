@@ -17,6 +17,7 @@
 #include <sys/syscall.h>
 #endif
 
+#define __NR_ia32_connect 362
 #define __NR_ia32_creat 8
 #define __NR_ia32_open 5
 #define __NR_ia32_openat 295
