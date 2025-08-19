@@ -17,16 +17,22 @@ The three programs have the following naming schema and purpose:
   calls. Just one of the two programs is attached, based on the availability of the corresponding symbol. The compat
   version attachment attempt takes precedence with respect to the other one.
 
-## Why don't use just a single tracepoint program?
+## FAQ
+
+### Why don't use just a single tracepoint program per system call?
 
 Tracepoint programs are not triggered upon ia-32 emulated system calls.
 
-## Why don't use fentry programs for ia-32 emulated system calls?
+### Why don't use eBPF fentry programs for ia-32 emulated system calls?
 
 `fentry` support is buggy on some kernel versions for which the modern probe is required to provide support.
 Specifically, some kernel versions don't correctly export the `pt_regs` struct BTF type information, making impossible
 for the verifier to do correct analysis of the accesses to `struct pt_regs *`. As a result of the latter statement, the
 verifier would not allow to do anything useful with those programs.
-
 See [this](https://stackoverflow.com/questions/72824924/invalid-bpf-context-access-when-trying-to-read-regs-parameter)
 for more details.
+
+### What about kprobe eBPF programs performance penalty?
+
+This is not a real issue, as this penalty is only introduced for ia-32 emulated system calls, which we don't expect can
+generate any relevant overhead on the system, due to their limited (or absent) usage on common systems.
