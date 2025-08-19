@@ -327,27 +327,23 @@ int pman_fill_syscalls_tail_table() {
 		if(!is_enter_event_generated_by_toctou_mitigation_progs(enter_event_type)) {
 			const event_prog_t* enter_prog =
 			        (const event_prog_t*)&event_prog_table[enter_event_type];
-			const char* enter_prog_name = enter_prog->name;
-			if(!enter_prog_name) {
+			if(enter_prog->name == NULL) {
 				enter_prog = (const event_prog_t*)&event_prog_table[PPME_GENERIC_E];
-				enter_prog_name = enter_prog->name;
 			}
 
 			if(add_bpf_program_to_tail_table(syscall_enter_tail_table_fd,
-			                                 enter_prog_name,
+			                                 enter_prog->name,
 			                                 syscall_id)) {
 				goto clean_fill_syscalls_tail_table;
 			}
 		}
 
 		const event_prog_t* exit_prog = (const event_prog_t*)&event_prog_table[exit_event_type];
-		const char* exit_prog_name = exit_prog->name;
-		if(!exit_prog_name) {
+		if(exit_prog->name == NULL) {
 			exit_prog = (const event_prog_t*)&event_prog_table[PPME_GENERIC_X];
-			exit_prog_name = exit_prog->name;
 		}
 
-		if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog_name, syscall_id)) {
+		if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog->name, syscall_id)) {
 			goto clean_fill_syscalls_tail_table;
 		}
 	}
