@@ -21,12 +21,10 @@
  */
 static __always_inline int toctou_mitigation__64bit_should_drop(uint32_t syscall_id,
                                                                 int socketcall_call) {
-	uint32_t socketcall_syscall_id;
-
 #ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
+	uint32_t socketcall_syscall_id = __NR_socketcall;
 #else
-	socketcall_syscall_id = -1;
+	uint32_t socketcall_syscall_id = -1;
 #endif
 
 	// Convert the socketcall id into the network syscall id.
@@ -60,9 +58,10 @@ static __always_inline int toctou_mitigation__64bit_should_drop(uint32_t syscall
  */
 static __always_inline int toctou_mitigation__ia32_should_drop(uint32_t syscall_id,
                                                                int socketcall_call) {
+#ifndef __TARGET_ARCH_x86
+	return 1;
+#else
 	int socketcall_syscall_id = -1;
-
-#if defined(__TARGET_ARCH_x86)
 	if(syscall_id == __NR_ia32_socketcall) {
 		socketcall_syscall_id = __NR_ia32_socketcall;
 	} else {
@@ -72,9 +71,6 @@ static __always_inline int toctou_mitigation__ia32_should_drop(uint32_t syscall_
 			return 1;
 		}
 	}
-#else
-	return 1;
-#endif
 
 	// Convert the socketcall id into the network syscall id.
 	// In this way the syscall will be treated exactly as the original one.
@@ -95,4 +91,5 @@ static __always_inline int toctou_mitigation__ia32_should_drop(uint32_t syscall_
 	}
 
 	return 0;
+#endif  // __TARGET_ARCH_x86
 }
