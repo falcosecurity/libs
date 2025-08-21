@@ -20,8 +20,9 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <limits.h>
+#include <libscap/compat/bpf.h>
 
-typedef enum {
+enum bpf_attached_prog_codes {
 	BPF_PROG_SYS_ENTER = 0,
 	BPF_PROG_SYS_EXIT = 1,
 	BPF_PROG_SCHED_PROC_EXIT = 2,
@@ -36,14 +37,35 @@ typedef enum {
 	BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT = 9, /* This is only used on architectures where the
 	                                              execve/execveat success event is missing */
 	BPF_PROG_ATTACHED_MAX = 10,
-} bpf_attached_prog_codes;
+};
+
+enum bpf_attached_ttm_progs_codes {
+	BPF_TTM_PROGS_CONNECT = 0,  /* connect syscall TOCTOU mitigation programs. */
+	BPF_TTM_PROGS_CREAT = 3,    /* creat syscall TOCTOU mitigation programs. */
+	BPF_TTM_PROGS_OPEN = 6,     /* open syscall TOCTOU mitigation programs. */
+	BPF_TTM_PROGS_OPENAT = 9,   /* openat syscall TOCTOU mitigation programs. */
+	BPF_TTM_PROGS_OPENAT2 = 12, /* openat2 syscall TOCTOU mitigation programs. */
+	BPF_TTM_PROGS_ATTACHED_MAX = 15,
+};
 
 typedef struct bpf_attached_prog {
-	int fd;              /* fd used to load/unload bpf progs */
-	int efd;             /* fd used to attach/detach bpf progs */
-	char name[NAME_MAX]; /* name of the program, used to attach it into the kernel */
-	bool raw_tp;         /* tells if a program is a raw tracepoint or not */
+	int fd;                  /* fd used to load/unload bpf progs */
+	int efd;                 /* fd used to attach/detach bpf progs */
+	char name[NAME_MAX];     /* name of the program, used to attach it into the kernel */
+	enum bpf_prog_type type; /* the attached program type */
 } bpf_attached_prog;
+
+typedef struct bpf_attached_ttm_progs {
+	bpf_attached_prog prog;
+	bpf_attached_prog ia32_compat_prog;
+	bpf_attached_prog ia32_prog;
+} bpf_attached_ttm_progs;
+
+enum bpf_ttm_prog_selector {
+	BPF_TTM_SELECTOR_64BIT_PROG = 0,
+	BPF_TTM_SELECTOR_IA32_COMPAT_PROG = 1,
+	BPF_TTM_SELECTOR_IA32_PROG = 2,
+};
 
 bool is_sys_enter(const char* name);
 bool is_sys_exit(const char* name);
@@ -55,8 +77,26 @@ bool is_signal_deliver(const char* name);
 bool is_sched_prog_fork_move_args(const char* name);
 bool is_sched_prog_fork_missing_child(const char* name);
 bool is_sched_prog_exec_missing_exit(const char* name);
+bool is_sys_enter_connect(const char* name);
+bool is_sys_enter_creat(const char* name);
+bool is_sys_enter_open(const char* name);
+bool is_sys_enter_openat(const char* name);
+bool is_sys_enter_openat2(const char* name);
 
-void fill_attached_prog_info(struct bpf_attached_prog* prog, bool raw_tp, const char* name, int fd);
+void fill_attached_prog_info(bpf_attached_prog* prog,
+                             enum bpf_prog_type prog_type,
+                             const char* name,
+                             int fd);
+int fill_attached_ttm_prog_info(bpf_attached_ttm_progs* progs,
+                                enum bpf_ttm_prog_selector prog_selector,
+                                enum bpf_prog_type prog_type,
+                                const char* name,
+                                int fd,
+                                char* last_err);
 int attach_bpf_prog(struct bpf_attached_prog* prog, char* last_err);
+int attach_bpf_ttm_progs(bpf_attached_ttm_progs* progs, bool ia32_progs_first, char* last_err);
 void detach_bpf_prog(struct bpf_attached_prog* prog);
+void detach_bpf_ttm_progs(bpf_attached_ttm_progs* progs);
 void unload_bpf_prog(struct bpf_attached_prog* prog);
+
+int test_ttm_ia32_prog_support(const char* prog_symbol, char* last_err);

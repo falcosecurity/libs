@@ -28,7 +28,28 @@ struct bpf_map_def __bpf_section("maps") perf_map = {
         .max_entries = 0,
 };
 
+/* Notice: it must be declared BEFORE `ttm_tail_map`. */
 struct bpf_map_def __bpf_section("maps") tail_map = {
+        .type = BPF_MAP_TYPE_PROG_ARRAY,
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint32_t),
+        .max_entries = PPM_FILLER_MAX,
+};
+
+/* This map is used only if TOCTOU mitigation is enabled. It is used to tail call TOCTOU mitigation
+ * fillers. TOCTOU mitigation fillers can only be tracepoint programs. Notice: it must be declared
+ * AFTER `tail_map` and BEFORE `ia32_ttm_tail_map`. */
+struct bpf_map_def __bpf_section("maps") ttm_tail_map = {
+        .type = BPF_MAP_TYPE_PROG_ARRAY,
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint32_t),
+        .max_entries = PPM_FILLER_MAX,
+};
+
+/* This map is used only if TOCTOU mitigation is enabled. It is used to tail call ia-32 TOCTOU
+ * mitigation fillers. ia-32 TOCTOU mitigation fillers can only be kprobe programs. Notice: it must
+ * be declared AFTER `ttm_tail_map`. */
+struct bpf_map_def __bpf_section("maps") ia32_ttm_tail_map = {
         .type = BPF_MAP_TYPE_PROG_ARRAY,
         .key_size = sizeof(uint32_t),
         .value_size = sizeof(uint32_t),

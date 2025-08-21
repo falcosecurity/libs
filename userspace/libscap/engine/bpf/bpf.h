@@ -43,9 +43,12 @@ struct bpf_engine {
 	int m_tail_called_fds[BPF_PROGS_TAIL_CALLED_MAX];
 	int m_tail_called_cnt;
 	bpf_attached_prog m_attached_progs[BPF_PROG_ATTACHED_MAX];
+	bpf_attached_ttm_progs m_attached_ttm_progs[BPF_TTM_PROGS_ATTACHED_MAX];
 
 	int m_bpf_map_fds[BPF_MAPS_MAX];
-	int m_bpf_prog_array_map_idx;
+	int m_bpf_tail_call_map_idx;           // Fillers prog array map index.
+	int m_bpf_ttm_tail_call_map_idx;       // TOCTOU mitigation fillers prog array map index.
+	int m_bpf_ia32_ttm_tail_call_map_idx;  // ia-32 TOCTOU mitigation fillers prog array map index.
 	char m_filepath[SCAP_MAX_PATH_SIZE];
 
 	/* ELF related */

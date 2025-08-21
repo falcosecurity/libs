@@ -115,6 +115,11 @@ struct bpf_map_data {
 	struct bpf_map_def def;
 };
 
+static void clear_attached_prog_fds(bpf_attached_prog *prog) {
+	prog->fd = -1;
+	prog->efd = -1;
+}
+
 static void *alloc_handle(scap_t *main_handle, char *lasterr_ptr) {
 	struct bpf_engine *engine = calloc(1, sizeof(struct bpf_engine));
 	if(engine) {
@@ -124,8 +129,13 @@ static void *alloc_handle(scap_t *main_handle, char *lasterr_ptr) {
 		}
 
 		for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++) {
-			engine->m_attached_progs[j].fd = -1;
-			engine->m_attached_progs[j].efd = -1;
+			clear_attached_prog_fds(&engine->m_attached_progs[j]);
+		}
+
+		for(int j = 0; j < BPF_TTM_PROGS_ATTACHED_MAX; j++) {
+			clear_attached_prog_fds(&engine->m_attached_ttm_progs[j].prog);
+			clear_attached_prog_fds(&engine->m_attached_ttm_progs[j].ia32_compat_prog);
+			clear_attached_prog_fds(&engine->m_attached_ttm_progs[j].ia32_prog);
 		}
 		engine->m_stats = NULL;
 		engine->m_nstats = 0;
@@ -405,9 +415,9 @@ static int32_t load_elf_maps_section(struct bpf_engine *handle,
 }
 
 static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, int nr_maps) {
-	int j;
+	int next_tail_call_map = 0;
 
-	for(j = 0; j < nr_maps; ++j) {
+	for(int j = 0; j < nr_maps; ++j) {
 		if(j == SCAP_PERF_MAP || j == SCAP_LOCAL_STATE_MAP || j == SCAP_FRAME_SCRATCH_MAP ||
 		   j == SCAP_TMP_SCRATCH_MAP) {
 			// We allocate entries for all the available CPUs.
@@ -429,8 +439,29 @@ static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, i
 			                      j);
 		}
 
+		// We have three prog array maps:
+		// 1) tail call map (containing normal fillers)
+		// 2) TOCTOU mitigation tail call map (containing TOCTOU mitigation fillers
+		// 3) ia-32 TOCTOU mitigation tail call map (containing ia-32 TOCTOU mitigation fillers)
+		// These maps must be declared in the aforementioned order: in this way, we can correctly
+		// retrieve their correct indexes (at the moment, we don't have a better way to do it).
 		if(maps[j].def.type == BPF_MAP_TYPE_PROG_ARRAY) {
-			handle->m_bpf_prog_array_map_idx = j;
+			switch(next_tail_call_map) {
+			case 0:
+				handle->m_bpf_tail_call_map_idx = j;
+				break;
+			case 1:
+				handle->m_bpf_ttm_tail_call_map_idx = j;
+				break;
+			case 2:
+				handle->m_bpf_ia32_ttm_tail_call_map_idx = j;
+				break;
+			default:
+				return scap_errprintf(handle->m_lasterr,
+				                      0,
+				                      "expected three prog array maps, got a forth one");
+			}
+			next_tail_call_map++;
 		}
 	}
 
@@ -497,74 +528,120 @@ static int32_t parse_relocations(struct bpf_engine *handle,
 	return SCAP_SUCCESS;
 }
 
+static int32_t get_ttm_prog_selector(const struct bpf_engine *handle,
+                                     const enum bpf_prog_type prog_type,
+                                     const char *section_segment,
+                                     enum bpf_ttm_prog_selector *prog_selector) {
+	if(prog_type != BPF_PROG_TYPE_KPROBE) {
+		*prog_selector = BPF_TTM_SELECTOR_64BIT_PROG;
+		return SCAP_SUCCESS;
+	}
+
+	// Attached kprobe programs are used for ia-32 TOCTOU mitigation, and are attached to two
+	// classes of symbols:
+	// - __ia32_compat_sys_<syscall_name>
+	// - __ia32_sys_<syscall_name>
+	if(memcmp(section_segment, "__ia32_compat_sys_", sizeof("__ia32_compat_sys_") - 1) == 0) {
+		const char *syscall_name = section_segment + sizeof("__ia32_compat_sys_") - 1;
+		if(*syscall_name == 0) {
+			return scap_errprintf(
+			        handle->m_lasterr,
+			        0,
+			        "ia-32 compat TOCTOU mitigation program syscall name cannot be empty");
+		}
+		*prog_selector = BPF_TTM_SELECTOR_IA32_COMPAT_PROG;
+		return SCAP_SUCCESS;
+	}
+
+	if(memcmp(section_segment, "__ia32_sys_", sizeof("__ia32_sys_") - 1) == 0) {
+		const char *syscall_name = section_segment + sizeof("__ia32_sys_") - 1;
+		if(*syscall_name == 0) {
+			return scap_errprintf(handle->m_lasterr,
+			                      0,
+			                      "ia-32 TOCTOU mitigation program syscall name cannot be empty");
+		}
+		*prog_selector = BPF_TTM_SELECTOR_IA32_PROG;
+		return SCAP_SUCCESS;
+	}
+
+	return scap_errprintf(handle->m_lasterr,
+	                      0,
+	                      "kprobe TOCTOU mitigation program has unknown section format '%s'",
+	                      section_segment);
+}
+
 /* load all bpf programs */
 static int32_t load_single_prog(struct bpf_engine *handle,
                                 const char *event,
                                 struct bpf_insn *prog,
                                 int size) {
-	enum bpf_prog_type program_type;
-	size_t insns_cnt;
-	bool raw_tp;
-	int err;
-	int fd;
-	const char *final_section_name = NULL;
-
-	insns_cnt = size / sizeof(struct bpf_insn);
-
-	char *error = malloc(BPF_LOG_SIZE);
-	if(!error) {
-		return scap_errprintf(handle->m_lasterr, 0, "malloc(BPF_LOG_BUF_SIZE) failed");
-	}
-
 	const char *full_event = event;
+	enum bpf_prog_type prog_type;
 	if(memcmp(event, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0) {
-		raw_tp = true;
-		program_type = BPF_PROG_TYPE_RAW_TRACEPOINT;
+		prog_type = BPF_PROG_TYPE_RAW_TRACEPOINT;
 		event += sizeof("raw_tracepoint/") - 1;
-	} else {
-		raw_tp = false;
-		program_type = BPF_PROG_TYPE_TRACEPOINT;
+	} else if(memcmp(event, "tracepoint/", sizeof("tracepoint/") - 1) == 0) {
+		prog_type = BPF_PROG_TYPE_TRACEPOINT;
 		event += sizeof("tracepoint/") - 1;
+	} else {
+		prog_type = BPF_PROG_TYPE_KPROBE;
+		event += sizeof("kprobe/") - 1;
 	}
 
 	if(*event == 0) {
-		free(error);
 		return scap_errprintf(handle->m_lasterr, 0, "event name cannot be empty");
 	}
 
 	/* 'event' looks like "raw_tracepoint/raw_syscalls/sys_enter". Skip
 	 * to the last word after '/', if possible.
 	 */
-	final_section_name = strrchr(event, '/');
+	const char *final_section_name = strrchr(event, '/');
 	if(final_section_name != NULL) {
 		final_section_name++;
 	} else {
 		final_section_name = event;
 	}
 
-	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE, final_section_name);
-	if(fd < 0) {
-		/* It is possible than some old kernels don't support the prog_name so in case
-		 * of loading failure, we try again the loading without the name. See it in libbpf:
-		 * https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/tools/lib/bpf/libbpf.c#L4833
-		 */
-		fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE, NULL);
-		if(fd < 0) {
-			fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
-			free(error);
-			return scap_errprintf(handle->m_lasterr,
-			                      -fd,
-			                      "libscap: bpf_load_program() event=%s",
-			                      full_event);
+	/* Loading program section.
+	 *
+	 * Avoid loading non-filler unsupported TOCTOU mitigation ia-32 programs (notice: these are
+	 * kprobe programs). */
+	int fd = -1;
+	const bool is_filler = memcmp(event, "filler/", sizeof("filler/") - 1) == 0;
+	const bool must_load =
+	        is_filler || prog_type != BPF_PROG_TYPE_KPROBE ||
+	        test_ttm_ia32_prog_support(final_section_name, handle->m_lasterr) == SCAP_SUCCESS;
+	if(must_load) {
+		char *error = malloc(BPF_LOG_SIZE);
+		if(!error) {
+			return scap_errprintf(handle->m_lasterr, 0, "malloc(BPF_LOG_BUF_SIZE) failed");
 		}
-	}
-	free(error);
 
-	/* If the program is tail called, so not directly attached to the kernel ("filler")
-	 * we save the fd and populate the filler table. Note that we store the `fd` to free
-	 * the prog at the end of the capture, we will never use it again during the capture!
+		const size_t insns_cnt = size / sizeof(struct bpf_insn);
+		fd = bpf_load_program(prog, prog_type, insns_cnt, error, BPF_LOG_SIZE, final_section_name);
+		if(fd < 0) {
+			/* It is possible than some old kernels don't support the prog_name so in case
+			 * of loading failure, we try again the loading without the name. See it in libbpf:
+			 * https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/tools/lib/bpf/libbpf.c#L4833
+			 */
+			fd = bpf_load_program(prog, prog_type, insns_cnt, error, BPF_LOG_SIZE, NULL);
+			if(fd < 0) {
+				fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
+				free(error);
+				return scap_errprintf(handle->m_lasterr,
+				                      -fd,
+				                      "libscap: bpf_load_program() event=%s",
+				                      full_event);
+			}
+		}
+		free(error);
+	}
+
+	/* If the program is tail called, so not directly attached to the kernel ("filler") we save the
+	 * fd and populate the filler tables. Note that we store the `fd` to free the prog at the end of
+	 * the capture, we will never use it again during the capture!
 	 */
-	if(memcmp(event, "filler/", sizeof("filler/") - 1) == 0) {
+	if(is_filler) {
 		if(handle->m_tail_called_cnt + 1 >= BPF_PROGS_TAIL_CALLED_MAX) {
 			return scap_errprintf(
 			        handle->m_lasterr,
@@ -581,6 +658,29 @@ static int32_t load_single_prog(struct bpf_engine *handle,
 			return scap_errprintf(handle->m_lasterr, 0, "filler name cannot be empty");
 		}
 
+		/* Determine if the filler is a normal filler, a TOCTOU mitigation filler or an ia-32 TOCTOU
+		 * mitigation filler. This is used later to choose the right tail call map the filler
+		 * program must be inserted into. */
+		enum filler_type_t { NORMAL_FILLER, TOCTOU_FILLER, IA32_TOCTOU_FILLER };
+		enum filler_type_t filler_type = NORMAL_FILLER;
+		if(memcmp(event, "toctou/", sizeof("toctou/") - 1) == 0) {
+			event += sizeof("toctou/") - 1;
+			if(*event == 0) {
+				return scap_errprintf(handle->m_lasterr,
+				                      0,
+				                      "TOCTOU mitigation filler name cannot be empty");
+			}
+			filler_type = TOCTOU_FILLER;
+		} else if(memcmp(event, "ia32_toctou/", sizeof("ia32_toctou/") - 1) == 0) {
+			event += sizeof("ia32_toctou/") - 1;
+			if(*event == 0) {
+				return scap_errprintf(handle->m_lasterr,
+				                      0,
+				                      "ia-32 TOCTOU mitigation filler name cannot be empty");
+			}
+			filler_type = IA32_TOCTOU_FILLER;
+		}
+
 		int prog_id = lookup_filler_id(event);
 		if(prog_id == -1) {
 			return scap_errprintf(handle->m_lasterr, 0, "invalid filler name: %s", event);
@@ -592,14 +692,30 @@ static int32_t load_single_prog(struct bpf_engine *handle,
 			                      BPF_PROGS_TAIL_CALLED_MAX);
 		}
 
-		/* Fill the tail table. The key is our filler internal code extracted
-		 * from `g_filler_names` in `lookup_filler_id` function. The value
-		 * is the program fd.
-		 */
-		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx],
-		                          &prog_id,
-		                          &fd,
-		                          BPF_ANY);
+		/* Fill the right tail table. The key is our filler internal code extracted from
+		 * `g_filler_names` in `lookup_filler_id` function. The value is the program fd. */
+		int tail_call_map_idx;
+		switch(filler_type) {
+		case NORMAL_FILLER:
+			tail_call_map_idx = handle->m_bpf_tail_call_map_idx;
+			break;
+		case TOCTOU_FILLER:
+			tail_call_map_idx = handle->m_bpf_ttm_tail_call_map_idx;
+			break;
+		case IA32_TOCTOU_FILLER:
+			tail_call_map_idx = handle->m_bpf_ia32_ttm_tail_call_map_idx;
+			break;
+		default:
+			return scap_errprintf(
+			        handle->m_lasterr,
+			        0,
+			        "unexpected filler type %d, forgot to add the filler type handling case?",
+			        filler_type);
+		}
+		const int err = bpf_map_update_elem(handle->m_bpf_map_fds[tail_call_map_idx],
+		                                    &prog_id,
+		                                    &fd,
+		                                    BPF_ANY);
 		if(err < 0) {
 			return scap_errprintf(handle->m_lasterr, -err, "failure populating program array");
 		}
@@ -610,67 +726,123 @@ static int32_t load_single_prog(struct bpf_engine *handle,
 	/* If we reach this point we are evaluating a program that should be directly attached to the
 	 * kernel */
 	if(is_sys_enter(event)) {
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SYS_ENTER], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SYS_ENTER],
+		                        prog_type,
+		                        event,
+		                        fd);
 	}
 
 	if(is_sys_exit(event)) {
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SYS_EXIT], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SYS_EXIT], prog_type, event, fd);
 	}
 
 	if(is_sched_proc_exit(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_sched_switch(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_SWITCH],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_page_fault_user(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_page_fault_kernel(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_signal_deliver(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_sched_prog_fork_move_args(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_sched_prog_fork_missing_child(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
 	}
 
 	if(is_sched_prog_exec_missing_exit(event)) {
 		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT],
-		                        raw_tp,
+		                        prog_type,
 		                        event,
 		                        fd);
+	}
+
+	/* Fill TOCTOU mitigation programs info structures. */
+
+	enum bpf_ttm_prog_selector ttm_prog_selector = 0;
+	const int res = get_ttm_prog_selector(handle, prog_type, event, &ttm_prog_selector);
+	if(res != SCAP_SUCCESS) {
+		return res;
+	}
+
+	if(is_sys_enter_connect(event)) {
+		return fill_attached_ttm_prog_info(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_CONNECT],
+		                                   ttm_prog_selector,
+		                                   prog_type,
+		                                   event,
+		                                   fd, /* can be -1 */
+		                                   handle->m_lasterr);
+	}
+
+	if(is_sys_enter_creat(event)) {
+		return fill_attached_ttm_prog_info(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_CREAT],
+		                                   ttm_prog_selector,
+		                                   prog_type,
+		                                   event,
+		                                   fd, /* can be -1 */
+		                                   handle->m_lasterr);
+	}
+
+	if(is_sys_enter_open(event)) {
+		return fill_attached_ttm_prog_info(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPEN],
+		                                   ttm_prog_selector,
+		                                   prog_type,
+		                                   event,
+		                                   fd, /* can be -1 */
+		                                   handle->m_lasterr);
+	}
+
+	if(is_sys_enter_openat(event)) {
+		return fill_attached_ttm_prog_info(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPENAT],
+		                                   ttm_prog_selector,
+		                                   prog_type,
+		                                   event,
+		                                   fd, /* can be -1 */
+		                                   handle->m_lasterr);
+	}
+
+	if(is_sys_enter_openat2(event)) {
+		return fill_attached_ttm_prog_info(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPENAT2],
+		                                   ttm_prog_selector,
+		                                   prog_type,
+		                                   event,
+		                                   fd, /* can be -1 */
+		                                   handle->m_lasterr);
 	}
 
 	return SCAP_SUCCESS;
@@ -792,7 +964,8 @@ static int load_all_progs(struct bpf_engine *handle) {
 		}
 
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
-		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0) {
+		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0 ||
+		   memcmp(shname, "kprobe/", sizeof("kprobe/") - 1) == 0) {
 			if(load_single_prog(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS) {
 				return SCAP_FAILURE;
 			}
@@ -955,12 +1128,20 @@ static int32_t populate_ia32_to_64_map(struct bpf_engine *handle) {
 		                              &j,
 		                              x64_val,
 		                              BPF_ANY)) != 0) {
-			return scap_errprintf(handle->m_lasterr,
-			                      -ret,
-			                      "SCAP_FILLERS_TABLE bpf_map_update_elem ");
+			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_IA32_64_MAP bpf_map_update_elem ");
 		}
 	}
 	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_IA32_64_MAP]);
+}
+
+/* If the provided scap result error is SCAP_NOTFOUND, returns 0. Otherwise, simply returns the
+ * provided result. */
+static int ignore_scap_notfound(const int res) {
+	if(res != SCAP_NOTFOUND) {
+		return res;
+	}
+
+	return 0;
 }
 
 static int enforce_sc_set(struct bpf_engine *handle) {
@@ -972,8 +1153,6 @@ static int enforce_sc_set(struct bpf_engine *handle) {
 		sc_set = empty_sc_set;
 	}
 
-	int ret = 0;
-	int syscall_id = 0;
 	/* Special tracepoints, their attachment depends on interesting syscalls */
 	bool sys_enter = false;
 	bool sys_exit = false;
@@ -981,9 +1160,18 @@ static int enforce_sc_set(struct bpf_engine *handle) {
 	bool sched_prog_fork_missing_child = false;
 	bool sched_prog_exec = false;
 
+	/* Special tracepoints, for TOCTOU mitigation. */
+	bool attach_connect_ttm_progs = false;
+	bool attach_creat_ttm_progs = false;
+	bool attach_open_ttm_progs = false;
+	bool attach_openat_ttm_progs = false;
+	bool attach_openat2_ttm_progs = false;
+
+	int ret = 0;
+
 	/* Enforce interesting syscalls */
 	for(int sc = 0; sc < PPM_SC_MAX; sc++) {
-		syscall_id = scap_ppm_sc_to_native_id(sc);
+		const int syscall_id = scap_ppm_sc_to_native_id(sc);
 		/* if `syscall_id` is -1 this is not a syscall */
 		if(syscall_id == -1) {
 			continue;
@@ -1008,79 +1196,159 @@ static int enforce_sc_set(struct bpf_engine *handle) {
 		sched_prog_exec = true;
 	}
 
-	/* Enable desired tracepoints */
+	// No need to attach TOCTOU mitigation programs, generating enter events, if the sys_exit
+	// dispatcher is not attached. The reason behind this is that enter events, are conceived to
+	// support exit events, and are not useful in isolation.
+	if(sys_exit) {
+		attach_connect_ttm_progs = sc_set[PPM_SC_CONNECT];
+		attach_creat_ttm_progs = sc_set[PPM_SC_CREAT];
+		attach_open_ttm_progs = sc_set[PPM_SC_OPEN];
+		attach_openat_ttm_progs = sc_set[PPM_SC_OPENAT];
+		attach_openat2_ttm_progs = sc_set[PPM_SC_OPENAT2];
+	}
+
+	/* Enable/disable desired tracepoints */
+
+	/* TOCTOU mitigation section.
+	 *
+	 * Notice 1
+	 * The 64 bit syscalls TOCTOU mitigation is handled through tracepoints. Notice that:
+	 * - any tracepoint program attachment performed after the sys_exit dispatcher attachment would
+	 * generate an `openat` exit event on `/sys/kernel/tracing/events/.../id`
+	 * - any tracepoint program attachment performed after the `openat` TOCTOU mitigation tracepoint
+	 * program attachment would generate an `openat` enter event on
+	 * `/sys/kernel/tracing/events/.../id`
+	 *
+	 * Given the above considerations, it doesn't seem to exist any specific attachment order that
+	 * would prevent us from polluting the stream of events read by our probe.
+	 * For now, just attach the `openat` TOCTOU mitigation programs last compared to the other
+	 * TOCTOU mitigation programs.
+	 *
+	 * Notice 2
+	 * On some architectures, not all tracepoints are defined (e.g.: `syscalls/sys_enter_creat` is
+	 * not defined on ARM64): in this case, simply ignore the returned ENOENT error and log
+	 * something, as we don't have any other way to deal with it.
+	 */
+	// TODO(ekoops): add logging in ignore_enoent
+	if(attach_connect_ttm_progs)
+		ret = ret
+		              ?: ignore_scap_notfound(attach_bpf_ttm_progs(
+		                         &handle->m_attached_ttm_progs[BPF_TTM_PROGS_CONNECT],
+		                         false,
+		                         handle->m_lasterr));
+	else
+		detach_bpf_ttm_progs(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_CONNECT]);
+
+	if(attach_creat_ttm_progs)
+		ret = ret
+		              ?: ignore_scap_notfound(attach_bpf_ttm_progs(
+		                         &handle->m_attached_ttm_progs[BPF_TTM_PROGS_CREAT],
+		                         false,
+		                         handle->m_lasterr));
+	else
+		detach_bpf_ttm_progs(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_CREAT]);
+
+	if(attach_open_ttm_progs)
+		ret = ret
+		              ?: ignore_scap_notfound(attach_bpf_ttm_progs(
+		                         &handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPEN],
+		                         false,
+		                         handle->m_lasterr));
+	else
+		detach_bpf_ttm_progs(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPEN]);
+
+	if(attach_openat2_ttm_progs)
+		ret = ret
+		              ?: ignore_scap_notfound(attach_bpf_ttm_progs(
+		                         &handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPENAT2],
+		                         false,
+		                         handle->m_lasterr));
+	else
+		detach_bpf_ttm_progs(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPENAT2]);
+
+	if(attach_openat_ttm_progs)
+		ret = ret
+		              ?: ignore_scap_notfound(attach_bpf_ttm_progs(
+		                         &handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPENAT],
+		                         true,
+		                         handle->m_lasterr));
+	else
+		detach_bpf_ttm_progs(&handle->m_attached_ttm_progs[BPF_TTM_PROGS_OPENAT]);
+
+	/* sys_enter and sys_exit dispatchers section. */
 	if(sys_enter)
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_ENTER]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SYS_ENTER],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_ENTER]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SYS_ENTER]);
 
 	if(sys_exit)
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_EXIT]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SYS_EXIT],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_EXIT]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SYS_EXIT]);
 
+	/* Special tracepoints section. */
 	if(sched_prog_fork_move_args)
 		ret = ret
 		              ?: attach_bpf_prog(
-		                         &(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]),
+		                         &handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS],
 		                         handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]);
 
 	if(sched_prog_fork_missing_child)
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs
-		                                           [BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]),
-		                                 handle->m_lasterr);
+		              ?: attach_bpf_prog(
+		                         &handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD],
+		                         handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]);
 
 	if(sched_prog_exec)
 		ret = ret
 		              ?: attach_bpf_prog(
-		                         &(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]),
+		                         &handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT],
 		                         handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]);
 
 	if(sc_set[PPM_SC_SCHED_PROCESS_EXIT])
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT]);
 
 	if(sc_set[PPM_SC_SCHED_SWITCH])
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_SWITCH]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_SWITCH],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_SWITCH]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SCHED_SWITCH]);
 
 	if(sc_set[PPM_SC_PAGE_FAULT_USER])
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER]);
 
 	if(sc_set[PPM_SC_PAGE_FAULT_KERNEL])
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]);
 
 	if(sc_set[PPM_SC_SIGNAL_DELIVER])
 		ret = ret
-		              ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]),
+		              ?: attach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER],
 		                                 handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]));
+		detach_bpf_prog(&handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]);
 
 	return ret;
 }
@@ -1301,6 +1569,11 @@ int32_t scap_bpf_enable_dynamic_snaplen(struct scap_engine_handle engine) {
 	return SCAP_SUCCESS;
 }
 
+void detach_and_unload_bpf_prog(bpf_attached_prog *prog) {
+	detach_bpf_prog(prog);
+	unload_bpf_prog(prog);
+}
+
 int32_t scap_bpf_close(struct scap_engine_handle engine) {
 	struct bpf_engine *handle = engine.m_handle;
 
@@ -1317,11 +1590,18 @@ int32_t scap_bpf_close(struct scap_engine_handle engine) {
 	handle->m_tail_called_cnt = 0;
 
 	for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++) {
-		detach_bpf_prog(&handle->m_attached_progs[j]);
-		unload_bpf_prog(&handle->m_attached_progs[j]);
+		detach_and_unload_bpf_prog(&handle->m_attached_progs[j]);
 	}
 
-	handle->m_bpf_prog_array_map_idx = -1;
+	for(int j = 0; j < BPF_TTM_PROGS_ATTACHED_MAX; j++) {
+		detach_and_unload_bpf_prog(&handle->m_attached_ttm_progs[j].prog);
+		detach_and_unload_bpf_prog(&handle->m_attached_ttm_progs[j].ia32_compat_prog);
+		detach_and_unload_bpf_prog(&handle->m_attached_ttm_progs[j].ia32_prog);
+	}
+
+	handle->m_bpf_tail_call_map_idx = -1;
+	handle->m_bpf_ttm_tail_call_map_idx = -1;
+	handle->m_bpf_ia32_ttm_tail_call_map_idx = -1;
 
 	if(handle->elf) {
 		elf_end(handle->elf);
@@ -1448,7 +1728,9 @@ int32_t scap_bpf_load(struct bpf_engine *handle, unsigned long buffer_bytes_dim)
 		return SCAP_FAILURE;
 	}
 
-	handle->m_bpf_prog_array_map_idx = -1;
+	handle->m_bpf_tail_call_map_idx = -1;
+	handle->m_bpf_ttm_tail_call_map_idx = -1;
+	handle->m_bpf_ia32_ttm_tail_call_map_idx = -1;
 
 	if(load_bpf_file(handle) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
@@ -1653,6 +1935,67 @@ static void set_u64_monotonic_kernel_counter(struct metrics_v2 *m,
 	m->value.u64 = val;
 }
 
+static int get_bpf_prog_stats_v2(const struct bpf_engine *handle,
+                                 const int prog_fd,
+                                 const char *prog_name,
+                                 metrics_v2 *stats,
+                                 int *offset,
+                                 int32_t *rc) {
+	struct bpf_prog_info info = {};
+	__u32 len = sizeof(info);
+	if(bpf_obj_get_info_by_fd(prog_fd, &info, &len)) {
+		/* no info for that prog, it seems like a bug but we can go on */
+		return 0;
+	}
+
+	for(int stat = 0; stat < BPF_MAX_LIBBPF_STATS; stat++) {
+		if(*offset >= handle->m_nstats) {
+			/* This should never happen, we are doing something wrong */
+			*rc = scap_errprintf(handle->m_lasterr, -1, "no enough space for all the stats");
+			return -1;
+		}
+		stats[*offset].type = METRIC_VALUE_TYPE_U64;
+		stats[*offset].flags = METRICS_V2_LIBBPF_STATS;
+		/* The possibility to specify a name for a BPF program was introduced in kernel 4.15
+		 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
+		 * So it's possible that in some of our supported kernels `info.name` will be "".
+		 */
+		if(strlen(info.name) == 0) {
+			/* Fallback on the elf section name */
+			strlcpy(stats[*offset].name, prog_name, METRIC_NAME_MAX);
+		} else {
+			strlcpy(stats[*offset].name, info.name, METRIC_NAME_MAX);
+		}
+		strlcat(stats[*offset].name, bpf_libbpf_stats_names[stat], sizeof(stats[*offset].name));
+		switch(stat) {
+		case RUN_CNT:
+			stats[*offset].value.u64 = info.run_cnt;
+			stats[*offset].unit = METRIC_VALUE_UNIT_COUNT;
+			stats[*offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+			break;
+		case RUN_TIME_NS:
+			stats[*offset].value.u64 = info.run_time_ns;
+			stats[*offset].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
+			stats[*offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+			break;
+		case AVG_TIME_NS:
+			stats[*offset].value.u64 = 0;
+			stats[*offset].unit = METRIC_VALUE_UNIT_TIME_NS;
+			stats[*offset].metric_type = METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
+			if(info.run_cnt > 0) {
+				stats[*offset].value.u64 = info.run_time_ns / info.run_cnt;
+			}
+			break;
+		default:
+			ASSERT(false);
+			break;
+		}
+		(*offset)++;
+	}
+
+	return 0;
+}
+
 const struct metrics_v2 *scap_bpf_get_stats_v2(struct scap_engine_handle engine,
                                                uint32_t flags,
                                                uint32_t *nstats,
@@ -1672,6 +2015,18 @@ const struct metrics_v2 *scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 		int nprogs_attached = 0;
 		for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++) {
 			if(handle->m_attached_progs[j].fd != -1) {
+				nprogs_attached++;
+			}
+		}
+
+		for(int j = 0; j < BPF_TTM_PROGS_ATTACHED_MAX; j++) {
+			if(handle->m_attached_ttm_progs[j].prog.fd != -1) {
+				nprogs_attached++;
+			}
+			if(handle->m_attached_ttm_progs[j].ia32_compat_prog.fd != -1) {
+				nprogs_attached++;
+			}
+			if(handle->m_attached_ttm_progs[j].ia32_prog.fd != -1) {
 				nprogs_attached++;
 			}
 		}
@@ -1776,69 +2131,30 @@ const struct metrics_v2 *scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 	 * but it's possible that in some of our supported kernels they won't be available.
 	 */
 	if((flags & METRICS_V2_LIBBPF_STATS)) {
-		int fd = 0;
 		for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++) {
-			fd = handle->m_attached_progs[bpf_prog].fd;
-			if(fd < 0) {
-				// we loop through each possible prog, landing here means prog was not attached
-				continue;
+			bpf_attached_prog *prog = &handle->m_attached_progs[bpf_prog];
+			if(prog->fd >= 0 &&
+			   get_bpf_prog_stats_v2(handle, prog->fd, prog->name, stats, &offset, rc) < 0) {
+				return NULL;
 			}
-			struct bpf_prog_info info = {};
-			__u32 len = sizeof(info);
-			if(bpf_obj_get_info_by_fd(fd, &info, &len)) {
-				/* no info for that prog, it seems like a bug but we can go on */
-				continue;
-			}
+		}
 
-			for(int stat = 0; stat < BPF_MAX_LIBBPF_STATS; stat++) {
-				if(offset >= handle->m_nstats) {
-					/* This should never happen, we are doing something wrong */
-					*rc = scap_errprintf(handle->m_lasterr,
-					                     -1,
-					                     "no enough space for all the stats");
-					return NULL;
-				}
-				stats[offset].type = METRIC_VALUE_TYPE_U64;
-				stats[offset].flags = METRICS_V2_LIBBPF_STATS;
-				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15
-				 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
-				 * So it's possible that in some of our supported kernels `info.name` will be "".
-				 */
-				if(strlen(info.name) == 0) {
-					/* Fallback on the elf section name */
-					strlcpy(stats[offset].name,
-					        handle->m_attached_progs[bpf_prog].name,
-					        METRIC_NAME_MAX);
-				} else {
-					strlcpy(stats[offset].name, info.name, METRIC_NAME_MAX);
-				}
-				strlcat(stats[offset].name,
-				        bpf_libbpf_stats_names[stat],
-				        sizeof(stats[offset].name));
-				switch(stat) {
-				case RUN_CNT:
-					stats[offset].value.u64 = info.run_cnt;
-					stats[offset].unit = METRIC_VALUE_UNIT_COUNT;
-					stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-					break;
-				case RUN_TIME_NS:
-					stats[offset].value.u64 = info.run_time_ns;
-					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
-					stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-					break;
-				case AVG_TIME_NS:
-					stats[offset].value.u64 = 0;
-					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
-					stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
-					if(info.run_cnt > 0) {
-						stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
-					}
-					break;
-				default:
-					ASSERT(false);
-					break;
-				}
-				offset++;
+		for(int bpf_progs = 0; bpf_progs < BPF_TTM_PROGS_ATTACHED_MAX; bpf_progs++) {
+			bpf_attached_ttm_progs *progs = &handle->m_attached_ttm_progs[bpf_progs];
+			bpf_attached_prog *prog = &progs->prog;
+			if(prog->fd >= 0 &&
+			   get_bpf_prog_stats_v2(handle, prog->fd, prog->name, stats, &offset, rc) < 0) {
+				return NULL;
+			}
+			prog = &progs->ia32_compat_prog;
+			if(prog->fd >= 0 &&
+			   get_bpf_prog_stats_v2(handle, prog->fd, prog->name, stats, &offset, rc) < 0) {
+				return NULL;
+			}
+			prog = &progs->ia32_prog;
+			if(prog->fd >= 0 &&
+			   get_bpf_prog_stats_v2(handle, prog->fd, prog->name, stats, &offset, rc) < 0) {
+				return NULL;
 			}
 		}
 	}
