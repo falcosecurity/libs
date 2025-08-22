@@ -341,6 +341,10 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_SETREUID_X] = {{false, "setreuid_x", 0}},
         [PPME_SYSCALL_SETREGID_E] = {{false, "setregid_e", 0}},
         [PPME_SYSCALL_SETREGID_X] = {{false, "setregid_x", 0}},
+        // TODO(ekoops): remove the following entries once the sys_enter dispatcher is dropped.
+        // The following entries are added in order to avoid the common generic_e enter event
+        // handler to be used as a fallback for the corresponding event types.
+        [PPME_SYSCALL_STAT64_E] = {{true, NULL}},
 };
 
 ttm_progs_t ttm_progs_table[TTM_MAX] = {
