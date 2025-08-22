@@ -3885,30 +3885,6 @@ int f_sys_futex_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_lseek_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int64_t fd;
-	int res;
-
-	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: offset (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: whence (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, lseek_whence_to_scap(val), 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_lseek_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
