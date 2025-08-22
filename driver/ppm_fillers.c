@@ -4077,22 +4077,6 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false, 0);
 }
 
-int f_sys_poll_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: fds (type: PT_FDLIST) */
-	res = poll_parse_fds(args, true);
-	CHECK_RES(res);
-
-	/* Parameter 2: timeout (type: PT_INT64) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_poll_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	unsigned long val;

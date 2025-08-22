@@ -554,17 +554,6 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data, bool ent
 	                         KERNEL);
 }
 
-FILLER(sys_poll_e, true) {
-	/* Parameter 1: fds (type: PT_FDLIST) */
-	int res = bpf_poll_parse_fds(data, true);
-	CHECK_RES(res);
-
-	/* Parameter 2: timeout (type: PT_INT64) */
-	/* This is an `int` in the syscall signature but we push it as an `int64` */
-	uint32_t timeout_msecs = (int32_t)bpf_syscall_get_argument(data, 2);
-	return bpf_push_s64_to_ring(data, (int64_t)timeout_msecs);
-}
-
 FILLER(sys_poll_x, true) {
 	/* Parameter 1: ret (type: PT_FD) */
 	long retval = bpf_syscall_get_retval(data->ctx);

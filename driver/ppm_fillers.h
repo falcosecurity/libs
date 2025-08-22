@@ -67,7 +67,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_llseek_e)                     \
 	FN(sys_llseek_x)                     \
 	FN(sys_socket_bind_x)                \
-	FN(sys_poll_e)                       \
 	FN(sys_poll_x)                       \
 	FN(sys_pread64_e)                    \
 	FN(sys_writev_e)                     \
