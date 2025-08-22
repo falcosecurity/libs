@@ -287,10 +287,8 @@ TEST_F(sys_call_test, poll_timeout) {
 	int callnum = 0;
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		uint16_t type = evt->get_type();
 		auto ti = evt->get_thread_info(false);
-		return (type == PPME_SYSCALL_POLL_E || type == PPME_SYSCALL_POLL_X) &&
-		       ti->m_comm == "test_helper";
+		return evt->get_type() == PPME_SYSCALL_POLL_X && ti->m_comm == "test_helper";
 	};
 
 	std::string my_pipe[2];
@@ -312,17 +310,7 @@ TEST_F(sys_call_test, poll_timeout) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_POLL_E) {
-			//
-			// stdin and stdout can be a file or a fifo depending
-			// on how the tests are invoked
-			//
-			std::string fds = e->get_param_value_str("fds");
-			std::string expected_fds = my_pipe[0] + ":p1 " + my_pipe[1] + ":p4";
-			EXPECT_EQ(expected_fds, fds) << "Value of fds is not one of expected values: " << fds;
-			EXPECT_EQ("20", e->get_param_value_str("timeout"));
-			callnum++;
-		} else if(type == PPME_SYSCALL_POLL_X) {
+		if(type == PPME_SYSCALL_POLL_X) {
 			std::string fds = e->get_param_value_str("fds");
 			std::string expected_fds = my_pipe[0] + ":p0 " + my_pipe[1] + ":p4";
 			int64_t res = std::stol(e->get_param_value_str("res"));
@@ -351,7 +339,7 @@ TEST_F(sys_call_test, poll_timeout) {
 		}
 	};
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 #endif
 

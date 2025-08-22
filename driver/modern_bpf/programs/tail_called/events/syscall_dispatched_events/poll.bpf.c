@@ -8,45 +8,6 @@
 
 #include <helpers/interfaces/variable_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(poll_e, struct pt_regs *regs, long id) {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap) {
-		return 0;
-	}
-
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_POLL_E);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Get the `fds_pointer` and the number of `fds` from the syscall arguments */
-	unsigned long fds_pointer = extract__syscall_argument(regs, 0);
-	uint32_t nfds = (uint32_t)extract__syscall_argument(regs, 1);
-
-	/* Parameter 1: fds (type: PT_FDLIST) */
-	/* We are in the enter event so we get the requested events, the returned events are only
-	 * available in the exit event.
-	 */
-	auxmap__store_fdlist_param(auxmap, fds_pointer, nfds, REQUESTED_EVENTS);
-
-	/* Parameter 2: timeout (type: PT_INT64) */
-	/* This is an `int` in the syscall signature but we push it as an `int64` */
-	uint32_t timeout_msecs = (int32_t)extract__syscall_argument(regs, 2);
-	auxmap__store_s64_param(auxmap, (int64_t)timeout_msecs);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	auxmap__finalize_event_header(auxmap);
-
-	auxmap__submit_event(auxmap);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

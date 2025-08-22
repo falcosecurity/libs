@@ -164,8 +164,7 @@ TEST(events_set, generic_no_events) {
 }
 
 TEST(events_set, non_syscalls_events) {
-	auto ev_set_truth = libsinsp::events::set<ppm_event_code>({PPME_SYSCALL_POLL_E,
-	                                                           PPME_SYSCALL_POLL_X,
+	auto ev_set_truth = libsinsp::events::set<ppm_event_code>({PPME_SYSCALL_POLL_X,
 	                                                           PPME_SIGNALDELIVER_E,
 	                                                           PPME_SIGNALDELIVER_X,
 	                                                           PPME_PROCINFO_E,
@@ -174,8 +173,7 @@ TEST(events_set, non_syscalls_events) {
 
 	auto final_ev_set = libsinsp::events::sc_set_to_event_set(sc_set);
 
-	// POLL_{E,X} are syscalls driven events, therefore they are correctly mapped back.
-	ASSERT_TRUE(final_ev_set.contains(PPME_SYSCALL_POLL_E));
+	// POLL_X is a syscall driven event, therefore it is correctly mapped back.
 	ASSERT_TRUE(final_ev_set.contains(PPME_SYSCALL_POLL_X));
 	ASSERT_TRUE(final_ev_set.contains(PPME_SIGNALDELIVER_E));
 	// PPME_PROCINFO_{E,X} are never sent, therefore they are mapped to NULL in scap_ppm_sc table
