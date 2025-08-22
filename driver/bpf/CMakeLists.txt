@@ -36,6 +36,8 @@ set(BPF_SOURCES
 	bpf_helpers.h
 	builtins.h
 	filler_helpers.h
+	terminate_filler_helpers.h
+	toctou_mitigation.h
 	fillers.h
 	Makefile
 	maps.h

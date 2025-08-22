@@ -38,6 +38,10 @@ limitations under the License.
 #endif
 
 int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...) {
+	if(buf == NULL) {
+		// So you can return scap_errprintf(...) directly.
+		return SCAP_FAILURE;
+	}
 	int len;
 
 	va_list va;

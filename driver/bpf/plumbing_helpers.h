@@ -217,13 +217,9 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_args(unsigned
 }
 #endif
 
-static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx, int idx) {
+static __always_inline unsigned long bpf_syscall_get_argument_from_regs(struct pt_regs *regs,
+                                                                        int idx) {
 	unsigned long arg = 0;
-
-#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-
-	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
-	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
 #ifdef CONFIG_X86_64
 	if(bpf_in_ia32_syscall()) {
@@ -283,7 +279,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	/* See here for the definition:
 	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L166-L178
 	 */
-	struct user_pt_regs *user_regs = (struct user_pt_regs *)args->regs;
+	struct user_pt_regs *user_regs = (struct user_pt_regs *)regs;
 	switch(idx) {
 	case 0:
 		arg = _READ(regs->orig_x0);
@@ -304,7 +300,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	/* See here for the definition:
 	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L132-L144
 	 */
-	user_pt_regs *user_regs = (user_pt_regs *)args->regs;
+	user_pt_regs *user_regs = (user_pt_regs *)regs;
 	switch(idx) {
 	case 0:
 		arg = _READ(regs->orig_gpr2);
@@ -342,17 +338,22 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 
 #endif /* CONFIG_X86_64 */
 
+	return arg;
+}
+
+static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx, int idx) {
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+
+	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
+	struct pt_regs *regs = (struct pt_regs *)args->regs;
+	return bpf_syscall_get_argument_from_regs(regs, idx);
+
 #else
 
 	unsigned long *args = unstash_args();
-	if(args)
-		arg = bpf_syscall_get_argument_from_args(args, idx);
-	else
-		arg = 0;
+	return args ? bpf_syscall_get_argument_from_args(args, idx) : 0;
 
 #endif /* BPF_SUPPORTS_RAW_TRACEPOINTS */
-
-	return arg;
 }
 
 static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, int idx) {
@@ -588,6 +589,7 @@ static __always_inline bool bpf_drop_syscall_exit_events(void *ctx, ppm_event_co
 #endif
 
 static __always_inline bool drop_event(void *ctx,
+                                       const bool is_ttm_probe_ctx,
                                        struct scap_bpf_per_cpu_state *state,
                                        ppm_event_code evt_type,
                                        struct scap_bpf_settings *settings,
@@ -595,65 +597,72 @@ static __always_inline bool drop_event(void *ctx,
 	if(!settings->dropping_mode)
 		return false;
 
-	switch(evt_type) {
-	case PPME_SYSCALL_CLOSE_X:
-	case PPME_SOCKET_BIND_X: {
-		long ret = bpf_syscall_get_retval(ctx);
+	/* "TOCTOU mitigation probe context" means that the provided context is
+	 * tracepoint/kprobe-specific, and we cannot use the below logic to extract syscall arguments
+	 * from it (i.e., we cannot use bpf_syscall_get_argument_from_ctx()` or similar helpers), so
+	 * simply skip this logic. We can later add any custom logic required to handle specific
+	 * situations as we implement new TOCTOU mitigation programs for other event types. */
+	if(!is_ttm_probe_ctx) {
+		switch(evt_type) {
+		case PPME_SYSCALL_CLOSE_X:
+		case PPME_SOCKET_BIND_X: {
+			long ret = bpf_syscall_get_retval(ctx);
 
-		if(ret < 0)
-			return true;
+			if(ret < 0)
+				return true;
 
-		break;
-	}
-	case PPME_SYSCALL_CLOSE_E: {
-		struct sys_enter_args *args;
-		struct files_struct *files;
-		struct task_struct *task;
-		unsigned long *open_fds;
-		struct fdtable *fdt;
-		int close_fd;
-		int max_fds;
-
-		close_fd = bpf_syscall_get_argument_from_ctx(ctx, 0);
-		if(close_fd < 0)
-			return true;
-
-		task = (struct task_struct *)bpf_get_current_task();
-		if(!task)
 			break;
+		}
+		case PPME_SYSCALL_CLOSE_E: {
+			struct sys_enter_args *args;
+			struct files_struct *files;
+			struct task_struct *task;
+			unsigned long *open_fds;
+			struct fdtable *fdt;
+			int close_fd;
+			int max_fds;
 
-		files = _READ(task->files);
-		if(!files)
+			close_fd = bpf_syscall_get_argument_from_ctx(ctx, 0);
+			if(close_fd < 0)
+				return true;
+
+			task = (struct task_struct *)bpf_get_current_task();
+			if(!task)
+				break;
+
+			files = _READ(task->files);
+			if(!files)
+				break;
+
+			fdt = _READ(files->fdt);
+			if(!fdt)
+				break;
+
+			max_fds = _READ(fdt->max_fds);
+			if(close_fd >= max_fds)
+				return true;
+
+			open_fds = _READ(fdt->open_fds);
+			if(!open_fds)
+				break;
+
+			if(!bpf_test_bit(close_fd, open_fds))
+				return true;
+
 			break;
+		}
+		case PPME_SYSCALL_FCNTL_E:
+		case PPME_SYSCALL_FCNTL_X: {
+			long cmd = bpf_syscall_get_argument_from_ctx(ctx, 1);
 
-		fdt = _READ(files->fdt);
-		if(!fdt)
+			if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC)
+				return true;
+
 			break;
-
-		max_fds = _READ(fdt->max_fds);
-		if(close_fd >= max_fds)
-			return true;
-
-		open_fds = _READ(fdt->open_fds);
-		if(!open_fds)
+		}
+		default:
 			break;
-
-		if(!bpf_test_bit(close_fd, open_fds))
-			return true;
-
-		break;
-	}
-	case PPME_SYSCALL_FCNTL_E:
-	case PPME_SYSCALL_FCNTL_X: {
-		long cmd = bpf_syscall_get_argument_from_ctx(ctx, 1);
-
-		if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC)
-			return true;
-
-		break;
-	}
-	default:
-		break;
+		}
 	}
 
 	if(drop_flags & UF_NEVER_DROP)
@@ -697,48 +706,149 @@ static __always_inline void call_filler(void *ctx,
                                         ppm_event_code evt_type,
                                         enum syscall_flags drop_flags,
                                         int socketcall_syscall_id) {
-	struct scap_bpf_settings *settings;
-	const struct ppm_event_entry *filler_info;
-	struct scap_bpf_per_cpu_state *state;
-	unsigned long long pid;
-	unsigned long long ts;
-	unsigned int cpu;
+	unsigned int cpu = bpf_get_smp_processor_id();
 
-	cpu = bpf_get_smp_processor_id();
-
-	state = get_local_state(cpu);
-	if(!state)
+	struct scap_bpf_per_cpu_state *state = get_local_state(cpu);
+	if(!state) {
 		return;
+	}
 
-	settings = get_bpf_settings();
-	if(!settings)
+	struct scap_bpf_settings *settings = get_bpf_settings();
+	if(!settings) {
 		return;
+	}
 
-	if(!acquire_local_state(state))
+	if(!acquire_local_state(state)) {
 		return;
+	}
 
 	if(cpu == 0 && state->hotplug_cpu != 0) {
 		evt_type = PPME_CPU_HOTPLUG_E;
 		drop_flags = UF_NEVER_DROP;
 	}
 
-	ts = settings->boot_time + bpf_ktime_get_boot_ns();
+	const unsigned long long ts = settings->boot_time + bpf_ktime_get_boot_ns();
 	reset_tail_ctx(state, evt_type, ts);
 
 	/* drop_event can change state->tail_ctx.evt_type */
-	if(drop_event(stack_ctx, state, evt_type, settings, drop_flags))
+	if(drop_event(stack_ctx, false, state, evt_type, settings, drop_flags)) {
 		goto cleanup;
+	}
 
 	++state->n_evts;
 
 	state->tail_ctx.socketcall_syscall_id = socketcall_syscall_id;
 
-	filler_info = get_event_filler_info(state->tail_ctx.evt_type);
-	if(!filler_info)
+	const struct ppm_event_entry *filler_info = get_event_filler_info(state->tail_ctx.evt_type);
+	if(!filler_info) {
 		goto cleanup;
+	}
 
 	bpf_tail_call(ctx, &tail_map, filler_info->filler_id);
 	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
+	           state->tail_ctx.evt_type,
+	           filler_info->filler_id);
+
+cleanup:
+	release_local_state(state);
+}
+
+static __always_inline void call_64bit_ttm_filler(void *ctx,
+                                                  void *stack_ctx,
+                                                  ppm_event_code evt_type,
+                                                  enum syscall_flags drop_flags,
+                                                  int socketcall_syscall_id) {
+	unsigned int cpu = bpf_get_smp_processor_id();
+
+	struct scap_bpf_per_cpu_state *state = get_local_state(cpu);
+	if(!state) {
+		return;
+	}
+
+	struct scap_bpf_settings *settings = get_bpf_settings();
+	if(!settings) {
+		return;
+	}
+
+	if(!acquire_local_state(state)) {
+		return;
+	}
+
+	if(cpu == 0 && state->hotplug_cpu != 0) {
+		evt_type = PPME_CPU_HOTPLUG_E;
+		drop_flags = UF_NEVER_DROP;
+	}
+
+	const unsigned long long ts = settings->boot_time + bpf_ktime_get_boot_ns();
+	reset_tail_ctx(state, evt_type, ts);
+
+	/* drop_event can change state->tail_ctx.evt_type */
+	if(drop_event(stack_ctx, true, state, evt_type, settings, drop_flags)) {
+		goto cleanup;
+	}
+
+	++state->n_evts;
+
+	state->tail_ctx.socketcall_syscall_id = socketcall_syscall_id;
+
+	const struct ppm_event_entry *filler_info = get_event_filler_info(state->tail_ctx.evt_type);
+	if(!filler_info) {
+		goto cleanup;
+	}
+
+	bpf_tail_call(ctx, &ttm_tail_map, filler_info->filler_id);
+	bpf_printk("Can't tail call TOCTOU mitigation filler evt=%d, filler=%d\n",
+	           state->tail_ctx.evt_type,
+	           filler_info->filler_id);
+
+cleanup:
+	release_local_state(state);
+}
+
+static __always_inline void call_ia32_ttm_filler(void *ctx,
+                                                 void *stack_ctx,
+                                                 ppm_event_code evt_type,
+                                                 enum syscall_flags drop_flags) {
+	unsigned int cpu = bpf_get_smp_processor_id();
+
+	struct scap_bpf_per_cpu_state *state = get_local_state(cpu);
+	if(!state) {
+		return;
+	}
+
+	struct scap_bpf_settings *settings = get_bpf_settings();
+	if(!settings) {
+		return;
+	}
+
+	if(!acquire_local_state(state)) {
+		return;
+	}
+
+	if(cpu == 0 && state->hotplug_cpu != 0) {
+		evt_type = PPME_CPU_HOTPLUG_E;
+		drop_flags = UF_NEVER_DROP;
+	}
+
+	const unsigned long long ts = settings->boot_time + bpf_ktime_get_boot_ns();
+	reset_tail_ctx(state, evt_type, ts);
+
+	/* drop_event can change state->tail_ctx.evt_type */
+	if(drop_event(stack_ctx, true, state, evt_type, settings, drop_flags)) {
+		goto cleanup;
+	}
+
+	++state->n_evts;
+
+	state->tail_ctx.socketcall_syscall_id = -1;
+
+	const struct ppm_event_entry *filler_info = get_event_filler_info(state->tail_ctx.evt_type);
+	if(!filler_info) {
+		goto cleanup;
+	}
+
+	bpf_tail_call(ctx, &ia32_ttm_tail_map, filler_info->filler_id);
+	bpf_printk("Can't tail call ia-32 TOCTOU mitigation filler evt=%d, filler=%d\n",
 	           state->tail_ctx.evt_type,
 	           filler_info->filler_id);
 

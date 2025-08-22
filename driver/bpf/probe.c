@@ -25,6 +25,7 @@ or GPL2.txt for full copies of the license.
 #include "filler_helpers.h"
 #include "fillers.h"
 #include "builtins.h"
+#include "toctou_mitigation.h"
 
 #define __NR_ia32_socketcall 102
 
@@ -65,7 +66,8 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
 	}
 
 	// Now all syscalls on 32-bit should be converted to 64-bit apart from `socketcall`.
-	// This one deserves a special treatment
+	// This one deserves a special treatment.
+	bool is_socketcall_connect = false;
 	if(id == socketcall_syscall_id) {
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 		bool is_syscall_return = false;
@@ -80,6 +82,11 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
 		} else {
 			id = return_code;
 		}
+#ifdef __NR_connect
+		if(id == __NR_connect) {
+			is_socketcall_connect = true;
+		}
+#endif  // __NR_connect
 #else
 		// We do not support socketcall when raw tracepoints are not supported.
 		return 0;
@@ -107,6 +114,36 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
 		} else {
 			evt_type = PPME_GENERIC_E;
 			drop_flags = UF_ALWAYS_DROP;
+		}
+	}
+
+	if(!is_socketcall_connect) {
+		// The following system calls are already handled by TOCTOU mitigation fillers and will not
+		// have an entry in the tail map, so simply return early, avoiding wasting resources on any
+		// additional filtering logic.
+		switch(id) {
+#ifdef __NR_connect
+		case __NR_connect:
+			return 0;
+#endif  // __NR_connect
+#ifdef __NR_creat
+		case __NR_creat:
+			return 0;
+#endif  // __NR_creat
+#ifdef __NR_open
+		case __NR_open:
+			return 0;
+#endif  // __NR_open
+#ifdef __NR_openat
+		case __NR_openat:
+			return 0;
+#endif  // __NR_openat
+#ifdef __NR_openat2
+		case __NR_openat2:
+			return 0;
+#endif  // __NR_openat2
+		default:
+			break;
 		}
 	}
 
