@@ -58,14 +58,6 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.flags"), "FF");
 	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags <= 255"));
 
-	// [PPME_SYSCALL_BRK_4_E] = {"brk", EC_MEMORY | EC_SYSCALL, EF_NONE, 1, {{"addr", PT_UINT64,
-	// PF_HEX}}}
-	uint64_t addr = UINT64_MAX;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BRK_4_E, 1, addr);
-	// UINT64_MAX is FFFFFFFFFFFFFFFF
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.addr"), "FFFFFFFFFFFFFFFF");
-	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));  // PT_SOCKADDR is not comparable
-
 	/*
 	 * Now test the bugged case where `find_longest_matching_evt_param` returns a size,
 	 * but then real event has a size that is bigger than that.

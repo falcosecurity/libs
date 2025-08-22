@@ -575,23 +575,13 @@ TEST_F(sys_call_test, brk) {
 	uint32_t before_brk_vmrss;
 	uint32_t after_brk_vmsize;
 	uint32_t after_brk_vmrss;
-	bool ignore_this_call = false;
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_BRK_4_E) {
+		if(e->get_type() == PPME_SYSCALL_BRK_4_X) {
 			uint64_t addr = e->get_param_by_name("addr")->as<uint64_t>();
 			if(addr == 0) {
-				ignore_this_call = true;
-				return;
-			}
-
-			callnum++;
-		} else if(type == PPME_SYSCALL_BRK_4_X) {
-			if(ignore_this_call) {
-				ignore_this_call = false;
 				return;
 			}
 
@@ -601,10 +591,10 @@ TEST_F(sys_call_test, brk) {
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, vmrss);
 
-			if(callnum == 1) {
+			if(callnum == 0) {
 				before_brk_vmsize = vmsize;
 				before_brk_vmrss = vmrss;
-			} else if(callnum == 3) {
+			} else if(callnum == 1) {
 				after_brk_vmsize = vmsize;
 				after_brk_vmrss = vmrss;
 
@@ -617,7 +607,7 @@ TEST_F(sys_call_test, brk) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, mmap) {

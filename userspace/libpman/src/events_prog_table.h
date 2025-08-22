@@ -23,6 +23,7 @@ limitations under the License.
 #include <bpf/libbpf.h>
 
 typedef struct {
+	bool disabled; /* TODO(ekoops): remove this once we remove the sys_enter dispatcher. */
 	char *name;
 	enum bpf_func_id feat;
 } event_prog_t;

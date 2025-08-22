@@ -277,18 +277,6 @@ clean_add_program_to_tail_table:
 	return errno;
 }
 
-int is_enter_event_generated_by_toctou_mitigation_progs(const int enter_event_type) {
-	switch(enter_event_type) {
-	case PPME_SYSCALL_CREAT_E:
-	case PPME_SYSCALL_OPEN_E:
-	case PPME_SYSCALL_OPENAT_2_E:
-	case PPME_SYSCALL_OPENAT2_E:
-		return 1;
-	default:;
-		return 0;
-	}
-}
-
 int pman_fill_syscalls_tail_table() {
 	const int syscall_enter_tail_table_fd =
 	        bpf_map__fd(g_state.skel->maps.syscall_enter_tail_table);
@@ -324,7 +312,7 @@ int pman_fill_syscalls_tail_table() {
 		 * manage these cases as generic events. We need to remove this workaround when all syscalls
 		 * will be implemented.
 		 */
-		if(!is_enter_event_generated_by_toctou_mitigation_progs(enter_event_type)) {
+		if(!event_prog_table[enter_event_type]->disabled) {
 			const event_prog_t* enter_prog =
 			        (const event_prog_t*)&event_prog_table[enter_event_type];
 			if(enter_prog->name == NULL) {

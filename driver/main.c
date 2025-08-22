@@ -1998,7 +1998,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		default:
 			if(likely(g_ppm_events[event_type].filler_callback)) {
 				cbres = g_ppm_events[event_type].filler_callback(&args);
-			} else {
+				/* TODO(ekoops): remove this once we remove the sys_enter dispatcher. */
+			} else if(!g_ppm_events[event_type].disabled) {
 				pr_err("corrupted filler for event type %d: NULL callback\n", event_type);
 				ASSERT(0);
 			}
