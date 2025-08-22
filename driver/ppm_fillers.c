@@ -3871,28 +3871,6 @@ int f_sys_shutdown_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_futex_e(struct event_filler_arguments *args) {
-	int res;
-	unsigned long val;
-
-	/* Parameter 1: addr (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: op (type: PT_ENUMFLAGS16) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, (unsigned long)futex_op_to_scap(val), 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: val (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_futex_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
