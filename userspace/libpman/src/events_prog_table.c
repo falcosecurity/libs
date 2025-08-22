@@ -345,6 +345,7 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         // The following entries are added in order to avoid the common generic_e enter event
         // handler to be used as a fallback for the corresponding event types.
         [PPME_SYSCALL_STAT64_E] = {{true, NULL}},
+        [PPME_SYSCALL_LSTAT64_E] = {{true, NULL}},
 };
 
 ttm_progs_t ttm_progs_table[TTM_MAX] = {
