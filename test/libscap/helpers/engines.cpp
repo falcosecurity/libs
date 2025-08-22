@@ -12,7 +12,7 @@
 #define MAX_ITERATIONS 300
 
 /* Number of events we want to assert */
-#define EVENTS_TO_ASSERT 31
+#define EVENTS_TO_ASSERT 30
 
 void check_event_is_not_overwritten(scap_t *h) {
 	/* Start the capture */
@@ -109,10 +109,9 @@ void check_event_order(scap_t *h) {
 	        PPME_SYSCALL_GETEUID_E,  PPME_SYSCALL_GETEUID_X,   PPME_SYSCALL_GETUID_E,
 	        PPME_SYSCALL_GETUID_X,   PPME_SOCKET_BIND_E,       PPME_SOCKET_BIND_X,
 	        PPME_SOCKET_CONNECT_E,   PPME_SOCKET_CONNECT_X,    PPME_SOCKET_SENDTO_E,
-	        PPME_SOCKET_SENDTO_X,    PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X,
-	        PPME_SOCKET_RECVMSG_E,   PPME_SOCKET_RECVMSG_X,    PPME_SOCKET_RECVFROM_E,
-	        PPME_SOCKET_RECVFROM_X,  PPME_SOCKET_SOCKET_E,     PPME_SOCKET_SOCKET_X,
-	        PPME_SOCKET_SOCKETPAIR_X};
+	        PPME_SOCKET_SENDTO_X,    PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_E,
+	        PPME_SOCKET_RECVMSG_X,   PPME_SOCKET_RECVFROM_E,   PPME_SOCKET_RECVFROM_X,
+	        PPME_SOCKET_SOCKET_E,    PPME_SOCKET_SOCKET_X,     PPME_SOCKET_SOCKETPAIR_X};
 
 	/* Start the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)
@@ -151,7 +150,7 @@ void check_event_order(scap_t *h) {
 	/* 11. Generate a `sendto` event pair */
 	syscall(__NR_sendto, -1, NULL, 0, 0, NULL, 0);
 
-	/* 12. Generate a `getsockopt` event pair */
+	/* 12. Generate a `getsockopt` exit event */
 	syscall(__NR_getsockopt, -1, 0, 0, NULL, NULL);
 
 	/* 13. Generate a `recvmsg` event pair */

@@ -736,57 +736,6 @@ TEST(SyscallEnter, socketcall_recvmsgE) {
 }
 #endif
 
-#ifdef __NR_getsockopt
-
-#include <netdb.h>
-
-TEST(SyscallEnter, socketcall_getsockoptE) {
-	auto evt_test = get_syscall_event_test(__NR_getsockopt, ENTER_EVENT);
-
-	evt_test->enable_capture();
-
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-
-	int socket_fd = 0;
-	int level = 0;
-	int option_name = 0;
-	int option_value = 0;
-	socklen_t option_len = 0;
-
-	unsigned long args[5]{};
-	args[0] = socket_fd;
-	args[1] = level;
-	args[2] = option_name;
-	args[3] = (unsigned long)&option_value;
-	args[4] = (unsigned long)&option_len;
-	assert_syscall_state(SYSCALL_FAILURE,
-	                     "getsockopt",
-	                     syscall(__NR_socketcall, SYS_GETSOCKOPT, args));
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	evt_test->disable_capture();
-
-	evt_test->assert_event_presence();
-
-	if(HasFatalFailure()) {
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	// Here we have no parameters to assert.
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(0);
-}
-#endif
-
 #ifdef __NR_send
 
 TEST(SyscallEnter, socketcall_sendE) {
