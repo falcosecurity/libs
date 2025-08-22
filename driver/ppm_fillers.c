@@ -3763,25 +3763,6 @@ int f_sys_pipe2_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_eventfd_e(struct event_filler_arguments *args) {
-	uint64_t initval;
-	int res;
-
-	/* Parameter 1: initval (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 0, 1, &initval);
-	res = val_to_ring(args, initval, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: flags (type: PT_UINT32) */
-	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
-	 * For compatibility with the event definition here we send `0` as flags.
-	 */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_eventfd_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	uint64_t initval;

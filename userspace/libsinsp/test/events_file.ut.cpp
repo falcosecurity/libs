@@ -380,8 +380,13 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, (uint64_t)0, (uint32_t)45);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, (int64_t)34);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_EVENTFD_X,
+	                           3,
+	                           (int64_t)34,
+	                           (uint64_t)0,
+	                           (uint32_t)45);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "e");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "34");
@@ -603,8 +608,7 @@ TEST_F(sinsp_with_test_input, eventfd) {
 	uint32_t flags = 6;
 	uint64_t initval = 0;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, initval, flags);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, res);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 3, res, initval, flags);
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");

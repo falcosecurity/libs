@@ -1646,19 +1646,14 @@ static parse_result parse_eventfd(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_eventfd_x(scap_buf,
-		                                                        &ret.size,
-		                                                        scap_err,
-		                                                        gvisor_evt.exit().result());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_eventfd_e(
-		        scap_buf,
-		        &ret.size,
-		        scap_err,
-		        gvisor_evt.val(),
-		        0);  // hardcoded flags=0, matches driver behavior
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
+	ret.status = scap_gvisor::fillers::fill_event_eventfd_x(scap_buf,
+	                                                        &ret.size,
+	                                                        scap_err,
+	                                                        gvisor_evt.exit().result());
 
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
