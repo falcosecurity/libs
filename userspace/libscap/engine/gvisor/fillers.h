@@ -510,13 +510,6 @@ int32_t fill_event_inotify_init_x(scap_sized_buffer scap_buf,
                                   int64_t res,
                                   uint8_t flags);
 
-int32_t fill_event_socketpair_e(scap_sized_buffer scap_buf,
-                                size_t* event_size,
-                                char* scap_err,
-                                uint32_t domain,
-                                uint32_t type,
-                                uint32_t proto);
-
 int32_t fill_event_socketpair_x(scap_sized_buffer scap_buf,
                                 size_t* event_size,
                                 char* scap_err,

@@ -1939,22 +1939,17 @@ static parse_result parse_socketpair(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_socketpair_x(scap_buf,
-		                                                           &ret.size,
-		                                                           scap_err,
-		                                                           gvisor_evt.exit().result(),
-		                                                           gvisor_evt.socket1(),
-		                                                           gvisor_evt.socket2());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_socketpair_e(scap_buf,
-		                                                           &ret.size,
-		                                                           scap_err,
-		                                                           gvisor_evt.domain(),
-		                                                           gvisor_evt.type(),
-		                                                           gvisor_evt.protocol());
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
 
+	ret.status = scap_gvisor::fillers::fill_event_socketpair_x(scap_buf,
+	                                                           &ret.size,
+	                                                           scap_err,
+	                                                           gvisor_evt.exit().result(),
+	                                                           gvisor_evt.socket1(),
+	                                                           gvisor_evt.socket2());
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;
