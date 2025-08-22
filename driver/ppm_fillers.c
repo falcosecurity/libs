@@ -3915,38 +3915,6 @@ int f_sys_lseek_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_llseek_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-	unsigned long oh;
-	unsigned long ol;
-	uint64_t offset;
-	int32_t fd;
-
-	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * Parameter 2: offset (type: PT_UINT64)
-	 * We build it by combining the offset_high and offset_low system call arguments
-	 */
-	syscall_get_arguments_deprecated(args, 1, 1, &oh);
-	syscall_get_arguments_deprecated(args, 2, 1, &ol);
-	offset = (((uint64_t)oh) << 32) + ((uint64_t)ol);
-	res = val_to_ring(args, offset, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: whence (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(args, 4, 1, &val);
-	res = val_to_ring(args, lseek_whence_to_scap(val), 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_llseek_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	unsigned long val;

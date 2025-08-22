@@ -63,7 +63,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_eventfd_x)                    \
 	FN(sys_futex_x)                      \
 	FN(sys_lseek_x)                      \
-	FN(sys_llseek_e)                     \
 	FN(sys_llseek_x)                     \
 	FN(sys_socket_bind_x)                \
 	FN(sys_poll_x)                       \
