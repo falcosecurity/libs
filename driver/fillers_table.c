@@ -15,10 +15,13 @@ or GPL2.txt for full copies of the license.
 #endif /* __KERNEL__ */
 
 #if defined(__KERNEL__)
-#define FILLER_REF(x) f_##x, PPM_FILLER_##x
+#define FILLER_REF(x) f_##x, 0, PPM_FILLER_##x
 #else
-#define FILLER_REF(x) 0, PPM_FILLER_##x
+#define FILLER_REF(x) 0, 0, PPM_FILLER_##x
 #endif /* __KERNEL__ */
+
+/* TODO(ekoops): remove this once we remove the sys_enter dispatcher. */
+#define FILLER_DISABLED 0, 1, 0
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -160,7 +163,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #ifdef CAPTURE_CONTEXT_SWITCHES
         [PPME_SCHEDSWITCH_6_E] = {FILLER_REF(sched_switch_e)},
 #endif
-        [PPME_SYSCALL_BRK_4_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{0}}},
+        [PPME_SYSCALL_BRK_4_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_BRK_4_X] = {FILLER_REF(sys_brk_x)},
         [PPME_SYSCALL_MMAP_E] = {FILLER_REF(sys_mmap_e)},
         [PPME_SYSCALL_MMAP_X] = {FILLER_REF(sys_mmap_x)},
