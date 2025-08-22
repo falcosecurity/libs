@@ -8,32 +8,6 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(epoll_wait_e, struct pt_regs *regs, long id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, EPOLL_WAIT_E_SIZE, PPME_SYSCALL_EPOLLWAIT_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: maxevents (type: PT_ERRNO)*/
-	int maxevents = (int)extract__syscall_argument(regs, 2);
-	ringbuf__store_s64(&ringbuf, (int64_t)maxevents);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
