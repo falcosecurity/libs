@@ -1425,24 +1425,6 @@ int32_t fill_event_inotify_init_x(scap_sized_buffer scap_buf,
 	                                flags);
 }
 
-// PPME_SYSCALL_SOCKETPAIR_E
-// Event field validity issues: none
-int32_t fill_event_socketpair_e(scap_sized_buffer scap_buf,
-                                size_t* event_size,
-                                char* scap_err,
-                                uint32_t domain,
-                                uint32_t type,
-                                uint32_t proto) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SOCKET_SOCKETPAIR_E,
-	                                3,
-	                                domain,
-	                                type,
-	                                proto);
-}
-
 // PPME_SYSCALL_SOCKETPAIR_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:

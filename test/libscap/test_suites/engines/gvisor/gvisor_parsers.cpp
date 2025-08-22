@@ -320,54 +320,6 @@ TEST(gvisor_parsers, parse_clone_x) {
 	EXPECT_STREQ(static_cast<const char *>(decoded_params[13].buf), "ls");    // comm
 }
 
-TEST(gvisor_parsers, parse_socketpair_e) {
-	char message[1024];
-	char buffer[1024];
-
-	gvisor::syscall::SocketPair gvisor_evt;
-	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_SOCKETPAIR;
-	gvisor_evt.set_domain(995);
-	gvisor_evt.set_type(996);
-	gvisor_evt.set_protocol(997);
-	gvisor_evt.set_socket1(998);
-	gvisor_evt.set_socket2(999);
-
-	auto *context_data = gvisor_evt.mutable_context_data();
-	context_data->set_container_id("1234");
-
-	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
-
-	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
-
-	scap_gvisor::parsers::parse_result res =
-	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-	EXPECT_EQ("", res.error);
-	EXPECT_EQ(res.status, SCAP_SUCCESS);
-
-	EXPECT_EQ(res.scap_events.size(), 1);
-
-	EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_E);
-
-	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-	EXPECT_EQ(n, 3);
-
-	int32_t i32_val;
-
-	EXPECT_EQ(decoded_params[0].size, 4);
-	memcpy(&i32_val, decoded_params[0].buf, sizeof(i32_val));
-	EXPECT_EQ(i32_val, 995);  // domain
-
-	EXPECT_EQ(decoded_params[1].size, 4);
-	memcpy(&i32_val, decoded_params[1].buf, sizeof(i32_val));
-	EXPECT_EQ(i32_val, 996);  // type
-
-	EXPECT_EQ(decoded_params[2].size, 4);
-	memcpy(&i32_val, decoded_params[2].buf, sizeof(i32_val));
-	EXPECT_EQ(i32_val, 997);  // protocol
-}
-
 TEST(gvisor_parsers, parse_socketpair_x) {
 	char message[1024];
 	char buffer[1024];
