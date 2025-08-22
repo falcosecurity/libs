@@ -61,7 +61,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_creat_e)                      \
 	FN(sys_creat_x)                      \
 	FN(sys_pipe_x)                       \
-	FN(sys_eventfd_e)                    \
 	FN(sys_eventfd_x)                    \
 	FN(sys_futex_e)                      \
 	FN(sys_futex_x)                      \
