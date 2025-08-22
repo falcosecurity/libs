@@ -364,8 +364,6 @@ int32_t fill_event_prlimit_x(scap_sized_buffer scap_buf,
                              int64_t oldcur,
                              int64_t oldmax);
 
-int32_t fill_event_pipe_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err);
-
 int32_t fill_event_pipe_x(scap_sized_buffer scap_buf,
                           size_t* event_size,
                           char* scap_err,

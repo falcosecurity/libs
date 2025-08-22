@@ -343,7 +343,6 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 
 	int64_t fd1 = 3, fd2 = 4;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_PIPE_X,
@@ -448,7 +447,6 @@ TEST_F(sinsp_with_test_input, pipe) {
 	int64_t fd1 = 3, fd2 = 4;
 	uint64_t ino = 7479253124;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, res, fd1, fd2, ino);
 
 	/* `pipe` is particular because it generates 2 file descriptors but a single event can have at
