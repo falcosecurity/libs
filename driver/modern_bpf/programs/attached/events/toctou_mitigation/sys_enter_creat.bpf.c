@@ -64,7 +64,7 @@ int creat_e(struct sys_enter_creat_args* ctx) {
 
 /*=============================== IA-32 SUPPORT (KPROBE-BASED) ===========================*/
 
-static __always_inline int ia32_common_handler(struct pt_regs* regs, long int retval) {
+static __always_inline int ia32_common_handler(struct pt_regs* regs) {
 	if(toctou_mitigation__ia32_should_drop(__NR_ia32_creat, -1)) {
 		return 0;
 	}
@@ -84,13 +84,13 @@ static __always_inline int ia32_common_handler(struct pt_regs* regs, long int re
 }
 
 SEC("kprobe/__ia32_compat_sys_creat")
-int BPF_KPROBE(ia32_compat_creat_e, struct pt_regs* regs, long int retval) {
-	return ia32_common_handler(regs, retval);
+int BPF_KPROBE(ia32_compat_creat_e, struct pt_regs* regs) {
+	return ia32_common_handler(regs);
 }
 
 SEC("kprobe/__ia32_sys_creat")
-int BPF_KPROBE(ia32_creat_e, struct pt_regs* regs, long int retval) {
-	return ia32_common_handler(regs, retval);
+int BPF_KPROBE(ia32_creat_e, struct pt_regs* regs) {
+	return ia32_common_handler(regs);
 }
 
 /*=============================== IA-32 SUPPORT (KPROBE-BASED) ===========================*/
