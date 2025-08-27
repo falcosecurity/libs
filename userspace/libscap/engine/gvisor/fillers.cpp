@@ -867,15 +867,6 @@ int32_t fill_event_fchdir_x(scap_sized_buffer scap_buf,
 	                                fd);
 }
 
-// PPME_SYSCALL_SETUID_E
-// Event field validity issues: none
-int32_t fill_event_setuid_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint32_t uid) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_SETUID_E, 1, uid);
-}
-
 // PPME_SYSCALL_SETUID_X
 // Event field validity issues: none
 int32_t fill_event_setuid_x(scap_sized_buffer scap_buf,
