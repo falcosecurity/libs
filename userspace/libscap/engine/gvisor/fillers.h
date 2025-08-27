@@ -290,11 +290,6 @@ int32_t fill_event_fchdir_x(scap_sized_buffer scap_buf,
                             int64_t res,
                             int64_t fd);
 
-int32_t fill_event_setuid_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint32_t uid);
-
 int32_t fill_event_setuid_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,

@@ -927,11 +927,6 @@ TEST_F(sys_call_test, getsetuid_and_gid) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		switch(type) {
-		case PPME_SYSCALL_SETUID_E:
-			++callnum;
-			EXPECT_EQ("0", e->get_param_value_str("uid", false));
-			EXPECT_EQ("root", e->get_param_value_str("uid"));
-			break;
 		case PPME_SYSCALL_SETUID_X:
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
@@ -990,7 +985,7 @@ TEST_F(sys_call_test, getsetuid_and_gid) {
 		FAIL() << "Cannot restore initial id state.";
 	}
 
-	EXPECT_EQ(12, callnum);
+	EXPECT_EQ(11, callnum);
 }
 
 #ifdef __x86_64__

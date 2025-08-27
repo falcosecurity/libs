@@ -152,19 +152,15 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	add_default_init_thread();
 	open_inspector();
 
+	uint64_t res = 0;
 	uint32_t user_id = 5;
 	std::string container_id = "";
-	auto evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_SETUID_E, 1, user_id);
+	auto evt =
+	        add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_SETUID_X, 2, res, user_id);
 	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "setuid");
 
 	// The rawarg provides the field directly from the table.
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.uid"), std::to_string(user_id));
-
-	// The `evt.arg.uid` tries to find a user in the user table, in this
-	// case the user table is empty.
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "<NA>");
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "<NA>");
-	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(<NA>)");
 
 	// we are adding a user on the host so the `pid` parameter is not considered
 	ASSERT_TRUE(m_inspector.m_usergroup_manager
@@ -172,16 +168,16 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 
 	// Now we should have the necessary info
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "test");
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "test");
-	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(test)");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg[1]"), "test");
+	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "res=0 uid=5(test)");
 
 	// We remove the user, and the fields should be empty again
 	m_inspector.m_usergroup_manager->rm_user(container_id, user_id);
 	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user(container_id, user_id));
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "<NA>");
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "<NA>");
-	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(<NA>)");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg[1]"), "<NA>");
+	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "res=0 uid=5(<NA>)");
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {
