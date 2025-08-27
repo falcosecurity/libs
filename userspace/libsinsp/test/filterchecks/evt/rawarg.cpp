@@ -99,8 +99,12 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_int) {
 
 	open_inspector();
 
-	sinsp_evt* evt =
-	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, (uint32_t)1000);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_SETUID_X,
+	                                      2,
+	                                      (uint64_t)0,
+	                                      (uint32_t)1000);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.uid"), "1000");
 }
 
