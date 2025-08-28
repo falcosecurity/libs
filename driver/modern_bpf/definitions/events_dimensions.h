@@ -72,7 +72,6 @@
 #define LLSEEK_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + sizeof(uint8_t) + PARAM_LEN * 4
 #define GETCWD_E_SIZE HEADER_LEN
 #define CHDIR_E_SIZE HEADER_LEN
-#define FCHDIR_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define FCHDIR_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
 #define PREAD_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define PWRITE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
