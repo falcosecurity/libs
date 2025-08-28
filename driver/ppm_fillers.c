@@ -5564,25 +5564,6 @@ static inline int parse_ptrace_data(struct event_filler_arguments *args, uint16_
 	return val_to_ring(args, dst, 0, false, idx);
 }
 
-int f_sys_ptrace_e(struct event_filler_arguments *args) {
-	unsigned long val = 0;
-	int res = 0;
-	pid_t pid = 0;
-
-	/* Parameter 1: request (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, ptrace_requests_to_scap(val), 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: pid (type: PT_PID) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	pid = (int32_t)val;
-	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_ptrace_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int64_t retval;
