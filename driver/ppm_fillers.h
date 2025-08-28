@@ -88,7 +88,6 @@ or GPL2.txt for full copies of the license.
 	FN(sched_drop)                       \
 	FN(sys_fcntl_e)                      \
 	FN(sys_fcntl_x)                      \
-	FN(sys_ptrace_e)                     \
 	FN(sys_ptrace_x)                     \
 	FN(sys_mmap_e)                       \
 	FN(sys_mmap_x)                       \
@@ -185,11 +184,9 @@ or GPL2.txt for full copies of the license.
 	FN(sys_bpf_e)                        \
 	FN(sys_close_e)                      \
 	FN(sys_close_x)                      \
-	FN(sys_fchdir_e)                     \
 	FN(sys_fchdir_x)                     \
 	FN(sys_ioctl_e)                      \
 	FN(sys_ioctl_x)                      \
-	FN(sys_mkdir_e)                      \
 	FN(sys_mkdir_x)                      \
 	FN(sys_setgid_x)                     \
 	FN(sys_setpgid_e)                    \

@@ -597,74 +597,44 @@ TEST_F(sys_call_test, dir_fchdir) {
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		sinsp_threadinfo* pinfo = e->get_thread_info(false);
 
-		if(type == PPME_SYSCALL_FCHDIR_E) {
-			string adir;
-
-			switch(callnum) {
-			case 0:
-				adir = string("<f>") + string(cwd0);
-				break;
-			case 2:
-				adir = string("<f>") + string(cwd1);
-				break;
-			case 4:
-				adir = string("<f>") + string(cwd2);
-				break;
-			case 6:
-				adir = string("<f>") + string(cwd3);
-				break;
-			case 8:
-				adir = "12345";
-				break;
-			case 10:
-				adir = string("<f>") + string(cwd_ori);
-				break;
-			default:
-				FAIL();
-				break;
-			}
-
-			EXPECT_EQ(adir, e->get_param_value_str("fd"));
-
-			callnum++;
-		} else if(type == PPME_SYSCALL_FCHDIR_X) {
+		if(type == PPME_SYSCALL_FCHDIR_X) {
 			string cdir;
 			string cdir1;
 
 			switch(callnum) {
-			case 1:
+			case 0:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ((int64_t)fds[0], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd0);
 				break;
-			case 3:
+			case 1:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ((int64_t)fds[1], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd1);
 				break;
-			case 5:
+			case 2:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ((int64_t)fds[2], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd2);
 				break;
-			case 7:
+			case 3:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ((int64_t)fds[3], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd3);
 				break;
-			case 9:
+			case 4:
 				EXPECT_NE("0", e->get_param_value_str("res"));
 				EXPECT_EQ((int64_t)fds[4], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd3);
 				break;
-			case 11:
+			case 5:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ((int64_t)fds[5], e->get_param_by_name("fd")->as<int64_t>());
 				cdir = string(cwd_ori);
@@ -691,5 +661,5 @@ TEST_F(sys_call_test, dir_fchdir) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(12, callnum);
+	EXPECT_EQ(6, callnum);
 }

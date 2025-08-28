@@ -1471,8 +1471,6 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SYSCALL_FCHOWNAT_E:
 	case PPME_SYSCALL_LINK_2_E:
 	case PPME_SYSCALL_LINKAT_2_E:
-	case PPME_SYSCALL_MKDIR_2_E:
-	case PPME_SYSCALL_MKDIRAT_E:
 	case PPME_SYSCALL_MOUNT_E:
 	case PPME_SYSCALL_UMOUNT_1_E:
 	case PPME_SYSCALL_UMOUNT2_E:
@@ -1501,7 +1499,6 @@ static inline void drops_buffer_syscall_categories_counters(
 		break;
 	case PPME_SYSCALL_BPF_2_E:
 	case PPME_SYSCALL_SETPGID_E:
-	case PPME_SYSCALL_PTRACE_E:
 	case PPME_SYSCALL_SECCOMP_E:
 	case PPME_SYSCALL_SETNS_E:
 	case PPME_SYSCALL_SETRESGID_E:

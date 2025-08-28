@@ -842,15 +842,6 @@ int32_t fill_event_chdir_x(scap_sized_buffer scap_buf,
 	                                path);
 }
 
-// PPME_SYSCALL_FCHDIR_E
-// Event field validity issues: none
-int32_t fill_event_fchdir_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            int64_t fd) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_FCHDIR_E, 1, fd);
-}
-
 // PPME_SYSCALL_FCHDIR_X
 // Event field validity issues: none
 int32_t fill_event_fchdir_x(scap_sized_buffer scap_buf,
@@ -865,15 +856,6 @@ int32_t fill_event_fchdir_x(scap_sized_buffer scap_buf,
 	                                2,
 	                                res,
 	                                fd);
-}
-
-// PPME_SYSCALL_SETUID_E
-// Event field validity issues: none
-int32_t fill_event_setuid_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint32_t uid) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_SETUID_E, 1, uid);
 }
 
 // PPME_SYSCALL_SETUID_X

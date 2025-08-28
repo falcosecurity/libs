@@ -124,8 +124,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_FCHOWNAT_E:
 		case PPME_SYSCALL_LINK_2_E:
 		case PPME_SYSCALL_LINKAT_2_E:
-		case PPME_SYSCALL_MKDIR_2_E:
-		case PPME_SYSCALL_MKDIRAT_E:
 		case PPME_SYSCALL_MOUNT_E:
 		case PPME_SYSCALL_UMOUNT_1_E:
 		case PPME_SYSCALL_UMOUNT2_E:
@@ -162,7 +160,6 @@ FILLER_RAW(terminate_filler) {
 			break;
 		case PPME_SYSCALL_BPF_2_E:
 		case PPME_SYSCALL_SETPGID_E:
-		case PPME_SYSCALL_PTRACE_E:
 		case PPME_SYSCALL_SECCOMP_E:
 		case PPME_SYSCALL_SETNS_E:
 		case PPME_SYSCALL_SETRESGID_E:
@@ -3283,12 +3280,6 @@ FILLER(sys_close_x, true) {
 	return bpf_push_s64_to_ring(data, (int64_t)fd);
 }
 
-FILLER(sys_fchdir_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, (int64_t)fd);
-}
-
 FILLER(sys_fchdir_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
@@ -5851,12 +5842,6 @@ FILLER(sys_ioctl_x, true) {
 	return bpf_push_u64_to_ring(data, argument);
 }
 
-FILLER(sys_mkdir_e, true) {
-	/* Parameter 1: mode (type: PT_UINT32) */
-	uint32_t mode = (uint32_t)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, mode);
-}
-
 FILLER(sys_mkdir_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
@@ -6855,17 +6840,6 @@ FILLER(sys_semctl_x, true) {
 		val = 0;
 
 	return bpf_push_s32_to_ring(data, val);
-}
-
-FILLER(sys_ptrace_e, true) {
-	/* Parameter 1: request (type: PT_FLAGS16) */
-	unsigned long request = bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_u16_to_ring(data, ptrace_requests_to_scap(request));
-	CHECK_RES(res);
-
-	/* Parameter 2: pid (type: PT_PID) */
-	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 1);
-	return bpf_push_s64_to_ring(data, (int64_t)pid);
 }
 
 static __always_inline int bpf_parse_ptrace_addr(struct filler_data *data, uint16_t request) {
