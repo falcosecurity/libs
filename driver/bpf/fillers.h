@@ -124,8 +124,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_FCHOWNAT_E:
 		case PPME_SYSCALL_LINK_2_E:
 		case PPME_SYSCALL_LINKAT_2_E:
-		case PPME_SYSCALL_MKDIR_2_E:
-		case PPME_SYSCALL_MKDIRAT_E:
 		case PPME_SYSCALL_MOUNT_E:
 		case PPME_SYSCALL_UMOUNT_1_E:
 		case PPME_SYSCALL_UMOUNT2_E:
@@ -5798,12 +5796,6 @@ FILLER(sys_ioctl_x, true) {
 	/* Parameter 4: argument (type: PT_UINT64) */
 	uint64_t argument = bpf_syscall_get_argument(data, 2);
 	return bpf_push_u64_to_ring(data, argument);
-}
-
-FILLER(sys_mkdir_e, true) {
-	/* Parameter 1: mode (type: PT_UINT32) */
-	uint32_t mode = (uint32_t)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, mode);
 }
 
 FILLER(sys_mkdir_x, true) {

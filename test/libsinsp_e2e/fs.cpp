@@ -182,39 +182,24 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_MKDIR_2_E) {
+		if(type == PPME_SYSCALL_MKDIR_2_X || type == PPME_SYSCALL_MKDIRAT_X) {
 			if(callnum == 0) {
-				EXPECT_EQ("0", e->get_param_value_str("mode"));
-				callnum++;
-			} else if(callnum == 2) {
-				EXPECT_EQ("0", e->get_param_value_str("mode"));
-				callnum++;
-			}
-		}
-		if(type == PPME_SYSCALL_MKDIRAT_E) {
-			if(callnum == 0) {
-				callnum++;
-			} else if(callnum == 2) {
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_MKDIR_2_X || type == PPME_SYSCALL_MKDIRAT_X) {
-			if(callnum == 1) {
 				EXPECT_NE("0", e->get_param_value_str("res"));
 				EXPECT_EQ(UNEXISTENT_DIRNAME, e->get_param_value_str("path"));
 				EXPECT_EQ(UNEXISTENT_DIRNAME, e->get_param_value_str("path", false));
 				callnum++;
-			} else if(callnum == 3) {
+			} else if(callnum == 1) {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ(cwd + DIRNAME, e->get_param_value_str("path"));
 				EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_RMDIR_2_E || type == PPME_SYSCALL_UNLINKAT_2_E) {
-			if(callnum == 4 || callnum == 6) {
+			if(callnum == 2 || callnum == 4) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_RMDIR_2_X || type == PPME_SYSCALL_UNLINKAT_2_X) {
-			if(callnum == 5) {
+			if(callnum == 3) {
 				EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 				if(type == PPME_SYSCALL_RMDIR_2_X) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
@@ -223,7 +208,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("name", false));
 				}
 				callnum++;
-			} else if(callnum == 7) {
+			} else if(callnum == 5) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				if(type == PPME_SYSCALL_RMDIR_2_X) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
@@ -238,7 +223,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(8, callnum);
+	EXPECT_EQ(6, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

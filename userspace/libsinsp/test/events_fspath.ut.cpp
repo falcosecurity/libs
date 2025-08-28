@@ -295,13 +295,11 @@ protected:
 };
 
 TEST_F(fspath, mkdir_2) {
-	test_enter(PPME_SYSCALL_MKDIR_2_E, 1, mode);
 	test_exit_path(path, path, PPME_SYSCALL_MKDIR_2_X, 2, res, path);
 	test_failed_exit(PPME_SYSCALL_MKDIR_2_X, 2, failed_res, path);
 }
 
 TEST_F(fspath, mkdirat) {
-	test_enter(PPME_SYSCALL_MKDIRAT_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_MKDIRAT_X, 4, res, evt_dirfd, path, mode);
 	test_failed_exit(PPME_SYSCALL_MKDIRAT_X, 4, failed_res, evt_dirfd, path, mode);
 }
