@@ -40,8 +40,6 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	case PPME_SYSCALL_FCHOWNAT_E:
 	case PPME_SYSCALL_LINK_2_E:
 	case PPME_SYSCALL_LINKAT_2_E:
-	case PPME_SYSCALL_MKDIR_2_E:
-	case PPME_SYSCALL_MKDIRAT_E:
 	case PPME_SYSCALL_MOUNT_E:
 	case PPME_SYSCALL_UMOUNT_1_E:
 	case PPME_SYSCALL_UMOUNT2_E:

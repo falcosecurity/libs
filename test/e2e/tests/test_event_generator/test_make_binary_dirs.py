@@ -25,16 +25,6 @@ def test_make_binary_dirs(sinsp, run_containers: dict):
 
     expected_events = [
         {
-            "evt.args": "",
-            "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": ">",
-            "evt.num": SinspField.numeric_field(),
-            "evt.time": SinspField.numeric_field(),
-            "evt.type": "mkdirat",
-            "proc.name": "event-generator",
-            "thread.tid": SinspField.numeric_field()
-        },
-        {
             "evt.args": "res=0 dirfd=-100(AT_FDCWD) path=/bin/directory-created-by-event-generator mode=1ED",
             "evt.cpu": SinspField.numeric_field(),
             "evt.dir": "<",
