@@ -182,7 +182,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_bpf_e)                        \
 	FN(sys_close_e)                      \
 	FN(sys_close_x)                      \
-	FN(sys_fchdir_e)                     \
 	FN(sys_fchdir_x)                     \
 	FN(sys_ioctl_e)                      \
 	FN(sys_ioctl_x)                      \
