@@ -1496,7 +1496,6 @@ static inline void drops_buffer_syscall_categories_counters(
 		break;
 	case PPME_SYSCALL_BPF_2_E:
 	case PPME_SYSCALL_SETPGID_E:
-	case PPME_SYSCALL_PTRACE_E:
 	case PPME_SYSCALL_SECCOMP_E:
 	case PPME_SYSCALL_SETNS_E:
 	case PPME_SYSCALL_SETRESGID_E:
