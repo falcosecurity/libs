@@ -88,7 +88,6 @@ or GPL2.txt for full copies of the license.
 	FN(sched_drop)                       \
 	FN(sys_fcntl_e)                      \
 	FN(sys_fcntl_x)                      \
-	FN(sys_ptrace_e)                     \
 	FN(sys_ptrace_x)                     \
 	FN(sys_mmap_e)                       \
 	FN(sys_mmap_x)                       \
