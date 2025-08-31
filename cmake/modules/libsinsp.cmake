@@ -29,26 +29,9 @@ if(NOT HAVE_LIBSINSP)
 
 	include(ExternalProject)
 	include(libscap)
-	if(NOT EMSCRIPTEN)
-		include(tbb)
-	endif()
-	include(jsoncpp)
-	include(valijson)
-	include(re2)
 
-	if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
-		include(bs_threadpool)
-	endif()
 
 	set(LIBSINSP_INCLUDE_DIRS)
-
-	if(NOT USE_BUNDLED_TBB AND NOT EMSCRIPTEN)
-		list(APPEND LIBSINSP_INCLUDE_DIRS ${TBB_INCLUDE_DIR})
-	endif()
-
-	if(NOT USE_BUNDLED_JSONCPP)
-		list(APPEND LIBSINSP_INCLUDE_DIRS ${JSONCPP_INCLUDE})
-	endif()
 
 	function(set_sinsp_target_properties target)
 		set_target_properties(

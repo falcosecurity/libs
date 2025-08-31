@@ -18,23 +18,24 @@ option(USE_BUNDLED_LIBBPF "Enable building of the bundled libbpf" ${USE_BUNDLED_
 if(TARGET lbpf)
 	# we already have libbpf
 elseif(NOT USE_BUNDLED_LIBBPF)
-	include(zlib)
 	include(libelf)
+	find_package(ZLIB REQUIRED)
 	find_path(LIBBPF_INCLUDE bpf/libbpf.h)
 	find_library(LIBBPF_LIB NAMES bpf)
 	if(LIBBPF_INCLUDE AND LIBBPF_LIB)
 		add_library(lbpf STATIC IMPORTED GLOBAL)
 		set_target_properties(lbpf PROPERTIES IMPORTED_LOCATION ${LIBBPF_LIB})
 		target_include_directories(lbpf INTERFACE $<BUILD_INTERFACE:${LIBBPF_INCLUDE}>)
-		target_link_libraries(lbpf INTERFACE elf ${ZLIB_LIB})
+		target_link_libraries(lbpf INTERFACE elf ZLIB::ZLIB)
 
 		message(STATUS "Found libbpf: include: ${LIBBPF_INCLUDE}, lib: ${LIBBPF_LIB}")
 	else()
 		message(FATAL_ERROR "Couldn't find system libbpf")
 	endif()
 else()
-	include(zlib)
+
 	include(libelf)
+	find_package(ZLIB REQUIRED)
 	set(LIBBPF_SRC "${PROJECT_BINARY_DIR}/libbpf-prefix/src")
 	set(LIBBPF_BUILD_DIR "${LIBBPF_SRC}/libbpf-build")
 	set(LIBBPF_INCLUDE "${LIBBPF_BUILD_DIR}/root/usr/include")
@@ -49,7 +50,7 @@ else()
 	ExternalProject_Add(
 		libbpf
 		PREFIX "${PROJECT_BINARY_DIR}/libbpf-prefix"
-		DEPENDS zlib elf
+		DEPENDS elf
 		URL "https://github.com/libbpf/libbpf/archive/refs/tags/v1.3.0.tar.gz"
 		URL_HASH "SHA256=11db86acd627e468bc48b7258c1130aba41a12c4d364f78e184fd2f5a913d861"
 		CONFIGURE_COMMAND mkdir -p build root
@@ -69,7 +70,7 @@ else()
 	file(MAKE_DIRECTORY ${LIBBPF_INCLUDE}) # necessary to make target_include_directories() work
 	target_include_directories(lbpf INTERFACE $<BUILD_INTERFACE:${LIBBPF_INCLUDE}>)
 	add_dependencies(lbpf libbpf)
-	target_link_libraries(lbpf INTERFACE elf ${ZLIB_LIB})
+	target_link_libraries(lbpf INTERFACE elf ZLIB::ZLIB)
 
 	message(STATUS "Using bundled libbpf: include'${LIBBPF_INCLUDE}', lib: ${LIBBPF_LIB}")
 	install(

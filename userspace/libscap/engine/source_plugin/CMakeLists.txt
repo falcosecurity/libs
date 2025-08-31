@@ -13,6 +13,9 @@
 # the License.
 #
 add_library(scap_engine_source_plugin source_plugin.c)
+
+find_package(Uthash REQUIRED)
+target_include_directories(scap_engine_source_plugin PRIVATE ${UTHASH_INCLUDE_DIRS})
 target_link_libraries(
 	scap_engine_source_plugin PRIVATE scap_event_schema scap_engine_noop scap_error
 )

@@ -38,10 +38,9 @@ set(LIBSCAP_TESTS_INCLUDE
 
 # Needed by gtest
 find_package(Threads)
-
-set(LIBSCAP_TESTS_LIBRARIES "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${CMAKE_THREAD_LIBS_INIT}" scap)
-
-set(LIBSCAP_TESTS_DEPENDENCIES gtest scap)
+find_package(GTest CONFIG REQUIRED)
+set(LIBSCAP_TESTS_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}" scap GTest::gtest GTest::gtest_main)
+set(LIBSCAP_TESTS_DEPENDENCIES scap)
 
 # Test suite asserting against pure userspace components
 file(GLOB_RECURSE USERSPACE_TEST_SUITE CONFIGURE_DEPENDS
@@ -98,8 +97,7 @@ if(BUILD_LIBSCAP_MODERN_BPF)
 endif()
 
 if(BUILD_LIBSCAP_GVISOR)
-	include(protobuf)
-	file(GLOB_RECURSE GVISOR_TEST_SUITE CONFIGURE_DEPENDS
+    file(GLOB_RECURSE GVISOR_TEST_SUITE CONFIGURE_DEPENDS
 		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/gvisor/*.cpp"
 	)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${GVISOR_TEST_SUITE})
