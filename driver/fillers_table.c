@@ -165,9 +165,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #endif
         [PPME_SYSCALL_BRK_4_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_BRK_4_X] = {FILLER_REF(sys_brk_x)},
-        [PPME_SYSCALL_MMAP_E] = {FILLER_REF(sys_mmap_e)},
+        [PPME_SYSCALL_MMAP_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_MMAP_X] = {FILLER_REF(sys_mmap_x)},
-        [PPME_SYSCALL_MMAP2_E] = {FILLER_REF(sys_mmap_e)},
+        [PPME_SYSCALL_MMAP2_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_MMAP2_X] = {FILLER_REF(sys_mmap2_x)},
         [PPME_SYSCALL_MUNMAP_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {1}}},
         [PPME_SYSCALL_MUNMAP_X] = {FILLER_REF(sys_munmap_x)},

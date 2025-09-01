@@ -827,18 +827,6 @@ static parse_result parse_generic_syscall(uint32_t id,
 		}
 	} else {
 		switch(gvisor_evt.sysno()) {
-		case __NR_mmap:
-			ret.status = scap_gvisor::fillers::fill_event_mmap_e(scap_buf,
-			                                                     &ret.size,
-			                                                     scap_err,
-			                                                     gvisor_evt.arg1(),
-			                                                     gvisor_evt.arg2(),
-			                                                     gvisor_evt.arg3(),
-			                                                     gvisor_evt.arg4(),
-			                                                     gvisor_evt.arg5(),
-			                                                     gvisor_evt.arg6());
-			break;
-
 		case __NR_munmap:
 			ret.status = scap_gvisor::fillers::fill_event_munmap_e(scap_buf,
 			                                                       &ret.size,

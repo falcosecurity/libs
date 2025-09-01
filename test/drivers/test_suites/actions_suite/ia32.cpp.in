@@ -59,11 +59,9 @@ TEST(Actions, ia32)
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_UMOUNT2_X);
 
 	// mmap2 is translated to x86_64 mmap
-	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_X);
-	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_X);
