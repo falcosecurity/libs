@@ -187,6 +187,7 @@ protected:
 		}
 	}
 
+	// TODO(ekoops): remove this once we remove the enter events support.
 	void test_enter(ppm_event_code event_type, uint32_t n, ...) {
 		va_list args;
 		va_start(args, n);
@@ -665,7 +666,6 @@ TEST_F(fspath, quotactl) {
 }
 
 TEST_F(fspath, rename) {
-	test_enter(PPME_SYSCALL_RENAME_E, 0);
 	test_exit_source_target(oldpath,
 	                        oldpath,
 	                        newpath,
@@ -679,7 +679,6 @@ TEST_F(fspath, rename) {
 }
 
 TEST_F(fspath, renameat) {
-	test_enter(PPME_SYSCALL_RENAMEAT_E, 0);
 	test_exit_source_target(oldpath,
 	                        oldpath,
 	                        newpath,
@@ -695,7 +694,6 @@ TEST_F(fspath, renameat) {
 }
 
 TEST_F(fspath, renameat2) {
-	test_enter(PPME_SYSCALL_RENAMEAT2_E, 0);
 	test_exit_source_target(oldpath,
 	                        oldpath,
 	                        newpath,
@@ -719,7 +717,6 @@ TEST_F(fspath, renameat2) {
 }
 
 TEST_F(fspath, renameat2_relative) {
-	test_enter(PPME_SYSCALL_RENAMEAT2_E, 0);
 	test_exit_source_target(resolved_rel_oldpath_at,
 	                        rel_oldpath,
 	                        resolved_rel_newpath_at,
