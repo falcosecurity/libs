@@ -199,14 +199,14 @@ TEST(event_table, check_EF_USED_FD) {
 			continue;
 		}
 
-		if(PPME_IS_ENTER(evt) && !(evt == PPME_SYSCALL_MMAP_E || evt == PPME_SYSCALL_MMAP2_E)) {
-			int location = get_enter_event_fd_location((ppm_event_code)evt);
+		if(PPME_IS_ENTER(evt)) {
+			const int location = get_enter_event_fd_location((ppm_event_code)evt);
 			ASSERT_EQ(evt_info.params[location].type, PT_FD)
 			        << "event_type " << evt << " uses a wrong location " << location;
 		}
 
 		if(PPME_IS_EXIT(evt) && evt_info.flags & EF_TMP_CONVERTER_MANAGED) {
-			int location = get_exit_event_fd_location((ppm_event_code)evt);
+			const int location = get_exit_event_fd_location((ppm_event_code)evt);
 			ASSERT_NE(location, -1)
 			        << "event_type " << evt << " uses a wrong location " << location;
 			ASSERT_EQ(evt_info.params[location].type, PT_FD)

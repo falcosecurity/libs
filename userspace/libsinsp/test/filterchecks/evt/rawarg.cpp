@@ -63,16 +63,17 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	 * but then real event has a size that is bigger than that.
 	 * In this case, `find_longest_matching_evt_param` will find `size` param
 	 * from PPME_SYSCALL_READ_E, that is {"size", PT_UINT32, PF_DEC},
-	 * but then we call evt.rawarg.size on a PPME_SYSCALL_SPLICE_E,
+	 * but then we call evt.rawarg.size on a PPME_SYSCALL_SPLICE_X,
 	 * whose `size` param is 64bit: {"size", PT_UINT64, PF_DEC}.
 	 */
-	// [PPME_SYSCALL_SPLICE_E] = {"splice", EC_IO_OTHER | EC_SYSCALL, EF_USES_FD, 4, {
-	//	{"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size", PT_UINT64, PF_DEC}, {
-	//		"flags", PT_FLAGS32, PF_HEX, splice_flags}}}
+	// [PPME_SYSCALL_SPLICE_X] = {"splice", EC_IO_OTHER | EC_SYSCALL, EF_USES_FD, 4, {
+	// {"res", PT_ERRNO, PF_DEC}, {"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size",
+	// PT_UINT64, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, splice_flags}}}
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_SPLICE_E,
-	                           4,
+	                           PPME_SYSCALL_SPLICE_X,
+	                           5,
+	                           (int64_t)-1,
 	                           (int64_t)-1,
 	                           (int64_t)-1,
 	                           (uint64_t)512,

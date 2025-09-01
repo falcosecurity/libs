@@ -574,6 +574,10 @@ int get_enter_event_fd_location(ppm_event_code etype) {
 	// For almost all parameters the default position is `0`
 	int location = 0;
 	switch(etype) {
+	case PPME_SYSCALL_MMAP_E:
+	case PPME_SYSCALL_MMAP2_E:
+		location = 4;
+		break;
 	case PPME_SYSCALL_SPLICE_E:
 		location = 1;
 		break;
