@@ -1,6 +1,12 @@
 name: 'install-zig'
 description: 'Install zig compiler and make it available in PATH.'
 
+inputs:
+  zig_download_retries:
+    description: 'Number of retries for the download'
+    required: false
+    default: 20
+
 runs:
   using: "composite"
   steps:
@@ -15,7 +21,7 @@ runs:
     - name: Download zig
       shell: bash
       run: |
-        curl -L -o zig.tar.xz https://ziglang.org/download/${{ steps.store.outputs.zig_version }}/zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}.tar.xz
+        wget --tries=${{ inputs.zig_download_retries }} -O zig.tar.xz https://ziglang.org/download/${{ steps.store.outputs.zig_version }}/zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}.tar.xz
         tar -xvf zig.tar.xz
 
         cat > zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-cc <<EOF
