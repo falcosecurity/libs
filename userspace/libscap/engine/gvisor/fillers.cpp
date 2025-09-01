@@ -1599,22 +1599,6 @@ int32_t fill_event_mmap_x(scap_sized_buffer scap_buf,
 	                                offset);
 }
 
-// PPME_SYSCALL_MUNMAP_E
-// Event field validity issues: none
-int32_t fill_event_munmap_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint64_t addr,
-                            uint64_t length) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_MUNMAP_E,
-	                                6,
-	                                addr,
-	                                length);
-}
-
 // PPME_SYSCALL_MUNMAP_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:

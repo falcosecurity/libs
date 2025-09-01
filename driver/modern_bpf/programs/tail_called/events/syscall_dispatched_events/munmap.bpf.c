@@ -8,36 +8,6 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(munmap_e, struct pt_regs *regs, long id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, MUNMAP_E_SIZE, PPME_SYSCALL_MUNMAP_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: addr (type: PT_UINT64) */
-	unsigned long val = extract__syscall_argument(regs, 0);
-	ringbuf__store_u64(&ringbuf, val);
-
-	/* Parameter 2: length (type: PT_UINT64) */
-	val = extract__syscall_argument(regs, 1);
-	ringbuf__store_u64(&ringbuf, val);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
