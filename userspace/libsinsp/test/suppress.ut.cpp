@@ -53,7 +53,7 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
 
 	// dummy event to actually delete the thread from the threadtable.
-	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_RENAME_E, 0);
+	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_GETSOCKNAME_X, 0);
 
 	EXPECT_EQ(thread_manager->get_thread_ref(pid), nullptr);
 
@@ -106,7 +106,7 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
 
 	// dummy event to actually delete the thread from the threadtable.
-	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_RENAME_E, 0);
+	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_GETSOCKNAME_X, 0);
 
 	EXPECT_EQ(thread_manager->get_thread_ref(pid), nullptr);
 
