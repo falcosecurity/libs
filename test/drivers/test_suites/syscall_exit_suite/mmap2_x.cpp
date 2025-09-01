@@ -45,7 +45,7 @@ TEST(SyscallExit, mmap2X) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: vm_size (type: PT_UINT32) */

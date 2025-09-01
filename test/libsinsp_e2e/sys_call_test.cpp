@@ -644,7 +644,7 @@ TEST_F(sys_call_test, mmap) {
 				EXPECT_EQ("50", e->get_param_value_str("addr"));
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 7: {
+			case 5: {
 				uint64_t addr = e->get_param_by_name("addr")->as<uint64_t>();
 #ifdef __LP64__
 				EXPECT_EQ((uint64_t)p, addr);
@@ -674,7 +674,7 @@ TEST_F(sys_call_test, mmap) {
 				EXPECT_EQ("50", e->get_param_value_str("addr"));
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 8: {
+			case 6: {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
 				EXPECT_GE(enter_vmrss, exit_vmrss);
@@ -691,53 +691,6 @@ TEST_F(sys_call_test, mmap) {
 			default:
 				callnum--;
 			}
-		} else if(type == PPME_SYSCALL_MMAP_E || type == PPME_SYSCALL_MMAP2_E) {
-			callnum++;
-
-			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
-			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
-			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
-
-			switch(callnum) {
-			case 3:
-				EXPECT_EQ("0", e->get_param_value_str("addr"));
-				EXPECT_EQ("0", e->get_param_value_str("length"));
-				EXPECT_EQ("PROT_READ|PROT_WRITE|PROT_EXEC", e->get_param_value_str("prot"));
-				EXPECT_EQ("MAP_SHARED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_DENYWRITE",
-				          e->get_param_value_str("flags"));
-#ifdef __LP64__
-				// It looks that starting from kernel 4.9, fd is -1 also on 64bit
-				EXPECT_TRUE(e->get_param_value_str("fd", false) == "4294967295" ||
-				            e->get_param_value_str("fd", false) == "-1");
-#else
-				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
-#endif
-				if(type == PPME_SYSCALL_MMAP_E) {
-					EXPECT_EQ("0", e->get_param_value_str("offset"));
-				} else {
-					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
-				}
-				break;
-			case 5:
-				EXPECT_EQ("0", e->get_param_value_str("addr"));
-				EXPECT_EQ("1003520", e->get_param_value_str("length"));
-				EXPECT_EQ("PROT_READ|PROT_WRITE", e->get_param_value_str("prot"));
-				EXPECT_EQ("MAP_PRIVATE|MAP_ANONYMOUS", e->get_param_value_str("flags"));
-#ifdef __LP64__
-				EXPECT_TRUE(e->get_param_value_str("fd", false) == "4294967295" ||
-				            e->get_param_value_str("fd", false) == "-1");
-#else
-				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
-#endif
-				if(type == PPME_SYSCALL_MMAP_E) {
-					EXPECT_EQ("0", e->get_param_value_str("offset"));
-				} else {
-					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
-				}
-				break;
-			default:
-				callnum--;
-			}
 		} else if(type == PPME_SYSCALL_MMAP_X || type == PPME_SYSCALL_MMAP2_X) {
 			callnum++;
 
@@ -749,7 +702,7 @@ TEST_F(sys_call_test, mmap) {
 			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
-			case 4: {
+			case 3: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ(-errno2, (int64_t)res);
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
@@ -771,12 +724,9 @@ TEST_F(sys_call_test, mmap) {
 				}
 				break;
 			}
-			case 6: {
+			case 4: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ((uint64_t)p, res);
-				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
-				EXPECT_GE(exit_vmrss, enter_vmrss);
-				EXPECT_GE(exit_vmswap, enter_vmswap);
 
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
 				EXPECT_EQ("1003520", e->get_param_value_str("length"));
@@ -802,7 +752,7 @@ TEST_F(sys_call_test, mmap) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(8, callnum);
+	EXPECT_EQ(6, callnum);
 }
 
 TEST_F(sys_call_test, quotactl_ko) {
@@ -1865,7 +1815,7 @@ TEST_F(sys_call_test32, mmap) {
 				EXPECT_EQ("50", e->get_param_value_str("addr"));
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 7: {
+			case 5: {
 				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
 #ifdef __LP64__
 				EXPECT_EQ((uint64_t)p, addr);
@@ -1895,7 +1845,7 @@ TEST_F(sys_call_test32, mmap) {
 				EXPECT_EQ("50", e->get_param_value_str("addr"));
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 8: {
+			case 6: {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
 				EXPECT_GE(enter_vmrss, exit_vmrss);
@@ -1912,44 +1862,6 @@ TEST_F(sys_call_test32, mmap) {
 			default:
 				callnum--;
 			}
-		} else if(type == PPME_SYSCALL_MMAP_E || type == PPME_SYSCALL_MMAP2_E) {
-			callnum++;
-
-			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
-			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
-			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
-
-			switch(callnum) {
-			case 3:
-				EXPECT_EQ("0", e->get_param_value_str("addr"));
-				EXPECT_EQ("0", e->get_param_value_str("length"));
-				EXPECT_EQ("PROT_READ|PROT_WRITE|PROT_EXEC", e->get_param_value_str("prot"));
-				EXPECT_EQ("MAP_SHARED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_DENYWRITE",
-				          e->get_param_value_str("flags"));
-				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
-
-				if(type == PPME_SYSCALL_MMAP_E) {
-					EXPECT_EQ("0", e->get_param_value_str("offset"));
-				} else {
-					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
-				}
-				break;
-			case 5:
-				EXPECT_EQ("0", e->get_param_value_str("addr"));
-				EXPECT_EQ("1003520", e->get_param_value_str("length"));
-				EXPECT_EQ("PROT_READ|PROT_WRITE", e->get_param_value_str("prot"));
-				EXPECT_EQ("MAP_PRIVATE|MAP_ANONYMOUS", e->get_param_value_str("flags"));
-				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
-
-				if(type == PPME_SYSCALL_MMAP_E) {
-					EXPECT_EQ("0", e->get_param_value_str("offset"));
-				} else {
-					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
-				}
-				break;
-			default:
-				callnum--;
-			}
 		} else if(type == PPME_SYSCALL_MMAP_X || type == PPME_SYSCALL_MMAP2_X) {
 			callnum++;
 
@@ -1961,7 +1873,7 @@ TEST_F(sys_call_test32, mmap) {
 			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
-			case 4: {
+			case 3: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ(-errno2, (int64_t)res);
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
@@ -1983,13 +1895,9 @@ TEST_F(sys_call_test32, mmap) {
 				}
 				break;
 			}
-			case 6: {
+			case 4: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ((uint64_t)p, res);
-				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
-				EXPECT_GE(exit_vmrss, enter_vmrss);
-				EXPECT_GE(exit_vmswap, enter_vmswap);
-
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
 				EXPECT_EQ("1003520", e->get_param_value_str("length"));
 				EXPECT_EQ("PROT_READ|PROT_WRITE", e->get_param_value_str("prot"));
@@ -2014,7 +1922,7 @@ TEST_F(sys_call_test32, mmap) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(8, callnum);
+	EXPECT_EQ(6, callnum);
 }
 
 TEST_F(sys_call_test32, ppoll_timeout) {

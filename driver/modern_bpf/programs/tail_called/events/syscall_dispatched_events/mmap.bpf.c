@@ -8,52 +8,6 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(mmap_e, struct pt_regs *regs, long id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, MMAP_E_SIZE, PPME_SYSCALL_MMAP_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: addr (type: PT_UINT64) */
-	unsigned long addr = extract__syscall_argument(regs, 0);
-	ringbuf__store_u64(&ringbuf, addr);
-
-	/* Parameter 2: length (type: PT_UINT64) */
-	unsigned long length = extract__syscall_argument(regs, 1);
-	ringbuf__store_u64(&ringbuf, length);
-
-	/* Parameter 3: prot (type: PT_FLAGS32) */
-	unsigned long prot = extract__syscall_argument(regs, 2);
-	ringbuf__store_u32(&ringbuf, prot_flags_to_scap(prot));
-
-	/* Parameter 4: flags (type: PT_FLAGS32) */
-	unsigned long flags = extract__syscall_argument(regs, 3);
-	ringbuf__store_u32(&ringbuf, mmap_flags_to_scap(flags));
-
-	/* Paremeter 5: fd (type: PT_FD) */
-	int32_t fd = (int32_t)extract__syscall_argument(regs, 4);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
-
-	/* Parameter 6: offset (type: PT_UINT64) */
-	unsigned long offset = extract__syscall_argument(regs, 5);
-	ringbuf__store_u64(&ringbuf, offset);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

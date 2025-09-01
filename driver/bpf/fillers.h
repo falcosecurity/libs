@@ -1169,40 +1169,6 @@ FILLER(sys_brk_x, true) {
 	return bpf_push_u64_to_ring(data, addr);
 }
 
-FILLER(sys_mmap_e, true) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: addr (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_u64_to_ring(data, val);
-	CHECK_RES(res);
-
-	/* Parameter 2: length (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_push_u64_to_ring(data, val);
-	CHECK_RES(res);
-
-	/* Parameter 3: prot (type: PT_FLAGS32) */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
-	CHECK_RES(res);
-
-	/* Parameter 4: flags (type: PT_FLAGS32) */
-	val = bpf_syscall_get_argument(data, 3);
-	res = bpf_push_u32_to_ring(data, mmap_flags_to_scap(val));
-	CHECK_RES(res);
-
-	/* Paremeter 5: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 4);
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/* Parameter 6: offset (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 5);
-	return bpf_push_u64_to_ring(data, val);
-}
-
 FILLER(sys_mprotect_e, true) {
 	/* Parameter 1: addr (type: PT_UINT64) */
 	unsigned long val = bpf_syscall_get_argument(data, 0);
