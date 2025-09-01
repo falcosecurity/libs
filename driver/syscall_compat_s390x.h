@@ -1139,3 +1139,9 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_open_tree_attr
 #define __NR_open_tree_attr 467
 #endif
+#ifndef __NR_file_getattr
+#define __NR_file_getattr 468
+#endif
+#ifndef __NR_file_setattr
+#define __NR_file_setattr 469
+#endif

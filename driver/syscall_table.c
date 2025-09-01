@@ -1033,4 +1033,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_open_tree_attr
 	[__NR_open_tree_attr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OPEN_TREE_ATTR},
 #endif
+#ifdef __NR_file_setattr
+	[__NR_file_setattr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FILE_SETATTR},
+#endif
+#ifdef __NR_file_getattr
+	[__NR_file_getattr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FILE_GETATTR},
+#endif
 };

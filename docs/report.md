@@ -65,6 +65,8 @@
 | fcntl                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fdatasync               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fgetxattr               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| file_getattr            | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| file_setattr            | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | finit_module            | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | flistxattr              | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | flock                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
