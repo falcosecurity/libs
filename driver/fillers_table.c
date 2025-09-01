@@ -158,7 +158,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_PRLIMIT_X] = {FILLER_REF(sys_prlimit_x)},
         [PPME_DROP_E] = {FILLER_REF(sched_drop)},
         [PPME_DROP_X] = {FILLER_REF(sched_drop)},
-        [PPME_SYSCALL_FCNTL_E] = {FILLER_REF(sys_fcntl_e)},
+        [PPME_SYSCALL_FCNTL_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_FCNTL_X] = {FILLER_REF(sys_fcntl_x)},
 #ifdef CAPTURE_CONTEXT_SWITCHES
         [PPME_SCHEDSWITCH_6_E] = {FILLER_REF(sched_switch_e)},

@@ -371,12 +371,6 @@ int32_t fill_event_pipe_x(scap_sized_buffer scap_buf,
                           int64_t fd1,
                           int64_t fd2);
 
-int32_t fill_event_fcntl_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd,
-                           uint8_t cmd);
-
 int32_t fill_event_fcntl_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,

@@ -862,27 +862,19 @@ TEST_F(sys_call_test, fs_fcntl) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_FCNTL_E) {
-			if(callnum == 0) {
-				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
-				callnum++;
-			} else if(callnum == 2) {
-				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_FCNTL_X) {
+		if(type == PPME_SYSCALL_FCNTL_X) {
 			const auto& thread_manager = param.m_inspector->m_thread_manager;
 			ASSERT_NE(
 			        (sinsp_threadinfo*)&*thread_manager->get_thread_ref(e->get_tid(), false, true),
 			        nullptr);
-			if(callnum == 1) {
+			if(callnum == 0) {
 				EXPECT_EQ(fd1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*thread_manager
 				                  ->get_thread_ref(e->get_tid(), false, true)
 				                  ->get_fd(fd1));
 				callnum++;
-			} else if(callnum == 3) {
+			} else if(callnum == 1) {
 				EXPECT_EQ(fd2, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*thread_manager
@@ -895,7 +887,7 @@ TEST_F(sys_call_test, fs_fcntl) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

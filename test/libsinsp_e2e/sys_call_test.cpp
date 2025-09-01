@@ -176,7 +176,7 @@ TEST_F(sys_call_test, fcntl_getfd) {
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, fcntl_getfd_dropping) {
