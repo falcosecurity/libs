@@ -776,7 +776,7 @@ TEST_F(sys_call_test, procinfo_processchild_cpuload) {
 	// TEST CODE
 	//
 	run_callback_t test = [&](sinsp* inspector) {
-		for(uint32_t j = 0; j < 5; j++) {
+		for(uint32_t j = 0; j < 10; j++) {
 			sleep(1);
 		}
 
