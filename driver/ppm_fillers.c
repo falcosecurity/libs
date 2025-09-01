@@ -8803,36 +8803,6 @@ out:
 	return res;
 }
 
-int f_sys_splice_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int64_t fd_in, fd_out;
-	int res;
-
-	/* Parameter 1: fd_in (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd_in = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fd_in, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: fd_out (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	fd_out = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fd_out, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: size (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 4, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 4: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(args, 5, 1, &val);
-	res = val_to_ring(args, splice_flags_to_scap(val), 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_splice_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
