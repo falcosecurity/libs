@@ -1,0 +1,38 @@
+name: 'install-vcpkg'
+description: 'Install vcpkg and make it available in PATH.'
+
+outputs:
+  vcpkg_root:
+    description: "VCPKG_ROOT"
+    value: ${{ steps.vcpkg.outputs.vcpkg_root }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Store vcpkg version as local output
+      shell: bash
+      id: store
+      env:
+        VCPKG_VERSION: '2025.08.27'
+      run: |
+        echo "vcpkg_version=${VCPKG_VERSION}" >> "$GITHUB_OUTPUT"
+
+    - name: Download vcpkg
+      shell: bash
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git --branch ${{ steps.store.outputs.vcpkg_version }} --single-branch
+
+    - name: Setup vcpkg
+      shell: bash
+      id: vcpkg
+      run: |
+        ./vcpkg/bootstrap-vcpkg.sh
+        echo "$(pwd)/vcpkg" >> $GITHUB_PATH
+        echo "VCPKG_ROOT=$(pwd)/vcpkg" >> $GITHUB_ENV
+
+    - name: Set Outputs
+      id: store-outputs
+      shell: bash
+      run: |
+        echo "vcpkg_root=${VCPKG_ROOT}" >> $GITHUB_OUTPUT
+      

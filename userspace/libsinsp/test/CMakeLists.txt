@@ -194,7 +194,7 @@ target_include_directories(
 
 target_link_libraries(
 	unit-test-libsinsp PRIVATE sinsp
-	GTest::gtest GTest::gtest_main JsonCpp::JsonCpp $<IF:$<BOOL:!${EMSCRIPTEN}>,TBB::tbb>
+	GTest::gtest GTest::gtest_main JsonCpp::JsonCpp $<IF:$<BOOL:EMSCRIPTEN>,,TBB::tbb>
 )
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`

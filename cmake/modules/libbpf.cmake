@@ -41,10 +41,13 @@ else()
 	set(LIBBPF_INCLUDE "${LIBBPF_BUILD_DIR}/root/usr/include")
 	set(LIBBPF_LIB "${LIBBPF_BUILD_DIR}/root/usr/lib64/libbpf.a")
 
-	get_target_property(LIBELF_INCLUDE_DIR elf INCLUDE_DIRECTORIES)
-
 	foreach(dir ${LIBELF_INCLUDE_DIR})
 		string(APPEND LIBELF_COMPILER_STRING "-I${dir} ")
+	endforeach()
+
+	foreach(lib ${ZLIB_LIBRARIES})
+		get_filename_component(dir ${lib} DIRECTORY)
+		string(APPEND ZLIB_LDFLAGS "-L${dir} ")
 	endforeach()
 
 	ExternalProject_Add(
@@ -57,8 +60,8 @@ else()
 		BUILD_COMMAND
 			make BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build
 			DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1
-			"EXTRA_CFLAGS=-fPIC ${LIBELF_COMPILER_STRING} -I${ZLIB_INCLUDE}" "LDFLAGS=-Wl,-Bstatic"
-			"EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C ${LIBBPF_SRC}/libbpf/src
+			"EXTRA_CFLAGS=-fPIC ${LIBELF_COMPILER_STRING} -I${ZLIB_INCLUDE_DIRS}" "LDFLAGS=-Wl,-Bstatic"
+			"EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf ${ZLIB_LDFLAGS}" -C ${LIBBPF_SRC}/libbpf/src
 			install install_uapi_headers
 		INSTALL_COMMAND ""
 		UPDATE_COMMAND ""
