@@ -1067,22 +1067,6 @@ int32_t fill_event_pipe_x(scap_sized_buffer scap_buf,
 	                                0);  // ino -- INVALID
 }
 
-// PPME_SYSCALL_FCNTL_E
-// Event field validity issues: none
-int32_t fill_event_fcntl_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd,
-                           uint8_t cmd) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_FCNTL_E,
-	                                2,
-	                                fd,
-	                                cmd);
-}
-
 // PPME_SYSCALL_FCNTL_X
 // Event field validity issues: none
 int32_t fill_event_fcntl_x(scap_sized_buffer scap_buf,

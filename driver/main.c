@@ -1649,7 +1649,6 @@ static inline int drop_nostate_event(ppm_event_code event_type, struct pt_regs *
 		}
 		spin_unlock(&files->file_lock);
 		break;
-	case PPME_SYSCALL_FCNTL_E:
 	case PPME_SYSCALL_FCNTL_X:
 		// cmd arg
 		ppm_syscall_get_arguments(current, regs, args);

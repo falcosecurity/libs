@@ -434,16 +434,22 @@ TEST_F(sinsp_with_test_input, enumparams_fcntl_dupfd) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
+	sinsp_evt* evt = nullptr;
 
-	/* `PPME_SYSCALL_FCNTL_E` is a simple event that uses a PT_ENUMFLAGS32 (param 2) */
-	uint8_t flag = PPM_FCNTL_F_DUPFD;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCNTL_E, 2, (int64_t)0, flag);
+	/* `PPME_SYSCALL_FCNTL_X` is a simple event that uses a PT_ENUMFLAGS8 (param 3) */
+	uint8_t cmd = PPM_FCNTL_F_DUPFD;
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_FCNTL_X,
+	                           3,
+	                           (int64_t)0,
+	                           (int64_t)0,
+	                           cmd);
 
-	ASSERT_EQ(evt->get_param(1)->as<uint8_t>(), PPM_FCNTL_F_DUPFD);
+	ASSERT_EQ(evt->get_param(2)->as<uint8_t>(), PPM_FCNTL_F_DUPFD);
 
-	const char* val_str = NULL;
-	evt->get_param_as_str(1, &val_str);
+	const char* val_str = nullptr;
+	evt->get_param_as_str(2, &val_str);
 	ASSERT_STREQ(val_str, "F_DUPFD");
 }
 

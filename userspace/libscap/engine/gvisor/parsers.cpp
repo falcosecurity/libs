@@ -960,19 +960,15 @@ static parse_result parse_fcntl(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_fcntl_x(scap_buf,
-		                                                      &ret.size,
-		                                                      scap_err,
-		                                                      gvisor_evt.exit().result());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_fcntl_e(scap_buf,
-		                                                      &ret.size,
-		                                                      scap_err,
-		                                                      gvisor_evt.fd(),
-		                                                      fcntl_cmd_to_scap(gvisor_evt.cmd()));
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
 
+	ret.status = scap_gvisor::fillers::fill_event_fcntl_x(scap_buf,
+	                                                      &ret.size,
+	                                                      scap_err,
+	                                                      gvisor_evt.exit().result());
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;

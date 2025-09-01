@@ -643,7 +643,6 @@ static __always_inline bool drop_event(void *ctx,
 
 		break;
 	}
-	case PPME_SYSCALL_FCNTL_E:
 	case PPME_SYSCALL_FCNTL_X: {
 		long cmd = bpf_syscall_get_argument_from_ctx(ctx, 1);
 

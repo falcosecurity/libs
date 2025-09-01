@@ -16,40 +16,6 @@ static __always_inline bool check_fcntl_dropping(struct pt_regs *regs) {
 	return false;
 }
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(fcntl_e, struct pt_regs *regs, long id) {
-	if(maps__get_dropping_mode() && check_fcntl_dropping(regs)) {
-		return 0;
-	}
-
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, FCNTL_E_SIZE, PPME_SYSCALL_FCNTL_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
-
-	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
-	int cmd = (int32_t)extract__syscall_argument(regs, 1);
-	ringbuf__store_u8(&ringbuf, fcntl_cmd_to_scap(cmd));
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

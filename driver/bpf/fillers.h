@@ -1240,17 +1240,6 @@ FILLER(sys_mprotect_x, true) {
 	return bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
 }
 
-FILLER(sys_fcntl_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
-	int32_t cmd = (int32_t)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u8_to_ring(data, fcntl_cmd_to_scap(cmd));
-}
-
 FILLER(sys_fcntl_x, true) {
 	long retval;
 

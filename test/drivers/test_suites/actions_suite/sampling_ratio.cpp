@@ -84,36 +84,6 @@ TEST(Actions, sampling_ratio_NO_FLAGS) {
 
 #ifdef __NR_fcntl
 #include <fcntl.h>
-TEST(Actions, sampling_ratio_dropping_FCNTL_E) {
-	auto evt_test = get_syscall_event_test(__NR_fcntl, ENTER_EVENT);
-
-	evt_test->enable_sampling_logic(1);
-
-	evt_test->enable_capture();
-
-	/* If called with `F_DUPFD_CLOEXEC` flag the fcntl event shouldn't be dropped by the dropping
-	 * logic */
-	int32_t invalid_fd = -1;
-	int cmd = F_DUPFD_CLOEXEC;
-	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
-
-	evt_test->assert_event_presence();
-
-	/* This fcntl event should be dropped now since the flag is `F_NOTIFY` */
-	cmd = F_NOTIFY;
-	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
-
-	evt_test->assert_event_absence();
-
-	evt_test->disable_sampling_logic();
-
-	/* Now that the sampling logic is disabled we should catch the event */
-	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
-
-	evt_test->assert_event_presence();
-
-	evt_test->disable_capture();
-}
 
 TEST(Actions, sampling_ratio_dropping_FCNTL_X) {
 	auto evt_test = get_syscall_event_test(__NR_fcntl, EXIT_EVENT);
