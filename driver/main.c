@@ -1477,8 +1477,6 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SYSCALL_UMOUNT_1_E:
 	case PPME_SYSCALL_UMOUNT2_E:
 	case PPME_SYSCALL_RMDIR_2_E:
-	case PPME_SYSCALL_SYMLINK_E:
-	case PPME_SYSCALL_SYMLINKAT_E:
 	case PPME_SYSCALL_UNLINK_2_E:
 	case PPME_SYSCALL_UNLINKAT_2_E:
 		ring_info->n_drops_buffer_dir_file_enter++;

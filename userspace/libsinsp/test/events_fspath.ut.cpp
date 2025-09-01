@@ -799,7 +799,6 @@ TEST_F(fspath, linkat_2_relative) {
 }
 
 TEST_F(fspath, symlink) {
-	test_enter(PPME_SYSCALL_SYMLINK_E, 0);
 	test_exit_source_target(linkpath,
 	                        linkpath,
 	                        targetpath,
@@ -813,7 +812,6 @@ TEST_F(fspath, symlink) {
 }
 
 TEST_F(fspath, symlink_relative) {
-	test_enter(PPME_SYSCALL_SYMLINK_E, 0);
 	test_exit_source_target(resolved_rel_linkpath,
 	                        rel_linkpath,
 	                        resolved_rel_targetpath,
@@ -826,7 +824,6 @@ TEST_F(fspath, symlink_relative) {
 }
 
 TEST_F(fspath, symlinkat) {
-	test_enter(PPME_SYSCALL_SYMLINKAT_E, 0);
 	test_exit_source_target(linkpath,
 	                        linkpath,
 	                        targetpath,
@@ -845,7 +842,6 @@ TEST_F(fspath, symlinkat_relative) {
 	const char *resolved_rel_linkpath_at_symlinkat =
 	        "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/linkpath";
 
-	test_enter(PPME_SYSCALL_SYMLINKAT_E, 0);
 	test_exit_source_target(resolved_rel_linkpath_at_symlinkat,
 	                        rel_linkpath,
 	                        resolved_rel_targetpath_at_symlinkat,

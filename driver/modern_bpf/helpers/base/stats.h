@@ -46,8 +46,6 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	case PPME_SYSCALL_UMOUNT_1_E:
 	case PPME_SYSCALL_UMOUNT2_E:
 	case PPME_SYSCALL_RMDIR_2_E:
-	case PPME_SYSCALL_SYMLINK_E:
-	case PPME_SYSCALL_SYMLINKAT_E:
 	case PPME_SYSCALL_UNLINK_2_E:
 	case PPME_SYSCALL_UNLINKAT_2_E:
 		counter->n_drops_buffer_dir_file_enter++;
