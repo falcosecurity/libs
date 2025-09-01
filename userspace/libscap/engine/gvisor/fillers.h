@@ -570,12 +570,6 @@ int32_t fill_event_mmap_x(scap_sized_buffer scap_buf,
                           int64_t fd,
                           uint64_t offset);
 
-int32_t fill_event_munmap_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint64_t addr,
-                            uint64_t length);
-
 int32_t fill_event_munmap_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,

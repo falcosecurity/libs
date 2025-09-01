@@ -621,64 +621,29 @@ TEST_F(sys_call_test, mmap) {
 		munmap(p, 1003520);
 	};
 
-	uint32_t enter_vmsize;
-	uint32_t enter_vmrss;
-	uint32_t enter_vmswap;
-	uint32_t exit_vmsize;
-	uint32_t exit_vmrss;
-	uint32_t exit_vmswap;
-
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_MUNMAP_E) {
+		if(type == PPME_SYSCALL_MUNMAP_X) {
 			callnum++;
 
-			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
-			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
-			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
-
-			switch(callnum) {
-			case 1:
-				EXPECT_EQ("50", e->get_param_value_str("addr"));
-				EXPECT_EQ("300", e->get_param_value_str("length"));
-				break;
-			case 5: {
-				uint64_t addr = e->get_param_by_name("addr")->as<uint64_t>();
-#ifdef __LP64__
-				EXPECT_EQ((uint64_t)p, addr);
-#else
-				EXPECT_EQ(((uint32_t)p), addr);
-#endif
-				EXPECT_EQ("1003520", e->get_param_value_str("length"));
-				break;
-			}
-			default:
-				callnum--;
-			}
-		} else if(type == PPME_SYSCALL_MUNMAP_X) {
-			callnum++;
-
-			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
-			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
-			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
+			const auto exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
+			const auto exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
+			const auto exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
-			case 2:
+			case 1:
 				EXPECT_EQ("EINVAL", e->get_param_value_str("res"));
 				EXPECT_EQ("-22", e->get_param_value_str("res", false));
 				EXPECT_EQ("50", e->get_param_value_str("addr"));
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 6: {
+			case 4: {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
-				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
-				EXPECT_GE(enter_vmrss, exit_vmrss);
-				EXPECT_GE(enter_vmswap, exit_vmswap);
 				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
 #ifdef __LP64__
 				EXPECT_EQ((uint64_t)p, addr);
@@ -694,15 +659,15 @@ TEST_F(sys_call_test, mmap) {
 		} else if(type == PPME_SYSCALL_MMAP_X || type == PPME_SYSCALL_MMAP2_X) {
 			callnum++;
 
-			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
-			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
-			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
+			const auto exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
+			const auto exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
+			const auto exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
-			case 3: {
+			case 2: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ(-errno2, (int64_t)res);
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
@@ -724,7 +689,7 @@ TEST_F(sys_call_test, mmap) {
 				}
 				break;
 			}
-			case 4: {
+			case 3: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ((uint64_t)p, res);
 
@@ -752,7 +717,7 @@ TEST_F(sys_call_test, mmap) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(4, callnum);
 }
 
 TEST_F(sys_call_test, quotactl_ko) {
@@ -1789,9 +1754,6 @@ TEST_F(sys_call_test32, mmap) {
 		handle.wait();
 	};
 
-	uint32_t enter_vmsize;
-	uint32_t enter_vmrss;
-	uint32_t enter_vmswap;
 	uint32_t exit_vmsize;
 	uint32_t exit_vmrss;
 	uint32_t exit_vmswap;
@@ -1803,32 +1765,7 @@ TEST_F(sys_call_test32, mmap) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_MUNMAP_E) {
-			callnum++;
-
-			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
-			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
-			enter_vmswap = e->get_thread_info(false)->m_vmswap_kb;
-
-			switch(callnum) {
-			case 1:
-				EXPECT_EQ("50", e->get_param_value_str("addr"));
-				EXPECT_EQ("300", e->get_param_value_str("length"));
-				break;
-			case 5: {
-				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
-#ifdef __LP64__
-				EXPECT_EQ((uint64_t)p, addr);
-#else
-				EXPECT_EQ(((uint32_t)p), addr);
-#endif
-				EXPECT_EQ("1003520", e->get_param_value_str("length"));
-				break;
-			}
-			default:
-				callnum--;
-			}
-		} else if(type == PPME_SYSCALL_MUNMAP_X) {
+		if(type == PPME_SYSCALL_MUNMAP_X) {
 			callnum++;
 
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
@@ -1839,17 +1776,14 @@ TEST_F(sys_call_test32, mmap) {
 			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
-			case 2:
+			case 1:
 				EXPECT_EQ("EINVAL", e->get_param_value_str("res"));
 				EXPECT_EQ("-22", e->get_param_value_str("res", false));
 				EXPECT_EQ("50", e->get_param_value_str("addr"));
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
-			case 6: {
+			case 4: {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
-				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
-				EXPECT_GE(enter_vmrss, exit_vmrss);
-				EXPECT_GE(enter_vmswap, exit_vmswap);
 				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
 #ifdef __LP64__
 				EXPECT_EQ((uint64_t)p, addr);
@@ -1873,7 +1807,7 @@ TEST_F(sys_call_test32, mmap) {
 			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
-			case 3: {
+			case 2: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ(-errno2, (int64_t)res);
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
@@ -1895,7 +1829,7 @@ TEST_F(sys_call_test32, mmap) {
 				}
 				break;
 			}
-			case 4: {
+			case 3: {
 				uint64_t res = e->get_param_by_name("res")->as<uint64_t>();
 				EXPECT_EQ((uint64_t)p, res);
 				EXPECT_EQ("0", e->get_param_value_str("addr"));
@@ -1922,7 +1856,7 @@ TEST_F(sys_call_test32, mmap) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(4, callnum);
 }
 
 TEST_F(sys_call_test32, ppoll_timeout) {
