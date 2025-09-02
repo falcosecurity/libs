@@ -7450,12 +7450,6 @@ FILLER(sys_getcwd_x, true) {
 	return res;
 }
 
-FILLER(sys_getdents_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, fd);
-}
-
 FILLER(sys_getdents_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
@@ -7463,12 +7457,6 @@ FILLER(sys_getdents_x, true) {
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, fd);
-}
-
-FILLER(sys_getdents64_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
 	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
 	return bpf_push_s64_to_ring(data, fd);
 }
