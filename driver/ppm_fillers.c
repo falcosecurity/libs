@@ -8143,28 +8143,6 @@ int f_sys_semop_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_semget_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: key (type: PT_INT32) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: nsems (type: PT_INT32) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: semflg (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_semget_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	unsigned long val;
@@ -8188,36 +8166,6 @@ int f_sys_semget_x(struct event_filler_arguments *args) {
 	/* Parameter 4: semflg (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
-int f_sys_semctl_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: semid (type: PT_INT32) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: semnum (type: PT_INT32) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: cmd (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, semctl_cmd_to_scap(val), 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 4: val (type: PT_INT32) */
-	if(val == SETVAL)
-		syscall_get_arguments_deprecated(args, 3, 1, &val);
-	else
-		val = 0;
-	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

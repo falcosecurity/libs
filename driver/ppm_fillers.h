@@ -109,9 +109,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_flock_x)                      \
 	FN(cpu_hotplug_e)                    \
 	FN(sys_semop_x)                      \
-	FN(sys_semget_e)                     \
 	FN(sys_semget_x)                     \
-	FN(sys_semctl_e)                     \
 	FN(sys_semctl_x)                     \
 	FN(sys_ppoll_e)                      \
 	FN(sys_ppoll_x)                      \
