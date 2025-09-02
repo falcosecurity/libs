@@ -1312,9 +1312,6 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 	uint32_t orig_uids[3];
 	uint32_t orig_gids[3];
 
-	bool getresuid_e_ok = false;
-	bool getresgid_e_ok = false;
-
 	bool getresuid_ok = false;
 	bool getresgid_ok = false;
 
@@ -1340,8 +1337,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		return tinfo->m_comm != "sudo" && tinfo->m_pid == self &&
 		       (type == PPME_USER_ADDED_E || type == PPME_USER_ADDED_X ||
 		        type == PPME_GROUP_ADDED_E || type == PPME_GROUP_ADDED_X ||
-		        type == PPME_SYSCALL_GETRESUID_E || type == PPME_SYSCALL_GETRESUID_X ||
-		        type == PPME_SYSCALL_GETRESGID_E || type == PPME_SYSCALL_GETRESGID_X ||
+		        type == PPME_SYSCALL_GETRESUID_X || type == PPME_SYSCALL_GETRESGID_X ||
 		        type == PPME_SYSCALL_SETRESUID_X || type == PPME_SYSCALL_SETRESGID_X);
 	};
 
@@ -1391,12 +1387,6 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 			EXPECT_EQ("-1", e->get_param_value_str("sgid", false));
 			EXPECT_EQ("<NONE>", e->get_param_value_str("sgid"));
 			setresgid_ok = true;
-		} else if(type == PPME_SYSCALL_GETRESUID_E && !getresuid_e_ok) {
-			++callnum;
-			getresuid_e_ok = true;
-		} else if(type == PPME_SYSCALL_GETRESGID_E && !getresgid_e_ok) {
-			++callnum;
-			getresgid_e_ok = true;
 		} else if(type == PPME_SYSCALL_GETRESUID_X && !getresuid_ok) {
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
@@ -1443,7 +1433,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		                   event_capture::do_nothing,
 		                   after_capture);
 	});
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(4, callnum);
 }
 
 TEST_F(sys_call_test, failing_execve) {
