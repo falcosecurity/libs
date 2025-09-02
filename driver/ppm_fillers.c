@@ -4083,30 +4083,6 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	return val_to_ring(args, longtime, 0, false, 0);
 }
 
-int f_sys_ppoll_e(struct event_filler_arguments *args) {
-	int res;
-	unsigned long val;
-
-	/* Parameter 1: fds (type: PT_FDLIST) */
-	res = poll_parse_fds(args, true);
-	CHECK_RES(res);
-
-	/* Parameter 2: timeout (type: PT_RELTIME) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = timespec_parse(args, val);
-	CHECK_RES(res);
-
-	/* Parameter 3: sigmask (type: PT_SIGSET) */
-	syscall_get_arguments_deprecated(args, 3, 1, &val);
-	if(val == (unsigned long)NULL || ppm_copy_from_user(&val, (void __user *)val, sizeof(val))) {
-		val = 0;
-	}
-	res = val_to_ring(args, (uint32_t)val, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_ppoll_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
