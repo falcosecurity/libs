@@ -4345,17 +4345,6 @@ FILLER(sys_sendfile_x, true) {
 	return bpf_push_u64_to_ring(data, size);
 }
 
-FILLER(sys_prlimit_e, true) {
-	/* Parameter 1: pid (type: PT_PID) */
-	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)pid);
-	CHECK_RES(res);
-
-	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
-	uint32_t resource = bpf_syscall_get_argument(data, 1);
-	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
-}
-
 FILLER(sys_prlimit_x, true) {
 	unsigned long val;
 

@@ -325,12 +325,6 @@ int32_t fill_event_setresgid_x(scap_sized_buffer scap_buf,
                                uint32_t egid,
                                uint32_t sgid);
 
-int32_t fill_event_prlimit_e(scap_sized_buffer scap_buf,
-                             size_t* event_size,
-                             char* scap_err,
-                             int64_t pid,
-                             uint8_t resource);
-
 int32_t fill_event_prlimit_x(scap_sized_buffer scap_buf,
                              size_t* event_size,
                              char* scap_err,

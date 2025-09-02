@@ -1499,24 +1499,19 @@ static parse_result parse_prlimit64(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_prlimit_x(scap_buf,
-		                                                        &ret.size,
-		                                                        scap_err,
-		                                                        gvisor_evt.exit().result(),
-		                                                        gvisor_evt.new_limit().cur(),
-		                                                        gvisor_evt.new_limit().max(),
-		                                                        gvisor_evt.old_limit().cur(),
-		                                                        gvisor_evt.old_limit().max());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_prlimit_e(
-		        scap_buf,
-		        &ret.size,
-		        scap_err,
-		        gvisor_evt.pid(),
-		        rlimit_resource_to_scap(gvisor_evt.resource()));
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
 
+	ret.status = scap_gvisor::fillers::fill_event_prlimit_x(scap_buf,
+	                                                        &ret.size,
+	                                                        scap_err,
+	                                                        gvisor_evt.exit().result(),
+	                                                        gvisor_evt.new_limit().cur(),
+	                                                        gvisor_evt.new_limit().max(),
+	                                                        gvisor_evt.old_limit().cur(),
+	                                                        gvisor_evt.old_limit().max());
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;
