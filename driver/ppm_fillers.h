@@ -109,7 +109,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_semop_x)                      \
 	FN(sys_semget_x)                     \
 	FN(sys_semctl_x)                     \
-	FN(sys_ppoll_e)                      \
 	FN(sys_ppoll_x)                      \
 	FN(sys_mount_e)                      \
 	FN(sys_mount_x)                      \

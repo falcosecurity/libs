@@ -5560,23 +5560,6 @@ FILLER(sys_mount_x, true) {
 	return bpf_push_u32_to_ring(data, val);
 }
 
-FILLER(sys_ppoll_e, true) {
-	/* Parameter 1: fds (type: PT_FDLIST) */
-	int res = bpf_poll_parse_fds(data, true);
-	CHECK_RES(res);
-
-	/* Parameter 2: timeout (type: PT_RELTIME) */
-	unsigned long val = bpf_syscall_get_argument(data, 2);
-	res = timespec_parse(data, val);
-	CHECK_RES(res);
-
-	/* Parameter 3: sigmask (type: PT_SIGSET) */
-	long unsigned int sigmask[1] = {0};
-	unsigned long sigmask_pointer = bpf_syscall_get_argument(data, 3);
-	bpf_probe_read_user(&sigmask, sizeof(sigmask), (void *)sigmask_pointer);
-	return bpf_push_u32_to_ring(data, sigmask[0]);
-}
-
 FILLER(sys_ppoll_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);

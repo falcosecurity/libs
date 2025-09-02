@@ -1243,10 +1243,8 @@ TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS) {
 TEST_F(sys_call_test, ppoll_timeout) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto ti = evt->get_thread_info(false);
-		return (evt->get_type() == PPME_SYSCALL_PPOLL_E ||
-		        evt->get_type() == PPME_SYSCALL_PPOLL_X) &&
-		       ti->m_comm == "test_helper";
+		return evt->get_type() == PPME_SYSCALL_PPOLL_X &&
+		       evt->get_thread_info(false)->m_comm == "test_helper";
 	};
 
 	run_callback_t test = [&](sinsp* inspector) {
@@ -1256,36 +1254,19 @@ TEST_F(sys_call_test, ppoll_timeout) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_PPOLL_E) {
-			//
-			// stdin and stdout can be a file or a fifo depending
-			// on how the tests are invoked
-			//
-			string fds = e->get_param_value_str("fds");
-			EXPECT_TRUE(fds == "3:p1 4:p4" || fds == "4:p1 5:p4");
-			EXPECT_EQ("1000000", e->get_param_value_str("timeout", false));
-			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
-			callnum++;
-		} else if(type == PPME_SYSCALL_PPOLL_X) {
-			int64_t res = stoi(e->get_param_value_str("res"));
-
-			EXPECT_EQ(res, 1);
-
-			string fds = e->get_param_value_str("fds");
-
-			EXPECT_TRUE(fds == "3:p0 4:p4" || fds == "4:p0 5:p4");
-			// The Linux system call implementation updates the timeout to reflect the amount of
-			// time not slept, so we obtain here a value that is less than or equal to the
-			// configured timeout.
-			EXPECT_LE(e->get_param_by_name("timeout")->as<uint64_t>(), 1000000);
-			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
-			callnum++;
-		}
+		int64_t res = stoi(e->get_param_value_str("res"));
+		string fds = e->get_param_value_str("fds");
+		EXPECT_EQ(res, 1);
+		EXPECT_TRUE(fds == "3:p0 4:p4" || fds == "4:p0 5:p4");
+		// The Linux system call implementation updates the timeout to reflect the amount of
+		// time not slept, so we obtain here a value that is less than or equal to the
+		// configured timeout.
+		EXPECT_LE(e->get_param_by_name("timeout")->as<uint64_t>(), 1000000);
+		EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
+		callnum++;
 	};
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, getsetresuid_and_gid) {
@@ -1810,9 +1791,8 @@ TEST_F(sys_call_test32, ppoll_timeout) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto tinfo = evt->get_thread_info(false);
-		return (evt->get_type() == PPME_SYSCALL_PPOLL_E ||
-		        evt->get_type() == PPME_SYSCALL_PPOLL_X) &&
-		       tinfo != nullptr && tinfo->m_comm == "test_helper_32";
+		return evt->get_type() == PPME_SYSCALL_PPOLL_X && tinfo != nullptr &&
+		       tinfo->m_comm == "test_helper_32";
 	};
 
 	std::string my_pipe[2];
@@ -1836,53 +1816,37 @@ TEST_F(sys_call_test32, ppoll_timeout) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
+		int64_t res = std::stol(e->get_param_value_str("res"));
 
-		if(type == PPME_SYSCALL_PPOLL_E) {
-			//
-			// stdin and stdout can be a file or a fifo depending
-			// on how the tests are invoked
-			//
-			std::string fds = e->get_param_value_str("fds");
-			std::string expected_fds = my_pipe[0] + ":p1 " + my_pipe[1] + ":p4";
+		EXPECT_GT(res, 0);
+		EXPECT_LE(res, 2);
 
+		string fds = e->get_param_value_str("fds");
+		std::string expected_fds = my_pipe[0] + ":p0 " + my_pipe[1] + ":p4";
+
+		switch(res) {
+		case 1:
 			EXPECT_EQ(expected_fds, fds);
-			EXPECT_EQ("1000000", e->get_param_value_str("timeout", false));
-			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
-			callnum++;
-		} else if(type == PPME_SYSCALL_PPOLL_X) {
-			int64_t res = std::stol(e->get_param_value_str("res"));
-
-			EXPECT_GT(res, 0);
-			EXPECT_LE(res, 2);
-
-			string fds = e->get_param_value_str("fds");
-			std::string expected_fds = my_pipe[0] + ":p0 " + my_pipe[1] + ":p4";
-
-			switch(res) {
-			case 1:
-				EXPECT_EQ(expected_fds, fds);
-				break;
-			case 2:
-				//
-				// On EC2 called from jenkins stdin returns POLLHUP
-				//
-				EXPECT_EQ(expected_fds, fds);
-				break;
-			default:
-				FAIL();
-			}
-
-			// The Linux system call implementation updates the timeout to reflect the amount of
-			// time not slept, so we obtain here a value that is less than or equal to the
-			// configured timeout.
-			EXPECT_LE(e->get_param_by_name("timeout")->as<uint64_t>(), 1000000);
-			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
-			callnum++;
+			break;
+		case 2:
+			//
+			// On EC2 called from jenkins stdin returns POLLHUP
+			//
+			EXPECT_EQ(expected_fds, fds);
+			break;
+		default:
+			FAIL();
 		}
+
+		// The Linux system call implementation updates the timeout to reflect the amount of
+		// time not slept, so we obtain here a value that is less than or equal to the
+		// configured timeout.
+		EXPECT_LE(e->get_param_by_name("timeout")->as<uint64_t>(), 1000000);
+		EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
+		callnum++;
 	};
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test32, fs_preadv) {
