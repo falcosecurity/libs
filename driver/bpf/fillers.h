@@ -5688,17 +5688,6 @@ FILLER(sys_socket_x, true) {
 	return bpf_push_u32_to_ring(data, proto);
 }
 
-FILLER(sys_flock_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: operation (type: PT_FLAGS32) */
-	int operation = bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, flock_flags_to_scap(operation));
-}
-
 FILLER(sys_flock_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
