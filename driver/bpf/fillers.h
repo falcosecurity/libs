@@ -154,7 +154,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_BPF_2_E:
 		case PPME_SYSCALL_SETPGID_E:
 		case PPME_SYSCALL_SECCOMP_E:
-		case PPME_SYSCALL_SETNS_E:
 		case PPME_SYSCALL_SETSID_E:
 		case PPME_SYSCALL_UNSHARE_E:
 		case PPME_SYSCALL_CAPSET_E:
@@ -3235,17 +3234,6 @@ FILLER(sys_fchdir_x, true) {
 	/* Parameter 2: fd (type: PT_FD) */
 	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
 	return bpf_push_s64_to_ring(data, (int64_t)fd);
-}
-
-FILLER(sys_setns_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: nstype (type: PT_FLAGS32) */
-	unsigned long nstype = bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, clone_flags_to_scap((int)nstype));
 }
 
 FILLER(sys_setns_x, true) {
