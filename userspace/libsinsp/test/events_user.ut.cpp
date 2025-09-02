@@ -60,12 +60,6 @@ TEST_F(sinsp_with_test_input, setresuid_setresgid) {
 
 	int64_t errno_success = 0, errno_failure = -1;
 
-	// set a new user ID
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESUID_E, 3, 600, 600, 600);
-	// check that upon entry we have the default user ID
-	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
-	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
-
 	// check that the user ID is updated if the call is successful. The expected user is the EUID
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
@@ -75,10 +69,6 @@ TEST_F(sinsp_with_test_input, setresuid_setresgid) {
 	                           600,
 	                           600,
 	                           600);
-	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "600");
-
-	// check that the new user ID is retained
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESUID_E, 3, 0, 0, 0);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "600");
 
 	// check that the user ID is not updated after an unsuccessful setuid call
@@ -91,11 +81,6 @@ TEST_F(sinsp_with_test_input, setresuid_setresgid) {
 	                           0,
 	                           0);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "600");
-
-	// set a new group ID
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESGID_E, 3, 600, 600, 600);
-	// check that upon entry we have the default user ID
-	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
 
 	// check that the group ID is updated if the call is successful. The expected user is the EGID
 	evt = add_event_advance_ts(increasing_ts(),

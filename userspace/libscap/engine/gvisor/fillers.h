@@ -309,13 +309,6 @@ int32_t fill_event_setsid_x(scap_sized_buffer scap_buf,
                             char* scap_err,
                             int64_t res);
 
-int32_t fill_event_setresuid_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               uint32_t ruid,
-                               uint32_t euid,
-                               uint32_t suid);
-
 int32_t fill_event_setresuid_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,
@@ -323,13 +316,6 @@ int32_t fill_event_setresuid_x(scap_sized_buffer scap_buf,
                                uint32_t ruid,
                                uint32_t euid,
                                uint32_t suid);
-
-int32_t fill_event_setresgid_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               uint32_t rgid,
-                               uint32_t egid,
-                               uint32_t sgid);
 
 int32_t fill_event_setresgid_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
