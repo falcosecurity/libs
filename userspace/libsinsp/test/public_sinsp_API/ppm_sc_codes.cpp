@@ -292,7 +292,7 @@ TEST(ppm_sc_API, check_generic_events) {
 /* Check the `is_skip_parse_reset_event` API works correctly */
 TEST(ppm_sc_API, check_skip_parse_reset_events) {
 	ASSERT_EQ(libsinsp::events::is_skip_parse_reset_event(ppm_event_code::PPME_PROCINFO_E), true);
-	ASSERT_EQ(libsinsp::events::is_skip_parse_reset_event(ppm_event_code::PPME_SYSCALL_GETDENTS_E),
+	ASSERT_EQ(libsinsp::events::is_skip_parse_reset_event(ppm_event_code::PPME_SYSCALL_GETDENTS_X),
 	          false);
 	ASSERT_EQ(libsinsp::events::is_skip_parse_reset_event(ppm_event_code::PPME_PLUGINEVENT_E),
 	          false);
