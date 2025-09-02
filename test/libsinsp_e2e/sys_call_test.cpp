@@ -963,9 +963,7 @@ TEST_F(sys_call_test, getsetuid_and_gid) {
 			EXPECT_EQ("<NA>", e->get_param_value_str("egid"));
 			break;
 		case PPME_SYSCALL_GETUID_E:
-		case PPME_SYSCALL_GETEUID_E:
 		case PPME_SYSCALL_GETGID_E:
-		case PPME_SYSCALL_GETEGID_E:
 			++callnum;
 			break;
 		}
@@ -985,7 +983,7 @@ TEST_F(sys_call_test, getsetuid_and_gid) {
 		FAIL() << "Cannot restore initial id state.";
 	}
 
-	EXPECT_EQ(11, callnum);
+	EXPECT_EQ(9, callnum);
 }
 
 #ifdef __x86_64__

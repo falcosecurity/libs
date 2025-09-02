@@ -49,9 +49,7 @@ TEST(Actions, ia32)
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_WRITE_X);
 
 	// getegid32 and geteuid32 are ia32 only syscalls and are translated to getegid and geteuid x86_64 syscalls
-	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEGID_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEGID_X);
-	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEUID_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEUID_X);
 
 	// umount is ia32 only and is translated to x86_64 umount2
