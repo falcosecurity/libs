@@ -856,7 +856,6 @@ TEST_F(fspath, mount) {
 	const char *devpath = "/dev/cdrom0";
 	const char *mounttype = "iso9660";
 
-	test_enter(PPME_SYSCALL_MOUNT_E, 1, flags);
 	test_exit_source_target(devpath,
 	                        devpath,
 	                        mountpath,
@@ -872,13 +871,11 @@ TEST_F(fspath, mount) {
 }
 
 TEST_F(fspath, umount) {
-	test_enter(PPME_SYSCALL_UMOUNT_E, 1, flags);
 	test_exit_path(mountpath, mountpath, PPME_SYSCALL_UMOUNT_X, 2, res, mountpath);
 	test_failed_exit(PPME_SYSCALL_UMOUNT_X, 2, failed_res, mountpath);
 }
 
 TEST_F(fspath, umount_1) {
-	test_enter(PPME_SYSCALL_UMOUNT_1_E, 0);
 	test_exit_path(mountpath, mountpath, PPME_SYSCALL_UMOUNT_1_X, 2, res, mountpath);
 	test_failed_exit(PPME_SYSCALL_UMOUNT_1_X, 2, failed_res, mountpath);
 }
