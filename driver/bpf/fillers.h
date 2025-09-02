@@ -124,8 +124,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_FCHOWNAT_E:
 		case PPME_SYSCALL_LINK_2_E:
 		case PPME_SYSCALL_LINKAT_2_E:
-		case PPME_SYSCALL_MOUNT_E:
-		case PPME_SYSCALL_UMOUNT_1_E:
 		case PPME_SYSCALL_UMOUNT2_E:
 		case PPME_SYSCALL_RMDIR_2_E:
 		case PPME_SYSCALL_UNLINK_2_E:
@@ -5539,19 +5537,6 @@ FILLER(sys_eventfd2_x, true) {
 	/* Parameter 3: initval (type: PT_UINT64) */
 	unsigned long val = bpf_syscall_get_argument(data, 0);
 	return bpf_push_u64_to_ring(data, val);
-}
-
-FILLER(sys_mount_e, true) {
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	/*
-	 * Fix mount flags in arg 3.
-	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
-	 */
-	unsigned long val = bpf_syscall_get_argument(data, 3);
-	if((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
-		val &= ~PPM_MS_MGC_MSK;
-
-	return bpf_push_u32_to_ring(data, val);
 }
 
 FILLER(sys_mount_x, true) {

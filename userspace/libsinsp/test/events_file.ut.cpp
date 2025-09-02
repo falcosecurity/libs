@@ -412,7 +412,6 @@ TEST_F(sinsp_with_test_input, umount) {
 	int64_t res = 0;
 	const char* name = "/target_name";
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_X, 2, res, name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount");
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
