@@ -954,22 +954,6 @@ int32_t fill_event_setresgid_x(scap_sized_buffer scap_buf,
 	                                sgid);
 }
 
-// PPME_SYSCALL_PRLIMIT_E
-// Event field validity issues: none
-int32_t fill_event_prlimit_e(scap_sized_buffer scap_buf,
-                             size_t* event_size,
-                             char* scap_err,
-                             int64_t pid,
-                             uint8_t resource) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_PRLIMIT_E,
-	                                2,
-	                                pid,
-	                                resource);
-}
-
 // PPME_SYSCALL_PRLIMIT_X
 // Event field validity issues: none
 int32_t fill_event_prlimit_x(scap_sized_buffer scap_buf,

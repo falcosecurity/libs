@@ -491,43 +491,6 @@ TEST_F(sys_call_test, process_rlimit) {
 
 			callnum++;
 		}
-		if(type == PPME_SYSCALL_PRLIMIT_E) {
-			EXPECT_EQ((int64_t)PPM_RLIMIT_NOFILE,
-			          std::stoll(e->get_param_value_str("resource", false)));
-			callnum++;
-		}
-		if(type == PPME_SYSCALL_PRLIMIT_X) {
-			int64_t res = std::stoll(e->get_param_value_str("res", false));
-			int64_t newcur = std::stoll(e->get_param_value_str("newcur", false));
-			int64_t newmax = std::stoll(e->get_param_value_str("newmax", false));
-			int64_t oldcur = std::stoll(e->get_param_value_str("oldcur", false));
-			int64_t oldmax = std::stoll(e->get_param_value_str("oldmax", false));
-			switch(callnum) {
-			case 1:
-				EXPECT_GT(0, res);
-				break;
-			case 3:
-				EXPECT_EQ(0, res);
-				EXPECT_EQ(-1, newcur);
-				EXPECT_EQ(-1, newmax);
-				break;
-			case 5:
-				EXPECT_EQ(0, res);
-				EXPECT_EQ(5000, newcur);
-				EXPECT_EQ(10000, newmax);
-				EXPECT_EQ(-1, oldcur);
-				EXPECT_EQ(-1, oldmax);
-				break;
-			case 7:
-				EXPECT_EQ(0, res);
-				EXPECT_EQ(-1, newcur);
-				EXPECT_EQ(-1, newmax);
-				EXPECT_EQ(5000, oldcur);
-				EXPECT_EQ(10000, oldmax);
-				break;
-			}
-			callnum++;
-		}
 	};
 
 	after_capture_t cleanup = [&](sinsp* inspector) {
@@ -569,34 +532,33 @@ TEST_F(sys_call_test, process_prlimit) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_PRLIMIT_E) {
-			EXPECT_EQ((int64_t)PPM_RLIMIT_NOFILE,
-			          std::stoll(e->get_param_value_str("resource", false)));
-			EXPECT_EQ((int64_t)getpid(), std::stoll(e->get_param_value_str("pid", false)));
-			callnum++;
-		} else if(type == PPME_SYSCALL_PRLIMIT_X) {
+		if(type == PPME_SYSCALL_PRLIMIT_X) {
 			EXPECT_GE((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
 
-			if(callnum == 1) {
+			if(callnum == 0) {
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("newcur", false)));
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("newmax", false)));
 				EXPECT_EQ((int64_t)orirl.rlim_cur,
 				          std::stoll(e->get_param_value_str("oldcur", false)));
 				EXPECT_EQ((int64_t)orirl.rlim_max,
 				          std::stoll(e->get_param_value_str("oldmax", false)));
-			} else if(callnum == 3) {
+			} else if(callnum == 1) {
 				EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("newcur", false)));
 				EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("newmax", false)));
 				EXPECT_EQ((int64_t)orirl.rlim_cur,
 				          std::stoll(e->get_param_value_str("oldcur", false)));
 				EXPECT_EQ((int64_t)orirl.rlim_max,
 				          std::stoll(e->get_param_value_str("oldmax", false)));
-			} else if(callnum == 5) {
+			} else if(callnum == 2) {
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("newcur", false)));
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("newmax", false)));
 				EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("oldcur", false)));
 				EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("oldmax", false)));
 			}
+
+			EXPECT_EQ((int64_t)PPM_RLIMIT_NOFILE,
+			          std::stoll(e->get_param_value_str("resource", false)));
+			EXPECT_EQ((int64_t)getpid(), std::stoll(e->get_param_value_str("pid", false)));
 
 			callnum++;
 		}
@@ -615,7 +577,7 @@ TEST_F(sys_call_test, process_prlimit) {
 		                   cleanup);
 	});
 
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(3, callnum);
 }
 
 class loadthread {
