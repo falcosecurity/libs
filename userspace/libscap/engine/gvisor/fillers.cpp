@@ -914,24 +914,6 @@ int32_t fill_event_setsid_x(scap_sized_buffer scap_buf,
 	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_SETSID_X, 1, res);
 }
 
-// PPME_SYSCALL_SETRESUID_E
-// Event field validity issues: none
-int32_t fill_event_setresuid_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               uint32_t ruid,
-                               uint32_t euid,
-                               uint32_t suid) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_SETRESUID_E,
-	                                3,
-	                                ruid,
-	                                euid,
-	                                suid);
-}
-
 // PPME_SYSCALL_SETRESUID_X
 // Event field validity issues: none
 int32_t fill_event_setresuid_x(scap_sized_buffer scap_buf,
@@ -950,24 +932,6 @@ int32_t fill_event_setresuid_x(scap_sized_buffer scap_buf,
 	                                ruid,
 	                                euid,
 	                                suid);
-}
-
-// PPME_SYSCALL_SETRESGID_E
-// Event field validity issues: none
-int32_t fill_event_setresgid_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               uint32_t rgid,
-                               uint32_t egid,
-                               uint32_t sgid) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_SETRESGID_E,
-	                                3,
-	                                rgid,
-	                                egid,
-	                                sgid);
 }
 
 // PPME_SYSCALL_SETRESGID_X

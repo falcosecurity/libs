@@ -1244,29 +1244,7 @@ static parse_result parse_setresid(uint32_t id,
 			break;
 		}
 	} else {
-		switch(gvisor_evt.sysno()) {
-		case __NR_setresuid:
-			ret.status = scap_gvisor::fillers::fill_event_setresuid_e(scap_buf,
-			                                                          &ret.size,
-			                                                          scap_err,
-			                                                          gvisor_evt.rid(),
-			                                                          gvisor_evt.eid(),
-			                                                          gvisor_evt.sid());
-			break;
-
-		case __NR_setresgid:
-			ret.status = scap_gvisor::fillers::fill_event_setresgid_e(scap_buf,
-			                                                          &ret.size,
-			                                                          scap_err,
-			                                                          gvisor_evt.rid(),
-			                                                          gvisor_evt.eid(),
-			                                                          gvisor_evt.sid());
-			break;
-
-		default:
-			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
-			break;
-		}
+		ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
