@@ -862,12 +862,6 @@ static __always_inline int timespec_parse(struct filler_data *data, unsigned lon
 	}
 }
 
-FILLER(sys_nanosleep_e, true) {
-	/* Parameter 1: interval (type: PT_RELTIME) */
-	unsigned long val = bpf_syscall_get_argument(data, 0);
-	return timespec_parse(data, val);
-}
-
 FILLER(sys_nanosleep_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);

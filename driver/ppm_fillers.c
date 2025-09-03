@@ -5088,18 +5088,6 @@ int f_sys_pwritev_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_nanosleep_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: interval (type: PT_RELTIME) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = timespec_parse(args, val);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_nanosleep_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
