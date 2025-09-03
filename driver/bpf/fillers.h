@@ -4197,12 +4197,6 @@ FILLER(sys_tgkill_x, true) {
 	return bpf_push_u8_to_ring(data, sig);
 }
 
-FILLER(sys_epoll_create_e, true) {
-	/* Parameter 1: size (type: PT_INT32) */
-	int32_t size = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s32_to_ring(data, size);
-}
-
 FILLER(sys_epoll_create_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	unsigned long retval = bpf_syscall_get_retval(data->ctx);
@@ -4212,12 +4206,6 @@ FILLER(sys_epoll_create_x, true) {
 	/* Parameter 2: size (type: PT_INT32) */
 	int32_t size = (int32_t)bpf_syscall_get_argument(data, 0);
 	return bpf_push_s32_to_ring(data, size);
-}
-
-FILLER(sys_epoll_create1_e, true) {
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	int32_t flags = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_u32_to_ring(data, epoll_create1_flags_to_scap(flags));
 }
 
 FILLER(sys_epoll_create1_x, true) {

@@ -24,10 +24,15 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	add_default_init_thread();
 	open_inspector();
 
-	// [PPME_SYSCALL_EPOLL_CREATE_E] = {"epoll_create", EC_WAIT | EC_SYSCALL, EF_CREATES_FD |
-	// EF_MODIFIES_STATE, 1, { {"size", PT_INT32, PF_DEC} } },
-	sinsp_evt* evt =
-	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (int32_t)-22);
+	// [PPME_SYSCALL_EPOLL_CREATE_X] = {"epoll_create",EC_WAIT | EC_SYSCALL, EF_CREATES_FD |
+	// EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED, 2, {{"res", PT_ERRNO, PF_DEC}, {"size",
+	// PT_INT32, PF_DEC}}}
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_EPOLL_CREATE_X,
+	                                      2,
+	                                      (int64_t)0,
+	                                      (int32_t)-22);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.size"), "-22");
 	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.size < -20"));
 
