@@ -149,7 +149,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_SECCOMP_E:
 		case PPME_SYSCALL_SETSID_E:
 		case PPME_SYSCALL_UNSHARE_E:
-		case PPME_SYSCALL_CAPSET_E:
 			if(state->n_drops_buffer_other_interest_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_other_interest_enter;
 			}

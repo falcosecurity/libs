@@ -63,7 +63,7 @@ TEST(Actions, sampling_ratio_NO_FLAGS) {
 	 * we have to check that the corresponding event is not dropped when the
 	 * sampling logic is enabled with ratio==1.
 	 */
-	auto evt_test = get_syscall_event_test(__NR_capset, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_capset, EXIT_EVENT);
 
 	/* With sampling==1 we shouldn't drop events without flags */
 	evt_test->enable_sampling_logic(1);
