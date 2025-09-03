@@ -474,17 +474,13 @@ TEST_F(sys_call_test, timerfd) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_TIMERFD_CREATE_E) {
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("clockid")));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("flags")));
-			callnum++;
-		} else if(type == PPME_SYSCALL_TIMERFD_CREATE_X) {
+		if(type == PPME_SYSCALL_TIMERFD_CREATE_X) {
 			EXPECT_EQ(fd, std::stoll(e->get_param_value_str("res", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("clockid")));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("flags")));
 			callnum++;
 		} else if(type == PPME_SYSCALL_READ_E) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				EXPECT_EQ("<t>", e->get_param_value_str("fd"));
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
@@ -502,7 +498,7 @@ TEST_F(sys_call_test, timerfd) {
 		                   libsinsp::events::all_sc_set());
 	});
 
-	EXPECT_EQ(3, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, timestamp) {

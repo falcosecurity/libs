@@ -46,12 +46,14 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags < 515"));
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.fd"), "9");
 
-	// [PPME_SYSCALL_TIMERFD_CREATE_E] = {"timerfd_create",EC_TIME | EC_SYSCALL,EF_CREATES_FD |
-	// EF_MODIFIES_STATE,2,{{"clockid", PT_UINT8, PF_DEC},{"flags", PT_UINT8, PF_HEX}}},
+	// [PPME_SYSCALL_TIMERFD_CREATE_X] = {"timerfd_create", EC_TIME | EC_SYSCALL, EF_CREATES_FD |
+	// EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED, 3, {{"res", PT_FD, PF_DEC}, {"clockid",
+	// PT_UINT8, PF_DEC}, {"flags", PT_UINT8, PF_HEX}}}
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_TIMERFD_CREATE_E,
-	                           2,
+	                           PPME_SYSCALL_TIMERFD_CREATE_X,
+	                           3,
+	                           (int64_t)0,
 	                           (uint8_t)-1,
 	                           (uint8_t)255);
 	// 255 in hex is FF
