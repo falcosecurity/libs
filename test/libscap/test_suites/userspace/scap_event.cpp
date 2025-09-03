@@ -115,23 +115,24 @@ TEST(scap_event, empty_clone) {
 TEST(scap_event, int_args) {
 	char scap_error[SCAP_LASTERR_SIZE];
 	scap_evt *maybe_evt;
-	uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_KILL_E, 2, 1234, 9);
+	uint32_t status =
+	        scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_KILL_X, 3, 0, 1234, 9);
 	ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
 	ASSERT_NE(maybe_evt, nullptr);
 	std::unique_ptr<scap_evt, decltype(free) *> evt{maybe_evt, free};
 
-	EXPECT_EQ(scap_event_get_nparams(evt.get()), 2);
+	EXPECT_EQ(scap_event_get_nparams(evt.get()), 3);
 
 	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
 	uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
-	EXPECT_EQ(n, 2);
-	EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
+	EXPECT_EQ(n, 3);
+	EXPECT_EQ(decoded_params[1].size, sizeof(uint64_t));
 	uint64_t val64;
-	memcpy(&val64, decoded_params[0].buf, sizeof(uint64_t));
+	memcpy(&val64, decoded_params[1].buf, sizeof(uint64_t));
 	EXPECT_EQ(val64, 1234);
 
 	uint8_t val8;
-	memcpy(&val8, decoded_params[1].buf, sizeof(uint8_t));
+	memcpy(&val8, decoded_params[2].buf, sizeof(uint8_t));
 	EXPECT_EQ(val8, 9);
 }
 

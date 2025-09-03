@@ -191,29 +191,15 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 				EXPECT_EQ(ssfd, std::stoi(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_KILL_E) {
-			if(callnum == 3) {
-				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
-				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
-				EXPECT_EQ("SIGTERM", e->get_param_value_str("sig"));
-				EXPECT_EQ(SIGTERM, std::stoi(e->get_param_value_str("sig", false)));
-				callnum++;
-			} else if(callnum == 5) {
-				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
-				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
-				EXPECT_EQ("SIGINT", e->get_param_value_str("sig"));
-				EXPECT_EQ(SIGINT, std::stoi(e->get_param_value_str("sig", false)));
-				callnum++;
-			}
 		} else if(type == PPME_SYSCALL_KILL_X) {
-			if(callnum == 4) {
+			if(callnum == 3) {
 				EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
 				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
 				EXPECT_EQ("SIGTERM", e->get_param_value_str("sig"));
 				EXPECT_EQ(SIGTERM, std::stoi(e->get_param_value_str("sig", false)));
 				callnum++;
-			} else if(callnum == 6) {
+			} else if(callnum == 4) {
 				EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
 				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
@@ -234,7 +220,7 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 		                   libsinsp::events::all_sc_set());
 	});
 
-	EXPECT_EQ(7, callnum);
+	EXPECT_EQ(5, callnum);
 }
 
 // This test is disabled until the new syscall for sleep is implemented.
