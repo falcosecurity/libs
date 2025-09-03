@@ -33,11 +33,6 @@ TEST_F(sinsp_with_test_input, setuid_setgid) {
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 2, errno_success, 500);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
 
-	// set a new group ID
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_E, 1, 600);
-	// check that upon entry we have the default group ID
-	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
-
 	// check that the group ID is updated if the call is successful
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_X, 2, errno_success, 600);
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
@@ -47,7 +42,6 @@ TEST_F(sinsp_with_test_input, setuid_setgid) {
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
 
 	// same for group ID
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_E, 1, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_X, 2, errno_failure, 0);
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
 }
