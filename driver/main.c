@@ -1461,7 +1461,6 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_E:
 		ring_info->n_drops_buffer_open_enter++;
 		break;
-	case PPME_SYSCALL_DUP_E:
 	case PPME_SYSCALL_CHMOD_E:
 	case PPME_SYSCALL_FCHMOD_E:
 	case PPME_SYSCALL_FCHMODAT_E:

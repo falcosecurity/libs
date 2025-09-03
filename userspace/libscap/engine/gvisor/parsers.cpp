@@ -1412,32 +1412,7 @@ static parse_result parse_dup(uint32_t id,
 			break;
 		}
 	} else {
-		switch(gvisor_evt.sysno()) {
-		case __NR_dup:
-			ret.status = scap_gvisor::fillers::fill_event_dup_1_e(scap_buf,
-			                                                      &ret.size,
-			                                                      scap_err,
-			                                                      gvisor_evt.old_fd());
-			break;
-
-		case __NR_dup2:
-			ret.status = scap_gvisor::fillers::fill_event_dup2_e(scap_buf,
-			                                                     &ret.size,
-			                                                     scap_err,
-			                                                     gvisor_evt.old_fd());
-			break;
-
-		case __NR_dup3:
-			ret.status = scap_gvisor::fillers::fill_event_dup3_e(scap_buf,
-			                                                     &ret.size,
-			                                                     scap_err,
-			                                                     gvisor_evt.old_fd());
-			break;
-
-		default:
-			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
-			break;
-		}
+		ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 	}
 
 	if(ret.status != SCAP_SUCCESS) {

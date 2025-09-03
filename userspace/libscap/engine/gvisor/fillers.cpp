@@ -1006,15 +1006,6 @@ int32_t fill_event_fcntl_x(scap_sized_buffer scap_buf,
 	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_FCNTL_X, 1, res);
 }
 
-// PPME_SYSCALL_DUP_1_E
-// Event field validity issues: none
-int32_t fill_event_dup_1_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_DUP_1_E, 1, fd);
-}
-
 // PPME_SYSCALL_DUP_1_X
 // Event field validity issues: none
 int32_t fill_event_dup_1_x(scap_sized_buffer scap_buf,
@@ -1029,15 +1020,6 @@ int32_t fill_event_dup_1_x(scap_sized_buffer scap_buf,
 	                                2,
 	                                res,
 	                                oldfd);
-}
-
-// PPME_SYSCALL_DUP2_E
-// Event field validity issues: none
-int32_t fill_event_dup2_e(scap_sized_buffer scap_buf,
-                          size_t* event_size,
-                          char* scap_err,
-                          int64_t fd) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_DUP2_E, 1, fd);
 }
 
 // PPME_SYSCALL_DUP2_X
@@ -1056,15 +1038,6 @@ int32_t fill_event_dup2_x(scap_sized_buffer scap_buf,
 	                                res,
 	                                oldfd,
 	                                newfd);
-}
-
-// PPME_SYSCALL_DUP3_E
-// Event field validity issues: none
-int32_t fill_event_dup3_e(scap_sized_buffer scap_buf,
-                          size_t* event_size,
-                          char* scap_err,
-                          int64_t fd) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_DUP3_E, 1, fd);
 }
 
 // PPME_SYSCALL_DUP3_X

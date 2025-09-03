@@ -149,11 +149,8 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mlockall_x)                   \
 	FN(sys_munlockall_x)                 \
 	FN(sys_capset_x)                     \
-	FN(sys_dup2_e)                       \
 	FN(sys_dup2_x)                       \
-	FN(sys_dup3_e)                       \
 	FN(sys_dup3_x)                       \
-	FN(sys_dup_e)                        \
 	FN(sys_dup_x)                        \
 	FN(sched_prog_exec)                  \
 	FN(sched_prog_exec_2)                \

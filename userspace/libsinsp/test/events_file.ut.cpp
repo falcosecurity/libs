@@ -109,27 +109,23 @@ TEST_F(sinsp_with_test_input, dup_dup2_dup3) {
 	                     (uint32_t)0xCA02,
 	                     (uint64_t)123);
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_E, 1, fd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_X, 1, newfd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_1_X, 2, newfd, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "123");
 
 	res = 123;
-	oldfd = 1;
+	oldfd = 3;
 	newfd = 123;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, res, oldfd, newfd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "123");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP3_E, 1, fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP3_X, 4, res, oldfd, newfd, 0);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "123");
 
 	res = 1;
 	oldfd = 3;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_1_E, 1, fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_1_X, 2, res, oldfd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "1");
