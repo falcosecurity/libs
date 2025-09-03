@@ -1142,22 +1142,6 @@ FILLER(sys_brk_x, true) {
 	return bpf_push_u64_to_ring(data, addr);
 }
 
-FILLER(sys_mprotect_e, true) {
-	/* Parameter 1: addr (type: PT_UINT64) */
-	unsigned long val = bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_u64_to_ring(data, val);
-	CHECK_RES(res);
-
-	/* Parameter 2: length (type: PT_UINT64) */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_push_u64_to_ring(data, val);
-	CHECK_RES(res);
-
-	/* Parameter 3: prot (type: PT_FLAGS32) */
-	val = bpf_syscall_get_argument(data, 2);
-	return bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
-}
-
 FILLER(sys_mprotect_x, true) {
 	/* Parameter 1: ret (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
