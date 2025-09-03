@@ -6157,32 +6157,6 @@ int f_sys_openat2_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_copy_file_range_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int64_t fdin;
-	int res;
-	unsigned long offin;
-	unsigned long len;
-
-	/* Parameter 1: fdin (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fdin = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fdin, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: offin (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 1, 1, &offin);
-	res = val_to_ring(args, offin, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: len (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 4, 1, &len);
-	res = val_to_ring(args, len, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_copy_file_range_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;

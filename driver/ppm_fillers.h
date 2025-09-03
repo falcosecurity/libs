@@ -134,7 +134,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_execveat_e)                   \
 	FN(execve_extra_tail_1)              \
 	FN(execve_extra_tail_2)              \
-	FN(sys_copy_file_range_e)            \
 	FN(sys_copy_file_range_x)            \
 	FN(sys_connect_e)                    \
 	FN(sys_open_by_handle_at_x)          \
