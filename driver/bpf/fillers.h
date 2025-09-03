@@ -1198,12 +1198,6 @@ FILLER(sys_fcntl_x, true) {
 	return bpf_push_u8_to_ring(data, fcntl_cmd_to_scap(cmd));
 }
 
-FILLER(sys_access_e, true) {
-	/* Parameter 1: mode (type: PT_UINT32) */
-	int mode = (int)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, (uint32_t)access_flags_to_scap(mode));
-}
-
 FILLER(sys_access_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
