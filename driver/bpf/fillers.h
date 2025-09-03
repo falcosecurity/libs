@@ -7070,22 +7070,6 @@ FILLER(sys_fchownat_x, true) {
 	return bpf_push_u32_to_ring(data, fchownat_flags_to_scap(flags));
 }
 
-FILLER(sys_copy_file_range_e, true) {
-	/* Parameter 1: fdin (type: PT_FD) */
-	int64_t fdin = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fdin);
-	CHECK_RES(res);
-
-	/* Parameter 2: offin (type: PT_UINT64) */
-	uint64_t offin = bpf_syscall_get_argument(data, 1);
-	res = bpf_push_u64_to_ring(data, offin);
-	CHECK_RES(res);
-
-	/* Parameter 3: len (type: PT_UINT64) */
-	uint64_t len = bpf_syscall_get_argument(data, 4);
-	return bpf_push_u64_to_ring(data, len);
-}
-
 FILLER(sys_copy_file_range_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
