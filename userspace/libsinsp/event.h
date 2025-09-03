@@ -715,8 +715,6 @@ public:
 		case PPME_SYSCALL_SIGNALFD_E:
 		case PPME_SYSCALL_SIGNALFD4_E:
 			return CHAR_FD_SIGNAL;
-		case PPME_SYSCALL_TIMERFD_CREATE_E:
-			return CHAR_FD_TIMERFD;
 		default:
 			return 'o';
 		}
