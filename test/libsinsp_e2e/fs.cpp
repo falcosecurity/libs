@@ -114,12 +114,12 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 				EXPECT_LT(0, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_UNLINK_2_E || type == PPME_SYSCALL_UNLINKAT_2_E) {
+		} else if(type == PPME_SYSCALL_UNLINKAT_2_E) {
 			if(callnum == 2 || callnum == 4) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_UNLINK_2_X || type == PPME_SYSCALL_UNLINKAT_2_X) {
-			if(callnum == 3) {
+			if(callnum == 2 || (callnum == 3 && type == PPME_SYSCALL_UNLINKAT_2_X)) {
 				if(type == PPME_SYSCALL_UNLINK_2_X) {
 					EXPECT_EQ(FILENAME, e->get_param_value_str("path", false));
 					EXPECT_EQ(cwd + FILENAME, e->get_param_value_str("path"));
@@ -128,7 +128,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 				}
 				EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
-			} else if(callnum == 5) {
+			} else if(callnum == 3 || callnum == 5) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
 			}
@@ -137,7 +137,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(6, callnum);
+	EXPECT_TRUE((4 == callnum) || (6 == callnum));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
