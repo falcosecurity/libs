@@ -5788,28 +5788,6 @@ int f_sys_brk_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_mprotect_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: addr (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: length (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: prot (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_mprotect_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
