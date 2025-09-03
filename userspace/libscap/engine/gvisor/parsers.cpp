@@ -1802,19 +1802,16 @@ static parse_result parse_inotify_init(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_inotify_init_x(scap_buf,
-		                                                             &ret.size,
-		                                                             scap_err,
-		                                                             gvisor_evt.exit().result(),
-		                                                             gvisor_evt.flags());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_inotify_init_e(scap_buf,
-		                                                             &ret.size,
-		                                                             scap_err,
-		                                                             gvisor_evt.flags());
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
 
+	ret.status = scap_gvisor::fillers::fill_event_inotify_init_x(scap_buf,
+	                                                             &ret.size,
+	                                                             scap_err,
+	                                                             gvisor_evt.exit().result(),
+	                                                             gvisor_evt.flags());
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;

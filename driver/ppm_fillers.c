@@ -6482,17 +6482,6 @@ int f_sys_timerfd_create_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_inotify_init_e(struct event_filler_arguments *args) {
-	/* Parameter 1: flags (type: PT_UINT8) */
-	/* We have nothing to extract from the kernel here so we send `0`.
-	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
-	 */
-	int res = val_to_ring(args, 0, 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_inotify_init_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
