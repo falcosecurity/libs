@@ -179,7 +179,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_ioctl_x)                      \
 	FN(sys_mkdir_x)                      \
 	FN(sys_setgid_x)                     \
-	FN(sys_setpgid_e)                    \
 	FN(sys_setpgid_x)                    \
 	FN(sys_setresgid_x)                  \
 	FN(sys_recvfrom_e)                   \

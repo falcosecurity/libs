@@ -60,7 +60,6 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 		counter->n_drops_buffer_connect_enter++;
 		break;
 	case PPME_SYSCALL_BPF_2_E:
-	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_SECCOMP_E:
 	case PPME_SYSCALL_SETSID_E:
 	case PPME_SYSCALL_UNSHARE_E:

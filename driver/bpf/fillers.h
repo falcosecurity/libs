@@ -152,7 +152,6 @@ FILLER_RAW(terminate_filler) {
 			}
 			break;
 		case PPME_SYSCALL_BPF_2_E:
-		case PPME_SYSCALL_SETPGID_E:
 		case PPME_SYSCALL_SECCOMP_E:
 		case PPME_SYSCALL_SETSID_E:
 		case PPME_SYSCALL_UNSHARE_E:
@@ -3262,17 +3261,6 @@ FILLER(sys_setgid_x, true) {
 	uint32_t gid = (uint32_t)bpf_syscall_get_argument(data, 0);
 	return bpf_push_u32_to_ring(data, gid);
 	CHECK_RES(res);
-}
-
-FILLER(sys_setpgid_e, true) {
-	/* Parameter 1: pid (type: PT_PID) */
-	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)pid);
-	CHECK_RES(res);
-
-	/* Parameter 2: pgid (type: PT_PID) */
-	pid_t pgid = (int32_t)bpf_syscall_get_argument(data, 1);
-	return bpf_push_s64_to_ring(data, (int64_t)pgid);
 }
 
 FILLER(sys_setpgid_x, true) {
