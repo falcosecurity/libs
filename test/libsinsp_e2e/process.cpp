@@ -343,12 +343,7 @@ TEST_F(sys_call_test, process_inotify) {
 		uint16_t type = e->get_type();
 		std::string name(e->get_name());
 
-		if(type == PPME_SYSCALL_INOTIFY_INIT_E) {
-			EXPECT_EQ(0, std::stoi(e->get_param_value_str("flags")));
-			callnum++;
-		} else if(type == PPME_SYSCALL_INOTIFY_INIT1_E) {
-			callnum++;
-		} else if(type == PPME_SYSCALL_INOTIFY_INIT_X) {
+		if(type == PPME_SYSCALL_INOTIFY_INIT_X) {
 			EXPECT_EQ(fd, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(0, std::stoi(e->get_param_value_str("flags")));
 			callnum++;
@@ -356,7 +351,7 @@ TEST_F(sys_call_test, process_inotify) {
 			EXPECT_EQ(fd, std::stoi(e->get_param_value_str("res", false)));
 			callnum++;
 		} else if(name.find("read") != std::string::npos && e->get_direction() == SCAP_ED_IN) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				EXPECT_EQ("<i>", e->get_param_value_str("fd"));
 				EXPECT_EQ(fd, std::stoi(e->get_param_value_str("fd", false)));
 				callnum++;
@@ -374,7 +369,7 @@ TEST_F(sys_call_test, process_inotify) {
 		                   libsinsp::events::all_sc_set());
 	});
 
-	EXPECT_EQ(3, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST(procinfo, process_not_existent) {

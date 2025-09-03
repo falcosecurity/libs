@@ -717,9 +717,6 @@ public:
 			return CHAR_FD_SIGNAL;
 		case PPME_SYSCALL_TIMERFD_CREATE_E:
 			return CHAR_FD_TIMERFD;
-		case PPME_SYSCALL_INOTIFY_INIT_E:
-		case PPME_SYSCALL_INOTIFY_INIT1_E:
-			return CHAR_FD_INOTIFY;
 		default:
 			return 'o';
 		}

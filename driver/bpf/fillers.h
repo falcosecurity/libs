@@ -3868,14 +3868,6 @@ FILLER(sys_timerfd_create_x, true) {
 	return bpf_push_u8_to_ring(data, 0);
 }
 
-FILLER(sys_inotify_init_e, true) {
-	/* Parameter 1: flags (type: PT_UINT8) */
-	/* We have nothing to extract from the kernel here so we send `0`.
-	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
-	 */
-	return bpf_push_u8_to_ring(data, 0);
-}
-
 FILLER(sys_inotify_init_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
 	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
