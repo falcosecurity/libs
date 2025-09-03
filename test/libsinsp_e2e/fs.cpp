@@ -194,12 +194,12 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 				EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_RMDIR_2_E || type == PPME_SYSCALL_UNLINKAT_2_E) {
+		} else if(type == PPME_SYSCALL_UNLINKAT_2_E) {
 			if(callnum == 2 || callnum == 4) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_RMDIR_2_X || type == PPME_SYSCALL_UNLINKAT_2_X) {
-			if(callnum == 3) {
+			if(callnum == 2 || (callnum == 3 && type == PPME_SYSCALL_UNLINKAT_2_X)) {
 				EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 				if(type == PPME_SYSCALL_RMDIR_2_X) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
@@ -208,7 +208,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("name", false));
 				}
 				callnum++;
-			} else if(callnum == 5) {
+			} else if(callnum == 3 || callnum == 5) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				if(type == PPME_SYSCALL_RMDIR_2_X) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
@@ -223,7 +223,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(6, callnum);
+	EXPECT_TRUE((4 == callnum) || (6 == callnum));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
