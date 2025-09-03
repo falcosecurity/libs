@@ -1493,7 +1493,6 @@ static inline void drops_buffer_syscall_categories_counters(
 		ring_info->n_drops_buffer_connect_enter++;
 		break;
 	case PPME_SYSCALL_BPF_2_E:
-	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_SECCOMP_E:
 	case PPME_SYSCALL_SETSID_E:
 	case PPME_SYSCALL_UNSHARE_E:
