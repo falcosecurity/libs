@@ -8057,18 +8057,6 @@ int f_sys_semctl_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_access_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: mode (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, access_flags_to_scap(val), 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_access_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
