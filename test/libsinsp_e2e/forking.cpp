@@ -209,11 +209,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		if(evt->get_type() == PPME_SYSCALL_NANOSLEEP_E ||
-		   evt->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
-			return evt->get_tid() == ptid;
-		}
-		return false;
+		return evt->get_type() == PPME_SYSCALL_NANOSLEEP_X && evt->get_tid() == ptid;
 	};
 
 	//
@@ -252,23 +248,12 @@ TEST_F(sys_call_test, forking_process_expired) {
 	// OUTPUT VALDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
-		const auto& thread_manager = param.m_inspector->m_thread_manager;
-		sinsp_evt* e = param.m_evt;
 		if(!sleep_caught) {
-			if(e->get_type() == PPME_SYSCALL_NANOSLEEP_E) {
-				//
-				// The child should exist
-				//
-				sinsp_threadinfo* ti = thread_manager->get_thread_ref(ctid, false, true).get();
-				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
-			} else if(e->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
-				//
-				// The child should exist
-				//
-				sinsp_threadinfo* ti = thread_manager->get_thread_ref(ctid, false, true).get();
-				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
-				sleep_caught = true;
-			}
+			// The child should exist.
+			const auto& thread_manager = param.m_inspector->m_thread_manager;
+			sinsp_threadinfo* ti = thread_manager->get_thread_ref(ctid, false, true).get();
+			EXPECT_NE((sinsp_threadinfo*)NULL, ti);
+			sleep_caught = true;
 		}
 	};
 

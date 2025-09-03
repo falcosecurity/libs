@@ -230,7 +230,9 @@ TEST_F(sys_call_test, DISABLED_process_usleep) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_NANOSLEEP_X;
+	};
 
 	//
 	// TEST CODE
@@ -250,34 +252,18 @@ TEST_F(sys_call_test, DISABLED_process_usleep) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_NANOSLEEP_E) {
-			if(callnum == 0) {
-				if(std::stoll(e->get_param_value_str("interval", false)) == 123456000) {
-					callnum++;
-				}
-			} else if(callnum == 2) {
-				EXPECT_EQ(5000000000, std::stoll(e->get_param_value_str("interval", false)));
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_NANOSLEEP_X) {
-			EXPECT_EQ(0, stoi(e->get_param_value_str("res", false)));
-			if(callnum == 1) {
-				if(std::stoll(e->get_param_value_str("interval", false)) == 123456000) {
-					callnum++;
-				}
-			} else if(callnum == 3) {
-				EXPECT_EQ(5000000000, std::stoll(e->get_param_value_str("interval", false)));
-				callnum++;
-			}
-			callnum++;
+		EXPECT_EQ(0, stoi(e->get_param_value_str("res", false)));
+		if(callnum == 0) {
+			EXPECT_EQ(123456000, std::stoll(e->get_param_value_str("interval", false)));
+		} else if(callnum == 1) {
+			EXPECT_EQ(5000000000, std::stoll(e->get_param_value_str("interval", false)));
 		}
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 #define EVENT_SIZE (sizeof(struct inotify_event))
@@ -642,7 +628,7 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_NANOSLEEP_E) {
+		if(type == PPME_SYSCALL_NANOSLEEP_X) {
 			if(callnum == 0) {
 				scap_threadinfo scap_proc;
 
