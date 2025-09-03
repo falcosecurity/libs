@@ -114,7 +114,6 @@ FILLER_RAW(terminate_filler) {
 				++state->n_drops_buffer_open_enter;
 			}
 			break;
-		case PPME_SYSCALL_DUP_E:
 		case PPME_SYSCALL_CHMOD_E:
 		case PPME_SYSCALL_FCHMOD_E:
 		case PPME_SYSCALL_FCHMODAT_E:
@@ -7219,12 +7218,6 @@ FILLER(sys_splice_x, true) {
 	return bpf_push_u32_to_ring(data, splice_flags_to_scap(val));
 }
 
-FILLER(sys_dup_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t oldfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, oldfd);
-}
-
 FILLER(sys_dup_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
 	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
@@ -7232,12 +7225,6 @@ FILLER(sys_dup_x, true) {
 	CHECK_RES(res);
 
 	/* Parameter 2: oldfd (type: PT_FD) */
-	int64_t oldfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, oldfd);
-}
-
-FILLER(sys_dup2_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
 	int64_t oldfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
 	return bpf_push_s64_to_ring(data, oldfd);
 }
@@ -7256,12 +7243,6 @@ FILLER(sys_dup2_x, true) {
 	/* Parameter 3: newfd (type: PT_FD) */
 	int64_t newfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 1);
 	return bpf_push_s64_to_ring(data, newfd);
-}
-
-FILLER(sys_dup3_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t oldfd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, oldfd);
 }
 
 FILLER(sys_dup3_x, true) {

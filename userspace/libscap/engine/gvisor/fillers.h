@@ -346,21 +346,11 @@ int32_t fill_event_fcntl_x(scap_sized_buffer scap_buf,
                            char* scap_err,
                            int64_t res);
 
-int32_t fill_event_dup_1_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd);
-
 int32_t fill_event_dup_1_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
                            int64_t res,
                            int64_t oldfd);
-
-int32_t fill_event_dup2_e(scap_sized_buffer scap_buf,
-                          size_t* event_size,
-                          char* scap_err,
-                          int64_t fd);
 
 int32_t fill_event_dup2_x(scap_sized_buffer scap_buf,
                           size_t* event_size,
@@ -368,11 +358,6 @@ int32_t fill_event_dup2_x(scap_sized_buffer scap_buf,
                           int64_t res,
                           int64_t oldfd,
                           int64_t newfd);
-
-int32_t fill_event_dup3_e(scap_sized_buffer scap_buf,
-                          size_t* event_size,
-                          char* scap_err,
-                          int64_t fd);
 
 int32_t fill_event_dup3_x(scap_sized_buffer scap_buf,
                           size_t* event_size,

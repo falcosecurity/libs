@@ -273,11 +273,6 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	// The socket is duped to stdin, stdout, stderr
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_DUP2_E,
-	                           1,
-	                           sinsp_test_input::socket_params::default_fd);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
 	                           PPME_SYSCALL_DUP2_X,
 	                           3,
 	                           stdin_fd,
@@ -285,21 +280,11 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	                           stdin_fd);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_DUP2_E,
-	                           1,
-	                           sinsp_test_input::socket_params::default_fd);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
 	                           PPME_SYSCALL_DUP2_X,
 	                           3,
 	                           stdout_fd,
 	                           sinsp_test_input::socket_params::default_fd,
 	                           stdout_fd);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_DUP2_E,
-	                           1,
-	                           sinsp_test_input::socket_params::default_fd);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_DUP2_X,
