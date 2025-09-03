@@ -1302,13 +1302,6 @@ static parse_result parse_setid(uint32_t id,
 		}
 	} else {
 		switch(gvisor_evt.sysno()) {
-		case __NR_setgid:
-			ret.status = scap_gvisor::fillers::fill_event_setgid_e(scap_buf,
-			                                                       &ret.size,
-			                                                       scap_err,
-			                                                       gvisor_evt.id());
-			break;
-
 		case __NR_setsid:
 			ret.status = scap_gvisor::fillers::fill_event_setsid_e(scap_buf, &ret.size, scap_err);
 			break;
