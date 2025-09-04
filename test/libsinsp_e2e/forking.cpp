@@ -664,7 +664,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 			EXPECT_EQ("libsinsp_e2e_te", ti->get_comm());
 			EXPECT_EQ(drflags, std::stol(e->get_param_value_str("flags", false)));
 			callnum++;
-		} else if(e->get_type() == PPME_SYSCALL_GETCWD_E) {
+		} else if(e->get_type() == PPME_SYSCALL_GETCWD_X) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
 			if(ti->m_tid == ptid) {
