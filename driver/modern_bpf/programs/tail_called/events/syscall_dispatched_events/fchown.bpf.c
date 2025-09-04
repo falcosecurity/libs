@@ -8,30 +8,6 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(fchown_e, struct pt_regs *regs, long id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, FCHOWN_E_SIZE, PPME_SYSCALL_FCHOWN_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	// Here we have no parameters to collect.
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

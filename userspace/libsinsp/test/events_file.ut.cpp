@@ -774,7 +774,6 @@ TEST_F(sinsp_with_test_input, fchown) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHOWN_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHOWN_X, 4, res, fd, uid, gid);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");

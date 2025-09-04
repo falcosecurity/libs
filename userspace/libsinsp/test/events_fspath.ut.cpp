@@ -539,13 +539,11 @@ TEST_F(fspath, fchmod) {
 }
 
 TEST_F(fspath, chown) {
-	test_enter(PPME_SYSCALL_CHOWN_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_CHOWN_X, 4, res, path, uid, gid);
 	test_failed_exit(PPME_SYSCALL_CHOWN_X, 4, failed_res, path, uid, gid);
 }
 
 TEST_F(fspath, lchown) {
-	test_enter(PPME_SYSCALL_LCHOWN_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_LCHOWN_X, 4, res, path, uid, gid);
 	test_failed_exit(PPME_SYSCALL_LCHOWN_X, 4, failed_res, path, uid, gid);
 }
@@ -554,7 +552,6 @@ TEST_F(fspath, fchown) {
 	// We need to open a fd first so fchown can act on it
 	inject_open_event();
 
-	test_enter(PPME_SYSCALL_FCHOWN_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_FCHOWN_X, 4, res, fd, uid, gid);
 	test_failed_exit(PPME_SYSCALL_FCHOWN_X, 4, failed_res, fd, uid, gid);
 }
@@ -563,7 +560,6 @@ TEST_F(fspath, fchownat) {
 	// the term "pathname" is only used for this syscall, so not putting at class level
 	const char *pathname = "/tmp/pathname";
 
-	test_enter(PPME_SYSCALL_FCHOWNAT_E, 0);
 	test_exit_path(pathname,
 	               pathname,
 	               PPME_SYSCALL_FCHOWNAT_X,
@@ -583,7 +579,6 @@ TEST_F(fspath, fchownat_relative) {
 	const char *resolved_rel_pathname =
 	        "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/pathname";
 
-	test_enter(PPME_SYSCALL_FCHOWNAT_E, 0);
 	test_exit_path(resolved_rel_pathname,
 	               rel_pathname,
 	               PPME_SYSCALL_FCHOWNAT_X,
