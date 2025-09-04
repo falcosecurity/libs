@@ -1320,16 +1320,16 @@ static parse_result parse_chroot(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_chroot_x(scap_buf,
-		                                                       &ret.size,
-		                                                       scap_err,
-		                                                       gvisor_evt.exit().result(),
-		                                                       gvisor_evt.pathname().c_str());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_chroot_e(scap_buf, &ret.size, scap_err);
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
 
+	ret.status = scap_gvisor::fillers::fill_event_chroot_x(scap_buf,
+	                                                       &ret.size,
+	                                                       scap_err,
+	                                                       gvisor_evt.exit().result(),
+	                                                       gvisor_evt.pathname().c_str());
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;

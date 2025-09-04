@@ -1059,12 +1059,6 @@ int32_t fill_event_signalfd_x(scap_sized_buffer scap_buf,
 	                                flags);
 }
 
-// PPME_SYSCALL_CHROOT_E
-// Event field validity issues: none
-int32_t fill_event_chroot_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_CHROOT_E, 0);
-}
-
 // PPME_SYSCALL_CHROOT_X
 // Event field validity issues: none
 int32_t fill_event_chroot_x(scap_sized_buffer scap_buf,
