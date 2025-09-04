@@ -93,7 +93,9 @@ TEST_F(sys_call_test, stat) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		std::string evt_name(evt->get_name());
-		return evt_name.find("stat") != std::string::npos && m_tid_filter(evt);
+		// TODO(ekoops): remove the PPME_IS_EXIT check once we remove the sys_enter dispatcher.
+		return evt_name.find("stat") != std::string::npos && m_tid_filter(evt) &&
+		       PPME_IS_EXIT(evt->get_type());
 	};
 
 	run_callback_t test = [](sinsp* inspector) {
@@ -103,7 +105,7 @@ TEST_F(sys_call_test, stat) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, open_close) {
