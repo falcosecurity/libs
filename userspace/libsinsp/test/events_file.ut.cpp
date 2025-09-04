@@ -280,7 +280,6 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "8");
 
 	fd = 9;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_USERFAULTFD_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_USERFAULTFD_X, 2, fd, 0);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "userfaultfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "u");
