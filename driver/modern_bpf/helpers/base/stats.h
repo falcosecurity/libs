@@ -27,7 +27,6 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
-	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_E:
 		counter->n_drops_buffer_open_enter++;
 		break;
 	case PPME_SYSCALL_CLONE_20_E:

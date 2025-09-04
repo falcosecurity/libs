@@ -139,7 +139,6 @@ TEST_F(sinsp_with_test_input, open_by_handle_at) {
 
 	int64_t fd = 4, mountfd = 5;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
@@ -154,7 +153,6 @@ TEST_F(sinsp_with_test_input, open_by_handle_at) {
 
 	fd = 6;
 	mountfd = 7;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
@@ -208,7 +206,6 @@ TEST_F(sinsp_with_test_input, path_too_long) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "FILENAME_TOO_LONG");
 
 	fd = 4;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
