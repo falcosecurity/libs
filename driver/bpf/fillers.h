@@ -117,10 +117,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_CHMOD_E:
 		case PPME_SYSCALL_FCHMOD_E:
 		case PPME_SYSCALL_FCHMODAT_E:
-		case PPME_SYSCALL_CHOWN_E:
-		case PPME_SYSCALL_LCHOWN_E:
-		case PPME_SYSCALL_FCHOWN_E:
-		case PPME_SYSCALL_FCHOWNAT_E:
 		case PPME_SYSCALL_UMOUNT2_E:
 			if(state->n_drops_buffer_dir_file_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_dir_file_enter;

@@ -1464,10 +1464,6 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SYSCALL_CHMOD_E:
 	case PPME_SYSCALL_FCHMOD_E:
 	case PPME_SYSCALL_FCHMODAT_E:
-	case PPME_SYSCALL_CHOWN_E:
-	case PPME_SYSCALL_LCHOWN_E:
-	case PPME_SYSCALL_FCHOWN_E:
-	case PPME_SYSCALL_FCHOWNAT_E:
 	case PPME_SYSCALL_UMOUNT2_E:
 		ring_info->n_drops_buffer_dir_file_enter++;
 		break;
