@@ -603,7 +603,6 @@ TEST_F(fspath, quotactl) {
 	uint8_t dqi_flags = 0;
 	uint8_t quota_fmt_out = 0;
 
-	test_enter(PPME_SYSCALL_QUOTACTL_E, 4, cmd, type, id, quota_fmt);
 	test_exit_path(path,
 	               path,
 	               PPME_SYSCALL_QUOTACTL_X,
