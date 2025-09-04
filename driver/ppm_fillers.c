@@ -3797,27 +3797,6 @@ int f_sys_eventfd2_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_shutdown_e(struct event_filler_arguments *args) {
-	int res;
-	unsigned long val;
-	int64_t fd;
-	uint8_t how;
-
-	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	how = (uint8_t)val;
-	res = val_to_ring(args, (unsigned long)shutdown_how_to_scap(how), 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_shutdown_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;

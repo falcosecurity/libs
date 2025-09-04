@@ -260,48 +260,6 @@ TEST(SyscallEnter, socketcall_sendmmsgE) {
 }
 #endif
 
-TEST(SyscallEnter, socketcall_shutdownE) {
-	auto evt_test = get_syscall_event_test(__NR_shutdown, ENTER_EVENT);
-
-	evt_test->enable_capture();
-
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-
-	int32_t invalid_fd = -1;
-	int how = SHUT_RD;
-
-	unsigned long args[2]{};
-	args[0] = invalid_fd;
-	args[1] = how;
-	assert_syscall_state(SYSCALL_FAILURE, "shutdown", syscall(__NR_socketcall, SYS_SHUTDOWN, args));
-
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-
-	evt_test->disable_capture();
-
-	evt_test->assert_event_presence();
-
-	if(HasFatalFailure()) {
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)invalid_fd);
-
-	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	evt_test->assert_numeric_param(2, (uint8_t)PPM_SHUT_RD);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(2);
-}
-
 #if defined(__NR_accept) || defined(__s390x__)
 
 TEST(SyscallEnter, socketcall_acceptE) {
@@ -878,55 +836,6 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting) {
 	evt_test->disable_capture();
 
 	evt_test->assert_event_absence(CURRENT_PID, PPME_GENERIC_E);
-}
-
-TEST(SyscallEnter, socketcall_null_pointer) {
-	auto evt_test = get_syscall_event_test(__NR_shutdown, ENTER_EVENT);
-
-	evt_test->enable_capture();
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	assert_syscall_state(SYSCALL_FAILURE,
-	                     "socketcall",
-	                     syscall(__NR_socketcall, SYS_SHUTDOWN, NULL));
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	evt_test->disable_capture();
-
-	if(evt_test->is_kmod_engine()) {
-		/* with a null pointer we are not able to correctly obtain the event so right now we drop
-		 * it. */
-		evt_test->assert_event_absence();
-		SUCCEED();
-		return;
-	}
-
-	/* in bpf and modern bpf we can obtain an event even with a null pointer, but
-	 * all parameters will be 0.
-	 */
-	evt_test->assert_event_presence();
-
-	if(HasFatalFailure()) {
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)0);
-
-	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	evt_test->assert_numeric_param(2, (uint8_t)0);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(2);
 }
 
 TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting) {

@@ -390,7 +390,9 @@ TEST_F(sys_call_test, ioctl) {
 TEST_F(sys_call_test, shutdown) {
 	int callnum = 0;
 
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SOCKET_SHUTDOWN_X;
+	};
 
 	int sock;
 	run_callback_t test = [&](sinsp* inspector) {
@@ -408,29 +410,21 @@ TEST_F(sys_call_test, shutdown) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SOCKET_SHUTDOWN_E) {
-			EXPECT_EQ(std::to_string(sock), e->get_param_value_str("fd", false));
-
-			if(callnum == 0) {
-				EXPECT_EQ("0", e->get_param_value_str("how", false));
-			} else if(callnum == 2) {
-				EXPECT_EQ("1", e->get_param_value_str("how", false));
-			} else if(callnum == 4) {
-				EXPECT_EQ("2", e->get_param_value_str("how", false));
-			}
-
-			callnum++;
-		} else if(type == PPME_SOCKET_SHUTDOWN_X) {
-			EXPECT_GT(0, std::stoll(e->get_param_value_str("res", false)));
-			callnum++;
+		EXPECT_GT(0, std::stoll(e->get_param_value_str("res", false)));
+		EXPECT_EQ(std::to_string(sock), e->get_param_value_str("fd", false));
+		if(callnum == 0) {
+			EXPECT_EQ("0", e->get_param_value_str("how", false));
+		} else if(callnum == 1) {
+			EXPECT_EQ("1", e->get_param_value_str("how", false));
+		} else if(callnum == 2) {
+			EXPECT_EQ("2", e->get_param_value_str("how", false));
 		}
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(3, callnum);
 }
 
 TEST_F(sys_call_test, timerfd) {
