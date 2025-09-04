@@ -820,12 +820,6 @@ int32_t fill_event_socket_x(scap_sized_buffer scap_buf,
 	                                protocol);
 }
 
-// PPME_SYSCALL_CHDIR_E
-// Event field validity issues: none
-int32_t fill_event_chdir_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_CHDIR_E, 0);
-}
-
 // PPME_SYSCALL_CHDIR_X
 // Event field validity issues: none
 int32_t fill_event_chdir_x(scap_sized_buffer scap_buf,

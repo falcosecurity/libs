@@ -417,7 +417,9 @@ TEST_F(sys_call_test, dir_getcwd) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_CHDIR_X;
+	};
 
 	//
 	// TEST CODE
@@ -447,71 +449,65 @@ TEST_F(sys_call_test, dir_getcwd) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
 		sinsp_threadinfo* pinfo = e->get_thread_info(false);
+		string cdir;
+		string cdir1;
+		string adir;
 
-		if(type == PPME_SYSCALL_CHDIR_E) {
-			callnum++;
-		} else if(type == PPME_SYSCALL_CHDIR_X) {
-			string cdir;
-			string cdir1;
-			string adir;
-
-			switch(callnum) {
-			case 1:
-				EXPECT_EQ("0", e->get_param_value_str("res"));
-				cdir = string(cwd0);
-				adir = string(dir0);
-				break;
-			case 3:
-				EXPECT_EQ("0", e->get_param_value_str("res"));
-				cdir = string(cwd1);
-				adir = string(dir1);
-				break;
-			case 5:
-				EXPECT_EQ("0", e->get_param_value_str("res"));
-				cdir = string(cwd2);
-				adir = string(dir2);
-				break;
-			case 7:
-				EXPECT_EQ("0", e->get_param_value_str("res"));
-				cdir = string(cwd3);
-				adir = string(dir3);
-				break;
-			case 9:
-				EXPECT_NE("0", e->get_param_value_str("res"));
-				cdir = string(cwd3);
-				adir = string(dir4);
-				break;
-			case 11:
-				EXPECT_EQ("0", e->get_param_value_str("res"));
-				cdir = string(cwd_ori);
-				adir = string(cwd_ori);
-				break;
-			default:
-				FAIL();
-				break;
-			}
-
-			EXPECT_EQ(adir, e->get_param_value_str("path"));
-
-			//
-			// pinfo->get_cwd() contains a / at the end of the directory
-			//
-			if(cdir != "/") {
-				cdir1 = cdir + "/";
-			} else {
-				cdir1 = cdir;
-			}
-			EXPECT_EQ(cdir1, pinfo->get_cwd());
-
-			callnum++;
+		switch(callnum) {
+		case 0:
+			EXPECT_EQ("0", e->get_param_value_str("res"));
+			cdir = string(cwd0);
+			adir = string(dir0);
+			break;
+		case 1:
+			EXPECT_EQ("0", e->get_param_value_str("res"));
+			cdir = string(cwd1);
+			adir = string(dir1);
+			break;
+		case 2:
+			EXPECT_EQ("0", e->get_param_value_str("res"));
+			cdir = string(cwd2);
+			adir = string(dir2);
+			break;
+		case 3:
+			EXPECT_EQ("0", e->get_param_value_str("res"));
+			cdir = string(cwd3);
+			adir = string(dir3);
+			break;
+		case 4:
+			EXPECT_NE("0", e->get_param_value_str("res"));
+			cdir = string(cwd3);
+			adir = string(dir4);
+			break;
+		case 5:
+			EXPECT_EQ("0", e->get_param_value_str("res"));
+			cdir = string(cwd_ori);
+			adir = string(cwd_ori);
+			break;
+		default:
+			FAIL();
+			break;
 		}
+
+		EXPECT_EQ(adir, e->get_param_value_str("path"));
+
+		//
+		// pinfo->get_cwd() contains a / at the end of the directory
+		//
+		if(cdir != "/") {
+			cdir1 = cdir + "/";
+		} else {
+			cdir1 = cdir;
+		}
+		EXPECT_EQ(cdir1, pinfo->get_cwd());
+
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(12, callnum);
+	EXPECT_EQ(6, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
