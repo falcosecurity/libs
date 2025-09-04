@@ -5381,12 +5381,6 @@ FILLER(sys_eventfd_x, true) {
 	return bpf_push_u32_to_ring(data, 0);
 }
 
-FILLER(sys_eventfd2_e, true) {
-	/* Parameter 1: initval (type: PT_UINT64) */
-	unsigned long val = bpf_syscall_get_argument(data, 0);
-	return bpf_push_u64_to_ring(data, val);
-}
-
 FILLER(sys_eventfd2_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
 	long retval = bpf_syscall_get_retval(data->ctx);
