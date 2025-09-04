@@ -109,7 +109,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_CREAT_E:
 		case PPME_SYSCALL_OPENAT_2_E:
 		case PPME_SYSCALL_OPENAT2_E:
-		case PPME_SYSCALL_OPEN_BY_HANDLE_AT_E:
 			if(state->n_drops_buffer_open_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_open_enter;
 			}

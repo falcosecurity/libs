@@ -32,7 +32,6 @@ TEST_F(sinsp_with_test_input, event_category) {
 	int64_t fd = 4, mountfd = 5, test_errno = 0;
 
 	/* Check that `EC_SYSCALL` category is not considered */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
@@ -45,7 +44,7 @@ TEST_F(sinsp_with_test_input, event_category) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "false");
-	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "2");
+	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "1");
 
 	/* Check that `EC_TRACEPOINT` category is not considered */
 	evt = add_event_advance_ts(increasing_ts(),
@@ -60,7 +59,7 @@ TEST_F(sinsp_with_test_input, event_category) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "false");
-	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "3");
+	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "2");
 
 	/* Check that `EC_METAEVENT` category is not considered */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_E, 2, NULL, "data");
@@ -68,7 +67,7 @@ TEST_F(sinsp_with_test_input, event_category) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "other");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "true");
-	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "4");
+	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "3");
 }
 
 TEST_F(sinsp_with_test_input, event_res) {

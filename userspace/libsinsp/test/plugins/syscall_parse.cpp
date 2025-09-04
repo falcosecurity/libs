@@ -50,7 +50,7 @@ inline bool evt_type_is_open(uint16_t type) {
 	       type == PPME_SYSCALL_OPENAT_E || type == PPME_SYSCALL_OPENAT_X ||
 	       type == PPME_SYSCALL_OPENAT_2_E || type == PPME_SYSCALL_OPENAT_2_X ||
 	       type == PPME_SYSCALL_OPENAT2_E || type == PPME_SYSCALL_OPENAT2_X ||
-	       type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_E || type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X;
+	       type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X;
 }
 
 const char* plugin_get_required_api_version() {
@@ -87,7 +87,6 @@ uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s) {
 	        PPME_SYSCALL_OPENAT_2_X,
 	        PPME_SYSCALL_OPENAT2_E,
 	        PPME_SYSCALL_OPENAT2_X,
-	        PPME_SYSCALL_OPEN_BY_HANDLE_AT_E,
 	        PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
 	};
 	*num_types = sizeof(types) / sizeof(uint16_t);
