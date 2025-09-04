@@ -1337,24 +1337,6 @@ int32_t fill_event_writev_x(scap_sized_buffer scap_buf,
 	                                size);
 }
 
-// PPME_SYSCALL_PWRITEV_E
-// Event field validity issues: none
-int32_t fill_event_pwritev_e(scap_sized_buffer scap_buf,
-                             size_t* event_size,
-                             char* scap_err,
-                             int64_t fd,
-                             uint32_t size,
-                             uint64_t pos) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_PWRITEV_E,
-	                                3,
-	                                fd,
-	                                size,
-	                                pos);
-}
-
 // PPME_SYSCALL_PWRITEV_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:

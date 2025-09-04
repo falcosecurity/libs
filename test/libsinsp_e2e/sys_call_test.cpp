@@ -1786,8 +1786,7 @@ TEST_F(sys_call_test32, fs_preadv) {
 		auto tinfo = evt->get_thread_info(false);
 		if(tinfo && tinfo->m_comm == "test_helper_32") {
 			auto type = evt->get_type();
-			return (type == PPME_SYSCALL_PREADV_X || type == PPME_SYSCALL_PWRITEV_E ||
-			        type == PPME_SYSCALL_PWRITEV_X);
+			return type == PPME_SYSCALL_PREADV_X || type == PPME_SYSCALL_PWRITEV_X;
 		}
 		return false;
 	};
@@ -1815,27 +1814,15 @@ TEST_F(sys_call_test32, fs_preadv) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_PWRITEV_E) {
+		if(type == PPME_SYSCALL_PWRITEV_X) {
 			if(callnum == 0) {
-				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
-				EXPECT_EQ(987654321, std::stoll(e->get_param_value_str("pos")));
-				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
-				callnum++;
-			} else if(callnum == 2) {
-				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
-				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
-				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_PWRITEV_X) {
-			if(callnum == 1) {
 				pwrite1_res = std::stoi(e->get_param_value_str("res", false));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(987654321, std::stoll(e->get_param_value_str("pos")));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 				callnum++;
-			} else if(callnum == 3) {
+			} else if(callnum == 1) {
 				pwrite2_res = std::stoi(e->get_param_value_str("res", false));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
@@ -1844,14 +1831,14 @@ TEST_F(sys_call_test32, fs_preadv) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_PREADV_X) {
-			if (callnum == 4) {
+			if (callnum == 2) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(987654321, std::stoll(e->get_param_value_str("pos")));
 				callnum++;
-			} else if(callnum == 5) {
+			} else if(callnum == 3) {
 				EXPECT_EQ(30, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc...............", e->get_param_value_str("data"));
 				EXPECT_EQ(30, std::stoll(e->get_param_value_str("size")));
@@ -1863,7 +1850,7 @@ TEST_F(sys_call_test32, fs_preadv) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(4, callnum);
 	if(pwritev64_succeeded) {
 		EXPECT_EQ(15, pwrite1_res);
 	} else {
