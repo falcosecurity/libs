@@ -13,7 +13,7 @@ TEST(SyscallEnter, preadE) {
 	int32_t fd = -1;
 	size_t size = 13;
 	off_t pos = 17;
-	assert_syscall_state(SYSCALL_FAILURE, "preadv", syscall(__NR_pread64, fd, nullptr, size, pos));
+	assert_syscall_state(SYSCALL_FAILURE, "pread64", syscall(__NR_pread64, fd, nullptr, size, pos));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

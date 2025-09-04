@@ -4437,44 +4437,6 @@ int f_sys_pwrite64_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_preadv_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int64_t fd;
-	int res;
-	unsigned long pos64;
-
-	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: pos (type: PT_UINT64) */
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-	{
-		unsigned long pos0;
-		unsigned long pos1;
-		/*
-		 * Note that in preadv and pwritev have NO 64-bit arguments in the
-		 * syscall (despite having one in the userspace API), so no alignment
-		 * requirements apply here. For an overly-detailed discussion about
-		 * this, see https://lwn.net/Articles/311630/
-		 */
-		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
-		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
-
-		pos64 = merge_64(pos1, pos0);
-	}
-#else
-	syscall_get_arguments_deprecated(args, 3, 1, &pos64);
-#endif
-
-	res = val_to_ring(args, pos64, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_preadv_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int64_t retval;

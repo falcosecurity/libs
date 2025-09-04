@@ -68,7 +68,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_pwrite64_e)                   \
 	FN(sys_readv_e)                      \
 	FN(sys_readv_x)                      \
-	FN(sys_preadv_e)                     \
 	FN(sys_preadv_x)                     \
 	FN(sys_readv_preadv_x)               \
 	FN(sys_pwritev_e)                    \

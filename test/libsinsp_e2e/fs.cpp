@@ -640,18 +640,8 @@ TEST_F(sys_call_test, fs_preadv) {
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_PREADV_E) {
-			if(callnum == 4) {
-				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
-				EXPECT_EQ(987654321098, std::stoll(e->get_param_value_str("pos")));
-				callnum++;
-			} else {
-				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
-				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
-				callnum++;
-			}
 		} else if(type == PPME_SYSCALL_PREADV_X) {
-			if(callnum == 3) {
+			if(callnum == 2) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbb", e->get_param_value_str("data"));
 				EXPECT_EQ(30, std::stoll(e->get_param_value_str("size")));

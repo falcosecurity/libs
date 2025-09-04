@@ -712,20 +712,6 @@ FILLER(sys_readv_x, true) {
 	return bpf_push_s64_to_ring(data, fd);
 }
 
-FILLER(sys_preadv_e, true) {
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-#error Implement this
-#endif
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: pos (type: PT_UINT64) */
-	unsigned long val = bpf_syscall_get_argument(data, 3);
-	return bpf_push_u64_to_ring(data, (uint64_t)val);
-}
-
 FILLER(sys_preadv_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);

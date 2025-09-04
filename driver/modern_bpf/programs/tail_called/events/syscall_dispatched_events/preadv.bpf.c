@@ -9,36 +9,6 @@
 #include <helpers/interfaces/fixed_size_event.h>
 #include <helpers/interfaces/variable_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(preadv_e, struct pt_regs *regs, long id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PREADV_E_SIZE, PPME_SYSCALL_PREADV_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, fd);
-
-	/* Parameter 2: pos (type: PT_UINT64) */
-	uint64_t pos = (uint64_t)extract__syscall_argument(regs, 3);
-	ringbuf__store_u64(&ringbuf, pos);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
