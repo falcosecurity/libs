@@ -117,7 +117,6 @@ FILLER_RAW(terminate_filler) {
 		case PPME_SYSCALL_CHMOD_E:
 		case PPME_SYSCALL_FCHMOD_E:
 		case PPME_SYSCALL_FCHMODAT_E:
-		case PPME_SYSCALL_UMOUNT2_E:
 			if(state->n_drops_buffer_dir_file_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_dir_file_enter;
 			}
@@ -7206,12 +7205,6 @@ FILLER(sys_umount_x, true) {
 	/* Parameter 2: name (type: PT_FSPATH) */
 	unsigned long target_pointer = bpf_syscall_get_argument(data, 0);
 	return bpf_val_to_ring(data, target_pointer);
-}
-
-FILLER(sys_umount2_e, true) {
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	int flags = (int)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, umount2_flags_to_scap(flags));
 }
 
 FILLER(sys_umount2_x, true) {
