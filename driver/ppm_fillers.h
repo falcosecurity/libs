@@ -175,7 +175,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_recvmsg_e)                    \
 	FN(sys_listen_e)                     \
 	FN(sys_listen_x)                     \
-	FN(sys_signalfd_e)                   \
 	FN(sys_signalfd_x)                   \
 	FN(sys_splice_x)                     \
 	FN(sys_umount_x)                     \
@@ -186,7 +185,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_inotify_init1_x)              \
 	FN(sys_eventfd2_e)                   \
 	FN(sys_eventfd2_x)                   \
-	FN(sys_signalfd4_e)                  \
 	FN(sys_signalfd4_x)                  \
 	FN(sys_kill_x)                       \
 	FN(sys_tkill_x)                      \

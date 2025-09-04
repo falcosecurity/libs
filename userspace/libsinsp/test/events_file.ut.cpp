@@ -229,13 +229,6 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	sinsp_evt* evt = NULL;
 
 	int64_t fd = 5;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_SIGNALFD_E,
-	                     3,
-	                     (uint64_t)-1,
-	                     0,
-	                     (uint8_t)0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_SIGNALFD_X,
@@ -249,7 +242,6 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
 
 	fd = 2;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, (int64_t)0, (uint32_t)0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_SIGNALFD4_X,
@@ -646,7 +638,6 @@ TEST_F(sinsp_with_test_input, signalfd) {
 	uint32_t mask = 0;
 	uint8_t flags = 12;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, fd, mask, flags);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_SIGNALFD_X,
@@ -682,7 +673,6 @@ TEST_F(sinsp_with_test_input, signalfd4) {
 	uint32_t mask = 0;
 	uint16_t flags = 47;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, fd, mask);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_SIGNALFD4_X,

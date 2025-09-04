@@ -362,13 +362,6 @@ int32_t fill_event_dup3_x(scap_sized_buffer scap_buf,
                           int64_t newfd,
                           uint32_t flags);
 
-int32_t fill_event_signalfd_e(scap_sized_buffer scap_buf,
-                              size_t* event_size,
-                              char* scap_err,
-                              int64_t fd,
-                              uint32_t mask,
-                              uint8_t flags);
-
 int32_t fill_event_signalfd_x(scap_sized_buffer scap_buf,
                               size_t* event_size,
                               char* scap_err,

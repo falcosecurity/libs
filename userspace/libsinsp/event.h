@@ -712,9 +712,6 @@ public:
 			return CHAR_FD_FIFO;
 		case PPME_SYSCALL_EVENTFD2_E:
 			return CHAR_FD_EVENT;
-		case PPME_SYSCALL_SIGNALFD_E:
-		case PPME_SYSCALL_SIGNALFD4_E:
-			return CHAR_FD_SIGNAL;
 		default:
 			return 'o';
 		}
