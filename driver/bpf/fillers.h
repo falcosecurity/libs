@@ -135,7 +135,6 @@ FILLER_RAW(terminate_filler) {
 			break;
 		case PPME_SYSCALL_BPF_2_E:
 		case PPME_SYSCALL_SECCOMP_E:
-		case PPME_SYSCALL_UNSHARE_E:
 			if(state->n_drops_buffer_other_interest_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_other_interest_enter;
 			}
@@ -3244,13 +3243,6 @@ FILLER(sys_setresgid_x, true) {
 	/* Parameter 4: sgid (type: PT_GID) */
 	uint32_t sgid = (uint32_t)bpf_syscall_get_argument(data, 2);
 	return bpf_push_u32_to_ring(data, sgid);
-}
-
-FILLER(sys_unshare_e, true) {
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	unsigned long val = bpf_syscall_get_argument(data, 0);
-	uint32_t flags = clone_flags_to_scap((int)val);
-	return bpf_push_u32_to_ring(data, flags);
 }
 
 FILLER(sys_unshare_x, true) {

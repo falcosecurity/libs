@@ -99,7 +99,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_signaldeliver_e)              \
 	FN(sys_pagefault_e)                  \
 	FN(sys_setns_x)                      \
-	FN(sys_unshare_e)                    \
 	FN(sys_unshare_x)                    \
 	FN(sys_flock_x)                      \
 	FN(cpu_hotplug_e)                    \
