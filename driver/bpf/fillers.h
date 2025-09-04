@@ -4575,17 +4575,6 @@ FILLER(sys_recvfrom_x, true) {
 	return bpf_push_u32_to_ring(data, size);
 }
 
-FILLER(sys_shutdown_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	int how = (int32_t)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u8_to_ring(data, (uint8_t)shutdown_how_to_scap(how));
-}
-
 FILLER(sys_shutdown_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	int64_t retval = bpf_syscall_get_retval(data->ctx);
