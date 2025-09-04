@@ -1192,12 +1192,6 @@ FILLER(sys_access_x, true) {
 	return bpf_push_u32_to_ring(data, (uint32_t)access_flags_to_scap(mode));
 }
 
-FILLER(sys_getrlimit_setrlimit_e, true) {
-	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
-	uint32_t resource = bpf_syscall_get_argument(data, 0);
-	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
-}
-
 FILLER(sys_getrlimit_x, true) {
 	unsigned long val;
 	long retval;

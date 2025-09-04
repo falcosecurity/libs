@@ -76,7 +76,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_pwritev_e)                    \
 	FN(sys_pwritev_x)                    \
 	FN(sys_nanosleep_x)                  \
-	FN(sys_getrlimit_setrlimit_e)        \
 	FN(sys_getrlimit_x)                  \
 	FN(sys_setrlimit_x)                  \
 	FN(sys_prlimit_x)                    \
