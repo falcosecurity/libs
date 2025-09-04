@@ -267,7 +267,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #endif
         [PPME_SYSCALL_BPF_2_E] = {FILLER_REF(sys_bpf_e)},
         [PPME_SYSCALL_BPF_2_X] = {FILLER_REF(sys_bpf_x)},
-        [PPME_SYSCALL_SECCOMP_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {1}}},
+        [PPME_SYSCALL_SECCOMP_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_SECCOMP_X] = {FILLER_REF(sys_seccomp_x)},
         [PPME_SYSCALL_UNLINK_2_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_UNLINK_2_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0}}},
