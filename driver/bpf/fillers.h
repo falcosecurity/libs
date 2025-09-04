@@ -6633,12 +6633,6 @@ FILLER(sys_ptrace_x, true) {
 	return res;
 }
 
-FILLER(sys_bpf_e, true) {
-	/* Parameter 1: cmd (type: PT_INT64) */
-	int32_t cmd = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, (int64_t)cmd);
-}
-
 FILLER(sys_bpf_x, true) {
 	/* Parameter 1: fd (type: PT_DEC) */
 	long fd = bpf_syscall_get_retval(data->ctx);

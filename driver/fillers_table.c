@@ -265,7 +265,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #ifdef CAPTURE_PAGE_FAULTS
         [PPME_PAGE_FAULT_E] = {FILLER_REF(sys_pagefault_e)},
 #endif
-        [PPME_SYSCALL_BPF_2_E] = {FILLER_REF(sys_bpf_e)},
+        [PPME_SYSCALL_BPF_2_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_BPF_2_X] = {FILLER_REF(sys_bpf_x)},
         [PPME_SYSCALL_SECCOMP_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_SECCOMP_X] = {FILLER_REF(sys_seccomp_x)},
