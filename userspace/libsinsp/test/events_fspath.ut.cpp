@@ -869,7 +869,6 @@ TEST_F(fspath, umount_1) {
 }
 
 TEST_F(fspath, umount2) {
-	test_enter(PPME_SYSCALL_UMOUNT2_E, 1, flags);
 	test_exit_path(mountpath, mountpath, PPME_SYSCALL_UMOUNT2_X, 3, res, mountpath, flags);
 	test_failed_exit(PPME_SYSCALL_UMOUNT2_X, 2, failed_res, mountpath, flags);
 }
