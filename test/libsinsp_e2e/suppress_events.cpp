@@ -175,7 +175,6 @@ protected:
 bool suppress_types::is_target_call(uint16_t type) {
 	switch(type) {
 	case PPME_SYSCALL_FCNTL_X:
-	case PPME_SYSCALL_GETRLIMIT_E:
 	case PPME_SYSCALL_GETRLIMIT_X:
 		return true;
 		break;
@@ -189,8 +188,8 @@ void suppress_types::do_syscalls() {
 	syscall(SYS_getrlimit, RLIMIT_AS, &limits);
 	fcntl(1, F_GETFD);
 
-	// Enter and exit events for getrlimit, and one exit event for fcntl.
-	m_expected_calls = 3;
+	// Exit events for getrlimit and fcntl.
+	m_expected_calls = 2;
 	for(const auto ii : m_suppressed_evttypes) {
 		if(is_target_call(ii)) {
 			m_expected_calls--;
@@ -304,7 +303,7 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 }
 
 TEST_F(suppress_types, block_getrlimit) {
-	// PPME_SYSCALL_GETRLIMIT_(E|X)
+	// PPME_SYSCALL_GETRLIMIT_X
 	ASSERT_NO_FATAL_FAILURE(run_test({"getrlimit"}));
 }
 
@@ -314,7 +313,7 @@ TEST_F(suppress_types, block_fcntl) {
 }
 
 TEST_F(suppress_types, block_getrlimit_and_fcntl) {
-	// PPME_SYSCALL_GETRLIMIT_(E|X) && PPME_SYSCALL_FCNTL_X
+	// PPME_SYSCALL_GETRLIMIT_X && PPME_SYSCALL_FCNTL_X
 	ASSERT_NO_FATAL_FAILURE(run_test({"getrlimit", "fcntl"}));
 }
 

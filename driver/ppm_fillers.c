@@ -5106,20 +5106,6 @@ int f_sys_nanosleep_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args) {
-	uint8_t ppm_resource;
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	ppm_resource = rlimit_resource_to_scap((uint32_t)val);
-	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;

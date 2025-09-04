@@ -424,38 +424,26 @@ TEST_F(sys_call_test, process_rlimit) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_GETRLIMIT_E) {
+		if(type == PPME_SYSCALL_GETRLIMIT_X) {
 			EXPECT_EQ((int64_t)PPM_RLIMIT_NOFILE,
 			          std::stoll(e->get_param_value_str("resource", false)));
-			callnum++;
-		}
-		if(type == PPME_SYSCALL_GETRLIMIT_X) {
-			if(callnum == 1) {
+			if(callnum == 0) {
 				EXPECT_GT((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
 			} else {
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
-
-				if(callnum == 7) {
+				if(callnum == 3) {
 					EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("cur", false)));
 					EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("max", false)));
 				}
 			}
-
 			callnum++;
 		}
-		if(type == PPME_SYSCALL_SETRLIMIT_E) {
+		if(type == PPME_SYSCALL_SETRLIMIT_X && callnum == 2) {
+			EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
 			EXPECT_EQ((int64_t)PPM_RLIMIT_NOFILE,
 			          std::stoll(e->get_param_value_str("resource", false)));
-			callnum++;
-		}
-		if(type == PPME_SYSCALL_SETRLIMIT_X) {
-			EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
-
-			if(callnum == 5) {
-				EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("cur", false)));
-				EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("max", false)));
-			}
-
+			EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("cur", false)));
+			EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("max", false)));
 			callnum++;
 		}
 	};
@@ -466,7 +454,7 @@ TEST_F(sys_call_test, process_rlimit) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(8, callnum);
+	EXPECT_EQ(4, callnum);
 }
 
 TEST_F(sys_call_test, process_prlimit) {

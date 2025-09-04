@@ -10,32 +10,6 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(getrlimit_e, struct pt_regs *regs, long id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, GETRLIMIT_E_SIZE, PPME_SYSCALL_GETRLIMIT_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = extract__syscall_argument(regs, 0);
-	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
