@@ -30,11 +30,6 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_E:
 		counter->n_drops_buffer_open_enter++;
 		break;
-	case PPME_SYSCALL_CHMOD_E:
-	case PPME_SYSCALL_FCHMOD_E:
-	case PPME_SYSCALL_FCHMODAT_E:
-		counter->n_drops_buffer_dir_file_enter++;
-		break;
 	case PPME_SYSCALL_CLONE_20_E:
 	case PPME_SYSCALL_CLONE3_E:
 	case PPME_SYSCALL_FORK_20_E:

@@ -114,13 +114,6 @@ FILLER_RAW(terminate_filler) {
 				++state->n_drops_buffer_open_enter;
 			}
 			break;
-		case PPME_SYSCALL_CHMOD_E:
-		case PPME_SYSCALL_FCHMOD_E:
-		case PPME_SYSCALL_FCHMODAT_E:
-			if(state->n_drops_buffer_dir_file_enter != ULLONG_MAX) {
-				++state->n_drops_buffer_dir_file_enter;
-			}
-			break;
 		case PPME_SYSCALL_CLONE_20_E:
 		case PPME_SYSCALL_CLONE3_E:
 		case PPME_SYSCALL_FORK_20_E:

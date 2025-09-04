@@ -727,7 +727,6 @@ TEST_F(sinsp_with_test_input, fchmod) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHMOD_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHMOD_X, 3, res, fd, mode);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
@@ -748,7 +747,7 @@ TEST_F(sinsp_with_test_input, fchown) {
 	uint32_t uid = 0;
 	uint32_t gid = 0;
 
-	// We need to open a fd first so fchmod can act on it
+	// We need to open a fd first so fchown can act on it
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,

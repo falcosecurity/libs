@@ -464,7 +464,6 @@ TEST_F(fspath, openat2_relative_cwd) {
 }
 
 TEST_F(fspath, fchmodat) {
-	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
 	test_exit_path(resolved_filename,
 	               filename,
 	               PPME_SYSCALL_FCHMODAT_X,
@@ -477,7 +476,6 @@ TEST_F(fspath, fchmodat) {
 }
 
 TEST_F(fspath, fchmodat_relative) {
-	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
 	test_exit_path(resolved_rel_name,
 	               rel_name,
 	               PPME_SYSCALL_FCHMODAT_X,
@@ -489,7 +487,6 @@ TEST_F(fspath, fchmodat_relative) {
 }
 
 TEST_F(fspath, fchmodat_relative_complex) {
-	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
 	test_exit_path(resolved_rel_filename_complex,
 	               rel_filename_complex,
 	               PPME_SYSCALL_FCHMODAT_X,
@@ -501,7 +498,6 @@ TEST_F(fspath, fchmodat_relative_complex) {
 }
 
 TEST_F(fspath, fchmodat_relative_nopath) {
-	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
 	test_exit_path(resolved_rel_filename_nopath,
 	               rel_filename_nopath,
 	               PPME_SYSCALL_FCHMODAT_X,
@@ -513,13 +509,11 @@ TEST_F(fspath, fchmodat_relative_nopath) {
 }
 
 TEST_F(fspath, chmod) {
-	test_enter(PPME_SYSCALL_CHMOD_E, 0);
 	test_exit_path(resolved_filename, filename, PPME_SYSCALL_CHMOD_X, 3, res, filename, mode);
 	test_failed_exit(PPME_SYSCALL_CHMOD_X, 3, failed_res, filename, mode);
 }
 
 TEST_F(fspath, chmod_relative) {
-	test_enter(PPME_SYSCALL_CHMOD_E, 0);
 	test_exit_path(resolved_rel_filename_cwd,
 	               rel_filename,
 	               PPME_SYSCALL_CHMOD_X,
@@ -533,7 +527,6 @@ TEST_F(fspath, fchmod) {
 	// We need to open a fd first so fchmod can act on it
 	inject_open_event();
 
-	test_enter(PPME_SYSCALL_FCHMOD_E, 0);
 	test_exit_path(path, path, PPME_SYSCALL_FCHMOD_X, 3, res, fd, mode);
 	test_failed_exit(PPME_SYSCALL_FCHMOD_X, 3, failed_res, fd, mode);
 }
