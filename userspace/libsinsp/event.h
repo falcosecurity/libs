@@ -710,8 +710,6 @@ public:
 			return CHAR_FD_IPV4_SOCK;
 		case PPME_SYSCALL_PIPE2_E:
 			return CHAR_FD_FIFO;
-		case PPME_SYSCALL_EVENTFD2_E:
-			return CHAR_FD_EVENT;
 		default:
 			return 'o';
 		}
