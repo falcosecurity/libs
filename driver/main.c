@@ -1476,7 +1476,6 @@ static inline void drops_buffer_syscall_categories_counters(
 		break;
 	case PPME_SYSCALL_BPF_2_E:
 	case PPME_SYSCALL_SECCOMP_E:
-	case PPME_SYSCALL_UNSHARE_E:
 		ring_info->n_drops_buffer_other_interest_enter++;
 		break;
 	case PPME_PROCEXIT_1_E:

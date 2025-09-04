@@ -1061,30 +1061,25 @@ TEST_F(sys_call_test, unshare_) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto tinfo = evt->get_thread_info(true);
-		return tinfo->get_comm() == "libsinsp_e2e_te" &&
-		       (evt->get_type() == PPME_SYSCALL_UNSHARE_E ||
-		        evt->get_type() == PPME_SYSCALL_UNSHARE_X);
+		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SYSCALL_UNSHARE_X;
 	};
 	run_callback_t test = [&](sinsp* inspector) {
 		auto child = fork();
 		if(child == 0) {
 			unshare(CLONE_NEWUTS);
-			// _exit prevents asan from complaining for a false positive memory leak.
+			// _exit prevents asan from complaining about a false positive memory leak.
 			_exit(0);
 		}
 		waitpid(child, NULL, 0);
 	};
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
 		EXPECT_EQ("CLONE_NEWUTS", e->get_param_value_str("flags"));
-		if(type == PPME_SYSCALL_UNSHARE_X) {
-			EXPECT_EQ("0", e->get_param_value_str("res"));
-		}
+		EXPECT_EQ("0", e->get_param_value_str("res"));
 		++callnum;
 	};
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS) {

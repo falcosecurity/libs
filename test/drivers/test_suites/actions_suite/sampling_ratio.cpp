@@ -6,7 +6,7 @@ TEST(Actions, sampling_ratio_UF_ALWAYS_DROP) {
 	 * only this specific syscall and we have to check that the corresponding event is dropped when
 	 * the sampling logic is enabled and not dropped when the logic is disabled.
 	 */
-	auto evt_test = get_syscall_event_test(__NR_unshare, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_unshare, EXIT_EVENT);
 
 	/* We are not sampling, we are just removing the `UF_ALWAYS_DROP` events */
 	evt_test->enable_sampling_logic(1);

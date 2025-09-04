@@ -7652,21 +7652,6 @@ int f_sys_setresgid_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_unshare_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-	uint32_t flags;
-
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	/* Parse flags as clone flags as it's a subset of it. */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	flags = clone_flags_to_scap((int)val);
-	res = val_to_ring(args, flags, 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_unshare_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
