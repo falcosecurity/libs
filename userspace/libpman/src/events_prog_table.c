@@ -337,9 +337,9 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {{false, "process_vm_writev_x", 0}},
         [PPME_SYSCALL_DELETE_MODULE_E] = {{false, "delete_module_e", 0}},
         [PPME_SYSCALL_DELETE_MODULE_X] = {{false, "delete_module_x", 0}},
-        [PPME_SYSCALL_SETREUID_E] = {{false, "setreuid_e", 0}},
+        [PPME_SYSCALL_SETREUID_E] = {{true, NULL}},
         [PPME_SYSCALL_SETREUID_X] = {{false, "setreuid_x", 0}},
-        [PPME_SYSCALL_SETREGID_E] = {{false, "setregid_e", 0}},
+        [PPME_SYSCALL_SETREGID_E] = {{true, NULL}},
         [PPME_SYSCALL_SETREGID_X] = {{false, "setregid_x", 0}},
         // TODO(ekoops): remove the following entries once the sys_enter dispatcher is dropped.
         // The following entries are added in order to avoid the common generic_e enter event
