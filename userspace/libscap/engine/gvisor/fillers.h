@@ -297,8 +297,6 @@ int32_t fill_event_setgid_x(scap_sized_buffer scap_buf,
                             int64_t res,
                             uint32_t gid);
 
-int32_t fill_event_setsid_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err);
-
 int32_t fill_event_setsid_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
