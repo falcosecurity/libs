@@ -134,7 +134,6 @@ FILLER_RAW(terminate_filler) {
 			}
 			break;
 		case PPME_SYSCALL_BPF_2_E:
-		case PPME_SYSCALL_SECCOMP_E:
 			if(state->n_drops_buffer_other_interest_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_other_interest_enter;
 			}
