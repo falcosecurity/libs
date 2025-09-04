@@ -4043,24 +4043,6 @@ FILLER(sys_fsconfig_x, true) {
 	return bpf_push_s32_to_ring(data, aux);
 }
 
-FILLER(sys_signalfd_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: mask (type: PT_UINT32) */
-	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
-	res = bpf_push_u32_to_ring(data, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: flags (type: PT_UINT8) */
-	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
-	 * For compatibility with the event definition here we send `0` as flags.
-	 */
-	return bpf_push_u8_to_ring(data, 0);
-}
-
 FILLER(sys_signalfd_x, true) {
 	/* Parameter 1: res (type: PT_FD) */
 	int64_t retval = (int64_t)(int32_t)bpf_syscall_get_retval(data->ctx);
@@ -4082,17 +4064,6 @@ FILLER(sys_signalfd_x, true) {
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */
 	return bpf_push_u8_to_ring(data, 0);
-}
-
-FILLER(sys_signalfd4_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: mask (type: PT_UINT32) */
-	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
-	return bpf_push_u32_to_ring(data, 0);
 }
 
 FILLER(sys_signalfd4_x, true) {
