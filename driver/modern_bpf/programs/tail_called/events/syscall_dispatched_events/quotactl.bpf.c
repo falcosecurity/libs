@@ -9,53 +9,6 @@
 #include <helpers/interfaces/fixed_size_event.h>
 #include <helpers/interfaces/variable_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(quotactl_e, struct pt_regs *regs, long syscall_id) {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, QUOTACTL_E_SIZE, PPME_SYSCALL_QUOTACTL_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: cmd (type: PT_FLAGS16) */
-	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 0);
-	uint16_t scap_cmd = quotactl_cmd_to_scap(cmd);
-	ringbuf__store_u16(&ringbuf, scap_cmd);
-
-	/* Parameter 2: type (type: PT_FLAGS8) */
-	ringbuf__store_u8(&ringbuf, quotactl_type_to_scap(cmd));
-
-	/* Parameter 3: id (type: PT_UINT32) */
-	uint32_t id = (uint32_t)extract__syscall_argument(regs, 2);
-	if(scap_cmd != PPM_Q_GETQUOTA && scap_cmd != PPM_Q_SETQUOTA && scap_cmd != PPM_Q_XGETQUOTA &&
-	   scap_cmd != PPM_Q_XSETQLIM) {
-		/* In this case `id` don't represent a `userid` or a `groupid` */
-		ringbuf__store_u32(&ringbuf, 0);
-	} else {
-		ringbuf__store_u32(&ringbuf, id);
-	}
-
-	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
-	uint8_t quota_fmt = PPM_QFMT_NOT_USED;
-	if(scap_cmd == PPM_Q_QUOTAON) {
-		quota_fmt = quotactl_fmt_to_scap(id);
-	}
-	ringbuf__store_u8(&ringbuf, quota_fmt);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")

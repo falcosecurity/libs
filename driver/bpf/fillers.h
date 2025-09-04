@@ -6287,35 +6287,6 @@ FILLER(sys_signaldeliver_e, false) {
 	return bpf_push_u8_to_ring(data, sig);
 }
 
-FILLER(sys_quotactl_e, true) {
-	/* Parameter 1: cmd (type: PT_FLAGS16) */
-	uint32_t cmd = (uint32_t)bpf_syscall_get_argument(data, 0);
-	uint16_t scap_cmd = quotactl_cmd_to_scap(cmd);
-	int res = bpf_push_u16_to_ring(data, scap_cmd);
-	CHECK_RES(res);
-
-	/* Parameter 2: type (type: PT_FLAGS8) */
-	res = bpf_push_u8_to_ring(data, quotactl_type_to_scap(cmd));
-	CHECK_RES(res);
-
-	/* Parameter 3: id (type: PT_UINT32) */
-	uint32_t id = (uint32_t)bpf_syscall_get_argument(data, 2);
-	if(scap_cmd != PPM_Q_GETQUOTA && scap_cmd != PPM_Q_SETQUOTA && scap_cmd != PPM_Q_XGETQUOTA &&
-	   scap_cmd != PPM_Q_XSETQLIM) {
-		/* In this case `id` don't represent a `userid` or a `groupid` */
-		res = bpf_push_u32_to_ring(data, 0);
-	} else {
-		res = bpf_push_u32_to_ring(data, id);
-	}
-
-	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
-	uint8_t quota_fmt = PPM_QFMT_NOT_USED;
-	if(scap_cmd == PPM_Q_QUOTAON) {
-		quota_fmt = quotactl_fmt_to_scap(id);
-	}
-	return bpf_push_u8_to_ring(data, quota_fmt);
-}
-
 FILLER(sys_quotactl_x, true) {
 	struct if_dqinfo dqinfo = {0};
 	struct if_dqblk dqblk = {0};
