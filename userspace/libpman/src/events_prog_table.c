@@ -25,7 +25,7 @@ limitations under the License.
 event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_GENERIC_E] = {{false, "generic_e", 0}},
         [PPME_GENERIC_X] = {{false, "generic_x", 0}},
-        [PPME_SYSCALL_GETCWD_E] = {{false, "getcwd_e", 0}},
+        [PPME_SYSCALL_GETCWD_E] = {{true, NULL}},
         [PPME_SYSCALL_GETCWD_X] = {{false, "getcwd_x", 0}},
         [PPME_SYSCALL_GETDENTS_E] = {{true, NULL}},
         [PPME_SYSCALL_GETDENTS_X] = {{false, "getdents_x", 0}},
