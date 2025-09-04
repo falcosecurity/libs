@@ -901,15 +901,12 @@ TEST_F(sinsp_with_test_input, chdir_fchdir) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt *evt = NULL;
-
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_CHDIR_X,
-	                           2,
-	                           (int64_t)0,
-	                           "/tmp/target-directory");
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_CHDIR_X,
+	                                      2,
+	                                      (int64_t)0,
+	                                      "/tmp/target-directory");
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory/");
 
 	// generate a fd associated with the directory we wish to change to

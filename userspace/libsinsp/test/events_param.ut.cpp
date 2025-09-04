@@ -38,7 +38,6 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param) {
 	/* `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF`.
 	 * A `NULL` `PT_CHARBUF` param is always converted to `<NA>`.
 	 */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, NULL);
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "<NA>");
 
@@ -77,7 +76,6 @@ TEST_F(sinsp_with_test_input, param_charbuf_len_1) {
 	/* `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF`.
 	 * An empty `PT_CHARBUF` param ("") is not converted to `<NA>` since the length is 1.
 	 */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, "");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "");
 
@@ -489,9 +487,6 @@ TEST_F(sinsp_with_test_input, invalid_string_len) {
 	size_t content_len = strlen(content);
 
 	// `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF`.
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
-
-	// create a regular event with a string
 	scap_evt* sevt = add_event(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, content);
 
 	// corrupt the event by overwriting a \0 in the middle of the string

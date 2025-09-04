@@ -271,8 +271,6 @@ int32_t fill_event_socket_x(scap_sized_buffer scap_buf,
                             uint32_t type,
                             uint32_t protocol);
 
-int32_t fill_event_chdir_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err);
-
 int32_t fill_event_chdir_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
