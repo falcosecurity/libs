@@ -329,7 +329,6 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_PIPE2_X,
@@ -469,7 +468,6 @@ TEST_F(sinsp_with_test_input, pipe2) {
 	uint64_t ino = 7479253124;
 	uint32_t flags = 17;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_PIPE2_X,

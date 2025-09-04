@@ -708,8 +708,6 @@ public:
 			// real event parsing here would be a pain.
 			//
 			return CHAR_FD_IPV4_SOCK;
-		case PPME_SYSCALL_PIPE2_E:
-			return CHAR_FD_FIFO;
 		default:
 			return 'o';
 		}
