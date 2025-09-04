@@ -295,7 +295,6 @@ TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "9");
 
 	fd = 10;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_IO_URING_SETUP_E, 0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_IO_URING_SETUP_X,
