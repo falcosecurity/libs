@@ -445,11 +445,9 @@ void runtest_ipv4m(iotype iot,
 				EXPECT_EQ(SERVER_PORT_STR, dst_port);
 			}
 			callnum++;
-		} else if(evt->get_type() == PPME_SOCKET_LISTEN_E) {
-			EXPECT_EQ("1", evt->get_param_value_str("backlog"));
-			callnum++;
 		} else if(evt->get_type() == PPME_SOCKET_LISTEN_X) {
 			EXPECT_EQ("0", evt->get_param_value_str("res"));
+			EXPECT_EQ("1", evt->get_param_value_str("backlog"));
 			callnum++;
 		} else if(evt->get_type() == PPME_SOCKET_ACCEPT4_6_E) {
 			EXPECT_EQ("0", evt->get_param_value_str("flags"));

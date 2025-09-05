@@ -380,7 +380,6 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 
 	int64_t server_fd = sinsp_test_input::socket_params::default_fd;
 	int32_t backlog = 5;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, backlog);
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SOCKET_LISTEN_X,
@@ -447,7 +446,6 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6) {
 
 	int64_t server_fd = sinsp_test_input::socket_params::default_fd;
 	int32_t backlog = 5;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, backlog);
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SOCKET_LISTEN_X,
