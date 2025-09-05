@@ -252,7 +252,7 @@ event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SOCKET_RECVMMSG_E] = {{false, "recvmmsg_e", 0}},
         [PPME_SOCKET_RECVMMSG_X] = {{false, "recvmmsg_x", BPF_FUNC_loop},
                                     {false, "recvmmsg_old_x", 0}},
-        [PPME_SOCKET_SENDMMSG_E] = {{false, "sendmmsg_e", 0}},
+        [PPME_SOCKET_SENDMMSG_E] = {{true, NULL}},
         [PPME_SOCKET_SENDMMSG_X] = {{false, "sendmmsg_x", BPF_FUNC_loop},
                                     {false, "sendmmsg_old_x", 0}},
         [PPME_SYSCALL_SEMOP_E] = {{true, NULL}},
