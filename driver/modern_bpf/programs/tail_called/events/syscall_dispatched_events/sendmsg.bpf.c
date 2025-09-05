@@ -8,57 +8,6 @@
 
 #include <helpers/interfaces/variable_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(sendmsg_e, struct pt_regs *regs, long id) {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap) {
-		return 0;
-	}
-	auxmap__preload_event_header(auxmap, PPME_SOCKET_SENDMSG_E);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[2] = {0};
-	extract__network_args(args, 2, regs);
-
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t socket_fd = (int32_t)args[0];
-	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
-
-	/* Parameter 2: size (type: PT_UINT32) */
-	unsigned long msghdr_pointer = args[1];
-	auxmap__store_msghdr_size_param(auxmap, msghdr_pointer);
-
-	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
-	/* TODO: Here we don't know if this fd is a socket or not,
-	 * since we are in the enter event and the syscall could fail.
-	 * This shouldn't be a problem since if it is not a socket fd
-	 * the `bpf_probe_read()` call we fail. Probably we have to move it
-	 * in the exit event.
-	 */
-	if(socket_fd >= 0) {
-		struct sockaddr *usrsockaddr;
-		struct msghdr *msg = (struct msghdr *)msghdr_pointer;
-		BPF_CORE_READ_USER_INTO(&usrsockaddr, msg, msg_name);
-		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, usrsockaddr);
-	} else {
-		auxmap__store_empty_param(auxmap);
-	}
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	auxmap__finalize_event_header(auxmap);
-
-	auxmap__submit_event(auxmap);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
