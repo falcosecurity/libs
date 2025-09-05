@@ -27,7 +27,7 @@ TEST_F(sinsp_with_test_input, CLOSE_success) {
 	ASSERT_NE(tinfo, nullptr);
 	ASSERT_FALSE(tinfo->get_fd(sock_params.fd));
 
-	const auto socket_evt = generate_socket_events(sock_params, INIT_TID);
+	const auto socket_evt = generate_socket_exit_event(sock_params, INIT_TID);
 
 	// Verify that the event fd information are present and the file descriptor is coherent with the
 	// created socket event. Moreover, verify that an entry for the file descriptor has been created

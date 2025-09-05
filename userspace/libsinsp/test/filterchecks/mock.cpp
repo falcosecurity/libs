@@ -343,7 +343,7 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	open_inspector();
 
 	// Prepare the setup to extract something from the filter checks `fd.cip`.
-	generate_socket_events(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_DGRAM));
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_DGRAM));
 
 	sockaddr_in6 client =
 	        test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);

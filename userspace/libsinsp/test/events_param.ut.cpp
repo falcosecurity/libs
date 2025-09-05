@@ -416,8 +416,7 @@ TEST_F(sinsp_with_test_input, enumparams) {
 
 	open_inspector();
 
-	/* `PPME_SOCKET_SOCKET_X` is a simple event that uses a PT_ENUMFLAGS32 (param 1) */
-	auto evt = generate_socket_events(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_DGRAM));
+	auto evt = generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_DGRAM));
 
 	ASSERT_EQ(evt->get_param(1)->as<uint32_t>(), PPM_AF_UNIX);
 

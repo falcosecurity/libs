@@ -393,7 +393,7 @@ TEST_F(sinsp_with_test_input, len_transformer) {
 
 	EXPECT_TRUE(eval_filter(evt, "len(fd.name) = 16"));
 
-	evt = generate_socket_events();
+	evt = generate_socket_exit_event();
 	// fd.types = (ipv4,file)
 	EXPECT_TRUE(eval_filter(evt, "len(fd.types) = 2"));
 

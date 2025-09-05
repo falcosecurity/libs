@@ -32,14 +32,6 @@ def expected_events(origin: dict, destination: dict) -> list:
     return [
         {
             "container.id": origin['id'],
-            "evt.args": "domain=2(AF_INET) type=1 proto=0",
-            "evt.category": "net",
-            "evt.type": "socket",
-            "fd.name": None,
-            "proc.cmdline": f"curl --local-port {origin['local_port']} {destination['ip']}",
-            "proc.exe": "curl",
-        }, {
-            "container.id": origin['id'],
             "evt.args": "fd=3(<4>) domain=2(AF_INET) type=1 proto=0",
             "evt.category": "net",
             "evt.type": "socket",

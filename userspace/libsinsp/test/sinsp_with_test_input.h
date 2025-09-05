@@ -355,8 +355,8 @@ protected:
 	sinsp_evt* generate_getcwd_failed_entry_event(int64_t tid_caller = INIT_TID);
 	sinsp_evt* generate_open_x_event(sinsp_test_input::open_params params = {},
 	                                 int64_t tid_caller = INIT_TID);
-	sinsp_evt* generate_socket_events(sinsp_test_input::socket_params params = {},
-	                                  int64_t tid_caller = INIT_TID);
+	sinsp_evt* generate_socket_exit_event(sinsp_test_input::socket_params params = {},
+	                                      int64_t tid_caller = INIT_TID);
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 	sinsp_evt* generate_connect_events(const sinsp_test_input::connect_params& params = {},

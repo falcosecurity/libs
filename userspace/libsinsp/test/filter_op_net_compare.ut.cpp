@@ -26,7 +26,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	evt = generate_socket_events();
+	evt = generate_socket_exit_event();
 	int64_t return_value = 0;
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(54321, "172.40.111.222");
@@ -82,7 +82,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	evt = generate_socket_events();
+	evt = generate_socket_exit_event();
 
 	int64_t return_value = 0;
 
