@@ -213,7 +213,7 @@ void runtest(iotype iot,
 		if((evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
 		    evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E ||
 		    evt->get_type() == PPME_SYSCALL_READ_E || evt->get_type() == PPME_SYSCALL_WRITE_E ||
-		    evt->get_type() == PPME_SYSCALL_READV_E || evt->get_type() == PPME_SYSCALL_WRITEV_E) &&
+		    evt->get_type() == PPME_SYSCALL_WRITEV_E) &&
 		   evt->get_fd_info()->m_type == SCAP_FD_IPV4_SOCK) {
 			if(evt->get_type() == PPME_SOCKET_RECVFROM_E) {
 				if(evt->get_param_value_str("tuple") != "") {

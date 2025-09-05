@@ -505,11 +505,8 @@ TEST_F(sys_call_test, fs_readv) {
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_READV_E) {
-			EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
-			callnum++;
 		} else if(type == PPME_SYSCALL_READV_X) {
-			if(callnum == 3) {
+			if(callnum == 2) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", (e->get_param_value_str("data")).substr(0, 15));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
@@ -529,7 +526,7 @@ TEST_F(sys_call_test, fs_readv) {
 		                   libsinsp::events::all_sc_set());
 	});
 
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(3, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1282,13 +1279,8 @@ TEST_F(sys_call_test, large_readv_writev) {
 
 				callnum++;
 			}
-		}
-		if(type == PPME_SYSCALL_READV_E) {
-			if(callnum == 2) {
-				callnum++;
-			}
 		} else if(type == PPME_SYSCALL_READV_X) {
-			if(callnum == 3) {
+			if(callnum == 2) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 				if(event_capture::s_engine_string == KMOD_ENGINE) {
 					EXPECT_EQ(p->len(), max_kmod_buf);
@@ -1319,7 +1311,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		                   false);
 	});
 
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(3, callnum);
 }
 
 TEST_F(sys_call_test, large_open) {

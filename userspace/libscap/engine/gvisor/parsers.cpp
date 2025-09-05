@@ -536,13 +536,6 @@ static parse_result parse_read(uint32_t id,
 			                                                      gvisor_evt.offset());
 			break;
 
-		case __NR_readv:
-			ret.status = scap_gvisor::fillers::fill_event_readv_e(scap_buf,
-			                                                      &ret.size,
-			                                                      scap_err,
-			                                                      gvisor_evt.fd());
-			break;
-
 		default:
 			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 			break;
