@@ -8,42 +8,6 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(listen_e, struct pt_regs *regs, long id) {
-	/* We need to keep this at the beginning of the program because otherwise we alter the state of
-	 * the ebpf registers causing a verifier issue.
-	 */
-	unsigned long args[2] = {0};
-	extract__network_args(args, 2, regs);
-
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, LISTEN_E_SIZE, PPME_SOCKET_LISTEN_E)) {
-		return 0;
-	}
-
-	ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)args[0];
-	ringbuf__store_s64(&ringbuf, (int64_t)fd);
-
-	/* Parameter 2: backlog (type: PT_INT32) */
-	int32_t backlog = (int32_t)args[1];
-	ringbuf__store_s32(&ringbuf, backlog);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	ringbuf__submit_event(&ringbuf);
-
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
