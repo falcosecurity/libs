@@ -369,8 +369,7 @@ TEST_F(sys_call_test, fs_pread) {
 				EXPECT_EQ("QWERTYUI", e->get_param_value_str("data"));
 				callnum++;
 			}
-		}
-		if(type == PPME_SYSCALL_PWRITE_E) {
+		} else if(type == PPME_SYSCALL_PWRITE_E) {
 			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
 				if(callnum == 2) {
 					EXPECT_EQ((int)sizeof("ABCD") - 1,
@@ -399,25 +398,16 @@ TEST_F(sys_call_test, fs_pread) {
 				EXPECT_EQ("ABCD", e->get_param_value_str("data"));
 				callnum++;
 			}
-		}
-		if(type == PPME_SYSCALL_PREAD_E) {
+		} else if(type == PPME_SYSCALL_PREAD_X) {
 			if(callnum == 6) {
+				EXPECT_NE("0", e->get_param_value_str("res", false));
 				EXPECT_EQ("32", e->get_param_value_str("size"));
 				EXPECT_EQ("1234567891234", e->get_param_value_str("pos"));
 				callnum++;
-			} else if(callnum == 8) {
+			} else if(callnum == 7) {
+				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("4", e->get_param_value_str("size"));
 				EXPECT_EQ("4", e->get_param_value_str("pos"));
-				callnum++;
-			} else {
-				FAIL();
-			}
-		} else if(type == PPME_SYSCALL_PREAD_X) {
-			if(callnum == 7) {
-				EXPECT_NE("0", e->get_param_value_str("res", false));
-				callnum++;
-			} else if(callnum == 9) {
-				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
 			}
 		}
@@ -425,7 +415,7 @@ TEST_F(sys_call_test, fs_pread) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(10, callnum);
+	EXPECT_EQ(8, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
