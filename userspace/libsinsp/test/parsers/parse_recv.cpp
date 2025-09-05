@@ -26,7 +26,7 @@ TEST_F(sinsp_with_test_input, RECV_success) {
 	// the parser is able to create the fdinfo from the SEND_X event itself, even if the SOCKET_X
 	// event has been dropped.
 	const sinsp_test_input::socket_params sock_params = {};  // use default values.
-	auto evt = generate_socket_events(sock_params);
+	auto evt = generate_socket_exit_event(sock_params);
 
 	int64_t return_value = 55;
 	const std::string data{"hello"};

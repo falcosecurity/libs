@@ -27,7 +27,8 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	add_default_init_thread();
 	open_inspector();
 
-	auto evt = generate_socket_events(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_STREAM));
+	auto evt =
+	        generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_STREAM));
 
 	auto fdinfo = evt->get_fd_info();
 	ASSERT_TRUE(fdinfo);

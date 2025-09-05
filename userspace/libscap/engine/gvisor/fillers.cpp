@@ -739,24 +739,6 @@ int32_t fill_event_connect_x(scap_sized_buffer scap_buf,
 	                                addr);
 }
 
-// PPME_SYSCALL_SOCKET_E
-// Event field validity issues: none
-int32_t fill_event_socket_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint32_t domain,
-                            uint32_t type,
-                            uint32_t protocol) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SOCKET_SOCKET_E,
-	                                3,
-	                                domain,
-	                                type,
-	                                protocol);
-}
-
 // PPME_SYSCALL_SOCKET_X
 // Event field validity issues: none
 int32_t fill_event_socket_x(scap_sized_buffer scap_buf,

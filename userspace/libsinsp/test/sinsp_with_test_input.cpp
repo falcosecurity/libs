@@ -576,17 +576,8 @@ sinsp_evt* sinsp_with_test_input::generate_open_x_event(sinsp_test_input::open_p
 	                            params.ino);
 }
 
-sinsp_evt* sinsp_with_test_input::generate_socket_events(sinsp_test_input::socket_params params,
-                                                         int64_t tid_caller) {
-	// todo!: remove it when we will disable enter events by default. At the moment we want to test
-	// the use case in which we generate both the enter event and the exit one.
-	add_event_advance_ts(increasing_ts(),
-	                     tid_caller,
-	                     PPME_SOCKET_SOCKET_E,
-	                     3,
-	                     params.domain,
-	                     params.type,
-	                     params.proto);
+sinsp_evt* sinsp_with_test_input::generate_socket_exit_event(sinsp_test_input::socket_params params,
+                                                             int64_t tid_caller) {
 	return add_event_advance_ts(increasing_ts(),
 	                            tid_caller,
 	                            PPME_SOCKET_SOCKET_X,

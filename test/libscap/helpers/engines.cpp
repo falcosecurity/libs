@@ -12,7 +12,7 @@
 #define MAX_ITERATIONS 300
 
 /* Number of events we want to assert */
-#define EVENTS_TO_ASSERT 25
+#define EVENTS_TO_ASSERT 24
 
 void check_event_is_not_overwritten(scap_t *h) {
 	/* Start the capture */
@@ -109,8 +109,7 @@ void check_event_order(scap_t *h) {
 	        PPME_SOCKET_BIND_E,       PPME_SOCKET_BIND_X,      PPME_SOCKET_CONNECT_E,
 	        PPME_SOCKET_CONNECT_X,    PPME_SOCKET_SENDTO_E,    PPME_SOCKET_SENDTO_X,
 	        PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_X,   PPME_SOCKET_RECVFROM_E,
-	        PPME_SOCKET_RECVFROM_X,   PPME_SOCKET_SOCKET_E,    PPME_SOCKET_SOCKET_X,
-	        PPME_SOCKET_SOCKETPAIR_X};
+	        PPME_SOCKET_RECVFROM_X,   PPME_SOCKET_SOCKET_X,    PPME_SOCKET_SOCKETPAIR_X};
 
 	/* Start the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)

@@ -25,9 +25,9 @@ TEST_F(sinsp_with_test_input, SPLICE_success) {
 	constexpr int64_t fd_out = 5;
 	sinsp_test_input::socket_params sock_params = {};  // Use default values.
 	sock_params.fd = fd_in;
-	auto evt = generate_socket_events(sock_params);
+	auto evt = generate_socket_exit_event(sock_params);
 	sock_params.fd = fd_out;
-	evt = generate_socket_events(sock_params);
+	evt = generate_socket_exit_event(sock_params);
 
 	constexpr int64_t return_value = 52;
 	constexpr uint64_t size = 53;

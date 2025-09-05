@@ -239,7 +239,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	sinsp_evt* evt = NULL;
 	int64_t stdin_fd = 0, stdout_fd = 1, stderr_fd = 2;
 
-	generate_socket_events();
+	generate_socket_exit_event();
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);

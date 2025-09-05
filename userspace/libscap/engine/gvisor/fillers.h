@@ -238,13 +238,6 @@ int32_t fill_event_connect_x(scap_sized_buffer scap_buf,
                              int64_t fd,
                              scap_const_sized_buffer addr);
 
-int32_t fill_event_socket_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            uint32_t domain,
-                            uint32_t type,
-                            uint32_t protocol);
-
 int32_t fill_event_socket_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,

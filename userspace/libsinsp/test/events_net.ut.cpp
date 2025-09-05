@@ -32,7 +32,7 @@ TEST_F(sinsp_with_test_input, net_socket) {
 	add_default_init_thread();
 	open_inspector();
 
-	auto evt = generate_socket_events();
+	auto evt = generate_socket_exit_event();
 	auto fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_EQ(fdinfo->get_l4proto(), SCAP_L4_NA);  /// todo: probably this is not what we want
@@ -66,7 +66,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	sinsp_threadinfo* tinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
-	generate_socket_events();
+	generate_socket_exit_event();
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -169,7 +169,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect_with_intermediate_event) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	generate_socket_events();
+	generate_socket_exit_event();
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -220,7 +220,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_multiple_connects) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	generate_socket_events(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_DGRAM));
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_DGRAM));
 
 	sockaddr_in6 client =
 	        test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);
@@ -331,7 +331,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
-	generate_socket_events();
+	generate_socket_exit_event();
 
 	sockaddr_in server =
 	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
@@ -425,7 +425,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	generate_socket_events(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_STREAM));
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_STREAM));
 
 	sockaddr_in6 server =
 	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, DEFAULT_IPV6_SERVER_STRING);
@@ -493,7 +493,7 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
-	generate_socket_events();
+	generate_socket_exit_event();
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -602,7 +602,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
 	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
-	generate_socket_events(sinsp_test_input::socket_params(PPM_AF_INET, SOCK_DGRAM));
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET, SOCK_DGRAM));
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -702,7 +702,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing) {
 	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
-	generate_socket_events(sinsp_test_input::socket_params(PPM_AF_INET, SOCK_DGRAM));
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET, SOCK_DGRAM));
 
 	int port_client = 12;
 	std::string ipv4_client = "80.9.11.45";

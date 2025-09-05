@@ -25,9 +25,9 @@ TEST_F(sinsp_with_test_input, SENDFILE_success) {
 	constexpr int64_t out_fd = 5;
 	sinsp_test_input::socket_params sock_params = {};  // Use default values.
 	sock_params.fd = in_fd;
-	auto evt = generate_socket_events(sock_params);
+	auto evt = generate_socket_exit_event(sock_params);
 	sock_params.fd = out_fd;
-	evt = generate_socket_events(sock_params);
+	evt = generate_socket_exit_event(sock_params);
 
 	constexpr int64_t return_value = 55;
 	constexpr uint64_t offset = 52;
