@@ -369,26 +369,16 @@ TEST_F(sys_call_test, fs_pread) {
 				EXPECT_EQ("QWERTYUI", e->get_param_value_str("data"));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_PWRITE_E) {
-			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
-				if(callnum == 2) {
-					EXPECT_EQ((int)sizeof("ABCD") - 1,
-					          std::stoll(e->get_param_value_str("size", false)));
-					EXPECT_EQ("4", e->get_param_value_str("pos"));
-					callnum++;
-				} else {
-					EXPECT_EQ((int)sizeof("ABCD") - 1,
-					          std::stoll(e->get_param_value_str("size", false)));
-					EXPECT_EQ("987654321987654", e->get_param_value_str("pos"));
-					callnum++;
-				}
-			}
 		} else if(type == PPME_SYSCALL_PWRITE_X) {
-			if(callnum == 3) {
+			if(callnum == 2) {
 				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("ABCD", e->get_param_value_str("data"));
+				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ((int)sizeof("ABCD") - 1,
+				          std::stoll(e->get_param_value_str("size", false)));
+				EXPECT_EQ("4", e->get_param_value_str("pos"));
 				callnum++;
-			} else {
+			} else if(callnum == 3) {
 				if(pwrite64_succeeded) {
 					EXPECT_EQ((int)sizeof("ABCD") - 1,
 					          std::stoi(e->get_param_value_str("res", false)));
@@ -396,15 +386,19 @@ TEST_F(sys_call_test, fs_pread) {
 					EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				}
 				EXPECT_EQ("ABCD", e->get_param_value_str("data"));
+				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ((int)sizeof("ABCD") - 1,
+				          std::stoll(e->get_param_value_str("size", false)));
+				EXPECT_EQ("987654321987654", e->get_param_value_str("pos"));
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_PREAD_X) {
-			if(callnum == 6) {
+			if(callnum == 4) {
 				EXPECT_NE("0", e->get_param_value_str("res", false));
 				EXPECT_EQ("32", e->get_param_value_str("size"));
 				EXPECT_EQ("1234567891234", e->get_param_value_str("pos"));
 				callnum++;
-			} else if(callnum == 7) {
+			} else if(callnum == 5) {
 				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("4", e->get_param_value_str("size"));
 				EXPECT_EQ("4", e->get_param_value_str("pos"));
@@ -415,7 +409,7 @@ TEST_F(sys_call_test, fs_pread) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(8, callnum);
+	EXPECT_EQ(6, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
