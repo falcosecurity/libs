@@ -5450,36 +5450,6 @@ FILLER(sys_mkdir_x, true) {
 	return bpf_push_u32_to_ring(data, mode);
 }
 
-FILLER(sys_pread64_e, true) {
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-#error Implement this
-#endif
-	unsigned long val;
-	unsigned long size;
-	int res;
-	int32_t fd;
-
-	/*
-	 * fd
-	 */
-	fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/*
-	 * size
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, val);
-	CHECK_RES(res);
-
-	/*
-	 * pos
-	 */
-	val = bpf_syscall_get_argument(data, 3);
-	return bpf_push_u64_to_ring(data, val);
-}
-
 FILLER(sys_pread64_x, true) {
 // This is due to the `pos` parameter
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER

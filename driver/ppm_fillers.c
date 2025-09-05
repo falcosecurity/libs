@@ -4214,57 +4214,6 @@ int f_sys_linkat_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_pread64_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	unsigned long size;
-	int res;
-	unsigned long pos64;
-	int32_t fd;
-
-	/*
-	 * fd
-	 */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * size
-	 */
-	syscall_get_arguments_deprecated(args, 2, 1, &size);
-	res = val_to_ring(args, size, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * pos
-	 */
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-	{
-		unsigned long pos0;
-		unsigned long pos1;
-#if defined CONFIG_X86
-		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
-		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
-#elif defined CONFIG_ARM && CONFIG_AEABI
-		syscall_get_arguments_deprecated(args, 4, 1, &pos0);
-		syscall_get_arguments_deprecated(args, 5, 1, &pos1);
-#else
-#error This architecture/abi not yet supported
-#endif
-
-		pos64 = merge_64(pos1, pos0);
-	}
-#else
-	syscall_get_arguments_deprecated(args, 3, 1, &pos64);
-#endif
-
-	res = val_to_ring(args, pos64, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_pread64_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
