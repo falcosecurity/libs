@@ -440,7 +440,10 @@ TEST_F(sys_call_test, fs_readv) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && (evt->get_type() == PPME_SYSCALL_WRITEV_X ||
+		                             evt->get_type() == PPME_SYSCALL_READV_X);
+	};
 
 	//
 	// TEST CODE
@@ -493,12 +496,8 @@ TEST_F(sys_call_test, fs_readv) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_WRITEV_E) {
-			EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
-			EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
-			callnum++;
-		} else if(type == PPME_SYSCALL_WRITEV_X) {
-			if(callnum == 1) {
+		if(type == PPME_SYSCALL_WRITEV_X) {
+			if(callnum == 0) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
@@ -506,7 +505,7 @@ TEST_F(sys_call_test, fs_readv) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_READV_X) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", (e->get_param_value_str("data")).substr(0, 15));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
@@ -526,7 +525,7 @@ TEST_F(sys_call_test, fs_readv) {
 		                   libsinsp::events::all_sc_set());
 	});
 
-	EXPECT_EQ(3, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1213,7 +1212,10 @@ TEST_F(sys_call_test, large_readv_writev) {
 
 	before_capture_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
 
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && (evt->get_type() == PPME_SYSCALL_WRITEV_X ||
+		                             evt->get_type() == PPME_SYSCALL_READV_X);
+	};
 
 	run_callback_t test = [&](sinsp* inspector) {
 		fd = creat(FILENAME, S_IRWXU);
@@ -1257,12 +1259,8 @@ TEST_F(sys_call_test, large_readv_writev) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_WRITEV_E) {
-			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_WRITEV_X) {
-			if(callnum == 1) {
+		if(type == PPME_SYSCALL_WRITEV_X) {
+			if(callnum == 0) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 				if(event_capture::s_engine_string == KMOD_ENGINE) {
 					//
@@ -1280,7 +1278,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_READV_X) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 				if(event_capture::s_engine_string == KMOD_ENGINE) {
 					EXPECT_EQ(p->len(), max_kmod_buf);
@@ -1311,7 +1309,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		                   false);
 	});
 
-	EXPECT_EQ(3, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, large_open) {

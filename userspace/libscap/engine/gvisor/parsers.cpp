@@ -1887,14 +1887,6 @@ static parse_result parse_write(uint32_t id,
 			                                                       gvisor_evt.offset());
 			break;
 
-		case __NR_writev:
-			ret.status = scap_gvisor::fillers::fill_event_writev_e(scap_buf,
-			                                                       &ret.size,
-			                                                       scap_err,
-			                                                       gvisor_evt.fd(),
-			                                                       gvisor_evt.count());
-			break;
-
 		default:
 			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 			break;
