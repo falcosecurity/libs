@@ -4618,12 +4618,6 @@ FILLER(sys_listen_x, true) {
 	return bpf_push_s32_to_ring(data, (int32_t)backlog);
 }
 
-FILLER(sys_recvmsg_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, (int64_t)fd);
-}
-
 FILLER(sys_recvmsg_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
