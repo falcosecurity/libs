@@ -955,18 +955,9 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
 }
 
-/**
- * @brief Store the size of a message extracted from an `iovec` struct array.
- * Please note: the size is an unsigned 32 bit value so
- * internally this helper use the `auxmap__store_u32_param()`
- *
- * @param auxmap pointer to the auxmap in which we are storing the param.
- * @param iov_pointer pointer to `iovec` struct array.
- * @param iov_cnt number of `iovec` structs to be read from userspace.
- */
-static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map *auxmap,
-                                                           unsigned long iov_pointer,
-                                                           unsigned long iov_cnt) {
+static __always_inline void auxmap__store_iovec_size_param_64(struct auxiliary_map *auxmap,
+                                                              unsigned long iov_pointer,
+                                                              unsigned long iov_cnt) {
 	/* We use the second part of our auxmap as a scratch space. */
 	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
@@ -987,6 +978,50 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
 		total_size_to_read += iovec[j].iov_len;
 	}
 	auxmap__store_u32_param(auxmap, total_size_to_read);
+}
+
+static __always_inline void auxmap__store_iovec_size_param_32(struct auxiliary_map *auxmap,
+                                                              unsigned long iov_pointer,
+                                                              unsigned long iov_cnt) {
+	/* We use the second part of our auxmap as a scratch space. */
+	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+	                       SAFE_ACCESS(total_iovec_size),
+	                       (void *)iov_pointer)) {
+		auxmap__store_u32_param(auxmap, 0);
+		return;
+	}
+
+	uint32_t total_size_to_read = 0;
+
+	/* Pointer to iovec structs */
+	const struct compat_iovec *iovec = (const struct compat_iovec *)&auxmap->data[MAX_PARAM_SIZE];
+	for(int j = 0; j < MAX_IOVCNT; j++) {
+		if(j == iov_cnt) {
+			break;
+		}
+		total_size_to_read += iovec[j].iov_len;
+	}
+	auxmap__store_u32_param(auxmap, total_size_to_read);
+}
+
+/**
+ * @brief Store the size of a message extracted from an `iovec` struct array.
+ * Please note: the size is an unsigned 32 bit value so
+ * internally this helper use the `auxmap__store_u32_param()`
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param iov_pointer pointer to `iovec` struct array.
+ * @param iov_cnt number of `iovec` structs to be read from userspace.
+ */
+static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map *auxmap,
+                                                           unsigned long iov_pointer,
+                                                           unsigned long iov_cnt) {
+	if(!bpf_in_ia32_syscall()) {
+		auxmap__store_iovec_size_param_64(auxmap, iov_pointer, iov_cnt);
+	} else {
+		auxmap__store_iovec_size_param_32(auxmap, iov_pointer, iov_cnt);
+	}
 }
 
 /**
