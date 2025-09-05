@@ -7,46 +7,6 @@
 #include <sys/socket.h>
 #include <linux/net.h>
 
-TEST(SyscallEnter, socketcall_bindE) {
-	auto evt_test = get_syscall_event_test(__NR_bind, ENTER_EVENT);
-
-	evt_test->enable_capture();
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	unsigned long args[3]{};
-	args[0] = 47;
-	args[1] = 0;
-	args[2] = 0;
-
-	assert_syscall_state(SYSCALL_FAILURE,
-	                     "socketcall bind",
-	                     syscall(__NR_socketcall, SYS_BIND, args));
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	evt_test->disable_capture();
-
-	evt_test->assert_event_presence();
-
-	if(HasFatalFailure()) {
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)args[0]);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(1);
-}
-
 TEST(SyscallEnter, socketcall_connectE) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 

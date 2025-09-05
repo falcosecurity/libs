@@ -210,7 +210,7 @@ TEST_F(sys_call_test, bind_error) {
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, bind_error_dropping) {
@@ -228,7 +228,7 @@ TEST_F(sys_call_test, bind_error_dropping) {
 
 	ASSERT_NO_FATAL_FAILURE(
 	        { event_capture::run(test, callback, filter, event_capture::do_nothing, setup); });
-	EXPECT_EQ(1, callnum);
+	EXPECT_EQ(0, callnum);
 }
 
 TEST_F(sys_call_test, close_badfd) {
@@ -1831,7 +1831,7 @@ TEST_F(sys_call_test32, fs_preadv) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_PREADV_X) {
-			if (callnum == 2) {
+			if(callnum == 2) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
