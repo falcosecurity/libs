@@ -5488,26 +5488,6 @@ FILLER(sys_pread64_x, true) {
 	return bpf_push_u64_to_ring(data, val);
 }
 
-FILLER(sys_pwrite64_e, true) {
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-#error Implement this
-#endif
-
-	/* Parameter 1: fd (type: PT_FD) */
-	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: size (type: PT_UINT32) */
-	size_t size = bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, size);
-	CHECK_RES(res);
-
-	/* Parameter 3: pos (type: PT_UINT64) */
-	uint64_t pos = (uint64_t)bpf_syscall_get_argument(data, 3);
-	return bpf_push_u64_to_ring(data, pos);
-}
-
 FILLER(sys_pwrite64_x, true) {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this

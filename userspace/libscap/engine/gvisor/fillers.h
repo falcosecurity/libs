@@ -424,13 +424,6 @@ int32_t fill_event_write_x(scap_sized_buffer scap_buf,
                            int64_t fd,
                            uint32_t size);
 
-int32_t fill_event_pwrite_e(scap_sized_buffer scap_buf,
-                            size_t* event_size,
-                            char* scap_err,
-                            int64_t fd,
-                            uint32_t size,
-                            uint64_t pos);
-
 int32_t fill_event_pwrite_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
