@@ -941,35 +941,30 @@ static parse_result parse_bind(uint32_t id,
 
 	char targetbuf[socktuple_buffer_size];  // XXX maybe a smaller version for addr
 
-	if(gvisor_evt.has_exit()) {
-		if(gvisor_evt.address().size() == 0) {
-			ret.status = SCAP_FAILURE;
-			ret.error = "No address data received";
-			return ret;
-		}
-
-		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
-		size_t size = pack_sockaddr(addr, targetbuf);
-		if(size == 0) {
-			ret.status = SCAP_FAILURE;
-			ret.error = "Could not parse received address";
-			return ret;
-		}
-
-		ret.status =
-		        scap_gvisor::fillers::fill_event_bind_x(scap_buf,
-		                                                &ret.size,
-		                                                scap_err,
-		                                                gvisor_evt.exit().result(),
-		                                                scap_const_sized_buffer{targetbuf, size},
-		                                                gvisor_evt.fd());
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_bind_e(scap_buf,
-		                                                     &ret.size,
-		                                                     scap_err,
-		                                                     gvisor_evt.fd());
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
+	}
+	if(gvisor_evt.address().size() == 0) {
+		ret.status = SCAP_FAILURE;
+		ret.error = "No address data received";
+		return ret;
 	}
 
+	sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
+	size_t size = pack_sockaddr(addr, targetbuf);
+	if(size == 0) {
+		ret.status = SCAP_FAILURE;
+		ret.error = "Could not parse received address";
+		return ret;
+	}
+
+	ret.status = scap_gvisor::fillers::fill_event_bind_x(scap_buf,
+	                                                     &ret.size,
+	                                                     scap_err,
+	                                                     gvisor_evt.exit().result(),
+	                                                     scap_const_sized_buffer{targetbuf, size},
+	                                                     gvisor_evt.fd());
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;

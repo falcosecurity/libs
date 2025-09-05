@@ -1023,15 +1023,6 @@ int32_t fill_event_eventfd_x(scap_sized_buffer scap_buf,
 	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_EVENTFD_X, 1, res);
 }
 
-// PPME_SYSCALL_BIND_E
-// Event field validity issues: none
-int32_t fill_event_bind_e(scap_sized_buffer scap_buf,
-                          size_t* event_size,
-                          char* scap_err,
-                          int64_t fd) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SOCKET_BIND_E, 1, fd);
-}
-
 // PPME_SYSCALL_BIND_X
 // Event field validity issues: none
 int32_t fill_event_bind_x(scap_sized_buffer scap_buf,

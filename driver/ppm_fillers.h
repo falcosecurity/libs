@@ -150,7 +150,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_epoll_create_x)               \
 	FN(sys_epoll_create1_x)              \
 	FN(sys_epoll_wait_x)                 \
-	FN(sys_socket_bind_e)                \
 	FN(sys_close_e)                      \
 	FN(sys_close_x)                      \
 	FN(sys_fchdir_x)                     \
