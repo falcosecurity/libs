@@ -677,12 +677,6 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	return res;
 }
 
-FILLER(sys_readv_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, fd);
-}
-
 FILLER(sys_readv_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
