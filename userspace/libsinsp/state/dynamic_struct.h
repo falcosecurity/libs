@@ -261,7 +261,7 @@ public:
 	 * @brief Accesses a field with the given accessor and reads its value.
 	 */
 	template<typename T, typename Val = T>
-	inline void get_dynamic_field(const field_accessor<T>& a, Val& out) {
+	inline void get_dynamic_field(const field_accessor<T>& a, Val& out) const {
 		_check_defsptr(a.info(), false);
 		get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
 	}
@@ -308,7 +308,7 @@ protected:
 	 * according to the type definitions supported in libsinsp::state::typeinfo.
 	 * For strings, "out" is considered of type const char**.
 	 */
-	virtual void get_dynamic_field(const field_info& i, void* out) {
+	virtual void get_dynamic_field(const field_info& i, void* out) const {
 		const auto* buf = _access_dynamic_field(i.m_index);
 		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)buf)->c_str();
@@ -360,7 +360,7 @@ private:
 		}
 	}
 
-	inline void* _access_dynamic_field(size_t index) {
+	inline void* _access_dynamic_field(size_t index) const {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
 		}
@@ -397,7 +397,7 @@ private:
 		}
 	}
 
-	std::vector<void*> m_fields;
+	mutable std::vector<void*> m_fields;
 	std::shared_ptr<field_infos> m_dynamic_fields;
 };
 
@@ -409,7 +409,7 @@ private:
 template<>
 inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, const char*>(
         const field_accessor<std::string>& a,
-        const char*& out) {
+        const char*& out) const {
 	_check_defsptr(a.info(), false);
 	get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
 }
@@ -417,7 +417,7 @@ inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, cons
 template<>
 inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, std::string>(
         const field_accessor<std::string>& a,
-        std::string& out) {
+        std::string& out) const {
 	const char* s = NULL;
 	get_dynamic_field(a, s);
 	if(!s) {
