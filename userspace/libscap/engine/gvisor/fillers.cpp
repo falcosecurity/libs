@@ -1123,22 +1123,6 @@ int32_t fill_event_socketpair_x(scap_sized_buffer scap_buf,
 	                                0);  // peer -- INVALID
 }
 
-// PPME_SYSCALL_WRITE_E
-// Event field validity issues: none
-int32_t fill_event_write_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd,
-                           uint32_t size) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_WRITE_E,
-	                                2,
-	                                fd,
-	                                size);
-}
-
 // PPME_SYSCALL_WRITE_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:

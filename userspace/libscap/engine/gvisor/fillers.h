@@ -381,12 +381,6 @@ int32_t fill_event_socketpair_x(scap_sized_buffer scap_buf,
                                 int64_t fd1,
                                 int64_t fd2);
 
-int32_t fill_event_write_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd,
-                           uint32_t size);
-
 int32_t fill_event_write_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
