@@ -12,7 +12,7 @@
 #define MAX_ITERATIONS 300
 
 /* Number of events we want to assert */
-#define EVENTS_TO_ASSERT 20
+#define EVENTS_TO_ASSERT 19
 
 void check_event_is_not_overwritten(scap_t *h) {
 	/* Start the capture */
@@ -101,14 +101,25 @@ void check_event_is_not_overwritten(scap_t *h) {
         defined(__NR_socketpair)
 
 void check_event_order(scap_t *h) {
-	uint32_t events_to_assert[EVENTS_TO_ASSERT] = {
-	        PPME_SYSCALL_CLOSE_E,     PPME_SYSCALL_CLOSE_X,    PPME_SYSCALL_OPENAT_2_E,
-	        PPME_SYSCALL_OPENAT_2_X,  PPME_SOCKET_LISTEN_X,    PPME_SOCKET_ACCEPT4_6_E,
-	        PPME_SOCKET_ACCEPT4_6_X,  PPME_SYSCALL_GETEGID_X,  PPME_SYSCALL_GETGID_X,
-	        PPME_SYSCALL_GETEUID_X,   PPME_SYSCALL_GETUID_X,   PPME_SOCKET_BIND_X,
-	        PPME_SOCKET_CONNECT_E,    PPME_SOCKET_CONNECT_X,   PPME_SOCKET_SENDTO_X,
-	        PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_X,   PPME_SOCKET_RECVFROM_X,
-	        PPME_SOCKET_SOCKET_X,     PPME_SOCKET_SOCKETPAIR_X};
+	uint32_t events_to_assert[EVENTS_TO_ASSERT] = {PPME_SYSCALL_CLOSE_E,
+	                                               PPME_SYSCALL_CLOSE_X,
+	                                               PPME_SYSCALL_OPENAT_2_E,
+	                                               PPME_SYSCALL_OPENAT_2_X,
+	                                               PPME_SOCKET_LISTEN_X,
+	                                               PPME_SOCKET_ACCEPT4_6_X,
+	                                               PPME_SYSCALL_GETEGID_X,
+	                                               PPME_SYSCALL_GETGID_X,
+	                                               PPME_SYSCALL_GETEUID_X,
+	                                               PPME_SYSCALL_GETUID_X,
+	                                               PPME_SOCKET_BIND_X,
+	                                               PPME_SOCKET_CONNECT_E,
+	                                               PPME_SOCKET_CONNECT_X,
+	                                               PPME_SOCKET_SENDTO_X,
+	                                               PPME_SOCKET_GETSOCKOPT_X,
+	                                               PPME_SOCKET_RECVMSG_X,
+	                                               PPME_SOCKET_RECVFROM_X,
+	                                               PPME_SOCKET_SOCKET_X,
+	                                               PPME_SOCKET_SOCKETPAIR_X};
 
 	/* Start the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)
@@ -123,7 +134,7 @@ void check_event_order(scap_t *h) {
 	/* 3. Generate a `listen` exit event. */
 	syscall(__NR_listen, -1, -1);
 
-	/* 4. Generate an `accept4` event pair */
+	/* 4. Generate an `accept4` exit event. */
 	syscall(__NR_accept4, -1, NULL, NULL, 0);
 
 	/* 5. Generate a `getegid` exit event. */
