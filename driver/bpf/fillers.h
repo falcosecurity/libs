@@ -4394,17 +4394,6 @@ FILLER(sys_recv_x, true) {
 	return bpf_val_to_ring_len(data, 0, tuple_size);
 }
 
-FILLER(sys_recvfrom_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: size (type: PT_UINT32) */
-	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
-	return bpf_push_u32_to_ring(data, size);
-}
-
 FILLER(sys_recvfrom_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);

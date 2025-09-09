@@ -173,60 +173,6 @@ TEST(SyscallEnter, socketcall_accept4E) {
 }
 #endif
 
-#ifdef __NR_recvfrom
-
-TEST(SyscallEnter, socketcall_recvfromE) {
-	auto evt_test = get_syscall_event_test(__NR_recvfrom, ENTER_EVENT);
-
-	evt_test->enable_capture();
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	int32_t mock_fd = -1;
-	char received_data[MAX_RECV_BUF_SIZE];
-	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
-	uint32_t flags = 0;
-	sockaddr *src_addr = NULL;
-	socklen_t *addrlen = NULL;
-
-	unsigned long args[6]{};
-	args[0] = mock_fd;
-	args[1] = (unsigned long)received_data;
-	args[2] = received_data_len;
-	args[3] = flags;
-	args[4] = (unsigned long)src_addr;
-	args[5] = (unsigned long)addrlen;
-
-	assert_syscall_state(SYSCALL_FAILURE, "recvfrom", syscall(__NR_socketcall, SYS_RECVFROM, args));
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	evt_test->disable_capture();
-
-	evt_test->assert_event_presence();
-
-	if(HasFatalFailure()) {
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
-
-	/* Parameter 2: size (type: PT_UINT32)*/
-	evt_test->assert_numeric_param(2, (uint32_t)received_data_len);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(2);
-}
-#endif
-
 #if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && \
         defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) &&               \
         defined(__NR_sendto)

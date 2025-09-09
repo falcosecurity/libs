@@ -457,7 +457,6 @@ TEST_F(sys_call_test, udp_client_server) {
 	bool use_unix = false, use_sendmsg = false, recvmsg_twobufs = false, use_connect = false;
 	uint32_t num_servers = 1;
 	udp_servers_and_client udps(use_unix, use_sendmsg, recvmsg_twobufs, use_connect, num_servers);
-	int64_t fd_server_socket = 0;
 
 	//
 	// FILTER
@@ -480,9 +479,6 @@ TEST_F(sys_call_test, udp_client_server) {
 		std::string dst_addr;
 		std::string dst_port;
 
-		if(type == PPME_SOCKET_RECVFROM_E) {
-			memcpy(&fd_server_socket, e->get_param(0)->data(), sizeof(fd_server_socket));
-		}
 		switch(state) {
 		case 0:
 			EXPECT_NE(PPME_SOCKET_SENDTO_X, type);
@@ -516,6 +512,7 @@ TEST_F(sys_call_test, udp_client_server) {
 				EXPECT_TRUE(udps.is_server_port(dst_port));
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
+				const auto fd_server_socket = std::stoll(e->get_param_value_str("fd", false));
 				sinsp_fdinfo* fdinfo = e->get_thread_info(false)->get_fd(fd_server_socket);
 				ASSERT_TRUE(fdinfo);
 				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
@@ -559,6 +556,7 @@ TEST_F(sys_call_test, udp_client_server) {
 				EXPECT_NE("0", dst_port);
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
+				const auto fd_server_socket = std::stoll(e->get_param_value_str("fd", false));
 				sinsp_fdinfo* fdinfo = e->get_thread_info(false)->get_fd(fd_server_socket);
 				ASSERT_TRUE(fdinfo);
 				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
