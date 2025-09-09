@@ -173,55 +173,6 @@ TEST(SyscallEnter, socketcall_accept4E) {
 }
 #endif
 
-#ifdef __NR_send
-
-TEST(SyscallEnter, socketcall_sendE) {
-	auto evt_test = get_syscall_event_test(__NR_send, ENTER_EVENT);
-
-	evt_test->enable_capture();
-
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-
-	int32_t mock_fd = -1;
-	char mock_buf[8];
-	size_t mock_count = 4096;
-	int flags = 0;
-
-	unsigned long args[4]{};
-	args[0] = mock_fd;
-	args[1] = (unsigned long)mock_buf;
-	args[2] = mock_count;
-	args[3] = (unsigned long)flags;
-	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_socketcall, SYS_SEND, args));
-
-	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	evt_test->disable_capture();
-
-	evt_test->assert_event_presence();
-
-	if(HasFatalFailure()) {
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
-
-	/* Parameter 2: size (type: PT_UINT32)*/
-	evt_test->assert_numeric_param(2, (uint32_t)mock_count);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(2);
-}
-#endif
-
 TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting) {
 	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);

@@ -207,8 +207,7 @@ void runtest(iotype iot,
 		// 32bit uses send() and recv(), while 64bit always uses sendto() and
 		// recvfrom() and sets the address to NULL
 		//
-		if((evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SYSCALL_READ_E ||
-		    evt->get_type() == PPME_SYSCALL_WRITE_E) &&
+		if((evt->get_type() == PPME_SYSCALL_READ_E || evt->get_type() == PPME_SYSCALL_WRITE_E) &&
 		   evt->get_fd_info()->m_type == SCAP_FD_IPV4_SOCK) {
 			std::string tuple = evt->get_param_value_str("fd");
 			tuple = tuple.substr(tuple.find(">") + 1);
@@ -253,6 +252,16 @@ void runtest(iotype iot,
 				    EXPECT_EQ(sport, dst_port);
 				    EXPECT_EQ(SERVER_PORT_STR, src_port);
 				}*/
+			} else if(evt->get_type() == PPME_SOCKET_SEND_X) {
+				if(!parse_tuple(evt->get_param_value_str("tuple"),
+				                src_addr,
+				                src_port,
+				                dst_addr,
+				                dst_port)) {
+					return;
+				}
+				EXPECT_EQ(server_address, src_addr);
+				EXPECT_EQ(server_address, dst_addr);
 			}
 
 			EXPECT_EQ(payload, evt->get_param_value_str("data"));

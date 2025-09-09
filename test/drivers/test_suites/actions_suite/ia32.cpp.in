@@ -75,7 +75,6 @@ TEST(Actions, ia32)
 		 * Since SYS_SEND exists but __NR_send does not on x86_64,
 		 * convert_network_syscalls() returns -1 and we don't push anything to consumers.
 		 */
-		evt_test->assert_event_absence(ret_pid, PPME_SOCKET_SEND_E);
 		evt_test->assert_event_absence(ret_pid, PPME_SOCKET_SEND_X);
 
 		/*
@@ -90,7 +89,6 @@ TEST(Actions, ia32)
 		 * Kmod and old bpf jump table is events-indexed.
 		 * We are able to fallback at sending the events.
 		 */
-		evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_E);
 		evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_X);
 
 		/*
