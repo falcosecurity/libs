@@ -12,7 +12,7 @@
 #define MAX_ITERATIONS 300
 
 /* Number of events we want to assert */
-#define EVENTS_TO_ASSERT 21
+#define EVENTS_TO_ASSERT 20
 
 void check_event_is_not_overwritten(scap_t *h) {
 	/* Start the capture */
@@ -102,13 +102,13 @@ void check_event_is_not_overwritten(scap_t *h) {
 
 void check_event_order(scap_t *h) {
 	uint32_t events_to_assert[EVENTS_TO_ASSERT] = {
-	        PPME_SYSCALL_CLOSE_E,    PPME_SYSCALL_CLOSE_X,     PPME_SYSCALL_OPENAT_2_E,
-	        PPME_SYSCALL_OPENAT_2_X, PPME_SOCKET_LISTEN_X,     PPME_SOCKET_ACCEPT4_6_E,
-	        PPME_SOCKET_ACCEPT4_6_X, PPME_SYSCALL_GETEGID_X,   PPME_SYSCALL_GETGID_X,
-	        PPME_SYSCALL_GETEUID_X,  PPME_SYSCALL_GETUID_X,    PPME_SOCKET_BIND_X,
-	        PPME_SOCKET_CONNECT_E,   PPME_SOCKET_CONNECT_X,    PPME_SOCKET_SENDTO_E,
-	        PPME_SOCKET_SENDTO_X,    PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_X,
-	        PPME_SOCKET_RECVFROM_X,  PPME_SOCKET_SOCKET_X,     PPME_SOCKET_SOCKETPAIR_X};
+	        PPME_SYSCALL_CLOSE_E,     PPME_SYSCALL_CLOSE_X,    PPME_SYSCALL_OPENAT_2_E,
+	        PPME_SYSCALL_OPENAT_2_X,  PPME_SOCKET_LISTEN_X,    PPME_SOCKET_ACCEPT4_6_E,
+	        PPME_SOCKET_ACCEPT4_6_X,  PPME_SYSCALL_GETEGID_X,  PPME_SYSCALL_GETGID_X,
+	        PPME_SYSCALL_GETEUID_X,   PPME_SYSCALL_GETUID_X,   PPME_SOCKET_BIND_X,
+	        PPME_SOCKET_CONNECT_E,    PPME_SOCKET_CONNECT_X,   PPME_SOCKET_SENDTO_X,
+	        PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_X,   PPME_SOCKET_RECVFROM_X,
+	        PPME_SOCKET_SOCKET_X,     PPME_SOCKET_SOCKETPAIR_X};
 
 	/* Start the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)
@@ -144,13 +144,13 @@ void check_event_order(scap_t *h) {
 	/* 10. Generate a `connect` event pair */
 	syscall(__NR_connect, -1, NULL, 0);
 
-	/* 11. Generate a `sendto` event pair */
+	/* 11. Generate a `sendto` exit event. */
 	syscall(__NR_sendto, -1, NULL, 0, 0, NULL, 0);
 
 	/* 12. Generate a `getsockopt` exit event. */
 	syscall(__NR_getsockopt, -1, 0, 0, NULL, NULL);
 
-	/* 13. Generate a `recvmsg` event pair */
+	/* 13. Generate a `recvmsg` exit event. */
 	syscall(__NR_recvmsg, -1, NULL, 0);
 
 	/* 14. Generate a `recvmsg` exit event. */

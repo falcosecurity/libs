@@ -487,7 +487,7 @@ void runtest_ipv4m(iotype iot,
 		// 32bit uses send() and recv(), while 64bit always uses sendto() and
 		// recvfrom() and sets the address to NULL
 		//
-		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_SENDTO_E) {
+		if(evt->get_type() == PPME_SOCKET_SEND_E) {
 			std::string tuple = evt->get_param_value_str("fd");
 			tuple = tuple.substr(tuple.find(">") + 1);
 			if(!parse_tuple(tuple, src_addr, src_port, dst_addr, dst_port)) {

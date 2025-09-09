@@ -192,7 +192,7 @@ TEST_F(sys_call_test, unix_udp_client_server_read) {
 			callnum++;
 		}
 
-		if(evt->get_type() == PPME_SOCKET_SENDTO_E) {
+		if(evt->get_type() == PPME_SOCKET_SENDTO_X) {
 			std::string ttuple = evt->get_param_value_str("tuple");
 			std::stringstream taddrs(ttuple.substr(0, ttuple.find(" ")));
 			std::string tfile = ttuple.substr(ttuple.find(" ") + 1);
@@ -247,10 +247,7 @@ TEST_F(sys_call_test, unix_udp_client_server_read) {
 				}
 			}
 
-			if(evt->get_type() == PPME_SOCKET_SENDTO_X) {
-				EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
-			}
-
+			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
 			callnum++;
 		} else if(evt->get_type() == PPME_SYSCALL_READ_E) {
 			if(callnum < 1) {
