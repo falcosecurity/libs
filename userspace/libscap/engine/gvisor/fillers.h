@@ -183,12 +183,6 @@ int32_t fill_event_close_x(scap_sized_buffer scap_buf,
                            int64_t res,
                            int64_t fd);
 
-int32_t fill_event_read_e(scap_sized_buffer scap_buf,
-                          size_t* event_size,
-                          char* scap_err,
-                          int64_t fd,
-                          uint32_t size);
-
 int32_t fill_event_read_x(scap_sized_buffer scap_buf,
                           size_t* event_size,
                           char* scap_err,

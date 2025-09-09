@@ -1103,12 +1103,8 @@ TEST_F(sys_call_test, large_read_write) {
 				callnum++;
 			}
 		}
-		if(type == PPME_SYSCALL_READ_E) {
+		if(type == PPME_SYSCALL_READ_X) {
 			if(callnum == 2) {
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_READ_X) {
-			if(callnum == 3) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
 				EXPECT_EQ(p->len(), SNAPLEN_MAX);
@@ -1134,7 +1130,7 @@ TEST_F(sys_call_test, large_read_write) {
 		                   false);
 	});
 
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(3, callnum);
 }
 
 TEST_F(sys_call_test, large_readv_writev) {

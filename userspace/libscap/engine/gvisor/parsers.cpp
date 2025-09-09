@@ -518,19 +518,7 @@ static parse_result parse_read(uint32_t id,
 			break;
 		}
 	} else {
-		switch(gvisor_evt.sysno()) {
-		case __NR_read:
-			ret.status = scap_gvisor::fillers::fill_event_read_e(scap_buf,
-			                                                     &ret.size,
-			                                                     scap_err,
-			                                                     gvisor_evt.fd(),
-			                                                     gvisor_evt.count());
-			break;
-
-		default:
-			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
-			break;
-		}
+		ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
