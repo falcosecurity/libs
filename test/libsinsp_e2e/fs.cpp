@@ -803,7 +803,9 @@ TEST_F(sys_call_test, fs_sendfile) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_SENDFILE_X;
+	};
 
 	//
 	// TEST CODE
@@ -832,27 +834,17 @@ TEST_F(sys_call_test, fs_sendfile) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_SENDFILE_E) {
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			callnum++;
-		} else if(type == PPME_SYSCALL_SENDFILE_X) {
-			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			callnum++;
-		}
+		EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
+		EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
+		EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+		EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+		EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, fs_sendfile_nulloff) {
@@ -864,7 +856,9 @@ TEST_F(sys_call_test, fs_sendfile_nulloff) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_SENDFILE_X;
+	};
 
 	//
 	// TEST CODE
@@ -893,27 +887,17 @@ TEST_F(sys_call_test, fs_sendfile_nulloff) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_SENDFILE_E) {
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			callnum++;
-		} else if(type == PPME_SYSCALL_SENDFILE_X) {
-			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			callnum++;
-		}
+		EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
+		EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
+		EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+		EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+		EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, fs_sendfile_failed) {
@@ -923,7 +907,9 @@ TEST_F(sys_call_test, fs_sendfile_failed) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_SENDFILE_X;
+	};
 
 	//
 	// TEST CODE
@@ -938,32 +924,19 @@ TEST_F(sys_call_test, fs_sendfile_failed) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_SENDFILE_E) {
-			EXPECT_NO_THROW({
-				EXPECT_EQ("-1", e->get_param_value_str("out_fd", false));
-				EXPECT_EQ("-2", e->get_param_value_str("in_fd", false));
-				EXPECT_EQ(444, std::stoll(e->get_param_value_str("size", false)));
-				EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			});
-
-			callnum++;
-		} else if(type == PPME_SYSCALL_SENDFILE_X) {
-			EXPECT_NO_THROW({
-				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
-				EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-				EXPECT_EQ("-1", e->get_param_value_str("out_fd", false));
-				EXPECT_EQ("-2", e->get_param_value_str("in_fd", false));
-				EXPECT_EQ(444, std::stoll(e->get_param_value_str("size", false)));
-			});
-			callnum++;
-		}
+		EXPECT_NO_THROW({
+			EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
+			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
+			EXPECT_EQ("-1", e->get_param_value_str("out_fd", false));
+			EXPECT_EQ("-2", e->get_param_value_str("in_fd", false));
+			EXPECT_EQ(444, std::stoll(e->get_param_value_str("size", false)));
+		});
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 TEST_F(sys_call_test, fs_sendfile_invalidoff) {
@@ -975,7 +948,9 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_SENDFILE_X;
+	};
 
 	//
 	// TEST CODE
@@ -1004,27 +979,17 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_SENDFILE_E) {
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			callnum++;
-		} else if(type == PPME_SYSCALL_SENDFILE_X) {
-			EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			callnum++;
-		}
+		EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
+		EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
+		EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+		EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+		EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 
 #ifdef __i386__
@@ -1038,7 +1003,9 @@ TEST_F(sys_call_test, fs_sendfile64) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_SENDFILE_X;
+	};
 
 	//
 	// TEST CODE
@@ -1067,27 +1034,17 @@ TEST_F(sys_call_test, fs_sendfile64) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_SENDFILE_E) {
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
-			callnum++;
-		} else if(type == PPME_SYSCALL_SENDFILE_X) {
-			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
-			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
-			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
-			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
-			callnum++;
-		}
+		EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
+		EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
+		EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
+		EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
+		EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
+		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);
 }
 #endif
 

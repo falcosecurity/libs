@@ -188,7 +188,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
                                     {{AF_ID_RETVAL}, {0}, {1}}},
         [PPME_SYSCALL_SYMLINKAT_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_SYMLINKAT_X] = {FILLER_REF(sys_symlinkat_x)},
-        [PPME_SYSCALL_SENDFILE_E] = {FILLER_REF(sys_sendfile_e)},
+        [PPME_SYSCALL_SENDFILE_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_SENDFILE_X] = {FILLER_REF(sys_sendfile_x)},
         [PPME_SYSCALL_QUOTACTL_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_QUOTACTL_X] = {FILLER_REF(sys_quotactl_x)},
