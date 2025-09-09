@@ -177,11 +177,6 @@ int32_t fill_event_creat_x(scap_sized_buffer scap_buf,
                            const char* name,
                            uint32_t mode);
 
-int32_t fill_event_close_e(scap_sized_buffer scap_buf,
-                           size_t* event_size,
-                           char* scap_err,
-                           int64_t fd);
-
 int32_t fill_event_close_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,

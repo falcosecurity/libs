@@ -38,47 +38,28 @@ TEST_F(sinsp_with_test_input, CLOSE_success) {
 	ASSERT_EQ(socket_fd, sock_params.fd);
 	ASSERT_TRUE(tinfo->get_fd(socket_fd));
 
-	// Generate the close enter event.
-	const auto enter_evt =
-	        add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_CLOSE_E, 1, socket_fd);
-
-	// Check that the fd value is as expected.
-	ASSERT_EQ(enter_evt->get_param_by_name("fd")->as<int64_t>(), socket_fd);
-
-	// Generate and interleaving event creating the same file descriptor, and verify this doesn't
-	// interfer with the fd removal which will happen after the close exit event generation below.
-	constexpr sinsp_test_input::open_params op_params;
-	ASSERT_EQ(sock_params.fd, op_params.fd);
-	generate_open_x_event(op_params, INIT_TID);
-
-	// Check that the enter event is associated with some thread information and the thread's fd
-	// table has still an unmodified entry for the file descriptor.
-	const auto enter_tinfo = enter_evt->get_thread_info();
-	ASSERT_TRUE(enter_tinfo);
-	ASSERT_TRUE(enter_tinfo->get_fd(socket_fd));
-
 	// Generate the close exit event.
 	constexpr int64_t return_value = 0;
-	const auto exit_evt = add_event_advance_ts(increasing_ts(),
-	                                           INIT_TID,
-	                                           PPME_SYSCALL_CLOSE_X,
-	                                           2,
-	                                           return_value,
-	                                           socket_fd);
+	const auto close_evt = add_event_advance_ts(increasing_ts(),
+	                                            INIT_TID,
+	                                            PPME_SYSCALL_CLOSE_X,
+	                                            2,
+	                                            return_value,
+	                                            socket_fd);
 
 	// Check that the returned value is as expected.
-	ASSERT_EQ(exit_evt->get_param_by_name("res")->as<int64_t>(), return_value);
+	ASSERT_EQ(close_evt->get_param_by_name("res")->as<int64_t>(), return_value);
 
 	// Check that the fd value is as expected.
-	ASSERT_EQ(exit_evt->get_param_by_name("fd")->as<int64_t>(), socket_fd);
+	ASSERT_EQ(close_evt->get_param_by_name("fd")->as<int64_t>(), socket_fd);
 
 	// Check that the exit event is associated with some thread information and the thread's fd
 	// table has an entry for the file descriptor.
 	// Notice: the fd information are still present, as their removal is delayed to the next
 	// sinsp::next() invocation.
-	const auto exit_tinfo = exit_evt->get_thread_info();
-	ASSERT_TRUE(exit_tinfo);
-	ASSERT_TRUE(exit_tinfo->get_fd(socket_fd));
+	const auto close_tinfo = close_evt->get_thread_info();
+	ASSERT_TRUE(close_tinfo);
+	ASSERT_TRUE(close_tinfo->get_fd(socket_fd));
 
 	// Generate a dummy event to get sinsp::next() being invoked and do the scheduled fd removal.
 	uint16_t dummy_syscall_id = 0;

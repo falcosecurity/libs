@@ -2647,20 +2647,10 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		return;
 	}
 
-	//
-	// It is normal when a close fails that the fd lookup failed, so we revert the
-	// increment of m_n_failed_fd_lookups (for the enter event too if there's one).
-	//
+	// It is normal when a close fails that the fd lookup failed, so we revert the increment of
+	// m_n_failed_fd_lookups.
 	if(m_sinsp_stats_v2 != nullptr) {
 		m_sinsp_stats_v2->m_n_failed_fd_lookups--;
-	}
-	// TODO(ekoops): remove this once we remove, in sinsp_parser::reset(), the logic setting the
-	//   lastevent type upon the `close` enter event reception as well as the logic setting the
-	//   lastevent data validity upon the `close` exit event reception.
-	if(evt.get_tinfo() && evt.get_tinfo()->is_lastevent_data_valid()) {
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_failed_fd_lookups--;
-		}
 	}
 }
 

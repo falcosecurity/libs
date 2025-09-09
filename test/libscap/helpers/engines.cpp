@@ -12,7 +12,7 @@
 #define MAX_ITERATIONS 300
 
 /* Number of events we want to assert */
-#define EVENTS_TO_ASSERT 19
+#define EVENTS_TO_ASSERT 18
 
 void check_event_is_not_overwritten(scap_t *h) {
 	/* Start the capture */
@@ -101,8 +101,7 @@ void check_event_is_not_overwritten(scap_t *h) {
         defined(__NR_socketpair)
 
 void check_event_order(scap_t *h) {
-	uint32_t events_to_assert[EVENTS_TO_ASSERT] = {PPME_SYSCALL_CLOSE_E,
-	                                               PPME_SYSCALL_CLOSE_X,
+	uint32_t events_to_assert[EVENTS_TO_ASSERT] = {PPME_SYSCALL_CLOSE_X,
 	                                               PPME_SYSCALL_OPENAT_2_E,
 	                                               PPME_SYSCALL_OPENAT_2_X,
 	                                               PPME_SOCKET_LISTEN_X,
@@ -125,7 +124,7 @@ void check_event_order(scap_t *h) {
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)
 	        << "unable to start the capture: " << scap_getlasterr(h) << std::endl;
 
-	/* 1. Generate a `close` event pair */
+	/* 1. Generate a `close` exit event. */
 	syscall(__NR_close, -1);
 
 	/* 2. Generate an `openat` event pair */

@@ -605,44 +605,6 @@ static __always_inline bool drop_event(void *ctx,
 
 		break;
 	}
-	case PPME_SYSCALL_CLOSE_E: {
-		struct sys_enter_args *args;
-		struct files_struct *files;
-		struct task_struct *task;
-		unsigned long *open_fds;
-		struct fdtable *fdt;
-		int close_fd;
-		int max_fds;
-
-		close_fd = bpf_syscall_get_argument_from_ctx(ctx, 0);
-		if(close_fd < 0)
-			return true;
-
-		task = (struct task_struct *)bpf_get_current_task();
-		if(!task)
-			break;
-
-		files = _READ(task->files);
-		if(!files)
-			break;
-
-		fdt = _READ(files->fdt);
-		if(!fdt)
-			break;
-
-		max_fds = _READ(fdt->max_fds);
-		if(close_fd >= max_fds)
-			return true;
-
-		open_fds = _READ(fdt->open_fds);
-		if(!open_fds)
-			break;
-
-		if(!bpf_test_bit(close_fd, open_fds))
-			return true;
-
-		break;
-	}
 	case PPME_SYSCALL_FCNTL_X: {
 		long cmd = bpf_syscall_get_argument_from_ctx(ctx, 1);
 
