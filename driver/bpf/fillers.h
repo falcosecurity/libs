@@ -1682,56 +1682,6 @@ FILLER(sys_send_x, true) {
 	return bpf_val_to_ring_len(data, 0, tuple_size);
 }
 
-FILLER(sys_sendto_e, true) {
-	/* Parameter 1: fd (type: PT_FD) */
-	int64_t fd = (int64_t)(int32_t)bpf_syscall_get_argument(data, 0);
-	int res = bpf_push_s64_to_ring(data, fd);
-	CHECK_RES(res);
-
-	/* Parameter 2: size (type: PT_UINT32) */
-	uint32_t size = (uint32_t)bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, size);
-	CHECK_RES(res);
-
-	/* Get the address */
-	struct sockaddr __user *usrsockaddr =
-	        (struct sockaddr __user *)bpf_syscall_get_argument(data, 4);
-
-	/* Get the address len */
-	unsigned long usrsockaddr_len = bpf_syscall_get_argument(data, 5);
-
-	struct sockaddr *ksockaddr = (struct sockaddr *)data->tmp_scratch;
-	bool use_sockaddr_user_data = false;
-	bool push_socktuple = true;
-	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
-		/* Copy the address into kernel memory */
-		res = bpf_addr_to_kernel(usrsockaddr, usrsockaddr_len, ksockaddr);
-		if(likely(res >= 0)) {
-			/* Convert the fd into socket endpoint information */
-			use_sockaddr_user_data = true;
-		} else {
-			/* Do not send any socket endpoint information */
-			push_socktuple = false;
-		}
-	}
-
-	uint32_t socktuple_size = 0;
-	if(push_socktuple) {
-		/* Convert the fd into socket endpoint information */
-		socktuple_size = bpf_fd_to_socktuple(data,
-		                                     fd,
-		                                     ksockaddr,
-		                                     usrsockaddr_len,
-		                                     use_sockaddr_user_data,
-		                                     false,
-		                                     data->tmp_scratch + sizeof(struct sockaddr_storage));
-	}
-
-	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-	data->curarg_already_on_frame = true;
-	return bpf_val_to_ring_len(data, 0, socktuple_size);
-}
-
 FILLER(sys_sendto_x, true) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);

@@ -192,8 +192,10 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect_with_intermediate_event) {
 	/* This should never happen but could cause strange outcomes */
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SOCKET_SENDTO_E,
-	                           3,
+	                           PPME_SOCKET_SENDTO_X,
+	                           5,
+	                           (int64_t)0,
+	                           scap_const_sized_buffer{nullptr, 0},
 	                           sinsp_test_input::socket_params::default_fd,
 	                           (uint32_t)102,
 	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()});
@@ -314,8 +316,10 @@ TEST_F(sinsp_with_test_input, net_ipv6_multiple_connects) {
 	scap_const_sized_buffer null_buf = scap_const_sized_buffer{nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SOCKET_SENDTO_E,
-	                           3,
+	                           PPME_SOCKET_SENDTO_X,
+	                           5,
+	                           (int64_t)0,
+	                           null_buf,
 	                           sinsp_test_input::socket_params::default_fd,
 	                           (uint32_t)6,
 	                           null_buf);

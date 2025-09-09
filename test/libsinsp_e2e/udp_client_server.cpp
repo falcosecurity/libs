@@ -469,7 +469,7 @@ TEST_F(sys_call_test, udp_client_server) {
 	run_callback_t test = [&](sinsp* inspector) { udps.start(); };
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
@@ -481,10 +481,9 @@ TEST_F(sys_call_test, udp_client_server) {
 
 		switch(state) {
 		case 0:
-			EXPECT_NE(PPME_SOCKET_SENDTO_X, type);
 			EXPECT_NE(PPME_SOCKET_RECVFROM_X, type);
 
-			if(type == PPME_SOCKET_SENDTO_E) {
+			if(type == PPME_SOCKET_SENDTO_X) {
 				parse_tuple(e->get_param_value_str("tuple"),
 				            src_addr,
 				            src_port,
@@ -523,25 +522,6 @@ TEST_F(sys_call_test, udp_client_server) {
 			}
 			break;
 		case 2:
-			EXPECT_NE(PPME_SOCKET_SENDTO_X, type);
-			EXPECT_NE(PPME_SOCKET_RECVFROM_X, type);
-
-			if(type == PPME_SOCKET_SENDTO_E) {
-				parse_tuple(e->get_param_value_str("tuple"),
-				            src_addr,
-				            src_port,
-				            dst_addr,
-				            dst_port);
-
-				EXPECT_EQ("0.0.0.0", src_addr);
-				EXPECT_TRUE(udps.is_server_port(src_port));
-				EXPECT_EQ(udps.server_address(), dst_addr);
-				EXPECT_NE("0", dst_port);
-
-				state++;
-			}
-			break;
-		case 3:
 			if(type == PPME_SOCKET_RECVFROM_X) {
 				parse_tuple(e->get_param_value_str("tuple"),
 				            src_addr,
@@ -561,10 +541,10 @@ TEST_F(sys_call_test, udp_client_server) {
 				ASSERT_TRUE(fdinfo);
 				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 
-				state = 4;
+				state = 3;
 			}
 			break;
-		case 4:
+		case 3:
 			break;
 		default:
 			FAIL();

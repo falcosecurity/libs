@@ -2353,65 +2353,6 @@ int f_sys_send_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_sendto_e(struct event_filler_arguments *args) {
-	int res;
-	unsigned long val;
-	int64_t fd;
-	uint32_t size;
-	struct sockaddr __user *usrsockaddr;
-	unsigned long usrsockaddr_len;
-	struct sockaddr_storage address;
-	struct sockaddr *ksockaddr = NULL;
-	unsigned long sockaddr_len = 0;
-	bool use_sockaddr = false;
-	char *targetbuf = args->str_storage;
-	uint16_t tuple_size = 0;
-
-	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int64_t)(int32_t)val;
-	res = val_to_ring(args, fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: size (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	size = (uint32_t)val;
-	res = val_to_ring(args, size, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Get the address */
-	syscall_get_arguments_deprecated(args, 4, 1, &val);
-	usrsockaddr = (struct sockaddr __user *)val;
-
-	/* Get the address len */
-	syscall_get_arguments_deprecated(args, 5, 1, &usrsockaddr_len);
-
-	if(usrsockaddr != NULL && usrsockaddr_len != 0) {
-		/* Copy the address into kernel memory */
-		res = addr_to_kernel(usrsockaddr, usrsockaddr_len, (struct sockaddr *)&address);
-		if(likely(res >= 0)) {
-			ksockaddr = (struct sockaddr *)&address;
-			sockaddr_len = usrsockaddr_len;
-			use_sockaddr = true;
-		}
-	}
-
-	/* Convert the fd into socket endpoint information */
-	tuple_size = fd_to_socktuple((int)fd,
-	                             ksockaddr,
-	                             sockaddr_len,
-	                             use_sockaddr,
-	                             false,
-	                             targetbuf,
-	                             STR_STORAGE_SIZE);
-
-	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, tuple_size, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_sendto_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
