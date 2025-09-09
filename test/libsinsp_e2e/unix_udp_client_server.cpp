@@ -249,7 +249,7 @@ TEST_F(sys_call_test, unix_udp_client_server_read) {
 
 			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
 			callnum++;
-		} else if(evt->get_type() == PPME_SYSCALL_READ_E) {
+		} else if(evt->get_type() == PPME_SYSCALL_READ_X) {
 			if(callnum < 1) {
 				return;
 			}
@@ -268,8 +268,6 @@ TEST_F(sys_call_test, unix_udp_client_server_read) {
 				EXPECT_EQ(NAME, tfile);
 			}
 
-			callnum++;
-		} else if(evt->get_type() == PPME_SYSCALL_READ_X) {
 			if(PAYLOAD == evt->get_param_value_str("data")) {
 				callnum++;
 			}
@@ -285,5 +283,5 @@ TEST_F(sys_call_test, unix_udp_client_server_read) {
 		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set());
 	});
-	EXPECT_EQ(7, callnum);
+	EXPECT_EQ(5, callnum);
 }

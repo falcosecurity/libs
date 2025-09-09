@@ -176,21 +176,21 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 			EXPECT_EQ(-1, stoi(e->get_param_value_str("fd", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("mask")));
 			callnum++;
-		} else if(type == PPME_SYSCALL_READ_E) {
-			if(callnum == 1) {
+		} else if(type == PPME_SYSCALL_READ_X) {
+			if(callnum == 3) {
 				EXPECT_EQ("<s>", e->get_param_value_str("fd"));
 				EXPECT_EQ(ssfd, std::stoi(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_KILL_X) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
 				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
 				EXPECT_EQ("SIGTERM", e->get_param_value_str("sig"));
 				EXPECT_EQ(SIGTERM, std::stoi(e->get_param_value_str("sig", false)));
 				callnum++;
-			} else if(callnum == 3) {
+			} else if(callnum == 2) {
 				EXPECT_EQ(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("libsinsp_e2e_te", e->get_param_value_str("pid"));
 				EXPECT_EQ(ctid, std::stoi(e->get_param_value_str("pid", false)));
@@ -327,7 +327,7 @@ TEST_F(sys_call_test, process_inotify) {
 		} else if(type == PPME_SYSCALL_INOTIFY_INIT1_X) {
 			EXPECT_EQ(fd, std::stoi(e->get_param_value_str("res", false)));
 			callnum++;
-		} else if(name.find("read") != std::string::npos && e->get_direction() == SCAP_ED_IN) {
+		} else if(name.find("read") != std::string::npos && e->get_direction() == SCAP_ED_OUT) {
 			if(callnum == 1) {
 				EXPECT_EQ("<i>", e->get_param_value_str("fd"));
 				EXPECT_EQ(fd, std::stoi(e->get_param_value_str("fd", false)));

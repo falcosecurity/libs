@@ -69,7 +69,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	 * Now test the bugged case where `find_longest_matching_evt_param` returns a size,
 	 * but then real event has a size that is bigger than that.
 	 * In this case, `find_longest_matching_evt_param` will find `size` param
-	 * from PPME_SYSCALL_READ_E, that is {"size", PT_UINT32, PF_DEC},
+	 * from PPME_SYSCALL_READ_X that is {"size", PT_UINT32, PF_DEC},
 	 * but then we call evt.rawarg.size on a PPME_SYSCALL_SPLICE_X,
 	 * whose `size` param is 64bit: {"size", PT_UINT64, PF_DEC}.
 	 */
