@@ -6498,55 +6498,6 @@ int f_sys_procexit_e(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_sendfile_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int64_t out_fd;
-	int64_t in_fd;
-	int res;
-	off_t offset = 0;
-
-	/* Parameter 1: out_fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	out_fd = (int64_t)(int32_t)val;
-	res = val_to_ring(args, out_fd, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: in_fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	in_fd = (int64_t)(int32_t)val;
-	res = val_to_ring(args, in_fd, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: offset (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 2, 1, &val);
-
-	if(val != 0) {
-#ifdef CONFIG_COMPAT
-		if(!args->compat) {
-#endif
-			res = ppm_copy_from_user(&offset, (void *)val, sizeof(off_t));
-#ifdef CONFIG_COMPAT
-		} else {
-			res = ppm_copy_from_user(&offset, (void *)compat_ptr(val), sizeof(compat_off_t));
-		}
-#endif
-		if(unlikely(res))
-			val = 0;
-		else
-			val = offset;
-	}
-
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	/* Parameter 4: size (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(args, 3, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_sendfile_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
