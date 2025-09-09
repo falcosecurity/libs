@@ -198,8 +198,7 @@ TEST_F(sys_call_test, unix_client_server) {
 		// 32bit (and s390x) uses send() and recv(), while 64bit
 		// uses sendto() and recvfrom(). recvfrom() sets address to NULL.
 		//
-		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
-		   evt->get_type() == PPME_SOCKET_SENDTO_E) {
+		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_SENDTO_E) {
 			std::string fdtuple = evt->get_param_value_str("fd");
 			std::string fdaddrs = fdtuple.substr(0, fdtuple.find(" "));
 			std::string fdfile = fdtuple.substr(fdtuple.find(" ") + 1);
