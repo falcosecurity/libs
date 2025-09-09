@@ -488,13 +488,7 @@ void runtest_ipv4m(iotype iot,
 		// recvfrom() and sets the address to NULL
 		//
 		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
-		   evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E) {
-			if(evt->get_type() == PPME_SOCKET_RECVFROM_E) {
-				if(evt->get_param_value_str("tuple") != "") {
-					EXPECT_EQ("NULL", evt->get_param_value_str("tuple"));
-				}
-			}
-
+		   evt->get_type() == PPME_SOCKET_SENDTO_E) {
 			std::string tuple = evt->get_param_value_str("fd");
 			tuple = tuple.substr(tuple.find(">") + 1);
 			if(!parse_tuple(tuple, src_addr, src_port, dst_addr, dst_port)) {
@@ -522,22 +516,24 @@ void runtest_ipv4m(iotype iot,
 				}
 				EXPECT_EQ(server_address, src_addr);
 				EXPECT_EQ(server_address, dst_addr);
-
-				if(callnum == 7) {
+				if(callnum == 4) {
 					EXPECT_EQ(sport, src_port);
 					if(!exit_no_close) {
 						EXPECT_EQ(SERVER_PORT_STR, dst_port);
 					} else {
 						EXPECT_EQ(SERVER_PORT_NOCLOSE_STR, dst_port);
 					}
-				} else if(callnum == 9) {
-					EXPECT_EQ(sport, dst_port);
-					if(!exit_no_close) {
-						EXPECT_EQ(SERVER_PORT_STR, src_port);
-					} else {
-						EXPECT_EQ(SERVER_PORT_NOCLOSE_STR, src_port);
-					}
 				}
+				// TODO(ekoops): While removing support for RECVFROM_X I couldn't manage to find
+				//   when the following code is triggered, so I left it, but commented.
+				/*else if(callnum == 9) {
+				    EXPECT_EQ(sport, dst_port);
+				    if(!exit_no_close) {
+				        EXPECT_EQ(SERVER_PORT_STR, src_port);
+				    } else {
+				        EXPECT_EQ(SERVER_PORT_NOCLOSE_STR, src_port);
+				    }
+				}*/
 			}
 
 			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));

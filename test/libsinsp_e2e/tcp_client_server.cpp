@@ -208,15 +208,9 @@ void runtest(iotype iot,
 		// recvfrom() and sets the address to NULL
 		//
 		if((evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
-		    evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E ||
-		    evt->get_type() == PPME_SYSCALL_READ_E || evt->get_type() == PPME_SYSCALL_WRITE_E) &&
+		    evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SYSCALL_READ_E ||
+		    evt->get_type() == PPME_SYSCALL_WRITE_E) &&
 		   evt->get_fd_info()->m_type == SCAP_FD_IPV4_SOCK) {
-			if(evt->get_type() == PPME_SOCKET_RECVFROM_E) {
-				if(evt->get_param_value_str("tuple") != "") {
-					EXPECT_EQ("NULL", evt->get_param_value_str("tuple"));
-				}
-			}
-
 			std::string tuple = evt->get_param_value_str("fd");
 			tuple = tuple.substr(tuple.find(">") + 1);
 			parse_tuple(tuple, src_addr, src_port, dst_addr, dst_port);
@@ -250,13 +244,16 @@ void runtest(iotype iot,
 				EXPECT_EQ(server_address, src_addr);
 				EXPECT_EQ(server_address, dst_addr);
 
-				if(callnum == 7) {
+				if(callnum == 4) {
 					EXPECT_EQ(sport, src_port);
 					EXPECT_EQ(SERVER_PORT_STR, dst_port);
-				} else if(callnum == 9) {
-					EXPECT_EQ(sport, dst_port);
-					EXPECT_EQ(SERVER_PORT_STR, src_port);
 				}
+				// TODO(ekoops): While removing support for RECVFROM_X I couldn't manage to find
+				//   when the following code is triggered, so I left it, but commented.
+				/*else if(callnum == 9) {
+				    EXPECT_EQ(sport, dst_port);
+				    EXPECT_EQ(SERVER_PORT_STR, src_port);
+				}*/
 			}
 
 			EXPECT_EQ(payload, evt->get_param_value_str("data"));

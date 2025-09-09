@@ -199,12 +199,7 @@ TEST_F(sys_call_test, unix_client_server) {
 		// uses sendto() and recvfrom(). recvfrom() sets address to NULL.
 		//
 		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
-		   evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E) {
-			if(evt->get_type() == PPME_SOCKET_RECVFROM_E &&
-			   evt->get_param_value_str("tuple") != "") {
-				EXPECT_EQ("NULL", evt->get_param_value_str("tuple"));
-			}
-
+		   evt->get_type() == PPME_SOCKET_SENDTO_E) {
 			std::string fdtuple = evt->get_param_value_str("fd");
 			std::string fdaddrs = fdtuple.substr(0, fdtuple.find(" "));
 			std::string fdfile = fdtuple.substr(fdtuple.find(" ") + 1);
@@ -222,7 +217,7 @@ TEST_F(sys_call_test, unix_client_server) {
 		} else if((evt->get_type() == PPME_SOCKET_RECV_X) ||
 		          (evt->get_type() == PPME_SOCKET_RECVFROM_X)) {
 			if(evt->get_type() == PPME_SOCKET_RECVFROM_X) {
-				if(callnum == 5) {
+				if(callnum == 3) {
 					std::string tuple = evt->get_param_value_str("tuple");
 					std::string addrs = tuple.substr(0, tuple.find(" "));
 					std::string file = tuple.substr(tuple.find(" ") + 1);
@@ -256,5 +251,5 @@ TEST_F(sys_call_test, unix_client_server) {
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
 	EXPECT_FALSE(first_connect_or_accept_seen);
-	EXPECT_EQ(8, callnum);
+	EXPECT_EQ(6, callnum);
 }

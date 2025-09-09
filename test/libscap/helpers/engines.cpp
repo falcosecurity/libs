@@ -12,7 +12,7 @@
 #define MAX_ITERATIONS 300
 
 /* Number of events we want to assert */
-#define EVENTS_TO_ASSERT 22
+#define EVENTS_TO_ASSERT 21
 
 void check_event_is_not_overwritten(scap_t *h) {
 	/* Start the capture */
@@ -108,8 +108,7 @@ void check_event_order(scap_t *h) {
 	        PPME_SYSCALL_GETEUID_X,  PPME_SYSCALL_GETUID_X,    PPME_SOCKET_BIND_X,
 	        PPME_SOCKET_CONNECT_E,   PPME_SOCKET_CONNECT_X,    PPME_SOCKET_SENDTO_E,
 	        PPME_SOCKET_SENDTO_X,    PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_X,
-	        PPME_SOCKET_RECVFROM_E,  PPME_SOCKET_RECVFROM_X,   PPME_SOCKET_SOCKET_X,
-	        PPME_SOCKET_SOCKETPAIR_X};
+	        PPME_SOCKET_RECVFROM_X,  PPME_SOCKET_SOCKET_X,     PPME_SOCKET_SOCKETPAIR_X};
 
 	/* Start the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS)
@@ -121,25 +120,25 @@ void check_event_order(scap_t *h) {
 	/* 2. Generate an `openat` event pair */
 	syscall(__NR_openat, 0, "/**mock_path**/", 0, 0);
 
-	/* 3. Generate a `listen` event pair */
+	/* 3. Generate a `listen` exit event. */
 	syscall(__NR_listen, -1, -1);
 
 	/* 4. Generate an `accept4` event pair */
 	syscall(__NR_accept4, -1, NULL, NULL, 0);
 
-	/* 5. Generate a `getegid` event pair */
+	/* 5. Generate a `getegid` exit event. */
 	syscall(__NR_getegid);
 
-	/* 6. Generate a `getgid` event pair */
+	/* 6. Generate a `getgid` exit event. */
 	syscall(__NR_getgid);
 
-	/* 7. Generate a `geteuid` event pair */
+	/* 7. Generate a `geteuid` exit event. */
 	syscall(__NR_geteuid);
 
-	/* 8. Generate a `getuid` event pair */
+	/* 8. Generate a `getuid` exit event. */
 	syscall(__NR_getuid);
 
-	/* 9. Generate a `bind` event pair */
+	/* 9. Generate a `bind` exit event. */
 	syscall(__NR_bind, -1, NULL, 0);
 
 	/* 10. Generate a `connect` event pair */
@@ -148,19 +147,19 @@ void check_event_order(scap_t *h) {
 	/* 11. Generate a `sendto` event pair */
 	syscall(__NR_sendto, -1, NULL, 0, 0, NULL, 0);
 
-	/* 12. Generate a `getsockopt` exit event */
+	/* 12. Generate a `getsockopt` exit event. */
 	syscall(__NR_getsockopt, -1, 0, 0, NULL, NULL);
 
 	/* 13. Generate a `recvmsg` event pair */
 	syscall(__NR_recvmsg, -1, NULL, 0);
 
-	/* 14. Generate a `recvmsg` event pair */
+	/* 14. Generate a `recvmsg` exit event. */
 	syscall(__NR_recvfrom, -1, NULL, 0, 0, NULL, 0);
 
-	/* 15. Generate a `socket` event pair */
+	/* 15. Generate a `socket` exit event. */
 	syscall(__NR_socket, 0, 0, 0);
 
-	/* 16. Generate a `socketpair` exit event */
+	/* 16. Generate a `socketpair` exit event. */
 	syscall(__NR_socketpair, 0, 0, 0, 0);
 
 	/* Stop the capture */
