@@ -351,38 +351,29 @@ TEST(inspector, invalid_file_name) {
 }
 
 TEST_F(sys_call_test, ioctl) {
-	int callnum = 0;
-
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return m_tid_filter(evt) && evt->get_type() == PPME_SYSCALL_IOCTL_3_X;
+	};
 
 	int status;
 	run_callback_t test = [&](sinsp* inspector) {
-		int fd;
-
-		fd = open("/dev/ttyS0", O_RDONLY);
+		int fd = open("/dev/ttyS0", O_RDONLY);
 		ioctl(fd, TIOCMGET, &status);
 		close(fd);
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
-
-		if(type == PPME_SYSCALL_IOCTL_3_X) {
-			string res = e->get_param_value_str("res");
-			EXPECT_TRUE(res == "0" || res == "EIO");
-		}
-		if(type == PPME_SYSCALL_IOCTL_3_E || type == PPME_SYSCALL_IOCTL_3_X) {
-			std::ostringstream oss;
-			oss << std::hex << std::uppercase << TIOCMGET;
-			EXPECT_EQ("<f>/dev/ttyS0", e->get_param_value_str("fd"));
-			EXPECT_EQ(oss.str(), e->get_param_value_str("request"));
-			oss.str("");
-			oss.clear();
-			oss << std::hex << std::uppercase << ((unsigned long)&status);
-			EXPECT_EQ(oss.str(), e->get_param_value_str("argument"));
-			callnum++;
-		}
+		string res = e->get_param_value_str("res");
+		EXPECT_TRUE(res == "0" || res == "EIO");
+		std::ostringstream oss;
+		oss << std::hex << std::uppercase << TIOCMGET;
+		EXPECT_EQ("<f>/dev/ttyS0", e->get_param_value_str("fd"));
+		EXPECT_EQ(oss.str(), e->get_param_value_str("request"));
+		oss.str("");
+		oss.clear();
+		oss << std::hex << std::uppercase << (unsigned long)&status;
+		EXPECT_EQ(oss.str(), e->get_param_value_str("argument"));
 	};
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 }
