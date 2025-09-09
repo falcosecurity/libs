@@ -2926,16 +2926,6 @@ FILLER(execve_extra_tail_2, true) {
 	return bpf_push_u32_to_ring(data, egid.val);
 }
 
-FILLER(sys_accept4_e, true) {
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	/*
-	 * push the flags into the ring.
-	 * XXX we don't support flags yet and so we just return zero
-	 *     If implemented, special handling for SYS_ACCEPT socketcall is needed.
-	 */
-	return bpf_push_s32_to_ring(data, 0);
-}
-
 FILLER(sys_accept4_x, true) {
 	/* Parameter 1: fd (type: PT_FD) */
 	/* Retrieve the fd and push it to the ring.

@@ -172,8 +172,6 @@ void runtest(iotype iot,
 			EXPECT_EQ("1", evt->get_param_value_str("backlog"));
 			log_param(param);
 			callnum++;
-		} else if(evt->get_type() == PPME_SOCKET_ACCEPT4_6_E) {
-			EXPECT_EQ("0", evt->get_param_value_str("flags"));
 		} else if(evt->get_type() == PPME_SOCKET_ACCEPT_5_X ||
 		          evt->get_type() == PPME_SOCKET_ACCEPT4_6_X) {
 			parse_tuple(evt->get_param_value_str("tuple"), src_addr, src_port, dst_addr, dst_port);

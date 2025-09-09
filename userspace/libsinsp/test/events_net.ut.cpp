@@ -399,7 +399,6 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 	                                                     reinterpret_cast<sockaddr*>(&server));
 
 	int64_t new_connected_fd = 6;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SOCKET_ACCEPT_5_X,
@@ -465,7 +464,6 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6) {
 	                                                     reinterpret_cast<sockaddr*>(&server));
 
 	int64_t new_connected_fd = 6;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SOCKET_ACCEPT_5_X,

@@ -1041,12 +1041,6 @@ int32_t fill_event_bind_x(scap_sized_buffer scap_buf,
 	                                fd);
 }
 
-// PPME_SYSCALL_ACCEPT_5_E
-// Event field validity issues: none
-int32_t fill_event_accept_5_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SOCKET_ACCEPT_5_E, 0);
-}
-
 // PPME_SYSCALL_ACCEPT_5_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:
@@ -1069,20 +1063,6 @@ int32_t fill_event_accept_5_x(scap_sized_buffer scap_buf,
 	                                0,      // queuepct -- INVALID
 	                                0,      // queuelen -- INVALID
 	                                0);     // queuemax -- INVALID
-}
-
-// PPME_SYSCALL_ACCEPT4_6_E
-// Event field validity issues: none
-int32_t fill_event_accept4_6_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               int32_t flags) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SOCKET_ACCEPT4_6_E,
-	                                1,
-	                                flags);
 }
 
 // PPME_SYSCALL_ACCEPT4_6_X

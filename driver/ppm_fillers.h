@@ -35,7 +35,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_setsockopt_x)                 \
 	FN(sys_getsockopt_x)                 \
 	FN(sys_connect_x)                    \
-	FN(sys_accept4_e)                    \
 	FN(sys_accept4_x)                    \
 	FN(sys_accept_x)                     \
 	FN(sys_send_x)                       \

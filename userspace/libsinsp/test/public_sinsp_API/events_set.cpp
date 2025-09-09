@@ -339,7 +339,6 @@ TEST(events_set, all_non_sc_event_set) {
 	/* No sc events at all expected. */
 	ASSERT_FALSE(event_set.contains(PPME_GENERIC_E));
 	ASSERT_FALSE(event_set.contains(PPME_GENERIC_X));
-	ASSERT_FALSE(event_set.contains(PPME_SOCKET_ACCEPT_E));
 	ASSERT_FALSE(event_set.contains(PPME_SOCKET_ACCEPT_X));
 	ASSERT_FALSE(event_set.contains(PPME_SYSCALL_OPENAT2_E));
 	ASSERT_FALSE(event_set.contains(PPME_SYSCALL_OPENAT2_X));

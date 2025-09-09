@@ -37,7 +37,6 @@ TEST(Actions, read_in_order_from_buffer) {
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_OPENAT_2_X);
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_IOCTL_3_E);
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_IOCTL_3_X);
-	evt_test->assert_event_presence(CURRENT_PID, PPME_SOCKET_ACCEPT4_6_E);
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SOCKET_ACCEPT4_6_X);
 }
 #endif

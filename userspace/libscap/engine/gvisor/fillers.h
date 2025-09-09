@@ -359,18 +359,11 @@ int32_t fill_event_bind_x(scap_sized_buffer scap_buf,
                           scap_const_sized_buffer addr,
                           int64_t fd);
 
-int32_t fill_event_accept_5_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err);
-
 int32_t fill_event_accept_5_x(scap_sized_buffer scap_buf,
                               size_t* event_size,
                               char* scap_err,
                               int64_t fd,
                               scap_const_sized_buffer tuple);
-
-int32_t fill_event_accept4_6_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               int32_t flags);
 
 int32_t fill_event_accept4_6_x(scap_sized_buffer scap_buf,
                                size_t* event_size,

@@ -2123,21 +2123,6 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_accept4_e(struct event_filler_arguments *args) {
-	int res;
-
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	/*
-	 * push the flags into the ring.
-	 * XXX we don't support flags yet and so we just return zero
-	 */
-	/* res = val_to_ring(args, args->socketcall_args[3]); */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_accept4_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t fd;
