@@ -83,18 +83,6 @@ public:
 
 			break;
 		case 2:
-			if(type == PPME_SYSCALL_WRITE_E) {
-				int cfd = std::stoll(e->get_param_value_str("fd", false));
-
-				if(cfd == m_fd) {
-					EXPECT_EQ(m_scat, e->get_param_value_str("fd"));
-					EXPECT_EQ(std::to_string(sizeof(DATA) - 1), e->get_param_value_str("size"));
-					m_callnum++;
-				}
-			}
-
-			break;
-		case 3:
 			if(type == PPME_SYSCALL_WRITE_X) {
 				EXPECT_EQ(std::to_string(sizeof(DATA) - 1), e->get_param_value_str("res"));
 				EXPECT_EQ(m_scwd, pinfo->get_cwd());
@@ -171,7 +159,7 @@ void testdir(string filename, string chdirtarget = "") {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(4, vldt.m_callnum);
+	EXPECT_EQ(3, vldt.m_callnum);
 }
 
 std::string cwd() {

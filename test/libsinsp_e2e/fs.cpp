@@ -356,21 +356,17 @@ TEST_F(sys_call_test, fs_pread) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_WRITE_E) {
-			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
+		if(type == PPME_SYSCALL_WRITE_X) {
+			if(callnum == 0) {
+				EXPECT_EQ((int)sizeof("QWERTYUI") - 1,
+				          std::stoi(e->get_param_value_str("res", false)));
+				EXPECT_EQ("QWERTYUI", e->get_param_value_str("data"));
 				EXPECT_EQ((int)sizeof("QWERTYUI") - 1,
 				          std::stoll(e->get_param_value_str("size", false)));
 				callnum++;
 			}
-		} else if(type == PPME_SYSCALL_WRITE_X) {
-			if(callnum == 1) {
-				EXPECT_EQ((int)sizeof("QWERTYUI") - 1,
-				          std::stoi(e->get_param_value_str("res", false)));
-				EXPECT_EQ("QWERTYUI", e->get_param_value_str("data"));
-				callnum++;
-			}
 		} else if(type == PPME_SYSCALL_PWRITE_X) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("ABCD", e->get_param_value_str("data"));
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
@@ -378,7 +374,7 @@ TEST_F(sys_call_test, fs_pread) {
 				          std::stoll(e->get_param_value_str("size", false)));
 				EXPECT_EQ("4", e->get_param_value_str("pos"));
 				callnum++;
-			} else if(callnum == 3) {
+			} else if(callnum == 2) {
 				if(pwrite64_succeeded) {
 					EXPECT_EQ((int)sizeof("ABCD") - 1,
 					          std::stoi(e->get_param_value_str("res", false)));
@@ -393,12 +389,12 @@ TEST_F(sys_call_test, fs_pread) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_PREAD_X) {
-			if(callnum == 4) {
+			if(callnum == 3) {
 				EXPECT_NE("0", e->get_param_value_str("res", false));
 				EXPECT_EQ("32", e->get_param_value_str("size"));
 				EXPECT_EQ("1234567891234", e->get_param_value_str("pos"));
 				callnum++;
-			} else if(callnum == 5) {
+			} else if(callnum == 4) {
 				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("4", e->get_param_value_str("size"));
 				EXPECT_EQ("4", e->get_param_value_str("pos"));
@@ -409,7 +405,7 @@ TEST_F(sys_call_test, fs_pread) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(6, callnum);
+	EXPECT_EQ(5, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1089,12 +1085,8 @@ TEST_F(sys_call_test, large_read_write) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if(type == PPME_SYSCALL_WRITE_E) {
-			if(std::stoll(e->get_param_value_str("fd", false)) == fd1) {
-				callnum++;
-			}
-		} else if(type == PPME_SYSCALL_WRITE_X) {
-			if(callnum == 1) {
+		if(type == PPME_SYSCALL_WRITE_X) {
+			if(callnum == 0 && std::stoll(e->get_param_value_str("fd", false)) == fd1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
 				EXPECT_EQ(p->len(), SNAPLEN_MAX);
@@ -1104,7 +1096,7 @@ TEST_F(sys_call_test, large_read_write) {
 			}
 		}
 		if(type == PPME_SYSCALL_READ_X) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
 				EXPECT_EQ(p->len(), SNAPLEN_MAX);
@@ -1130,7 +1122,7 @@ TEST_F(sys_call_test, large_read_write) {
 		                   false);
 	});
 
-	EXPECT_EQ(3, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, large_readv_writev) {
