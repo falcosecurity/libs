@@ -1572,9 +1572,6 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer,
 static inline int drop_nostate_event(ppm_event_code event_type, struct pt_regs *regs) {
 	unsigned long args[6] = {};
 	unsigned long arg = 0;
-	int close_fd = -1;
-	struct files_struct *files;
-	struct fdtable *fdt;
 	bool drop = false;
 
 	switch(event_type) {
@@ -1582,37 +1579,6 @@ static inline int drop_nostate_event(ppm_event_code event_type, struct pt_regs *
 	case PPME_SOCKET_BIND_X:
 		if(syscall_get_return_value(current, regs) < 0)
 			drop = true;
-		break;
-	case PPME_SYSCALL_CLOSE_E:
-		/*
-		 * It's annoying but valid for a program to make a large number of
-		 * close() calls on nonexistent fds. That can cause driver cpu usage
-		 * to spike dramatically, so drop close events if the fd is not valid.
-		 *
-		 * The invalid fd events don't matter to userspace in dropping mode,
-		 * so we do this before the UF_NEVER_DROP check
-		 */
-		ppm_syscall_get_arguments(current, regs, args);
-		arg = args[0];
-		close_fd = (int)arg;
-
-		files = current->files;
-		spin_lock(&files->file_lock);
-		fdt = files_fdtable(files);
-		if(close_fd < 0 || close_fd >= fdt->max_fds ||
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-		   !FD_ISSET(close_fd, fdt->open_fds)
-#elif(LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
-		   !fd_is_open(close_fd, fdt)
-#else
-		   // fd_is_open() was made file-local:
-		   // https://github.com/torvalds/linux/commit/c4aab26253cd1f302279b8d6b5b66ccf1b120520
-		   !test_bit(close_fd, fdt->open_fds)
-#endif
-		) {
-			drop = true;
-		}
-		spin_unlock(&files->file_lock);
 		break;
 	case PPME_SYSCALL_FCNTL_X:
 		// cmd arg

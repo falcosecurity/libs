@@ -149,11 +149,6 @@ TEST_F(sinsp_with_test_input, sinsp_observer) {
 	// Close the opened FD
 	add_event_advance_ts(increasing_ts(),
 	                     INIT_TID,
-	                     PPME_SYSCALL_CLOSE_E,
-	                     1,
-	                     sinsp_test_input::open_params::default_fd);
-	add_event_advance_ts(increasing_ts(),
-	                     INIT_TID,
 	                     PPME_SYSCALL_CLOSE_X,
 	                     2,
 	                     (int64_t)0,

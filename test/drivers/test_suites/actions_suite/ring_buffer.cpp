@@ -31,7 +31,6 @@ TEST(Actions, read_in_order_from_buffer) {
 	evt_test->disable_capture();
 
 	/* Retrieve events in order. */
-	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_CLOSE_E);
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_CLOSE_X);
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_OPENAT_2_E);
 	evt_test->assert_event_presence(CURRENT_PID, PPME_SYSCALL_OPENAT_2_X);

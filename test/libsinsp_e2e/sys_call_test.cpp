@@ -132,8 +132,8 @@ TEST_F(sys_call_test, open_close) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	// open_x/openat_x + close_e + close_x -> 3 expected calls.
-	EXPECT_EQ(3, callnum);
+	// open_x/openat_x + close_x -> 2 expected calls.
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, open_close_dropping) {
@@ -162,8 +162,8 @@ TEST_F(sys_call_test, open_close_dropping) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
-	// open_x/openat_x + close_e + close_x -> 3 expected calls.
-	EXPECT_EQ(3, callnum);
+	// open_x/openat_x + close_x -> 2 expected calls.
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, fcntl_getfd) {
@@ -252,7 +252,7 @@ TEST_F(sys_call_test, close_badfd) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, close_badfd_dropping) {

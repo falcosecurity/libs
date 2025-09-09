@@ -405,16 +405,6 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 			if(drflags == std::stol(e->get_param_value_str("flags", false))) {
 				callnum++;
 			}
-		} else if(e->get_type() == PPME_SYSCALL_CLOSE_E) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
-
-			if(ti->m_tid == ptid || ti->m_tid == child_tid) {
-				int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
-
-				if(clfd == prfd) {
-					callnum++;
-				}
-			}
 		} else if(e->get_type() == PPME_SYSCALL_CLOSE_X) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
@@ -445,7 +435,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(callnum, 4);
+	EXPECT_EQ(callnum, 3);
 }
 
 TEST_F(sys_call_test, forking_clone_nofs) {
@@ -538,20 +528,10 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 			if(drflags == std::stol(e->get_param_value_str("flags", false))) {
 				callnum++;
 			}
-		} else if(e->get_type() == PPME_SYSCALL_CLOSE_E) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
-
-			if(ti->m_tid == ptid || ti->m_tid == ctid) {
-				int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
-
-				if(clfd == prfd) {
-					callnum++;
-				}
-			}
 		} else if(e->get_type() == PPME_SYSCALL_CLOSE_X) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if(callnum < 3) {
+			if(callnum < 1) {
 				return;
 			}
 
@@ -582,7 +562,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 		                   cleanup);
 	});
 
-	EXPECT_EQ(callnum, 4);
+	EXPECT_EQ(callnum, 3);
 }
 
 static int clone_callback_2(void* arg) {
