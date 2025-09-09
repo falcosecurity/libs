@@ -1057,7 +1057,7 @@ or GPL2.txt for full copies of the license.
 #define PPME_DIRECTION_FLAG 1
 #define PPME_IS_ENTER(x) ((x & PPME_DIRECTION_FLAG) == 0)
 #define PPME_IS_EXIT(x) (x & PPME_DIRECTION_FLAG)
-#define PPME_MAKE_ENTER(x) (x & (~1))
+#define PPME_MAKE_EXIT(x) (x | 1)
 
 /*
  * Event category to classify events in generic categories
