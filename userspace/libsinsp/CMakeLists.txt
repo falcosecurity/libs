@@ -57,7 +57,6 @@ add_library(
 	sinsp_filter_transformers/sinsp_filter_transformer_toupper.cpp
 	sinsp_filtercheck.cpp
 	sinsp_filtercheck_event.cpp
-	sinsp_filtercheck_evtin.cpp
 	sinsp_filtercheck_fd.cpp
 	sinsp_filtercheck_fdlist.cpp
 	sinsp_filtercheck_fspath.cpp
@@ -68,7 +67,6 @@ add_library(
 	sinsp_filtercheck_reference.cpp
 	sinsp_filtercheck_static.cpp
 	sinsp_filtercheck_thread.cpp
-	sinsp_filtercheck_tracer.cpp
 	sinsp_filtercheck_user.cpp
 	sinsp_filtercheck_utils.cpp
 	filter_compare.cpp

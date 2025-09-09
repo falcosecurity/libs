@@ -100,6 +100,4 @@ sinsp_filter_check_list::sinsp_filter_check_list() {
 	add_filter_check(std::make_unique<sinsp_filter_check_utils>());
 	add_filter_check(std::make_unique<sinsp_filter_check_fdlist>());
 	add_filter_check(std::make_unique<sinsp_filter_check_mesos>());
-	add_filter_check(std::make_unique<sinsp_filter_check_tracer>());
-	add_filter_check(std::make_unique<sinsp_filter_check_evtin>());
 }
