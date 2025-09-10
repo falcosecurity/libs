@@ -1671,10 +1671,6 @@ static parse_result parse_fork(uint32_t id,
 			ret.status = scap_gvisor::fillers::fill_event_fork_20_e(scap_buf, &ret.size, scap_err);
 			break;
 
-		case __NR_vfork:
-			ret.status = scap_gvisor::fillers::fill_event_vfork_20_e(scap_buf, &ret.size, scap_err);
-			break;
-
 		default:
 			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 			break;
