@@ -3713,24 +3713,6 @@ int f_sys_ppoll_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_mount_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	/*
-	 * Fix mount flags in arg 3.
-	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
-	 */
-	syscall_get_arguments_deprecated(args, 3, 1, &val);
-	if((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
-		val &= ~PPM_MS_MGC_MSK;
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_mount_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	unsigned long val;
