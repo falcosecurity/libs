@@ -97,21 +97,6 @@ static int32_t scap_event_generate(scap_evt **event,
 	return ret;
 }
 
-TEST(scap_event, empty_clone) {
-	char scap_error[SCAP_LASTERR_SIZE];
-	scap_evt *maybe_evt;
-	uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_CLONE_20_E, 0);
-	ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
-	ASSERT_NE(maybe_evt, nullptr);
-	std::unique_ptr<scap_evt, decltype(free) *> evt{maybe_evt, free};
-
-	EXPECT_EQ(scap_event_get_nparams(evt.get()), 0);
-
-	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-	uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
-	EXPECT_EQ(n, 0);
-}
-
 TEST(scap_event, int_args) {
 	char scap_error[SCAP_LASTERR_SIZE];
 	scap_evt *maybe_evt;

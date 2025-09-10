@@ -528,7 +528,7 @@ TEST(ppm_sc_API, AES_sc_set_AES) {
 /* Information Enrichment */
 TEST(ppm_sc_API, SES_names_SES) {
 	const libsinsp::events::set<ppm_event_code> shared_events{PPME_GENERIC_E,
-	                                                          PPME_SYSCALL_CLONE_11_E,
+	                                                          PPME_SYSCALL_CLONE_11_X,
 	                                                          PPME_CONTAINER_JSON_2_E,
 	                                                          PPME_PLUGINEVENT_E,
 	                                                          PPME_SYSCALL_CLOSE_X,
@@ -576,7 +576,7 @@ TEST(ppm_sc_API, SES_names_SES) {
 /* Information Loss */
 TEST(ppm_sc_API, SES_sc_set_SES) {
 	const libsinsp::events::set<ppm_event_code> shared_events{PPME_GENERIC_E,
-	                                                          PPME_SYSCALL_CLONE_11_E,
+	                                                          PPME_SYSCALL_CLONE_11_X,
 	                                                          PPME_CONTAINER_JSON_2_X,
 	                                                          PPME_PLUGINEVENT_E,
 	                                                          PPME_SYSCALL_CLOSE_X,
@@ -617,7 +617,7 @@ TEST(ppm_sc_API, SES_sc_set_SES) {
 /* Information Enrichment */
 TEST(ppm_sc_API, NGES_names_NGES) {
 	/* This test is useful to assert that conversion without generics works well */
-	const libsinsp::events::set<ppm_event_code> not_generic_events{PPME_SYSCALL_CLONE_11_E,
+	const libsinsp::events::set<ppm_event_code> not_generic_events{PPME_SYSCALL_CLONE_11_X,
 	                                                               PPME_CONTAINER_JSON_2_E,
 	                                                               PPME_PLUGINEVENT_E,
 	                                                               PPME_SYSCALL_CLOSE_X};
@@ -647,7 +647,7 @@ TEST(ppm_sc_API, NGES_names_NGES) {
 
 /* Information Loss */
 TEST(ppm_sc_API, NGES_sc_set_NGES) {
-	const libsinsp::events::set<ppm_event_code> not_generic_events{PPME_SYSCALL_CLONE_11_E,
+	const libsinsp::events::set<ppm_event_code> not_generic_events{PPME_SYSCALL_CLONE_11_X,
 	                                                               PPME_CONTAINER_JSON_2_X,
 	                                                               PPME_PLUGINEVENT_E,
 	                                                               PPME_SYSCALL_CLOSE_X};

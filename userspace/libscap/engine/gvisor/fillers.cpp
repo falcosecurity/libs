@@ -48,12 +48,6 @@ limitations under the License.
 namespace scap_gvisor {
 namespace fillers {
 
-// PPME_SYSCALL_CLONE_20_E
-// Event field validity issues: none
-int32_t fill_event_clone_20_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_CLONE_20_E, 0);
-}
-
 // PPME_SYSCALL_CLONE_20_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:
