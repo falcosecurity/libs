@@ -5,7 +5,7 @@
 #include <sys/time.h>
 
 #ifdef __NR_futex
-TEST(SyscallEnter, futexX) {
+TEST(SyscallExit, futexX) {
 	auto evt_test = get_syscall_event_test(__NR_futex, EXIT_EVENT);
 
 	evt_test->enable_capture();
