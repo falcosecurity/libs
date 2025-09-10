@@ -1460,9 +1460,6 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SYSCALL_OPENAT2_E:
 		ring_info->n_drops_buffer_open_enter++;
 		break;
-	case PPME_SYSCALL_EXECVE_19_E:
-		ring_info->n_drops_buffer_execve_enter++;
-		break;
 	case PPME_SOCKET_CONNECT_E:
 		ring_info->n_drops_buffer_connect_enter++;
 		break;

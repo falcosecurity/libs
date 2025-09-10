@@ -187,32 +187,6 @@ static parse_result parse_container_start(uint32_t id,
 		event_buf.size = 0;
 	}
 
-	// encode execve entry
-	ret.status =
-	        scap_gvisor::fillers::fill_event_execve_19_e(event_buf,
-	                                                     &event_size,
-	                                                     scap_err,
-	                                                     exe.c_str());  // TODO actual exe missing
-
-	if(ret.status == SCAP_FAILURE) {
-		ret.error = scap_err;
-		return ret;
-	}
-
-	ret.size += event_size;
-
-	if(ret.size <= scap_buf.size) {
-		scap_evt *evt = static_cast<scap_evt *>(event_buf.buf);
-		evt->ts = context_data.time_ns();
-		evt->tid = tid_field;
-		ret.scap_events.push_back(evt);
-		event_buf.buf = (char *)scap_buf.buf + ret.size;
-		event_buf.size = scap_buf.size - ret.size;
-	} else {
-		event_buf.buf = nullptr;
-		event_buf.size = 0;
-	}
-
 	// encode execve exit
 	ret.status = scap_gvisor::fillers::fill_event_execve_19_x(
 	        event_buf,
@@ -347,18 +321,7 @@ static parse_result parse_execve(uint32_t id,
 		}
 
 	} else {
-		switch(gvisor_evt.sysno()) {
-		case __NR_execve:
-			ret.status = scap_gvisor::fillers::fill_event_execve_19_e(scap_buf,
-			                                                          &ret.size,
-			                                                          scap_err,
-			                                                          pathname.c_str());
-			break;
-
-		default:
-			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
-			break;
-		}
+		ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 	}
 
 	if(ret.status != SCAP_SUCCESS) {

@@ -40,8 +40,6 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 
 	const char* file_to_run = "/bin/sh";
 
-	add_event_advance_ts(increasing_ts(), pid, PPME_SYSCALL_EXECVE_19_E, 1, file_to_run);
-
 	// Whenever we try to add an event to sinsp_with_test_input, if
 	// the event is suppressed we get an exception.
 	EXPECT_ANY_THROW(generate_execve_exit_event_with_default_params(pid, file_to_run, "sh"));
@@ -84,18 +82,11 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 	uint64_t pid = 17;
 	generate_clone_x_event(pid, INIT_TID, INIT_TID, INIT_TID);
 
-	const char* file_to_run = "/bin/sh";
-	add_event_advance_ts(increasing_ts(), pid, PPME_SYSCALL_EXECVE_19_E, 1, file_to_run);
-
 	// Whenever we try to add an event to sinsp_with_test_input, if
 	// the event is suppressed we get an exception.
+	const char* file_to_run = "/bin/sh";
 	EXPECT_ANY_THROW(generate_execve_exit_event_with_default_params(pid, file_to_run, "sh"));
 
-	EXPECT_ANY_THROW(add_event_advance_ts(increasing_ts(),
-	                                      pid,
-	                                      PPME_SYSCALL_EXECVE_19_E,
-	                                      1,
-	                                      "/bin/test-exe"));
 	EXPECT_ANY_THROW(
 	        generate_execve_exit_event_with_default_params(pid, "/bin/test-exe", "test-exe"));
 
@@ -112,6 +103,6 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);
-	EXPECT_EQ(st.n_suppressed, 3);
+	EXPECT_EQ(st.n_suppressed, 2);
 	EXPECT_EQ(st.n_tids_suppressed, 0);
 }

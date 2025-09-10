@@ -329,7 +329,6 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 		cgroup_byte_buf = scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()};
 	}
 
-	add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, pathname.c_str());
 	// we have an `old_tid` and a `new_tid` because if a secondary thread calls the execve
 	// the thread leader will take control so the `tid` between enter and exit event will change
 	return add_event_advance_ts(increasing_ts(),
