@@ -217,7 +217,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_CLONE_20_X] = {FILLER_REF(proc_startupdate)},
         [PPME_SYSCALL_FORK_20_E] = {FILLER_REF(sys_empty)},
         [PPME_SYSCALL_FORK_20_X] = {FILLER_REF(proc_startupdate)},
-        [PPME_SYSCALL_VFORK_20_E] = {FILLER_REF(sys_empty)},
+        [PPME_SYSCALL_VFORK_20_E] = {FILLER_DISABLED},
         [PPME_SYSCALL_VFORK_20_X] = {FILLER_REF(proc_startupdate)},
 #ifdef CAPTURE_SIGNAL_DELIVERIES
         [PPME_SIGNALDELIVER_E] = {FILLER_REF(sys_signaldeliver_e)},

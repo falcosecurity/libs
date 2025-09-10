@@ -177,12 +177,6 @@ int32_t fill_event_fork_20_x(scap_sized_buffer scap_buf,
 	                                pidns_init_start_ts);
 }
 
-// PPME_SYSCALL_VFORK_20_E
-// Event field validity issues: none
-int32_t fill_event_vfork_20_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SYSCALL_VFORK_20_E, 0);
-}
-
 // PPME_SYSCALL_VFORK_20_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:
