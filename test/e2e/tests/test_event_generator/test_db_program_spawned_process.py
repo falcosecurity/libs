@@ -41,18 +41,6 @@ def test_db_program_spawned_process(sinsp, run_containers: dict):
         },
         {
             "container.id": generator_id,
-            "evt.args": "filename=/bin/ls",
-            "evt.category": "process",
-            "evt.num": SinspField.numeric_field(),
-            "evt.time": SinspField.numeric_field(),
-            "evt.type": "execve",
-            "proc.cmdline": "mysqld --loglevel info run ^helper.ExecLs$",
-            "proc.exe": SinspField.regex_field(r"/tmp/falco-event-generator\d+/mysqld"),
-            "proc.pid": SinspField.numeric_field(),
-            "proc.ppid": SinspField.numeric_field()
-        },
-        {
-            "container.id": generator_id,
             "evt.args": SinspField.regex_field(r'^res=0 exe=/bin/ls args=NULL tid=\d+\(ls\) pid=\d+\(ls\) ptid=\d+\(mysqld\) .* tty=0 vpgid=1\(systemd\) loginuid=-1\(\<NONE\>\) flags=9\(EXE_WRITABLE\|EXE_LOWER_LAYER\) cap_inheritable=0'),
             "evt.category": "process",
             "evt.num": SinspField.numeric_field(),

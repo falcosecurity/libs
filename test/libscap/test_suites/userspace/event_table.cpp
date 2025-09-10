@@ -4,7 +4,7 @@
 
 TEST(event_table, scap_get_syscall_category_from_event) {
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_CONTAINER_JSON_2_E), EC_PROCESS);
-	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_SYSCALL_EXECVE_19_E), EC_PROCESS);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_SYSCALL_EXECVE_19_X), EC_PROCESS);
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_MESOS_X), EC_UNKNOWN);
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_TRACER_X), EC_OTHER);
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_PROCINFO_E), EC_INTERNAL);
@@ -13,7 +13,7 @@ TEST(event_table, scap_get_syscall_category_from_event) {
 
 TEST(event_table, scap_get_event_category_from_event) {
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_CONTAINER_JSON_2_E), EC_METAEVENT);
-	ASSERT_EQ(scap_get_event_category_from_event(PPME_SYSCALL_EXECVE_19_E), EC_SYSCALL);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_SYSCALL_EXECVE_19_X), EC_SYSCALL);
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_MESOS_X), EC_UNKNOWN);
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_TRACER_X), EC_METAEVENT);
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_PROCINFO_E), EC_METAEVENT);

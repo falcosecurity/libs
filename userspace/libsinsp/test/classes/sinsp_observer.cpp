@@ -35,7 +35,7 @@ public:
 	             const char* data,
 	             uint32_t original_len,
 	             uint32_t len) override {
-		ASSERT_EQ(evt->get_num(), 5);
+		ASSERT_EQ(evt->get_num(), 4);
 		ASSERT_EQ(fdinfo->m_fd, 4);
 		ASSERT_STREQ(data, "hello");
 		m_read_ctr++;
@@ -58,7 +58,7 @@ public:
 	               sinsp_fdinfo* new_fdinfo) override {}
 
 	void on_file_open(sinsp_evt* evt, const std::string& fullpath, uint32_t flags) override {
-		ASSERT_EQ(evt->get_num(), 4);
+		ASSERT_EQ(evt->get_num(), 3);
 		ASSERT_EQ(fullpath, "/home/file.txt");
 		m_open_ctr++;
 	}
@@ -71,7 +71,7 @@ public:
 	void on_socket_shutdown(sinsp_evt* evt) override {}
 	void on_execve(sinsp_evt* evt) override {
 		ASSERT_EQ(evt->get_num(),
-		          3);  // (we create both execve enter and exit; the callback is called on the exit)
+		          2);  // (we create both execve enter and exit; the callback is called on the exit)
 		m_execve_ctr++;
 	}
 

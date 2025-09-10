@@ -751,9 +751,6 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	                     child_tid,
 	                     pidns_init_start_ts);
 
-	/* Execve enter event */
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,
@@ -1024,9 +1021,6 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                     child_vtid,
 	                     pidns_init_start_ts);
 
-	/* Execve enter event */
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,
@@ -1126,13 +1120,6 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                     child_vpid,
 	                     child_vtid,
 	                     pidns_init_start_ts);
-
-	/* Execve enter event */
-	add_event_advance_ts(increasing_ts(),
-	                     child2_tid,
-	                     PPME_SYSCALL_EXECVE_19_E,
-	                     1,
-	                     "/bin/test-exe2");
 
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(),
@@ -1274,7 +1261,6 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	                     child_vpid,
 	                     child_vtid,
 	                     pidns_init_start_ts);
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,
 	                           PPME_SYSCALL_EXECVE_19_X,

@@ -76,11 +76,6 @@ int32_t fill_event_vfork_20_x(scap_sized_buffer scap_buf,
                               uint64_t vpid,
                               uint64_t pidns_init_start_ts);
 
-int32_t fill_event_execve_19_e(scap_sized_buffer scap_buf,
-                               size_t* event_size,
-                               char* scap_err,
-                               const char* filename);
-
 int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
                                size_t* event_size,
                                char* scap_err,

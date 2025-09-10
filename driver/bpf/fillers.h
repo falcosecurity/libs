@@ -113,11 +113,6 @@ FILLER_RAW(terminate_filler) {
 				++state->n_drops_buffer_open_enter;
 			}
 			break;
-		case PPME_SYSCALL_EXECVE_19_E:
-			if(state->n_drops_buffer_execve_enter != ULLONG_MAX) {
-				++state->n_drops_buffer_execve_enter;
-			}
-			break;
 		case PPME_SOCKET_CONNECT_E:
 			if(state->n_drops_buffer_connect_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_connect_enter;
@@ -1709,12 +1704,6 @@ FILLER(sys_sendto_x, true) {
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
 	data->curarg_already_on_frame = true;
 	return bpf_val_to_ring_len(data, 0, socktuple_size);
-}
-
-FILLER(sys_execve_e, true) {
-	/* Parameter 1: filename (type: PT_FSPATH) */
-	unsigned long filename_pointer = bpf_syscall_get_argument(data, 0);
-	return bpf_val_to_ring_mem(data, filename_pointer, USER);
 }
 
 static __always_inline uint32_t bpf_ppm_get_tty(struct task_struct *task) {

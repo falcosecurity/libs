@@ -373,8 +373,6 @@ TEST_F(sinsp_with_test_input, execve_invalid_path_entry) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_E, 1, "<NA>");
-
 	const std::string filename{"/bin/test-exe"};
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(),

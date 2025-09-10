@@ -1492,18 +1492,6 @@ cgroups_error:
 	return add_sentinel(args);
 }
 
-int f_sys_execve_e(struct event_filler_arguments *args) {
-	unsigned long val;
-	int res;
-
-	/* Parameter 1: filename (type: PT_FSPATH) */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_socket_bind_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
