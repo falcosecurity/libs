@@ -1504,43 +1504,6 @@ int f_sys_execve_e(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_execveat_e(struct event_filler_arguments *args) {
-	int res;
-	unsigned long val;
-	unsigned long flags;
-	int32_t fd;
-
-	/*
-	 * dirfd
-	 */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t)val;
-	if(fd == AT_FDCWD) {
-		fd = PPM_AT_FDCWD;
-	}
-
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * pathname
-	 */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);
-
-	/*
-	 * flags
-	 */
-	syscall_get_arguments_deprecated(args, 4, 1, &val);
-	flags = execveat_flags_to_scap(val);
-
-	res = val_to_ring(args, flags, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_socket_bind_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
