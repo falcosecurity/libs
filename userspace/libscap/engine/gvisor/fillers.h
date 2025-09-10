@@ -25,8 +25,6 @@ limitations under the License.
 namespace scap_gvisor {
 namespace fillers {
 
-int32_t fill_event_clone_20_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err);
-
 int32_t fill_event_clone_20_x(scap_sized_buffer scap_buf,
                               size_t* event_size,
                               char* scap_err,

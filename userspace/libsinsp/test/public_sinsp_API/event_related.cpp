@@ -21,14 +21,14 @@ TEST(events, check_events_category) {
 	ASSERT_EQ(libsinsp::events::is_syscall_event(PPME_SCHEDSWITCH_6_X), false);
 
 	ASSERT_EQ(libsinsp::events::is_tracepoint_event(PPME_SCHEDSWITCH_6_E), true);
-	ASSERT_EQ(libsinsp::events::is_tracepoint_event(PPME_SYSCALL_CLONE_20_E), false);
+	ASSERT_EQ(libsinsp::events::is_tracepoint_event(PPME_SYSCALL_CLONE_20_X), false);
 
 	ASSERT_EQ(libsinsp::events::is_metaevent(PPME_DROP_E), true);
 	ASSERT_EQ(libsinsp::events::is_metaevent(PPME_SYSCALL_CLONE_20_X), false);
 
 	ASSERT_EQ(libsinsp::events::is_unknown_event(PPME_SCHEDSWITCH_1_X), true);
-	ASSERT_EQ(libsinsp::events::is_unknown_event(PPME_SYSCALL_CLONE_20_E), false);
+	ASSERT_EQ(libsinsp::events::is_unknown_event(PPME_SYSCALL_CLONE_20_X), false);
 
 	ASSERT_EQ(libsinsp::events::is_plugin_event(PPME_PLUGINEVENT_E), true);
-	ASSERT_EQ(libsinsp::events::is_plugin_event(PPME_SYSCALL_CLONE_20_E), false);
+	ASSERT_EQ(libsinsp::events::is_plugin_event(PPME_SYSCALL_CLONE_20_X), false);
 }

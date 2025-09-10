@@ -674,7 +674,6 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {"cpuset=/",
 	                                    "cpu=/user.slice",
 	                                    "cpuacct=/user.slice",
@@ -951,7 +950,6 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 	uint64_t pidns_init_start_ts = 1234;
 
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {"cpuset=/",
 	                                    "cpu=/user.slice",
 	                                    "cpuacct=/user.slice",
@@ -1073,10 +1071,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "4294967312");
 	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "4294967312");
 
-	// spawn a child process to verify ppid/apid
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_E, 0);
-
-	/* Child clone exit event
+	/* Spawn a child process to verify ppid/apid by generating a clone exit event.
 	 * Please note that now we are calling the child exit event before the parent one.
 	 */
 	add_event_advance_ts(increasing_ts(),
@@ -1205,7 +1200,6 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 	uint64_t pidns_init_start_ts = 1234;
 
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {"cpuset=/",
 	                                    "cpu=/user.slice",
 	                                    "cpuacct=/user.slice",

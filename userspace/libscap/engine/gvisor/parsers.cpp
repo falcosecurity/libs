@@ -147,27 +147,6 @@ static parse_result parse_container_start(uint32_t id,
 	uint64_t tid_field = generate_tid_field(1, id);
 	uint64_t tgid_field = generate_tid_field(1, id);
 
-	// encode clone entry
-	ret.status = scap_gvisor::fillers::fill_event_clone_20_e(event_buf, &event_size, scap_err);
-	if(ret.status == SCAP_FAILURE) {
-		ret.error = scap_err;
-		return ret;
-	}
-
-	ret.size += event_size;
-
-	if(ret.size <= scap_buf.size) {
-		scap_evt *evt = static_cast<scap_evt *>(event_buf.buf);
-		evt->ts = context_data.time_ns();
-		evt->tid = tid_field;
-		ret.scap_events.push_back(evt);
-		event_buf.buf = (char *)scap_buf.buf + ret.size;
-		event_buf.size = scap_buf.size - ret.size;
-	} else {
-		event_buf.buf = nullptr;
-		event_buf.size = 0;
-	}
-
 	// encode clone exit
 	ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
 	        event_buf,
@@ -1529,35 +1508,35 @@ static parse_result parse_clone(uint32_t id,
 		return ret;
 	}
 
-	if(gvisor_evt.has_exit()) {
-		auto &context_data = gvisor_evt.context_data();
-
-		std::string cgroups = "gvisor_container_id=/";
-		cgroups += context_data.container_id();
-
-		ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
-		        scap_buf,
-		        &ret.size,
-		        scap_err,
-		        gvisor_evt.exit().result(),
-		        context_data.process_name().c_str(),               // exe
-		        scap_const_sized_buffer{"", 0},                    // args -- INV/not available
-		        generate_tid_field(context_data.thread_id(), id),  // tid
-		        generate_tid_field(context_data.thread_group_id(), id),  // pid
-		        0,  // ptid -- INV/not available
-		        context_data.cwd().c_str(),
-		        context_data.process_name().c_str(),  // comm
-		        scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
-		        clone_flags_to_scap((int)gvisor_evt.flags()),
-		        context_data.credentials().effective_uid(),  // uid
-		        context_data.credentials().effective_gid(),  // gid
-		        context_data.thread_id(),                    // vtid
-		        context_data.thread_group_id(),              // vpid
-		        context_data.thread_start_time_ns());        // pidns_init_start_ts
-	} else {
-		ret.status = scap_gvisor::fillers::fill_event_clone_20_e(scap_buf, &ret.size, scap_err);
+	if(!gvisor_evt.has_exit()) {
+		ret.status = SCAP_SUCCESS;
+		return ret;
 	}
 
+	auto &context_data = gvisor_evt.context_data();
+
+	std::string cgroups = "gvisor_container_id=/";
+	cgroups += context_data.container_id();
+
+	ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
+	        scap_buf,
+	        &ret.size,
+	        scap_err,
+	        gvisor_evt.exit().result(),
+	        context_data.process_name().c_str(),                     // exe
+	        scap_const_sized_buffer{"", 0},                          // args -- INV/not available
+	        generate_tid_field(context_data.thread_id(), id),        // tid
+	        generate_tid_field(context_data.thread_group_id(), id),  // pid
+	        0,                                                       // ptid -- INV/not available
+	        context_data.cwd().c_str(),
+	        context_data.process_name().c_str(),  // comm
+	        scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
+	        clone_flags_to_scap((int)gvisor_evt.flags()),
+	        context_data.credentials().effective_uid(),  // uid
+	        context_data.credentials().effective_gid(),  // gid
+	        context_data.thread_id(),                    // vtid
+	        context_data.thread_group_id(),              // vpid
+	        context_data.thread_start_time_ns());        // pidns_init_start_ts
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;

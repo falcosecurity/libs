@@ -113,11 +113,6 @@ FILLER_RAW(terminate_filler) {
 				++state->n_drops_buffer_open_enter;
 			}
 			break;
-		case PPME_SYSCALL_CLONE_20_E:
-			if(state->n_drops_buffer_clone_fork_enter != ULLONG_MAX) {
-				++state->n_drops_buffer_clone_fork_enter;
-			}
-			break;
 		case PPME_SYSCALL_EXECVE_19_E:
 		case PPME_SYSCALL_EXECVEAT_E:
 			if(state->n_drops_buffer_execve_enter != ULLONG_MAX) {
