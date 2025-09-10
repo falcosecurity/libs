@@ -8,43 +8,6 @@
 
 #include <helpers/interfaces/variable_size_event.h>
 
-/*=============================== ENTER EVENT ===========================*/
-
-SEC("tp_btf/sys_enter")
-int BPF_PROG(execveat_e, struct pt_regs *regs, long id) {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap) {
-		return 0;
-	}
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_EXECVEAT_E);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Parameter 1: dirfd (type: PT_FD) */
-	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD) {
-		dirfd = PPM_AT_FDCWD;
-	}
-	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
-
-	/* Parameter 2: pathname (type: PT_FSRELPATH) */
-	unsigned long pathname_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, pathname_pointer, MAX_PATH, USER);
-
-	/* Parameter 3: flags (type: PT_FLAGS32) */
-	unsigned long flags = extract__syscall_argument(regs, 4);
-	auxmap__store_u32_param(auxmap, execveat_flags_to_scap(flags));
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	auxmap__finalize_event_header(auxmap);
-
-	auxmap__submit_event(auxmap);
-	return 0;
-}
-
-/*=============================== ENTER EVENT ===========================*/
-
 /*=============================== EXIT EVENT ===========================*/
 
 /* Note: On aarch64 and x86 architectures this BPF program is called only when

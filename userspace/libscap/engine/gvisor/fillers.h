@@ -96,13 +96,6 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
                                uint32_t uid,
                                uint32_t gid);
 
-int32_t fill_event_execveat_e(scap_sized_buffer scap_buf,
-                              size_t* event_size,
-                              char* scap_err,
-                              int64_t dirfd,
-                              const char* pathname,
-                              uint32_t flags);
-
 int32_t fill_event_execveat_x(scap_sized_buffer scap_buf,
                               size_t* event_size,
                               char* scap_err,

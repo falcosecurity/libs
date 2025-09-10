@@ -55,13 +55,20 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param) {
 
 	int64_t dirfd = 0;
 
-	/* `PPME_SYSCALL_EXECVEAT_E` is a simple event that uses a `PT_FSRELPATH`
+	/* `PPME_SYSCALL_UNLINKAT_2_X` is a simple event that uses a `PT_FSRELPATH`
 	 * A `NULL` `PT_FSRELPATH` param is always converted to `<NA>`.
 	 */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, NULL, 0);
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg.pathname"), "<NA>");
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_UNLINKAT_2_X,
+	                           4,
+	                           (int64_t)0,
+	                           dirfd,
+	                           nullptr,
+	                           (uint32_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "<NA>");
 
-	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "<NA>");
+	ASSERT_EQ(evt->get_param(2)->as<std::string>(), "<NA>");
 }
 
 /* Assert that a `PT_CHARBUF` with `len==1` (just the `\0`) is not changed. */

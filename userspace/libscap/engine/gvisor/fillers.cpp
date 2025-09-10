@@ -310,24 +310,6 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
 	);
 }
 
-// PPME_SYSCALL_EXECVEAT_E
-// Event field validity issues: none
-int32_t fill_event_execveat_e(scap_sized_buffer scap_buf,
-                              size_t* event_size,
-                              char* scap_err,
-                              int64_t dirfd,
-                              const char* pathname,
-                              uint32_t flags) {
-	return scap_event_encode_params(scap_buf,
-	                                event_size,
-	                                scap_err,
-	                                PPME_SYSCALL_EXECVEAT_E,
-	                                3,
-	                                dirfd,
-	                                pathname,
-	                                flags);
-}
-
 // PPME_SYSCALL_EXECVEAT_X
 // Event field validity issues:
 // A) Always hardcoded due to value not available in native gVisor event:

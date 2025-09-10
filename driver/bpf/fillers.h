@@ -114,7 +114,6 @@ FILLER_RAW(terminate_filler) {
 			}
 			break;
 		case PPME_SYSCALL_EXECVE_19_E:
-		case PPME_SYSCALL_EXECVEAT_E:
 			if(state->n_drops_buffer_execve_enter != ULLONG_MAX) {
 				++state->n_drops_buffer_execve_enter;
 			}
@@ -1716,39 +1715,6 @@ FILLER(sys_execve_e, true) {
 	/* Parameter 1: filename (type: PT_FSPATH) */
 	unsigned long filename_pointer = bpf_syscall_get_argument(data, 0);
 	return bpf_val_to_ring_mem(data, filename_pointer, USER);
-}
-
-FILLER(sys_execveat_e, true) {
-	unsigned long val;
-	unsigned long flags;
-	int32_t fd;
-	int res;
-
-	/*
-	 * dirfd
-	 */
-	fd = (int32_t)bpf_syscall_get_argument(data, 0);
-
-	if(fd == AT_FDCWD) {
-		fd = PPM_AT_FDCWD;
-	}
-
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
-	CHECK_RES(res);
-
-	/*
-	 * pathname
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring_mem(data, val, USER);
-	CHECK_RES(res);
-
-	/*
-	 * flags
-	 */
-	val = bpf_syscall_get_argument(data, 4);
-	flags = execveat_flags_to_scap(val);
-	return bpf_push_u32_to_ring(data, flags);
 }
 
 static __always_inline uint32_t bpf_ppm_get_tty(struct task_struct *task) {
