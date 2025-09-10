@@ -46,8 +46,6 @@ int32_t fill_event_clone_20_x(scap_sized_buffer scap_buf,
                               uint64_t vpid,
                               uint64_t pidns_init_start_ts);
 
-int32_t fill_event_fork_20_e(scap_sized_buffer scap_buf, size_t* event_size, char* scap_err);
-
 int32_t fill_event_fork_20_x(scap_sized_buffer scap_buf,
                              size_t* event_size,
                              char* scap_err,
