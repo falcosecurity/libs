@@ -276,8 +276,8 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	/* At the time of writing (Apr 2, 2023) libbpf stats are only available on a per program
 	 * granularity. This means we cannot measure the statistics for each filler/tail-call
 	 * individually. Hopefully someone upstreams such capabilities to libbpf one day :) Meanwhile,
-	 * we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
-	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
+	 * we can simulate perf comparisons between future LSM hooks and tracepoints by leveraging
+	 * syscall selection mechanisms `handle->curr_sc_set`.
 	 */
 	if((flags & METRICS_V2_LIBBPF_STATS)) {
 		int fd = 0;

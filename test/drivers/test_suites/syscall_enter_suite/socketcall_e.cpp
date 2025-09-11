@@ -10,6 +10,13 @@
 TEST(SyscallEnter, socketcall_connectE) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
+	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
+	//  all 3 drivers.
+	if(evt_test->is_modern_bpf_engine()) {
+		GTEST_SKIP()
+		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+	}
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -57,6 +64,13 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting) {
 	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
 
+	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
+	//  all 3 drivers.
+	if(evt_test->is_modern_bpf_engine()) {
+		GTEST_SKIP()
+		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+	}
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -80,6 +94,13 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting) {
 	// Same as the previous test
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, ENTER_EVENT);
 
+	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
+	//  all 3 drivers.
+	if(evt_test->is_modern_bpf_engine()) {
+		GTEST_SKIP()
+		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+	}
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -102,6 +123,13 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting) {
 TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting) {
 	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
+
+	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
+	//  all 3 drivers.
+	if(evt_test->is_modern_bpf_engine()) {
+		GTEST_SKIP()
+		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+	}
 
 	evt_test->enable_capture();
 

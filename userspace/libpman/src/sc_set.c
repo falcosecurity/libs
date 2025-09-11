@@ -52,7 +52,6 @@ int pman_enforce_sc_set(bool *sc_set) {
 	}
 
 	/* Special tracepoints, their attachment depends on interesting syscalls */
-	bool sys_enter = false;
 	bool sys_exit = false;
 	bool sched_prog_fork = false;
 	bool sched_prog_exec = false;
@@ -77,7 +76,6 @@ int pman_enforce_sc_set(bool *sc_set) {
 		if(!sc_set[sc]) {
 			ret = ret ?: pman_mark_single_64bit_syscall(syscall_id, false);
 		} else {
-			sys_enter = true;
 			sys_exit = true;
 			ret = ret ?: pman_mark_single_64bit_syscall(syscall_id, true);
 		}
@@ -158,12 +156,7 @@ int pman_enforce_sc_set(bool *sc_set) {
 	else
 		ret = ret ?: pman_detach_openat_toctou_mitigation_progs();
 
-	/* sys_enter and sys_exit dispatchers section. */
-	if(sys_enter)
-		ret = ret ?: pman_attach_syscall_enter_dispatcher();
-	else
-		ret = ret ?: pman_detach_syscall_enter_dispatcher();
-
+	/* sys_exit dispatcher section. */
 	if(sys_exit)
 		ret = ret ?: pman_attach_syscall_exit_dispatcher();
 	else

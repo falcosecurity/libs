@@ -26,20 +26,6 @@ limitations under the License.
 
 /*=============================== ATTACH PROGRAMS ===============================*/
 
-int pman_attach_syscall_enter_dispatcher() {
-	/* The program is already attached. */
-	if(g_state.skel->links.sys_enter != NULL) {
-		return 0;
-	}
-
-	g_state.skel->links.sys_enter = bpf_program__attach(g_state.skel->progs.sys_enter);
-	if(!g_state.skel->links.sys_enter) {
-		pman_print_error("failed to attach the 'sys_enter' program");
-		return errno;
-	}
-	return 0;
-}
-
 int pman_attach_syscall_exit_dispatcher() {
 	/* The program is already attached. */
 	if(g_state.skel->links.sys_exit != NULL) {
@@ -268,15 +254,6 @@ int pman_attach_openat2_toctou_mitigation_progs() {
 /*=============================== ATTACH PROGRAMS ===============================*/
 
 /*=============================== DETACH PROGRAMS ===============================*/
-
-int pman_detach_syscall_enter_dispatcher() {
-	if(g_state.skel->links.sys_enter && bpf_link__destroy(g_state.skel->links.sys_enter)) {
-		pman_print_error("failed to detach the 'sys_enter' program");
-		return errno;
-	}
-	g_state.skel->links.sys_enter = NULL;
-	return 0;
-}
 
 int pman_detach_syscall_exit_dispatcher() {
 	if(g_state.skel->links.sys_exit && bpf_link__destroy(g_state.skel->links.sys_exit)) {

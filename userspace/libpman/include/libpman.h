@@ -139,20 +139,6 @@ int pman_attach_syscall_exit_dispatcher(void);
 int pman_detach_syscall_exit_dispatcher(void);
 
 /**
- * @brief Attach only the syscall_enter_dispatcher
- *
- * @return `0` on success, `errno` in case of error.
- */
-int pman_attach_syscall_enter_dispatcher(void);
-
-/**
- * @brief Detach only the syscall_enter_dispatcher
- *
- * @return `0` on success, `errno` in case of error.
- */
-int pman_detach_syscall_enter_dispatcher(void);
-
-/**
  * @brief Attach only the sched_process_exit tracepoint
  *
  * @return `0` on success, `errno` in case of error.
@@ -488,14 +474,8 @@ uint64_t pman_get_probe_schema_ver(void);
 int pman_fill_syscall_exit_extra_tail_table(void);
 
 /**
- * @brief The syscall dispatchers will look into these tables
- * to understand which programs they have to call. We have 2
- * different tables one for syscall enter events and the other
- * for syscall exit events:
- *
- * -> SYSCALL ENTER TAIL TABLE
- * syscall_enter_tail_table(syscall_id, enter_program_fd).
- * Returns the fd of the right bpf program to call.
+ * @brief The syscall exit dispatcher will look into this table
+ * to understand which programs it has to call:
  *
  * -> SYSCALL EXIT TAIL TABLE
  * syscall_exit_tail_table(syscall_id, exit_program_fd).
