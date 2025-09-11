@@ -81,18 +81,6 @@ __weak void *socket_file_ops = NULL;
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 
 /**
- * @brief This tail table is used by the syscall_enter_disptacher.
- * Given the syscall_id, it calls the right bpf program to manage
- * the syscall enter event.
- */
-struct {
-	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, SYSCALL_TABLE_SIZE);
-	__type(key, uint32_t);
-	__type(value, uint32_t);
-} syscall_enter_tail_table __weak SEC(".maps");
-
-/**
  * @brief This tail table is used by the syscall_exit_disptacher.
  * Given the syscall_id, it calls the right bpf program to manage
  * the syscall exit event.

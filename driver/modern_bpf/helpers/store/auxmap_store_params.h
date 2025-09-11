@@ -121,7 +121,8 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
 static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
-		// this should never happen because we check it in sys_enter/sys_exit
+		/* This should never happen in tail-called exit programs because we check it in `sys_exit`
+		 * dispatcher. It can happen in TOCTOU mitigation programs. */
 		bpf_printk("FAILURE: unable to obtain the ring buffer");
 		return;
 	}

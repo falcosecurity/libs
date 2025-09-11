@@ -11,6 +11,33 @@
 #include <helpers/interfaces/syscalls_dispatcher.h>
 #include <helpers/interfaces/variable_size_event.h>
 
+static __always_inline bool toctou_mitigation__sampling_logic_enter(uint32_t syscall_id) {
+	/* If dropping mode is not enabled we don't perform any sampling. Notice that:
+	 * - false: means don't drop the syscall
+	 * - true: means drop the syscall
+	 */
+	if(!maps__get_dropping_mode()) {
+		return false;
+	}
+
+	uint8_t sampling_flag = maps__64bit_sampling_syscall_table(syscall_id);
+
+	if(sampling_flag == UF_NEVER_DROP) {
+		return false;
+	}
+
+	if(sampling_flag == UF_ALWAYS_DROP) {
+		return true;
+	}
+
+	// If we are in the sampling period we drop the event.
+	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
+		return true;
+	}
+
+	return false;
+}
+
 /**
  * @brief Tell if the event related to the specified 64 bit system call should be droppped or not.
  *
@@ -41,7 +68,7 @@ static __always_inline int toctou_mitigation__64bit_should_drop(uint32_t syscall
 		return 1;
 	}
 
-	if(syscalls_dispatcher__sampling_logic_enter(syscall_id)) {
+	if(toctou_mitigation__sampling_logic_enter(syscall_id)) {
 		return 1;
 	}
 
@@ -86,7 +113,7 @@ static __always_inline int toctou_mitigation__ia32_should_drop(uint32_t syscall_
 		return 1;
 	}
 
-	if(syscalls_dispatcher__sampling_logic_enter(syscall_id)) {
+	if(toctou_mitigation__sampling_logic_enter(syscall_id)) {
 		return 1;
 	}
 
