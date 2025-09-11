@@ -1918,8 +1918,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		default:
 			if(likely(g_ppm_events[event_type].filler_callback)) {
 				cbres = g_ppm_events[event_type].filler_callback(&args);
-				/* TODO(ekoops): remove this once we remove the sys_enter dispatcher. */
-			} else if(!g_ppm_events[event_type].disabled) {
+			} else {
 				pr_err("corrupted filler for event type %d: NULL callback\n", event_type);
 				ASSERT(0);
 			}
@@ -2082,18 +2081,13 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id) {
 	struct event_data_t event_data = {};
 	const struct syscall_evt_pair *event_pair = NULL;
 	long table_index = 0;
-	int socketcall_syscall_id = -1;
 
 	/* Just to be extra-safe */
 	if(id < 0) {
 		return;
 	}
 
-	event_data.category = PPMC_SYSCALL;
-	event_data.event_info.syscall_data.regs = regs;
-	event_data.extract_socketcall_params = false;
-
-	/* This could be overwritten if we are in a socket call */
+	/* These could be overwritten if we are in ia-32 emulation mode. */
 	event_data.event_info.syscall_data.id = id;
 	event_data.compat = false;
 
@@ -2102,52 +2096,68 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id) {
 		// We try to convert the 32-bit id into the 64-bit one.
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 		event_data.compat = true;
-		if(id == __NR_ia32_socketcall) {
-			socketcall_syscall_id = __NR_ia32_socketcall;
-		} else {
-			event_data.event_info.syscall_data.id = g_ia32_64_map[id];
-			// syscalls defined only on 32 bits are dropped here.
-			if(event_data.event_info.syscall_data.id == -1) {
-				return;
-			}
+		event_data.event_info.syscall_data.id = g_ia32_64_map[id];
+		// syscalls defined only on 32 bits are dropped here.
+		if(event_data.event_info.syscall_data.id == -1) {
+			return;
 		}
 #else
 		// Unsupported arch
 		return;
 #endif
-	} else {
-#ifdef __NR_socketcall
-		socketcall_syscall_id = __NR_socketcall;
-#endif
+	}
+
+	// This tracepoint is used only for system calls requiring enter event generation for TOCTOU
+	// mitigation. For any other system call, just return.
+	switch(event_data.event_info.syscall_data.id) {
+#ifdef __NR_connect
+	case __NR_connect:
+		break;
+#endif  // __NR_connect
+#ifdef __NR_creat
+	case __NR_creat:
+		break;
+#endif  // __NR_creat
+#ifdef __NR_open
+	case __NR_open:
+		break;
+#endif  // __NR_open
+#ifdef __NR_openat
+	case __NR_openat:
+		break;
+#endif  // __NR_openat
+#ifdef __NR_openat2
+	case __NR_openat2:
+		break;
+#endif  // __NR_openat2
+	default:
+		return;
 	}
 
 	g_n_tracepoint_hit_inc();
 
-	// Now all syscalls on 32-bit should be converted to 64-bit apart from `socketcall`.
-	// This one deserves special treatment.
-	if(event_data.event_info.syscall_data.id == socketcall_syscall_id) {
-		if(manage_socketcall(&event_data, socketcall_syscall_id, false) == NULL) {
-			return;
-		}
-	}
+	event_data.category = PPMC_SYSCALL;
+	event_data.event_info.syscall_data.regs = regs;
+	event_data.extract_socketcall_params = false;
 
-	/* We need to set here the `syscall_id` because it could change in case of socketcalls */
 	table_index = event_data.event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 	if(unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE)) {
 		return;
 	}
 
 	event_pair = &g_syscall_table[table_index];
-	if(event_pair->flags & UF_USED)
-		record_event_all_consumers(event_pair->enter_event_type,
-		                           event_pair->flags,
-		                           &event_data,
-		                           KMOD_PROG_SYS_ENTER);
-	else
-		record_event_all_consumers(PPME_GENERIC_E,
-		                           UF_ALWAYS_DROP,
-		                           &event_data,
-		                           KMOD_PROG_SYS_ENTER);
+	if(unlikely((event_pair->flags & UF_USED) == 0)) {
+		pr_err("Event associated to syscall ID %ld doesn't have an UF_USED flag. This is a bug, "
+		       "as the syscall_enter probe is meant only for calling fillers for system calls "
+		       "supporting TOCTOU mitigation through enter event generation\n",
+		       event_data.event_info.syscall_data.id);
+		return;
+	}
+
+	record_event_all_consumers(event_pair->enter_event_type,
+	                           event_pair->flags,
+	                           &event_data,
+	                           KMOD_PROG_SYS_ENTER);
 }
 
 static __always_inline bool kmod_drop_syscall_exit_events(long ret, ppm_event_code evt_type) {

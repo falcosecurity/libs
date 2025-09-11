@@ -13,8 +13,8 @@ TEST(SyscallEnter, socketcall_connectE) {
 	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
 	//  all 3 drivers.
 	if(evt_test->is_modern_bpf_engine()) {
-		GTEST_SKIP()
-		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+		GTEST_SKIP() << "Modern eBPF and kmod probes don't support anymore socketcall enter events "
+		                "detection";
 	}
 
 	evt_test->enable_capture();
@@ -67,8 +67,8 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting) {
 	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
 	//  all 3 drivers.
 	if(evt_test->is_modern_bpf_engine()) {
-		GTEST_SKIP()
-		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+		GTEST_SKIP() << "Modern eBPF and kmod probes don't support anymore socketcall enter events "
+		                "detection";
 	}
 
 	evt_test->enable_capture();
@@ -97,8 +97,8 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting) {
 	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
 	//  all 3 drivers.
 	if(evt_test->is_modern_bpf_engine()) {
-		GTEST_SKIP()
-		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+		GTEST_SKIP() << "Modern eBPF and kmod probes don't support anymore socketcall enter events "
+		                "detection";
 	}
 
 	evt_test->enable_capture();
@@ -127,8 +127,8 @@ TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting
 	// TODO(ekoops): remove this test once we completely remove socketcall enter events detection in
 	//  all 3 drivers.
 	if(evt_test->is_modern_bpf_engine()) {
-		GTEST_SKIP()
-		        << "Modern eBPF probe doesn't support anymore socketcall enter events detection";
+		GTEST_SKIP() << "Modern eBPF and kmod probes don't support anymore socketcall enter events "
+		                "detection";
 	}
 
 	evt_test->enable_capture();

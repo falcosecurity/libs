@@ -10,7 +10,8 @@ TEST(SyscallEnter, genericE) {
 	// TODO(ekoops): remove this test once we completely remove generic enter events detection in
 	//  all 3 drivers.
 	if(evt_test->is_modern_bpf_engine()) {
-		GTEST_SKIP() << "Modern eBPF probe doesn't support anymore generic enter events detection";
+		GTEST_SKIP() << "Modern eBPF and kmod probes don't support anymore generic enter events "
+		                "detection";
 	}
 
 	evt_test->enable_capture();

@@ -115,14 +115,6 @@ int f_sys_generic(struct event_filler_arguments *args) {
 		 */
 		res = val_to_ring(args, sc_code, 0, false, 0);
 		CHECK_RES(res);
-
-		if(args->event_type == PPME_GENERIC_E) {
-			/*
-			 * nativeID
-			 */
-			res = val_to_ring(args, args->syscall_id, 0, false, 0);
-			CHECK_RES(res);
-		}
 	} else {
 		ASSERT(false);
 		res = val_to_ring(args, (uint64_t) "<out of bound>", 0, false, 0);
