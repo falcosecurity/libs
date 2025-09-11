@@ -23,9 +23,6 @@ or GPL2.txt for full copies of the license.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
-        // TODO(ekoops): remove `PPME_GENERIC_E` entry once we limit legacy bpf probe sys_enter
-        //   dispatcher for TOCTOU mitigation.
-        [PPME_GENERIC_E] = {FILLER_REF(sys_generic)},
         [PPME_GENERIC_X] = {FILLER_REF(sys_generic)},
         [PPME_SYSCALL_OPEN_E] = {FILLER_REF(sys_open_e)},
         [PPME_SYSCALL_OPEN_X] = {FILLER_REF(sys_open_x)},

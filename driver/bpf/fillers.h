@@ -3055,45 +3055,26 @@ FILLER(sys_unshare_x, true) {
 }
 
 FILLER(sys_generic, true) {
-	int scap_id;
-	int native_id;
-	int res;
-	const struct syscall_evt_pair *sc_evt;
+	int native_id = bpf_syscall_get_nr(data->ctx);
 
-	native_id = bpf_syscall_get_nr(data->ctx);
-
-	// We are already in a tail-called filler.
-	// if we are in ia32 syscall sys_{enter,exit} already
-	// validated the converted 32bit->64bit syscall ID for us,
-	// otherwise the event would've been discarded.
+	// We are already in a tail-called filler. If we are in ia-32 syscall sys_exit already validated
+	// the converted 32bit->64bit syscall ID for us, otherwise the event would've been discarded.
 	if(bpf_in_ia32_syscall()) {
 		native_id = convert_ia32_to_64(native_id);
 	}
 
-	sc_evt = get_syscall_info(native_id);
+	const struct syscall_evt_pair *sc_evt = get_syscall_info(native_id);
 	if(!sc_evt) {
 		bpf_printk("no routing for syscall %d\n", native_id);
 		return PPM_FAILURE_BUG;
 	}
 
-	scap_id = sc_evt->ppm_sc;
+	int scap_id = sc_evt->ppm_sc;
 	if(scap_id == PPM_SC_UNKNOWN)
 		bpf_printk("no syscall for id %d\n", native_id);
 
-	/*
-	 * id
-	 */
-	res = bpf_push_u16_to_ring(data, scap_id);
-	CHECK_RES(res);
-
-	if(data->state->tail_ctx.evt_type == PPME_GENERIC_E) {
-		/*
-		 * native id
-		 */
-		res = bpf_push_u16_to_ring(data, native_id);
-	}
-
-	return res;
+	/* Parameter 1: ID (type: PT_SYSCALLID) */
+	return bpf_push_u16_to_ring(data, scap_id);
 }
 
 FILLER(sys_openat_e, true) {
