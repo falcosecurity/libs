@@ -29,14 +29,7 @@ or GPL2.txt for full copies of the license.
 #define __NR_ia32_socketcall 102
 
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
-	const struct syscall_evt_pair *sc_evt = NULL;
-	ppm_event_code evt_type = -1;
-	int drop_flags = 0;
-	long id = 0;
-	bool enabled = false;
-	int socketcall_syscall_id = -1;
-
-	id = bpf_syscall_get_nr(ctx);
+	long id = bpf_syscall_get_nr(ctx);
 	if(id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
 
@@ -44,74 +37,66 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
 		// Right now we support 32-bit emulation only on x86.
 		// We try to convert the 32-bit id into the 64-bit one.
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
-		if(id == __NR_ia32_socketcall) {
-			socketcall_syscall_id = __NR_ia32_socketcall;
-		} else {
-			id = convert_ia32_to_64(id);
-			// syscalls defined only on 32 bits are dropped here.
-			if(id == -1) {
-				return 0;
-			}
+		id = convert_ia32_to_64(id);
+		// Syscalls defined only on 32 bits are dropped here.
+		if(id == -1) {
+			return 0;
 		}
 #else
 		// Unsupported arch
 		return 0;
 #endif
-	} else {
-		// Right now only s390x supports it
-#ifdef __NR_socketcall
-		socketcall_syscall_id = __NR_socketcall;
-#endif
 	}
 
-	// Now all syscalls on 32-bit should be converted to 64-bit apart from `socketcall`.
-	// This one deserves a special treatment
-	if(id == socketcall_syscall_id) {
-#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-		bool is_syscall_return = false;
-		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
-		if(return_code == -1) {
-			// Wrong SYS_ argument passed. Drop the syscall.
-			return 0;
-		}
-		if(!is_syscall_return) {
-			evt_type = return_code;
-			drop_flags = UF_USED;
-		} else {
-			id = return_code;
-		}
-#else
-		// We do not support socketcall when raw tracepoints are not supported.
+	// This program is used only for system calls requiring enter events generation for TOCTOU
+	// mitigation. For any other system call, just return.
+	switch(id) {
+#ifdef __NR_connect
+	case __NR_connect:
+		break;
+#endif  // __NR_connect
+#ifdef __NR_creat
+	case __NR_creat:
+		break;
+#endif  // __NR_creat
+#ifdef __NR_open
+	case __NR_open:
+		break;
+#endif  // __NR_open
+#ifdef __NR_openat
+	case __NR_openat:
+		break;
+#endif  // __NR_openat
+#ifdef __NR_openat2
+	case __NR_openat2:
+		break;
+#endif  // __NR_openat2
+	default:
 		return 0;
-#endif
 	}
 
-	// In case of `evt_type!=-1`, we need to skip the syscall filtering logic because
-	// the actual `id` is no longer representative for this event.
-	// There could be cases in which we have a `PPME_SOCKET_SEND_E` event
-	// and`id=__NR_ia32_socketcall`...We resolved the correct event type but we cannot
-	// update the `id`.
-	if(evt_type == -1) {
-		enabled = is_syscall_interesting(id);
-		if(!enabled) {
-			return 0;
-		}
-
-		sc_evt = get_syscall_info(id);
-		if(!sc_evt)
-			return 0;
-
-		if(sc_evt->flags & UF_USED) {
-			evt_type = sc_evt->enter_event_type;
-			drop_flags = sc_evt->flags;
-		} else {
-			evt_type = PPME_GENERIC_E;
-			drop_flags = UF_ALWAYS_DROP;
-		}
+	if(!is_syscall_interesting(id)) {
+		return 0;
 	}
+
+	const struct syscall_evt_pair *sc_evt = get_syscall_info(id);
+	if(!sc_evt) {
+		return 0;
+	}
+
+	if(unlikely((sc_evt->flags & UF_USED) == 0)) {
+		bpf_printk(
+		        "event associated to syscall ID %ld doesn't have an UF_USED flag. This is a bug, "
+		        "as the sys_enter dispatcher is meant only for calling fillers for system calls "
+		        "supporting TOCTOU mitigation through enter event generation",
+		        id);
+		return 0;
+	}
+	ppm_event_code evt_type = sc_evt->enter_event_type;
+	int drop_flags = sc_evt->flags;
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
+	call_filler(ctx, ctx, evt_type, drop_flags, -1);
 #else
 	/* Duplicated here to avoid verifier madness */
 	struct sys_enter_args stack_ctx;
@@ -120,7 +105,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args) {
 	if(stash_args(stack_ctx.args))
 		return 0;
 
-	call_filler(ctx, &stack_ctx, evt_type, drop_flags, socketcall_syscall_id);
+	call_filler(ctx, &stack_ctx, evt_type, drop_flags, -1);
 #endif
 	return 0;
 }

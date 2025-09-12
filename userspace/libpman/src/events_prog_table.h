@@ -23,7 +23,6 @@ limitations under the License.
 #include <bpf/libbpf.h>
 
 typedef struct {
-	bool disabled; /* TODO(ekoops): remove this once we remove the sys_enter dispatcher. */
 	char *name;
 	enum bpf_func_id feat;
 } event_prog_t;
@@ -32,7 +31,7 @@ typedef struct {
 #define MAX_FEATURE_CHECKS 3
 
 // Defined in events_prog_table.c
-extern event_prog_t event_prog_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS];
+extern event_prog_t exit_event_progs_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS];
 
 // 64-bit system call TOCTOU mitigation program info.
 typedef struct {

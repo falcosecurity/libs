@@ -32,9 +32,6 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	case PPME_SOCKET_CONNECT_E:
 		counter->n_drops_buffer_connect_enter++;
 		break;
-	case PPME_SYSCALL_BPF_2_E:
-		counter->n_drops_buffer_other_interest_enter++;
-		break;
 	case PPME_PROCEXIT_1_E:
 		counter->n_drops_buffer_proc_exit++;
 		break;

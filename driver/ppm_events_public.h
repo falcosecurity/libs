@@ -2359,7 +2359,6 @@ typedef int (*filler_callback_t)(struct event_filler_arguments *args);
 
 struct ppm_event_entry {
 	filler_callback_t filler_callback;
-	uint8_t disabled; /* TODO(ekoops): remove this once we remove the sys_enter dispatcher. */
 	enum ppm_filler_id filler_id;
 	uint16_t n_autofill_args;
 	enum autofill_paramtype paramtype;
