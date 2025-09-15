@@ -808,13 +808,10 @@ static void *perf_event_mmap(struct bpf_engine *handle,
 	int page_size = getpagesize();
 	unsigned long ring_size = buf_bytes_dim;
 	int header_size = page_size;
-	unsigned long total_size = ring_size * 2 + header_size;
+	unsigned long map_size = ring_size + header_size;
+	unsigned long total_size = map_size * 2;
 
 	*size = 0;
-
-	//
-	// All this playing with MAP_FIXED might be very very wrong, revisit
-	//
 
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED) {
@@ -825,13 +822,7 @@ static void *perf_event_mmap(struct bpf_engine *handle,
 		return MAP_FAILED;
 	}
 
-	// Map the second copy to allow us to handle the wrap case normally
-	void *p1 = mmap(tmp + ring_size,
-	                ring_size + header_size,
-	                PROT_READ | PROT_WRITE,
-	                MAP_SHARED | MAP_FIXED,
-	                fd,
-	                0);
+	void *p1 = mmap(tmp, map_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED) {
 		scap_errprintf(handle->m_lasterr,
 		               errno,
@@ -841,15 +832,10 @@ static void *perf_event_mmap(struct bpf_engine *handle,
 		return MAP_FAILED;
 	}
 
-	ASSERT(p1 == tmp + ring_size);
+	ASSERT(p1 == tmp);
 
-	// Map the main copy
-	void *p2 = mmap(tmp,
-	                ring_size + header_size,
-	                PROT_READ | PROT_WRITE,
-	                MAP_SHARED | MAP_FIXED,
-	                fd,
-	                0);
+	void *p2 =
+	        mmap(tmp + map_size, map_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED) {
 		scap_errprintf(handle->m_lasterr,
 		               errno,
@@ -859,7 +845,7 @@ static void *perf_event_mmap(struct bpf_engine *handle,
 		return MAP_FAILED;
 	}
 
-	ASSERT(p2 == tmp);
+	ASSERT(p2 == tmp + map_size);
 
 	*size = total_size;
 
