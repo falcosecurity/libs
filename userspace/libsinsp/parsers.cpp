@@ -769,9 +769,17 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/*=============================== CHILD IN CONTAINER CASE ===========================*/
 
-	/*=============================== CHILD ALREADY THERE ===========================*/
+	/*=============================== CHECK CHILD PRESENCE ===========================*/
 
-	/* See if the child is already there, if yes and it is valid we return immediately */
+	/* See if the child is already there. We return immediately in the following two conditions:
+	 * 1) the child is present and is valid (see below)
+	 * 2) the child is not present because it recently exited, and so it was removed from the thread
+	 *    table
+	 * Notice that the second one is a best-effort check, because it can happen that we missed the
+	 * PROC EXIT event for the child, or we removed the exited child info from our "recently removed
+	 * thread" info cache; in these two scenarios, we are not able to detect the condition, and we
+	 * will (wrongly) re-add the child thread info. Hopefully this thread will be removed by thread
+	 * auto-purging. */
 	sinsp_threadinfo *existing_child_tinfo =
 	        m_thread_manager->get_thread_ref(child_tid, false, true).get();
 	if(existing_child_tinfo != nullptr) {
@@ -786,9 +794,24 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 			m_thread_manager->remove_thread(child_tid);
 			tid_collision = child_tid;
 		}
+	} else {
+		/* Check if the child was recently removed. We need the parent thread id for this.
+		 * The child parent could be the calling process or the calling process parent, depending on
+		 * the fact that the `PPM_CL_CLONE_THREAD` flag is present or not. */
+		int64_t ptid;
+		if(!(flags & PPM_CL_CLONE_THREAD)) {
+			/* The child parent is the calling process. */
+			ptid = caller_tinfo->m_tid;
+		} else {
+			/* The child parent is the parent of the calling process. */
+			ptid = caller_tinfo->m_ptid;
+		}
+		if(m_thread_manager->unmark_recently_removed_thread(ptid, child_tid)) {
+			return;
+		}
 	}
 
-	/*=============================== CHILD ALREADY THERE ===========================*/
+	/*=============================== CHECK CHILD PRESENCE ===========================*/
 
 	/* If we come here it means that we need to create the child thread info */
 

@@ -33,6 +33,7 @@ limitations under the License.
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/timestamper.h>
+#include <libsinsp/logger.h>
 
 class sinsp_observer;
 
@@ -269,6 +270,63 @@ public:
 	                                      const scap_fdinfo& fdinfo,
 	                                      bool resolve_hostname_and_port);
 
+	/*!
+	  \brief Mark a thread as recently removed.
+
+	  \param ptid The parent thread id.
+	  \param tid The thread id.
+
+	  \note A negative parent thread id or a negative thread id results in the entry not being added
+	    to the underlying store.
+	*/
+	void mark_thread_as_recently_removed(const int64_t ptid, const int64_t tid) {
+		if(ptid <= 0 || tid <= 0) {
+			libsinsp_logger()->log(
+			        "Unexpected negative ptid or tid while marking a thread as recently removed "
+			        "(ptid: " +
+			                std::to_string(ptid) + ", tid: " + std::to_string(tid) + ")",
+			        sinsp_logger::SEV_DEBUG);
+			return;
+		}
+
+		auto& [entry_ptid, entry_tid] =
+		        m_recently_removed_thread_entries[m_recently_removed_thread_entries_next_free_pos];
+		entry_ptid = ptid;
+		entry_tid = tid;
+		m_recently_removed_thread_entries_next_free_pos =
+		        (m_recently_removed_thread_entries_next_free_pos + 1) %
+		        m_recently_removed_thread_entries.size();
+	}
+
+	/*!
+	  \brief Check if a thread was recently removed and, if yes, unmark it.
+
+	  \param ptid The parent thread id.
+	  \param tid The thread id.
+
+	  \return a boolean indicating if the thread for recently removed. If true is returned, the
+	    entry is unmarked.
+	*/
+	bool unmark_recently_removed_thread(const int64_t ptid, const int64_t tid) {
+		if(ptid <= 0 || tid <= 0) {
+			libsinsp_logger()->log(
+			        "Unexpected negative ptid or tid while unmarking a thread as recently removed "
+			        "(ptid: " +
+			                std::to_string(ptid) + ", tid: " + std::to_string(tid) + ")",
+			        sinsp_logger::SEV_DEBUG);
+			return false;
+		}
+
+		for(auto& [entry_ptid, entry_tid] : m_recently_removed_thread_entries) {
+			if(entry_ptid == ptid && entry_tid == tid) {
+				entry_ptid = -1;
+				entry_tid = -1;
+				return true;
+			}
+		}
+		return false;
+	}
+
 private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
@@ -340,4 +398,17 @@ private:
 
 	// Tables and fields names.
 	constexpr static auto s_thread_table_name = "threads";
+
+	// Section managing recently removed thread info.
+	// This information is used in the parser code to avoid (wrongly) re-adding thread info for a
+	// removed thread (this happens in case of event reordering).
+	// The "recently removed" notion is linked to the size of the underlying data store, which is
+	// implemented as a circular buffer. New entries overwrite old entries, as per circular buffer
+	// logic.
+	struct recently_removed_thread_entry {
+		int64_t ptid;
+		int64_t tid;
+	};
+	std::array<recently_removed_thread_entry, 1024> m_recently_removed_thread_entries;
+	int m_recently_removed_thread_entries_next_free_pos;
 };
