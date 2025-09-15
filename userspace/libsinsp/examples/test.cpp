@@ -27,6 +27,8 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include "util.h"
+
+#include <iomanip>
 #include <libsinsp/filter/ppm_codes.h>
 #include <libsinsp/state/table_registry.h>
 #include <unordered_set>
@@ -46,8 +48,7 @@ extern "C" {
 using namespace std;
 
 #if __linux__
-// Utility function to calculate CPU usage
-int get_cpu_usage_percent();
+#include "perftest.h"
 #endif  // __linux__
 
 // Functions used for dumping to stdout
@@ -683,6 +684,22 @@ static std::string format_suggested_field(const filtercheck_field_info* info) {
 	return out.str();
 }
 
+static void print_perftest_table_header() {
+	std::cout << std::setw(14) << "Events (num)" << std::setw(24) << "Throughput (events/ms)"
+	          << std::setw(10) << "CPU (%)" << std::setw(14) << "VmSize (MiB)" << std::setw(14)
+	          << "VmRSS (MiB)" << '\n';
+}
+
+static void print_perftest_table_data(const uint64_t num_events_diff,
+                                      const long double curr_throughput,
+                                      const int cpu_usage,
+                                      const double curr_vm_size_in_mebibytes,
+                                      const double curr_vm_rss_in_mebibytes) {
+	std::cout << std::setw(14) << (num_events_diff) << std::setw(24) << curr_throughput
+	          << std::setw(10) << cpu_usage << std::setw(14) << curr_vm_size_in_mebibytes
+	          << std::setw(14) << curr_vm_rss_in_mebibytes << '\r' << std::flush;
+}
+
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -767,7 +784,6 @@ int main(int argc, char** argv) {
 	}
 
 	std::cout << "-- Start capture" << std::endl;
-	double max_throughput = 0.0;
 
 	inspector.start_capture();
 
@@ -781,49 +797,88 @@ int main(int argc, char** argv) {
 	        std::make_unique<sinsp_evt_formatter>(&inspector, plugin_output, *filter_list.get());
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-	uint64_t num_events = 0, last_events = 0;
+	uint64_t curr_num_events = 0, last_num_events = 0;
 	uint64_t last_ts_ns = 0;
 	uint64_t cpu_total = 0;
 	uint64_t num_samples = 0;
-	while(!g_interrupted && num_events < max_events) {
+
+	// Perftest-related variables.
+	double max_throughput = 0.0;
+	double min_vm_size_in_mebibytes = std::numeric_limits<double>::max();
+	double max_vm_size_in_mebibytes = 0.0;
+	double min_vm_rss_in_mebibytes = std::numeric_limits<double>::max();
+	double max_vm_rss_in_mebibytes = 0.0;
+
+#if __linux__
+	mem_stats_t mem_stats{};
+	constexpr int ONE_MEBIBYTE_IN_BYTES = 1024 * 1024;
+	const long int page_size = sysconf(_SC_PAGESIZE);
+#endif
+
+	if(perftest) {
+		print_perftest_table_header();
+	}
+
+	while(!g_interrupted && curr_num_events < max_events) {
 		sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg) {
 			cout << "[ERROR] " << error_msg << endl;
 		});
 		if(ev != nullptr) {
 			uint64_t ts_ns = ev->get_ts();
 			sinsp_threadinfo* thread = ev->get_thread_info();
-			++num_events;
-			uint64_t evt_diff = num_events - last_events;
+			++curr_num_events;
 			if(perftest) {
-#if __linux__
 				// Perftest mode does not print individual events but instead prints a running
 				// throughput every second
 				if(ts_ns - last_ts_ns > 1'000'000'000) {
-					int cpu_usage = get_cpu_usage_percent();
-					cpu_total += cpu_usage;
 					++num_samples;
-					long double curr_throughput = evt_diff / (long double)1000;
-					std::cout << "Events: " << (num_events - last_events)
-					          << " Events/ms: " << curr_throughput << " CPU: " << cpu_usage
-					          << "%                      \r" << std::flush;
+
+					// Compute num events fetched in the last iteration.
+					uint64_t num_events_diff = curr_num_events - last_num_events;
+
+					// Compute throughput.
+					const auto curr_throughput = static_cast<long double>(num_events_diff) / 1000;
 					if(curr_throughput > max_throughput) {
 						max_throughput = curr_throughput;
 					}
-					last_ts_ns = ts_ns;
-					last_events = num_events;
-#else   // __linux__
-				if(ts_ns - last_ts_ns > 1'000'000'000) {
-					++num_samples;
-					long double curr_throughput = evt_diff / (long double)1000;
-					std::cout << "Events: " << (num_events - last_events)
-					          << " Events/ms: " << curr_throughput << "                      \r"
-					          << std::flush;
-					if(curr_throughput > max_throughput) {
-						max_throughput = curr_throughput;
+
+#if __linux__
+					// Compute CPU stats.
+					int curr_cpu_usage = get_cpu_usage_percent();
+					cpu_total += curr_cpu_usage;
+
+					// Compute memory stats.
+					get_mem_stats(&mem_stats);
+					const auto curr_vm_size_in_mebibytes =
+					        static_cast<double>(mem_stats.vm_size_in_pages * page_size) /
+					        ONE_MEBIBYTE_IN_BYTES;
+					const auto curr_vm_rss_in_mebibytes =
+					        static_cast<double>(mem_stats.vm_rss_in_pages * page_size) /
+					        ONE_MEBIBYTE_IN_BYTES;
+					if(curr_vm_size_in_mebibytes > max_vm_size_in_mebibytes) {
+						max_vm_size_in_mebibytes = curr_vm_size_in_mebibytes;
 					}
+					if(curr_vm_size_in_mebibytes < min_vm_size_in_mebibytes) {
+						min_vm_size_in_mebibytes = curr_vm_size_in_mebibytes;
+					}
+					if(curr_vm_rss_in_mebibytes > max_vm_rss_in_mebibytes) {
+						max_vm_rss_in_mebibytes = curr_vm_rss_in_mebibytes;
+					}
+					if(curr_vm_rss_in_mebibytes < min_vm_rss_in_mebibytes) {
+						min_vm_rss_in_mebibytes = curr_vm_rss_in_mebibytes;
+					}
+#else  // __linux__
+					int curr_cpu_usage = -1;
+					double curr_vm_size_in_mebibytes = -1;
+					double curr_vm_rss_in_mebibytes = -1;
+#endif
+					print_perftest_table_data(num_events_diff,
+					                          curr_throughput,
+					                          curr_cpu_usage,
+					                          curr_vm_size_in_mebibytes,
+					                          curr_vm_rss_in_mebibytes);
 					last_ts_ns = ts_ns;
-					last_events = num_events;
-#endif  // __linux__
+					last_num_events = curr_num_events;
 				}
 			} else if(!thread || g_all_threads || thread->is_main_thread()) {
 				dump(inspector, ev);
@@ -839,16 +894,25 @@ int main(int argc, char** argv) {
 	std::cout
 	        << "-- Stop capture                                                                    "
 	        << std::endl;
-	std::cout << "Retrieved events: " << std::to_string(num_events) << std::endl;
+	std::cout << "Retrieved events: " << std::to_string(curr_num_events) << std::endl;
 	std::cout << "Time spent: " << duration << "ms" << std::endl;
 	if(duration > 0) {
-		std::cout << "Events/ms: " << num_events / (long double)duration << std::endl;
+		std::cout << "Events/ms: " << curr_num_events / static_cast<long double>(duration)
+		          << std::endl;
 	}
 	if(max_throughput > 0) {
 		std::cout << "Max throughput observed: " << max_throughput << " events / ms" << std::endl;
 	}
 	if(num_samples > 0) {
 		std::cout << "Average CPU usage: " << cpu_total / num_samples << "%" << std::endl;
+	}
+	if(max_vm_size_in_mebibytes > 0) {
+		std::cout << "Min/Max VmSize observed: " << min_vm_size_in_mebibytes << " MiB / "
+		          << max_vm_size_in_mebibytes << " MiB" << std::endl;
+	}
+	if(max_vm_rss_in_mebibytes > 0) {
+		std::cout << "Min/Max VmRSS observed: " << min_vm_rss_in_mebibytes << " MiB / "
+		          << max_vm_rss_in_mebibytes << " MiB" << std::endl;
 	}
 
 	return 0;

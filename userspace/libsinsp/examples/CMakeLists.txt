@@ -18,7 +18,7 @@ include(jsoncpp)
 set(sources util.cpp test.cpp)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	set(sources ${sources} cpu_usage.cpp)
+	set(sources ${sources} perftest.cpp)
 endif()
 
 add_executable(sinsp-example ${sources})
