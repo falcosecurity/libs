@@ -28,7 +28,6 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck_fspath.h>
 #include <libsinsp/sinsp_filtercheck_gen_event.h>
 #include <libsinsp/sinsp_filtercheck_group.h>
-#include <libsinsp/sinsp_filtercheck_mesos.h>
 #include <libsinsp/sinsp_filtercheck_rawstring.h>
 #include <libsinsp/sinsp_filtercheck_reference.h>
 #include <libsinsp/sinsp_filtercheck_thread.h>
