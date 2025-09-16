@@ -30,14 +30,14 @@ limitations under the License.
 #include <sys/wait.h>
 #include <ext/stdio_filebuf.h>
 
-subprocess::subprocess(std::string command,
-                       std::vector<std::string> arguments,
-                       bool start_now,
-                       int retry_attempts):
-        m_pid(-1),
-        m_retry_attemps(retry_attempts),
+subprocess::subprocess(const std::string& command,
+                       const std::vector<std::string>& arguments,
+                       const bool start_now,
+                       const int retry_attempts):
         m_command(command),
-        m_args(arguments) {
+        m_args(arguments),
+        m_pid(-1),
+        m_retry_attemps(retry_attempts) {
 	if(start_now) {
 		start();
 	}

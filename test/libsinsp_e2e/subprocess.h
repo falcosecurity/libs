@@ -31,8 +31,8 @@ limitations under the License.
 
 class subprocess {
 public:
-	subprocess(std::string command,
-	           std::vector<std::string> arguments,
+	subprocess(const std::string& command,
+	           const std::vector<std::string>& arguments,
 	           bool start_now = true,
 	           int retry_attempts = 3);
 	~subprocess();
