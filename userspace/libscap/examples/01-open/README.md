@@ -112,17 +112,13 @@ Number of 'next' calls: 232594
 
 [1] n_evts: 232817
 [1] n_drops_buffer_total: 0
-[1] n_drops_buffer_clone_fork_enter: 0
 [1] n_drops_buffer_clone_fork_exit: 0
-[1] n_drops_buffer_execve_enter: 0
 [1] n_drops_buffer_execve_exit: 0
 [1] n_drops_buffer_connect_enter: 0
 [1] n_drops_buffer_connect_exit: 0
 [1] n_drops_buffer_open_enter: 0
 [1] n_drops_buffer_open_exit: 0
-[1] n_drops_buffer_dir_file_enter: 0
 [1] n_drops_buffer_dir_file_exit: 0
-[1] n_drops_buffer_other_interest_enter: 0
 [1] n_drops_buffer_other_interest_exit: 0
 [1] n_drops_buffer_close_exit: 0
 [1] n_drops_buffer_proc_exit: 0

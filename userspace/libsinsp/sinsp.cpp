@@ -1836,29 +1836,23 @@ void sinsp::print_capture_stats(sinsp_logger::severity sev) const {
 	libsinsp_logger()->format(
 	        sev,
 	        "\nn_evts:%" PRIu64 "\nn_drops:%" PRIu64 "\nn_drops_buffer:%" PRIu64
-	        "\nn_drops_buffer_clone_fork_enter:%" PRIu64 "\nn_drops_buffer_clone_fork_exit:%" PRIu64
-	        "\nn_drops_buffer_execve_enter:%" PRIu64 "\nn_drops_buffer_execve_exit:%" PRIu64
+	        "\nn_drops_buffer_clone_fork_exit:%" PRIu64 "\nn_drops_buffer_execve_exit:%" PRIu64
 	        "\nn_drops_buffer_connect_enter:%" PRIu64 "\nn_drops_buffer_connect_exit:%" PRIu64
 	        "\nn_drops_buffer_open_enter:%" PRIu64 "\nn_drops_buffer_open_exit:%" PRIu64
-	        "\nn_drops_buffer_dir_file_enter:%" PRIu64 "\nn_drops_buffer_dir_file_exit:%" PRIu64
-	        "\nn_drops_buffer_other_interest_enter:%" PRIu64
+	        "\nn_drops_buffer_dir_file_exit:%" PRIu64
 	        "\nn_drops_buffer_other_interest_exit:%" PRIu64 "\nn_drops_buffer_close_exit:%" PRIu64
 	        "\nn_drops_buffer_proc_exit:%" PRIu64 "\nn_drops_scratch_map:%" PRIu64
 	        "\nn_drops_pf:%" PRIu64 "\nn_drops_bug:%" PRIu64 "\n",
 	        stats.n_evts,
 	        stats.n_drops,
 	        stats.n_drops_buffer,
-	        stats.n_drops_buffer_clone_fork_enter,
 	        stats.n_drops_buffer_clone_fork_exit,
-	        stats.n_drops_buffer_execve_enter,
 	        stats.n_drops_buffer_execve_exit,
 	        stats.n_drops_buffer_connect_enter,
 	        stats.n_drops_buffer_connect_exit,
 	        stats.n_drops_buffer_open_enter,
 	        stats.n_drops_buffer_open_exit,
-	        stats.n_drops_buffer_dir_file_enter,
 	        stats.n_drops_buffer_dir_file_exit,
-	        stats.n_drops_buffer_other_interest_enter,
 	        stats.n_drops_buffer_other_interest_exit,
 	        stats.n_drops_buffer_close_exit,
 	        stats.n_drops_buffer_proc_exit,

@@ -57,17 +57,13 @@ limitations under the License.
 static const char *const bpf_kernel_counters_stats_names[] = {
         [BPF_N_EVTS] = N_EVENTS_PREFIX,
         [BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-        [BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
         [BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
-        [BPF_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
         [BPF_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
         [BPF_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
         [BPF_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
         [BPF_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
         [BPF_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
-        [BPF_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
         [BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
-        [BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
         [BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
         [BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
         [BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
@@ -1620,17 +1616,13 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, scap_stats *stats) 
 
 		stats->n_evts += v.n_evts;
 		stats->n_drops_buffer += v.n_drops_buffer;
-		stats->n_drops_buffer_clone_fork_enter += v.n_drops_buffer_clone_fork_enter;
 		stats->n_drops_buffer_clone_fork_exit += v.n_drops_buffer_clone_fork_exit;
-		stats->n_drops_buffer_execve_enter += v.n_drops_buffer_execve_enter;
 		stats->n_drops_buffer_execve_exit += v.n_drops_buffer_execve_exit;
 		stats->n_drops_buffer_connect_enter += v.n_drops_buffer_connect_enter;
 		stats->n_drops_buffer_connect_exit += v.n_drops_buffer_connect_exit;
 		stats->n_drops_buffer_open_enter += v.n_drops_buffer_open_enter;
 		stats->n_drops_buffer_open_exit += v.n_drops_buffer_open_exit;
-		stats->n_drops_buffer_dir_file_enter += v.n_drops_buffer_dir_file_enter;
 		stats->n_drops_buffer_dir_file_exit += v.n_drops_buffer_dir_file_exit;
-		stats->n_drops_buffer_other_interest_enter += v.n_drops_buffer_other_interest_enter;
 		stats->n_drops_buffer_other_interest_exit += v.n_drops_buffer_other_interest_exit;
 		stats->n_drops_buffer_close_exit += v.n_drops_buffer_close_exit;
 		stats->n_drops_buffer_proc_exit += v.n_drops_buffer_proc_exit;
@@ -1721,19 +1713,13 @@ const struct metrics_v2 *scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 			}
 			stats[BPF_N_EVTS].value.u64 += v.n_evts;
 			stats[BPF_N_DROPS_BUFFER_TOTAL].value.u64 += v.n_drops_buffer;
-			stats[BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 +=
-			        v.n_drops_buffer_clone_fork_enter;
 			stats[BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += v.n_drops_buffer_clone_fork_exit;
-			stats[BPF_N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += v.n_drops_buffer_execve_enter;
 			stats[BPF_N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += v.n_drops_buffer_execve_exit;
 			stats[BPF_N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += v.n_drops_buffer_connect_enter;
 			stats[BPF_N_DROPS_BUFFER_CONNECT_EXIT].value.u64 += v.n_drops_buffer_connect_exit;
 			stats[BPF_N_DROPS_BUFFER_OPEN_ENTER].value.u64 += v.n_drops_buffer_open_enter;
 			stats[BPF_N_DROPS_BUFFER_OPEN_EXIT].value.u64 += v.n_drops_buffer_open_exit;
-			stats[BPF_N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += v.n_drops_buffer_dir_file_enter;
 			stats[BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += v.n_drops_buffer_dir_file_exit;
-			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 +=
-			        v.n_drops_buffer_other_interest_enter;
 			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 +=
 			        v.n_drops_buffer_other_interest_exit;
 			stats[BPF_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 += v.n_drops_buffer_close_exit;

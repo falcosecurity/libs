@@ -118,11 +118,6 @@ FILLER_RAW(terminate_filler) {
 				++state->n_drops_buffer_connect_enter;
 			}
 			break;
-		case PPME_SYSCALL_BPF_2_E:
-			if(state->n_drops_buffer_other_interest_enter != ULLONG_MAX) {
-				++state->n_drops_buffer_other_interest_enter;
-			}
-			break;
 		case PPME_PROCEXIT_1_E:
 			if(state->n_drops_buffer_proc_exit != ULLONG_MAX) {
 				++state->n_drops_buffer_proc_exit;

@@ -128,17 +128,13 @@ typedef struct scap_stats {
 	uint64_t n_evts;          ///< Total number of events that were received by the driver.
 	uint64_t n_drops;         ///< Number of dropped events.
 	uint64_t n_drops_buffer;  ///< Number of dropped events caused by full buffer.
-	uint64_t n_drops_buffer_clone_fork_enter;
 	uint64_t n_drops_buffer_clone_fork_exit;
-	uint64_t n_drops_buffer_execve_enter;
 	uint64_t n_drops_buffer_execve_exit;
 	uint64_t n_drops_buffer_connect_enter;
 	uint64_t n_drops_buffer_connect_exit;
 	uint64_t n_drops_buffer_open_enter;
 	uint64_t n_drops_buffer_open_exit;
-	uint64_t n_drops_buffer_dir_file_enter;
 	uint64_t n_drops_buffer_dir_file_exit;
-	uint64_t n_drops_buffer_other_interest_enter;
 	uint64_t n_drops_buffer_other_interest_exit;
 	uint64_t n_drops_buffer_close_exit;
 	uint64_t n_drops_buffer_proc_exit;

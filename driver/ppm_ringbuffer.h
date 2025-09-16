@@ -43,20 +43,13 @@ struct ppm_ring_buffer_info {
 	                           categories below, likely higher than sum of syscall categories. */
 	/*  Kernel side drops due to full buffer for categories of system calls. Not all system calls of
 	 * interest are mapped into one of the categories. */
-	volatile uint64_t n_drops_buffer_clone_fork_enter;
 	volatile uint64_t n_drops_buffer_clone_fork_exit;
-	volatile uint64_t n_drops_buffer_execve_enter;
 	volatile uint64_t n_drops_buffer_execve_exit;
 	volatile uint64_t n_drops_buffer_connect_enter;
 	volatile uint64_t n_drops_buffer_connect_exit;
 	volatile uint64_t n_drops_buffer_open_enter;
 	volatile uint64_t n_drops_buffer_open_exit;
-	volatile uint64_t n_drops_buffer_dir_file_enter;
 	volatile uint64_t n_drops_buffer_dir_file_exit;
-	volatile uint64_t
-	        n_drops_buffer_other_interest_enter; /* Category of other system calls of interest, not
-	                                                all other system calls that did not match a
-	                                                category from above. */
 	volatile uint64_t n_drops_buffer_other_interest_exit;
 	volatile uint64_t n_drops_buffer_close_exit;
 	volatile uint64_t n_drops_buffer_proc_exit;

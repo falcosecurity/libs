@@ -230,17 +230,13 @@ int32_t scap_get_stats(scap_t* handle, scap_stats* stats) {
 	stats->n_evts = 0;
 	stats->n_drops = 0;
 	stats->n_drops_buffer = 0;
-	stats->n_drops_buffer_clone_fork_enter = 0;
 	stats->n_drops_buffer_clone_fork_exit = 0;
-	stats->n_drops_buffer_execve_enter = 0;
 	stats->n_drops_buffer_execve_exit = 0;
 	stats->n_drops_buffer_connect_enter = 0;
 	stats->n_drops_buffer_connect_exit = 0;
 	stats->n_drops_buffer_open_enter = 0;
 	stats->n_drops_buffer_open_exit = 0;
-	stats->n_drops_buffer_dir_file_enter = 0;
 	stats->n_drops_buffer_dir_file_exit = 0;
-	stats->n_drops_buffer_other_interest_enter = 0;
 	stats->n_drops_buffer_other_interest_exit = 0;
 	stats->n_drops_buffer_close_exit = 0;
 	stats->n_drops_buffer_proc_exit = 0;
