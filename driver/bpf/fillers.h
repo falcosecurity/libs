@@ -2338,7 +2338,7 @@ FILLER(proc_startupdate, true) {
 		}
 		argv = (char **)val;
 
-		res = bpf_accumulate_argv_or_env(data, argv, &args_len);
+		res = bpf_accumulate_argv_or_env(data, argv, (long *)&args_len);
 		if(res != PPM_SUCCESS)
 			args_len = 0;
 	} else {

@@ -383,11 +383,11 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	ASSERT_EQ(length, 11);
 
 	const auto raw_evt = reinterpret_cast<const char*>(evt->get_scap_evt());
-	for(int i = 0; i < evt->get_scap_evt()->len; i++) {
-		printf("%02x ", (unsigned char)raw_evt[i]);
+	for(uint32_t i = 0; i < evt->get_scap_evt()->len; i++) {
+		printf("%02x ", static_cast<unsigned char>(raw_evt[i]));
 	}
 	printf("\n");
-	for(int i = 0; i < evt->get_scap_evt()->len; i++) {
+	for(uint32_t i = 0; i < evt->get_scap_evt()->len; i++) {
 		char c = ' ';
 		if(i >= offset && i < offset + length) {
 			c = '^';
