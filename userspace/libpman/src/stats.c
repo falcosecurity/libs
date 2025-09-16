@@ -24,17 +24,13 @@ limitations under the License.
 typedef enum modern_bpf_kernel_counters_stats {
 	MODERN_BPF_N_EVTS = 0,
 	MODERN_BPF_N_DROPS_BUFFER_TOTAL,
-	MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT,
-	MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT,
 	MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_CONNECT_EXIT,
 	MODERN_BPF_N_DROPS_BUFFER_OPEN_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT,
-	MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT,
-	MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT,
 	MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT,
 	MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT,
@@ -53,17 +49,13 @@ typedef enum modern_bpf_libbpf_stats {
 const char *const modern_bpf_kernel_counters_stats_names[] = {
         [MODERN_BPF_N_EVTS] = N_EVENTS_PREFIX,
         [MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-        [MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
         [MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
-        [MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
         [MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
         [MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
         [MODERN_BPF_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
         [MODERN_BPF_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
         [MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
-        [MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
         [MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
-        [MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
         [MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
         [MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
         [MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
@@ -113,17 +105,13 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 		}
 		stats->n_evts += cnt_map.n_evts;
 		stats->n_drops_buffer += cnt_map.n_drops_buffer;
-		stats->n_drops_buffer_clone_fork_enter += cnt_map.n_drops_buffer_clone_fork_enter;
 		stats->n_drops_buffer_clone_fork_exit += cnt_map.n_drops_buffer_clone_fork_exit;
-		stats->n_drops_buffer_execve_enter += cnt_map.n_drops_buffer_execve_enter;
 		stats->n_drops_buffer_execve_exit += cnt_map.n_drops_buffer_execve_exit;
 		stats->n_drops_buffer_connect_enter += cnt_map.n_drops_buffer_connect_enter;
 		stats->n_drops_buffer_connect_exit += cnt_map.n_drops_buffer_connect_exit;
 		stats->n_drops_buffer_open_enter += cnt_map.n_drops_buffer_open_enter;
 		stats->n_drops_buffer_open_exit += cnt_map.n_drops_buffer_open_exit;
-		stats->n_drops_buffer_dir_file_enter += cnt_map.n_drops_buffer_dir_file_enter;
 		stats->n_drops_buffer_dir_file_exit += cnt_map.n_drops_buffer_dir_file_exit;
-		stats->n_drops_buffer_other_interest_enter += cnt_map.n_drops_buffer_other_interest_enter;
 		stats->n_drops_buffer_close_exit += cnt_map.n_drops_buffer_close_exit;
 		stats->n_drops_buffer_proc_exit += cnt_map.n_drops_buffer_proc_exit;
 		stats->n_drops_buffer_other_interest_exit += cnt_map.n_drops_buffer_other_interest_exit;
@@ -212,12 +200,8 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			}
 			g_state.stats[MODERN_BPF_N_EVTS].value.u64 += cnt_map.n_evts;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_TOTAL].value.u64 += cnt_map.n_drops_buffer;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 +=
-			        cnt_map.n_drops_buffer_clone_fork_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 +=
 			        cnt_map.n_drops_buffer_clone_fork_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER].value.u64 +=
-			        cnt_map.n_drops_buffer_execve_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT].value.u64 +=
 			        cnt_map.n_drops_buffer_execve_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER].value.u64 +=
@@ -228,12 +212,8 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			        cnt_map.n_drops_buffer_open_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT].value.u64 +=
 			        cnt_map.n_drops_buffer_open_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 +=
-			        cnt_map.n_drops_buffer_dir_file_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 +=
 			        cnt_map.n_drops_buffer_dir_file_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 +=
-			        cnt_map.n_drops_buffer_other_interest_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 +=
 			        cnt_map.n_drops_buffer_other_interest_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 +=

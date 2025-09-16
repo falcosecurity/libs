@@ -270,20 +270,13 @@ struct scap_bpf_per_cpu_state {
 	                           categories below, likely higher than sum of syscall categories. */
 	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of
 	 * interest are mapped into one of the categories. */
-	unsigned long long n_drops_buffer_clone_fork_enter;
 	unsigned long long n_drops_buffer_clone_fork_exit;
-	unsigned long long n_drops_buffer_execve_enter;
 	unsigned long long n_drops_buffer_execve_exit;
 	unsigned long long n_drops_buffer_connect_enter;
 	unsigned long long n_drops_buffer_connect_exit;
 	unsigned long long n_drops_buffer_open_enter;
 	unsigned long long n_drops_buffer_open_exit;
-	unsigned long long n_drops_buffer_dir_file_enter;
 	unsigned long long n_drops_buffer_dir_file_exit;
-	unsigned long long
-	        n_drops_buffer_other_interest_enter; /* Category of other system calls of interest, not
-	                                                all other system calls that did not match a
-	                                                category from above. */
 	unsigned long long n_drops_buffer_other_interest_exit;
 	unsigned long long n_drops_buffer_close_exit;
 	unsigned long long n_drops_buffer_proc_exit;

@@ -586,27 +586,22 @@ static int ppm_release(struct inode *inode, struct file *filp) {
 	}
 
 	vpr_info(
-	        "closing ring %d, consumer:%p evt:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, "
-	        "dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, "
+	        "closing ring %d, consumer:%p evt:%llu, dr_buf:%llu, "
+	        "dr_buf_clone_fork_x:%llu, dr_buf_execve_x:%llu, "
 	        "dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, "
-	        "dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, "
-	        "dr_buf_other_x:%llu, dr_buf_close_exit:%llu, dr_buf_proc_exit:%llu, dr_pf:%llu, "
-	        "pr:%llu, cs:%llu\n",
+	        "dr_buf_dir_file_x:%llu, dr_buf_other_x:%llu, dr_buf_close_exit:%llu, "
+	        "dr_buf_proc_exit:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	        ring_no,
 	        consumer_id,
 	        ring->info->n_evts,
 	        ring->info->n_drops_buffer,
-	        ring->info->n_drops_buffer_clone_fork_enter,
 	        ring->info->n_drops_buffer_clone_fork_exit,
-	        ring->info->n_drops_buffer_execve_enter,
 	        ring->info->n_drops_buffer_execve_exit,
 	        ring->info->n_drops_buffer_connect_enter,
 	        ring->info->n_drops_buffer_connect_exit,
 	        ring->info->n_drops_buffer_open_enter,
 	        ring->info->n_drops_buffer_open_exit,
-	        ring->info->n_drops_buffer_dir_file_enter,
 	        ring->info->n_drops_buffer_dir_file_exit,
-	        ring->info->n_drops_buffer_other_interest_enter,
 	        ring->info->n_drops_buffer_other_interest_exit,
 	        ring->info->n_drops_buffer_close_exit,
 	        ring->info->n_drops_buffer_proc_exit,
@@ -1463,9 +1458,6 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SOCKET_CONNECT_E:
 		ring_info->n_drops_buffer_connect_enter++;
 		break;
-	case PPME_SYSCALL_BPF_2_E:
-		ring_info->n_drops_buffer_other_interest_enter++;
-		break;
 	case PPME_PROCEXIT_1_E:
 		ring_info->n_drops_buffer_proc_exit++;
 		break;
@@ -2003,28 +1995,23 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	if(MORE_THAN_ONE_SECOND_AHEAD(ns, ring->last_print_time + 1) && !(drop_flags & UF_ATOMIC)) {
 		vpr_info(
-		        "consumer:%p CPU:%d, use:%lu%%, ev:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, "
-		        "dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, "
-		        "dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, "
-		        "dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, "
-		        "dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_buf_close_exit:%llu, "
-		        "dr_buf_proc_exit:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+		        "consumer:%p CPU:%d, use:%lu%%, ev:%llu, dr_buf:%llu, dr_buf_clone_fork_x:%llu, "
+		        "dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, "
+		        "dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_x:%llu, "
+		        "dr_buf_other_x:%llu, dr_buf_close_exit:%llu, dr_buf_proc_exit:%llu, dr_pf:%llu, "
+		        "pr:%llu, cs:%llu\n",
 		        consumer->consumer_id,
 		        smp_processor_id(),
 		        (usedspace * 100) / consumer->buffer_bytes_dim,
 		        ring_info->n_evts,
 		        ring_info->n_drops_buffer,
-		        ring_info->n_drops_buffer_clone_fork_enter,
 		        ring_info->n_drops_buffer_clone_fork_exit,
-		        ring_info->n_drops_buffer_execve_enter,
 		        ring_info->n_drops_buffer_execve_exit,
 		        ring_info->n_drops_buffer_connect_enter,
 		        ring_info->n_drops_buffer_connect_exit,
 		        ring_info->n_drops_buffer_open_enter,
 		        ring_info->n_drops_buffer_open_exit,
-		        ring_info->n_drops_buffer_dir_file_enter,
 		        ring_info->n_drops_buffer_dir_file_exit,
-		        ring_info->n_drops_buffer_other_interest_enter,
 		        ring_info->n_drops_buffer_other_interest_exit,
 		        ring->info->n_drops_buffer_close_exit,
 		        ring->info->n_drops_buffer_proc_exit,
@@ -2569,17 +2556,13 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring) {
 	ring->nevents = 0;
 	ring->info->n_evts = 0;
 	ring->info->n_drops_buffer = 0;
-	ring->info->n_drops_buffer_clone_fork_enter = 0;
 	ring->info->n_drops_buffer_clone_fork_exit = 0;
-	ring->info->n_drops_buffer_execve_enter = 0;
 	ring->info->n_drops_buffer_execve_exit = 0;
 	ring->info->n_drops_buffer_connect_enter = 0;
 	ring->info->n_drops_buffer_connect_exit = 0;
 	ring->info->n_drops_buffer_open_enter = 0;
 	ring->info->n_drops_buffer_open_exit = 0;
-	ring->info->n_drops_buffer_dir_file_enter = 0;
 	ring->info->n_drops_buffer_dir_file_exit = 0;
-	ring->info->n_drops_buffer_other_interest_enter = 0;
 	ring->info->n_drops_buffer_other_interest_exit = 0;
 	ring->info->n_drops_buffer_close_exit = 0;
 	ring->info->n_drops_buffer_proc_exit = 0;

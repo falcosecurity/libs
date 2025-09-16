@@ -62,17 +62,13 @@ struct counter_map {
 	uint64_t n_drops_buffer; /* Number of drops due to a full ringbuf. */
 	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of
 	 * interest are mapped into one of the categories. */
-	uint64_t n_drops_buffer_clone_fork_enter;
 	uint64_t n_drops_buffer_clone_fork_exit;
-	uint64_t n_drops_buffer_execve_enter;
 	uint64_t n_drops_buffer_execve_exit;
 	uint64_t n_drops_buffer_connect_enter;
 	uint64_t n_drops_buffer_connect_exit;
 	uint64_t n_drops_buffer_open_enter;
 	uint64_t n_drops_buffer_open_exit;
-	uint64_t n_drops_buffer_dir_file_enter;
 	uint64_t n_drops_buffer_dir_file_exit;
-	uint64_t n_drops_buffer_other_interest_enter;
 	uint64_t n_drops_buffer_other_interest_exit; /* Category of other system calls of interest, not
 	                                                all other system calls that did not match a
 	                                                category from above. */
