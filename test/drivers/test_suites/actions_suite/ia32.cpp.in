@@ -97,9 +97,6 @@ TEST(Actions, ia32)
 	 * Last event sent by the script is a socketcall with non existing SYS_ code.
 	 * We don't expect any event generated.
 	 */
-	// We cannot assert PPME_GENERIC_E since 'exit_group' syscall is sent when program exits,
-	// and it is mapped to a generic enter event.
-	// evt_test->assert_event_absence(ret_pid, PPME_GENERIC_E);
 	evt_test->assert_event_absence(ret_pid, PPME_GENERIC_X);
 }
 
@@ -374,9 +371,12 @@ TEST(Actions, ia32_clock_gettime)
 	/* This is the PPM_SC code obtained from the syscall id. */
 	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_CLOCK_GETTIME);
 
+    /* Parameter 2: nativeID (type: PT_UINT16) */
+    evt_test->assert_numeric_param(2, (uint16_t)__NR_clock_gettime);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
 
@@ -427,9 +427,12 @@ TEST(Actions, ia32_getcpu)
 	/* This is the PPM_SC code obtained from the syscall id. */
 	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_GETCPU);
 
+    /* Parameter 2: nativeID (type: PT_UINT16) */
+    evt_test->assert_numeric_param(2, (uint16_t)__NR_getcpu);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
 
@@ -480,9 +483,12 @@ TEST(Actions, ia32_gettimeofday)
 	/* This is the PPM_SC code obtained from the syscall id. */
 	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_GETTIMEOFDAY);
 
+    /* Parameter 2: nativeID (type: PT_UINT16) */
+    evt_test->assert_numeric_param(2, (uint16_t)__NR_gettimeofday);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
 
@@ -533,9 +539,12 @@ TEST(Actions, ia32_time)
 	/* This is the PPM_SC code obtained from the syscall id. */
 	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_TIME);
 
+    /* Parameter 2: nativeID (type: PT_UINT16) */
+    evt_test->assert_numeric_param(2, (uint16_t)__NR_time);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
 

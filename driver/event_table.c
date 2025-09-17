@@ -51,11 +51,14 @@ or GPL2.txt for full copies of the license.
 const struct ppm_event_info g_event_info[] = {
         [PPME_GENERIC_E] = {"syscall",
                             EC_OTHER | EC_SYSCALL,
-                            EF_NONE,
+                            EF_TMP_CONVERTER_MANAGED,
                             2,
                             {{"ID", PT_SYSCALLID, PF_DEC}, {"nativeID", PT_UINT16, PF_DEC}}},
-        [PPME_GENERIC_X] =
-                {"syscall", EC_OTHER | EC_SYSCALL, EF_NONE, 1, {{"ID", PT_SYSCALLID, PF_DEC}}},
+        [PPME_GENERIC_X] = {"syscall",
+                            EC_OTHER | EC_SYSCALL,
+                            EF_TMP_CONVERTER_MANAGED,
+                            2,
+                            {{"ID", PT_SYSCALLID, PF_DEC}, {"nativeID", PT_UINT16, PF_DEC}}},
         [PPME_SYSCALL_OPEN_E] = {"open",
                                  EC_FILE | EC_SYSCALL,
                                  EF_CREATES_FD | EF_MODIFIES_STATE,

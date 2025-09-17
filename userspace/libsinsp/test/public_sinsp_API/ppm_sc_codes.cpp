@@ -261,13 +261,14 @@ const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
 /* Check the `info` API works correctly */
 TEST(ppm_sc_API, check_event_info) {
 	{
-		const auto event_info_pointer = libsinsp::events::info(PPME_GENERIC_E);
+		const auto event_info_pointer = libsinsp::events::info(PPME_GENERIC_X);
 		ASSERT_STREQ(event_info_pointer->name, "syscall");
 		ASSERT_EQ(event_info_pointer->category,
 		          static_cast<ppm_event_category>(EC_OTHER | EC_SYSCALL));
-		ASSERT_EQ(event_info_pointer->flags, EF_NONE);
+		ASSERT_EQ(event_info_pointer->flags, EF_TMP_CONVERTER_MANAGED);
 		ASSERT_EQ(event_info_pointer->nparams, 2);
 		ASSERT_STREQ(event_info_pointer->params[0].name, "ID");
+		ASSERT_STREQ(event_info_pointer->params[1].name, "nativeID");
 	}
 
 	{

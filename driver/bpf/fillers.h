@@ -3069,7 +3069,11 @@ FILLER(sys_generic, true) {
 		bpf_printk("no syscall for id %d\n", native_id);
 
 	/* Parameter 1: ID (type: PT_SYSCALLID) */
-	return bpf_push_u16_to_ring(data, scap_id);
+	int res = bpf_push_u16_to_ring(data, scap_id);
+	CHECK_RES(res);
+
+	/* Parameter 2: nativeID (type: PT_UINT16) */
+	return bpf_push_u16_to_ring(data, native_id);
 }
 
 FILLER(sys_openat_e, true) {

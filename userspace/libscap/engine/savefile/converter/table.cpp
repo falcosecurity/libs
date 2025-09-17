@@ -22,6 +22,12 @@ limitations under the License.
 
 // We cannot use designated initializers, we need c++20
 const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
+        /*====================== GENERIC ======================*/
+        {conversion_key{PPME_GENERIC_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_GENERIC_X, 1},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY}})},
         /*====================== CLOSE ======================*/
         {conversion_key{PPME_SYSCALL_CLOSE_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_CLOSE_X, 1},

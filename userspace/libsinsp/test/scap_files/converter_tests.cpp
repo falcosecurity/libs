@@ -123,6 +123,34 @@ TEST_F(scap_file_test, same_number_of_events) {
 }
 
 ////////////////////////////
+// GENERIC
+////////////////////////////
+
+TEST_F(scap_file_test, generic_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `881322` is the following:
+	// - type=PPME_GENERIC_X,
+	// - ts=1687966733260046394
+	// - tid=129563
+	// - args=
+	//
+	// And its corresponding enter event `881321` is the following:
+	// - type=PPME_GENERIC_E
+	// - ts=1687966733260045237
+	// - tid=129563
+	// - args=
+	//
+	// Let's see the new PPME_GENERIC_X event!
+	constexpr uint64_t ts = 1687966733260046394;
+	constexpr int64_t tid = 129563;
+	constexpr uint16_t id = 46;
+	constexpr uint16_t native_id = 165;  // getrusage on ARM64
+
+	assert_event_presence(create_safe_scap_event(ts, tid, PPME_GENERIC_X, 2, id, native_id));
+}
+
+////////////////////////////
 // CLOSE
 ////////////////////////////
 

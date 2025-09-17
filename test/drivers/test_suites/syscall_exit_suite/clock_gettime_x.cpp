@@ -32,8 +32,11 @@ TEST(SyscallExit, clock_gettime_X) {
 	/* This is the PPM_SC code obtained from the syscall id. */
 	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_CLOCK_GETTIME);
 
+	/* Parameter 2: nativeID (type: PT_UINT16) */
+	evt_test->assert_numeric_param(2, (uint16_t)__NR_clock_gettime);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif

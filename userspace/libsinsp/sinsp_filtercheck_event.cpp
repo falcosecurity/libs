@@ -1027,40 +1027,40 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			RETURN_EXTRACT_CSTR("<");
 		}
 	case TYPE_TYPE: {
-		char* evname;
-		uint16_t etype = evt->get_scap_evt()->type;
-
-		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X) {
+		// TODO(ekoops): from each case, remove the following const_casts once the method signature
+		//   is updated to return a pointer to a const buffer.
+		char* evt_name;
+		switch(evt->get_scap_evt()->type) {
+		case PPME_GENERIC_X: {
 			uint16_t ppm_sc = evt->get_param(0)->as<uint16_t>();
-
-			// Only generic enter event has the nativeID as second param
-			if(m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN &&
-			   etype == PPME_GENERIC_E) {
-				// try to enforce a forward compatibility for syscalls added
-				// after a scap file was generated,
-				// by looking up using nativeID.
-				// Of course, this will only reliably work for
-				// same architecture scap capture->replay.
-				uint16_t nativeid = evt->get_param(1)->as<uint16_t>();
-				ppm_sc = scap_native_id_to_ppm_sc(nativeid);
+			// Try to enforce a forward compatibility for syscalls added after a scap file was
+			// generated, by looking up using nativeID. Of course, this will only reliably work for
+			// same architecture scap capture->replay.
+			// Old scap-files doesn't contain the generic nativeID params, so check its presence in
+			// capture mode.
+			if(const auto native_id_param = evt->get_param(1);
+			   m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN &&
+			   !native_id_param->empty()) {
+				const auto native_id = native_id_param->as<uint16_t>();
+				ppm_sc = scap_native_id_to_ppm_sc(native_id);
 			}
-			evname = (char*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
-		} else {
-			// note: for async events, the event name is encoded
-			// inside the event itself. In this case libsinsp's evt.type
-			// field acts as an alias of evt.asynctype.
-			// TODO(ekoops): remove the following const_casts once the method signature is updated
-			//   to return a pointer to a const buffer.
-			if(etype == PPME_ASYNCEVENT_E) {
-				const auto name_param = evt->get_param(1);
-				const auto [data, _] = name_param->data_and_len_with_legacy_null_encoding();
-				evname = const_cast<char*>(data);
-			} else {
-				evname = const_cast<char*>(evt->get_name());
-			}
+			evt_name = const_cast<char*>(scap_get_ppm_sc_name(static_cast<ppm_sc_code>(ppm_sc)));
+			break;
+		}
+		case PPME_ASYNCEVENT_E: {
+			// Note: for async events, the event name is encoded inside the event itself. In this
+			// case libsinsp's evt.type field acts as an alias of evt.asynctype.
+			const auto name_param = evt->get_param(1);
+			const auto [data, _] = name_param->data_and_len_with_legacy_null_encoding();
+			evt_name = const_cast<char*>(data);
+			break;
+		}
+		default: {
+			evt_name = const_cast<char*>(evt->get_name());
+		}
 		}
 
-		RETURN_EXTRACT_CSTR(evname);
+		RETURN_EXTRACT_CSTR(evt_name);
 	} break;
 	case TYPE_TYPE_IS: {
 		uint16_t etype = evt->get_scap_evt()->type;
@@ -1074,32 +1074,34 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(m_val.u32);
 	} break;
 	case TYPE_SYSCALL_TYPE: {
-		uint8_t* evname;
-		ppm_event_code etype = (ppm_event_code)evt->get_scap_evt()->type;
+		const auto etype = static_cast<ppm_event_code>(evt->get_scap_evt()->type);
 		if(!libsinsp::events::is_syscall_event(etype)) {
-			return NULL;
+			return nullptr;
 		}
 
-		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X) {
+		// TODO(ekoops): from each case, remove the following const_casts once the method signature
+		//   is updated to return a pointer to a const buffer.
+		char* evt_name;
+		if(etype == PPME_GENERIC_X) {
 			uint16_t ppm_sc = evt->get_param(0)->as<uint16_t>();
 
-			// Only generic enter event has the nativeID as second param
-			if(m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN &&
-			   etype == PPME_GENERIC_E) {
-				// try to enforce a forward compatibility for syscalls added
-				// after a scap file was generated,
-				// by looking up using nativeID.
-				// Of course, this will only reliably work for
-				// same architecture scap capture->replay.
-				uint16_t nativeid = evt->get_param(1)->as<uint16_t>();
-				ppm_sc = scap_native_id_to_ppm_sc(nativeid);
+			// Try to enforce a forward compatibility for syscalls added after a scap file was
+			// generated, by looking up using nativeID. Of course, this will only reliably work for
+			// same architecture scap capture->replay.
+			// Old scap-files doesn't contain the generic nativeID params, so check its presence in
+			// capture mode.
+			if(const auto native_id_param = evt->get_param(1);
+			   m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN &&
+			   !native_id_param->empty()) {
+				const auto native_id = native_id_param->as<uint16_t>();
+				ppm_sc = scap_native_id_to_ppm_sc(native_id);
 			}
-			evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
+			evt_name = const_cast<char*>(scap_get_ppm_sc_name(static_cast<ppm_sc_code>(ppm_sc)));
 		} else {
-			evname = (uint8_t*)evt->get_name();
+			evt_name = const_cast<char*>(evt->get_name());
 		}
 
-		RETURN_EXTRACT_CSTR(evname);
+		RETURN_EXTRACT_CSTR(evt_name);
 	} break;
 	case TYPE_CATEGORY:
 		sinsp_evt::category cat;
@@ -1233,10 +1235,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 	// NOTE: this falls through to TYPE_ARGS, and that's what we want! Please don't add anything
 	// here!
 	case TYPE_ARGS: {
-		if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X) {
-			//
-			// Don't print the arguments for generic events: they have only internal use
-			//
+		if(evt->get_type() == PPME_GENERIC_X) {
+			// Don't print the arguments for generic events: they have only internal use.
 			RETURN_EXTRACT_CSTR("");
 		}
 
