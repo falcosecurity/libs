@@ -103,20 +103,23 @@ int f_sys_generic(struct event_filler_arguments *args) {
 	int res;
 	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
 
-	/*
-	 * name
-	 */
-
 	if(likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		ppm_sc_code sc_code = g_syscall_table[table_index].ppm_sc;
 
-		/*
-		 * ID
-		 */
+		/* Parameter 1: ID (type: PT_SYSCALLID) */
 		res = val_to_ring(args, sc_code, 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 2: nativeID (type: PT_UINT16) */
+		res = val_to_ring(args, args->syscall_id, 0, false, 0);
 		CHECK_RES(res);
 	} else {
 		ASSERT(false);
+		/* Parameter 1: ID (type: PT_SYSCALLID) */
+		res = val_to_ring(args, (uint64_t) "<out of bound>", 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 2: nativeID (type: PT_UINT16) */
 		res = val_to_ring(args, (uint64_t) "<out of bound>", 0, false, 0);
 		CHECK_RES(res);
 	}

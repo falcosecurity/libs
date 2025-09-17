@@ -29,6 +29,62 @@ TEST_F(convert_event_test, conversion_not_needed) {
 }
 
 ////////////////////////////
+// GENERIC
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_GENERIC_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint16_t id = 10;
+	constexpr uint16_t native_id = 11;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_GENERIC_E, 2, id, native_id);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_GENERIC_X_1_to_2_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint16_t id = 10;
+
+	// Set to empty.
+	constexpr auto native_id = empty_value<uint16_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_GENERIC_X, 1, id),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_GENERIC_X,
+	                                                                          &empty_params_set,
+	                                                                          2,
+	                                                                          id,
+	                                                                          native_id));
+}
+
+TEST_F(convert_event_test, PPME_GENERIC_X_1_to_2_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint16_t id = 10;
+	constexpr uint16_t native_id = 11;
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_GENERIC_E, 2, id, native_id);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_GENERIC_X, 1, id),
+	        create_safe_scap_event(ts, tid, PPME_GENERIC_X, 2, id, native_id));
+}
+
+////////////////////////////
 // CLOSE
 ////////////////////////////
 
@@ -969,7 +1025,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_X_5_to_7_params_no_enter) {
 	constexpr int64_t newcur = 90;
 	constexpr int64_t newmax = 91;
 
-	// Set to empty values
+	// Set to empty.
 	constexpr auto pid = empty_value<int64_t>();
 	constexpr auto resource = empty_value<uint8_t>();
 
@@ -4670,7 +4726,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_3_params) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	// Set to empty
+	// Set to empty.
 	constexpr auto res = empty_value<int64_t>();
 	constexpr auto addr = empty_value<scap_const_sized_buffer>();
 	constexpr auto data = empty_value<scap_const_sized_buffer>();
@@ -4693,7 +4749,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	// Set to empty
+	// Set to empty.
 	constexpr auto res = empty_value<int64_t>();
 	constexpr auto addr = empty_value<scap_const_sized_buffer>();
 	constexpr auto data = empty_value<scap_const_sized_buffer>();
@@ -4722,7 +4778,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_0_to_5_params_with_enter) {
 	constexpr int64_t pid = 66;
 	constexpr uint16_t request = PPM_PTRACE_PEEKSIGINFO;
 
-	// Set to empty
+	// Set to empty.
 	constexpr auto res = empty_value<int64_t>();
 	constexpr auto addr = empty_value<scap_const_sized_buffer>();
 	constexpr auto data = empty_value<scap_const_sized_buffer>();
@@ -4755,7 +4811,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_no_enter) {
 	constexpr uint8_t addr[] = {'h', 'e', 'l', 'l', 'o'};
 	constexpr uint8_t data[] = {'w', 'o', 'r', 'l', 'd'};
 
-	// Set to empty
+	// Set to empty.
 	constexpr auto pid = empty_value<int64_t>();
 	constexpr auto request = empty_value<uint16_t>();
 
@@ -5609,7 +5665,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_MKDIR_2_X_2_to_3_params_no_enter) {
 	constexpr int64_t res = 89;
 	constexpr char path[] = "/hello";
 
-	// Set to empty values
+	// Set to empty.
 	constexpr auto mode = empty_value<uint32_t>();
 
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 2);
@@ -5674,7 +5730,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_RMDIR_X_1_to_2_X_2_no_enter) {
 
 	constexpr int64_t res = 89;
 
-	// Set to empty values
+	// Set to empty.
 	constexpr auto path = empty_value<scap_const_sized_buffer>();
 
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1);

@@ -161,6 +161,7 @@ static scap_t* g_h = NULL;                   /* global scap handler. */
 static struct timeval tval_start, tval_end, tval_result;
 static unsigned long number_of_timeouts;  /* Times in which there were no events in the buffer. */
 static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
+// TODO(ekoops): half the size of this once we get rid of all the enter event processing.
 static ppm_sc_counter ppm_sc_count[PPM_SC_MAX * 2] = {
         0}; /* Number of times a syscall is called. We want the `*2` because we store the enter and
                the exit count separately */
@@ -654,17 +655,12 @@ void scap_open_log_fn(const char* component,
 }
 
 void count_syscalls(scap_evt* ev) {
-	uint16_t type = ev->type;
+	const uint16_t type = ev->type;
 	// If the event is generic, we need to read the ppm_sc inside the event
-	if(type == PPME_GENERIC_E || type == PPME_GENERIC_X) {
-		uint16_t ppm_sc_code = *(uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr) +
-		                                    ev->nparams * sizeof(uint16_t));
-
-		if(PPME_IS_ENTER(type)) {
-			ppm_sc_count[ppm_sc_code].counter++;
-		} else {
-			ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter++;
-		}
+	if(type == PPME_GENERIC_X) {
+		const uint16_t ppm_sc_code = *(uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr) +
+		                                          ev->nparams * sizeof(uint16_t));
+		ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter++;
 		return;
 	}
 

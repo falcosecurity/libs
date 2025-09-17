@@ -136,10 +136,10 @@ event_test::event_test(int syscall_id, int event_direction): m_sc_set(PPM_SC_MAX
 		m_event_type = g_syscall_table[syscall_id].enter_event_type;
 	} else {
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
-		/* We need this patch to set the right event, the syscall table will
-		 * always return `PPME_GENERIC_E`.
+		/* If the syscall is generic, the exit event type would be `0`, but we want to associate the
+		 * syscall to `PPME_GENERIC_X`, so we patch it on the fly.
 		 */
-		if(m_event_type == PPME_GENERIC_E) {
+		if(m_event_type == 0) {
 			m_event_type = PPME_GENERIC_X;
 		}
 	}

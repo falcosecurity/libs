@@ -288,13 +288,10 @@ int pman_fill_syscalls_tail_table() {
 		/* Get event type from `g_syscall_table` */
 		int exit_event_type = g_syscall_table[syscall_id].exit_event_type;
 
-		/* If the syscall is generic, the exit_event would be `0`, so
-		 * `PPME_GENERIC_E` but for the exit_event we want `PPME_GENERIC_X`
-		 * that is `1`, so we patch it on the fly, otherwise the exit_event
-		 * will be associated with the wrong bpf program, `generic_e` instead
-		 * of `generic_x`.
+		/* If the syscall is generic, the exit event type would be `0`, but we want to associate the
+		 * syscall to the `generic_x` program, so we patch it on the fly.
 		 */
-		if(exit_event_type == PPME_GENERIC_E) {
+		if(exit_event_type == 0) {
 			exit_event_type = PPME_GENERIC_X;
 		}
 

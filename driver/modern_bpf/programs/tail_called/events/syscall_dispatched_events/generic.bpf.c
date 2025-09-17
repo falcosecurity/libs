@@ -34,6 +34,9 @@ int BPF_PROG(generic_x, struct pt_regs *regs, long ret) {
 	/* This is the PPM_SC code obtained from the syscall id. */
 	ringbuf__store_u16(&ringbuf, maps__get_ppm_sc(id));
 
+	/* Parameter 2: nativeID (type: PT_UINT16) */
+	ringbuf__store_u16(&ringbuf, id);
+
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

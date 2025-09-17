@@ -63,7 +63,12 @@ TEST_F(sinsp_with_test_input, CLOSE_success) {
 
 	// Generate a dummy event to get sinsp::next() being invoked and do the scheduled fd removal.
 	uint16_t dummy_syscall_id = 0;
-	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_GENERIC_X, 1, dummy_syscall_id);
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_GENERIC_X,
+	                     2,
+	                     dummy_syscall_id,
+	                     dummy_syscall_id);
 
 	// Verify that the fd removal was performed.
 	ASSERT_FALSE(tinfo->get_fd(socket_fd));

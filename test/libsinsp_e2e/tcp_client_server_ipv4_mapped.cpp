@@ -548,7 +548,7 @@ void runtest_ipv4m(iotype iot,
 		}
 
 		if(!(use_shutdown || exit_no_close)) {
-			if(evt->get_type() == PPME_GENERIC_E) {
+			if(evt->get_type() == PPME_GENERIC_X) {
 				if(std::stoll(evt->get_param_value_str("ID", false)) == PPM_SC_TEE) {
 					const auto& thread_manager = param.m_inspector->m_thread_manager;
 					sinsp_threadinfo* ti =

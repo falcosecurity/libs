@@ -70,11 +70,13 @@ std::string get_event_category_name(ppm_event_category category) {
 // Get the string representation of a ppm_event_type
 //
 std::string get_event_type_name(sinsp_evt *ev) {
-	uint16_t type = ev->get_type();
+	const uint16_t type = ev->get_type();
 	if(type >= PPM_EVENT_MAX) {
 		return "UNKNOWN " + std::to_string(type);
 	}
-	if(type != PPME_GENERIC_E && type != PPME_GENERIC_X) {
+
+	// TODO(ekoops): I guess we should have a special handling also for async events here...
+	if(type != PPME_GENERIC_X) {
 		return g_infotables.m_event_info[type].name;
 	}
 
