@@ -22,12 +22,12 @@ mkdir -p third_party
 cd third_party
 
 # === Valijson ===
-echo "=== Building and installing valijson v0.6 ==="
+echo "=== Building and installing valijson v1.0.6 ==="
 
-wget "https://github.com/tristanpenman/valijson/archive/refs/tags/v0.6.tar.gz"
+wget "https://github.com/tristanpenman/valijson/archive/refs/tags/v1.0.6.tar.gz"
 
-tar xzf v0.6.tar.gz
-pushd valijson-0.6
+tar xzf v1.0.6.tar.gz
+pushd valijson-1.0.6
 
 mkdir -p build
 cd build
