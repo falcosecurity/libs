@@ -40,9 +40,6 @@ jobs:
           printf "deb http://snapshot.debian.org/archive/debian/20250630T203427Z buster main\ndeb http://snapshot.debian.org/archive/debian-security/20250630T203427Z buster/updates main\ndeb http://snapshot.debian.org/archive/debian/20250630T203427Z buster-updates main" > /etc/apt/sources.list
           apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
       
-      - name: Install vcpkg
-        uses: ./.github/actions/install-vcpkg
-
       - name: Install a recent version of CMake ⛓️
         run: |
           curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-$(uname -m).tar.gz
@@ -51,15 +48,15 @@ jobs:
           cp -R /tmp/cmake-3.22.5-linux-$(uname -m)/* /usr
           rm -rf /tmp/cmake-3.22.5-linux-$(uname -m)/
 
-      - name: Install vcpkg
-        uses: ./.github/actions/install-vcpkg
-        with:
-          vcpkg_version: 2025-08-27
-
       - name: Checkout Libs ⤵️
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
+
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
+        with:
+          vcpkg_version: 2025-08-27
 
       - name: Install deps ⛓️
         run: |
@@ -114,13 +111,13 @@ jobs:
           git submodule update --init
           cd src && make install
 
-      - name: Install vcpkg
-        uses: ./.github/actions/install-vcpkg
-
       - name: Checkout Libs ⤵️
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
+
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
 
       - name: Git safe directory
         run: |
