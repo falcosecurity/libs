@@ -147,6 +147,11 @@ void sinsp_thread_manager::clear() {
 	m_last_tid = -1;
 	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
+	for(auto& [ptid, tid] : m_recently_removed_thread_entries) {
+		ptid = -1;
+		tid = -1;
+	}
+	m_recently_removed_thread_entries_next_free_pos = 0;
 }
 
 /* This is called on the table after the `/proc` scan */
@@ -508,6 +513,11 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		thread_to_remove->remove_child_from_parent();
 		m_threadtable.erase(tid);
 	}
+
+	/* Account the fact that this thread has recently been removed. This info is used in the parser
+	 * code to avoid re-adding thread info for a removed thread (this happens in case of event
+	 * reordering). */
+	mark_thread_as_recently_removed(thread_to_remove->m_ptid, tid);
 
 	/* Maybe we removed the thread info that was cached, we clear
 	 * the cache just to be sure.
