@@ -1373,9 +1373,7 @@ static int load_socketcall_params(struct event_filler_arguments *filler_args) {
 	return 0;
 }
 
-static inline struct event_data_t *manage_socketcall(struct event_data_t *event_data,
-                                                     int socketcall_syscall_id,
-                                                     bool is_exit) {
+static inline struct event_data_t *manage_socketcall_exit_evt(struct event_data_t *event_data) {
 	bool is_syscall_return;
 	int return_code =
 	        convert_network_syscalls(event_data->event_info.syscall_data.regs, &is_syscall_return);
@@ -1391,19 +1389,12 @@ static inline struct event_data_t *manage_socketcall(struct event_data_t *event_
 
 	/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 	if(!is_syscall_return) {
-		// We need to skip the syscall filtering logic because
-		// the actual `id` is no longer representative for this event.
-		// There could be cases in which we have a `PPME_SOCKET_SEND_E` event
-		// and`id=__NR_ia32_socketcall`...We resolved the correct event type but we cannot
-		// update the `id`.
+		// We need to skip the syscall filtering logic because the actual `id` is no longer
+		// representative for this event. There could be cases in which we have a
+		// `PPME_SOCKET_SEND_X` event and`id=__NR_ia32_socketcall`... We resolved the correct event
+		// type, but we cannot update the `id`.
 		event_data->deny_syscalls_filtering = true;
-		/* we need to use `return_code + 1` because return_code
-		 * is the enter event.
-		 */
-		record_event_all_consumers(return_code + is_exit,
-		                           UF_USED,
-		                           event_data,
-		                           is_exit ? KMOD_PROG_SYS_EXIT : KMOD_PROG_SYS_ENTER);
+		record_event_all_consumers(return_code, UF_USED, event_data, KMOD_PROG_SYS_EXIT);
 		return NULL;  // managed
 	}
 
@@ -2242,7 +2233,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret) {
 	g_n_tracepoint_hit_inc();
 
 	if(event_data.event_info.syscall_data.id == socketcall_syscall_id) {
-		if(manage_socketcall(&event_data, socketcall_syscall_id, true) == NULL) {
+		if(manage_socketcall_exit_evt(&event_data) == NULL) {
 			return;
 		}
 	}

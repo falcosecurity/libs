@@ -166,7 +166,7 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args) {
 			return 0;
 		}
 		if(!is_syscall_return) {
-			evt_type = return_code + 1;  // we are in sys_exit!
+			evt_type = return_code;
 			drop_flags = UF_USED;
 		} else {
 			id = return_code;
