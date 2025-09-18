@@ -731,6 +731,24 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== ENRICH/CREATE ESSENTIAL CALLER STATE
 	 * ===========================*/
 
+	/* Child case in parse_clone_exit_caller was initially introduced for resilience
+	 * to missing events. We know for sure that in some architectures (e.g., ARM),
+	 * the clone exit for the child was missing, and this logic here mitigated this issue.
+	 * However, it was later better addressed in the drivers, using a different hook
+	 * to catch the clone exit event.
+	 * By doing so, the child's addition logic in the caller created a new problem.
+	 * Under certain circumstances (e.g., when CLONE_VFORK is used), the procexit event
+	 * arrives before the caller's clone exit, and as a consequence, re-adding the child thread
+	 * after its removal can produce a memory leak
+	 * (https://github.com/falcosecurity/falco/issues/3664). For this reason, a better strategy is
+	 * not to manage the child at this stage. However, we still need to deal with old SCAP files
+	 * that lack child clone exit events, so we should preserve the child addition logic only when
+	 * reading from SCAP files.
+	 */
+	if(!m_sinsp_mode.is_capture()) {
+		return;
+	}
+
 	/*=============================== CHILD IN CONTAINER CASE ===========================*/
 
 	/* Get `flags` to check if we are in a container.
