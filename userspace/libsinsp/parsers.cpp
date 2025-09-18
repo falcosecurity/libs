@@ -769,6 +769,42 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/*=============================== CHILD IN CONTAINER CASE ===========================*/
 
+	/*=============================== CHILD / VFORK CASE ================================*/
+
+	/* Historically, the "child case" in parse_clone_exit_caller() was likely introduced
+	 * as a safeguard against missing clone exit events. For example, on some
+	 * architectures (e.g., ARM), the child-side clone exit event was not always
+	 * reported, and this workaround ensured the child thread was still tracked.
+	 * That issue was later addressed properly in the drivers, which now use a
+	 * different hook to guarantee clone exit delivery.
+	 *
+	 * However, keeping the child-addition logic here introduced a new problem:
+	 * in certain cases the procexit event may arrive before the caller’s clone
+	 * exit. If the caller then "re-adds" the child after it has already been
+	 * removed, we end up leaking a threadinfo
+	 * (see: https://github.com/falcosecurity/falco/issues/3664).
+	 *
+	 * This out-of-order behavior is explicitly documented for vfork, and for
+	 * clone/clone3 when used with the CLONE_VFORK flag (which are equivalent to vfork).
+	 * With vfork, the
+	 * parent is suspended until the child either calls execve or _exit,
+	 * so the kernel can legitimately report the child’s exit before the parent
+	 * resumes and receives its clone return. In contrast, when not in vfork case,
+	 * both the parent and the child are runnable after the clone, and no
+	 * particular ordering is guaranteed.
+	 *
+	 * Since the vfork ordering is well-defined (and expected), but all other
+	 * out-of-order cases are undefined and presumably rare, we just special-case handling of
+	 * vfork/CLONE_VFORK here. Other cases are left to the autopurge
+	 * mechanisms that eventually clean up stale threads.
+	 */
+	const uint16_t etype = evt.get_scap_evt()->type;
+	if(flags & PPM_CL_CLONE_VFORK || etype == PPME_SYSCALL_VFORK_20_X) {
+		return;
+	}
+
+	/*=============================== CHILD / VFORK CASE ================================*/
+
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* See if the child is already there, if yes and it is valid we return immediately */
