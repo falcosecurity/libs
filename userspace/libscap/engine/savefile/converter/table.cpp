@@ -88,6 +88,16 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({{C_INSTR_FROM_ENTER, 0},
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
+        /*====================== DUP ======================*/
+        {conversion_key{PPME_SYSCALL_DUP_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_DUP_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_DUP_1_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},                           // res
+                         {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},  // oldfd
+                 })},
         /*====================== SIGNALFD ======================*/
         {conversion_key{PPME_SYSCALL_SIGNALFD_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SIGNALFD_X, 1},

@@ -773,12 +773,14 @@ const struct ppm_event_info g_event_info[] = {
                                      {"pos", PT_UINT64, PF_DEC}}},
         [PPME_SYSCALL_DUP_E] = {"dup",
                                 EC_IO_OTHER | EC_SYSCALL,
-                                EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION,
+                                EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION |
+                                        EF_TMP_CONVERTER_MANAGED,
                                 1,
                                 {{"fd", PT_FD, PF_DEC}}},
         [PPME_SYSCALL_DUP_X] = {"dup",
                                 EC_IO_OTHER | EC_SYSCALL,
-                                EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION,
+                                EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION |
+                                        EF_TMP_CONVERTER_MANAGED,
                                 1,
                                 {{"res", PT_FD, PF_DEC}}},
         [PPME_SYSCALL_SIGNALFD_E] = {"signalfd",
