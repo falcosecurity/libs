@@ -163,13 +163,22 @@ protected:
 	}
 	void assert_event_storage_presence(const safe_scap_evt_t &expected_evt) const {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
-		int64_t tid = expected_evt.get()->tid;
-		auto event = scap_retrieve_evt_from_converter_storage(m_converter_buf, tid);
+		const auto tid = expected_evt.get()->tid;
+		const auto event = scap_retrieve_evt_from_converter_storage(m_converter_buf, tid);
 		if(!event) {
 			FAIL() << "Event with tid " << tid << " not found in the storage";
 		}
 		if(!scap_compare_events(event, expected_evt.get(), error)) {
 			FAIL() << "Different events: " << error;
+		}
+	}
+
+	void assert_event_storage_absence(const safe_scap_evt_t &expected_evt) const {
+		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		const auto tid = expected_evt.get()->tid;
+		if(const auto event = scap_retrieve_evt_from_converter_storage(m_converter_buf, tid);
+		   event && scap_compare_events(event, expected_evt.get(), error)) {
+			FAIL() << "Event with tid " << tid << " found in the storage";
 		}
 	}
 
