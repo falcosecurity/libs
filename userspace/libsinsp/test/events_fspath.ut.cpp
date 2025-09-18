@@ -850,11 +850,6 @@ TEST_F(fspath, mount) {
 	test_failed_exit(PPME_SYSCALL_MOUNT_X, 5, failed_res, devpath, mountpath, mounttype, flags);
 }
 
-TEST_F(fspath, umount) {
-	test_exit_path(mountpath, mountpath, PPME_SYSCALL_UMOUNT_X, 2, res, mountpath);
-	test_failed_exit(PPME_SYSCALL_UMOUNT_X, 2, failed_res, mountpath);
-}
-
 TEST_F(fspath, umount_1) {
 	test_exit_path(mountpath, mountpath, PPME_SYSCALL_UMOUNT_1_X, 2, res, mountpath);
 	test_failed_exit(PPME_SYSCALL_UMOUNT_1_X, 2, failed_res, mountpath);

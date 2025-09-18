@@ -235,9 +235,6 @@ void sinsp_filter_check_fspath::create_fspath_checks() {
 	m_target_checks->emplace(PPME_SYSCALL_MOUNT_X, evt_arg_dir);
 	m_success_checks->emplace(PPME_SYSCALL_MOUNT_X, evt_arg_res_eq_0);
 
-	m_path_checks->emplace(PPME_SYSCALL_UMOUNT_X, evt_arg_name);
-	m_success_checks->emplace(PPME_SYSCALL_UMOUNT_X, evt_arg_res_eq_0);
-
 	m_path_checks->emplace(PPME_SYSCALL_UMOUNT_1_X, evt_arg_name);
 	m_success_checks->emplace(PPME_SYSCALL_UMOUNT_1_X, evt_arg_res_eq_0);
 

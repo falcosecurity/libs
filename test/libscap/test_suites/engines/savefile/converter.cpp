@@ -6540,6 +6540,32 @@ TEST_F(convert_event_test, PPME_SYSCALL_MOUNT_X_4_to_5_params_with_enter) {
 }
 
 ////////////////////////////
+// UMOUNT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT_E_skip) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t flags = 31;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT_E, 1, flags);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_absence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT_X_2_to_1_X_2_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char name[] = "name";
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT_X, 2, res, name),
+	                       create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT_1_X, 2, res, name));
+}
+
+////////////////////////////
 // SEMGET
 ////////////////////////////
 
