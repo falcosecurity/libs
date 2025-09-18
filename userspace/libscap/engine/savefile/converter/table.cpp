@@ -673,13 +673,26 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
         /*====================== IOCTL ======================*/
+        {conversion_key{PPME_SYSCALL_IOCTL_2_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_IOCTL_2_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_IOCTL_3_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},                           // res
+                         {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},  // fd
+                         {C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY},  // request
+                         {C_INSTR_FROM_EMPTY},                            // argument
+                 })},
         {conversion_key{PPME_SYSCALL_IOCTL_3_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_IOCTL_3_X, 1},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
-                 .instrs({{C_INSTR_FROM_ENTER, 0},
-                          {C_INSTR_FROM_ENTER, 1},
-                          {C_INSTR_FROM_ENTER, 2}})},
+                 .instrs({
+                         {C_INSTR_FROM_ENTER, 0},  // fd
+                         {C_INSTR_FROM_ENTER, 1},  // request
+                         {C_INSTR_FROM_ENTER, 2},  // argument
+                 })},
         /*====================== MMAP ======================*/
         {conversion_key{PPME_SYSCALL_MMAP_E, 6}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_MMAP_X, 4},

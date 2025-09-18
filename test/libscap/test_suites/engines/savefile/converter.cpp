@@ -4340,6 +4340,76 @@ TEST_F(convert_event_test, PPME_SYSCALL_LLSEEK_X_to_4_params_with_enter) {
 // IOCTL
 ////////////////////////////
 
+TEST_F(convert_event_test, PPME_SYSCALL_IOCTL_2_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 25;
+	constexpr uint64_t request = 1234;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_2_E, 2, fd, request);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_IOCTL_2_X_1_to_3_X_4_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty.
+	constexpr auto fd = empty_value<int64_t>();
+	constexpr auto request = empty_value<uint64_t>();
+	constexpr auto argument = empty_value<uint64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_2_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_IOCTL_3_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 fd,
+	                                                 request,
+	                                                 argument));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_IOCTL_2_X_1_to_3_X_4_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr int64_t fd = 25;
+	constexpr uint64_t request = 1234;
+
+	// Set to empty.
+	constexpr auto argument = empty_value<uint64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 3);
+
+	// After the first conversion we should have the storage.
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_2_E, 2, fd, request);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_2_X, 1, res),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_IOCTL_3_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 fd,
+	                                                 request,
+	                                                 argument));
+}
+
 TEST_F(convert_event_test, PPME_SYSCALL_IOCTL_3_E_store) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
