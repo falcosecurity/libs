@@ -153,9 +153,23 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
         /*====================== BRK ======================*/
+        {conversion_key{PPME_SYSCALL_BRK_1_E, 1}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_BRK_1_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_BRK_4_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},                           // res
+                         {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},  // vm_size
+                         {C_INSTR_FROM_EMPTY},                            // vm_rss
+                         {C_INSTR_FROM_EMPTY},                            // vm_swap
+                         {C_INSTR_FROM_EMPTY},                            // addr
+                 })},
         {conversion_key{PPME_SYSCALL_BRK_4_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_BRK_4_X, 4},
-         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY}})},
         /*====================== EXECVE ======================*/
         {conversion_key{PPME_SYSCALL_EXECVE_8_E, 0},
          conversion_info().desired_type(PPME_SYSCALL_EXECVE_13_E).action(C_ACTION_CHANGE_TYPE)},

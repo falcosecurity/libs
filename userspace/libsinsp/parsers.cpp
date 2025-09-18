@@ -3776,9 +3776,17 @@ void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
 		return;
 	}
 
-	evt.get_tinfo()->m_vmsize_kb = evt.get_param(1)->as<uint32_t>();
-	evt.get_tinfo()->m_vmrss_kb = evt.get_param(2)->as<uint32_t>();
-	evt.get_tinfo()->m_vmswap_kb = evt.get_param(3)->as<uint32_t>();
+	if(const auto vm_size_param = evt.get_param(1); !vm_size_param->empty()) {
+		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
+	}
+	// If one of these parameters is present, so is for the other ones, so just check the presence
+	// of one of them.
+	const auto vm_rss_param = evt.get_param(2);
+	const auto vm_swap_param = evt.get_param(3);
+	if(!vm_swap_param->empty()) {
+		evt.get_tinfo()->m_vmrss_kb = vm_rss_param->as<uint32_t>();
+		evt.get_tinfo()->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+	}
 }
 
 void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const sinsp_evt_param &euid_param) const {

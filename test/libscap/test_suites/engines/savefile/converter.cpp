@@ -1151,6 +1151,77 @@ TEST_F(convert_event_test, PPME_SYSCALL_FCNTL_X_to_3_params_with_enter) {
 // BRK
 ////////////////////////////
 
+TEST_F(convert_event_test, PPME_SYSCALL_BRK_1_E_store) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr uint32_t size = 1234;
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_1_E, 1, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_BRK_1_X_to_4_X_params_no_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	// Set to empty.
+	constexpr auto vm_size = empty_value<uint32_t>();
+	constexpr auto vm_rss = empty_value<uint32_t>();
+	constexpr auto vm_swap = empty_value<uint32_t>();
+	constexpr auto addr = empty_value<uint64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3, 4);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_1_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_BRK_4_X,
+	                                                                          &empty_params_set,
+	                                                                          5,
+	                                                                          res,
+	                                                                          vm_size,
+	                                                                          vm_rss,
+	                                                                          vm_swap,
+	                                                                          addr));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_BRK_1_X_to_4_X_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+	constexpr uint32_t vm_size = 123;
+
+	// Set to empty.
+	constexpr auto vm_rss = empty_value<uint32_t>();
+	constexpr auto vm_swap = empty_value<uint32_t>();
+	constexpr auto addr = empty_value<uint64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 2, 3, 4);
+
+	// After the first conversion we should have the storage
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_1_E, 1, vm_size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(CONVERSION_COMPLETED,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_1_X, 1, res),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_BRK_4_X,
+	                                                                          &empty_params_set,
+	                                                                          5,
+	                                                                          res,
+	                                                                          vm_size,
+	                                                                          vm_rss,
+	                                                                          vm_swap,
+	                                                                          addr));
+}
+
 TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_E_store) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
@@ -1170,21 +1241,24 @@ TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_X_to_5_params_no_enter) {
 	constexpr uint32_t vm_rss = 71;
 	constexpr uint32_t vm_swap = 72;
 
-	// Defaulted to 0
-	constexpr uint64_t addr = 0;
+	// Set to empty.
+	constexpr auto addr = empty_value<uint64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 4);
 
 	assert_single_conversion_success(
 	        CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_BRK_4_X, 4, res, vm_size, vm_rss, vm_swap),
-	        create_safe_scap_event(ts,
-	                               tid,
-	                               PPME_SYSCALL_BRK_4_X,
-	                               5,
-	                               res,
-	                               vm_size,
-	                               vm_rss,
-	                               vm_swap,
-	                               addr));
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_BRK_4_X,
+	                                                 &empty_params_set,
+	                                                 5,
+	                                                 res,
+	                                                 vm_size,
+	                                                 vm_rss,
+	                                                 vm_swap,
+	                                                 addr));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_BRK_4_X_to_5_params_with_enter) {
