@@ -85,40 +85,97 @@ static scap_evt *retrieve_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt
 	return nullptr;
 }
 
-static uint16_t get_param_len(scap_evt *evt, uint8_t num_param) {
-	if(evt->nparams <= num_param) {
-		std::string error = "Try to access len of param num '" + std::to_string(num_param) +
-		                    "' for event " + get_event_name((ppm_event_code)evt->type) + "_" +
-		                    get_direction_char((ppm_event_code)evt->type) +
-		                    " (num parameters: " + std::to_string(evt->type) + ").";
-		throw std::runtime_error(error);
-	}
-
-	// todo!: we need to manage LARGE_PAYLOAD events
-	uint16_t off_len = sizeof(scap_evt) + sizeof(uint16_t) * num_param;
-	uint16_t len = 0;
-	memcpy(&len, (char *)evt + off_len, sizeof(uint16_t));
-	return (uint32_t)len;
+// Return the number of bytes used to encode parameter lengths in the lengths array of the provided
+// event. Currently, it returns 4 or 2, depending on the fact that the provided event has large
+// payload or not.
+static size_t get_param_len_size(const scap_evt *evt) {
+	return g_event_info[evt->type].flags & EF_LARGE_PAYLOAD ? sizeof(uint32_t) : sizeof(uint16_t);
 }
 
-static char *get_param_ptr(scap_evt *evt, uint8_t num_param) {
-	if(evt->nparams <= num_param) {
-		std::string error = "Try to access param num '" + std::to_string(num_param) +
-		                    "' for event " + get_event_name((ppm_event_code)evt->type) + "_" +
-		                    get_direction_char((ppm_event_code)evt->type) +
-		                    " (num parameters: " + std::to_string(evt->type) + ").";
+static ppm_param_type get_param_type(const scap_evt *evt, const uint8_t param_num) {
+	return g_event_info[evt->type].params[param_num].type;
+}
+
+static uint32_t get_param_len_unchecked(const scap_evt *evt,
+                                        const uint8_t param_num,
+                                        const size_t len_size) {
+	const size_t len_offset = sizeof(scap_evt) + param_num * len_size;
+	auto *const len_ptr = reinterpret_cast<const char *>(evt) + len_offset;
+	switch(len_size) {
+	case sizeof(uint16_t): {
+		uint16_t len;
+		memcpy(&len, len_ptr, sizeof(uint16_t));
+		return len;
+	}
+	case sizeof(uint32_t): {
+		uint32_t len;
+		memcpy(&len, len_ptr, sizeof(uint32_t));
+		return len;
+	}
+	default:
+		throw std::runtime_error("Unexpected length size: " + std::to_string(len_size));
+	}
+}
+
+static void set_param_len_unchecked(scap_evt *evt,
+                                    const uint8_t param_num,
+                                    const uint32_t len,
+                                    const size_t len_size) {
+	const size_t len_offset = sizeof(scap_evt) + param_num * len_size;
+	auto *const len_ptr = reinterpret_cast<char *>(evt) + len_offset;
+	switch(len_size) {
+	case sizeof(uint16_t): {
+		const auto len_16 = static_cast<uint16_t>(len);
+		memcpy(len_ptr, &len_16, sizeof(uint16_t));
+		return;
+	}
+	case sizeof(uint32_t): {
+		memcpy(len_ptr, &len, sizeof(uint32_t));
+		return;
+	}
+	default:
+		throw std::runtime_error("Unexpected length size: " + std::to_string(len_size));
+	}
+}
+
+static uint32_t get_param_len(const scap_evt *evt, const uint8_t param_num, const size_t len_size) {
+	if(evt->nparams <= param_num) {
+		const auto evt_name = get_event_name(static_cast<ppm_event_code>(evt->type));
+		const auto evt_dir_char = get_direction_char(static_cast<ppm_event_code>(evt->type));
+		const std::string error{"Try to access len of param num '" + std::to_string(param_num) +
+		                        "' for event " + evt_name + "_" + evt_dir_char +
+		                        " (num parameters: " + std::to_string(evt->nparams) + ")."};
 		throw std::runtime_error(error);
 	}
 
-	char *ptr = (char *)evt + sizeof(scap_evt) + sizeof(uint16_t) * evt->nparams;
-	uint16_t ptr_off = 0;
-	for(auto i = 0; i < num_param; i++) {
-		uint16_t len = 0;
-		memcpy(&len, (char *)evt + sizeof(scap_evt) + sizeof(uint16_t) * i, sizeof(uint16_t));
-		ptr_off += len;
+	return get_param_len_unchecked(evt, param_num, len_size);
+}
+
+static const char *get_param_ptr_unchecked(const scap_evt *evt,
+                                           const uint8_t param_num,
+                                           const size_t len_size) {
+	const size_t params_offset = sizeof(scap_evt) + len_size * evt->nparams;
+	const auto *const params_ptr = reinterpret_cast<const char *>(evt) + params_offset;
+	size_t param_offset = 0;
+	for(auto i = 0; i < param_num; i++) {
+		param_offset += get_param_len_unchecked(evt, i, len_size);
+	}
+	return params_ptr + param_offset;
+}
+
+static const char *get_param_ptr(const scap_evt *evt,
+                                 const uint8_t param_num,
+                                 const size_t len_size) {
+	if(evt->nparams <= param_num) {
+		const auto evt_name = get_event_name(static_cast<ppm_event_code>(evt->type));
+		const auto evt_dir_char = get_direction_char(static_cast<ppm_event_code>(evt->type));
+		const std::string error{"Try to access param num '" + std::to_string(param_num) +
+		                        "' for event " + evt_name + "_" + evt_dir_char +
+		                        " (num parameters: " + std::to_string(evt->nparams) + ")."};
+		throw std::runtime_error(error);
 	}
 
-	return ptr + ptr_off;
+	return get_param_ptr_unchecked(evt, param_num, len_size);
 }
 
 static uint8_t get_default_value_size_bytes_from_type(const ppm_param_type t) {
@@ -192,14 +249,14 @@ static uint64_t get_default_value_from_type(const ppm_param_type t) {
 	}
 }
 
-// This writes len + the param
-static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
+// Writes parameter length and value and update the provided parameter offsets accordingly to the
+// written length.
+static void push_default_parameter(scap_evt *evt, size_t *params_offset, const uint8_t param_num) {
 	// Please ensure that `evt->type` is already the final type you want to obtain.
 	// Otherwise, we will access the wrong entry in the event table.
-	const ppm_event_info *event_info = &g_event_info[evt->type];
-	const auto param_type = event_info->params[param_num].type;
-	const uint16_t len = get_default_value_size_bytes_from_type(param_type);
-	const uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
+	const auto param_type = get_param_type(evt, param_num);
+	const auto len = get_default_value_size_bytes_from_type(param_type);
+	const auto len_size = get_param_len_size(evt);
 
 	PRINT_MESSAGE(
 	        "push default param (%d, type: %d) with len (%d) at {params_offest (%d), "
@@ -208,15 +265,15 @@ static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8
 	        param_type,
 	        len,
 	        *params_offset,
-	        lens_offset);
+	        sizeof(scap_evt) + param_num * len_size);
 
-	uint64_t val = get_default_value_from_type(param_type);
-	memcpy((char *)evt + *params_offset, (char *)&val, len);
+	const uint64_t val = get_default_value_from_type(param_type);
+	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &val, len);
 	*params_offset += len;
-	memcpy((char *)evt + lens_offset, &len, sizeof(uint16_t));
+	set_param_len_unchecked(evt, param_num, len, len_size);
 }
 
-static uint16_t get_min_param_len_from_type(const ppm_param_type t) {
+static uint32_t get_min_param_len_from_type(const ppm_param_type t) {
 	switch(t) {
 	case PT_INT8:
 	case PT_UINT8:
@@ -272,7 +329,7 @@ static uint16_t get_min_param_len_from_type(const ppm_param_type t) {
 	return 0;
 }
 
-static uint16_t get_max_param_len_from_type(const ppm_param_type t) {
+static uint32_t get_max_param_len_from_type(const ppm_param_type t, const size_t len_size) {
 	switch(t) {
 	case PT_INT8:
 	case PT_UINT8:
@@ -317,7 +374,16 @@ static uint16_t get_max_param_len_from_type(const ppm_param_type t) {
 	case PT_FSRELPATH:
 	case PT_DYN:
 	case PT_SOCKADDR:
-		return std::numeric_limits<uint16_t>::max();
+		switch(len_size) {
+		case sizeof(uint16_t): {
+			return std::numeric_limits<uint16_t>::max();
+		}
+		case sizeof(uint32_t): {
+			return std::numeric_limits<uint32_t>::max();
+		}
+		default:
+			throw std::runtime_error("Unexpected length size: " + std::to_string(len_size));
+		}
 
 	default:
 		// We forgot to handle something
@@ -327,18 +393,18 @@ static uint16_t get_max_param_len_from_type(const ppm_param_type t) {
 	return 0;
 }
 
-static uint16_t get_empty_value_size_bytes_from_type(const ppm_param_type t) {
+static uint32_t get_empty_value_size_bytes_from_type(const ppm_param_type t) {
 	return get_min_param_len_from_type(t);
 }
 
-// This writes len + the param
-static void push_empty_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
-	// Please ensure that `evt->type` is already the final type you want to obtain.
+// Writes parameter length and value and update the provided parameter offsets accordingly to the
+// written length.
+static void push_empty_parameter(scap_evt *evt, size_t *params_offset, const uint8_t param_num) {
+	// Please ensure that the param type is already the final type you want to obtain.
 	// Otherwise, we will access the wrong entry in the event table.
-	const ppm_event_info *event_info = &g_event_info[evt->type];
-	const auto param_type = event_info->params[param_num].type;
-	const uint16_t len = get_empty_value_size_bytes_from_type(param_type);
-	const uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
+	const auto param_type = get_param_type(evt, param_num);
+	const auto len = get_empty_value_size_bytes_from_type(param_type);
+	const auto len_size = get_param_len_size(evt);
 
 	PRINT_MESSAGE(
 	        "push empty param (%d, type: %d) with len (%d) at {params_offset (%d), "
@@ -347,90 +413,107 @@ static void push_empty_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t
 	        param_type,
 	        len,
 	        *params_offset,
-	        lens_offset);
+	        sizeof(scap_evt) + param_num * len_size);
 
 	// The empty param value will be always 0 so we just need to copy the right number of 0 bytes.
 	// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
 	// have `len==0`. The empty parameter length is always set to 0.
 	constexpr uint64_t zero = 0;
-	memcpy((char *)evt + *params_offset, (char *)&zero, len);
+	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &zero, len);
 	*params_offset += len;
-	memcpy((char *)evt + lens_offset, &zero, sizeof(uint16_t));
+	set_param_len_unchecked(evt, param_num, 0, len_size);
 }
 
 // Cap the provided parameter length to the maximum value allowed for the event parameter
-// corresponding to the provided number.
-static uint16_t cap_param_len(const scap_evt *evt,
+// corresponding to the provided number. The parameter length size is used to determine the maximum
+// value, as it can change depending on how big is the space to store a parameter length.
+static uint32_t cap_param_len(const scap_evt *evt,
                               const uint8_t param_num,
-                              const uint16_t param_len) {
-	const ppm_param_type param_type = g_event_info[evt->type].params[param_num].type;
-	const auto max_param_len = get_max_param_len_from_type(param_type);
+                              const uint32_t param_len,
+                              const size_t len_size) {
+	const ppm_param_type param_type = get_param_type(evt, param_num);
+	const auto max_param_len = get_max_param_len_from_type(param_type, len_size);
 	return std::min(max_param_len, param_len);
 }
 
-// This writes len + the param
+// Writes parameter length and value and update the provided parameter offsets accordingly to the
+// written length.
 static void push_parameter(scap_evt *new_evt,
-                           scap_evt *tmp_evt,
-                           uint16_t *params_offset,
+                           const scap_evt *tmp_evt,
+                           size_t *new_evt_params_offset,
                            const uint8_t new_evt_param_num,
                            const uint8_t tmp_evt_param_num) {
-	// we need to write the len into the event.
-	const uint16_t lens_offset = sizeof(scap_evt) + new_evt_param_num * sizeof(uint16_t);
-	const uint16_t tmp_evt_param_len = get_param_len(tmp_evt, tmp_evt_param_num);
-	const auto *ptr = get_param_ptr(tmp_evt, tmp_evt_param_num);
-	const auto new_evt_param_len = cap_param_len(new_evt, new_evt_param_num, tmp_evt_param_len);
+	const auto new_evt_len_size = get_param_len_size(new_evt);
+	const auto tmp_evt_len_size = get_param_len_size(tmp_evt);
+	const auto tmp_evt_param_len = get_param_len(tmp_evt, tmp_evt_param_num, tmp_evt_len_size);
+	const auto *const tmp_evt_param_ptr =
+	        get_param_ptr(tmp_evt, tmp_evt_param_num, tmp_evt_len_size);
+	const auto new_evt_param_len =
+	        cap_param_len(new_evt, new_evt_param_num, tmp_evt_param_len, new_evt_len_size);
+	auto *const new_evt_param_ptr = reinterpret_cast<char *>(new_evt) + *new_evt_params_offset;
 
 	PRINT_MESSAGE(
 	        "push param (%d, type: %d) with len (%d) at {params_offset: %d, "
 	        "lens_offset: %d} from event type '%d', param (%d, type: %d) with len (%d)\n",
 	        new_evt_param_num,
-	        g_event_info[new_evt->type].params[new_evt_param_num].type,
+	        get_param_type(new_evt, new_evt_param_num),
 	        new_evt_param_len,
-	        *params_offset,
-	        lens_offset,
+	        *new_evt_params_offset,
+	        sizeof(scap_evt) + new_evt_param_num * new_evt_len_size,
 	        tmp_evt->type,
 	        tmp_evt_param_num,
-	        g_event_info[tmp_evt->type].params[tmp_evt_param_num].type,
+	        get_param_type(tmp_evt, tmp_evt_param_num),
 	        tmp_evt_param_len);
 
-	memcpy(reinterpret_cast<char *>(new_evt) + *params_offset, ptr, new_evt_param_len);
-	*params_offset += new_evt_param_len;
-	memcpy(reinterpret_cast<char *>(new_evt) + lens_offset, &new_evt_param_len, sizeof(uint16_t));
+	memcpy(new_evt_param_ptr, tmp_evt_param_ptr, new_evt_param_len);
+	*new_evt_params_offset += new_evt_param_len;
+	set_param_len_unchecked(new_evt, new_evt_param_num, new_evt_param_len, new_evt_len_size);
 }
 
-static uint16_t copy_old_params(scap_evt *new_evt, scap_evt *evt_to_convert) {
-	// Copy the lengths array
-	uint16_t new_evt_offset = sizeof(scap_evt);
-	uint16_t old_evt_offset = sizeof(scap_evt);
-	uint16_t size_to_copy = evt_to_convert->nparams * sizeof(uint16_t);
-	memcpy((char *)new_evt + new_evt_offset, (char *)evt_to_convert + old_evt_offset, size_to_copy);
+static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert) {
+	auto *const new_evt_ptr = reinterpret_cast<char *>(new_evt);
+	const auto *const old_evt_ptr = reinterpret_cast<const char *>(evt_to_convert);
+	size_t new_evt_offset = sizeof(scap_evt);
+	size_t old_evt_offset = sizeof(scap_evt);
+	const auto new_evt_len_size = get_param_len_size(new_evt);
+	const auto old_evt_len_size = get_param_len_size(evt_to_convert);
+
+	// Copy the lengths array.
+	if(new_evt_len_size == old_evt_len_size) {
+		// Optimization for the common case: the new event and the event to convert use both 2 or 4
+		// bytes to encode a single length in the lengths array, so we can just copy the lengths
+		// array into destination with a single memcpy.
+		const auto bytes_to_copy = evt_to_convert->nparams * old_evt_len_size;
+		memcpy(new_evt_ptr + new_evt_offset, old_evt_ptr + old_evt_offset, bytes_to_copy);
+	} else {
+		for(uint32_t i = 0; i < evt_to_convert->nparams; i++) {
+			const auto len = get_param_len_unchecked(evt_to_convert, i, old_evt_len_size);
+			set_param_len_unchecked(new_evt, i, len, new_evt_len_size);
+		}
+	}
 
 	PRINT_MESSAGE(
 	        "Copy lengths array (size %d) from old event offset '%d' to new event "
 	        "offset '%d'\n",
-	        size_to_copy,
+	        evt_to_convert->nparams * old_evt_len_size,
 	        old_evt_offset,
 	        new_evt_offset);
 
 	// Copy the parameters (we left some space for the missing lengths)
-	new_evt_offset = sizeof(scap_evt) + new_evt->nparams * sizeof(uint16_t);
-	old_evt_offset = sizeof(scap_evt) + evt_to_convert->nparams * sizeof(uint16_t);
-	size_to_copy =
-	        evt_to_convert->len - (sizeof(scap_evt) + evt_to_convert->nparams * sizeof(uint16_t));
-	memcpy((char *)new_evt + new_evt_offset, (char *)evt_to_convert + old_evt_offset, size_to_copy);
+	new_evt_offset += new_evt->nparams * new_evt_len_size;
+	old_evt_offset += evt_to_convert->nparams * old_evt_len_size;
+	const uint32_t params_len =
+	        evt_to_convert->len - (sizeof(scap_evt) + evt_to_convert->nparams * old_evt_len_size);
+	memcpy(new_evt_ptr + new_evt_offset, old_evt_ptr + old_evt_offset, params_len);
 
 	PRINT_MESSAGE(
 	        "Copy parameters (size %d) from old event offset '%d' to new event "
 	        "offset '%d'\n",
-	        size_to_copy,
+	        params_len,
 	        old_evt_offset,
 	        new_evt_offset);
 
-	return new_evt_offset + size_to_copy;
-}
-
-static bool is_large_payload(scap_evt *evt_to_convert) {
-	return g_event_info[evt_to_convert->type].flags & EF_LARGE_PAYLOAD;
+	return new_evt_offset + params_len;
 }
 
 extern "C" bool is_conversion_needed(scap_evt *evt_to_convert) {
@@ -481,20 +564,11 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
                                        scap_evt *evt_to_convert,
                                        const conversion_info &ci,
                                        char *error) {
-	// todo!: add the support for large payload events if we need to handle at least one of them.
-	if(is_large_payload(evt_to_convert)) {
-		scap_errprintf(error,
-		               0,
-		               "The event '%d' has a large payload. We don't support it yet.",
-		               evt_to_convert->type);
-		return CONVERSION_ERROR;
-	}
-
 	/////////////////////////////
 	// Dispatch the action
 	/////////////////////////////
 
-	uint16_t params_offset = 0;
+	size_t params_offset = 0;
 	int param_to_populate = 0;
 
 	// We copy the entire event in any case so that we are ready to handle `CONVERSION_SKIP` cases
@@ -520,7 +594,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 		// The new number of params is the number of conversion instructions.
 		new_evt->nparams = ci.m_instrs.size();
 		new_evt->type = ci.m_desired_type;
-		params_offset = sizeof(scap_evt) + new_evt->nparams * sizeof(uint16_t);
+		params_offset = sizeof(scap_evt) + new_evt->nparams * get_param_len_size(new_evt);
 		param_to_populate = 0;
 		break;
 
@@ -566,7 +640,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 				break;
 			}
 
-			// todo!: undestand if we can pretend this is an error or it is a normal situation.
+			// todo!: understand if we can pretend this is an error or it is a normal situation.
 			if(tmp_evt->type != evt_to_convert->type - 1) {
 				scap_errprintf(
 				        error,

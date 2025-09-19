@@ -396,6 +396,38 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 	return SCAP_SUCCESS;
 }
 
+// Return the number of bytes used to encode parameter lengths in the lengths array of the provided
+// event. Currently, it returns 4 or 2, depending on the fact that the provided event has large
+// payload or not.
+static size_t get_param_len_size(const scap_evt *evt) {
+	return scap_get_event_info_table()[evt->type].flags & EF_LARGE_PAYLOAD ? sizeof(uint32_t)
+	                                                                       : sizeof(uint16_t);
+}
+
+// Notice: user must always check that `len_size` is one among the known size: currently,
+// sizeof(uint16_t) and sizeof(uint32_t).
+static size_t get_param_len_unchecked(const scap_evt *evt,
+                                      const uint8_t param_num,
+                                      const size_t len_size) {
+	const uint16_t len_offset = sizeof(scap_evt) + param_num * len_size;
+	const char *len_ptr = (const char *)evt + len_offset;
+	switch(len_size) {
+	case sizeof(uint16_t): {
+		uint16_t len;
+		memcpy(&len, len_ptr, sizeof(uint16_t));
+		return len;
+	}
+	case sizeof(uint32_t): {
+		uint32_t len;
+		memcpy(&len, len_ptr, sizeof(uint32_t));
+		return len;
+	}
+	default:
+		ASSERT(false);
+		return 0;
+	}
+}
+
 // This should be only used for testing purposes in production we should use directly `memcmp` for
 // the whole event
 bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
@@ -446,19 +478,21 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 	//////////////////////////////
 	// Comparing the length of the parameters
 	//////////////////////////////
+
+	// curr and expected have the same type, so the same parameter lengths size.
+	const size_t len_size = get_param_len_size(curr);
+	if(len_size != sizeof(uint32_t) && len_size != sizeof(uint16_t)) {
+		scap_errprintf(error, 0, "Bug. Unexpected parameters lengths size %ld", len_size);
+		return false;
+	}
+
 	for(int i = 0; i < curr->nparams; i++) {
-		uint16_t curr_param_len = 0;
-		uint16_t expected_param_len = 0;
-		memcpy(&curr_param_len,
-		       (char *)curr + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
-		       sizeof(uint16_t));
-		memcpy(&expected_param_len,
-		       (char *)expected + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
-		       sizeof(uint16_t));
+		const size_t curr_param_len = get_param_len_unchecked(curr, i, len_size);
+		const size_t expected_param_len = get_param_len_unchecked(expected, i, len_size);
 		if(curr_param_len != expected_param_len) {
 			scap_errprintf(error,
 			               0,
-			               "Param %d length mismatch. Current (%d) != expected (%d)",
+			               "Param %d length mismatch. Current (%ld) != expected (%ld)",
 			               i,
 			               curr_param_len,
 			               expected_param_len);
@@ -468,14 +502,10 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 	//////////////////////////////
 	// Comparing each parameter
 	//////////////////////////////
-	char *curr_pos = (char *)curr + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * curr->nparams;
-	char *expected_pos =
-	        (char *)expected + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * curr->nparams;
+	char *curr_pos = (char *)curr + sizeof(struct ppm_evt_hdr) + len_size * curr->nparams;
+	char *expected_pos = (char *)expected + sizeof(struct ppm_evt_hdr) + len_size * curr->nparams;
 	for(int i = 0; i < curr->nparams; i++) {
-		uint16_t curr_param_len = 0;
-		memcpy(&curr_param_len,
-		       (char *)curr + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
-		       sizeof(uint16_t));
+		const size_t curr_param_len = get_param_len_unchecked(curr, i, len_size);
 		// todo!: we can improve this by printing the parameter for the specific type.
 		if(memcmp(curr_pos, expected_pos, curr_param_len) != 0) {
 			scap_errprintf(error, 0, "Param %d mismatch. Current != expected", i);
