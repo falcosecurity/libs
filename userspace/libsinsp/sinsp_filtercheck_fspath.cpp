@@ -171,8 +171,6 @@ void sinsp_filter_check_fspath::create_fspath_checks() {
 	m_path_checks->emplace(PPME_SYSCALL_OPEN_X, evt_arg_name);
 	m_success_checks->emplace(PPME_SYSCALL_OPEN_X, evt_arg_fd_ne_neg1);
 
-	m_success_checks->emplace(PPME_SYSCALL_OPENAT_X, evt_arg_fd_ne_neg1);
-
 	m_path_checks->emplace(PPME_SYSCALL_OPENAT_2_X, evt_arg_name);
 	m_success_checks->emplace(PPME_SYSCALL_OPENAT_2_X, evt_arg_fd_ne_neg1);
 
@@ -290,65 +288,45 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 	ASSERT(evt);
 
 	// First check the success conditions.
-	auto it = m_success_checks->find(evt->get_type());
-	if(it == m_success_checks->end() || !it->second->compare(evt)) {
-		return NULL;
+	if(const auto it = m_success_checks->find(evt->get_type());
+	   it == m_success_checks->cend() || !it->second->compare(evt)) {
+		return nullptr;
 	}
 
-	std::optional<std::reference_wrapper<const std::string>> enter_param;
 	std::vector<extract_value_t> extract_values;
+	std::shared_ptr<filtercheck_map_t> checks;
 
 	switch(m_field_id) {
 	case TYPE_NAME:
 	case TYPE_NAMERAW:
-
-		// For some event types we need to get the values from the enter event instead.
-		switch(evt->get_type()) {
-		case PPME_SYSCALL_OPENAT_X:
-			enter_param = evt->get_enter_evt_param("name");
-			if(!enter_param.has_value()) {
-				return NULL;
-			}
-			m_tstr = enter_param.value();
-			break;
-		default:
-			if(!extract_fspath(evt, extract_values, m_path_checks)) {
-				return NULL;
-			}
-			m_tstr.assign((const char*)extract_values[0].ptr,
-			              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
-		};
-
+		checks = m_path_checks;
 		break;
 	case TYPE_SOURCE:
 	case TYPE_SOURCERAW:
-		// Extract from the exit event.
-		if(!extract_fspath(evt, extract_values, m_source_checks)) {
-			return NULL;
-		}
-		m_tstr.assign((const char*)extract_values[0].ptr,
-		              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
+		checks = m_source_checks;
 		break;
 	case TYPE_TARGET:
 	case TYPE_TARGETRAW:
-		// Extract from the exit event.
-		if(!extract_fspath(evt, extract_values, m_target_checks)) {
-			return NULL;
-		}
-		m_tstr.assign((const char*)extract_values[0].ptr,
-		              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
+		checks = m_target_checks;
 		break;
 	default:
-		return NULL;
+		return nullptr;
 	}
+
+	if(!extract_fspath(evt, extract_values, checks)) {
+		return nullptr;
+	}
+
+	const auto ptr = reinterpret_cast<const char*>(extract_values[0].ptr);
+	m_tstr.assign(ptr, strnlen(ptr, extract_values[0].len));
 
 	// For the non-raw fields, if the path is not absolute,
 	// prepend the cwd of the threadinfo or the dirfd to the path.
 	if((m_field_id == TYPE_NAME || m_field_id == TYPE_SOURCE || m_field_id == TYPE_TARGET)) {
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 
-		if(tinfo == NULL) {
-			return NULL;
+		if(tinfo == nullptr) {
+			return nullptr;
 		}
 
 		if(!std::filesystem::path(m_tstr).is_absolute()) {

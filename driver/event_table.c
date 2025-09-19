@@ -629,7 +629,8 @@ const struct ppm_event_info g_event_info[] = {
                                   {{"res", PT_ERRNO, PF_DEC}}},
         [PPME_SYSCALL_OPENAT_E] = {"openat",
                                    EC_FILE | EC_SYSCALL,
-                                   EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION,
+                                   EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION |
+                                           EF_TMP_CONVERTER_MANAGED,
                                    4,
                                    {{"dirfd", PT_FD, PF_DEC},
                                     {"name", PT_CHARBUF, PF_NA},
@@ -637,7 +638,8 @@ const struct ppm_event_info g_event_info[] = {
                                     {"mode", PT_UINT32, PF_OCT}}},
         [PPME_SYSCALL_OPENAT_X] = {"openat",
                                    EC_FILE | EC_SYSCALL,
-                                   EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION,
+                                   EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION |
+                                           EF_TMP_CONVERTER_MANAGED,
                                    1,
                                    {{"fd", PT_FD, PF_DEC}}},
         [PPME_SYSCALL_LINK_E] = {"link",
