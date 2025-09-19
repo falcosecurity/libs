@@ -212,7 +212,6 @@ struct user_group_updater {
 	        m_must_notify_user_update{must_notify_user_update},
 	        m_must_notify_group_update{must_notify_group_update} {
 		switch(evt->get_type()) {
-		case PPME_PROCEXIT_E:
 		case PPME_PROCEXIT_1_E:
 			m_check_cleanup = true;
 			// falltrough

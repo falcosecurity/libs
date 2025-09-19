@@ -157,7 +157,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt, verdict);
 		break;
-	case PPME_PROCEXIT_E:
 	case PPME_PROCEXIT_1_E:
 		parse_thread_exit(evt, verdict);
 		break;
@@ -342,7 +341,7 @@ static bool is_fork_exit_event(const uint16_t evt_type) {
 }
 
 static bool is_procexit_event(const uint16_t evt_type) {
-	return evt_type == PPME_PROCEXIT_E || evt_type == PPME_PROCEXIT_1_E;
+	return evt_type == PPME_PROCEXIT_1_E;
 }
 
 static bool is_schedswitch_event(const uint16_t evt_type) {
@@ -2816,8 +2815,10 @@ void sinsp_parser::parse_thread_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	/* [Set the reaper to the current thread]
 	 * We need to set the reaper for this thread
 	 */
-	if(evt.get_type() == PPME_PROCEXIT_1_E && evt.get_num_params() > 4) {
-		evt.get_tinfo()->m_reaper_tid = evt.get_param(4)->as<int64_t>();
+	if(evt.get_num_params() > 4) {
+		if(const auto reaper_tid_param = evt.get_param(4); !reaper_tid_param->empty()) {
+			evt.get_tinfo()->m_reaper_tid = reaper_tid_param->as<int64_t>();
+		}
 	} else {
 		evt.get_tinfo()->m_reaper_tid = -1;
 	}

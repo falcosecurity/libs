@@ -477,6 +477,20 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
         {conversion_key{PPME_SOCKET_CONNECT_X, 3},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 1}})},
+        /*====================== PROCEXIT ======================*/
+        {conversion_key{PPME_PROCEXIT_E, 0},
+         conversion_info()
+                 .desired_type(PPME_PROCEXIT_1_E)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_EMPTY, 0},  // status
+                         {C_INSTR_FROM_EMPTY, 0},  // ret
+                         {C_INSTR_FROM_EMPTY, 0},  // sig
+                         {C_INSTR_FROM_EMPTY, 0},  // core
+                         {C_INSTR_FROM_EMPTY, 0},  // reaper_tid
+                 })},
+        {conversion_key{PPME_PROCEXIT_X, 0},
+         conversion_info().desired_type(PPME_PROCEXIT_1_X).action(C_ACTION_CHANGE_TYPE).instrs({})},
         /*====================== SOCKET ======================*/
         {conversion_key{PPME_SOCKET_SOCKET_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SOCKET_SOCKET_X, 1},
