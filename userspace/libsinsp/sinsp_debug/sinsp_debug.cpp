@@ -138,7 +138,6 @@ int main(int argc, char** argv) {
 			display_thread_lineage(tinfo);
 			break;
 
-		case PPME_PROCEXIT_E:
 		case PPME_PROCEXIT_1_E:
 			printf("💥 THREAD EXIT: evt_num(%ld)\n", ev->get_num());
 			for(const auto& child : tinfo->m_children) {

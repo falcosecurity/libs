@@ -50,11 +50,12 @@ TEST_F(sinsp_with_test_input, event_category) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_PROCEXIT_1_E,
-	                           4,
-	                           test_errno,
-	                           test_errno,
-	                           (uint8_t)0,
-	                           (uint8_t)0);
+	                           5,
+	                           test_errno,   // status
+	                           test_errno,   // ret
+	                           (uint8_t)0,   // sig
+	                           (uint8_t)0,   // core
+	                           (int64_t)0);  // reaper_tid
 	ASSERT_EQ(evt->get_category(), EC_PROCESS);
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);

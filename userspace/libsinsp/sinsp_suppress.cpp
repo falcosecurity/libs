@@ -123,8 +123,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 		return SCAP_SUCCESS;
 	}
 	case PPME_PROCEXIT_1_E: {
-		auto it = m_suppressed_tids.find(tid);
-		if(it != m_suppressed_tids.end()) {
+		if(const auto it = m_suppressed_tids.find(tid); it != m_suppressed_tids.cend()) {
 			// Given that the process is exiting, we remove the
 			// tid from the suppressed tids.
 			m_suppressed_tids.erase(it);

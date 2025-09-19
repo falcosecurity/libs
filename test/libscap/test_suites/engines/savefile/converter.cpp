@@ -2515,6 +2515,44 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
 }
 
 ////////////////////////////
+// PROCEXIT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_PROCEXIT_E_0_to_1_E_5_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty.
+	constexpr auto status = empty_value<int64_t>();
+	constexpr auto ret = empty_value<int64_t>();
+	constexpr auto sig = empty_value<uint8_t>();
+	constexpr auto core = empty_value<uint8_t>();
+	constexpr auto reaper_tid = empty_value<int64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 0, 1, 2, 3, 4);
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_PROCEXIT_E, 0),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_PROCEXIT_1_E,
+	                                                                &empty_params_set,
+	                                                                5,
+	                                                                status,
+	                                                                ret,
+	                                                                sig,
+	                                                                core,
+	                                                                reaper_tid));
+}
+
+TEST_F(convert_event_test, PPME_PROCEXIT_X_0_to_1_X_0_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_PROCEXIT_X, 0),
+	                       create_safe_scap_event(ts, tid, PPME_PROCEXIT_1_X, 0));
+}
+
+////////////////////////////
 // SOCKET
 ////////////////////////////
 

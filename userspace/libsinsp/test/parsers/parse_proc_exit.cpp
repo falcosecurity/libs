@@ -164,11 +164,21 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper) {
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_old_event_version) {
+TEST_F(sinsp_with_test_input, PROC_EXIT_no_reaper) {
 	DEFAULT_TREE
 
-	/* This version of proc_exit event doesn't have the reaper info */
-	auto evt = add_event_advance_ts(increasing_ts(), p5_t2_tid, PPME_PROCEXIT_E, 0);
+	/* This version of proc_exit event doesn't have the reaper info. */
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 0, 1, 2, 3, 4);
+	auto evt = add_event_advance_ts_with_empty_params(increasing_ts(),
+	                                                  p5_t2_tid,
+	                                                  PPME_PROCEXIT_1_E,
+	                                                  &empty_params_set,
+	                                                  5,
+	                                                  (int64_t)0,   // status
+	                                                  (int64_t)0,   // ret
+	                                                  (uint8_t)0,   // sig
+	                                                  (uint8_t)0,   // core
+	                                                  (int64_t)0);  // reaper_tid
 
 	/* we don't remove the children from p5_t2 */
 	ASSERT_THREAD_CHILDREN(p5_t2_tid, 1, 1, p6_t1_tid);

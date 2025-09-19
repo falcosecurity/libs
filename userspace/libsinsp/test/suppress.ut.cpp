@@ -48,7 +48,15 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 
 	EXPECT_NE(thread_manager->get_thread_ref(pid), nullptr);
 
-	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     pid,
+	                     PPME_PROCEXIT_1_E,
+	                     5,
+	                     (int64_t)0,   // status
+	                     (int64_t)0,   // ret
+	                     (uint8_t)0,   // sig
+	                     (uint8_t)0,   // core
+	                     (int64_t)0);  // reaper_tid
 
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_GETSOCKNAME_X, 0);
@@ -94,7 +102,15 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 
 	EXPECT_NE(thread_manager->get_thread_ref(pid), nullptr);
 
-	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     pid,
+	                     PPME_PROCEXIT_1_E,
+	                     5,
+	                     (int64_t)0,   // status
+	                     (int64_t)0,   // ret
+	                     (uint8_t)0,   // sig
+	                     (uint8_t)0,   // core
+	                     (int64_t)0);  // reaper_tid
 
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_GETSOCKNAME_X, 0);

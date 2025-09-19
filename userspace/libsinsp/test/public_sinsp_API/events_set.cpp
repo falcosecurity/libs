@@ -243,7 +243,7 @@ TEST(events_set, event_set_to_names_no_generic_events1) {
 	                                              PPME_SYSCALL_UMOUNT_X,
 	                                              PPME_SYSCALL_EVENTFD_E,
 	                                              PPME_SYSCALL_EVENTFD_X,
-	                                              PPME_PROCEXIT_E,
+	                                              PPME_PROCEXIT_1_E,
 	                                              PPME_CONTAINER_E});
 	auto names = test_utils::unordered_set_to_ordered(names_unordered);
 	ASSERT_NAMES_EQ(names_truth, names);
@@ -329,8 +329,8 @@ TEST(events_set, all_non_generic_sc_event_set) {
 	/* No non sc events expected. */
 	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_E));
 	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_X));
-	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_E));
-	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_X));
+	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_1_E));
+	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_1_X));
 }
 
 TEST(events_set, all_non_sc_event_set) {
@@ -345,6 +345,6 @@ TEST(events_set, all_non_sc_event_set) {
 	/* Some critical expected non sc events. */
 	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_E));
 	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_X));
-	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_E));
-	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_X));
+	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_1_E));
+	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_1_X));
 }
