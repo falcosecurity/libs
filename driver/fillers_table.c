@@ -63,7 +63,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_EPOLLWAIT_X] = {FILLER_REF(sys_epoll_wait_x)},
         [PPME_SYSCALL_POLL_X] = {FILLER_REF(sys_poll_x)},
         [PPME_SYSCALL_SELECT_X] = {FILLER_REF(sys_single_x)},
-        [PPME_SYSCALL_NEWSELECT_X] = {FILLER_REF(sys_single_x)},
         [PPME_SYSCALL_LSEEK_X] = {FILLER_REF(sys_lseek_x)},
         [PPME_SYSCALL_LLSEEK_X] = {FILLER_REF(sys_single_x)},
         [PPME_SYSCALL_GETCWD_X] = {FILLER_REF(sys_getcwd_x)},

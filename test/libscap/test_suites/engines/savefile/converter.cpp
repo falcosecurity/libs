@@ -4284,6 +4284,31 @@ TEST_F(convert_event_test, PPME_SYSCALL_POLL_X_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// NEWSELECT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_NEWSELECT_E_skip) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_NEWSELECT_E, 0);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_absence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_NEWSELECT_X_1_to_SELECT_X_1_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t res = 89;
+
+	assert_single_conversion_success(
+	        CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NEWSELECT_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SELECT_X, 1, res));
+}
+
+////////////////////////////
 // LSEEK
 ////////////////////////////
 

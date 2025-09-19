@@ -681,6 +681,13 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_POLL_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_POLL_X, 2},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 1}})},
+        /*====================== NEWSELECT ======================*/
+        {conversion_key{PPME_SYSCALL_NEWSELECT_E, 0}, conversion_info().action(C_ACTION_SKIP)},
+        {conversion_key{PPME_SYSCALL_NEWSELECT_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_SELECT_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({{C_INSTR_FROM_OLD, 0}})},
         /*====================== LSEEK ======================*/
         {conversion_key{PPME_SYSCALL_LSEEK_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_LSEEK_X, 1},
