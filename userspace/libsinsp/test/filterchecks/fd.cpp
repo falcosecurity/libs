@@ -59,14 +59,4 @@ TEST_F(sinsp_with_test_input, FD_FILTER_extract_from_null_type_filename) {
 
 	evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_CREAT_E, 2, path.c_str(), 0);
 	ASSERT_FALSE(field_has_value(evt, "fd.filename"));
-
-	evt = add_event_advance_ts(increasing_ts(),
-	                           INIT_TID,
-	                           PPME_SYSCALL_OPENAT_E,
-	                           4,
-	                           dirfd,
-	                           path.c_str(),
-	                           PPM_O_RDONLY | PPM_O_CLOEXEC,
-	                           0);
-	ASSERT_FALSE(field_has_value(evt, "fd.filename"));
 }

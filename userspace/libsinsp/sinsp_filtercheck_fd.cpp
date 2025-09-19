@@ -416,35 +416,23 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 
 		return true;
 	}
-	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
 	case PPME_SYSCALL_OPENAT2_X: {
-		sinsp_evt enter_evt;
-		const sinsp_evt_param *parinfo;
-
-		if(etype == PPME_SYSCALL_OPENAT_X) {
-			//
-			// XXX This is highly inefficient, as it re-requests the enter event and then
-			// does unnecessary allocations and copies. We assume that failed openat() happen
-			// rarely enough that we don't care.
-			//
-			if(!m_inspector->get_parser()->retrieve_enter_event(enter_evt, *evt)) {
-				return false;
-			}
+		const auto dir_fd_param = evt->get_param(1);
+		const auto name_param = evt->get_param(2);
+		if(name_param->empty()) {
+			return false;
 		}
-
-		parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(1) : evt->get_param(2);
-		std::string_view name = parinfo->as<std::string_view>();
-
-		parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(0) : evt->get_param(1);
-		int64_t dirfd = parinfo->as<int64_t>();
-
-		std::string sdir = sinsp_parser::parse_dirfd(*evt, name, dirfd);
-
+		const auto name = name_param->as<std::string_view>();
 		if(fd_nameraw) {
 			m_tstr = name;
 		} else {
 			// fullpath
+			if(dir_fd_param->empty()) {
+				return false;
+			}
+			const auto dir_fd = dir_fd_param->as<int64_t>();
+			const auto sdir = sinsp_parser::parse_dirfd(*evt, name, dir_fd);
 			m_tstr = sinsp_utils::concatenate_paths(sdir, name);  // here we'd like a string
 		}
 

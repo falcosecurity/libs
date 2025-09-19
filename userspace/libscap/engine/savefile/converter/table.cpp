@@ -642,6 +642,21 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .desired_type(PPME_SYSCALL_RMDIR_2_X)
                  .action(C_ACTION_CHANGE_TYPE)
                  .instrs({{C_INSTR_FROM_OLD, 0}, {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY}})},
+        /*====================== OPENAT ======================*/
+        {conversion_key{PPME_SYSCALL_OPENAT_E, 4}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SYSCALL_OPENAT_X, 1},
+         conversion_info()
+                 .desired_type(PPME_SYSCALL_OPENAT_2_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},                           // fd
+                         {C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},  // dirfd
+                         {C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY},  // name
+                         {C_INSTR_FROM_ENTER, 2, CIF_FALLBACK_TO_EMPTY},  // flags
+                         {C_INSTR_FROM_ENTER, 3, CIF_FALLBACK_TO_EMPTY},  // mode
+                         {C_INSTR_FROM_EMPTY, 0},                         // dev
+                         {C_INSTR_FROM_EMPTY, 0},                         // ino
+                 })},
         /*====================== UNSHARE ======================*/
         {conversion_key{PPME_SYSCALL_UNSHARE_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_UNSHARE_X, 1},

@@ -461,22 +461,20 @@ TEST_F(sinsp_with_test_input, bitmaskparams) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
 
-	int64_t dirfd = 0;
-	/* `PPME_SYSCALL_OPENAT_E` is a simple event that uses a PT_FLAGS32 (param 3) */
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_OPENAT_E,
-	                           4,
-	                           dirfd,
-	                           "/tmp/foo",
-	                           PPM_O_RDONLY | PPM_O_CLOEXEC,
-	                           0);
+	/* `PPME_SYSCALL_OPENAT_2_E` is a simple event that uses a PT_FLAGS32 (param 3) */
+	const auto evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT_2_E,
+	                                      4,
+	                                      (int64_t)0,                    // dirfd
+	                                      "/tmp/foo",                    // name
+	                                      PPM_O_RDONLY | PPM_O_CLOEXEC,  // flags
+	                                      (uint32_t)0);                  // mode
 
 	ASSERT_EQ(evt->get_param(2)->as<uint32_t>(), PPM_O_RDONLY | PPM_O_CLOEXEC);
 
-	const char* val_str = NULL;
+	const char* val_str = nullptr;
 	evt->get_param_as_str(2, &val_str);
 	ASSERT_STREQ(val_str, "O_RDONLY|O_CLOEXEC");
 }

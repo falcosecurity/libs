@@ -634,12 +634,6 @@ public:
 	int32_t get_errorcode() const { return m_errorcode; }
 	inline void set_errorcode(int32_t v) { m_errorcode = v; }
 
-	// Save important values from the provided enter event. They
-	// are accessible from get_enter_evt_param().
-	void save_enter_event_params(sinsp_evt* enter_evt);
-	std::optional<std::reference_wrapper<const std::string>> get_enter_evt_param(
-	        const std::string& param) const;
-
 	inline const scap_evt* get_scap_evt() const { return m_pevt; }
 
 	inline scap_evt* get_scap_evt() { return m_pevt; }
@@ -690,7 +684,6 @@ public:
 
 	inline char extract_typechar() {
 		switch(PPME_MAKE_EXIT(get_type())) {
-		case PPME_SYSCALL_OPENAT_X:
 		case PPME_SYSCALL_OPENAT_2_X:
 		case PPME_SYSCALL_OPENAT2_X:
 		case PPME_SYSCALL_CREAT_X:
@@ -811,9 +804,6 @@ private:
 	const struct ppm_event_info* m_event_info_table;
 
 	std::shared_ptr<sinsp_fdinfo> m_fdinfo_ref;
-	// For some exit events, the "path" argument from the
-	// corresponding enter event is stored here.
-	std::unordered_map<std::string, std::string> m_enter_path_param;
 
 	size_t m_source_idx;
 	const char* m_source_name;

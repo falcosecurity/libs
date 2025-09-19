@@ -92,7 +92,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	switch(etype) {
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_CREAT_E:
-	case PPME_SYSCALL_OPENAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
 	// Notice that, even if the drivers don't send anymore execve* enter events, scap files still
@@ -134,10 +133,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_FCHMOD_X:
 	case PPME_SYSCALL_FCHOWN_X:
 		parse_fchmod_fchown_exit(evt);
-		break;
-	case PPME_SYSCALL_OPENAT_X:
-		parse_fspath_related_exit(evt);
-		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_SETNS_X:
@@ -1944,27 +1939,26 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 		}
 
 		sdir = evt.get_tinfo()->get_cwd();
-	} else if(etype == PPME_SYSCALL_OPENAT_X) {
-		flags = 0;
+	} else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X) {
 		sdir = "";
 		name = "<NA>";
-		if(lastevent_retrieved) {
-			name = enter_evt->get_param(1)->as<std::string_view>();
-			flags = enter_evt->get_param(2)->as<uint32_t>();
-			int64_t dirfd = enter_evt->get_param(0)->as<int64_t>();
-			sdir = parse_dirfd(evt, name, dirfd);
+		flags = 0;
+		if(const auto name_param = evt.get_param(2); !name_param->empty()) {
+			name = name_param->as<std::string_view>();
 		}
-	} else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X) {
-		name = evt.get_param(2)->as<std::string_view>();
 
-		flags = evt.get_param(3)->as<uint32_t>();
-
-		int64_t dirfd = evt.get_param(1)->as<int64_t>();
+		if(const auto flags_param = evt.get_param(3); !flags_param->empty()) {
+			flags = flags_param->as<uint32_t>();
+		}
 
 		if(etype == PPME_SYSCALL_OPENAT_2_X && evt.get_num_params() > 5) {
-			dev = evt.get_param(5)->as<uint32_t>();
+			if(const auto dev_param = evt.get_param(5); !dev_param->empty()) {
+				dev = dev_param->as<uint32_t>();
+			}
 			if(evt.get_num_params() > 6) {
-				ino = evt.get_param(6)->as<uint64_t>();
+				if(const auto ino_param = evt.get_param(6); !ino_param->empty()) {
+					ino = ino_param->as<uint64_t>();
+				}
 			}
 		} else if(etype == PPME_SYSCALL_OPENAT2_X && evt.get_num_params() > 6) {
 			dev = evt.get_param(6)->as<uint32_t>();
@@ -1973,13 +1967,14 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			}
 		}
 
+		auto dirfd_param = evt.get_param(1);
 		//
 		// Compare with enter event parameters
 		//
 		if(lastevent_retrieved && enter_evt->get_num_params() >= 3) {
 			enter_evt_name = enter_evt->get_param(1)->as<std::string_view>();
 			enter_evt_flags = enter_evt->get_param(2)->as<uint32_t>();
-			int64_t enter_evt_dirfd = enter_evt->get_param(0)->as<int64_t>();
+			auto enter_evt_dirfd = enter_evt->get_param(0);
 
 			if(enter_evt_name.data() != nullptr && enter_evt_name != "<NA>") {
 				name = enter_evt_name;
@@ -1989,11 +1984,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 				uint32_t added_flags = flags & mask;
 				flags = enter_evt_flags | added_flags;
 
-				dirfd = enter_evt_dirfd;
+				dirfd_param = enter_evt_dirfd;
 			}
 		}
 
-		sdir = parse_dirfd(evt, name, dirfd);
+		if(!dirfd_param->empty()) {
+			sdir = parse_dirfd(evt, name, dirfd_param->as<int64_t>());
+		}
 	} else if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
 		flags = evt.get_param(2)->as<uint32_t>();
 
@@ -3044,13 +3041,6 @@ void sinsp_parser::swap_addresses(sinsp_fdinfo &fdinfo) {
 
 		fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dip = tip;
 		fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dport = tport;
-	}
-}
-
-void sinsp_parser::parse_fspath_related_exit(sinsp_evt &evt) const {
-	sinsp_evt *enter_evt = &m_tmp_evt;
-	if(retrieve_enter_event(*enter_evt, evt)) {
-		evt.save_enter_event_params(enter_evt);
 	}
 }
 

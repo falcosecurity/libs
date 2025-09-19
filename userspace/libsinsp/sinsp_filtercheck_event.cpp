@@ -676,13 +676,13 @@ uint8_t* sinsp_filter_check_event::extract_argraw(sinsp_evt* evt,
 uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len) {
 	std::string spath;
 
-	if(evt->get_tinfo() == NULL) {
-		return NULL;
+	if(evt->get_tinfo() == nullptr) {
+		return nullptr;
 	}
 
 	uint16_t etype = evt->get_type();
 
-	const char *dirfdarg = NULL, *patharg = NULL;
+	const char *dirfdarg = nullptr, *patharg = nullptr;
 	if(etype == PPME_SYSCALL_RENAMEAT_X || etype == PPME_SYSCALL_RENAMEAT2_X) {
 		if(m_argid == 0 || m_argid == 1) {
 			dirfdarg = "olddirfd";
@@ -694,8 +694,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 	} else if(etype == PPME_SYSCALL_SYMLINKAT_X) {
 		dirfdarg = "linkdirfd";
 		patharg = "linkpath";
-	} else if(etype == PPME_SYSCALL_OPENAT_E || etype == PPME_SYSCALL_OPENAT_2_X ||
-	          etype == PPME_SYSCALL_OPENAT2_X) {
+	} else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X) {
 		dirfdarg = "dirfd";
 		patharg = "name";
 	} else if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
@@ -739,7 +738,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 	}
 
 	if(!dirfdarg || !patharg) {
-		return 0;
+		return nullptr;
 	}
 
 	int dirfdargidx = -1, pathargidx = -1, idx = 0;
@@ -755,14 +754,14 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 	}
 
 	if((dirfdargidx < 0) || (pathargidx < 0)) {
-		return 0;
+		return nullptr;
 	}
 
 	// Make sure that the parameters are not empty.
 	const auto dirfd_param = evt->get_param(dirfdargidx);
 	const auto path_param = evt->get_param(pathargidx);
 	if(dirfd_param->empty() || path_param->empty()) {
-		return 0;
+		return nullptr;
 	}
 
 	const auto dirfd = dirfd_param->as<int64_t>();
@@ -783,7 +782,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 	} else {
 		evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
 
-		if(evt->get_fd_info() == NULL) {
+		if(evt->get_fd_info() == nullptr) {
 			ASSERT(false);
 			sdir = "<UNKNOWN>/";
 		} else {
@@ -1409,11 +1408,10 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 				return extract_error_count(evt, len);
 			}
 		} else {
-			uint16_t etype = evt->get_type();
-
-			if(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_CREAT_X ||
-			   etype == PPME_SYSCALL_OPENAT_X || etype == PPME_SYSCALL_OPENAT_2_X ||
-			   etype == PPME_SYSCALL_OPENAT2_X || etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
+			if(const auto etype = evt->get_type();
+			   etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_CREAT_X ||
+			   etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X ||
+			   etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
 				return extract_error_count(evt, len);
 			}
 		}
@@ -1459,15 +1457,13 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 				return extract_error_count(evt, len);
 			}
 		} else {
-			uint16_t etype = evt->get_type();
-
-			if(!(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_CREAT_X ||
-			     etype == PPME_SYSCALL_OPENAT_X || etype == PPME_SYSCALL_OPENAT_2_X ||
-			     etype == PPME_SYSCALL_OPENAT2_X || etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X ||
-			     etype == PPME_SOCKET_ACCEPT_X || etype == PPME_SOCKET_ACCEPT_5_X ||
-			     etype == PPME_SOCKET_ACCEPT4_X || etype == PPME_SOCKET_ACCEPT4_5_X ||
-			     etype == PPME_SOCKET_ACCEPT4_6_X || etype == PPME_SOCKET_CONNECT_X ||
-			     evt->get_category() == EC_MEMORY)) {
+			if(const auto etype = evt->get_type();
+			   !(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_CREAT_X ||
+			     etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X ||
+			     etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X || etype == PPME_SOCKET_ACCEPT_X ||
+			     etype == PPME_SOCKET_ACCEPT_5_X || etype == PPME_SOCKET_ACCEPT4_X ||
+			     etype == PPME_SOCKET_ACCEPT4_5_X || etype == PPME_SOCKET_ACCEPT4_6_X ||
+			     etype == PPME_SOCKET_CONNECT_X || evt->get_category() == EC_MEMORY)) {
 				return extract_error_count(evt, len);
 			}
 		}
@@ -1579,14 +1575,16 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		// If any of the exec bits is on, we consider this an open+exec
 		uint32_t is_exec_mask = (PPM_S_IXUSR | PPM_S_IXGRP | PPM_S_IXOTH);
 
-		if(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_OPENAT_E ||
-		   etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X ||
-		   etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
+		if(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_OPENAT_2_X ||
+		   etype == PPME_SYSCALL_OPENAT2_X || etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
 			bool is_new_version =
 			        etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
-			// For both OPEN_X and OPENAT_E,
-			// flags is the 3rd argument.
-			uint32_t flags = evt->get_param(is_new_version ? 3 : 2)->as<uint32_t>();
+			// For both OPEN_X and PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, flags is the 3rd argument.
+			uint32_t flags = 0;
+			if(const auto flags_param = evt->get_param(is_new_version ? 3 : 2);
+			   !flags_param->empty()) {
+				flags = flags_param->as<uint32_t>();
+			}
 
 			// PPM open flags use 0x11 for
 			// PPM_O_RDWR, so there's no need to
@@ -1618,8 +1616,11 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			/* `open_by_handle_at` exit event has no `mode` parameter. */
 			if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT) &&
 			                                      etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)) {
-				uint32_t mode_bits = evt->get_param(is_new_version ? 4 : 3)->as<uint32_t>();
-				m_val.u32 = (mode_bits & is_exec_mask) ? 1 : 0;
+				if(const auto mode_param = evt->get_param(is_new_version ? 4 : 3);
+				   !mode_param->empty()) {
+					uint32_t mode_bits = mode_param->as<uint32_t>();
+					m_val.u32 = (mode_bits & is_exec_mask) ? 1 : 0;
+				}
 			}
 		} else if((m_field_id == TYPE_ISOPEN_EXEC) && (etype == PPME_SYSCALL_CREAT_X)) {
 			uint32_t mode_bits = evt->get_param(2)->as<uint32_t>();

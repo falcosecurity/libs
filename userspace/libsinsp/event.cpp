@@ -1693,8 +1693,7 @@ bool sinsp_evt::is_syscall_error() const {
 bool sinsp_evt::is_file_open_error() const {
 	return (m_fdinfo == nullptr) &&
 	       ((m_pevt->type == PPME_SYSCALL_OPEN_X) || (m_pevt->type == PPME_SYSCALL_CREAT_X) ||
-	        (m_pevt->type == PPME_SYSCALL_OPENAT_X) || (m_pevt->type == PPME_SYSCALL_OPENAT_2_X) ||
-	        (m_pevt->type == PPME_SYSCALL_OPENAT2_X) ||
+	        (m_pevt->type == PPME_SYSCALL_OPENAT_2_X) || (m_pevt->type == PPME_SYSCALL_OPENAT2_X) ||
 	        (m_pevt->type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X));
 }
 
@@ -1718,31 +1717,6 @@ bool sinsp_evt::is_network_error() const {
 
 uint64_t sinsp_evt::get_lastevent_ts() const {
 	return m_tinfo->m_lastevent_ts;
-}
-
-void sinsp_evt::save_enter_event_params(sinsp_evt *enter_evt) {
-	if(get_type() != PPME_SYSCALL_OPENAT_X) {
-		return;
-	}
-
-	const sinsp_evt_param *param;
-
-	param = enter_evt->get_param_by_name("name");
-	if(param) {
-		std::string val = param->as<std::string>();
-		m_enter_path_param["name"] = val;
-	}
-}
-
-std::optional<std::reference_wrapper<const std::string>> sinsp_evt::get_enter_evt_param(
-        const std::string &param) const {
-	auto it = m_enter_path_param.find(param);
-
-	if(it != m_enter_path_param.end()) {
-		return it->second;
-	}
-
-	return std::nullopt;
 }
 
 void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const {
