@@ -1152,6 +1152,47 @@ TEST_F(convert_event_test, PPME_SYSCALL_PRLIMIT_X_5_to_7_params_with_enter) {
 }
 
 ////////////////////////////
+// PRLIMIT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SCHEDSWITCH_1_E_1_to_6_E_6_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t next = 66;
+
+	// Set to empty.
+	constexpr auto pgft_maj = empty_value<uint64_t>();
+	constexpr auto pgft_min = empty_value<uint64_t>();
+	constexpr auto vm_size = empty_value<uint32_t>();
+	constexpr auto vm_rss = empty_value<uint32_t>();
+	constexpr auto vm_swap = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3, 4, 5);
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SCHEDSWITCH_1_E, 1, next),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SCHEDSWITCH_6_E,
+	                                                                &empty_params_set,
+	                                                                6,
+	                                                                next,
+	                                                                pgft_maj,
+	                                                                pgft_min,
+	                                                                vm_size,
+	                                                                vm_rss,
+	                                                                vm_swap));
+}
+
+TEST_F(convert_event_test, PPME_SCHEDSWITCH_1_X_0_to_6_X_0_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SCHEDSWITCH_1_X, 0),
+	                       create_safe_scap_event(ts, tid, PPME_SCHEDSWITCH_6_X, 0));
+}
+
+////////////////////////////
 // FCNTL
 ////////////////////////////
 

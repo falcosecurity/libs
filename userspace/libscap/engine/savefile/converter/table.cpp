@@ -156,6 +156,24 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},
                           {C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY}})},
+        /*====================== SCHEDSWITCH ======================*/
+        {conversion_key{PPME_SCHEDSWITCH_1_E, 1},
+         conversion_info()
+                 .desired_type(PPME_SCHEDSWITCH_6_E)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},    // next
+                         {C_INSTR_FROM_EMPTY, 0},  // pgft_maj
+                         {C_INSTR_FROM_EMPTY, 0},  // pgft_min
+                         {C_INSTR_FROM_EMPTY, 0},  // vm_size
+                         {C_INSTR_FROM_EMPTY, 0},  // vm_rss
+                         {C_INSTR_FROM_EMPTY, 0},  // vm_swap
+                 })},
+        {conversion_key{PPME_SCHEDSWITCH_1_X, 0},
+         conversion_info()
+                 .desired_type(PPME_SCHEDSWITCH_6_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({})},
         /*====================== FCNTL ======================*/
         {conversion_key{PPME_SYSCALL_FCNTL_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_FCNTL_X, 1},

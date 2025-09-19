@@ -8,7 +8,7 @@ TEST(event_table, scap_get_syscall_category_from_event) {
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_MESOS_X), EC_UNKNOWN);
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_TRACER_X), EC_OTHER);
 	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_PROCINFO_E), EC_INTERNAL);
-	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_SCHEDSWITCH_1_E), EC_SCHEDULER);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_SCHEDSWITCH_6_E), EC_SCHEDULER);
 }
 
 TEST(event_table, scap_get_event_category_from_event) {
@@ -17,7 +17,7 @@ TEST(event_table, scap_get_event_category_from_event) {
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_MESOS_X), EC_UNKNOWN);
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_TRACER_X), EC_METAEVENT);
 	ASSERT_EQ(scap_get_event_category_from_event(PPME_PROCINFO_E), EC_METAEVENT);
-	ASSERT_EQ(scap_get_event_category_from_event(PPME_SCHEDSWITCH_1_E), EC_TRACEPOINT);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_SCHEDSWITCH_6_E), EC_TRACEPOINT);
 }
 
 /* Check if the events category is correct in our event table.

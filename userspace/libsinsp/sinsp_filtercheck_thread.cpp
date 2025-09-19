@@ -1289,21 +1289,18 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		m_val.u32 = (uint32_t)tinfo->is_main_thread();
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_EXECTIME: {
-		m_val.u64 = 0;
-		uint16_t etype = evt->get_type();
-
-		if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E) {
+		if(const auto etype = evt->get_type(); etype == PPME_SCHEDSWITCH_6_E) {
 			m_val.u64 = extract_exectime(evt);
+		} else {
+			m_val.u64 = 0;
 		}
-
 		RETURN_EXTRACT_VAR(m_val.u64);
 	}
 	case TYPE_TOTEXECTIME: {
-		m_val.u64 = 0;
-		uint16_t etype = evt->get_type();
-
-		if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E) {
+		if(const auto etype = evt->get_type(); etype == PPME_SCHEDSWITCH_6_E) {
 			m_val.u64 = extract_exectime(evt);
+		} else {
+			m_val.u64 = 0;
 		}
 
 		sinsp_threadinfo* tinfo = evt->get_thread_info(false);
