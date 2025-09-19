@@ -74,10 +74,9 @@ struct sinsp_evt_filter {
 		// When debug mode is not enabled, filter out events about itself
 		//
 		if(is_live && !inspector->is_debug_enabled()) {
-			if(evt->get_tid() == inspector->m_self_pid && etype != PPME_SCHEDSWITCH_1_E &&
-			   etype != PPME_SCHEDSWITCH_6_E && etype != PPME_DROP_E && etype != PPME_DROP_X &&
-			   etype != PPME_SCAPEVENT_E && etype != PPME_PROCINFO_E &&
-			   etype != PPME_CPU_HOTPLUG_E && inspector->m_self_pid) {
+			if(evt->get_tid() == inspector->m_self_pid && etype != PPME_SCHEDSWITCH_6_E &&
+			   etype != PPME_DROP_E && etype != PPME_DROP_X && etype != PPME_SCAPEVENT_E &&
+			   etype != PPME_PROCINFO_E && etype != PPME_CPU_HOTPLUG_E && inspector->m_self_pid) {
 				evt->set_filtered_out(true);
 				return;
 			}
@@ -1552,8 +1551,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	//
 	// Update the last event time for this thread
 	//
-	if(evt->get_tinfo() && evt->get_type() != PPME_SCHEDSWITCH_1_E &&
-	   evt->get_type() != PPME_SCHEDSWITCH_6_E) {
+	if(evt->get_tinfo() && evt->get_type() != PPME_SCHEDSWITCH_6_E) {
 		evt->get_tinfo()->m_prevevent_ts = evt->get_tinfo()->m_lastevent_ts;
 		evt->get_tinfo()->m_lastevent_ts = m_timestamper.get_cached_ts();
 	}

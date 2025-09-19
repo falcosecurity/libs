@@ -244,7 +244,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SOCKET_SOCKETPAIR_X:
 		parse_socketpair_exit(evt);
 		break;
-	case PPME_SCHEDSWITCH_1_E:
 	case PPME_SCHEDSWITCH_6_E:
 		parse_context_switch(evt);
 		break;
@@ -345,7 +344,7 @@ static bool is_procexit_event(const uint16_t evt_type) {
 }
 
 static bool is_schedswitch_event(const uint16_t evt_type) {
-	return evt_type == PPME_SCHEDSWITCH_1_E || evt_type == PPME_SCHEDSWITCH_6_E;
+	return evt_type == PPME_SCHEDSWITCH_6_E;
 }
 
 /*!
@@ -3747,17 +3746,18 @@ void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
 		return;
 	}
 
+	// If this parameter is not present, so is for the other ones (see scap-converter table).
+	const auto vm_swap_param = evt.get_param(5);
+	if(vm_swap_param->empty()) {
+		return;
+	}
+
 	evt.get_tinfo()->m_pfmajor = evt.get_param(1)->as<uint64_t>();
-
 	evt.get_tinfo()->m_pfminor = evt.get_param(2)->as<uint64_t>();
-
-	auto main_tinfo = evt.get_tinfo()->get_main_thread();
-	if(main_tinfo) {
+	if(const auto main_tinfo = evt.get_tinfo()->get_main_thread()) {
 		main_tinfo->m_vmsize_kb = evt.get_param(3)->as<uint32_t>();
-
 		main_tinfo->m_vmrss_kb = evt.get_param(4)->as<uint32_t>();
-
-		main_tinfo->m_vmswap_kb = evt.get_param(5)->as<uint32_t>();
+		main_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 	}
 }
 
