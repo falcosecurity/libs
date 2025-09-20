@@ -6861,6 +6861,28 @@ TEST_F(convert_event_test, PPME_SYSCALL_ACCESS_X_2_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// CONTAINER
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_CONTAINER_JSON_E_1_to_2_E_1) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr char json[] = "{}";
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_E, 1, json),
+	                       create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_2_E, 1, json));
+}
+
+TEST_F(convert_event_test, PPME_CONTAINER_JSON_X_0_to_2_X_0) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_X, 0),
+	                       create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_2_X, 0));
+}
+
+////////////////////////////
 // FCHDIR
 ////////////////////////////
 

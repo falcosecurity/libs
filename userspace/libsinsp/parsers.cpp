@@ -410,8 +410,8 @@ bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	}
 
 	// todo(jasondellaluce): should we do this for all meta-events in general?
-	if(etype == PPME_CONTAINER_JSON_E || etype == PPME_CONTAINER_JSON_2_E ||
-	   etype == PPME_USER_ADDED_E || etype == PPME_USER_DELETED_E || etype == PPME_GROUP_ADDED_E ||
+	if(etype == PPME_CONTAINER_JSON_2_E || etype == PPME_USER_ADDED_E ||
+	   etype == PPME_USER_DELETED_E || etype == PPME_GROUP_ADDED_E ||
 	   etype == PPME_GROUP_DELETED_E || etype == PPME_PLUGINEVENT_E || etype == PPME_ASYNCEVENT_E) {
 		// Note: still managing container events cases. They might still be present in existing scap
 		// files, even if they are then parsed by the container plugin.

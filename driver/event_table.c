@@ -1839,10 +1839,13 @@ const struct ppm_event_info g_event_info[] = {
         [PPME_CONTAINER_JSON_E] =
                 {"container",
                  EC_PROCESS | EC_METAEVENT,
-                 EF_MODIFIES_STATE | EF_OLD_VERSION,
+                 EF_MODIFIES_STATE | EF_OLD_VERSION | EF_TMP_CONVERTER_MANAGED,
                  1,
                  {{"json", PT_CHARBUF, PF_NA}}},  /// TODO: do we need SKIPPARSERESET flag?
-        [PPME_CONTAINER_JSON_X] = {"NA", EC_UNKNOWN, EF_UNUSED | EF_OLD_VERSION, 0},
+        [PPME_CONTAINER_JSON_X] = {"NA",
+                                   EC_UNKNOWN,
+                                   EF_UNUSED | EF_OLD_VERSION | EF_TMP_CONVERTER_MANAGED,
+                                   0},
         [PPME_SYSCALL_SETSID_E] = {"setsid", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 0},
         [PPME_SYSCALL_SETSID_X] = {"setsid",
                                    EC_PROCESS | EC_SYSCALL,
