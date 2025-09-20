@@ -275,10 +275,10 @@ sinsp::~sinsp() {
 
 bool sinsp::is_initialstate_event(const scap_evt& pevent) {
 	const auto evt_type = pevent.type;
-	return evt_type == PPME_CONTAINER_E || evt_type == PPME_CONTAINER_JSON_E ||
-	       evt_type == PPME_CONTAINER_JSON_2_E || evt_type == PPME_USER_ADDED_E ||
-	       evt_type == PPME_USER_DELETED_E || evt_type == PPME_GROUP_ADDED_E ||
-	       evt_type == PPME_GROUP_DELETED_E || evt_type == PPME_ASYNCEVENT_E;
+	return evt_type == PPME_CONTAINER_E || evt_type == PPME_CONTAINER_JSON_2_E ||
+	       evt_type == PPME_USER_ADDED_E || evt_type == PPME_USER_DELETED_E ||
+	       evt_type == PPME_GROUP_ADDED_E || evt_type == PPME_GROUP_DELETED_E ||
+	       evt_type == PPME_ASYNCEVENT_E;
 }
 
 void sinsp::consume_initialstate_events() {
