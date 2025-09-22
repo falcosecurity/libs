@@ -490,7 +490,7 @@ TEST(ppm_sc_API, event_empty_sets) {
 	ASSERT_TRUE(empty_sc_set.empty());
 	ASSERT_TRUE(empty_event_names.empty());
 
-	libsinsp::events::set<ppm_event_code> meta_event{PPME_CONTAINER_E};
+	libsinsp::events::set<ppm_event_code> meta_event{PPME_CONTAINER_JSON_2_E};
 	ASSERT_TRUE(libsinsp::events::event_set_to_sc_set(meta_event).empty());
 }
 
