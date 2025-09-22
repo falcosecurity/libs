@@ -19,6 +19,34 @@ limitations under the License.
 #include <libscap/scap_const.h>
 #include <driver/ppm_events_public.h>
 #include <converter/table.h>
+#include <string>
+
+std::vector<char> extract_ppme_container_json_e_json_param(const scap_evt_param_reader& reader,
+                                                           const size_t /*min_param_len*/,
+                                                           const size_t max_param_len) {
+	std::vector<char> buffer(max_param_len);
+	// id
+	auto bytes_read = reader.read_into(0, std::data(buffer), std::size(buffer));
+	const std::string id{buffer.data(), bytes_read - 1};  // -1 removes the null terminator.
+
+	// type
+	uint32_t ty;
+	bytes_read = reader.read_into(1, &ty, sizeof(ty));
+
+	// name
+	bytes_read = reader.read_into(2, std::data(buffer), std::size(buffer));
+	const std::string name{buffer.data(), bytes_read - 1};  // -1 removes the null terminator.
+
+	// image
+	bytes_read = reader.read_into(3, std::data(buffer), std::size(buffer));
+	const std::string image{buffer.data(), bytes_read - 1};  // -1 removes the null terminator.
+
+	const std::string json{"{\"id\":\"" + id + "\",\"type\":" + std::to_string(ty) +
+	                       ",\"name\":\"" + name + "\",\"image\":\"" + image + "\"}"};
+	std::vector<char> json_buffer{json.begin(), json.end()};
+	json_buffer.push_back('\0');
+	return json_buffer;
+}
 
 // We cannot use designated initializers, we need c++20
 const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
@@ -1011,6 +1039,21 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_ACCESS_X, 2},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
         /*====================== CONTAINER ======================*/
+        {conversion_key{PPME_CONTAINER_E, 4},
+         conversion_info()
+                 .desired_type(PPME_CONTAINER_JSON_E)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_CALLBACK,
+                          0,
+                          CIF_NO_FLAGS,
+                          extract_ppme_container_json_e_json_param},  // json
+                 })},
+        {conversion_key{PPME_CONTAINER_X, 0},
+         conversion_info()
+                 .desired_type(PPME_CONTAINER_JSON_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({})},
         {conversion_key{PPME_CONTAINER_JSON_E, 1},
          conversion_info()
                  .desired_type(PPME_CONTAINER_JSON_2_E)

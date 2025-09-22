@@ -327,8 +327,8 @@ TEST(events_set, all_non_generic_sc_event_set) {
 	ASSERT_FALSE(event_set.contains(PPME_GENERIC_E));
 	ASSERT_FALSE(event_set.contains(PPME_GENERIC_X));
 	/* No non sc events expected. */
-	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_E));
-	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_X));
+	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_JSON_2_E));
+	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_JSON_2_X));
 	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_1_E));
 	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_1_X));
 }
@@ -343,8 +343,8 @@ TEST(events_set, all_non_sc_event_set) {
 	ASSERT_FALSE(event_set.contains(PPME_SYSCALL_OPENAT2_E));
 	ASSERT_FALSE(event_set.contains(PPME_SYSCALL_OPENAT2_X));
 	/* Some critical expected non sc events. */
-	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_E));
-	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_X));
+	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_JSON_2_E));
+	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_JSON_2_X));
 	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_1_E));
 	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_1_X));
 }

@@ -6864,6 +6864,38 @@ TEST_F(convert_event_test, PPME_SYSCALL_ACCESS_X_2_to_3_params_with_enter) {
 // CONTAINER
 ////////////////////////////
 
+TEST_F(convert_event_test, PPME_CONTAINER_E_4_to_JSON_E_1) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	const std::string id{"container_id"};
+	constexpr uint32_t ty = 123;
+	const std::string name{"container_name"};
+	const std::string image{"container_image"};
+	const std::string json{"{\"id\":\"" + id + "\",\"type\":" + std::to_string(ty) +
+	                       ",\"name\":\"" + name + "\",\"image\":\"" + image + "\"}"};
+	assert_single_conversion_success(
+	        CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_CONTAINER_E,
+	                               4,
+	                               std::data(id),
+	                               ty,
+	                               std::data(name),
+	                               std::data(image)),
+	        create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_E, 1, std::data(json)));
+}
+
+TEST_F(convert_event_test, PPME_CONTAINER_X_0_to_JSON_X_0) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	assert_single_conversion_success(CONVERSION_CONTINUE,
+	                                 create_safe_scap_event(ts, tid, PPME_CONTAINER_X, 0),
+	                                 create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_X, 0));
+}
+
 TEST_F(convert_event_test, PPME_CONTAINER_JSON_E_1_to_2_E_1) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
