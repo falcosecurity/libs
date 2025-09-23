@@ -20,6 +20,7 @@ limitations under the License.
 #include <converter/table.h>
 #include <converter/results.h>
 #include <converter/debug_macro.h>
+#include <converter/scap_evt_param_reader.h>
 #include <stdarg.h>
 #include <cstdio>
 #include <cassert>
@@ -559,6 +560,87 @@ extern "C" void scap_clear_converter_storage(
 	evt_storage.clear();
 }
 
+scap_evt_param_reader::scap_evt_param_reader(const scap_evt &evt): m_evt{evt} {}
+
+size_t scap_evt_param_reader::read_into(const uint8_t param_num,
+                                        void *buffer_ptr,
+                                        const size_t buffer_len) const {
+	const auto evt_ptr = &m_evt;
+	const auto len_size = get_param_len_size(evt_ptr);
+	const auto param_len = get_param_len(evt_ptr, param_num, len_size);
+	if(buffer_len < param_len) {
+		const auto param_type = g_event_info[evt_ptr->type].params[param_num].type;
+		const std::string error{"Buffer length '" + std::to_string(buffer_len) +
+		                        "' less than param (num '" + std::to_string(param_num) +
+		                        "', type '" + std::to_string(param_type) + "')  length '" +
+		                        std::to_string(param_len) + "'"};
+		throw std::runtime_error(error);
+	}
+	const auto *param_ptr = get_param_ptr(evt_ptr, param_num, len_size);
+	memcpy(buffer_ptr, param_ptr, param_len);
+	return param_len;
+}
+
+// Writes parameter length and value and update the provided parameter offsets accordingly to the
+// written length. If some pre-conditions are not met (e.g.: callback is a null pointer), a negative
+// number is returned.
+int push_parameter_from_callback(scap_evt *new_evt,
+                                 const scap_evt *old_evt,
+                                 size_t *new_evt_params_offset,
+                                 const uint8_t new_evt_param_num,
+                                 const conversion_instruction_callback callback,
+                                 char *error) {
+	if(callback == nullptr) {
+		scap_errprintf(error,
+		               0,
+		               "We want to set parameter '%d' for event '%d' leveraging a callback "
+		               "acting on event `%d`, but we have no callback!",
+		               new_evt_param_num,
+		               new_evt->type,
+		               old_evt->type);
+		return -1;
+	}
+
+	const auto param_type = get_param_type(new_evt, new_evt_param_num);
+	const auto len_size = get_param_len_size(new_evt);
+	const auto min_param_len = get_min_param_len_from_type(param_type);
+	const auto max_param_len = get_max_param_len_from_type(param_type, len_size);
+	const auto buffer = callback(scap_evt_param_reader{*old_evt}, min_param_len, max_param_len);
+	const auto *buffer_ptr = std::data(buffer);
+	const auto buffer_len = std::size(buffer);
+	if(buffer_len < min_param_len || buffer_len > max_param_len) {
+		scap_errprintf(error,
+		               0,
+		               "We want to set parameter '%d' for event '%d' whose length must be in the "
+		               "interval '[%d; %d]', but the data returned by the configured callback has "
+		               "length equal to '%ld'",
+		               new_evt_param_num,
+		               new_evt->type,
+		               min_param_len,
+		               max_param_len,
+		               buffer_len);
+		return -1;
+	}
+
+	PRINT_MESSAGE(
+	        "push param (%d, type: %d) with allowed len in interval '[%d; %d]' at {params_offset: "
+	        "%d, lens_offset: %d} from callback-generated buffer with len '%d', leveraging event "
+	        "'%d'\n",
+	        new_evt_param_num,
+	        param_type,
+	        min_param_len,
+	        max_param_len,
+	        *new_evt_params_offset,
+	        sizeof(scap_evt) + new_evt_param_num * new_evt_len_size,
+	        buffer_len,
+	        tmp_evt->type);
+
+	memcpy(reinterpret_cast<char *>(new_evt) + *new_evt_params_offset, buffer_ptr, buffer_len);
+	*new_evt_params_offset += buffer_len;
+	set_param_len_unchecked(new_evt, new_evt_param_num, buffer_len, len_size);
+	return 0;
+}
+
 static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage,
                                        scap_evt *new_evt,
                                        scap_evt *evt_to_convert,
@@ -683,6 +765,17 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 				return CONVERSION_ERROR;
 			}
 			break;
+
+		case C_INSTR_FROM_CALLBACK:
+			if(push_parameter_from_callback(new_evt,
+			                                evt_to_convert,
+			                                &params_offset,
+			                                param_to_populate,
+			                                instr.callback,
+			                                error) != 0) {
+				return CONVERSION_ERROR;
+			}
+			continue;
 
 		default:
 			scap_errprintf(error,

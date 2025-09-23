@@ -19,13 +19,15 @@ limitations under the License.
 
 #include <vector>
 #include <cstdint>
+#include <converter/scap_evt_param_reader.h>
 
 enum conversion_instruction_code {
-	C_NO_INSTR = 0,        // This should be never called
-	C_INSTR_FROM_OLD,      // Take the parameter from the old event
-	C_INSTR_FROM_ENTER,    // Take the parameter from the enter event
-	C_INSTR_FROM_DEFAULT,  // Generate the default parameter
-	C_INSTR_FROM_EMPTY,    // Generate the empty parameter
+	C_NO_INSTR = 0,         // This should be never called.
+	C_INSTR_FROM_OLD,       // Take the parameter from the old event.
+	C_INSTR_FROM_ENTER,     // Take the parameter from the enter event.
+	C_INSTR_FROM_DEFAULT,   // Generate the default parameter.
+	C_INSTR_FROM_EMPTY,     // Generate the empty parameter.
+	C_INSTR_FROM_CALLBACK,  // Generate the parameter using a callback leveraging old event info.
 };
 
 // TODO(ekoops): remove CIF_FALLBACK_TO_EMPTY and fallback to empty by default once sinsp is able to
@@ -46,10 +48,18 @@ enum conversion_action {
 	C_ACTION_CHANGE_TYPE,
 };
 
+// Type denoting the signature of the callback required by the `C_INSTR_FROM_CALLBACK` instruction.
+// `min_param_len` and `max_param_len` are provided to help the user reasoning about what is the
+// allowed sizes range for the returned buffer.
+typedef std::vector<char> (*conversion_instruction_callback)(const scap_evt_param_reader& reader,
+                                                             size_t min_param_len,
+                                                             size_t max_param_len);
+
 struct conversion_instruction {
 	conversion_instruction_code code = C_NO_INSTR;
 	uint8_t param_num = 0;
 	conversion_instruction_flags flags = CIF_NO_FLAGS;
+	conversion_instruction_callback callback = nullptr;  // Only used by C_INSTR_FROM_CALLBACK.
 };
 
 struct conversion_key {
