@@ -371,14 +371,19 @@ TEST(ppm_sc_API, all_event_names) {
 	        "NA2",         "NA3",        "NA4",         "NA5",         "NA6"};
 	ASSERT_NOT_CONTAINS(events_names, some_not_desired_names);
 
-	/* We count old version events to be sure about the final number of names we should expect */
-	int old_versions_events = 0;
+	/* We count old version event couples to be sure about the final number of names we should
+	 * expect. An event couple is considered old when both enter and exit events are marked as old
+	 * versions. */
+	int old_version_event_couples = 0;
 	std::set<std::string> all_expected_events_names = {};
 
 	/* We skip `syscall` name associated with `GENERIC_E`/`GENERIC_X` */
 	for(int evt = 2; evt < PPM_EVENT_MAX; evt++) {
-		if(libsinsp::events::is_old_version_event((ppm_event_code)evt)) {
-			old_versions_events++;
+		if(PPME_IS_ENTER(evt) &&
+		   libsinsp::events::is_old_version_event(static_cast<ppm_event_code>(evt)) &&
+		   libsinsp::events::is_old_version_event(
+		           static_cast<ppm_event_code>(PPME_MAKE_EXIT(evt)))) {
+			old_version_event_couples++;
 		}
 		all_expected_events_names.insert(g_infotables.m_event_info[evt].name);
 	}
@@ -396,13 +401,14 @@ TEST(ppm_sc_API, all_event_names) {
 	/* To obtain the right size of the event names we need to divide by 2 the total number of
 	 * events. Events are almost all paired, and when they are not paired dividing by 2 we remove
 	 * the `NA` entries. Since we consider the `NA` a valid name we need to add it to the set, so
-	 * `+1` We don't want the name "syscall" associated with  `PPME_GENERIC_E` and `PPME_GENERIC_E`,
+	 * `+1`. We don't want the name "syscall" associated with `PPME_GENERIC_E` and `PPME_GENERIC_X`,
 	 * so `-1`. `-1` and not `-2` because we have already divided by 2. We need to remove all the
-	 * old version events because their names are just a replica of current events ones. `/2`
-	 * because we have already divided by 2. Finally we need to add the GENERIC names.
+	 * old version event couples, because their names are just a replica of current events ones. We
+	 * don't divide this number by two because it counts couples, not single events. Finally, we
+	 * need to add the GENERIC names.
 	 */
 	ASSERT_EQ(events_names.size(),
-	          (PPM_EVENT_MAX / 2) + 1 - 1 - old_versions_events / 2 + GENERIC_SYSCALLS_NUM);
+	          (PPM_EVENT_MAX / 2) + 1 - 1 - old_version_event_couples + GENERIC_SYSCALLS_NUM);
 }
 
 TEST(ppm_sc_API, sinsp_state_event_set) {
