@@ -92,6 +92,7 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	switch(etype) {
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_CREAT_E:
+	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
 		// Optimization: in all these cases, if one of the expected parameters is empty, so is for
 		// the other ones, so just check the presence of the first one, and avoid to store the event
@@ -100,7 +101,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			break;
 		}
 		// fallthrough
-	case PPME_SYSCALL_OPENAT_2_E:
 	// Notice that, even if the drivers don't send anymore execve* enter events, scap files still
 	// contain them, and the scap converter still return them to sinsp: this is done in order to let
 	// the parser leverage the enter event parameters in case the exit event lacks of some
@@ -1955,31 +1955,25 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			flags = flags_param->as<uint32_t>();
 		}
 
-		if(etype == PPME_SYSCALL_OPENAT_2_X && evt.get_num_params() > 5) {
-			if(const auto dev_param = evt.get_param(5); !dev_param->empty()) {
-				dev = dev_param->as<uint32_t>();
-			}
-			if(evt.get_num_params() > 6) {
-				if(const auto ino_param = evt.get_param(6); !ino_param->empty()) {
-					ino = ino_param->as<uint64_t>();
-				}
-			}
-		} else if(etype == PPME_SYSCALL_OPENAT2_X) {
-			// If one the following parameters is present, so is for the other one, so just check
-			// one of them.
-			const auto dev_param = evt.get_param(6);
-			const auto ino_param = evt.get_param(7);
-			if(!ino_param->empty()) {
-				dev = dev_param->as<uint32_t>();
-				ino = ino_param->as<uint64_t>();
-			}
+		const sinsp_evt_param *dev_param = nullptr;
+		const sinsp_evt_param *ino_param = nullptr;
+		if(etype == PPME_SYSCALL_OPENAT_2_X) {
+			dev_param = evt.get_param(5);
+			ino_param = evt.get_param(6);
+		} else {  // PPME_SYSCALL_OPENAT2_X
+			dev_param = evt.get_param(6);
+			ino_param = evt.get_param(7);
+		}
+		// If one the previous parameters is present, so is for the other one, so just check one of
+		// them.
+		if(!ino_param->empty()) {
+			dev = dev_param->as<uint32_t>();
+			ino = ino_param->as<uint64_t>();
 		}
 
 		auto dirfd_param = evt.get_param(1);
-		//
-		// Compare with enter event parameters
-		//
-		if(lastevent_retrieved && enter_evt->get_num_params() >= 3) {
+		// Compare with enter event parameters.
+		if(lastevent_retrieved) {
 			enter_evt_name = enter_evt->get_param(1)->as<std::string_view>();
 			enter_evt_flags = enter_evt->get_param(2)->as<uint32_t>();
 			auto enter_evt_dirfd = enter_evt->get_param(0);
