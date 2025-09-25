@@ -31,12 +31,11 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry) {
 	m_inspector.m_usergroup_manager->add_user("", INIT_TID, 1000, 1000, "foo", "/foo", "/bin/bash");
 
 	std::string path = "/home/file.txt";
-	int64_t fd = 3;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_OPEN_E,
-	                                fd,
+	                                3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
 	                                (uint32_t)0);
@@ -83,12 +82,11 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_default_user_entry) {
 	ASSERT_EQ(m_inspector.m_usergroup_manager->get_user("", 0), nullptr);
 
 	std::string path = "/home/file.txt";
-	int64_t fd = 3;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_OPEN_E,
-	                                fd,
+	                                3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
 	                                (uint32_t)0);
@@ -112,12 +110,11 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry_witho
 	m_inspector.m_usergroup_manager->add_user("", INIT_TID, 0, 0, "", "", "");
 
 	std::string path = "/home/file.txt";
-	int64_t fd = 3;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_OPEN_E,
-	                                fd,
+	                                3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
 	                                (uint32_t)0);
@@ -138,12 +135,11 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_loaded_user_entry) {
 	m_inspector.m_usergroup_manager->add_user("", INIT_TID, 0, 0, {}, {}, {});
 
 	std::string path = "/home/file.txt";
-	int64_t fd = 3;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_OPEN_E,
-	                                fd,
+	                                3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
 	                                (uint32_t)0);

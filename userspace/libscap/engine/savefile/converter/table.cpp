@@ -56,6 +56,24 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY}})},
+        /*====================== OPEN ======================*/
+        {conversion_key{PPME_SYSCALL_OPEN_E, 0},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({
+                         {C_INSTR_FROM_EMPTY, 0},  // name
+                         {C_INSTR_FROM_EMPTY, 0},  // flags
+                         {C_INSTR_FROM_EMPTY, 0},  // mode
+                 })},
+        // TODO(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        //   to be handled in the table. We set the action to C_ACTION_SKIP, but for future
+        //   reference, is important to notice that we mean "let the event proceed to the upper
+        //   layers".
+        {conversion_key{PPME_SYSCALL_OPEN_E, 3}, conversion_info().action(C_ACTION_SKIP)},
+        {conversion_key{PPME_SYSCALL_OPEN_X, 4},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // dev
+        {conversion_key{PPME_SYSCALL_OPEN_X, 5},
+         conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // ino
         /*====================== CLOSE ======================*/
         {conversion_key{PPME_SYSCALL_CLOSE_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_CLOSE_X, 1},

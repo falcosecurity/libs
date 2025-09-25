@@ -181,7 +181,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                1,
 	                                PPME_SYSCALL_OPEN_X,
-	                                (uint64_t)6,
+	                                6,
 	                                (uint64_t)3,
 	                                "/tmp/the_file",
 	                                PPM_O_RDWR,

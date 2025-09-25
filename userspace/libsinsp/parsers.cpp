@@ -91,6 +91,13 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	//
 	switch(etype) {
 	case PPME_SYSCALL_OPEN_E:
+		// Optimization: in this case, if one of the expected parameters is empty, so is for the
+		// other ones, so just check the presence of the first one, and avoid to store the event if
+		// it doesn't bring any info.
+		if(evt.get_param(0)->empty()) {
+			break;
+		}
+		// fallthrough
 	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
@@ -1876,18 +1883,17 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 	if(etype == PPME_SYSCALL_OPEN_X) {
 		name = evt.get_param(1)->as<std::string_view>();
 		flags = evt.get_param(2)->as<uint32_t>();
-
-		if(evt.get_num_params() > 4) {
-			dev = evt.get_param(4)->as<uint32_t>();
-			if(evt.get_num_params() > 5) {
-				ino = evt.get_param(5)->as<uint64_t>();
+		if(const auto dev_param = evt.get_param(4); !dev_param->empty()) {
+			dev = dev_param->as<uint32_t>();
+			if(const auto ino_param = evt.get_param(5); !ino_param->empty()) {
+				ino = ino_param->as<uint64_t>();
 			}
 		}
 
 		//
 		// Compare with enter event parameters
 		//
-		if(lastevent_retrieved && enter_evt->get_num_params() >= 2) {
+		if(lastevent_retrieved) {
 			enter_evt_name = enter_evt->get_param(0)->as<std::string_view>();
 			enter_evt_flags = enter_evt->get_param(1)->as<uint32_t>();
 
