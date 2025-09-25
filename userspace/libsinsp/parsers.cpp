@@ -91,14 +91,14 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	//
 	switch(etype) {
 	case PPME_SYSCALL_OPEN_E:
-		// Optimization: in this case, if one of the expected parameters is empty, so is for the
-		// other ones, so just check the presence of the first one, and avoid to store the event if
-		// it doesn't bring any info.
+	case PPME_SYSCALL_CREAT_E:
+		// Optimization: in all these cases, if one of the expected parameters is empty, so is for
+		// the other ones, so just check the presence of the first one, and avoid to store the event
+		// if it doesn't bring any info.
 		if(evt.get_param(0)->empty()) {
 			break;
 		}
 		// fallthrough
-	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
 	// Notice that, even if the drivers don't send anymore execve* enter events, scap files still
@@ -1913,16 +1913,16 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 
 		flags = 0;
 
-		if(evt.get_num_params() > 3) {
-			dev = evt.get_param(3)->as<uint32_t>();
-			if(evt.get_num_params() > 4) {
-				ino = evt.get_param(4)->as<uint64_t>();
-				if(evt.get_num_params() > 5) {
-					uint16_t creat_flags = evt.get_param(5)->as<uint16_t>();
+		if(const auto dev_param = evt.get_param(3); !dev_param->empty()) {
+			dev = dev_param->as<uint32_t>();
+			if(const auto ino_param = evt.get_param(4); !ino_param->empty()) {
+				ino = ino_param->as<uint64_t>();
+				if(const auto creat_flags_param = evt.get_param(5); !creat_flags_param->empty()) {
 					// creat is a special case becuase it has no flags parameter, so the layer info
 					// bits arrive from probe in a separate creat_flags parameter and flags need to
 					// be constructed from it
-					if(creat_flags & PPM_FD_UPPER_LAYER_CREAT) {
+					if(const auto creat_flags = creat_flags_param->as<uint16_t>();
+					   creat_flags & PPM_FD_UPPER_LAYER_CREAT) {
 						flags |= PPM_FD_UPPER_LAYER;
 					} else if(creat_flags & PPM_FD_LOWER_LAYER_CREAT) {
 						flags |= PPM_FD_LOWER_LAYER;
@@ -1931,7 +1931,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			}
 		}
 
-		if(lastevent_retrieved && enter_evt->get_num_params() >= 1) {
+		if(lastevent_retrieved) {
 			enter_evt_name = enter_evt->get_param(0)->as<std::string_view>();
 			enter_evt_flags = 0;
 

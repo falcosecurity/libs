@@ -4149,6 +4149,71 @@ TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_X_4_to_6_params_with_enter) {
 }
 
 ////////////////////////////
+// CREAT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_CREAT_E_0_to_2_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty.
+	constexpr auto name = empty_value<char *>();
+	constexpr auto mode = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 0, 1);
+
+	assert_single_conversion_success(CONVERSION_CONTINUE,
+	                                 create_safe_scap_event(ts, tid, PPME_SYSCALL_CREAT_E, 0),
+	                                 create_safe_scap_event_with_empty_params(ts,
+	                                                                          tid,
+	                                                                          PPME_SYSCALL_CREAT_E,
+	                                                                          &empty_params_set,
+	                                                                          2,
+	                                                                          name,
+	                                                                          mode));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_CREAT_E_2_skip) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr char name[] = "name";
+	constexpr uint32_t mode = 31;
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_CREAT_E, 2, name, mode);
+	assert_single_conversion_skip(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_CREAT_X_3_to_6_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 0;
+	constexpr char name[] = "name";
+	constexpr uint32_t mode = 31;
+
+	// Set to empty.
+	constexpr auto dev = empty_value<uint32_t>();
+	constexpr auto ino = empty_value<uint64_t>();
+	constexpr auto creat_flags = empty_value<uint16_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 3, 4, 5);
+
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_CREAT_X, 3, fd, name, mode),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SYSCALL_CREAT_X,
+	                                                                &empty_params_set,
+	                                                                6,
+	                                                                fd,
+	                                                                name,
+	                                                                mode,
+	                                                                dev,
+	                                                                ino,
+	                                                                creat_flags));
+}
+
+////////////////////////////
 // EVENTFD
 ////////////////////////////
 

@@ -348,12 +348,13 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		evt = add_event_advance_ts(increasing_ts(),
 		                           1,
 		                           PPME_SYSCALL_CREAT_X,
-		                           5,
+		                           6,
 		                           new_fd,
 		                           expected_string,
 		                           0,
 		                           0,
-		                           (uint64_t)0);
+		                           (uint64_t)0,
+		                           (uint16_t)PPM_FD_LOWER_LAYER_CREAT);
 
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
 		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;

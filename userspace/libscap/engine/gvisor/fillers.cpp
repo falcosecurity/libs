@@ -504,6 +504,7 @@ int32_t fill_event_creat_e(scap_sized_buffer scap_buf,
 // A) Always hardcoded due to value not available in native gVisor event:
 // - F3/dev -- hardcoded to 0
 // - F4/ino -- hardcoded to 0
+// - F5/creat_flags -- hardcoded to 0
 int32_t fill_event_creat_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
@@ -514,12 +515,13 @@ int32_t fill_event_creat_x(scap_sized_buffer scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_CREAT_X,
-	                                5,
+	                                6,
 	                                fd,
 	                                name,
 	                                mode,
 	                                0,   // dev -- INVALID
-	                                0);  // ino -- INVALID
+	                                0,   // ino -- INVALID
+	                                0);  // creat_flags -- INVALID
 }
 
 // PPME_SYSCALL_CLOSE_X
