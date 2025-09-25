@@ -212,22 +212,28 @@ protected:
 		case PPME_SYSCALL_FCHMODAT_X:
 		case PPME_SYSCALL_FCHOWNAT_X:
 		case PPME_SYSCALL_UNLINKAT_2_X: {
-			add_event_advance_ts(increasing_ts(),
-			                     1,
-			                     PPME_SYSCALL_OPENAT2_E,
-			                     2,
-			                     evt_dirfd,
-			                     dirfd_path);
 			// pass PPM_O_DIRECTORY since we are creating a folder!
 			add_event_advance_ts(increasing_ts(),
 			                     1,
-			                     PPME_SYSCALL_OPENAT2_X,
+			                     PPME_SYSCALL_OPENAT2_E,
 			                     5,
+			                     evt_dirfd,
+			                     dirfd_path,
+			                     open_flags | PPM_O_DIRECTORY,
+			                     mode,
+			                     resolve);
+			add_event_advance_ts(increasing_ts(),
+			                     1,
+			                     PPME_SYSCALL_OPENAT2_X,
+			                     8,
 			                     evt_dirfd,
 			                     evt_dirfd,
 			                     dirfd_path,
 			                     open_flags | PPM_O_DIRECTORY,
-			                     mode);
+			                     mode,
+			                     resolve,
+			                     dev,
+			                     ino);
 		} break;
 		default:
 			break;
@@ -256,18 +262,24 @@ protected:
 			add_event_advance_ts(increasing_ts(),
 			                     1,
 			                     PPME_SYSCALL_OPENAT2_E,
-			                     2,
+			                     5,
 			                     evt_dirfd,
-			                     dirfd_path);
+			                     dirfd_path,
+			                     open_flags | PPM_O_DIRECTORY,
+			                     mode,
+			                     resolve);
 			add_event_advance_ts(increasing_ts(),
 			                     1,
 			                     PPME_SYSCALL_OPENAT2_X,
-			                     5,
+			                     8,
 			                     evt_dirfd,
 			                     evt_dirfd,
 			                     dirfd_path,
 			                     open_flags | PPM_O_DIRECTORY,
-			                     mode);
+			                     mode,
+			                     resolve,
+			                     dev,
+			                     ino);
 		} break;
 		default:
 			break;
@@ -395,21 +407,25 @@ TEST_F(fspath, openat2) {
 	test_exit_path(resolved_name,
 	               name,
 	               PPME_SYSCALL_OPENAT2_X,
-	               6,
+	               8,
 	               fd,
 	               evt_dirfd,
 	               name,
 	               open_flags,
 	               mode,
-	               resolve);
+	               resolve,
+	               dev,
+	               ino);
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X,
-	                 6,
+	                 8,
 	                 failed_res,
 	                 evt_dirfd,
 	                 name,
 	                 open_flags,
 	                 mode,
-	                 resolve);
+	                 resolve,
+	                 dev,
+	                 ino);
 }
 
 TEST_F(fspath, openat2_relative_dirfd) {
@@ -417,21 +433,25 @@ TEST_F(fspath, openat2_relative_dirfd) {
 	test_exit_path(resolved_rel_name,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT2_X,
-	               6,
+	               8,
 	               fd,
 	               evt_dirfd,
 	               rel_name,
 	               open_flags,
 	               mode,
-	               resolve);
+	               resolve,
+	               dev,
+	               ino);
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X,
-	                 6,
+	                 8,
 	                 failed_res,
 	                 evt_dirfd,
 	                 name,
 	                 open_flags,
 	                 mode,
-	                 resolve);
+	                 resolve,
+	                 dev,
+	                 ino);
 }
 
 TEST_F(fspath, openat2_relative_cwd) {
@@ -441,21 +461,25 @@ TEST_F(fspath, openat2_relative_cwd) {
 	test_exit_path(resolved_rel_filename2_cwd,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT2_X,
-	               6,
+	               8,
 	               fd,
 	               evt_dirfd_cwd,
 	               rel_name,
 	               open_flags,
 	               mode,
-	               resolve);
+	               resolve,
+	               dev,
+	               ino);
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X,
-	                 6,
+	                 8,
 	                 failed_res,
 	                 evt_dirfd_cwd,
 	                 name,
 	                 open_flags,
 	                 mode,
-	                 resolve);
+	                 resolve,
+	                 dev,
+	                 ino);
 }
 
 TEST_F(fspath, fchmodat) {
