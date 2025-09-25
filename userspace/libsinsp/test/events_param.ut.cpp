@@ -291,17 +291,27 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		std::string test_context =
 		        std::string("openat2 with filename ") + test_utils::describe_string(enter_filename);
 
-		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 5, dirfd, "<NA>", 0, 0, 0);
+		add_event_advance_ts(increasing_ts(),
+		                     1,
+		                     PPME_SYSCALL_OPENAT2_E,
+		                     5,
+		                     dirfd,
+		                     "<NA>",
+		                     (uint32_t)0,
+		                     (uint32_t)0,
+		                     (uint32_t)0);
 		evt = add_event_advance_ts(increasing_ts(),
 		                           1,
 		                           PPME_SYSCALL_OPENAT2_X,
-		                           6,
+		                           8,
 		                           new_fd,
 		                           dirfd,
 		                           expected_string,
-		                           0,
-		                           0,
-		                           0);
+		                           (uint32_t)0,
+		                           (uint32_t)0,
+		                           (uint32_t)0,
+		                           (uint32_t)0,
+		                           (uint64_t)0);
 
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
 		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;

@@ -7280,6 +7280,102 @@ TEST_F(convert_event_test, PPME_SYSCALL_SECCOMP_X_1_to_3_params_with_enter) {
 }
 
 ////////////////////////////
+// OPENAT2
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_OPENAT2_E_0_to_5_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty.
+	constexpr auto dirfd = empty_value<int64_t>();
+	constexpr auto name = empty_value<char *>();
+	constexpr auto flags = empty_value<uint32_t>();
+	constexpr auto mode = empty_value<uint32_t>();
+	constexpr auto resolve = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 0, 1, 2, 3, 4);
+
+	assert_single_conversion_success(
+	        CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_OPENAT2_E, 0),
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SYSCALL_OPENAT2_E,
+	                                                 &empty_params_set,
+	                                                 5,
+	                                                 dirfd,
+	                                                 name,
+	                                                 flags,
+	                                                 mode,
+	                                                 resolve));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_OPENAT2_E_5_skip) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t dirfd = 21;
+	constexpr char name[] = "name";
+	constexpr uint32_t flags = 30;
+	constexpr uint32_t mode = 31;
+	constexpr uint32_t resolve = 32;
+
+	const auto evt = create_safe_scap_event(ts,
+	                                        tid,
+	                                        PPME_SYSCALL_OPENAT2_E,
+	                                        5,
+	                                        dirfd,
+	                                        name,
+	                                        flags,
+	                                        mode,
+	                                        resolve);
+	assert_single_conversion_skip(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_OPENAT2_X_6_to_8_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t fd = 20;
+	constexpr int64_t dirfd = 21;
+	constexpr char name[] = "name";
+	constexpr uint32_t flags = 30;
+	constexpr uint32_t mode = 31;
+	constexpr uint32_t resolve = 32;
+
+	// Set to empty.
+	constexpr auto dev = empty_value<uint32_t>();
+	constexpr auto ino = empty_value<uint64_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 7);
+
+	assert_full_conversion(create_safe_scap_event(ts,
+	                                              tid,
+	                                              PPME_SYSCALL_OPENAT2_X,
+	                                              6,
+	                                              fd,
+	                                              dirfd,
+	                                              name,
+	                                              flags,
+	                                              mode,
+	                                              resolve),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SYSCALL_OPENAT2_X,
+	                                                                &empty_params_set,
+	                                                                8,
+	                                                                fd,
+	                                                                dirfd,
+	                                                                name,
+	                                                                flags,
+	                                                                mode,
+	                                                                resolve,
+	                                                                dev,
+	                                                                ino));
+}
+
+////////////////////////////
 // MPROTECT
 ////////////////////////////
 
