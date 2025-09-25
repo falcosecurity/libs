@@ -582,7 +582,14 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			sanitize_string(m_tstr);
 		}
 
-		if(m_fdinfo != NULL && m_fdinfo->is_file()) {
+		// It is possible that `m_fdinfo` is still NULL, but `m_tstr` is
+		// set to a value which requires postprocessing. This can happen,
+		// e.g., when a syscall operation fails and therefore the syscall's
+		// parsing in `parsers.cpp` leaves `m_fdinfo` as NULL. In this case,
+		// `extract_fd()` leaves `m_fdinfo` as NULL, which leads
+		// `extract_fdname_from_event()` to set the value of `m_tstr`
+		// instead. This value will also require postprocessing.
+		if(m_fdinfo == NULL || m_fdinfo->is_file()) {
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos && pos != 0) {
 				if(pos < m_tstr.size() - 1) {
