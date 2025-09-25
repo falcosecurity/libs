@@ -24,13 +24,12 @@ TEST_F(sinsp_with_test_input, FD_FILTER_extract_from_null_type_filename) {
 	open_inspector();
 
 	std::string path = "/home/file.txt";
-	int64_t fd = 3;
 	int64_t dirfd = 4;
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
 	                                PPME_SYSCALL_OPEN_E,
-	                                fd,
+	                                3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
 	                                (uint32_t)0);

@@ -705,7 +705,7 @@ TEST_F(sinsp_with_test_input, fchmod) {
 	int64_t res = 0;
 
 	// We need to open a fd first so fchmod can act on it
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 3, PPME_SYSCALL_OPEN_E, 3, path, flags, mode);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_X,
@@ -740,7 +740,7 @@ TEST_F(sinsp_with_test_input, fchown) {
 	uint32_t gid = 0;
 
 	// We need to open a fd first so fchown can act on it
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path, flags, mode);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_X,

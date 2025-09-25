@@ -98,7 +98,8 @@ protected:
 	}
 
 	void inject_open_event() {
-		sinsp_evt *evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 0);
+		sinsp_evt *evt =
+		        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path, flags, mode);
 		evt = add_event_advance_ts(increasing_ts(),
 		                           1,
 		                           PPME_SYSCALL_OPEN_X,
