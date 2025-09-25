@@ -518,7 +518,8 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         /*====================== CONNECT ======================*/
         {conversion_key{PPME_SOCKET_CONNECT_E, 1},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_DEFAULT, 0}})},
-        {conversion_key{PPME_SOCKET_CONNECT_E, 2}, conversion_info().action(C_ACTION_STORE)},
+        {conversion_key{PPME_SOCKET_CONNECT_E, 2},
+         conversion_info().action(C_ACTION_STORE_AND_SKIP)},
         {conversion_key{PPME_SOCKET_CONNECT_X, 2},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
         {conversion_key{PPME_SOCKET_CONNECT_X, 3},
