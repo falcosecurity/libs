@@ -42,7 +42,7 @@ jobs:
           - name: bundled_deps
             cmake_opts: -DUSE_BUNDLED_DEPS=True
           - name: asan
-            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
+            cmake_opts: -DUSE_ASAN=True -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
     runs-on: ubuntu-24.04
     steps:
       - name: Install deps ⛓️
