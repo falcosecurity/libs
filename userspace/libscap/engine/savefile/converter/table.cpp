@@ -65,10 +65,9 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // flags
                          {C_INSTR_FROM_EMPTY, 0},  // mode
                  })},
-        // TODO(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
-        //   to be handled in the table. We set the action to C_ACTION_SKIP, but for future
-        //   reference, is important to notice that we mean "let the event proceed to the upper
-        //   layers".
+        // note(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        // to be handled in the table. We set the action to C_ACTION_SKIP, but for future reference,
+        // is important to notice that we mean "let the event proceed to the upper layers".
         {conversion_key{PPME_SYSCALL_OPEN_E, 3}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_OPEN_X, 4},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // dev
@@ -421,6 +420,10 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // loginuid
+        // note(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        // to be handled in the table. We set the action to C_ACTION_SKIP, but for future reference,
+        // is important to notice that we mean "let the event proceed to the upper layers".
+        {conversion_key{PPME_SYSCALL_EXECVE_19_E, 1}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 19},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // flags
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 20},
@@ -702,10 +705,9 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // name
                          {C_INSTR_FROM_EMPTY, 0},  // mode
                  })},
-        // TODO(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
-        //   to be handled in the table. We set the action to C_ACTION_SKIP, but for future
-        //   reference, is important to notice that we mean "let the event proceed to the upper
-        //   layers".
+        // note(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        // to be handled in the table. We set the action to C_ACTION_SKIP, but for future reference,
+        // is important to notice that we mean "let the event proceed to the upper layers".
         {conversion_key{PPME_SYSCALL_CREAT_E, 2}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CREAT_X, 3},
          conversion_info()
@@ -776,10 +778,9 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // flags
                          {C_INSTR_FROM_EMPTY, 0},  // mode
                  })},
-        // TODO(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
-        //   to be handled in the table. We set the action to C_ACTION_SKIP, but for future
-        //   reference, is important to notice that we mean "let the event proceed to the upper
-        //   layers".
+        // note(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        // to be handled in the table. We set the action to C_ACTION_SKIP, but for future reference,
+        // is important to notice that we mean "let the event proceed to the upper layers".
         {conversion_key{PPME_SYSCALL_OPENAT_2_E, 4}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_OPENAT_2_X, 5},
          conversion_info()
@@ -1189,10 +1190,9 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // mode
                          {C_INSTR_FROM_EMPTY, 0},  // resolve
                  })},
-        // TODO(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
-        //   to be handled in the table. We set the action to C_ACTION_SKIP, but for future
-        //   reference, is important to notice that we mean "let the event proceed to the upper
-        //   layers".
+        // note(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        // to be handled in the table. We set the action to C_ACTION_SKIP, but for future reference,
+        // is important to notice that we mean "let the event proceed to the upper layers".
         {conversion_key{PPME_SYSCALL_OPENAT2_E, 5}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_OPENAT2_X, 6},
          conversion_info()
@@ -1210,6 +1210,10 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
         /*====================== EXECVEAT ======================*/
+        // note(ekoops): the current implementation mandate an EF_TMP_CONVERTER_MANAGED enter event
+        // to be handled in the table. We set the action to C_ACTION_SKIP, but for future reference,
+        // is important to notice that we mean "let the event proceed to the upper layers".
+        {conversion_key{PPME_SYSCALL_EXECVEAT_E, 3}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_EXECVEAT_X, 19},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // flags
         {conversion_key{PPME_SYSCALL_EXECVEAT_X, 20},

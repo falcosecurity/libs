@@ -1934,8 +1934,10 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_18_E_1_to_19_E_1) {
 
 	constexpr char filename[] = "filename";
 
-	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_18_E, 1, filename),
-	                       create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_19_E, 1, filename));
+	assert_single_conversion_success(
+	        CONVERSION_CONTINUE,
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_18_E, 1, filename),
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_19_E, 1, filename));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_18_X_17_to_19_X_18_params_no_enter) {
@@ -2014,6 +2016,16 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_18_X_17_to_19_X_18_params_no_ente
 	                                                 env,
 	                                                 tty,
 	                                                 vpgid));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_E_1_skip) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr char filename[] = "filename";
+
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_19_E, 1, filename);
+	assert_single_conversion_skip(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
@@ -7513,6 +7525,19 @@ TEST_F(convert_event_test, PPME_SYSCALL_MPROTECT_X_1_to_4_params_with_enter) {
 ////////////////////////////
 // EXECVEAT
 ////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVEAT_E_3_skip) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	constexpr int64_t dirfd = 50;
+	constexpr char pathname[] = "pathname";
+	constexpr uint32_t flags = 51;
+
+	const auto evt =
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, pathname, flags);
+	assert_single_conversion_skip(evt);
+}
 
 TEST_F(convert_event_test, PPME_SYSCALL_EXECVEAT_X_19_to_30_params_no_enter) {
 	constexpr uint64_t ts = 12;
