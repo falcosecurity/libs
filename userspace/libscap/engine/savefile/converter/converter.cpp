@@ -517,21 +517,41 @@ static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert)
 	return new_evt_offset + params_len;
 }
 
-extern "C" bool is_conversion_needed(scap_evt *evt_to_convert) {
-	assert(evt_to_convert->type < PPM_EVENT_MAX);
-	const struct ppm_event_info *event_info = &(g_event_info[evt_to_convert->type]);
+// note: the control flow of this function must always be kept in sync with the converter
+// `README.md` content.
+extern "C" conversion_result test_event_convertibility(const scap_evt *evt_to_convert,
+                                                       char *error) {
+	const auto evt_type = evt_to_convert->type;
+	assert(evt_type < PPM_EVENT_MAX);
+	const auto *evt_info = &g_event_info[evt_type];
+	const auto evt_flags = evt_info->flags;
 
-	// todo!: we need to cleanup this logic when we can mark enter events as `EF_OLD_VERSION`
+	// If the event is not yet managed by the converter we never need a conversion.
+	if(!(evt_flags & EF_TMP_CONVERTER_MANAGED)) {
+		// New event versions are allowed to proceed towards upper layers.
+		if(!(evt_flags & EF_OLD_VERSION)) {
+			return CONVERSION_COMPLETED;
+		}
 
-	// If the event is not yet managed by the converter we never need a conversion
-	if((event_info->flags & EF_TMP_CONVERTER_MANAGED) == 0) {
-		return false;
+		// Old enter events not managed by converter must be dropped.
+		if(PPME_IS_ENTER(evt_type)) {
+			return CONVERSION_DROP;
+		}
+
+		// Malformed event table: old exit events must be managed by the converter and converted to
+		// their new corresponding type.
+		scap_errprintf(
+		        error,
+		        0,
+		        "Bug. Old exit event (type: %d) must be flagged as managed by the scap-converter",
+		        evt_type);
+		assert(false);
+		return CONVERSION_ERROR;
 	}
 
-	// If the event is managed by the converter and it is an enter event it will always need a
-	// conversion.
-	if(PPME_IS_ENTER(evt_to_convert->type)) {
-		return true;
+	// If it is an enter event, it will always need a conversion.
+	if(PPME_IS_ENTER(evt_type)) {
+		return CONVERSION_CONTINUE;
 	}
 
 	// If it is an exit event it needs a conversion when:
@@ -539,14 +559,17 @@ extern "C" bool is_conversion_needed(scap_evt *evt_to_convert) {
 	// - the number of parameters is different from the one in the event table
 
 	// If we are a new event type we need to check the number of parameters.
-	assert(evt_to_convert->nparams <= event_info->nparams);
+	const uint32_t evt_params_num = evt_to_convert->nparams;
+	const uint32_t expected_params_num = evt_info->nparams;
+	assert(evt_params_num <= expected_params_num);
 
 	// If the number of parameters is different from the one in the event table we need a
 	// conversion.
-	if((event_info->flags & EF_OLD_VERSION) || (evt_to_convert->nparams != event_info->nparams)) {
-		return true;
+	if(evt_flags & EF_OLD_VERSION || evt_params_num != expected_params_num) {
+		return CONVERSION_CONTINUE;
 	}
-	return false;
+
+	return CONVERSION_COMPLETED;
 }
 
 extern "C" scap_evt *scap_retrieve_evt_from_converter_storage(
@@ -813,7 +836,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 	PRINT_MESSAGE("Final event:\n");
 	PRINT_EVENT(new_evt, PRINT_FULL);
-	return is_conversion_needed(new_evt) ? CONVERSION_CONTINUE : CONVERSION_COMPLETED;
+	return test_event_convertibility(new_evt, error);
 }
 
 extern "C" struct scap_convert_buffer *scap_convert_alloc_buffer() {
@@ -824,14 +847,22 @@ extern "C" conversion_result scap_convert_event(struct scap_convert_buffer *buf,
                                                 scap_evt *new_evt,
                                                 scap_evt *evt_to_convert,
                                                 char *error) {
-	// This should be checked by the caller but just double check here
-	if(!is_conversion_needed(evt_to_convert)) {
-		scap_errprintf(
-		        error,
-		        0,
-		        "Conversion not needed for event type '%d' nparams '%d'. Please double check",
-		        evt_to_convert->type,
-		        evt_to_convert->nparams);
+	// This should be checked by the caller but just double check here.
+	switch(const auto conv_res = test_event_convertibility(evt_to_convert, error)) {
+	case CONVERSION_CONTINUE:
+		break;
+	case CONVERSION_ERROR:
+		assert(false);
+		return conv_res;
+	default:
+		scap_errprintf(error,
+		               0,
+		               "Conversion not needed for event (type: %d, nparams: %d), but got "
+		               "conversion result '%d'.",
+		               evt_to_convert->type,
+		               evt_to_convert->nparams,
+		               conv_res);
+		assert(false);
 		return CONVERSION_ERROR;
 	}
 
@@ -840,7 +871,8 @@ extern "C" conversion_result scap_convert_event(struct scap_convert_buffer *buf,
 	if(g_conversion_table.find(conv_key) == g_conversion_table.end()) {
 		scap_errprintf(error,
 		               0,
-		               "Event '%d' has '%d' parameters, but we don't handle it in the table.",
+		               "Required conversion for event (type: %d, nparams: %d), but we don't handle "
+		               "it in the table.",
 		               evt_to_convert->type,
 		               evt_to_convert->nparams);
 		return CONVERSION_ERROR;
