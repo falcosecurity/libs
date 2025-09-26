@@ -114,7 +114,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "Output Time",
          "this depends on -t param, default is %evt.time ('h')."},
         {PT_CHARBUF,
-         EPF_NONE,
+         EPF_NONE | EPF_DEPRECATED,
          PF_DIR,
          "evt.dir",
          "Direction",
