@@ -387,10 +387,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 
 	switch(etype) {
 	case PPME_SYSCALL_OPEN_X:
-	case PPME_SOCKET_ACCEPT_X:
 	case PPME_SOCKET_ACCEPT_5_X:
-	case PPME_SOCKET_ACCEPT4_X:
-	case PPME_SOCKET_ACCEPT4_5_X:
 	case PPME_SOCKET_ACCEPT4_6_X:
 	case PPME_SYSCALL_CREAT_X: {
 		const char *argstr =

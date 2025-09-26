@@ -1430,9 +1430,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		} else {
 			uint16_t etype = evt->get_type();
 
-			if(etype == PPME_SOCKET_ACCEPT_X || etype == PPME_SOCKET_ACCEPT_5_X ||
-			   etype == PPME_SOCKET_ACCEPT4_X || etype == PPME_SOCKET_ACCEPT4_5_X ||
-			   etype == PPME_SOCKET_ACCEPT4_6_X || etype == PPME_SOCKET_CONNECT_X) {
+			if(etype == PPME_SOCKET_ACCEPT_5_X || etype == PPME_SOCKET_ACCEPT4_6_X ||
+			   etype == PPME_SOCKET_CONNECT_X) {
 				return extract_error_count(evt, len);
 			}
 		}
@@ -1460,10 +1459,9 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			if(const auto etype = evt->get_type();
 			   !(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_CREAT_X ||
 			     etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X ||
-			     etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X || etype == PPME_SOCKET_ACCEPT_X ||
-			     etype == PPME_SOCKET_ACCEPT_5_X || etype == PPME_SOCKET_ACCEPT4_X ||
-			     etype == PPME_SOCKET_ACCEPT4_5_X || etype == PPME_SOCKET_ACCEPT4_6_X ||
-			     etype == PPME_SOCKET_CONNECT_X || evt->get_category() == EC_MEMORY)) {
+			     etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X || etype == PPME_SOCKET_ACCEPT_5_X ||
+			     etype == PPME_SOCKET_ACCEPT4_6_X || etype == PPME_SOCKET_CONNECT_X ||
+			     evt->get_category() == EC_MEMORY)) {
 				return extract_error_count(evt, len);
 			}
 		}

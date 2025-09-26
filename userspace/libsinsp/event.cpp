@@ -1705,14 +1705,10 @@ bool sinsp_evt::is_file_error() const {
 
 bool sinsp_evt::is_network_error() const {
 	if(m_fdinfo != nullptr) {
-		return (m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) || (m_fdinfo->m_type == SCAP_FD_IPV6_SOCK);
-	} else {
-		return (m_pevt->type == PPME_SOCKET_ACCEPT_X) || (m_pevt->type == PPME_SOCKET_ACCEPT4_X) ||
-		       (m_pevt->type == PPME_SOCKET_ACCEPT_5_X) ||
-		       (m_pevt->type == PPME_SOCKET_ACCEPT4_5_X) ||
-		       (m_pevt->type == PPME_SOCKET_ACCEPT4_6_X) ||
-		       (m_pevt->type == PPME_SOCKET_CONNECT_X) || (m_pevt->type == PPME_SOCKET_BIND_X);
+		return m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK;
 	}
+	return m_pevt->type == PPME_SOCKET_ACCEPT_5_X || m_pevt->type == PPME_SOCKET_ACCEPT4_6_X ||
+	       m_pevt->type == PPME_SOCKET_CONNECT_X || m_pevt->type == PPME_SOCKET_BIND_X;
 }
 
 uint64_t sinsp_evt::get_lastevent_ts() const {
