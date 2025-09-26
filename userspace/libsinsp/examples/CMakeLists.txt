@@ -13,8 +13,6 @@
 # the License.
 #
 
-include(jsoncpp)
-
 set(sources util.cpp test.cpp)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -23,7 +21,7 @@ endif()
 
 add_executable(sinsp-example ${sources})
 
-target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}")
+target_link_libraries(sinsp-example sinsp)
 
 if(EMSCRIPTEN)
 	target_compile_options(sinsp-example PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
