@@ -38,7 +38,7 @@ conversion_result scap_convert_event(struct scap_convert_buffer* buf,
                                      char* error);
 void scap_convert_free_buffer(struct scap_convert_buffer* buf);
 
-bool is_conversion_needed(scap_evt* evt_to_convert);
+conversion_result test_event_convertibility(const scap_evt* evt_to_convert, char* error);
 
 // Only for testing purposes
 scap_evt* scap_retrieve_evt_from_converter_storage(struct scap_convert_buffer* buf, uint64_t tid);

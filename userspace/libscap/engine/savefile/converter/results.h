@@ -22,4 +22,5 @@ typedef enum conversion_result {
 	CONVERSION_CONTINUE,
 	CONVERSION_COMPLETED,
 	CONVERSION_SKIP,
+	CONVERSION_DROP
 } conversion_result;

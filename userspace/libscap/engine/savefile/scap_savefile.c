@@ -2037,9 +2037,27 @@ static int32_t next(struct scap_engine_handle engine,
 		return res;
 	}
 
-	// If we don't need a conversion terminate here.
-	if(!is_conversion_needed((*pevent))) {
+	conversion_result conv_res = test_event_convertibility(*pevent, handle->m_lasterr);
+	switch(conv_res) {
+	case CONVERSION_COMPLETED:
+	case CONVERSION_SKIP:
 		return SCAP_SUCCESS;
+	case CONVERSION_DROP:
+		return SCAP_FILTERED_EVENT;
+	case CONVERSION_ERROR:
+		return SCAP_FAILURE;
+	case CONVERSION_CONTINUE:
+		break;
+	default:
+		scap_errprintf(handle->m_lasterr,
+		               0,
+		               "Bug. Unexpected conversion result '%d' while checking for event (type: %d, "
+		               "nparams: %d) convertibility.",
+		               conv_res,
+		               (*pevent)->type,
+		               (*pevent)->nparams);
+		ASSERT(false);
+		return SCAP_FAILURE;
 	}
 
 	// We do it only the first time if at least one conversion is needed.
@@ -2052,21 +2070,21 @@ static int32_t next(struct scap_engine_handle engine,
 
 	// Start the conversion loop.
 	int conv_num = 0;
-	conversion_result conv_res = CONVERSION_CONTINUE;
+	conv_res = CONVERSION_CONTINUE;
 	for(conv_num = 0; conv_num < MAX_CONVERSION_BOUNDARY && conv_res == CONVERSION_CONTINUE;
 	    conv_num++) {
-		// Before each conversion we move the current event into the storage
+		// Before each conversion we move the current event into the storage.
 		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
 		conv_res = scap_convert_event(handle->m_converter_buf,
 		                              (scap_evt *)handle->m_new_evt,
 		                              (scap_evt *)handle->m_to_convert_evt,
 		                              handle->m_lasterr);
-		// At the end of the conversion in any case we swith to the new event pointer
+		// At the end of the conversion in any case we switch to the new event pointer.
 		*pevent = (scap_evt *)handle->m_new_evt;
 	}
 
 	if(conv_res == CONVERSION_ERROR) {
-		// `scap_convert_event()` already took care of populating handle->m_lasterr.
+		// `scap_convert_event()` already took care of populating `handle->m_lasterr`.
 		return SCAP_FAILURE;
 	}
 
@@ -2074,27 +2092,35 @@ static int32_t next(struct scap_engine_handle engine,
 		switch(conv_res) {
 		case CONVERSION_SKIP:
 		case CONVERSION_COMPLETED:
-			// We reached the max conversion boundary with a correct conversion we need to bump
+		case CONVERSION_DROP:
+			// We reached the max conversion boundary with a correct conversion, so we need to bump
 			// `MAX_CONVERSION_BOUNDARY` in the code.
-			return scap_errprintf(handle->m_lasterr,
-			                      0,
-			                      "Reached '%d' conversions with a conversion result '%d' and "
-			                      "resulting evt (%d). Bump the conversions max limit in the code.",
-			                      MAX_CONVERSION_BOUNDARY,
-			                      conv_res,
-			                      (*pevent)->type);
+			return scap_errprintf(
+			        handle->m_lasterr,
+			        0,
+			        "Reached '%d' conversions with a conversion result '%d' and resulting event "
+			        "(type: %d, nparams: %d). Bump the conversions max limit in the code.",
+			        MAX_CONVERSION_BOUNDARY,
+			        conv_res,
+			        (*pevent)->type,
+			        (*pevent)->nparams);
 		case CONVERSION_CONTINUE:
 			// We forgot to end the conversion somewhere.
 			return scap_errprintf(handle->m_lasterr,
 			                      0,
-			                      "Reached '%d' conversions with evt (%d) without reaching an end.",
+			                      "Reached '%d' conversions with event (type: %d, nparams: %d) "
+			                      "without reaching an end.",
 			                      MAX_CONVERSION_BOUNDARY,
-			                      (*pevent)->type);
+			                      (*pevent)->type,
+			                      (*pevent)->nparams);
 		default:
 			return scap_errprintf(handle->m_lasterr,
 			                      0,
-			                      "Reached '%d' conversions with unknown conversion result '%d'",
+			                      "Reached '%d' conversions with event (type: %d, nparams: %d) "
+			                      "with unknown conversion result '%d'.",
 			                      MAX_CONVERSION_BOUNDARY,
+			                      (*pevent)->type,
+			                      (*pevent)->nparams,
 			                      conv_res);
 		}
 	}
@@ -2104,21 +2130,26 @@ static int32_t next(struct scap_engine_handle engine,
 	case CONVERSION_SKIP:
 	case CONVERSION_COMPLETED:
 		return SCAP_SUCCESS;
+	case CONVERSION_DROP:
+		return SCAP_FILTERED_EVENT;
 	case CONVERSION_CONTINUE:
 		// This cannot happen, but flag it as an error to quickly identify it if for some reason
 		// someone (wrongly) updates the conversion loop.
 		return scap_errprintf(handle->m_lasterr,
 		                      0,
 		                      "Bug. Conversion ended with unexpected conversion result '%d' and "
-		                      "resulting evt (%d).",
+		                      "resulting event (type: %d, nparams: %d).",
 		                      conv_res,
-		                      (*pevent)->type);
+		                      (*pevent)->type,
+		                      (*pevent)->nparams);
 	default:
-		return scap_errprintf(handle->m_lasterr,
-		                      0,
-		                      "Bug. Unknown conversion result '%d' for resulting evt (%d).",
-		                      conv_res,
-		                      (*pevent)->type);
+		return scap_errprintf(
+		        handle->m_lasterr,
+		        0,
+		        "Bug. Unknown conversion result '%d' for resulting event (type: %d, nparams: %d).",
+		        conv_res,
+		        (*pevent)->type,
+		        (*pevent)->nparams);
 	}
 }
 

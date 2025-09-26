@@ -51,6 +51,9 @@ protected:
 			if(ret == SCAP_EOF) {
 				break;
 			}
+			if(ret == SCAP_FILTERED_EVENT) {
+				continue;
+			}
 			if(ret != SCAP_SUCCESS) {
 				throw std::runtime_error("Error reading event. scap_code: " + std::to_string(ret) +
 				                         ", " + m_inspector->getlasterr());
@@ -74,6 +77,9 @@ protected:
 			ret = m_inspector->next(&evt);
 			if(ret == SCAP_EOF) {
 				break;
+			}
+			if(ret == SCAP_FILTERED_EVENT) {
+				continue;
 			}
 			if(ret != SCAP_SUCCESS) {
 				throw std::runtime_error("Error reading event. scap_code: " + std::to_string(ret) +
@@ -127,6 +133,9 @@ protected:
 			ret = m_inspector->next(&evt);
 			if(ret == SCAP_EOF) {
 				break;
+			}
+			if(ret == SCAP_FILTERED_EVENT) {
+				continue;
 			}
 			if(ret != SCAP_SUCCESS) {
 				throw std::runtime_error("Error reading event. scap_code: " + std::to_string(ret) +
