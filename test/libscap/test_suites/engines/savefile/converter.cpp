@@ -4001,6 +4001,35 @@ TEST_F(convert_event_test, PPME_SOCKET_SENDMSG_X_to_5_params_with_enter) {
 }
 
 ////////////////////////////
+// SENDMMSG
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SENDMMSG_X_0_to_5_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty.
+	constexpr auto res = empty_value<int64_t>();
+	constexpr auto fd = empty_value<int64_t>();
+	constexpr auto size = empty_value<uint32_t>();
+	constexpr auto data = empty_value<scap_const_sized_buffer>();
+	constexpr auto tuple = empty_value<scap_const_sized_buffer>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 0, 1, 2, 3, 4);
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SOCKET_SENDMMSG_X, 0),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SOCKET_SENDMMSG_X,
+	                                                                &empty_params_set,
+	                                                                5,
+	                                                                res,
+	                                                                fd,
+	                                                                size,
+	                                                                data,
+	                                                                tuple));
+}
+
+////////////////////////////
 // RECVMSG
 ////////////////////////////
 
@@ -4162,6 +4191,37 @@ TEST_F(convert_event_test, PPME_SOCKET_RECVMSG_X_4_to_6_params_with_enter) {
 	                                              scap_const_sized_buffer{tuple, tuple_size},
 	                                              scap_const_sized_buffer{nullptr, 0},
 	                                              fd));
+}
+
+////////////////////////////
+// RECVMMSG
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_RECVMMSG_X_0_to_6_params) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid = 25;
+
+	// Set to empty.
+	constexpr auto res = empty_value<int64_t>();
+	constexpr auto fd = empty_value<int64_t>();
+	constexpr auto size = empty_value<uint32_t>();
+	constexpr auto data = empty_value<scap_const_sized_buffer>();
+	constexpr auto tuple = empty_value<scap_const_sized_buffer>();
+	constexpr auto msgcontrol = empty_value<scap_const_sized_buffer>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 0, 1, 2, 3, 4, 5);
+	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SOCKET_RECVMMSG_X, 0),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid,
+	                                                                PPME_SOCKET_RECVMMSG_X,
+	                                                                &empty_params_set,
+	                                                                6,
+	                                                                res,
+	                                                                fd,
+	                                                                size,
+	                                                                data,
+	                                                                tuple,
+	                                                                msgcontrol));
 }
 
 ////////////////////////////

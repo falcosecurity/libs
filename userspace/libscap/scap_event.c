@@ -649,6 +649,8 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SYSCALL_MKDIRAT_X:
 	case PPME_SYSCALL_UNLINKAT_2_X:
 	case PPME_SYSCALL_MKNODAT_X:
+	case PPME_SOCKET_SENDMMSG_X:
+	case PPME_SOCKET_RECVMMSG_X:
 		location = 1;
 		break;
 	case PPME_SYSCALL_READ_X:
