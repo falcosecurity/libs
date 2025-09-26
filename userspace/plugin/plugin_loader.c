@@ -82,7 +82,11 @@ plugin_handle_t* plugin_load(const char* path, char* err) {
 		}
 	}
 #else
-	ret->handle = dlopen(path, RTLD_LAZY);
+#ifdef RTLD_DEEPBIND
+	ret->handle = dlopen(path, RTLD_DEEPBIND | RTLD_LOCAL | RTLD_NOW);
+#else
+	ret->handle = dlopen(path, RTLD_LOCAL | RTLD_NOW);
+#endif
 	if(ret->handle == NULL) {
 		strlcpy(err, (const char*)dlerror(), PLUGIN_MAX_ERRLEN);
 	}
