@@ -477,6 +477,8 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 		ASSERT(static_cast<int64_t>(tinfo->m_latency) >= 0);
 	}
 
+	// note: if an "execveat" call is successful, we receive an "execveat" enter event followed by
+	// an "execve" exit event.
 	if(etype == PPME_SYSCALL_EXECVE_19_X &&
 	   tinfo->get_lastevent_type() == PPME_SYSCALL_EXECVEAT_E) {
 		tinfo->set_lastevent_data_validity(true);
@@ -507,19 +509,12 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	// Handling section for events using FDs.
 	//
 
-	// sendmmsg and recvmmsg send all data in the exit event, fd included.
-	if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
-	   evt.get_num_params() > 0) {
-		tinfo->m_lastevent_fd = evt.get_param(1)->as<int64_t>();
-	}
-
 	// todo!: this should become the unique logic when we'll disable the enter events.
 	if(tinfo->m_lastevent_fd == -1) {
 		if(const int fd_location = get_exit_event_fd_location(static_cast<ppm_event_code>(etype));
 		   fd_location != -1) {
-			const auto fd_param = evt.get_param(fd_location);
-			// It is possible that the fd_param is empty
-			if(!fd_param->empty()) {
+			// It is possible that the fd_param is empty.
+			if(const auto fd_param = evt.get_param(fd_location); !fd_param->empty()) {
 				tinfo->m_lastevent_fd = fd_param->as<int64_t>();
 			}
 		}
@@ -3159,8 +3154,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	ppm_event_flags eflags = evt.get_info_flags();
 	uint16_t etype = evt.get_scap_evt()->type;
 
+	// On old scap files, sendmmsg and recvmmsg don't have any parameter, and the scap converter
+	// just adds a series of empty parameters to match the latest event layouts. If one of the
+	// parameters is missing, so is for the other ones, so just check the first of them.
 	if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
-	   evt.get_num_params() == 0) {
+	   evt.get_param(0)->empty()) {
 		return;
 	}
 

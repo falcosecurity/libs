@@ -382,7 +382,8 @@ const struct ppm_event_info g_event_info[] = {
         [PPME_SOCKET_SENDMMSG_E] = {"sendmmsg", EC_IO_WRITE | EC_SYSCALL, EF_OLD_VERSION, 0},
         [PPME_SOCKET_SENDMMSG_X] = {"sendmmsg",
                                     EC_IO_WRITE | EC_SYSCALL,
-                                    EF_USES_FD | EF_WRITES_TO_FD | EF_MODIFIES_STATE,
+                                    EF_USES_FD | EF_WRITES_TO_FD | EF_MODIFIES_STATE |
+                                            EF_CONVERTER_MANAGED,
                                     5,
                                     {{"res", PT_ERRNO, PF_DEC},
                                      {"fd", PT_FD, PF_DEC},
@@ -409,7 +410,8 @@ const struct ppm_event_info g_event_info[] = {
         [PPME_SOCKET_RECVMMSG_E] = {"recvmmsg", EC_IO_READ | EC_SYSCALL, EF_OLD_VERSION, 0},
         [PPME_SOCKET_RECVMMSG_X] = {"recvmmsg",
                                     EC_IO_READ | EC_SYSCALL,
-                                    EF_USES_FD | EF_READS_FROM_FD | EF_MODIFIES_STATE,
+                                    EF_USES_FD | EF_READS_FROM_FD | EF_MODIFIES_STATE |
+                                            EF_CONVERTER_MANAGED,
                                     6,
                                     {{"res", PT_ERRNO, PF_DEC},
                                      {"fd", PT_FD, PF_DEC},
