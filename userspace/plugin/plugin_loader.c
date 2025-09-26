@@ -82,7 +82,7 @@ plugin_handle_t* plugin_load(const char* path, char* err) {
 		}
 	}
 #else
-#ifdef RTLD_DEEPBIND
+#if !DISABLE_RTLD_DEEPBIND && defined(RTLD_DEEPBIND)
 	ret->handle = dlopen(path, RTLD_DEEPBIND | RTLD_LOCAL | RTLD_NOW);
 #else
 	ret->handle = dlopen(path, RTLD_LOCAL | RTLD_NOW);
