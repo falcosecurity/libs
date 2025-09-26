@@ -582,7 +582,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			sanitize_string(m_tstr);
 		}
 
-		if(m_fdinfo != NULL && m_fdinfo->is_file()) {
+		if(m_fdinfo == NULL || m_fdinfo->is_file()) {
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos && pos != 0) {
 				if(pos < m_tstr.size() - 1) {
