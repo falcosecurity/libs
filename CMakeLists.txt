@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2023 The Falco Authors.
+# Copyright (C) 2025 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -63,6 +63,12 @@ option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
 option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
 option(USE_ASAN "Build with AddressSanitizer" OFF)
+# RTLD_DEEPBIND flag is incompatible with sanitizer runtime (see
+# https://github.com/google/sanitizers/issues/611 for details)
+add_compile_definitions(DISABLE_RTLD_DEEPBIND=$<IF:$<BOOL:${USE_ASAN}>,1,0>)
+if(USE_ASAN)
+	message(STATUS "RTLD_DEEPBIND disabled because USE_ASAN is ON")
+endif()
 option(USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
 option(USE_TSAN "Build with ThreadSanitizer" OFF)
 option(ENABLE_COVERAGE "Build with code coverage" OFF)
