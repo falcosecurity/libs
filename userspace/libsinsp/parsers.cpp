@@ -94,18 +94,19 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
-		// Optimization: in all these cases, if one of the expected parameters is empty, so is for
-		// the other ones, so just check the presence of the first one, and avoid to store the event
-		// if it doesn't bring any info.
+	// note: even if the drivers don't send anymore execve* enter events, scap files still contain
+	// them, and the scap converter still return them to sinsp: this is done in order to let the
+	// parser leverage the enter event parameters in case the exit event lacks of some parameters
+	// (i.e. empty parameters coming from old exit event encodings).
+	case PPME_SYSCALL_EXECVE_19_E:
+		// note: in all these cases, if one of the expected parameters is empty, so is for the other
+		// ones, so just check the presence of the first one, and avoid to store the event as it
+		// doesn't bring any info.
 		if(evt.get_param(0)->empty()) {
 			break;
 		}
 		// fallthrough
-	// Notice that, even if the drivers don't send anymore execve* enter events, scap files still
-	// contain them, and the scap converter still return them to sinsp: this is done in order to let
-	// the parser leverage the enter event parameters in case the exit event lacks of some
-	// parameters (i.e. empty parameters coming from old exit event encodings).
-	case PPME_SYSCALL_EXECVE_19_E:
+	// See comment above about why we still store `PPME_SYSCALL_EXECVEAT_E` events.
 	case PPME_SYSCALL_EXECVEAT_E:
 		store_event(evt);
 		break;
