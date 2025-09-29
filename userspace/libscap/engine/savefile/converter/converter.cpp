@@ -515,7 +515,7 @@ extern "C" conversion_result test_event_convertibility(const scap_evt *evt_to_co
 	if(!(evt_flags & EF_TMP_CONVERTER_MANAGED)) {
 		// New event versions are allowed to proceed towards upper layers.
 		if(!(evt_flags & EF_OLD_VERSION)) {
-			return CONVERSION_COMPLETED;
+			return CONVERSION_PASS;
 		}
 
 		// Old enter events not managed by converter must be dropped.
@@ -554,7 +554,7 @@ extern "C" conversion_result test_event_convertibility(const scap_evt *evt_to_co
 		return CONVERSION_CONTINUE;
 	}
 
-	return CONVERSION_COMPLETED;
+	return CONVERSION_PASS;
 }
 
 extern "C" scap_evt *scap_retrieve_evt_from_converter_storage(
@@ -662,24 +662,24 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 	size_t params_offset = 0;
 	int param_to_populate = 0;
 
-	// We copy the entire event in any case so that we are ready to handle `CONVERSION_SKIP` cases
+	// We copy the entire event in any case so that we are ready to handle `CONVERSION_PASS` cases
 	// without further actions.
 	memcpy(new_evt, evt_to_convert, evt_to_convert->len);
 
 	switch(ci.m_action) {
 	case C_ACTION_PASS:
-		return CONVERSION_SKIP;
+		return CONVERSION_PASS;
 
 	// TODO(ekoops): the current implementation of `C_ACTION_STORE` and `C_ACTION_STORE_AND_PASS` is
 	//   identical. However, in the future, `C_ACTION_STORE` will return something to indicate that
-	//   the event should be dropped, while `C_ACTION_STORE_AND_PASS` will return `CONVERSION_SKIP`
+	//   the event should be dropped, while `C_ACTION_STORE_AND_PASS` will return `CONVERSION_PASS`
 	//   (or whatever is the name we choose to indicate that the event should proceed... Maybe we
 	//   can reuse `CONVERSION_COMPLETE`). Update the implementation once we are ready to change
 	//   the `C_ACTION_STORE` logic.
 	case C_ACTION_STORE:
 	case C_ACTION_STORE_AND_PASS:
 		store_evt(evt_storage, evt_to_convert->tid, evt_to_convert);
-		return CONVERSION_SKIP;
+		return CONVERSION_PASS;
 
 	case C_ACTION_ADD_PARAMS:
 		// The new number of params is the previous one plus the number of conversion instructions.

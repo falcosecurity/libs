@@ -20,7 +20,6 @@ limitations under the License.
 typedef enum conversion_result {
 	CONVERSION_ERROR,
 	CONVERSION_CONTINUE,
-	CONVERSION_COMPLETED,
-	CONVERSION_SKIP,
+	CONVERSION_PASS,
 	CONVERSION_DROP
 } conversion_result;

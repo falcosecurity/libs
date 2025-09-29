@@ -104,14 +104,15 @@ protected:
 		          CONVERSION_ERROR)
 		        << "The conversion is not failed: " << error;
 	}
-	void assert_single_conversion_skip(const safe_scap_evt_t &evt_to_convert) const {
+
+	void assert_single_conversion_pass(const safe_scap_evt_t &evt_to_convert) const {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
 		// First we check the conversion result matches the expected result
 		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
-		          CONVERSION_SKIP)
-		        << "The conversion is not skipped: " << error;
+		          CONVERSION_PASS)
+		        << "Event is not allowed to pass: " << error;
 	}
 
 	static void assert_no_conversion_drop(const safe_scap_evt_t &evt_to_convert) {
@@ -152,8 +153,8 @@ protected:
 		switch(conv_res) {
 		case CONVERSION_ERROR:
 			FAIL() << "Unexpected CONVERSION_ERROR: " << error;
-		case CONVERSION_SKIP:
-			FAIL() << "Unexpected CONVERSION_SKIP";
+		case CONVERSION_DROP:
+			FAIL() << "Unexpected CONVERSION_DROP";
 		case CONVERSION_CONTINUE:
 			if(conv_num < MAX_CONVERSION_BOUNDARY) {
 				FAIL() << "Unexpected CONVERSION_CONTINUE without reaching max boundary";
