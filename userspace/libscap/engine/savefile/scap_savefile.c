@@ -2039,8 +2039,7 @@ static int32_t next(struct scap_engine_handle engine,
 
 	conversion_result conv_res = test_event_convertibility(*pevent, handle->m_lasterr);
 	switch(conv_res) {
-	case CONVERSION_COMPLETED:
-	case CONVERSION_SKIP:
+	case CONVERSION_PASS:
 		return SCAP_SUCCESS;
 	case CONVERSION_DROP:
 		return SCAP_FILTERED_EVENT;
@@ -2090,8 +2089,7 @@ static int32_t next(struct scap_engine_handle engine,
 
 	if(conv_num == MAX_CONVERSION_BOUNDARY) {
 		switch(conv_res) {
-		case CONVERSION_SKIP:
-		case CONVERSION_COMPLETED:
+		case CONVERSION_PASS:
 		case CONVERSION_DROP:
 			// We reached the max conversion boundary with a correct conversion, so we need to bump
 			// `MAX_CONVERSION_BOUNDARY` in the code.
@@ -2126,9 +2124,7 @@ static int32_t next(struct scap_engine_handle engine,
 	}
 
 	switch(conv_res) {
-	// Today with CONVERSION_SKIP we send the event to userspace, tomorrow we could drop it.
-	case CONVERSION_SKIP:
-	case CONVERSION_COMPLETED:
+	case CONVERSION_PASS:
 		return SCAP_SUCCESS;
 	case CONVERSION_DROP:
 		return SCAP_FILTERED_EVENT;
