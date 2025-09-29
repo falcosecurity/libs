@@ -17,6 +17,8 @@ limitations under the License.
 */
 
 #include <thread>
+#include <functional>
+#include <sstream>
 #include <gtest/gtest.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/test/helpers/threads_helpers.h>
@@ -1359,5 +1361,146 @@ TEST_F(sinsp_with_test_input, plugin_routines) {
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 0);
 }
+
+// Schema version validation tests
+struct schema_version_test_case {
+	std::string test_name;
+	std::function<void(plugin_api&)> plugin_api_func;
+	std::string config;
+	sinsp_version test_version;
+	bool expected_success;
+	std::string expected_error_substring;
+
+	friend std::ostream& operator<<(std::ostream& os, const schema_version_test_case& test_case) {
+		os << "Test case: " << test_case.test_name
+		   << ", Test version: " << test_case.test_version.as_string()
+		   << ", Expected success: " << std::boolalpha << test_case.expected_success
+		   << ", Expected error substring: " << test_case.expected_error_substring;
+		return os;
+	}
+};
+
+class schema_version_test : public sinsp_with_test_input,
+                            public ::testing::WithParamInterface<schema_version_test_case> {};
+
+TEST_P(schema_version_test, plugin_schema_version_validation) {
+	const auto& param = GetParam();
+
+	auto pl = register_plugin(&m_inspector, param.plugin_api_func, param.config);
+	std::string err;
+	bool result = pl->check_required_schema_version(param.test_version, err);
+
+	ASSERT_EQ(result, param.expected_success) << "Test: " << param.test_name;
+
+	if(!param.expected_success) {
+		ASSERT_TRUE(err.find(param.expected_error_substring) != std::string::npos)
+		        << "Test: " << param.test_name << ", Error: " << err
+		        << ", Expected substring: " << param.expected_error_substring;
+	} else {
+		ASSERT_TRUE(err.empty()) << "Test: " << param.test_name << ", Unexpected error: " << err;
+	}
+}
+
+INSTANTIATE_TEST_CASE_P(
+        plugin_schema_version_validation,
+        schema_version_test,
+        ::testing::Values(
+                // Default compatible tests
+                schema_version_test_case{"default_compatible",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         "",
+                                         sinsp_version("3.0.0"),
+                                         true,
+                                         ""},
+                schema_version_test_case{"no_required_schema_version",
+                                         get_plugin_api_sample_no_required_schema_version,
+                                         "{}",
+                                         sinsp_version("3.0.0"),
+                                         true,
+                                         ""},
+                // Extract plugin tests
+                schema_version_test_case{"extract_compatible_explicit",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         R"({"required_schema_version": "3.69.0"})",
+                                         sinsp_version(3, 69, 0),
+                                         true,
+                                         ""},
+                schema_version_test_case{"extract_major_incompatible",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         R"({"required_schema_version": "4.0.0"})",
+                                         sinsp_version(3, 0, 0),
+                                         false,
+                                         "major versions disagree"},
+                schema_version_test_case{"extract_minor_incompatible",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         R"({"required_schema_version": "3.1.0"})",
+                                         sinsp_version(3, 0, 0),
+                                         false,
+                                         "minor version is less than the requested one"},
+                schema_version_test_case{"extract_patch_incompatible",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         R"({"required_schema_version": "3.0.1"})",
+                                         sinsp_version(3, 0, 0),
+                                         false,
+                                         "patch version is less than the requested one"},
+                schema_version_test_case{"extract_invalid_format",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         R"({"required_schema_version": "invalid.version"})",
+                                         sinsp_version("invalid.version"),
+                                         false,
+                                         "invalid required event schema version"},
+                // Parse plugin tests
+                schema_version_test_case{"parse_compatible_explicit",
+                                         get_plugin_api_sample_parse_schema_version,
+                                         R"({"required_schema_version": "3.0.0"})",
+                                         sinsp_version(3, 0, 0),
+                                         true,
+                                         ""},
+                schema_version_test_case{
+                        "parse_custom_event_types",
+                        get_plugin_api_sample_parse_schema_version,
+                        R"({"required_schema_version": "3.0.0", "event_types": [110, 322]})",
+                        sinsp_version(3, 0, 0),
+                        true,
+                        ""},
+                schema_version_test_case{"parse_major_incompatible",
+                                         get_plugin_api_sample_parse_schema_version,
+                                         R"({"required_schema_version": "4.0.0"})",
+                                         sinsp_version(3, 0, 0),
+                                         false,
+                                         "major versions disagree"},
+                schema_version_test_case{"parse_minor_incompatible",
+                                         get_plugin_api_sample_parse_schema_version,
+                                         R"({"required_schema_version": "3.1.0"})",
+                                         sinsp_version(3, 0, 0),
+                                         false,
+                                         "minor version is less than the requested one"},
+                schema_version_test_case{"parse_patch_incompatible",
+                                         get_plugin_api_sample_parse_schema_version,
+                                         R"({"required_schema_version": "3.0.1"})",
+                                         sinsp_version(3, 0, 0),
+                                         false,
+                                         "patch version is less than the requested one"},
+                schema_version_test_case{"parse_invalid_format",
+                                         get_plugin_api_sample_parse_schema_version,
+                                         R"({"required_schema_version": "invalid.version"})",
+                                         sinsp_version("invalid.version"),
+                                         false,
+                                         "invalid required event schema version"},
+                schema_version_test_case{"defaut_schema_version_compatible",
+                                         get_plugin_api_sample_extract_schema_version,
+                                         "",
+                                         sinsp_version("3.0.0"),
+                                         true,
+                                         ""},
+                schema_version_test_case{"defaut_schema_version_custom_event_source",
+                                         get_plugin_api_sample_custom_event_sources,
+                                         R"({"required_schema_version": "2.0.0"})",
+                                         sinsp_version("3.0.0"),
+                                         true,
+                                         ""}),
+        [](const ::testing::TestParamInfo<schema_version_test_case>& info) {
+	        return info.param.test_name;
+        });
 
 #endif

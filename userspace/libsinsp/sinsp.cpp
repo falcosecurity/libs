@@ -493,6 +493,18 @@ void sinsp::open_common(scap_open_args* oargs,
 		throw scap_open_exception(error, scap_rc);
 	}
 
+	// Validate the schema version of the plugins in case the engine provides the event schema
+	// version it complies with
+	if(vtable->get_schema_version) {
+		auto event_schema_version = sinsp_version(vtable->get_schema_version(m_h->m_engine));
+		for(auto& p : m_plugin_manager->plugins()) {
+			std::string schema_version_err;
+			if(!p->check_required_schema_version(event_schema_version, schema_version_err)) {
+				throw sinsp_exception(schema_version_err);
+			}
+		}
+	}
+
 	m_platform = platform;
 	scap_rc = scap_platform_init(platform, m_platform_lasterr, m_h->m_engine, oargs);
 	if(scap_rc != SCAP_SUCCESS) {

@@ -31,3 +31,7 @@ void get_plugin_api_sample_syscall_subtables_array(plugin_api& out);
 void get_plugin_api_sample_syscall_subtables_array_pair(plugin_api& out);
 void get_plugin_api_sample_metrics(plugin_api& out);
 void get_plugin_api_sample_routines(plugin_api& out);
+void get_plugin_api_sample_extract_schema_version(plugin_api& out);
+void get_plugin_api_sample_parse_schema_version(plugin_api& out);
+void get_plugin_api_sample_no_required_schema_version(plugin_api& out);
+void get_plugin_api_sample_custom_event_sources(plugin_api& out);

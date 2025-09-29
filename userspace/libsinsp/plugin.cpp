@@ -20,8 +20,6 @@ limitations under the License.
 #include <string.h>
 #include <memory>
 #include <vector>
-#include <set>
-#include <sstream>
 #include <numeric>
 #include <json/json.h>
 #pragma GCC diagnostic push
@@ -566,7 +564,11 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 
 		// populate fields info
 		m_fields_info.m_name = name() + string(" (plugin)");
-		m_fields_info.m_fields = &m_fields[0];  // we use a vector so this should be safe
+		if(m_fields.empty()) {
+			m_fields_info.m_fields = nullptr;
+		} else {
+			m_fields_info.m_fields = &m_fields[0];
+		}
 		m_fields_info.m_nfields = m_fields.size();
 		m_fields_info.m_flags = filter_check_info::FL_NONE;
 
@@ -607,6 +609,75 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 		}
 	}
 
+	return true;
+}
+
+bool sinsp_plugin::check_required_schema_version(sinsp_version event_schema_version,
+                                                 std::string& err) {
+	// Check if the plugin consumes driver events and needs schema version validation
+	bool needs_schema_check = false;
+
+	// Check if plugin provides parsing capabilities and consumes syscall events
+	if(m_caps & CAP_PARSING) {
+		for(const auto& event_type : m_parse_event_codes) {
+			if(event_type != ppm_event_code::PPME_PLUGINEVENT_E) {
+				needs_schema_check = true;
+				break;
+			}
+		}
+	}
+
+	// Check if plugin provides field extraction capabilities and consumes syscall events
+	if(!needs_schema_check && (m_caps & CAP_EXTRACTION)) {
+		for(const auto& event_type : m_extract_event_codes) {
+			if(event_type != ppm_event_code::PPME_PLUGINEVENT_E) {
+				needs_schema_check = true;
+				break;
+			}
+		}
+	}
+
+	// If schema check is needed, validate the schema version
+	if(needs_schema_check) {
+		// Default to schema version 3.0.0, which is the major schema version of the release
+		// predating the introduction of the event schema version check
+		uint32_t major = 3, minor = 0, patch = 0;
+		const char* required_version = NULL;
+		if(m_handle->api.get_required_event_schema_version != NULL) {
+			required_version = m_handle->api.get_required_event_schema_version(m_state);
+			if(required_version != NULL) {
+				if(sscanf(required_version,
+				          "%" PRIu32 ".%" PRIu32 ".%" PRIu32,
+				          &major,
+				          &minor,
+				          &patch) != 3) {
+					err = "plugin provided an invalid required event schema version: '" +
+					      std::string(required_version) + "'";
+					return false;
+				}
+			}
+		}
+
+		std::string failmsg("");
+		/* The plugin requires a minimum schema version */
+		if(event_schema_version.major() != major) {
+			failmsg = "major versions disagree";
+		} else if(event_schema_version.minor() < minor) {
+			failmsg = "minor version is less than the requested one";
+		} else if(event_schema_version.minor() == minor && event_schema_version.patch() < patch) {
+			failmsg = "patch version is less than the requested one";
+		}
+
+		if(!failmsg.empty()) {
+			err = "plugin required event schema version '" +
+			      (required_version ? std::string(required_version) : "3.0.0") +
+			      "' not compatible with the event schema version in use '" +
+			      event_schema_version.as_string() + "': " + failmsg;
+			return false;
+		}
+	}
+
+	// No schema check needed
 	return true;
 }
 
