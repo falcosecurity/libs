@@ -47,7 +47,8 @@ TEST(scap_file, filter) {
 		do {
 			res = inspector.next(&evt);
 			EXPECT_NE(res, SCAP_FAILURE);
-			if(res != SCAP_EOF) {
+			// Besides checking for EOF, don't dump the event if the scap converter filtered it out.
+			if(res != SCAP_EOF && res != SCAP_FILTERED_EVENT) {
 				dumper->dump(evt);
 			}
 		} while(res != SCAP_EOF);
@@ -106,7 +107,8 @@ TEST(scap_file, cycledumper_num_events) {
 		do {
 			res = inspector.next(&evt);
 			EXPECT_NE(res, SCAP_FAILURE);
-			if(res != SCAP_EOF) {
+			// Besides checking for EOF, don't dump the event if the scap converter filtered it out.
+			if(res != SCAP_EOF && res != SCAP_FILTERED_EVENT) {
 				dumper->dump(evt);
 			}
 		} while(res != SCAP_EOF);
@@ -115,8 +117,8 @@ TEST(scap_file, cycledumper_num_events) {
 		inspector.close();
 	}
 
-	ASSERT_EQ(n_opens, 5);
-	ASSERT_EQ(n_closes, 6);  // a autodump_stop is called before starting.
+	ASSERT_EQ(n_opens, 4);
+	ASSERT_EQ(n_closes, 5);  // a autodump_stop is called before starting.
 	std::filesystem::remove(tmp_scap_file_path);
 }
 
@@ -150,7 +152,8 @@ TEST(scap_file, cycledumper_seconds) {
 		do {
 			res = inspector.next(&evt);
 			EXPECT_NE(res, SCAP_FAILURE);
-			if(res != SCAP_EOF) {
+			// Besides checking for EOF, don't dump the event if the scap converter filtered it out.
+			if(res != SCAP_EOF && res != SCAP_FILTERED_EVENT) {
 				dumper->dump(evt);
 			}
 		} while(res != SCAP_EOF);

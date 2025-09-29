@@ -27,94 +27,126 @@ limitations under the License.
 TEST_F(scap_file_test, same_number_of_events) {
 	open_filename("scap_2013.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_READ_E, 24956},
+	        {PPME_SYSCALL_READ_E, 0 /* filtered */},
 	        {PPME_SYSCALL_READ_X, 24957},
+	        {PPME_SOCKET_ACCEPT_E, 0 /* filtered */},
 	        {PPME_SOCKET_ACCEPT_5_X, 3816},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
 	open_filename("kexec_arm64.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_PREAD_E, 3216},      {PPME_SYSCALL_PREAD_X, 3216},
-	        {PPME_SOCKET_LISTEN_E, 1},         {PPME_SOCKET_LISTEN_X, 1},
-	        {PPME_SYSCALL_SETUID_E, 2},        {PPME_SYSCALL_SETUID_X, 2},
-	        {PPME_SOCKET_RECVFROM_E, 82},      {PPME_SOCKET_RECVFROM_X, 82},
-	        {PPME_SOCKET_SENDTO_E, 162},       {PPME_SOCKET_SENDTO_X, 162},
-	        {PPME_SOCKET_SHUTDOWN_E, 9},       {PPME_SOCKET_SHUTDOWN_X, 9},
-	        {PPME_SOCKET_SOCKETPAIR_E, 114},   {PPME_SOCKET_SOCKETPAIR_X, 114},
-	        {PPME_SOCKET_SENDMSG_E, 26},       {PPME_SOCKET_SENDMSG_X, 26},
-	        {PPME_SOCKET_RECVMSG_E, 522},      {PPME_SOCKET_RECVMSG_X, 522},
-	        {PPME_SYSCALL_IOCTL_3_E, 1164},    {PPME_SYSCALL_IOCTL_3_X, 1164},
-	        {PPME_SYSCALL_FSTAT_E, 1962},      {PPME_SYSCALL_FSTAT_X, 1962},
-	        {PPME_SYSCALL_BRK_4_E, 659},       {PPME_SYSCALL_BRK_4_X, 659},
-	        {PPME_SYSCALL_GETRLIMIT_E, 2},     {PPME_SYSCALL_GETRLIMIT_X, 2},
-	        {PPME_SYSCALL_CLOSE_E, 19860},     {PPME_SYSCALL_CLOSE_X, 19860},
-	        {PPME_SYSCALL_MUNMAP_E, 2965},     {PPME_SYSCALL_MUNMAP_X, 2965},
-	        {PPME_SYSCALL_GETDENTS64_E, 1870}, {PPME_SYSCALL_GETDENTS64_X, 1870},
-	        {PPME_SYSCALL_PPOLL_E, 1093},      {PPME_SYSCALL_PPOLL_X, 1093},
-	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
-	        {PPME_SYSCALL_UNSHARE_E, 1},       {PPME_SYSCALL_UNSHARE_X, 1},
-	        {PPME_SYSCALL_SECCOMP_E, 18},      {PPME_SYSCALL_SECCOMP_X, 18},
-	        {PPME_SYSCALL_EPOLL_CREATE1_E, 5}, {PPME_SYSCALL_EPOLL_CREATE1_X, 5},
-	        {PPME_SYSCALL_KILL_E, 156},        {PPME_SYSCALL_KILL_X, 156},
-	        {PPME_SYSCALL_TGKILL_E, 1010},     {PPME_SYSCALL_TGKILL_X, 1010},
-	        {PPME_SOCKET_ACCEPT4_6_E, 207},    {PPME_SOCKET_ACCEPT4_6_X, 207},
-	        {PPME_SYSCALL_SPLICE_E, 253},      {PPME_SYSCALL_SPLICE_X, 253},
-	        {PPME_SYSCALL_LSEEK_E, 329},       {PPME_SYSCALL_LSEEK_X, 329},
-	        {PPME_SYSCALL_WRITEV_E, 5},        {PPME_SYSCALL_WRITEV_X, 5},
-	        {PPME_SYSCALL_FCNTL_E, 9817},      {PPME_SYSCALL_FCNTL_X, 9817},
-	        {PPME_SOCKET_CONNECT_E, 238},      {PPME_SOCKET_CONNECT_X, 238},
-	        {PPME_SYSCALL_EXECVE_19_E, 202},   {PPME_SYSCALL_EXECVE_19_X, 203},
-	        {PPME_SYSCALL_EXECVEAT_E, 1},      {PPME_SYSCALL_EXECVEAT_X, 0},
+	        {PPME_SYSCALL_PREAD_E, 0 /* filtered */},
+	        {PPME_SYSCALL_PREAD_X, 3216},
+	        {PPME_SOCKET_LISTEN_E, 0 /* filtered */},
+	        {PPME_SOCKET_LISTEN_X, 1},
+	        {PPME_SYSCALL_SETUID_E, 0 /* filtered */},
+	        {PPME_SYSCALL_SETUID_X, 2},
+	        {PPME_SOCKET_RECVFROM_E, 0 /* filtered */},
+	        {PPME_SOCKET_RECVFROM_X, 82},
+	        {PPME_SOCKET_SENDTO_E, 0 /* filtered */},
+	        {PPME_SOCKET_SENDTO_X, 162},
+	        {PPME_SOCKET_SHUTDOWN_E, 0 /* filtered */},
+	        {PPME_SOCKET_SHUTDOWN_X, 9},
+	        {PPME_SOCKET_SOCKETPAIR_E, 0 /* filtered */},
+	        {PPME_SOCKET_SOCKETPAIR_X, 114},
+	        {PPME_SOCKET_SENDMSG_E, 0 /* filtered */},
+	        {PPME_SOCKET_SENDMSG_X, 26},
+	        {PPME_SOCKET_RECVMSG_E, 0 /* filtered */},
+	        {PPME_SOCKET_RECVMSG_X, 522},
+	        {PPME_SYSCALL_IOCTL_3_E, 0 /* filtered */},
+	        {PPME_SYSCALL_IOCTL_3_X, 1164},
+	        {PPME_SYSCALL_FSTAT_E, 0 /* filtered */},
+	        {PPME_SYSCALL_FSTAT_X, 1962},
+	        {PPME_SYSCALL_BRK_4_E, 0 /* filtered */},
+	        {PPME_SYSCALL_BRK_4_X, 659},
+	        {PPME_SYSCALL_GETRLIMIT_E, 0 /* filtered */},
+	        {PPME_SYSCALL_GETRLIMIT_X, 2},
+	        {PPME_SYSCALL_CLOSE_E, 0 /* filtered */},
+	        {PPME_SYSCALL_CLOSE_X, 19860},
+	        {PPME_SYSCALL_MUNMAP_E, 0 /* filtered */},
+	        {PPME_SYSCALL_MUNMAP_X, 2965},
+	        {PPME_SYSCALL_GETDENTS64_E, 0 /* filtered */},
+	        {PPME_SYSCALL_GETDENTS64_X, 1870},
+	        {PPME_SYSCALL_PPOLL_E, 0 /* filtered */},
+	        {PPME_SYSCALL_PPOLL_X, 1093},
+	        {PPME_SYSCALL_UNSHARE_E, 0 /* filtered */},
+	        {PPME_SYSCALL_UNSHARE_X, 1},
+	        {PPME_SYSCALL_UNSHARE_E, 0 /* filtered */},
+	        {PPME_SYSCALL_UNSHARE_X, 1},
+	        {PPME_SYSCALL_SECCOMP_E, 0 /* filtered */},
+	        {PPME_SYSCALL_SECCOMP_X, 18},
+	        {PPME_SYSCALL_EPOLL_CREATE1_E, 0 /* filtered */},
+	        {PPME_SYSCALL_EPOLL_CREATE1_X, 5},
+	        {PPME_SYSCALL_KILL_E, 0 /* filtered */},
+	        {PPME_SYSCALL_KILL_X, 156},
+	        {PPME_SYSCALL_TGKILL_E, 0 /* filtered */},
+	        {PPME_SYSCALL_TGKILL_X, 1010},
+	        {PPME_SOCKET_ACCEPT4_6_E, 0 /* filtered */},
+	        {PPME_SOCKET_ACCEPT4_6_X, 207},
+	        {PPME_SYSCALL_SPLICE_E, 0 /* filtered */},
+	        {PPME_SYSCALL_SPLICE_X, 253},
+	        {PPME_SYSCALL_LSEEK_E, 0 /* filtered */},
+	        {PPME_SYSCALL_LSEEK_X, 329},
+	        {PPME_SYSCALL_WRITEV_E, 0 /* filtered */},
+	        {PPME_SYSCALL_WRITEV_X, 5},
+	        {PPME_SYSCALL_FCNTL_E, 0 /* filtered */},
+	        {PPME_SYSCALL_FCNTL_X, 9817},
+	        {PPME_SOCKET_CONNECT_E, 238},
+	        {PPME_SOCKET_CONNECT_X, 238},
+	        {PPME_SYSCALL_EXECVE_19_E, 202},
+	        {PPME_SYSCALL_EXECVE_19_X, 203},
+	        {PPME_SYSCALL_EXECVEAT_E, 1},
+	        {PPME_SYSCALL_EXECVEAT_X, 0},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
 	open_filename("kexec_x86.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_EPOLLWAIT_E, 2051}, {PPME_SYSCALL_EPOLLWAIT_X, 2051},
-	        {PPME_SYSCALL_POLL_E, 2682},      {PPME_SYSCALL_POLL_X, 2683},
-	        {PPME_SYSCALL_SETNS_E, 5},        {PPME_SYSCALL_SETNS_X, 5},
-	        {PPME_SYSCALL_SETPGID_E, 4},      {PPME_SYSCALL_SETPGID_X, 4},
-	        {PPME_SYSCALL_SETGID_E, 3},       {PPME_SYSCALL_SETGID_X, 3},
-	        {PPME_SYSCALL_SETRLIMIT_E, 1},    {PPME_SYSCALL_SETRLIMIT_X, 1},
-	        {PPME_SYSCALL_MMAP_E, 2123},      {PPME_SYSCALL_MMAP_X, 2123},
-	        {PPME_SYSCALL_SETRESGID_E, 10},   {PPME_SYSCALL_SETRESGID_X, 10},
-	        {PPME_SYSCALL_SETRESUID_E, 17},   {PPME_SYSCALL_SETRESUID_X, 17},
-	        {PPME_SYSCALL_MOUNT_E, 2},        {PPME_SYSCALL_MOUNT_X, 2},
-	        {PPME_SYSCALL_ACCESS_E, 350},     {PPME_SYSCALL_ACCESS_X, 350},
-	        {PPME_SYSCALL_MPROTECT_E, 584},   {PPME_SYSCALL_MPROTECT_X, 584},
-	        {PPME_SYSCALL_UMOUNT2_E, 2},      {PPME_SYSCALL_UMOUNT2_X, 2},
-	        {PPME_SYSCALL_INOTIFY_INIT_E, 1}, {PPME_SYSCALL_INOTIFY_INIT_X, 1},
-	        {PPME_SYSCALL_PRLIMIT_E, 173},    {PPME_SYSCALL_PRLIMIT_X, 173},
+	        {PPME_SYSCALL_EPOLLWAIT_E, 0 /* filtered */},    {PPME_SYSCALL_EPOLLWAIT_X, 2051},
+	        {PPME_SYSCALL_POLL_E, 0 /* filtered */},         {PPME_SYSCALL_POLL_X, 2683},
+	        {PPME_SYSCALL_SETNS_E, 0 /* filtered */},        {PPME_SYSCALL_SETNS_X, 5},
+	        {PPME_SYSCALL_SETPGID_E, 0 /* filtered */},      {PPME_SYSCALL_SETPGID_X, 4},
+	        {PPME_SYSCALL_SETGID_E, 0 /* filtered */},       {PPME_SYSCALL_SETGID_X, 3},
+	        {PPME_SYSCALL_SETRLIMIT_E, 0 /* filtered */},    {PPME_SYSCALL_SETRLIMIT_X, 1},
+	        {PPME_SYSCALL_MMAP_E, 0 /* filtered */},         {PPME_SYSCALL_MMAP_X, 2123},
+	        {PPME_SYSCALL_SETRESGID_E, 0 /* filtered */},    {PPME_SYSCALL_SETRESGID_X, 10},
+	        {PPME_SYSCALL_SETRESUID_E, 0 /* filtered */},    {PPME_SYSCALL_SETRESUID_X, 17},
+	        {PPME_SYSCALL_MOUNT_E, 0 /* filtered */},        {PPME_SYSCALL_MOUNT_X, 2},
+	        {PPME_SYSCALL_ACCESS_E, 0 /* filtered */},       {PPME_SYSCALL_ACCESS_X, 350},
+	        {PPME_SYSCALL_MPROTECT_E, 0 /* filtered */},     {PPME_SYSCALL_MPROTECT_X, 584},
+	        {PPME_SYSCALL_UMOUNT2_E, 0 /* filtered */},      {PPME_SYSCALL_UMOUNT2_X, 2},
+	        {PPME_SYSCALL_INOTIFY_INIT_E, 0 /* filtered */}, {PPME_SYSCALL_INOTIFY_INIT_X, 1},
+	        {PPME_SYSCALL_PRLIMIT_E, 0 /* filtered */},      {PPME_SYSCALL_PRLIMIT_X, 173},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
 	open_filename("ptrace.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_PTRACE_E, 3},
+	        {PPME_SYSCALL_PTRACE_E, 0 /* filtered */},
 	        {PPME_SYSCALL_PTRACE_X, 3},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
 	open_filename("mkdir.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_MKDIR_2_E, 1},
+	        {PPME_SYSCALL_MKDIR_2_E, 0 /* filtered */},
 	        {PPME_SYSCALL_MKDIR_2_X, 1},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
 	open_filename("sample.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_FUTEX_E, 15},
+	        {PPME_SYSCALL_FUTEX_E, 0 /* filtered */},
 	        {PPME_SYSCALL_FUTEX_X, 15},
-	        {PPME_SYSCALL_NANOSLEEP_E, 38},
+	        {PPME_SYSCALL_NANOSLEEP_E, 0 /* filtered */},
 	        {PPME_SYSCALL_NANOSLEEP_X, 38},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
 
 	open_filename("fchdir.scap");
 	assert_num_event_types({
-	        {PPME_SYSCALL_FCHDIR_E, 1},
+	        {PPME_SYSCALL_FCHDIR_E, 0 /* filtered */},
 	        {PPME_SYSCALL_FCHDIR_X, 1},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
