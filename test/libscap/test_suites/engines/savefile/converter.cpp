@@ -2133,11 +2133,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 // CLONE
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SYSCALL_CLONE_11_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE_11_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_11_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_11_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_CLONE_11_X_11_to_16_X_16_params_no_enter) {
@@ -2206,11 +2207,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_CLONE_11_X_11_to_16_X_16_params_no_enter
 	                                                 gid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_CLONE_16_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE_16_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_16_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_16_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_CLONE_16_X_16_to_17_X_17_params_no_enter) {
@@ -2286,11 +2288,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_CLONE_16_X_16_to_17_X_17_params_no_enter
 	                                                 gid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_CLONE_17_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE_17_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_17_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_17_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_CLONE_17_X_17_to_20_X_20_params_no_enter) {
@@ -2373,11 +2376,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_CLONE_17_X_17_to_20_X_20_params_no_enter
 	                                                 vpid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_CLONE_20_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE_20_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_20_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE_20_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_CLONE_20_X_20_to_21_params_no_enter) {
@@ -2776,12 +2780,12 @@ TEST_F(convert_event_test, PPME_SOCKET_LISTEN_X_to_3_params_with_enter) {
 // ACCEPT
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_E_skip) {
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_E_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT_E, 0);
-	assert_single_conversion_skip(evt);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_X_to_PPME_SOCKET_ACCEPT_5_X) {
@@ -2816,12 +2820,12 @@ TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_X_to_PPME_SOCKET_ACCEPT_5_X) {
 	                               queuemax));
 }
 
-TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_5_E_skip) {
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_5_E_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT_5_E, 0);
-	assert_single_conversion_skip(evt);
+	assert_no_conversion_drop(evt);
 }
 
 ////////////////////////////
@@ -4512,13 +4516,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_POLL_X_to_3_params_with_enter) {
 // NEWSELECT
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SYSCALL_NEWSELECT_E_skip) {
+TEST_F(convert_event_test, PPME_SYSCALL_NEWSELECT_E_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_NEWSELECT_E, 0);
-	assert_single_conversion_skip(evt);
-	assert_event_storage_absence(evt);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_NEWSELECT_X_1_to_SELECT_X_1_params) {
@@ -5326,11 +5329,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_PTRACE_X_3_to_5_params_with_enter) {
 // FORK
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SYSCALL_FORK_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_FORK_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_FORK_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_FORK_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_FORK_X_16_to_17_X_17_params_no_enter) {
@@ -5406,11 +5410,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_FORK_X_16_to_17_X_17_params_no_enter) {
 	                                                 gid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_FORK_17_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_FORK_17_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_FORK_17_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_FORK_17_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_FORK_17_X_17_to_20_X_20_params_no_enter) {
@@ -5493,11 +5498,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_FORK_17_X_17_to_20_X_20_params_no_enter)
 	                                                 vpid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_FORK_20_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_FORK_20_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_FORK_20_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_FORK_20_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_FORK_20_X_20_to_21_params_no_enter) {
@@ -5588,11 +5594,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_FORK_20_X_20_to_21_params_no_enter) {
 // VFORK
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SYSCALL_VFORK_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_VFORK_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_VFORK_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_VFORK_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_VFORK_X_16_to_17_X_17_params_no_enter) {
@@ -5668,11 +5675,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_VFORK_X_16_to_17_X_17_params_no_enter) {
 	                                                 gid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_VFORK_17_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_VFORK_17_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_VFORK_17_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_VFORK_17_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_VFORK_17_X_17_to_20_X_20_params_no_enter) {
@@ -5755,11 +5763,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_VFORK_17_X_17_to_20_X_20_params_no_enter
 	                                                 vpid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_VFORK_20_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_VFORK_20_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_VFORK_20_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_VFORK_20_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_VFORK_20_X_20_to_21_params_no_enter) {
@@ -6959,15 +6968,14 @@ TEST_F(convert_event_test, PPME_SYSCALL_MOUNT_X_4_to_5_params_with_enter) {
 // UMOUNT
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT_E_skip) {
+TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT_E_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
 	constexpr uint32_t flags = 31;
 
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT_E, 1, flags);
-	assert_single_conversion_skip(evt);
-	assert_event_storage_absence(evt);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_UMOUNT_X_2_to_1_X_2_params) {
@@ -7723,11 +7731,12 @@ TEST_F(convert_event_test, PPME_SYSCALL_COPY_FILE_RANGE_X_3_to_6_params_with_ent
 // CLONE3
 ////////////////////////////
 
-TEST_F(convert_event_test, PPME_SYSCALL_CLONE3_E_0_skipped) {
+TEST_F(convert_event_test, PPME_SYSCALL_CLONE3_E_0_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_skip(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE3_E, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_CLONE3_E, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_CLONE3_X_20_to_21_params_no_enter) {
