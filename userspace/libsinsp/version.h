@@ -18,11 +18,11 @@ limitations under the License.
 
 #pragma once
 
-#include <vector>
 #include <string>
-#include <unordered_map>
 #include <cstdio>
 #include <inttypes.h>
+
+#include <driver/ppm_api_version.h>
 
 /*!
     \brief Represents a version number
@@ -37,6 +37,20 @@ public:
 		                 &m_version_major,
 		                 &m_version_minor,
 		                 &m_version_patch) == 3;
+	}
+
+	inline explicit sinsp_version(uint64_t version) {
+		m_version_major = PPM_API_VERSION_MAJOR(version);
+		m_version_minor = PPM_API_VERSION_MINOR(version);
+		m_version_patch = PPM_API_VERSION_PATCH(version);
+		m_valid = true;
+	}
+
+	inline explicit sinsp_version(uint32_t major, uint32_t minor, uint32_t patch) {
+		m_version_major = major;
+		m_version_minor = minor;
+		m_version_patch = patch;
+		m_valid = true;
 	}
 
 	sinsp_version(sinsp_version&&) = default;
@@ -92,6 +106,12 @@ public:
 
 	inline bool operator<=(sinsp_version const& right) const {
 		return ((*this == right) || (*this < right));
+	}
+
+	inline sinsp_version operator+(const sinsp_version& right) const {
+		return sinsp_version(m_version_major + right.m_version_major,
+		                     m_version_minor + right.m_version_minor,
+		                     m_version_patch + right.m_version_patch);
 	}
 
 	inline bool compatible_with(const sinsp_version& requested) const {

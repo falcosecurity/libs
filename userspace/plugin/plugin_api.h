@@ -29,7 +29,7 @@ extern "C" {
 //
 // todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
-#define PLUGIN_API_VERSION_MINOR 11
+#define PLUGIN_API_VERSION_MINOR 12
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
@@ -1144,6 +1144,19 @@ typedef struct {
 		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 		ss_plugin_rc (*capture_close)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
 	};
+
+	// Event schema version check
+	//
+	// Return the minimum event schema version required by this plugin.
+	// Required: no
+	// Arguments:
+	// - s: the plugin state, returned by init(). Can be NULL.
+	// Return value: the event schema version string, in the following format:
+	//       "<major>.<minor>.<patch>", e.g. "4.0.0".
+	//       If the function is not implemented or NULL is returned, the plugin is assumed to be
+	//       compatible with schema version 3.0.0.
+	//
+	const char* (*get_required_event_schema_version)(ss_plugin_t* s);
 } plugin_api;
 
 #ifdef __cplusplus

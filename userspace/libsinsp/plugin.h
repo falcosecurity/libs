@@ -214,6 +214,14 @@ public:
 
 	bool set_async_event_handler(async_event_handler_t handler);
 
+	/*
+	 * @brief Check if the plugin is compatible with the given event schema version.
+	 * @param event_schema_version The event schema version to check.
+	 * @param err The error message to return if the plugin is not compatible.
+	 * @return True if the plugin is compatible, false otherwise.
+	 */
+	bool check_required_schema_version(sinsp_version event_schema_version, std::string& err);
+
 	// note(jasondellaluce): we set these as protected in order to allow unit
 	// testing mocking these values, without having to declare their accessors
 	// as virtual (thus avoiding performance loss in some hot paths).

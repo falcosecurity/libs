@@ -18,7 +18,7 @@ limitations under the License.
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
-#include <sstream>
+#include <string>
 
 #include <driver/ppm_events_public.h>
 
