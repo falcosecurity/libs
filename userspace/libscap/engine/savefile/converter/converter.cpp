@@ -667,17 +667,17 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 	memcpy(new_evt, evt_to_convert, evt_to_convert->len);
 
 	switch(ci.m_action) {
-	case C_ACTION_SKIP:
+	case C_ACTION_PASS:
 		return CONVERSION_SKIP;
 
-	// TODO(ekoops): the current implementation of `C_ACTION_STORE` and `C_ACTION_STORE_AND_SKIP` is
+	// TODO(ekoops): the current implementation of `C_ACTION_STORE` and `C_ACTION_STORE_AND_PASS` is
 	//   identical. However, in the future, `C_ACTION_STORE` will return something to indicate that
-	//   the event should be dropped, while `C_ACTION_STORE_AND_SKIP` will return `CONVERSION_SKIP`
+	//   the event should be dropped, while `C_ACTION_STORE_AND_PASS` will return `CONVERSION_SKIP`
 	//   (or whatever is the name we choose to indicate that the event should proceed... Maybe we
 	//   can reuse `CONVERSION_COMPLETE`). Update the implementation once we are ready to change
 	//   the `C_ACTION_STORE` logic.
 	case C_ACTION_STORE:
-	case C_ACTION_STORE_AND_SKIP:
+	case C_ACTION_STORE_AND_PASS:
 		store_evt(evt_storage, evt_to_convert->tid, evt_to_convert);
 		return CONVERSION_SKIP;
 

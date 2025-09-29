@@ -42,9 +42,9 @@ enum conversion_instruction_flags {
 // Conversion actions
 enum conversion_action {
 	C_ACTION_UNKNOWN = 0,
-	C_ACTION_SKIP,
+	C_ACTION_PASS,
 	C_ACTION_STORE,
-	C_ACTION_STORE_AND_SKIP,
+	C_ACTION_STORE_AND_PASS,
 	C_ACTION_ADD_PARAMS,
 	C_ACTION_CHANGE_TYPE,
 };
