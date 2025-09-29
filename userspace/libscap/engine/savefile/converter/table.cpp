@@ -453,7 +453,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 29},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // gid
         /*====================== CLONE ======================*/
-        {conversion_key{PPME_SYSCALL_CLONE_11_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CLONE_11_X, 11},
          conversion_info()
                  .desired_type(PPME_SYSCALL_CLONE_16_X)
@@ -476,7 +475,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_OLD, 9},    // uid
                          {C_INSTR_FROM_OLD, 10},   // gid
                  })},
-        {conversion_key{PPME_SYSCALL_CLONE_16_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CLONE_16_X, 16},
          conversion_info()
                  .desired_type(PPME_SYSCALL_CLONE_17_X)
@@ -500,7 +498,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_OLD, 14},   // uid
                          {C_INSTR_FROM_OLD, 15},   // gid
                  })},
-        {conversion_key{PPME_SYSCALL_CLONE_17_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CLONE_17_X, 17},
          conversion_info()
                  .desired_type(PPME_SYSCALL_CLONE_20_X)
@@ -527,7 +524,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // vtid
                          {C_INSTR_FROM_EMPTY, 0},  // vpid
                  })},
-        {conversion_key{PPME_SYSCALL_CLONE_20_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CLONE_20_X, 20},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
@@ -574,7 +570,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
         /*====================== ACCEPT ======================*/
-        {conversion_key{PPME_SOCKET_ACCEPT_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SOCKET_ACCEPT_X, 3},
          conversion_info()
                  .desired_type(PPME_SOCKET_ACCEPT_5_X)
@@ -586,7 +581,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_DEFAULT, 0},
                          {C_INSTR_FROM_DEFAULT, 0},
                  })},
-        {conversion_key{PPME_SOCKET_ACCEPT_5_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         /*====================== WRITE ======================*/
         {conversion_key{PPME_SYSCALL_WRITE_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_WRITE_X, 2},
@@ -819,7 +813,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_POLL_X, 2},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 1}})},
         /*====================== NEWSELECT ======================*/
-        {conversion_key{PPME_SYSCALL_NEWSELECT_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_NEWSELECT_X, 1},
          conversion_info()
                  .desired_type(PPME_SYSCALL_SELECT_X)
@@ -913,7 +906,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({{C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY},
                           {C_INSTR_FROM_ENTER, 1, CIF_FALLBACK_TO_EMPTY}})},
         /*====================== FORK ======================*/
-        {conversion_key{PPME_SYSCALL_FORK_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_FORK_X, 16},
          conversion_info()
                  .desired_type(PPME_SYSCALL_FORK_17_X)
@@ -937,7 +929,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_OLD, 14},   // uid
                          {C_INSTR_FROM_OLD, 15},   // gid
                  })},
-        {conversion_key{PPME_SYSCALL_FORK_17_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_FORK_17_X, 17},
          conversion_info()
                  .desired_type(PPME_SYSCALL_FORK_20_X)
@@ -964,13 +955,11 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // vtid
                          {C_INSTR_FROM_EMPTY, 0},  // vpid
                  })},
-        {conversion_key{PPME_SYSCALL_FORK_20_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_FORK_20_X, 20},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pidns_init_start_ts
         /*====================== VFORK ======================*/
-        {conversion_key{PPME_SYSCALL_VFORK_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_VFORK_X, 16},
          conversion_info()
                  .desired_type(PPME_SYSCALL_VFORK_17_X)
@@ -994,7 +983,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_OLD, 14},   // uid
                          {C_INSTR_FROM_OLD, 15},   // gid
                  })},
-        {conversion_key{PPME_SYSCALL_VFORK_17_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_VFORK_17_X, 17},
          conversion_info()
                  .desired_type(PPME_SYSCALL_VFORK_20_X)
@@ -1021,7 +1009,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // vtid
                          {C_INSTR_FROM_EMPTY, 0},  // vpid
                  })},
-        {conversion_key{PPME_SYSCALL_VFORK_20_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_VFORK_20_X, 20},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
@@ -1094,7 +1081,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SYSCALL_MOUNT_X, 4},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_ENTER, 0}})},
         /*====================== UMOUNT ======================*/
-        {conversion_key{PPME_SYSCALL_UMOUNT_E, 1}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_UMOUNT_X, 2},
          conversion_info()
                  .desired_type(PPME_SYSCALL_UMOUNT_1_X)
@@ -1252,7 +1238,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                           {C_INSTR_FROM_ENTER, 1},
                           {C_INSTR_FROM_ENTER, 2}})},
         /*====================== CLONE3 ======================*/
-        {conversion_key{PPME_SYSCALL_CLONE3_E, 0}, conversion_info().action(C_ACTION_SKIP)},
         {conversion_key{PPME_SYSCALL_CLONE3_X, 20},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)

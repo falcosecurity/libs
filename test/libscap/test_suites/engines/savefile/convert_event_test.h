@@ -113,6 +113,17 @@ protected:
 		          CONVERSION_SKIP)
 		        << "The conversion is not skipped: " << error;
 	}
+
+	static void assert_no_conversion_drop(const safe_scap_evt_t &evt_to_convert) {
+		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		// We assume it's okay to create a new event with the same size as the expected event
+		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
+		// First we check the conversion result matches the expected result
+		const auto conv_res = test_event_convertibility(evt_to_convert.get(), error);
+		ASSERT_EQ(conv_res, CONVERSION_DROP)
+		        << "Expected event '" << evt_to_convert->type << "' to be dropped: " << error;
+	}
+
 	void assert_full_conversion(const safe_scap_evt_t &evt_to_convert,
 	                            const safe_scap_evt_t &expected_evt) const {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};

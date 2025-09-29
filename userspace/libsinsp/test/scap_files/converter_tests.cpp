@@ -29,7 +29,6 @@ TEST_F(scap_file_test, same_number_of_events) {
 	assert_num_event_types({
 	        {PPME_SYSCALL_READ_E, 24956},
 	        {PPME_SYSCALL_READ_X, 24957},
-	        {PPME_SOCKET_ACCEPT_E, 3817},
 	        {PPME_SOCKET_ACCEPT_5_X, 3816},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
