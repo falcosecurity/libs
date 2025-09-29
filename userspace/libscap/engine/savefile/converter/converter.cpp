@@ -395,36 +395,18 @@ static uint32_t get_max_param_len_from_type(const ppm_param_type t, const size_t
 	return 0;
 }
 
-static uint32_t get_empty_value_size_bytes_from_type(const ppm_param_type t) {
-	return get_min_param_len_from_type(t);
-}
-
 // Writes parameter length and value and update the provided parameter offsets accordingly to the
 // written length.
-static void push_empty_parameter(scap_evt *evt, size_t *params_offset, const uint8_t param_num) {
-	// Please ensure that the param type is already the final type you want to obtain.
-	// Otherwise, we will access the wrong entry in the event table.
-	const auto param_type = get_param_type(evt, param_num);
-	const auto len = get_empty_value_size_bytes_from_type(param_type);
+static void push_empty_parameter(scap_evt *evt, const uint8_t param_num) {
 	const auto len_size = get_param_len_size(evt);
 
-	PRINT_MESSAGE(
-	        "push empty param (%d, type: %d) with len (%d) at {params_offset (%d), "
-	        "lens_offset (%d)}\n",
-	        param_num,
-	        param_type,
-	        len,
-	        *params_offset,
-	        sizeof(scap_evt) + param_num * len_size);
+	PRINT_MESSAGE("push empty param (num: %d, type: %d), lens_offset (%d)}\n",
+	              param_num,
+	              get_param_type(evt, param_num),
+	              sizeof(scap_evt) + param_num * len_size);
 
-	// The empty param value will be always 0 so we just need to copy the right number of 0 bytes.
-	// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
-	// have `len==0`. The empty parameter length is always set to 0.
-	constexpr uint64_t zero = 0;
-	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &zero, len);
-	*params_offset += len;
+	// Just set the parameter length to 0.
 	set_param_len_unchecked(evt, param_num, 0, len_size);
-	evt->len += len;
 }
 
 // Cap the provided parameter length to the maximum value allowed for the event parameter
@@ -740,7 +722,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 		switch(instr.code) {
 		case C_INSTR_FROM_EMPTY:
-			push_empty_parameter(new_evt, &params_offset, param_to_populate);
+			push_empty_parameter(new_evt, param_to_populate);
 			continue;
 		case C_INSTR_FROM_DEFAULT:
 			push_default_parameter(new_evt, &params_offset, param_to_populate);
@@ -824,7 +806,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 		if(!tmp_evt) {
 			if(instr.flags & CIF_FALLBACK_TO_EMPTY) {
-				push_empty_parameter(new_evt, &params_offset, param_to_populate);
+				push_empty_parameter(new_evt, param_to_populate);
 			} else {
 				push_default_parameter(new_evt, &params_offset, param_to_populate);
 			}

@@ -310,20 +310,23 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			                      pi->type);
 		}
 
-		// Write zero as parameter length if the caller specified to set it empty.
-		const size_t len_to_write =
-		        scap_empty_params_set_is_set(empty_params_set, i) ? 0 : param.size;
+		// if the caller specified to set the parameter as empty, update the param buffer and size
+		// accordingly.
+		if(scap_empty_params_set_is_set(empty_params_set, i)) {
+			param.buf = NULL;
+			param.size = 0;
+		}
 
 		switch(len_size) {
 		case sizeof(uint16_t): {
-			const uint16_t param_size_16 = len_to_write & 0xffff;
-			if(param_size_16 != len_to_write) {
+			const uint16_t param_size_16 = param.size & 0xffff;
+			if(param_size_16 != param.size) {
 				return scap_errprintf(
 				        error,
 				        0,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
-				        len_to_write,
+				        param.size,
 				        event_type,
 				        len_size);
 			}
@@ -333,14 +336,14 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			break;
 		}
 		case sizeof(uint32_t): {
-			const uint32_t param_size_32 = len_to_write & 0xffffffff;
-			if(param_size_32 != len_to_write) {
+			const uint32_t param_size_32 = param.size & 0xffffffff;
+			if(param_size_32 != param.size) {
 				return scap_errprintf(
 				        error,
 				        0,
 				        "could not fit event param %d size %zu for event with type %d in %zu bytes",
 				        i,
-				        len_to_write,
+				        param.size,
 				        event_type,
 				        len_size);
 			}
@@ -360,13 +363,10 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 		}
 		}
 
-		// Notice: even if the caller specified to set the parameter as empty, it will always occupy
-		// a number of bytes determined by its type (i.e.: param.size, not len_to_write).
-		const size_t value_len = param.size;
-		if(scap_buffer_can_fit(event_buf, len + value_len) && value_len != 0) {
-			memcpy(((char *)event_buf.buf + len), param.buf, value_len);
+		if(scap_buffer_can_fit(event_buf, len + param.size) && param.size != 0) {
+			memcpy(((char *)event_buf.buf + len), param.buf, param.size);
 		}
-		len = len + param.size;
+		len += param.size;
 	}
 
 #ifdef PPM_ENABLE_SENTINEL

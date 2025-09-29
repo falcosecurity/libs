@@ -219,10 +219,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
                                            uint32_t len) {
 	char* prfmt;
 
-	ASSERT(rawval != NULL);
-
 	switch(ptype) {
 	case PT_INT8:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo8;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -241,6 +242,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		         *(int8_t*)rawval);
 		return m_getpropertystr_storage.data();
 	case PT_INT16:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo16;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -259,6 +263,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		         rawval_cast<int16_t>(rawval));
 		return m_getpropertystr_storage.data();
 	case PT_INT32:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo32;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -280,6 +287,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_PID:
 	case PT_ERRNO:
 	case PT_FD:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo64;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -302,6 +312,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_UINT8:
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo8;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -323,6 +336,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_UINT16:
 	case PT_FLAGS16:
 	case PT_ENUMFLAGS16:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo16;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -345,6 +361,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_ENUMFLAGS32:
 	case PT_UID:
 	case PT_GID:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo32;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
@@ -365,6 +384,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
+		if(len == 0) {
+			return (char*)"0";
+		}
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo64;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
