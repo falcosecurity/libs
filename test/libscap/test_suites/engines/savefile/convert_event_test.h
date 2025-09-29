@@ -115,6 +115,16 @@ protected:
 		        << "Event is not allowed to pass: " << error;
 	}
 
+	void assert_single_conversion_drop(const safe_scap_evt_t &evt_to_convert) const {
+		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		// We assume it's okay to create a new event with the same size as the expected event
+		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
+		// First we check the conversion result matches the expected result
+		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		          CONVERSION_DROP)
+		        << "Event is not dropped: " << error;
+	}
+
 	static void assert_no_conversion_drop(const safe_scap_evt_t &evt_to_convert) {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		// We assume it's okay to create a new event with the same size as the expected event
