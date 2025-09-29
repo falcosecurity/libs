@@ -272,6 +272,7 @@ static void push_default_parameter(scap_evt *evt, size_t *params_offset, const u
 	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &val, len);
 	*params_offset += len;
 	set_param_len_unchecked(evt, param_num, len, len_size);
+	evt->len += len;
 }
 
 static uint32_t get_min_param_len_from_type(const ppm_param_type t) {
@@ -423,6 +424,7 @@ static void push_empty_parameter(scap_evt *evt, size_t *params_offset, const uin
 	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &zero, len);
 	*params_offset += len;
 	set_param_len_unchecked(evt, param_num, 0, len_size);
+	evt->len += len;
 }
 
 // Cap the provided parameter length to the maximum value allowed for the event parameter
@@ -469,6 +471,7 @@ static void push_parameter(scap_evt *new_evt,
 	memcpy(new_evt_param_ptr, tmp_evt_param_ptr, new_evt_param_len);
 	*new_evt_params_offset += new_evt_param_len;
 	set_param_len_unchecked(new_evt, new_evt_param_num, new_evt_param_len, new_evt_len_size);
+	new_evt->len += new_evt_param_len;
 }
 
 static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert) {
@@ -661,6 +664,7 @@ int push_parameter_from_callback(scap_evt *new_evt,
 	memcpy(reinterpret_cast<char *>(new_evt) + *new_evt_params_offset, buffer_ptr, buffer_len);
 	*new_evt_params_offset += buffer_len;
 	set_param_len_unchecked(new_evt, new_evt_param_num, buffer_len, len_size);
+	new_evt->len += buffer_len;
 	return 0;
 }
 
@@ -698,6 +702,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 	case C_ACTION_ADD_PARAMS:
 		// The new number of params is the previous one plus the number of conversion instructions.
 		new_evt->nparams = evt_to_convert->nparams + ci.m_instrs.size();
+		// Initial `new_evt->len` value set in `copy_old_params()`.
 		params_offset = copy_old_params(new_evt, evt_to_convert);
 		param_to_populate = evt_to_convert->nparams;
 		break;
@@ -706,6 +711,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 		// The new number of params is the number of conversion instructions.
 		new_evt->nparams = ci.m_instrs.size();
 		new_evt->type = ci.m_desired_type;
+		new_evt->len = 0;
 		params_offset = sizeof(scap_evt) + new_evt->nparams * get_param_len_size(new_evt);
 		param_to_populate = 0;
 		break;
