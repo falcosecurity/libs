@@ -368,7 +368,7 @@ static bool can_query_os_for_thread_info(const uint16_t evt_type) {
 // Called before starting the parsing.
 // Returns false in case of issues resetting the state.
 //
-bool sinsp_parser::reset(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
+bool sinsp_parser::reset(sinsp_evt &evt) const {
 	uint16_t etype = evt.get_type();
 	// Before anything can happen, the event needs to be initialized.
 	evt.init();
@@ -1055,7 +1055,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * generating it might have gone away.
 	 */
 	if(tid_collision != -1) {
-		reset(evt, verdict);
+		reset(evt);
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
 		               new_child->m_comm.c_str());
@@ -1420,7 +1420,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 * generating it might have gone away.
 	 */
 	if(tid_collision != -1) {
-		reset(evt, verdict);
+		reset(evt);
 		/* Right now we have collisions only on the clone() caller */
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,

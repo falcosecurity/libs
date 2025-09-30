@@ -1475,7 +1475,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	//
 	// Cleanup the event-related state
 	//
-	m_parser->reset(*evt, m_parser_verdict);
+	m_parser->reset(*evt);
 
 	// Since evt_filter object below uses RAII, create a new scope.
 	{
