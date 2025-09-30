@@ -205,7 +205,7 @@ TEST(event_table, check_EF_USED_FD) {
 			        << "event_type " << evt << " uses a wrong location " << location;
 		}
 
-		if(PPME_IS_EXIT(evt) && evt_info.flags & EF_TMP_CONVERTER_MANAGED) {
+		if(PPME_IS_EXIT(evt) && evt_info.flags & EF_CONVERTER_MANAGED) {
 			const int location = get_exit_event_fd_location(static_cast<ppm_event_code>(evt));
 			// Currently, get_exit_event_fd_location() returns -1 for all old event versions, based
 			// on the assumption that such events are not propagated by scap. If, in the future, we
