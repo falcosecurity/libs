@@ -373,19 +373,27 @@ TEST(ppm_sc_API, all_event_names) {
 
 	/* We count old version event couples to be sure about the final number of names we should
 	 * expect. An event couple is considered old when both enter and exit events are marked as old
-	 * versions. */
+	 * versions OR it is a special (i.e.: meta|tracepoint|plugin event couple) and the enter event
+	 * is marked as old. */
 	int old_version_event_couples = 0;
 	std::set<std::string> all_expected_events_names = {};
 
 	/* We skip `syscall` name associated with `GENERIC_E`/`GENERIC_X` */
 	for(int evt = 2; evt < PPM_EVENT_MAX; evt++) {
-		if(PPME_IS_ENTER(evt) &&
-		   libsinsp::events::is_old_version_event(static_cast<ppm_event_code>(evt)) &&
-		   libsinsp::events::is_old_version_event(
-		           static_cast<ppm_event_code>(PPME_MAKE_EXIT(evt)))) {
+		all_expected_events_names.insert(g_infotables.m_event_info[evt].name);
+		if(!PPME_IS_ENTER(evt)) {
+			continue;
+		}
+		const auto enter_evt_code = static_cast<ppm_event_code>(evt);
+		const auto exit_evt_code = static_cast<ppm_event_code>(PPME_MAKE_EXIT(evt));
+		const auto is_enter_evt_old = libsinsp::events::is_old_version_event(enter_evt_code);
+		const auto is_exit_evt_old = libsinsp::events::is_old_version_event(exit_evt_code);
+		const auto is_enter_evt_special = libsinsp::events::is_metaevent(enter_evt_code) ||
+		                                  libsinsp::events::is_tracepoint_event(enter_evt_code) ||
+		                                  libsinsp::events::is_plugin_event(enter_evt_code);
+		if(is_enter_evt_old && (is_enter_evt_special || is_exit_evt_old)) {
 			old_version_event_couples++;
 		}
-		all_expected_events_names.insert(g_infotables.m_event_info[evt].name);
 	}
 
 	libsinsp::events::set<ppm_event_code> generic_events{PPME_GENERIC_E, PPME_GENERIC_X};

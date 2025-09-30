@@ -1253,12 +1253,12 @@ TEST_F(convert_event_test, PPME_SCHEDSWITCH_1_E_1_to_6_E_6_params) {
 	                                                                vm_swap));
 }
 
-TEST_F(convert_event_test, PPME_SCHEDSWITCH_1_X_0_to_6_X_0_params) {
+TEST_F(convert_event_test, PPME_SCHEDSWITCH_1_X_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SCHEDSWITCH_1_X, 0),
-	                       create_safe_scap_event(ts, tid, PPME_SCHEDSWITCH_6_X, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_SCHEDSWITCH_1_X, 0);
+	assert_no_conversion_drop(evt);
 }
 
 ////////////////////////////
@@ -2670,12 +2670,12 @@ TEST_F(convert_event_test, PPME_PROCEXIT_E_0_to_1_E_5_params) {
 	                                                                reaper_tid));
 }
 
-TEST_F(convert_event_test, PPME_PROCEXIT_X_0_to_1_X_0_params) {
+TEST_F(convert_event_test, PPME_PROCEXIT_X_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_PROCEXIT_X, 0),
-	                       create_safe_scap_event(ts, tid, PPME_PROCEXIT_1_X, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_PROCEXIT_X, 0);
+	assert_no_conversion_drop(evt);
 }
 
 ////////////////////////////
@@ -7120,13 +7120,12 @@ TEST_F(convert_event_test, PPME_CONTAINER_E_4_to_JSON_E_1) {
 	        create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_E, 1, std::data(json)));
 }
 
-TEST_F(convert_event_test, PPME_CONTAINER_X_0_to_JSON_X_0) {
+TEST_F(convert_event_test, PPME_CONTAINER_X_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_single_conversion_success(CONVERSION_CONTINUE,
-	                                 create_safe_scap_event(ts, tid, PPME_CONTAINER_X, 0),
-	                                 create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_X, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_CONTAINER_X, 0);
+	assert_no_conversion_drop(evt);
 }
 
 TEST_F(convert_event_test, PPME_CONTAINER_JSON_E_1_to_2_E_1) {
@@ -7139,12 +7138,12 @@ TEST_F(convert_event_test, PPME_CONTAINER_JSON_E_1_to_2_E_1) {
 	                       create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_2_E, 1, json));
 }
 
-TEST_F(convert_event_test, PPME_CONTAINER_JSON_X_0_to_2_X_0) {
+TEST_F(convert_event_test, PPME_CONTAINER_JSON_X_drop) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
-	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_X, 0),
-	                       create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_2_X, 0));
+	const auto evt = create_safe_scap_event(ts, tid, PPME_CONTAINER_JSON_X, 0);
+	assert_no_conversion_drop(evt);
 }
 
 ////////////////////////////

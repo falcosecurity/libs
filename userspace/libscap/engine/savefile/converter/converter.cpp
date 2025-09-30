@@ -511,6 +511,11 @@ extern "C" conversion_result test_event_convertibility(const scap_evt *evt_to_co
 	const auto *evt_info = &g_event_info[evt_type];
 	const auto evt_flags = evt_info->flags;
 
+	// If the event is unused, it must always be dropped.
+	if(evt_flags & EF_UNUSED) {
+		return CONVERSION_DROP;
+	}
+
 	// If the event is not yet managed by the converter we never need a conversion.
 	if(!(evt_flags & EF_CONVERTER_MANAGED)) {
 		// New event versions are allowed to proceed towards upper layers.

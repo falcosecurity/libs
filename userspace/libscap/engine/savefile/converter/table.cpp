@@ -211,11 +211,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // vm_rss
                          {C_INSTR_FROM_EMPTY, 0},  // vm_swap
                  })},
-        {conversion_key{PPME_SCHEDSWITCH_1_X, 0},
-         conversion_info()
-                 .desired_type(PPME_SCHEDSWITCH_6_X)
-                 .action(C_ACTION_CHANGE_TYPE)
-                 .instrs({})},
         /*====================== FCNTL ======================*/
         {conversion_key{PPME_SYSCALL_FCNTL_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_FCNTL_X, 1},
@@ -547,8 +542,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                          {C_INSTR_FROM_EMPTY, 0},  // core
                          {C_INSTR_FROM_EMPTY, 0},  // reaper_tid
                  })},
-        {conversion_key{PPME_PROCEXIT_X, 0},
-         conversion_info().desired_type(PPME_PROCEXIT_1_X).action(C_ACTION_CHANGE_TYPE).instrs({})},
         /*====================== SOCKET ======================*/
         {conversion_key{PPME_SOCKET_SOCKET_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SOCKET_SOCKET_X, 1},
@@ -1100,11 +1093,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                           CIF_NO_FLAGS,
                           extract_ppme_container_json_e_json_param},  // json
                  })},
-        {conversion_key{PPME_CONTAINER_X, 0},
-         conversion_info()
-                 .desired_type(PPME_CONTAINER_JSON_X)
-                 .action(C_ACTION_CHANGE_TYPE)
-                 .instrs({})},
         {conversion_key{PPME_CONTAINER_JSON_E, 1},
          conversion_info()
                  .desired_type(PPME_CONTAINER_JSON_2_E)
@@ -1112,11 +1100,6 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({
                          {C_INSTR_FROM_OLD, 0},  // json
                  })},
-        {conversion_key{PPME_CONTAINER_JSON_X, 0},
-         conversion_info()
-                 .desired_type(PPME_CONTAINER_JSON_2_X)
-                 .action(C_ACTION_CHANGE_TYPE)
-                 .instrs({})},
         /*====================== SETGID ======================*/
         {conversion_key{PPME_SYSCALL_SETGID_E, 1}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_SETGID_X, 1},
