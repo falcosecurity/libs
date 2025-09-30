@@ -9,7 +9,7 @@ conversion, if it must be allowed to proceed towards upper layers or must be dro
 
 Static conversion eligibility rules are evaluated using a top-down approach. They leverage the following definitions:
 
-- an event having `EF_TMP_CONVERTER_MANAGED` among its flag is considered to be managed by the scap converter
+- an event having `EF_CONVERTER_MANAGED` among its flag is considered to be managed by the scap converter
 - an event having `EF_OLD_VERSION` among its flag is considered an old event version
 
 The following is the set of rules:

@@ -25,7 +25,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	open_inspector();
 
 	// [PPME_SYSCALL_EPOLL_CREATE_X] = {"epoll_create",EC_WAIT | EC_SYSCALL, EF_CREATES_FD |
-	// EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED, 2, {{"res", PT_ERRNO, PF_DEC}, {"size",
+	// EF_MODIFIES_STATE | EF_CONVERTER_MANAGED, 2, {{"res", PT_ERRNO, PF_DEC}, {"size",
 	// PT_INT32, PF_DEC}}}
 	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
@@ -52,7 +52,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.fd"), "9");
 
 	// [PPME_SYSCALL_TIMERFD_CREATE_X] = {"timerfd_create", EC_TIME | EC_SYSCALL, EF_CREATES_FD |
-	// EF_MODIFIES_STATE | EF_TMP_CONVERTER_MANAGED, 3, {{"res", PT_FD, PF_DEC}, {"clockid",
+	// EF_MODIFIES_STATE | EF_CONVERTER_MANAGED, 3, {{"res", PT_FD, PF_DEC}, {"clockid",
 	// PT_UINT8, PF_DEC}, {"flags", PT_UINT8, PF_HEX}}}
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,

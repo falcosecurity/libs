@@ -31,7 +31,7 @@ enum conversion_instruction_code {
 };
 
 // TODO(ekoops): remove CIF_FALLBACK_TO_EMPTY and fallback to empty by default once sinsp is able to
-//   handle empty parameters for all the EF_TMP_CONVERTER_MANAGED entries in the converter table.
+//   handle empty parameters for all the EF_CONVERTER_MANAGED entries in the converter table.
 enum conversion_instruction_flags {
 	CIF_NO_FLAGS = 0,
 	CIF_FALLBACK_TO_EMPTY,  // C_INSTR_FROM_ENTER-only flag: fallback to the empty value instead of

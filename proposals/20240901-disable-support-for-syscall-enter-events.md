@@ -403,6 +403,13 @@ Tell users that by default enter events won’t be generated anymore.
 
 [Preliminary cleanup] During the work, we may have left some todo! to solve at the end of the work. This is probably the right moment to do it and simplify the code. For example, the flag `EF_TMP_CONVERTER_MANAGED` can be removed since we can now mark the enter events as `EF_OLD_VERSION`. We can use `EF_OLD_VERSION` to understand if we need a conversion instead of `EF_TMP_CONVERTER_MANAGED`.
 
+**UPDATE 30/07/2025** - At the time of writing, as some enter events are just old event that must be dropped, they are
+not marked as `EF_TMP_CONVERTER_MANAGED` (e.g.: `PPME_SYSCALL_VFORK_E`); conversely, some enter events must be converted
+to their new versions leveraging the scap converter, but are not old versions of anything, so they are not marked as
+`EF_OLD_VERSION` (e.g.: `PPME_SYSCALL_OPEN_E`). As a result, neither `EF_OLD_VERSION` can be used to always imply
+`EF_TMP_CONVERTER_MANAGED`, nor `EF_TMP_CONVERTER_MANAGED` can be used to always imply `EF_OLD_VERSION`: this leads to
+the stabilization of `EF_TMP_CONVERTER_MANAGED` as `EF_CONVERTER_MANAGED`.
+
 We need to expose a flag from sinsp to avoid the generation of enter events. The consumer can choose to receive or not enter events.
 
 When we add a new syscall we should remember to add an enter event with 0 parameters like we do today. So events will always be added to the event table in pairs.
