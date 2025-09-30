@@ -59,7 +59,7 @@ public:
 	void process_event(sinsp_evt& evt, sinsp_parser_verdict& verdict);
 	void event_cleanup(sinsp_evt& evt);
 
-	bool reset(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
+	bool reset(sinsp_evt& evt) const;
 
 	//
 	// Get the enter event matching the last received event
