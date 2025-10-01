@@ -94,7 +94,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SYSCALL_FCNTL_X, 9817},
 	        {PPME_SOCKET_CONNECT_E, 238},
 	        {PPME_SOCKET_CONNECT_X, 238},
-	        {PPME_SYSCALL_EXECVE_19_E, 202},
+	        {PPME_SYSCALL_EXECVE_19_E, 0 /* filtered */},
 	        {PPME_SYSCALL_EXECVE_19_X, 203},
 	        {PPME_SYSCALL_EXECVEAT_E, 1},
 	        {PPME_SYSCALL_EXECVEAT_X, 0},
