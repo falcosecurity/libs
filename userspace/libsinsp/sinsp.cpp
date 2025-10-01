@@ -108,6 +108,8 @@ struct sinsp_evt_filter {
 		case PPME_SYSCALL_OPENAT_2_E:
 		case PPME_SYSCALL_OPENAT2_E:
 		case PPME_SYSCALL_CREAT_E:
+			// Enter events providing a fallback mechanism for exit events' empty parameters.
+		case PPME_SYSCALL_EXECVE_19_E:
 			evt->set_filtered_out(true);
 			return;
 		default:
