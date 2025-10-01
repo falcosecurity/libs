@@ -92,20 +92,12 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 		std::string name(e->get_name());
 
 #if defined(__x86_64__)
-		if(type == PPME_SYSCALL_CREAT_E)
+		if(type == PPME_SYSCALL_CREAT_X)
 #else
-		if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_IN)
+		if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT)
 #endif
 		{
-			callnum++;
-		}
-#if defined(__x86_64__)
-		else if(type == PPME_SYSCALL_CREAT_X)
-#else
-		else if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT)
-#endif
-		{
-			if(callnum == 1) {
+			if(callnum == 0) {
 				std::string fname = e->get_param_value_str("name", false);
 				if(fname == FILENAME) {
 					EXPECT_EQ("0644", e->get_param_value_str("mode"));
@@ -115,7 +107,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 				callnum++;
 			}
 		} else if(type == PPME_SYSCALL_UNLINK_2_X || type == PPME_SYSCALL_UNLINKAT_2_X) {
-			if(callnum == 2) {
+			if(callnum == 1) {
 				if(type == PPME_SYSCALL_UNLINK_2_X) {
 					EXPECT_EQ(FILENAME, e->get_param_value_str("path", false));
 					EXPECT_EQ(cwd + FILENAME, e->get_param_value_str("path"));
@@ -124,7 +116,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 				}
 				EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
-			} else if(callnum == 3) {
+			} else if(callnum == 2) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
 			}
@@ -133,7 +125,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(3, callnum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

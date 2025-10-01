@@ -45,13 +45,22 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param) {
 	// right now. if the internal state changes we can remove or update this check
 	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "<NA>");
 
-	/* `PPME_SYSCALL_CREAT_E` is a simple event that uses a `PT_FSPATH`
+	/* `PPME_SYSCALL_CREAT_X` is a simple event that uses a `PT_FSPATH`
 	 * A `NULL` `PT_FSPATH` param is always converted to `<NA>`.
 	 */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 2, NULL, 0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_CREAT_X,
+	                           6,
+	                           (int64_t)0,
+	                           NULL,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint64_t)0,
+	                           (uint16_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "<NA>");
 
-	ASSERT_EQ(evt->get_param(0)->as<std::string>(), "<NA>");
+	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "<NA>");
 
 	int64_t dirfd = 0;
 
@@ -229,7 +238,7 @@ TEST_F(sinsp_with_test_input, filename_toctou) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 
 	fd = 4;
-	add_event(increasing_ts(), 2, PPME_SYSCALL_CREAT_E, 2, "/tmp/the_file", 0);
+	add_event(increasing_ts(), 2, PPME_SYSCALL_CREAT_E, 2, "/tmp/the_file", (uint32_t)0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           2,
 	                           PPME_SYSCALL_CREAT_X,
@@ -366,7 +375,12 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		std::string test_context =
 		        std::string("creat with filename ") + test_utils::describe_string(enter_filename);
 
-		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 2, NULL, 0);
+		add_filtered_event_advance_ts(increasing_ts(),
+		                              1,
+		                              PPME_SYSCALL_CREAT_E,
+		                              2,
+		                              NULL,
+		                              (uint32_t)0);
 		evt = add_event_advance_ts(increasing_ts(),
 		                           1,
 		                           PPME_SYSCALL_CREAT_X,
