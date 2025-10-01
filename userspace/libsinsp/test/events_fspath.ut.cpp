@@ -213,15 +213,6 @@ protected:
 			// pass PPM_O_DIRECTORY since we are creating a folder!
 			add_event_advance_ts(increasing_ts(),
 			                     1,
-			                     PPME_SYSCALL_OPENAT2_E,
-			                     5,
-			                     evt_dirfd,
-			                     dirfd_path,
-			                     open_flags | PPM_O_DIRECTORY,
-			                     mode,
-			                     resolve);
-			add_event_advance_ts(increasing_ts(),
-			                     1,
 			                     PPME_SYSCALL_OPENAT2_X,
 			                     8,
 			                     evt_dirfd,
@@ -257,15 +248,6 @@ protected:
 		case PPME_SYSCALL_LINKAT_2_X:
 		case PPME_SYSCALL_SYMLINKAT_X:
 		case PPME_SYSCALL_RENAMEAT2_X: {
-			add_event_advance_ts(increasing_ts(),
-			                     1,
-			                     PPME_SYSCALL_OPENAT2_E,
-			                     5,
-			                     evt_dirfd,
-			                     dirfd_path,
-			                     open_flags | PPM_O_DIRECTORY,
-			                     mode,
-			                     resolve);
 			add_event_advance_ts(increasing_ts(),
 			                     1,
 			                     PPME_SYSCALL_OPENAT2_X,
@@ -400,7 +382,6 @@ TEST_F(fspath, openat_2_relative) {
 }
 
 TEST_F(fspath, openat2) {
-	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd, name, open_flags, mode, resolve);
 	test_exit_path(resolved_name,
 	               name,
 	               PPME_SYSCALL_OPENAT2_X,
@@ -426,7 +407,6 @@ TEST_F(fspath, openat2) {
 }
 
 TEST_F(fspath, openat2_relative_dirfd) {
-	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd, name, open_flags, mode, resolve);
 	test_exit_path(resolved_rel_name,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT2_X,
@@ -454,7 +434,6 @@ TEST_F(fspath, openat2_relative_dirfd) {
 TEST_F(fspath, openat2_relative_cwd) {
 	// Also test scenario where relative path should be interpreted relative to the cwd and not
 	// dirfd
-	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd_cwd, name, open_flags, mode, resolve);
 	test_exit_path(resolved_rel_filename2_cwd,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT2_X,
