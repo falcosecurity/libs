@@ -96,7 +96,7 @@ TEST_F(scap_file_test, same_number_of_events) {
 	        {PPME_SOCKET_CONNECT_X, 238},
 	        {PPME_SYSCALL_EXECVE_19_E, 0 /* filtered */},
 	        {PPME_SYSCALL_EXECVE_19_X, 203},
-	        {PPME_SYSCALL_EXECVEAT_E, 1},
+	        {PPME_SYSCALL_EXECVEAT_E, 0 /* filtered */},
 	        {PPME_SYSCALL_EXECVEAT_X, 0},
 	        // Add further checks regarding the expected number of events in this scap file here.
 	});
