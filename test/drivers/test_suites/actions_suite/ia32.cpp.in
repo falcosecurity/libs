@@ -42,7 +42,6 @@ TEST(Actions, ia32)
 
 	/* Retrieve events in order. */
 #ifdef __NR_openat2
-	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_OPENAT2_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_OPENAT2_X);
 #endif
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_WRITE_X);
