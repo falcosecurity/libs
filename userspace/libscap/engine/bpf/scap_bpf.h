@@ -34,6 +34,30 @@ struct perf_lost_sample {
 	uint64_t lost;
 };
 
+static inline void fixup_wrapping_event(scap_device *dev, void *evt) {
+	struct perf_event_mmap_page *header = (struct perf_event_mmap_page *)dev->m_buffer;
+	void *start = dev->m_buffer + header->data_offset;
+	void *end = start + header->data_size;
+
+	// The size of the event fragment that fits before the end of the buffer
+	ptrdiff_t off = (char *)end - (char *)evt;
+
+	// If the part that fits is too small to even contain the perf_event_sample header,
+	// copy the full header first. Technically, we could calculate the size by looking
+	// at the right part of the buffer (the beginning or the end), but ultimately
+	// we're copying less than 16 bytes here, so it's probably not worth the overhead.
+	if(off < sizeof(struct perf_event_sample)) {
+		memcpy(end, start, sizeof(struct perf_event_sample) - off);
+	}
+
+	// Now we know at least the full header is in place, we can read the size
+	// of the event and copy the rest if needed.
+	struct perf_event_sample *sample = evt;
+	if(off < sample->header.size) {
+		memcpy(end, start, sample->header.size - off);
+	}
+}
+
 /* Return only the raw data of the event skipping the header and the size. */
 static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt) {
 	struct perf_event_sample *perf_evt = (struct perf_event_sample *)evt;
@@ -112,6 +136,14 @@ static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev,
 		ASSERT(*len >= sizeof(*e));
 		ASSERT(*len >= e->size);
 		if(e->type == PERF_RECORD_SAMPLE) {
+			if(!skip_current) {
+				// If `skip_current` is true, the event has already been read, and so any
+				// fixups necessary have been done already the first time around.
+				// Otherwise, we need to check if the event wraps around to the beginning
+				// of the buffer, and copy the missing part to the scratch space beyond
+				// the ring buffer if so.
+				fixup_wrapping_event(dev, e);
+			}
 #ifdef _DEBUG
 			struct perf_event_sample *sample = (struct perf_event_sample *)e;
 #endif
