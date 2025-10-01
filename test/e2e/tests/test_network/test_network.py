@@ -39,14 +39,6 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.cmdline": f"curl --local-port {origin['local_port']} {destination['ip']}",
             "proc.exe": "curl",
         }, {
-            "container.id": origin['id'],
-            "evt.args": f"fd=3(<4t>0.0.0.0:{origin['local_port']}) addr={destination['ip']}",
-            "evt.category": "net",
-            "evt.type": "connect",
-            "fd.name": f"0.0.0.0:{origin['local_port']}",
-            "proc.cmdline": f"curl --local-port {origin['local_port']} {destination['ip']}",
-            "proc.exe": "curl",
-        }, {
             "container.id": destination['id'],
             "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511 flags=0",
             "evt.category": "net",

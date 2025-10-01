@@ -616,14 +616,13 @@ sinsp_evt* sinsp_with_test_input::generate_socket_exit_event(sinsp_test_input::s
 	                            params.proto);
 }
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-sinsp_evt* sinsp_with_test_input::generate_connect_events(
+sinsp_evt* sinsp_with_test_input::generate_connect_exit_event(
         const sinsp_test_input::connect_params& params,
         const int64_t tid_caller) {
 	std::vector<uint8_t> server_sockaddr;
 	std::vector<uint8_t> socktuple;
 	switch(params.family) {
 	case AF_INET: {
-		std::cout << "AF_INET" << std::endl;
 		sockaddr_in client =
 		        test_utils::fill_sockaddr_in(params.client_in_port, params.client_in_addr_string);
 		sockaddr_in server =
@@ -653,12 +652,6 @@ sinsp_evt* sinsp_with_test_input::generate_connect_events(
 		throw sinsp_exception("Unsupported socket family " + std::to_string(params.family));
 	}
 
-	add_event_advance_ts(increasing_ts(),
-	                     tid_caller,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     params.fd,
-	                     scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 	return add_event_advance_ts(
 	        increasing_ts(),
 	        tid_caller,

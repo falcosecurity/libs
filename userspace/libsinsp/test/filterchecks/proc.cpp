@@ -243,23 +243,13 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
-
 	sockaddr_in server =
 	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
-
-	std::vector<uint8_t> server_sockaddr =
-	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(
-	        increasing_ts(),
-	        1,
-	        PPME_SOCKET_CONNECT_E,
-	        2,
-	        sinsp_test_input::socket_params::default_fd,
-	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
-
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
 	evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,

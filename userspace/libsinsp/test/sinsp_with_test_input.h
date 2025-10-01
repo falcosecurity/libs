@@ -374,8 +374,8 @@ protected:
 	                                      int64_t tid_caller = INIT_TID);
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-	sinsp_evt* generate_connect_events(const sinsp_test_input::connect_params& params = {},
-	                                   int64_t tid_caller = INIT_TID);
+	sinsp_evt* generate_connect_exit_event(const sinsp_test_input::connect_params& params = {},
+	                                       int64_t tid_caller = INIT_TID);
 #endif
 
 	//=============================== PROCESS GENERATION ===========================

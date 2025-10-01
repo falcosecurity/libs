@@ -349,22 +349,13 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	        test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);
 	sockaddr_in6 server =
 	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, DEFAULT_IPV6_SERVER_STRING);
-	std::vector<uint8_t> server_sockaddr =
-	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-
-	/* The connect enter event populates the destination ip and the destination port thanks to the
-	 * `server_sockaddr`
-	 */
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     sinsp_test_input::socket_params::default_fd,
-	                     scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
-	auto evt = add_event_advance_ts(
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+
+	const auto evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,
 	        PPME_SOCKET_CONNECT_X,
