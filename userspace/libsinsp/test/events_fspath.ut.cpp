@@ -98,18 +98,16 @@ protected:
 	}
 
 	void inject_open_event() {
-		sinsp_evt *evt =
-		        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path, flags, mode);
-		evt = add_event_advance_ts(increasing_ts(),
-		                           1,
-		                           PPME_SYSCALL_OPEN_X,
-		                           6,
-		                           fd,
-		                           path,
-		                           open_flags,
-		                           mode,
-		                           dev,
-		                           ino);
+		const auto evt = add_event_advance_ts(increasing_ts(),
+		                                      1,
+		                                      PPME_SYSCALL_OPEN_X,
+		                                      6,
+		                                      fd,
+		                                      path,
+		                                      open_flags,
+		                                      mode,
+		                                      dev,
+		                                      ino);
 		ASSERT_STREQ(get_field_as_string(evt, "fd.name").c_str(), path);
 	}
 
@@ -340,7 +338,6 @@ TEST_F(fspath, unlinkat_2) {
 }
 
 TEST_F(fspath, open) {
-	test_enter(PPME_SYSCALL_OPEN_E, 3, name, open_flags, mode);
 	test_exit_path(resolved_name,
 	               name,
 	               PPME_SYSCALL_OPEN_X,

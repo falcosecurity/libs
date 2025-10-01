@@ -79,7 +79,7 @@ scap_evt* sinsp_with_test_input::_add_event_with_empty_params(
 	return ret;
 }
 
-// adds an event and advances the inspector to the new timestamp
+// Adds an event and advances the inspector to the new timestamp.
 sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts,
                                                         uint64_t tid,
                                                         ppm_event_code event_type,
@@ -93,7 +93,36 @@ sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts,
 	return ret;
 }
 
-// adds an event and advances the inspector to the new timestamp
+// Adds an event and advances the inspector to the new timestamp. Expect the event to be filtered
+// out.
+void sinsp_with_test_input::_add_filtered_event_advance_ts(uint64_t ts,
+                                                           uint64_t tid,
+                                                           ppm_event_code event_type,
+                                                           uint32_t n,
+                                                           ...) {
+	va_list args;
+	va_start(args, n);
+	add_filtered_event_advance_ts_v(ts, tid, event_type, nullptr, n, args);
+	va_end(args);
+}
+
+void sinsp_with_test_input::add_filtered_event_advance_ts_v(
+        uint64_t ts,
+        uint64_t tid,
+        ppm_event_code event_type,
+        const scap_empty_params_set* empty_params_set,
+        uint32_t n,
+        va_list args) {
+	add_event_v(ts, tid, event_type, empty_params_set, n, args);
+	sinsp_evt* evt = advance_ts_get_event(ts);
+	if(evt != nullptr) {
+		throw std::runtime_error("Found event while expecting it to be filtered out (event type: " +
+		                         std::to_string(evt->get_type()) +
+		                         ", params_num: " + std::to_string(evt->get_num_params()) + ")");
+	}
+}
+
+// Adds an event and advances the inspector to the new timestamp.
 sinsp_evt* sinsp_with_test_input::_add_event_advance_ts_with_empty_params(
         uint64_t ts,
         uint64_t tid,
@@ -1004,7 +1033,10 @@ bool sinsp_with_test_input::filter_compiles(std::string_view filter_str, filter_
 
 sinsp_evt* sinsp_with_test_input::next_event() {
 	sinsp_evt* evt;
-	auto result = m_inspector.next(&evt);
+	int32_t result;
+	// Skip all filtered-out events.
+	while((result = m_inspector.next(&evt)) == SCAP_FILTERED_EVENT) {
+	}
 	return result == SCAP_SUCCESS ? evt : nullptr;
 }
 

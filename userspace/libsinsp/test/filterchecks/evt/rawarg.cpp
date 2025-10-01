@@ -125,11 +125,14 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str) {
 	// In the enter event we don't send the `PPM_O_F_CREATED`
 	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
-	                                      PPME_SYSCALL_OPEN_E,
-	                                      3,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (int64_t)0,
 	                                      path.c_str(),
 	                                      (uint32_t)0,
-	                                      (uint32_t)0);
+	                                      (uint32_t)0,
+	                                      (uint32_t)0,
+	                                      (uint64_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.name"), path);
 }
 

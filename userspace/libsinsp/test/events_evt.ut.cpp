@@ -102,20 +102,13 @@ TEST_F(sinsp_with_test_input, event_res) {
 
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_OPEN_E,
-	                           3,
-	                           "/tmp/the_file.txt",
-	                           0,
-	                           0);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
 	                           PPME_SYSCALL_OPEN_X,
 	                           6,
 	                           (int64_t)123,
 	                           "/tmp/the_file.txt",
-	                           0,
-	                           0,
-	                           0,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
 	                           (uint64_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
@@ -124,20 +117,13 @@ TEST_F(sinsp_with_test_input, event_res) {
 
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_OPEN_E,
-	                           3,
-	                           "/tmp/the_file.txt",
-	                           0,
-	                           0);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
 	                           PPME_SYSCALL_OPEN_X,
 	                           6,
 	                           (int64_t)-SE_EACCES,
 	                           "/tmp/the_file.txt",
-	                           0,
-	                           0,
-	                           0,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
 	                           (uint64_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "EACCES");
@@ -164,17 +150,16 @@ TEST_F(sinsp_with_test_input, event_hostname) {
 
 	/* Toy event example from a previous test. */
 	int64_t dirfd = 3;
-	const char *file_to_run = "/tmp/file_to_run";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+	auto *file_to_run = "/tmp/file_to_run";
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPEN_X,
 	                           6,
 	                           dirfd,
 	                           file_to_run,
-	                           0,
-	                           0,
-	                           0,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
 	                           (uint64_t)0);
 
 	/* Assert correct custom hostname. */

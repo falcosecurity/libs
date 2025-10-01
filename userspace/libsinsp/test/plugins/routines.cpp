@@ -58,7 +58,7 @@ static const char* plugin_get_parse_event_sources() {
 
 static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s) {
 	static uint16_t types[] = {
-	        PPME_SYSCALL_OPEN_E,
+	        PPME_SYSCALL_OPEN_X,
 	};
 	*num_types = sizeof(types) / sizeof(uint16_t);
 	return &types[0];
