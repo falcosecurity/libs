@@ -24,27 +24,16 @@ limitations under the License.
 TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt* evt = NULL;
-
-	evt = generate_socket_exit_event();
+	auto* evt = generate_socket_exit_event();
 	int64_t return_value = 0;
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(54321, "172.40.111.222");
 	sockaddr_in server = test_utils::fill_sockaddr_in(443, "142.251.111.147");
-
-	std::vector<uint8_t> server_sockaddr =
-	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(
-	        increasing_ts(),
-	        1,
-	        PPME_SOCKET_CONNECT_E,
-	        2,
-	        sinsp_test_input::socket_params::default_fd,
-	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
-
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
 	evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,
@@ -92,12 +81,13 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	std::vector<uint8_t> server1_sockaddr =
 	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server1));
 
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     sinsp_test_input::socket_params::default_fd,
-	                     scap_const_sized_buffer{server1_sockaddr.data(), server1_sockaddr.size()});
+	add_filtered_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_E,
+	        2,
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server1_sockaddr.data(), server1_sockaddr.size()});
 
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),

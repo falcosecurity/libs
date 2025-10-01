@@ -61,10 +61,6 @@ TEST_F(sinsp_with_test_input, net_socket) {
 TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt* evt = NULL;
-	sinsp_fdinfo* fdinfo = NULL;
-	sinsp_threadinfo* tinfo = NULL;
-	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	generate_socket_exit_event();
 
@@ -75,26 +71,29 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 
 	std::vector<uint8_t> server_sockaddr =
 	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(
-	        increasing_ts(),
-	        1,
+
+	const auto evt_ts = increasing_ts();
+	add_filtered_event_advance_ts(
+	        evt_ts,
+	        INIT_TID,
 	        PPME_SOCKET_CONNECT_E,
 	        2,
 	        sinsp_test_input::socket_params::default_fd,
 	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	/* See the `reset` logic for enter events with `EF_USES_FD` flag */
-	tinfo = evt->get_thread_info(false);
+	auto* tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID).get();
 	ASSERT_NE(tinfo, nullptr);
 	ASSERT_EQ(tinfo->m_lastevent_fd, sinsp_test_input::socket_params::default_fd);
-	ASSERT_EQ(tinfo->m_lastevent_ts, evt->get_ts());
+	ASSERT_EQ(tinfo->m_lastevent_ts, evt_ts);
 	ASSERT_EQ(tinfo->m_latency, 0);
 
 	/* Here we should recover the fdinfo from the thread info since the socket call has already
 	 * added the fdinfo into the thread. See `reset` logic, the fdinfo is recovered from the
 	 * `client_fd` (first parameter).
 	 */
-	fdinfo = evt->get_fd_info();
+	auto* fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
+	// auto* fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket()); /* in `parse_connect_enter` we set `SCAP_FD_IPV4_SOCK` as
 	                                          type */
@@ -106,22 +105,23 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	ASSERT_FALSE(fdinfo->is_socket_pending());
 
 	/* Check that ip and port are saved from the server sockaddr in the fdinfo */
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip), ipv4_string, 100);
+	char ipv4_string[DEFAULT_IP_STRING_SIZE];
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
-	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "false");
 	/* Since the role of the fd is none, all these fields are null. The fdinfo state is updated but
 	 * we cannot use these info in the filterchecks */
-	ASSERT_FALSE(field_has_value(evt, "fd.sip"));
+	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_FALSE(fdinfo->is_socket_connected());
+	ASSERT_FALSE(fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 
 	/* If the exit event is immediately consecutive we can obtain some info otherwise there is the
 	 * risk we cannot update the fd */
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(
+	auto* evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,
 	        PPME_SOCKET_CONNECT_X,
@@ -139,9 +139,9 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	ASSERT_TRUE(fdinfo->is_role_client());  /* The connect exit set the client role */
 
 	/* Check that ip and port are saved from the server socktuple */
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip), ipv4_string, 100);
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip), ipv4_string, 100);
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
@@ -167,19 +167,15 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 TEST_F(sinsp_with_test_input, net_ipv4_connect_with_intermediate_event) {
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt* evt = NULL;
-
 	generate_socket_exit_event();
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
-
 	sockaddr_in server =
 	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
-
 	std::vector<uint8_t> server_sockaddr =
 	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(
+	add_filtered_event_advance_ts(
 	        increasing_ts(),
 	        1,
 	        PPME_SOCKET_CONNECT_E,
@@ -190,15 +186,15 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect_with_intermediate_event) {
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
 	/* This should never happen but could cause strange outcomes */
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SOCKET_SENDTO_X,
-	                           5,
-	                           (int64_t)0,
-	                           scap_const_sized_buffer{nullptr, 0},
-	                           sinsp_test_input::socket_params::default_fd,
-	                           (uint32_t)102,
-	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	auto* evt = add_event_advance_ts(increasing_ts(),
+	                                 1,
+	                                 PPME_SOCKET_SENDTO_X,
+	                                 5,
+	                                 (int64_t)0,
+	                                 scap_const_sized_buffer{nullptr, 0},
+	                                 sinsp_test_input::socket_params::default_fd,
+	                                 (uint32_t)102,
+	                                 scap_const_sized_buffer{socktuple.data(), socktuple.size()});
 	evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,
@@ -229,22 +225,14 @@ TEST_F(sinsp_with_test_input, net_ipv6_multiple_connects) {
 
 	sockaddr_in6 server1 =
 	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, DEFAULT_IPV6_SERVER_STRING);
-
-	std::vector<uint8_t> server1_sockaddr =
-	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server1));
-
-	/* The connect enter event populates the destination ip and the destination port thanks to the
-	 * `server_sockaddr` */
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     sinsp_test_input::socket_params::default_fd,
-	                     scap_const_sized_buffer{server1_sockaddr.data(), server1_sockaddr.size()});
-
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server1));
+	std::vector<uint8_t> server1_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server1));
+
+	/* The connect exit event populates the destination ip and the destination port thanks to the
+	 * `server_sockaddr` */
 	evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,
@@ -280,21 +268,13 @@ TEST_F(sinsp_with_test_input, net_ipv6_multiple_connects) {
 	std::vector<uint8_t> server2_sockaddr =
 	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server2));
 
-	evt = add_event_advance_ts(
+	add_filtered_event_advance_ts(
 	        increasing_ts(),
 	        1,
 	        PPME_SOCKET_CONNECT_E,
 	        2,
 	        sinsp_test_input::socket_params::default_fd,
 	        scap_const_sized_buffer{server2_sockaddr.data(), server2_sockaddr.size()});
-	/* check that upon entry to the new connect the fd name is the same as during the last
-	 * connection */
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV6_FDNAME);
-	/* server ip and port are updated with the new connect enter event */
-	ASSERT_EQ(get_field_as_string(evt, "fd.lip"), ipv6_server2);
-	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), ipv6_server2);
-	ASSERT_EQ(get_field_as_string(evt, "fd.lport"), port_server2_string);
-	ASSERT_EQ(get_field_as_string(evt, "fd.sport"), port_server2_string);
 
 	socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                       reinterpret_cast<sockaddr*>(&server2));
@@ -497,25 +477,15 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
-
 	sockaddr_in server =
 	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
-
-	/* First connection to populate the fdinfo */
-
-	std::vector<uint8_t> server_sockaddr =
-	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(
-	        increasing_ts(),
-	        1,
-	        PPME_SOCKET_CONNECT_E,
-	        2,
-	        sinsp_test_input::socket_params::default_fd,
-	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
-
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+
+	/* First connection to populate the fdinfo */
 	evt = add_event_advance_ts(
 	        increasing_ts(),
 	        1,
@@ -538,12 +508,13 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	sockaddr_in server2 = test_utils::fill_sockaddr_in(port_server2, ipv4_server2.c_str());
 
 	server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server2));
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     sinsp_test_input::socket_params::default_fd,
-	                     scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	add_filtered_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_E,
+	        2,
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                       reinterpret_cast<sockaddr*>(&server2));
@@ -559,7 +530,7 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 
 	/* Filterchecks will get an updated fdname since the extraction happens directly on the params,
 	 * while the fdinfo fdname is not updated. Ip and port of the new server are updated by the
-	 * PPME_SOCKET_CONNECT_E event so both filterchecks and internal state are aligned
+	 * PPME_SOCKET_CONNECT_X event so both filterchecks and internal state are aligned
 	 */
 
 	// todo!: this sounds like an incosistency, the fdinfo shouldn't be updated if the syscall fails
@@ -598,32 +569,20 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt* evt = NULL;
-	sinsp_fdinfo* fdinfo = NULL;
-	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET, SOCK_DGRAM));
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
-
 	sockaddr_in server =
 	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
-
-	/* First connection to populate the fdinfo */
-
-	std::vector<uint8_t> server_sockaddr =
-	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     sinsp_test_input::socket_params::default_fd,
-	                     scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
-
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+
+	/* First connection to populate the fdinfo */
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SOCKET_CONNECT_X,
@@ -647,23 +606,23 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
 	sockaddr_in server2 = test_utils::fill_sockaddr_in(port_server2, ipv4_server2.c_str());
 
 	scap_const_sized_buffer null_buf = scap_const_sized_buffer{nullptr, 0};
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_CONNECT_E,
-	                     2,
-	                     sinsp_test_input::socket_params::default_fd,
-	                     null_buf);
+	add_filtered_event_advance_ts(increasing_ts(),
+	                              1,
+	                              PPME_SOCKET_CONNECT_E,
+	                              2,
+	                              sinsp_test_input::socket_params::default_fd,
+	                              null_buf);
 
 	socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client2),
 	                                       reinterpret_cast<sockaddr*>(&server2));
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SOCKET_CONNECT_X,
-	                           4,
-	                           (int64_t)-2,
-	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                           sinsp_test_input::socket_params::default_fd,
-	                           null_buf);
+	auto* evt = add_event_advance_ts(increasing_ts(),
+	                                 1,
+	                                 PPME_SOCKET_CONNECT_X,
+	                                 4,
+	                                 (int64_t)-2,
+	                                 scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	                                 sinsp_test_input::socket_params::default_fd,
+	                                 null_buf);
 
 	/* Only filterchecks will see the new tuple in the fdname all the rest is not updated */
 	std::string fdname = ipv4_client2 + ":" + port_client2_string + "->" + ipv4_server2 + ":" +
@@ -681,14 +640,15 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
 
 	/* The parser is not able to obtain an updated fdname because the syscall fails and the parser
 	 * flow is truncated */
-	fdinfo = evt->get_fd_info();
+	auto* fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->m_name.c_str(), DEFAULT_IPV4_FDNAME);
 
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip), ipv4_string, 100);
+	char ipv4_string[DEFAULT_IP_STRING_SIZE];
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
 
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip), ipv4_string, 100);
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
 
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);

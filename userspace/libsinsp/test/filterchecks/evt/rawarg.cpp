@@ -95,7 +95,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.gid = 0"));   // PT_GID
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-	evt = generate_connect_events();
+	evt = generate_connect_exit_event();
 	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));   // PT_SOCKADDR is not comparable
 	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.tuple > 0"));  // PT_TUPLE is not comparable
 #endif

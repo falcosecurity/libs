@@ -30,19 +30,6 @@ def test_network_activity(sinsp, run_containers: dict):
     expected_events = [
         {
             "container.id": generator_id,
-            "evt.args": "fd=3(<4>) addr=10.2.3.4:8192",
-            "evt.category": "net",
-            "evt.num": SinspField.numeric_field(),
-            "evt.time": SinspField.numeric_field(),
-            "evt.type": "connect",
-            "fd.name": "",
-            "proc.cmdline": "sha1sum --loglevel info run ^helper.NetworkActivity$",
-            "proc.exe": SinspField.regex_field(r'^/tmp/falco-event-generator\d+/sha1sum$'),
-            "proc.pid": SinspField.numeric_field(),
-            "proc.ppid": SinspField.numeric_field()
-        },
-        {
-            "container.id": generator_id,
             "evt.args": SinspField.regex_field(
                 fr'^res=0 tuple={ipv4_regex}->10\.2\.3\.4:8192 fd=3\(<4u>{ipv4_regex}->10\.2\.3\.4:8192\) addr=10.2.3.4:8192$'),
             "evt.category": "net",

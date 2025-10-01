@@ -154,42 +154,27 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
-	const sinsp_evt_param* param = NULL;
 
+	/* `PPME_SOCKET_CONNECT_X` is a simple event that uses a `PT_SOCKTUPLE` and a `PT_SOCKADDR` */
 	constexpr int64_t res = 0;
+	scap_const_sized_buffer sockaddr_param{nullptr, 0};
 	constexpr int64_t fd = 3;
-
-	/* `PPME_SOCKET_CONNECT_E` is a simple event that uses a `PT_SOCKADDR` */
-	scap_const_sized_buffer sockaddr_param;
-	sockaddr_param.buf = NULL;
-	sockaddr_param.size = 0;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, fd, sockaddr_param);
-	param = evt->get_param(1);
-	ASSERT_EQ(param->len(), 0);
-
-	/* `PPME_SOCKET_CONNECT_X` is a simple event that uses a `PT_SOCKTUPLE` */
-	scap_const_sized_buffer socktuple_param;
-	socktuple_param.buf = NULL;
-	socktuple_param.size = 0;
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SOCKET_CONNECT_X,
-	                           4,
-	                           res,
-	                           socktuple_param,
-	                           fd,
-	                           sockaddr_param);
-	param = evt->get_param(1);
-	ASSERT_EQ(param->len(), 0);
+	scap_const_sized_buffer socktuple_param{nullptr, 0};
+	auto* evt = add_event_advance_ts(increasing_ts(),
+	                                 1,
+	                                 PPME_SOCKET_CONNECT_X,
+	                                 4,
+	                                 res,
+	                                 socktuple_param,
+	                                 fd,
+	                                 sockaddr_param);
+	ASSERT_TRUE(evt->get_param(1)->empty());  // Check tuple emptiness.
+	ASSERT_TRUE(evt->get_param(3)->empty());  // Check addr emptiness.
 
 	/* `PPME_SYSCALL_POLL_X` is a simple event that uses a `PT_FDLIST` */
-	scap_const_sized_buffer fdlist_param;
-	fdlist_param.buf = NULL;
-	fdlist_param.size = 0;
+	scap_const_sized_buffer fdlist_param{nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_POLL_X, 2, res, fdlist_param);
-	param = evt->get_param(1);
-	ASSERT_EQ(param->len(), 0);
+	ASSERT_TRUE(evt->get_param(1)->empty());  // // Check fds emptiness.
 }
 
 TEST_F(sinsp_with_test_input, filename_toctou) {
