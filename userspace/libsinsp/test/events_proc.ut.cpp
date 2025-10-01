@@ -38,8 +38,7 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag) {
 	 * we want to run with the `execveat`,
 	 */
 	int64_t dirfd = 3;
-	const char *file_to_run = "/tmp/file_to_run";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+	auto *file_to_run = "/tmp/file_to_run";
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
@@ -125,17 +124,16 @@ TEST_F(sinsp_with_test_input, execveat_relative_path) {
 	 * we want to run with the `execveat`,
 	 */
 	int64_t dirfd = 3;
-	const char *directory = "/tmp/dir";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	auto *directory = "/tmp/dir";
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
 	                     6,
 	                     dirfd,
 	                     directory,
-	                     0,
-	                     0,
-	                     0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
 	                     (uint64_t)0);
 
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
@@ -210,17 +208,16 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path) {
 	 * we want to run with the `execveat`,
 	 */
 	int64_t dirfd = 3;
-	const char *directory = "/tmp/dir";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	auto *directory = "/tmp/dir";
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
 	                     6,
 	                     dirfd,
 	                     directory,
-	                     0,
-	                     0,
-	                     0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
 	                     (uint64_t)0);
 
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
@@ -361,17 +358,16 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag_s390) {
 	 * we want to run with the `execveat`,
 	 */
 	int64_t dirfd = 3;
-	const char *file_to_run = "/tmp/s390x/file_to_run";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+	auto *file_to_run = "/tmp/s390x/file_to_run";
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
 	                     6,
 	                     dirfd,
 	                     file_to_run,
-	                     0,
-	                     0,
-	                     0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
 	                     (uint64_t)0);
 
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
@@ -446,17 +442,16 @@ TEST_F(sinsp_with_test_input, execveat_relative_path_s390) {
 	 * we want to run with the `execveat`,
 	 */
 	int64_t dirfd = 3;
-	const char *directory = "/tmp/s390x/dir";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	auto *directory = "/tmp/s390x/dir";
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
 	                     6,
 	                     dirfd,
 	                     directory,
-	                     0,
-	                     0,
-	                     0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
 	                     (uint64_t)0);
 
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
@@ -595,17 +590,16 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path_s390) {
 	 * we want to run with the `execveat`,
 	 */
 	int64_t dirfd = 3;
-	const char *directory = "/tmp/s390/dir";
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	auto *directory = "/tmp/s390/dir";
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
 	                     6,
 	                     dirfd,
 	                     directory,
-	                     0,
-	                     0,
-	                     0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
 	                     (uint64_t)0);
 
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
@@ -907,13 +901,6 @@ TEST_F(sinsp_with_test_input, chdir_fchdir) {
 
 	// generate a fd associated with the directory we wish to change to
 	int64_t dirfd = 3, test_errno = 0;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_OPEN_E,
-	                     3,
-	                     "/tmp/target-directory-fd",
-	                     0,
-	                     0);
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,

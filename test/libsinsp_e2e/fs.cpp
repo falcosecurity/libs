@@ -1268,9 +1268,7 @@ TEST_F(sys_call_test, large_open) {
 		sinsp_evt* e = param.m_evt;
 		std::string name(e->get_name());
 
-		if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_IN) {
-			callnum++;
-		} else if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT) {
+		if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT) {
 			const sinsp_evt_param* p = e->get_param_by_name("name");
 
 			if(event_capture::s_engine_string == KMOD_ENGINE) {
@@ -1289,5 +1287,5 @@ TEST_F(sys_call_test, large_open) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(2, callnum);
+	EXPECT_EQ(1, callnum);  // open exit event.
 }

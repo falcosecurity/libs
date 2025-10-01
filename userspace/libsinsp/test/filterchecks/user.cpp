@@ -34,11 +34,14 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry) {
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
-	                                PPME_SYSCALL_OPEN_E,
-	                                3,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                (int64_t)3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                (uint32_t)0);
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "1000");
 	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "user.name"), "foo");
@@ -85,11 +88,14 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_default_user_entry) {
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
-	                                PPME_SYSCALL_OPEN_E,
-	                                3,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                (int64_t)3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                (uint32_t)0);
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
 
 	// For non-existent entries whose uid is 0, "root" and "/root"
 	// are automatically filled by threadinfo::get_user() method.
@@ -113,11 +119,14 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry_witho
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
-	                                PPME_SYSCALL_OPEN_E,
-	                                3,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                (int64_t)3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                (uint32_t)0);
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "user.name"), "");
 	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "");
@@ -138,11 +147,14 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_loaded_user_entry) {
 
 	auto evt = add_event_advance_ts(increasing_ts(),
 	                                INIT_TID,
-	                                PPME_SYSCALL_OPEN_E,
-	                                3,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                (int64_t)3,
 	                                path.c_str(),
 	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                (uint32_t)0);
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "user.name"), "root");
 	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "/root");

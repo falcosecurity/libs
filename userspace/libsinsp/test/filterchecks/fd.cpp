@@ -23,39 +23,17 @@ TEST_F(sinsp_with_test_input, FD_FILTER_extract_from_null_type_filename) {
 
 	open_inspector();
 
-	std::string path = "/home/file.txt";
-	int64_t dirfd = 4;
+	const std::string path = "/home/file.txt";
 
-	auto evt = add_event_advance_ts(increasing_ts(),
-	                                INIT_TID,
-	                                PPME_SYSCALL_OPEN_E,
-	                                3,
-	                                path.c_str(),
-	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                (uint32_t)0);
-	ASSERT_FALSE(field_has_value(evt, "fd.filename"));
-
-	evt = add_event_advance_ts(increasing_ts(),
-	                           INIT_TID,
-	                           PPME_SYSCALL_OPENAT_2_E,
-	                           4,
-	                           dirfd,
-	                           path.c_str(),
-	                           0,
-	                           0);
-	ASSERT_FALSE(field_has_value(evt, "fd.filename"));
-
-	evt = add_event_advance_ts(increasing_ts(),
-	                           INIT_TID,
-	                           PPME_SYSCALL_OPENAT2_E,
-	                           5,
-	                           dirfd,
-	                           path.c_str(),
-	                           0,
-	                           0,
-	                           0);
-	ASSERT_FALSE(field_has_value(evt, "fd.filename"));
-
-	evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_CREAT_E, 2, path.c_str(), 0);
+	const auto evt = add_event_advance_ts(increasing_ts(),
+	                                      INIT_TID,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (int64_t)-1,
+	                                      path.c_str(),
+	                                      (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
+	                                      (uint32_t)0,
+	                                      (uint32_t)0,
+	                                      (uint64_t)0);
 	ASSERT_FALSE(field_has_value(evt, "fd.filename"));
 }

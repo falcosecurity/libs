@@ -194,7 +194,13 @@ TEST_F(sinsp_with_test_input, filename_toctou) {
 
 	int64_t fd = 1, dirfd = 3;
 
-	add_event(increasing_ts(), 3, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", 0, 0);
+	add_event(increasing_ts(),
+	          3,
+	          PPME_SYSCALL_OPEN_E,
+	          3,
+	          "/tmp/the_file",
+	          (uint32_t)0,
+	          (uint32_t)0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           3,
 	                           PPME_SYSCALL_OPEN_X,
@@ -328,7 +334,13 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		std::string test_context =
 		        std::string("open with filename ") + test_utils::describe_string(enter_filename);
 
-		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, NULL, 0, 0);
+		add_filtered_event_advance_ts(increasing_ts(),
+		                              1,
+		                              PPME_SYSCALL_OPEN_E,
+		                              3,
+		                              NULL,
+		                              (uint32_t)0,
+		                              (uint32_t)0);
 		evt = add_event_advance_ts(increasing_ts(),
 		                           1,
 		                           PPME_SYSCALL_OPEN_X,

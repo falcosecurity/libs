@@ -53,13 +53,6 @@ TEST_F(sinsp_with_test_input, signed_int_compare) {
 
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
-	                           PPME_SYSCALL_OPEN_E,
-	                           3,
-	                           "/tmp/the_file",
-	                           PPM_O_NONE,
-	                           0666);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
 	                           PPME_SYSCALL_OPEN_X,
 	                           6,
 	                           (int64_t)(-1),

@@ -50,13 +50,16 @@ TEST_F(sinsp_with_test_input, STATIC_FILTER_suggested_output) {
 	open_inspector();
 
 	std::string path = "/home/file.txt";
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	const auto evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
-	                                      PPME_SYSCALL_OPEN_E,
-	                                      3,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (int64_t)0,
 	                                      path.c_str(),
 	                                      (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                      (uint32_t)0);
+	                                      (uint32_t)0,
+	                                      (uint32_t)0,
+	                                      (uint64_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "static.example", *pl_flist), "example_value");
 }
 
@@ -73,11 +76,14 @@ TEST_F(sinsp_with_test_input, STATIC_FILTER_filter) {
 	std::string path = "/home/file.txt";
 	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
-	                                      PPME_SYSCALL_OPEN_E,
-	                                      3,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (int64_t)3,
 	                                      path.c_str(),
 	                                      (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                      (uint32_t)0);
+	                                      (uint32_t)0,
+	                                      (uint32_t)0,
+	                                      (uint64_t)0);
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(get_field_as_string(evt, "static.example", *pl_flist), "example_value");
 }
@@ -96,9 +102,12 @@ TEST_F(sinsp_with_test_input, STATIC_FILTER_filter_wrong) {
 	// Exception thrown because no event matches the required filter
 	ASSERT_ANY_THROW(add_event_advance_ts(increasing_ts(),
 	                                      1,
-	                                      PPME_SYSCALL_OPEN_E,
-	                                      3,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (int64_t)3,
 	                                      path.c_str(),
 	                                      (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
-	                                      (uint32_t)0));
+	                                      (uint32_t)0,
+	                                      (uint32_t)0,
+	                                      (uint64_t)0));
 }

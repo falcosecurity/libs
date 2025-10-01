@@ -100,6 +100,17 @@ struct sinsp_evt_filter {
 	}
 
 	~sinsp_evt_filter() {
+		// Some syscall enter events are still used by the parser for different purposes. At this
+		// point, these events have been already used, and can safely be dropped.
+		switch(evt->get_type()) {
+			// Enter events for TOCTOU mitigation.
+		case PPME_SYSCALL_OPEN_E:
+			evt->set_filtered_out(true);
+			return;
+		default:
+			break;
+		}
+
 		//
 		// With some state-changing events like clone, execve and open, we do the
 		// filtering after having updated the state

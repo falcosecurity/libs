@@ -55,27 +55,19 @@ TEST_F(sinsp_with_test_input, file_open) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
 
 	// since adding and reading events happens on a single thread they can be interleaved.
 	// tests may need to change if that will not be the case anymore
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_OPEN_E,
-	                     3,
-	                     "/tmp/the_file",
-	                     (uint32_t)PPM_O_RDWR,
-	                     (uint32_t)0);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_OPEN_X,
-	                           6,
-	                           (uint64_t)3,
-	                           "/tmp/the_file",
-	                           (uint32_t)PPM_O_RDWR,
-	                           (uint32_t)0,
-	                           (uint32_t)5,
-	                           (uint64_t)123);
+	const auto evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (uint64_t)3,
+	                                      "/tmp/the_file",
+	                                      (uint32_t)PPM_O_RDWR,
+	                                      (uint32_t)0,
+	                                      (uint32_t)5,
+	                                      (uint64_t)123);
 
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
@@ -91,13 +83,6 @@ TEST_F(sinsp_with_test_input, dup_dup2_dup3) {
 
 	int64_t fd = 3, res = 1, oldfd = 3, newfd = 123;
 
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_OPEN_E,
-	                     3,
-	                     "/tmp/test",
-	                     (uint32_t)(PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY),
-	                     (uint32_t)0666);
 	add_event_advance_ts(increasing_ts(),
 	                     1,
 	                     PPME_SYSCALL_OPEN_X,
@@ -169,7 +154,6 @@ TEST_F(sinsp_with_test_input, path_too_long) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
 
 	std::stringstream long_path_ss;
 	long_path_ss << "/";
@@ -184,23 +168,16 @@ TEST_F(sinsp_with_test_input, path_too_long) {
 	std::string long_path = long_path_ss.str();
 	int64_t fd = 3, mountfd = 5;
 
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_OPEN_E,
-	                     3,
-	                     long_path.c_str(),
-	                     (uint32_t)PPM_O_RDWR,
-	                     (uint32_t)0);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_OPEN_X,
-	                           6,
-	                           fd,
-	                           long_path.c_str(),
-	                           (uint32_t)PPM_O_RDWR,
-	                           (uint32_t)0,
-	                           (uint32_t)5,
-	                           (uint64_t)123);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                fd,
+	                                long_path.c_str(),
+	                                (uint32_t)PPM_O_RDWR,
+	                                (uint32_t)0,
+	                                (uint32_t)5,
+	                                (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/DIR_TOO_LONG/FILENAME_TOO_LONG");
 	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/DIR_TOO_LONG");
 	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "FILENAME_TOO_LONG");
@@ -694,7 +671,6 @@ TEST_F(sinsp_with_test_input, signalfd4) {
 TEST_F(sinsp_with_test_input, fchmod) {
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt* evt = NULL;
 	const char* path = "/tmp/test";
 	int64_t fd = 3;
 	int32_t flags = PPM_O_RDWR;
@@ -705,17 +681,16 @@ TEST_F(sinsp_with_test_input, fchmod) {
 	int64_t res = 0;
 
 	// We need to open a fd first so fchmod can act on it
-	evt = add_event_advance_ts(increasing_ts(), 3, PPME_SYSCALL_OPEN_E, 3, path, flags, mode);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_OPEN_X,
-	                           6,
-	                           fd,
-	                           path,
-	                           flags,
-	                           mode,
-	                           dev,
-	                           ino);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                fd,
+	                                path,
+	                                flags,
+	                                mode,
+	                                dev,
+	                                ino);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
 
@@ -727,7 +702,6 @@ TEST_F(sinsp_with_test_input, fchmod) {
 TEST_F(sinsp_with_test_input, fchown) {
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt* evt = NULL;
 	const char* path = "/tmp/test";
 	int64_t fd = 3;
 	int32_t flags = PPM_O_RDWR;
@@ -740,17 +714,16 @@ TEST_F(sinsp_with_test_input, fchown) {
 	uint32_t gid = 0;
 
 	// We need to open a fd first so fchown can act on it
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path, flags, mode);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_OPEN_X,
-	                           6,
-	                           fd,
-	                           path,
-	                           flags,
-	                           mode,
-	                           dev,
-	                           ino);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                fd,
+	                                path,
+	                                flags,
+	                                mode,
+	                                dev,
+	                                ino);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
 
@@ -779,27 +752,16 @@ TEST_F(sinsp_with_test_input, test_fdtypes) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
-
-	// since adding and reading events happens on a single thread they can be interleaved.
-	// tests may need to change if that will not be the case anymore
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_OPEN_E,
-	                     3,
-	                     "/tmp/the_file",
-	                     (uint32_t)PPM_O_RDWR,
-	                     (uint32_t)0);
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_OPEN_X,
-	                           6,
-	                           (uint64_t)1,
-	                           "/tmp/the_file",
-	                           (uint32_t)PPM_O_RDWR,
-	                           (uint32_t)0,
-	                           (uint32_t)5,
-	                           (uint64_t)123);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPEN_X,
+	                                6,
+	                                (uint64_t)1,
+	                                "/tmp/the_file",
+	                                (uint32_t)PPM_O_RDWR,
+	                                (uint32_t)0,
+	                                (uint32_t)5,
+	                                (uint64_t)123);
 
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
