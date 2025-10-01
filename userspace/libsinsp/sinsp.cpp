@@ -105,6 +105,7 @@ struct sinsp_evt_filter {
 		switch(evt->get_type()) {
 			// Enter events for TOCTOU mitigation.
 		case PPME_SYSCALL_OPEN_E:
+		case PPME_SYSCALL_CREAT_E:
 			evt->set_filtered_out(true);
 			return;
 		default:
