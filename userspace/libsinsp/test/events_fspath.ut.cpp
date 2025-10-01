@@ -186,16 +186,6 @@ protected:
 		}
 	}
 
-	// TODO(ekoops): remove this once we remove the enter events support.
-	void test_enter(ppm_event_code event_type, uint32_t n, ...) {
-		va_list args;
-		va_start(args, n);
-		sinsp_evt *evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, nullptr, n, args);
-		va_end(args);
-
-		verify_no_fields(evt);
-	}
-
 	void test_exit_path(const char *expected_name,
 	                    const char *expected_name_raw,
 	                    ppm_event_code event_type,
@@ -334,7 +324,6 @@ TEST_F(fspath, open) {
 }
 
 TEST_F(fspath, openat_2) {
-	test_enter(PPME_SYSCALL_OPENAT_2_E, 4, evt_dirfd, name, open_flags, mode);
 	test_exit_path(resolved_name,
 	               name,
 	               PPME_SYSCALL_OPENAT_2_X,
@@ -358,7 +347,6 @@ TEST_F(fspath, openat_2) {
 }
 
 TEST_F(fspath, openat_2_relative) {
-	test_enter(PPME_SYSCALL_OPENAT_2_E, 4, evt_dirfd, name, open_flags, mode);
 	test_exit_path(resolved_rel_name,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT_2_X,

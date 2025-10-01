@@ -223,7 +223,14 @@ TEST_F(sinsp_with_test_input, filename_toctou) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 
 	fd = 2;
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, dirfd, "/tmp/the_file", 0, 0);
+	add_event(increasing_ts(),
+	          1,
+	          PPME_SYSCALL_OPENAT_2_E,
+	          4,
+	          dirfd,
+	          "/tmp/the_file",
+	          (uint32_t)0,
+	          (uint32_t)0);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_OPENAT_2_X,
@@ -271,14 +278,14 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		std::string test_context =
 		        std::string("openat with filename ") + test_utils::describe_string(enter_filename);
 
-		add_event_advance_ts(increasing_ts(),
-		                     1,
-		                     PPME_SYSCALL_OPENAT_2_E,
-		                     4,
-		                     dirfd,
-		                     enter_filename,
-		                     0,
-		                     0);
+		add_filtered_event_advance_ts(increasing_ts(),
+		                              1,
+		                              PPME_SYSCALL_OPENAT_2_E,
+		                              4,
+		                              dirfd,
+		                              enter_filename,
+		                              (uint32_t)0,
+		                              (uint32_t)0);
 		evt = add_event_advance_ts(increasing_ts(),
 		                           1,
 		                           PPME_SYSCALL_OPENAT_2_X,
@@ -499,20 +506,23 @@ TEST_F(sinsp_with_test_input, bitmaskparams) {
 
 	open_inspector();
 
-	/* `PPME_SYSCALL_OPENAT_2_E` is a simple event that uses a PT_FLAGS32 (param 3) */
+	/* `PPME_SYSCALL_OPENAT_2_X` is a simple event that uses a PT_FLAGS32 (param 4) */
 	const auto evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
-	                                      PPME_SYSCALL_OPENAT_2_E,
-	                                      4,
-	                                      (int64_t)0,                    // dirfd
+	                                      PPME_SYSCALL_OPENAT_2_X,
+	                                      7,
+	                                      (int64_t)3,                    // fd
+	                                      (int64_t)4,                    // dirfd
 	                                      "/tmp/foo",                    // name
 	                                      PPM_O_RDONLY | PPM_O_CLOEXEC,  // flags
-	                                      (uint32_t)0);                  // mode
+	                                      (uint32_t)0,                   // mode
+	                                      (uint32_t)0,                   // dev
+	                                      (uint64_t)0);                  // ino
 
-	ASSERT_EQ(evt->get_param(2)->as<uint32_t>(), PPM_O_RDONLY | PPM_O_CLOEXEC);
+	ASSERT_EQ(evt->get_param(3)->as<uint32_t>(), PPM_O_RDONLY | PPM_O_CLOEXEC);
 
 	const char* val_str = nullptr;
-	evt->get_param_as_str(2, &val_str);
+	evt->get_param_as_str(3, &val_str);
 	ASSERT_STREQ(val_str, "O_RDONLY|O_CLOEXEC");
 }
 
