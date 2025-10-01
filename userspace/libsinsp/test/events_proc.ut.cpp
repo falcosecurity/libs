@@ -53,13 +53,13 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag) {
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_EXECVEAT_E,
-	                     3,
-	                     dirfd,
-	                     "<NA>",
-	                     PPM_EXVAT_AT_EMPTY_PATH);
+	add_filtered_event_advance_ts(increasing_ts(),
+	                              1,
+	                              PPME_SYSCALL_EXECVEAT_E,
+	                              3,
+	                              dirfd,
+	                              "<NA>",
+	                              PPM_EXVAT_AT_EMPTY_PATH);
 
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 27);
@@ -139,7 +139,7 @@ TEST_F(sinsp_with_test_input, execveat_relative_path) {
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
+	add_filtered_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
@@ -223,7 +223,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path) {
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
+	add_filtered_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
@@ -289,13 +289,13 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path) {
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
 	uint64_t invalid_dirfd = 0;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_EXECVEAT_E,
-	                     3,
-	                     invalid_dirfd,
-	                     "/tmp/file",
-	                     (uint32_t)0);
+	add_filtered_event_advance_ts(increasing_ts(),
+	                              1,
+	                              PPME_SYSCALL_EXECVEAT_E,
+	                              3,
+	                              invalid_dirfd,
+	                              "/tmp/file",
+	                              (uint32_t)0);
 
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 27);
@@ -373,13 +373,13 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag_s390) {
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_EXECVEAT_E,
-	                     3,
-	                     dirfd,
-	                     "<NA>",
-	                     PPM_EXVAT_AT_EMPTY_PATH);
+	add_filtered_event_advance_ts(increasing_ts(),
+	                              1,
+	                              PPME_SYSCALL_EXECVEAT_E,
+	                              3,
+	                              dirfd,
+	                              "<NA>",
+	                              PPM_EXVAT_AT_EMPTY_PATH);
 
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 27);
@@ -457,7 +457,7 @@ TEST_F(sinsp_with_test_input, execveat_relative_path_s390) {
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
+	add_filtered_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
 
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 27);
@@ -521,13 +521,13 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path_s390) {
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
 	uint64_t invalid_dirfd = 0;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SYSCALL_EXECVEAT_E,
-	                     3,
-	                     invalid_dirfd,
-	                     "/tmp/s390/file",
-	                     0);
+	add_filtered_event_advance_ts(increasing_ts(),
+	                              1,
+	                              PPME_SYSCALL_EXECVEAT_E,
+	                              3,
+	                              invalid_dirfd,
+	                              "/tmp/s390/file",
+	                              0);
 
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 27);
@@ -605,7 +605,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path_s390) {
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
+	add_filtered_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
 
 	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 27);

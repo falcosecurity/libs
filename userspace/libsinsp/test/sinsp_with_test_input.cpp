@@ -420,13 +420,13 @@ sinsp_evt* sinsp_with_test_input::generate_execveat_enter_and_exit_event(
 	}
 
 	int64_t dirfd = 3;
-	add_event_advance_ts(increasing_ts(),
-	                     old_tid,
-	                     PPME_SYSCALL_EXECVEAT_E,
-	                     3,
-	                     dirfd,
-	                     pathname.c_str(),
-	                     0);
+	add_filtered_event_advance_ts(increasing_ts(),
+	                              old_tid,
+	                              PPME_SYSCALL_EXECVEAT_E,
+	                              3,
+	                              dirfd,
+	                              pathname.c_str(),
+	                              0);
 	// we have an `old_tid` and a `new_tid` because if a secondary thread calls the execve
 	// the thread leader will take control so the `tid` between enter and exit event will change
 	return add_event_advance_ts(increasing_ts(),
