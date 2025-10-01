@@ -1537,20 +1537,11 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	// Finally set output evt;
 	// From now on, any return must have the correct output being set.
 	*puevt = evt;
-	if(evt->is_filtered_out()) {
-		ppm_event_category cat = evt->get_category();
-
-		// Skip the event, unless we're in internal events
-		// mode and the category of this event is internal.
-		if(!(m_isinternal_events_enabled && (cat & EC_INTERNAL))) {
-			return SCAP_FILTERED_EVENT;
-		}
-	}
 
 	//
 	// Run the analysis engine
 	//
-	if(m_external_event_processor) {
+	if(m_external_event_processor && !evt->is_filtered_out()) {
 		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
 	}
 
@@ -1563,6 +1554,16 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	if(evt->get_tinfo() && evt->get_type() != PPME_SCHEDSWITCH_6_E) {
 		evt->get_tinfo()->m_prevevent_ts = evt->get_tinfo()->m_lastevent_ts;
 		evt->get_tinfo()->m_lastevent_ts = m_timestamper.get_cached_ts();
+	}
+
+	if(evt->is_filtered_out()) {
+		ppm_event_category cat = evt->get_category();
+
+		// Skip the event, unless we're in internal events
+		// mode and the category of this event is internal.
+		if(!(m_isinternal_events_enabled && (cat & EC_INTERNAL))) {
+			return SCAP_FILTERED_EVENT;
+		}
 	}
 
 	//
