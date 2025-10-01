@@ -115,7 +115,7 @@ public:
 	  \brief Return the container_id associated with this thread, if the container plugins is
 	  running, leveraging sinsp state table API.
 	*/
-	std::string get_container_id();
+	std::string get_container_id() const;
 
 	/*!
 	  \brief Given the container_id associated with this thread, feetches the container user from
