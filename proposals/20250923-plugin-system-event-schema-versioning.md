@@ -43,18 +43,18 @@ version.
 // New plugin API functions for schema management
 typedef struct {
   ...
-    //
-    // Return the version of the minimum Schema Version required by this plugin.
-    // Required: no
-    // Arguments:
-    //   s: the plugin state returned by init(). Can be NULL.
-    // Return value: the Schema Version string, in the following format:
-    //       "<major>.<minor>.<patch>", e.g. "4.0.0".
-    //       If NULL is returned, the plugin is assumed to be compatible with
-    //       Schema Version 3.0.0, i.e. the major version in use in the release
-    //       predating the introduction of this check.
-    //
-    const char* (*get_required_schema_version)(ss_plugin_t* s);
+   // Event schema version check
+   //
+   // Return the minimum event schema version required by this plugin.
+   // Required: no
+   // Arguments:
+   // - s: the plugin state, returned by init(). Can be NULL.
+   // Return value: the event schema version string, in the following format:
+   //       "<major>.<minor>.<patch>", e.g. "4.0.0".
+   //       If the function is not implemented or NULL is returned, the plugin is assumed to be
+   //       compatible with schema version 3.0.0.
+   //
+   const char* (*get_required_event_schema_version)(ss_plugin_t* s);
 } plugin_api;
 ```
 
@@ -86,19 +86,20 @@ In case the check is required, the following logic is applied:
 2. **Version string validation:**
    - If the plugin implements the `get_required_schema_version` function, the
      returned version string is parsed and validated
-   - The version string must follow the semver format: `"<major>.<minor>.<patch>"`
+   - The version string must follow the semver format (pre-releases are not supported): `"<major>.<minor>.<patch>"`
    - If the version string is malformed or cannot be parsed, the plugin load fails with an error
 
 3. **Version compatibility check:**
    - The event Schema Version in use in the current Falco libs version is compared with the required Schema Version declared by the plugin
    - **Major version incompatibility:** If the major versions differ, the plugin load fails
    - **Minor version incompatibility:** If the major versions match but the plugin requires a higher minor version than available, the plugin load fails
-   - **Patch version:** Patch version differences are allowed (backward compatible)
+   - **Patch version:** If the major and minor versions match, and the plugin requires a higher patch version than available, the plugin load fails
 
 4. **Error handling:**
    - **Malformed version string:** `"plugin provided an invalid required Schema Version: '<version>'"`
    - **Major version mismatch:** `"plugin required Schema Version '<version>' not compatible with the driver Schema Version '<version>': major versions disagree"`
    - **Minor version mismatch:** `"plugin required Schema Version '<version>' not compatible with the driver Schema Version '<version>': driver schema minor version is less than the requested one"`
+   - **Patch version mismatch:** `"plugin requires Schema Version '<version>' not compatible with the driver Schema Version '<version>': driver schema patch version is less than the requested one"`
 
 ### 4. Implementation Details
 
