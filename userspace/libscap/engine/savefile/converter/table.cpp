@@ -677,11 +677,11 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({
-                         {C_INSTR_FROM_EMPTY, 0},  // res
-                         {C_INSTR_FROM_EMPTY, 0},  // fd
-                         {C_INSTR_FROM_EMPTY, 0},  // size
-                         {C_INSTR_FROM_EMPTY, 0},  // data
-                         {C_INSTR_FROM_EMPTY, 0},  // tuple
+                         {C_INSTR_FROM_DEFAULT, 0},  // res // note: never push an empty result
+                         {C_INSTR_FROM_EMPTY, 0},    // fd
+                         {C_INSTR_FROM_EMPTY, 0},    // size
+                         {C_INSTR_FROM_EMPTY, 0},    // data
+                         {C_INSTR_FROM_EMPTY, 0},    // tuple
                  })},
         /*====================== RECVMSG ======================*/
         {conversion_key{PPME_SOCKET_RECVMSG_E, 1}, conversion_info().action(C_ACTION_STORE)},
@@ -694,12 +694,12 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({
-                         {C_INSTR_FROM_EMPTY, 0},  // res
-                         {C_INSTR_FROM_EMPTY, 0},  // fd
-                         {C_INSTR_FROM_EMPTY, 0},  // size
-                         {C_INSTR_FROM_EMPTY, 0},  // data
-                         {C_INSTR_FROM_EMPTY, 0},  // tuple
-                         {C_INSTR_FROM_EMPTY, 0},  // msgcontrol
+                         {C_INSTR_FROM_DEFAULT, 0},  // res // note: never push an empty result
+                         {C_INSTR_FROM_EMPTY, 0},    // fd
+                         {C_INSTR_FROM_EMPTY, 0},    // size
+                         {C_INSTR_FROM_EMPTY, 0},    // data
+                         {C_INSTR_FROM_EMPTY, 0},    // tuple
+                         {C_INSTR_FROM_EMPTY, 0},    // msgcontrol
                  })},
         /*====================== CREAT ======================*/
         {conversion_key{PPME_SYSCALL_CREAT_E, 0},
