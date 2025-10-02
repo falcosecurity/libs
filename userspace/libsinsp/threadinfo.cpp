@@ -1152,7 +1152,7 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec** iov,
 	// intermediate '=' signs. Based on alen, we might not use all
 	// of the iovec.
 	*iov = (struct iovec*)malloc((3 * cgroups.size()) * sizeof(struct iovec));
-	if(iov == NULL) {
+	if(*iov == NULL) {
 		throw sinsp_exception("memory allocation error in sinsp_threadinfo::cgroups_to_iovec.");
 	}
 
@@ -1192,7 +1192,7 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
 	// We allocate an iovec big enough to hold all the entries in
 	// strs. Based on alen, we might not use all of the iovec.
 	*iov = (struct iovec*)malloc(strs.size() * sizeof(struct iovec));
-	if(iov == NULL) {
+	if(*iov == NULL) {
 		throw sinsp_exception("memory allocation error in sinsp_threadinfo::strvec_to_iovec.");
 	}
 
