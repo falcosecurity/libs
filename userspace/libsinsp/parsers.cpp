@@ -364,15 +364,7 @@ static bool can_query_os_for_thread_info(const uint16_t evt_type) {
 	         is_schedswitch_event(evt_type) || is_procexit_event(evt_type));
 }
 
-//
-// Called before starting the parsing.
-// Returns false in case of issues resetting the state.
-//
-bool sinsp_parser::reset(sinsp_evt &evt) const {
-	uint16_t etype = evt.get_type();
-	// Before anything can happen, the event needs to be initialized.
-	evt.init();
-
+void sinsp_parser::set_event_source(sinsp_evt &evt) const {
 	uint32_t plugin_id = 0;
 	if(evt.get_type() == PPME_PLUGINEVENT_E || evt.get_type() == PPME_ASYNCEVENT_E) {
 		// Note: async events can potentially encode a non-zero plugin ID to indicate that they've
@@ -399,7 +391,18 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 		                            ? sinsp_syscall_event_source_name
 		                            : sinsp_no_event_source_name);
 	}
+}
 
+//
+// Called before starting the parsing.
+// Returns false in case of issues resetting the state.
+//
+bool sinsp_parser::reset(sinsp_evt &evt) const {
+	uint16_t etype = evt.get_type();
+	// Before anything can happen, the event needs to be initialized.
+	evt.init();
+
+	set_event_source(evt);
 	evt.set_fdinfo_ref(nullptr);
 	evt.set_fd_info(nullptr);
 	evt.set_errorcode(0);
