@@ -13,11 +13,11 @@
 # the License.
 #
 add_library(scap_engine_bpf scap_bpf.c attached_prog.c)
-add_dependencies(scap_engine_bpf zlib)
+find_package(ZLIB REQUIRED)
 include(libelf)
 target_link_libraries(
 	scap_engine_bpf PRIVATE scap_event_schema scap_platform scap_engine_util scap_error elf
-							${ZLIB_LIB}
+							ZLIB::ZLIB
 )
 
 set_scap_target_properties(scap_engine_bpf)

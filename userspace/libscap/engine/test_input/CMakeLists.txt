@@ -13,6 +13,9 @@
 # the License.
 #
 add_library(scap_engine_test_input test_input.c test_input_platform.c)
+
+find_package(Uthash REQUIRED)
+target_include_directories(scap_engine_test_input PRIVATE ${UTHASH_INCLUDE_DIRS})
 target_link_libraries(scap_engine_test_input PRIVATE scap_engine_noop scap_platform_util scap_error)
 
 set_scap_target_properties(scap_engine_test_input)
