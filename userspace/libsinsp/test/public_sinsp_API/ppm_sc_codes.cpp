@@ -180,7 +180,6 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
         PPME_CPU_HOTPLUG_E,
         PPME_K8S_E,
         PPME_TRACER_E,
-        PPME_TRACER_X,
         PPME_MESOS_E,
         PPME_CONTAINER_JSON_E,
         PPME_NOTIFICATION_E,
@@ -249,9 +248,9 @@ const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
         PPME_PAGE_FAULT_X,    PPME_INFRASTRUCTURE_EVENT_X,
         PPME_NOTIFICATION_X,  PPME_CONTAINER_JSON_X,
         PPME_MESOS_X,         PPME_K8S_X,
-        PPME_CPU_HOTPLUG_X,   PPME_PROCINFO_X,
-        PPME_SIGNALDELIVER_X, PPME_CONTAINER_X,
-        PPME_ASYNCEVENT_X,
+        PPME_TRACER_X,        PPME_CPU_HOTPLUG_X,
+        PPME_PROCINFO_X,      PPME_SIGNALDELIVER_X,
+        PPME_CONTAINER_X,     PPME_ASYNCEVENT_X,
 };
 
 /// todo(@Andreagit97): here we miss static sets for io, proc, net groups
@@ -413,10 +412,11 @@ TEST(ppm_sc_API, all_event_names) {
 	 * so `-1`. `-1` and not `-2` because we have already divided by 2. We need to remove all the
 	 * old version event couples, because their names are just a replica of current events ones. We
 	 * don't divide this number by two because it counts couples, not single events. Finally, we
-	 * need to add the GENERIC names.
+	 * need to add the GENERIC names and add `+3` to account for "k8s", "tracer" and "mesos", which
+	 * are not accounted in the "generic" part.
 	 */
 	ASSERT_EQ(events_names.size(),
-	          (PPM_EVENT_MAX / 2) + 1 - 1 - old_version_event_couples + GENERIC_SYSCALLS_NUM);
+	          (PPM_EVENT_MAX / 2) + 1 - 1 - old_version_event_couples + GENERIC_SYSCALLS_NUM + 3);
 }
 
 TEST(ppm_sc_API, sinsp_state_event_set) {
