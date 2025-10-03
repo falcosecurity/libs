@@ -988,21 +988,6 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 	m_not_expired_children = 0;
 }
 
-void sinsp_threadinfo::remove_child_from_parent(sinsp_thread_manager& thread_manager) const {
-	auto parent = thread_manager.find_thread(m_ptid, true).get();
-	if(parent == nullptr) {
-		return;
-	}
-
-	parent->m_not_expired_children--;
-
-	/* Clean expired children if necessary. */
-	if((parent->m_children.size() - parent->m_not_expired_children) >=
-	   DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
-		parent->clean_expired_children();
-	}
-}
-
 void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo) {
 	if(tinfo->m_cmd_line.empty()) {
 		cmdline = tinfo->get_comm();
