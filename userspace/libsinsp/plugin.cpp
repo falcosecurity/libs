@@ -561,15 +561,17 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 			}
 			m_fields.push_back(tf);
 		}
+		auto fields_size = m_fields.size();
+		if(fields_size == 0) {
+			throw sinsp_exception(
+			        string("error in plugin ") + name() +
+			        ": plugins with extraction capability must export at least one field");
+		}
 
 		// populate fields info
 		m_fields_info.m_name = name() + string(" (plugin)");
-		if(m_fields.empty()) {
-			m_fields_info.m_fields = nullptr;
-		} else {
-			m_fields_info.m_fields = &m_fields[0];
-		}
-		m_fields_info.m_nfields = m_fields.size();
+		m_fields_info.m_fields = &m_fields[0];
+		m_fields_info.m_nfields = fields_size;
 		m_fields_info.m_flags = filter_check_info::FL_NONE;
 
 		// This API is not compulsory for the extraction capability

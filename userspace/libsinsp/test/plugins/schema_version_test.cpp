@@ -165,7 +165,16 @@ ss_plugin_rc plugin_extract_fields(ss_plugin_t* s,
 }
 
 const char* plugin_extract_get_fields() {
-	return R"([])";
+	return R"(
+[
+	{
+		"type": "string",
+		"name": "foo.bar",
+		"desc": "A constant hello world string",
+		"addOutput": true
+	}
+]
+)";
 }
 
 ss_plugin_rc plugin_parse_event(ss_plugin_t* s,
