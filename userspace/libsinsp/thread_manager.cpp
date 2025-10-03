@@ -283,6 +283,21 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 	return m_threadtable.put(tinfo_shared_ptr);
 }
 
+void sinsp_thread_manager::remove_child_from_parent(int64_t ptid) {
+	auto parent = find_thread(ptid, true).get();
+	if(parent == nullptr) {
+		return;
+	}
+
+	parent->m_not_expired_children--;
+
+	/* Clean expired children if necessary. */
+	if((parent->m_children.size() - parent->m_not_expired_children) >=
+	   DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
+		parent->clean_expired_children();
+	}
+}
+
 /* Taken from `find_new_reaper` kernel function:
  *
  * When we die, we re-parent all our children, and try to:
@@ -410,7 +425,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * which don't have a group or children.
 	 */
 	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr) {
-		thread_to_remove->remove_child_from_parent(*this);
+		remove_child_from_parent(thread_to_remove->m_ptid);
 		m_threadtable.erase(tid);
 		m_last_tid = -1;
 		m_last_tinfo.reset();
@@ -494,7 +509,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		/* even if thread_to_remove is not the main thread the parent will be
 		 * the same so it's ok.
 		 */
-		thread_to_remove->remove_child_from_parent(*this);
+		remove_child_from_parent(thread_to_remove->m_ptid);
 		m_thread_groups.erase(thread_to_remove->m_pid);
 		m_threadtable.erase(thread_to_remove->m_pid);
 	}
@@ -505,7 +520,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * in the previous `if`.
 	 */
 	if(!thread_to_remove->is_main_thread()) {
-		thread_to_remove->remove_child_from_parent(*this);
+		remove_child_from_parent(thread_to_remove->m_ptid);
 		m_threadtable.erase(tid);
 	}
 

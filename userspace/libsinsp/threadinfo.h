@@ -368,9 +368,6 @@ public:
 		m_not_expired_children++;
 	}
 
-	/* We call it immediately before removing the thread from the thread table. */
-	void remove_child_from_parent(sinsp_thread_manager& thread_manager) const;
-
 	inline void clean_expired_children() {
 		auto child = m_children.begin();
 		while(child != m_children.end()) {
