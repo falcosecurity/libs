@@ -685,8 +685,8 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async) {
 	while(rc == SCAP_SUCCESS && cycles < max_cycles && count < max_count) {
 		cycles++;
 		rc = m_inspector.next(&evt);
-		/* The no driver engine sends only `PPME_SCAPEVENT_X` events */
-		if(rc == SCAP_TIMEOUT || evt->get_type() == PPME_SCAPEVENT_X) {
+		/* The no driver engine sends only `PPME_SCAPEVENT_E` events */
+		if(rc == SCAP_TIMEOUT || evt->get_type() == PPME_SCAPEVENT_E) {
 			// wait a bit so that the plugin can fire the async event
 			std::this_thread::sleep_for(std::chrono::nanoseconds(period_ns));
 			rc = SCAP_SUCCESS;
