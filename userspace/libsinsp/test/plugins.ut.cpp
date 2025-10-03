@@ -105,6 +105,9 @@ TEST(plugins, broken_extract_capability) {
 	get_plugin_api_sample_plugin_extract(api);
 	sinsp inspector;
 
+	api.get_fields = []() { return "[]"; };
+	ASSERT_THROW(register_plugin_api(&inspector, api), sinsp_exception);
+
 	// `extract_fields` is defined but `get_fields` no
 	api.get_fields = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
