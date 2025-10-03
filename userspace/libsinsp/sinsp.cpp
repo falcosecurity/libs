@@ -1048,16 +1048,34 @@ void sinsp::on_new_entry_from_proc(void* context,
 				//      correct thread info filtering based on the type of event
 				//      would require scanning the whole capture file twice, which
 				//      is a performance overhead not acceptable for some use cases.
-				scap_evt tscapevt = {};
-				tscapevt.type = PPME_SCAPEVENT_X;
-				tscapevt.tid = tid;
-				tscapevt.ts = 0;
-				tscapevt.nparams = 0;
-				tscapevt.len = sizeof(scap_evt);
+
+				// Define a packed structure allowing to encode a PPME_SCAPEVENT_E event on the fly.
+#if defined _MSC_VER
+#pragma pack(push)
+#pragma pack(1)
+#else
+#pragma pack(push, 1)
+#endif
+				struct scapevent_e_t {
+					scap_evt header;
+					uint16_t lengths[2];
+					uint8_t data[12];
+				};
+#pragma pack(pop)
+
+				struct scapevent_e_t tscapevt = {
+				        /* header */ {0,                           // ts
+				                      static_cast<uint64_t>(tid),  // tid
+				                      sizeof(scap_evt) + 4 + 12,   // header + lengths + data
+				                      PPME_SCAPEVENT_E,            // type
+				                      2},                          // nparams
+				        /* lengths */ {4, 8},                      // lengths array
+				        /*data */ {},                              // Set all parameter values to 0.
+				};
 
 				sinsp_evt tevt = {};
-				tevt.set_scap_evt(&tscapevt);
-				tevt.set_info(&(g_infotables.m_event_info[PPME_SCAPEVENT_X]));
+				tevt.set_scap_evt(&tscapevt.header);
+				tevt.set_info(&g_infotables.m_event_info[PPME_SCAPEVENT_E]);
 				tevt.set_cpuid(0);
 				tevt.set_num(0);
 				tevt.set_inspector(this);
