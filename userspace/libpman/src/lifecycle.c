@@ -42,6 +42,20 @@ static void disable_prog_autoloading(char *msg_buffer, const char *prog_name) {
 	pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg_buffer);
 }
 
+// note: this temporarily disables logging.
+static bool is_kernel_symbol_available(const char *symbol) {
+	// note: `libbpf_find_vmlinux_btf_id()` emits a log line at warning level if the symbol is not
+	// available. Temporarily disable it to avoid polluting the log stream.
+	const libbpf_print_fn_t old_log_handler = libbpf_set_print(NULL);
+	// Actually, 0 corresponds to `BPF_CGROUP_INET_INGRESS`, but use it as "no attach type" value as
+	// currently, the kernel reacts by searching for the availability of the requested symbol
+	// without adding any prefix to it (that is what we want).
+	const int NO_ATTACH_TYPE = 0;
+	const bool is_available = libbpf_find_vmlinux_btf_id(symbol, NO_ATTACH_TYPE) >= 0;
+	libbpf_set_print(old_log_handler);
+	return is_available;
+}
+
 int pman_prepare_progs_before_loading() {
 	char msg[MAX_ERROR_MESSAGE_LEN];
 	/*
@@ -123,11 +137,7 @@ int pman_prepare_progs_before_loading() {
 			const ttm_ia32_prog_t *ia32_prog = &ia32_progs[j];
 			bool should_disable = chosen_idx != -1;
 			if(!should_disable) {
-				// Actually, 0 corresponds to BPF_CGROUP_INET_INGRESS, but use it as "no attach
-				// type" value as currently, the kernel reacts by searching for the availability of
-				// the requested symbol without adding any prefix to it (that is what we want).
-				const int NO_ATTACH_TYPE = 0;
-				if(libbpf_find_vmlinux_btf_id(ia32_prog->kernel_symbol, NO_ATTACH_TYPE) < 0) {
+				if(!is_kernel_symbol_available(ia32_prog->kernel_symbol)) {
 					snprintf(msg,
 					         MAX_ERROR_MESSAGE_LEN,
 					         "kernel symbol '%s' (required by BPF program '%s') not available",
