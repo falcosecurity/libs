@@ -6631,24 +6631,6 @@ int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_scapevent_e(struct event_filler_arguments *args) {
-	int res;
-
-	/*
-	 * event_type
-	 */
-	res = val_to_ring(args, (unsigned long)args->sched_prev, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * event_data
-	 */
-	res = val_to_ring(args, (unsigned long)args->sched_next, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
 int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val, len;

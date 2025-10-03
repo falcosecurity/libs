@@ -45,16 +45,36 @@ static int32_t next(struct scap_engine_handle handle,
                     scap_evt** pevent,
                     uint16_t* pdevid,
                     uint32_t* pflags) {
-	static scap_evt evt;
-	evt.len = 0;
-	evt.tid = -1;
-	evt.type = PPME_SCAPEVENT_X;
-	evt.nparams = 0;
+	// Define a packed structure allowing to encode a PPME_SCAPEVENT_E event on the fly.
+#if defined _MSC_VER
+#pragma pack(push)
+#pragma pack(1)
+#else
+#pragma pack(push, 1)
+#endif
+	struct scapevent_e_t {
+		scap_evt header;
+		uint16_t lengths[2];
+		uint8_t data[12];
+	};
+#pragma pack(pop)
+
+	// Statically allocate a PPME_SCAPEVENT_E event.
+	static struct scapevent_e_t evt = {
+	        .header = {0,                          // ts
+	                   (uint64_t)-1,               // tid
+	                   sizeof(scap_evt) + 4 + 12,  // header + lengths + data
+	                   PPME_SCAPEVENT_E,           // type
+	                   2},                         // nparams
+	        .lengths = {4, 8},                     // lengths array
+	        .data = {0},                           // Set all parameter values to 0.
+	};
 
 	sleep_ms(100);
 
-	evt.ts = get_timestamp_ns();
-	*pevent = &evt;
+	const uint64_t ts = get_timestamp_ns();
+	memcpy(&evt.header.ts, &ts, sizeof(ts));
+	*pevent = &evt.header;
 	*pdevid = 0;
 	*pflags = 0;
 	return SCAP_SUCCESS;

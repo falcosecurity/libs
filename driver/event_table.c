@@ -1350,7 +1350,7 @@ const struct ppm_event_info g_event_info[] = {
                               2,
                               {{"event_type", PT_UINT32, PF_DEC},
                                {"event_data", PT_UINT64, PF_DEC}}},
-        [PPME_SCAPEVENT_X] = {"scapevent", EC_INTERNAL | EC_METAEVENT, EF_UNUSED, 0},
+        [PPME_SCAPEVENT_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
         [PPME_SYSCALL_SETUID_E] = {"setuid",
                                    EC_USER | EC_SYSCALL,
                                    EF_OLD_VERSION | EF_MODIFIES_STATE | EF_CONVERTER_MANAGED,

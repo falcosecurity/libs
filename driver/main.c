@@ -1735,7 +1735,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	if(event_datap->category == PPMC_CONTEXT_SWITCH &&
 	   event_datap->event_info.context_data.sched_prev != NULL) {
-		if(event_type != PPME_SCAPEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
+		if(event_type != PPME_CPU_HOTPLUG_E) {
 			ASSERT(event_datap->event_info.context_data.sched_prev != NULL);
 			ASSERT(event_datap->event_info.context_data.sched_next != NULL);
 			ring_info->n_context_switches++;

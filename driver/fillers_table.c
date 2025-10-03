@@ -116,7 +116,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_QUOTACTL_X] = {FILLER_REF(sys_quotactl_x)},
         [PPME_SYSCALL_SETRESUID_X] = {FILLER_REF(sys_setresuid_x)},
         [PPME_SYSCALL_SETRESGID_X] = {FILLER_REF(sys_setresgid_x)},
-        [PPME_SCAPEVENT_E] = {FILLER_REF(sys_scapevent_e)},
         [PPME_SYSCALL_SETUID_X] = {FILLER_REF(sys_setuid_x)},
         [PPME_SYSCALL_SETGID_X] = {FILLER_REF(sys_setgid_x)},
         [PPME_SYSCALL_GETUID_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL}}},
