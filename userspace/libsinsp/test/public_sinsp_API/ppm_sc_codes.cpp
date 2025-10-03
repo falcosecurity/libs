@@ -251,6 +251,7 @@ const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
         PPME_TRACER_X,        PPME_CPU_HOTPLUG_X,
         PPME_PROCINFO_X,      PPME_SIGNALDELIVER_X,
         PPME_CONTAINER_X,     PPME_ASYNCEVENT_X,
+        PPME_SCAPEVENT_X,
 };
 
 /// todo(@Andreagit97): here we miss static sets for io, proc, net groups
