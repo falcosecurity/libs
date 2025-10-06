@@ -2329,8 +2329,6 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 		fdinfo->set_socket_pending();
 	}
 
-	auto &sockinfo = fdinfo->m_sockinfo;
-
 	const sinsp_evt_param *addr_param = evt.get_param(1);
 	if(addr_param->empty()) {
 		// Address can be nullptr:
@@ -2341,7 +2339,21 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 	}
 
 	const auto packed_data = reinterpret_cast<const uint8_t *>(addr_param->data());
+	fill_client_socket_info_from_addr(evt, packed_data, m_hostname_and_port_resolution_enabled);
 
+	// If there's a listener callback, and we're tracking connection status, invoke it.
+	if(m_track_connection_status && m_observer) {
+		// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to accept
+		//    const pointers/references.
+		m_observer->on_connect(&evt, const_cast<uint8_t *>(packed_data));
+	}
+}
+
+void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt,
+                                                     const uint8_t *packed_data,
+                                                     const bool can_resolve_hostname_and_port) {
+	const auto fdinfo = evt.get_fd_info();
+	auto &sockinfo = fdinfo->m_sockinfo;
 	switch(const uint8_t family = *packed_data; family) {
 	case PPM_AF_INET: {
 		fdinfo->m_type = SCAP_FD_IPV4_SOCK;
@@ -2380,8 +2392,8 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 		sinsp_utils::sockinfo_to_str(&sockinfo,
 		                             fdinfo->m_type,
 		                             &evt.get_paramstr_storage()[0],
-		                             (uint32_t)evt.get_paramstr_storage().size(),
-		                             m_hostname_and_port_resolution_enabled);
+		                             static_cast<uint32_t>(evt.get_paramstr_storage().size()),
+		                             can_resolve_hostname_and_port);
 
 		fdinfo->m_name = &evt.get_paramstr_storage()[0];
 		return;
@@ -2392,13 +2404,6 @@ void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
 		fdinfo->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 		break;
 	}
-	}
-
-	// If there's a listener callback, and we're tracking connection status, invoke it.
-	if(m_track_connection_status && m_observer) {
-		// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to accept
-		//    const pointers/references.
-		m_observer->on_connect(&evt, const_cast<uint8_t *>(packed_data));
 	}
 }
 

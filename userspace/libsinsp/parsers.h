@@ -154,6 +154,10 @@ private:
 	                                           const uint8_t* packed_data,
 	                                           bool overwrite_dest,
 	                                           bool can_resolve_hostname_and_port);
+	static inline void fill_client_socket_info_from_addr(sinsp_evt& evt,
+	                                                     const uint8_t* packed_data,
+	                                                     bool can_resolve_hostname_and_port);
+
 	inline void add_socket(sinsp_evt& evt,
 	                       int64_t fd,
 	                       uint32_t domain,
