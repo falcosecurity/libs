@@ -44,7 +44,8 @@ set(LIBSCAP_TESTS_LIBRARIES "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${CMAKE_THREAD_L
 set(LIBSCAP_TESTS_DEPENDENCIES gtest scap)
 
 # Test suite asserting against pure userspace components
-file(GLOB_RECURSE USERSPACE_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.cpp"
+file(GLOB_RECURSE USERSPACE_TEST_SUITE CONFIGURE_DEPENDS
+	 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.cpp"
 	 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.c"
 )
 set(LIBSCAP_TESTS_SOURCES ${USERSPACE_TEST_SUITE})
@@ -56,12 +57,14 @@ set_source_files_properties(
 )
 
 # Helpers are not engine-specific so we always include them
-file(GLOB_RECURSE LIBSCAP_TESTS_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers/*cpp")
+file(GLOB_RECURSE LIBSCAP_TESTS_UTILS_SOURCES CONFIGURE_DEPENDS
+	 "${CMAKE_CURRENT_SOURCE_DIR}/helpers/*cpp"
+)
 list(APPEND LIBSCAP_TESTS_SOURCES ${LIBSCAP_TESTS_UTILS_SOURCES})
 
 # Linux specific tests
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	file(GLOB_RECURSE LINUX_TEST_SUITE
+	file(GLOB_RECURSE LINUX_TEST_SUITE CONFIGURE_DEPENDS
 		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/linux/*.cpp"
 	)
 	list(APPEND LIBSCAP_TEST_SOURCES ${LINUX_TEST_SUITE})
@@ -70,21 +73,25 @@ endif()
 
 # Engine-specific tests
 if(BUILD_DRIVER)
-	file(GLOB_RECURSE KMOD_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/kmod/*.cpp")
+	file(GLOB_RECURSE KMOD_TEST_SUITE CONFIGURE_DEPENDS
+		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/kmod/*.cpp"
+	)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${KMOD_TEST_SUITE})
 	# Set `driver` target as a dependency
 	list(APPEND LIBSCAP_TESTS_DEPENDENCIES driver)
 endif()
 
 if(BUILD_BPF)
-	file(GLOB_RECURSE BPF_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/bpf/*.cpp")
+	file(GLOB_RECURSE BPF_TEST_SUITE CONFIGURE_DEPENDS
+		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/bpf/*.cpp"
+	)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${BPF_TEST_SUITE})
 	# Set `bpf` target as a dependency
 	list(APPEND LIBSCAP_TESTS_DEPENDENCIES bpf)
 endif()
 
 if(BUILD_LIBSCAP_MODERN_BPF)
-	file(GLOB_RECURSE MODERN_BPF_TEST_SUITE
+	file(GLOB_RECURSE MODERN_BPF_TEST_SUITE CONFIGURE_DEPENDS
 		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/modern_bpf/*.cpp"
 	)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${MODERN_BPF_TEST_SUITE})
@@ -92,7 +99,7 @@ endif()
 
 if(BUILD_LIBSCAP_GVISOR)
 	include(protobuf)
-	file(GLOB_RECURSE GVISOR_TEST_SUITE
+	file(GLOB_RECURSE GVISOR_TEST_SUITE CONFIGURE_DEPENDS
 		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/gvisor/*.cpp"
 	)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${GVISOR_TEST_SUITE})
@@ -100,7 +107,7 @@ if(BUILD_LIBSCAP_GVISOR)
 	)# Used for <pkg/sentry/...> includes
 endif()
 
-file(GLOB_RECURSE SAVEFILE_TEST_SUITE
+file(GLOB_RECURSE SAVEFILE_TEST_SUITE CONFIGURE_DEPENDS
 	 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/savefile/*.cpp"
 )
 list(APPEND LIBSCAP_TESTS_SOURCES ${SAVEFILE_TEST_SUITE})

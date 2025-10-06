@@ -52,7 +52,7 @@ if(NOT DEFINED DRIVER_BPF_COMPONENT_NAME)
 endif()
 
 # Append driver headers too since they are used by bpf headers
-file(GLOB DRIVER_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../*.h)
+file(GLOB DRIVER_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../*.h)
 list(APPEND BPF_SOURCES ${DRIVER_HEADERS})
 
 set(INSTALL_SET "")
@@ -73,7 +73,7 @@ install(
 #
 # Copy all the "configure" modules
 #
-file(GLOB configure_modules "${CMAKE_CURRENT_SOURCE_DIR}/configure/*")
+file(GLOB configure_modules CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/configure/*")
 foreach(subdir ${configure_modules})
 	if(IS_DIRECTORY "${subdir}")
 		file(RELATIVE_PATH CONFIGURE_MODULE "${CMAKE_CURRENT_SOURCE_DIR}/configure" "${subdir}")

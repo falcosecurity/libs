@@ -107,7 +107,7 @@ configure_file(driver_config.h.in src/driver_config.h)
 #
 # Copy all the "configure" modules
 #
-file(GLOB configure_modules "${CMAKE_CURRENT_SOURCE_DIR}/configure/*")
+file(GLOB configure_modules CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/configure/*")
 foreach(subdir ${configure_modules})
 	if(IS_DIRECTORY "${subdir}")
 		file(RELATIVE_PATH CONFIGURE_MODULE "${CMAKE_CURRENT_SOURCE_DIR}/configure" "${subdir}")

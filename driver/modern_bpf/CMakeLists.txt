@@ -251,10 +251,10 @@ list(
 message(STATUS "${MODERN_BPF_LOG_PREFIX} Compilation flags: ${CLANG_FLAGS}")
 
 # Search all bpf includes files. (we can use bpf.h files)
-file(GLOB_RECURSE BPF_H_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB_RECURSE BPF_H_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 # Search all bpf.c files
-file(GLOB_RECURSE BPF_C_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.bpf.c)
+file(GLOB_RECURSE BPF_C_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.bpf.c)
 
 # ##################################################################################################
 # Generate the events dimensions file generator executable.
