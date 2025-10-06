@@ -2469,30 +2469,8 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 }
 
 void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	if(evt.get_tinfo() == nullptr) {
+	if(evt.get_tinfo() == nullptr || evt.get_fd_info() == nullptr) {
 		return;
-	}
-
-	bool force_overwrite_stale_data = false;
-
-	if(evt.get_fd_info() == nullptr) {
-		// Perhaps we dropped the connect enter event.
-		// try harder to be resilient.
-		const int64_t fd = evt.get_param(2)->as<int64_t>();
-		if(fd < 0) {
-			// Accept failure. Do nothing.
-			return;
-		}
-		evt.get_tinfo()->m_lastevent_fd = fd;
-		evt.set_fd_info(evt.get_tinfo()->get_fd(evt.get_tinfo()->m_lastevent_fd));
-		if(evt.get_fd_info() == nullptr) {
-			// Ok this is a completely new fd; we probably lost too many events.
-			// Bye.
-			return;
-		}
-		// ok we got stale data; we probably missed the connect enter event on this thread.
-		// Force overwrite existing fdinfo socket data
-		force_overwrite_stale_data = true;
 	}
 
 	const int64_t retval = evt.get_syscall_return_value();
@@ -2523,10 +2501,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 
 	const auto packed_data = reinterpret_cast<const uint8_t *>(tuple_param->data());
 
-	fill_client_socket_info(evt,
-	                        packed_data,
-	                        force_overwrite_stale_data,
-	                        m_hostname_and_port_resolution_enabled);
+	fill_client_socket_info(evt, packed_data, true, m_hostname_and_port_resolution_enabled);
 
 	// If there's a listener, add a callback to later invoke it.
 	if(m_observer) {
