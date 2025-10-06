@@ -36,8 +36,6 @@ limitations under the License.
 #include <libsinsp/plugin_filtercheck.h>
 #include <libscap/strl.h>
 
-using namespace std;
-
 static constexpr const char* s_not_init_err = "plugin capability used before init";
 
 static constexpr const char* s_init_twice_err = "plugin has been initialized twice";
@@ -147,7 +145,7 @@ bool sinsp_plugin::init(const std::string& config, std::string& errstr) {
 	}
 
 	if(!m_handle->api.init) {
-		errstr = string("init api symbol not found");
+		errstr = std::string("init api symbol not found");
 		return false;
 	}
 
@@ -250,8 +248,8 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	const Json::Value& isRequired = root.get("isRequired", Json::Value::null);
 	if(!isRequired.isNull()) {
 		if(!isRequired.isBool()) {
-			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name +
-			                      " isRequired property is not boolean");
+			throw sinsp_exception(std::string("error in plugin ") + m_name + ": field " +
+			                      tf.m_name + " isRequired property is not boolean");
 		}
 
 		if(isRequired.asBool() == true) {
@@ -265,8 +263,8 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	const Json::Value& isIndex = root.get("isIndex", Json::Value::null);
 	if(!isIndex.isNull()) {
 		if(!isIndex.isBool()) {
-			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name +
-			                      " isIndex property is not boolean");
+			throw sinsp_exception(std::string("error in plugin ") + m_name + ": field " +
+			                      tf.m_name + " isIndex property is not boolean");
 		}
 
 		if(isIndex.asBool() == true) {
@@ -281,8 +279,8 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	const Json::Value& isKey = root.get("isKey", Json::Value::null);
 	if(!isKey.isNull()) {
 		if(!isKey.isBool()) {
-			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name +
-			                      " isKey property is not boolean");
+			throw sinsp_exception(std::string("error in plugin ") + m_name + ": field " +
+			                      tf.m_name + " isKey property is not boolean");
 		}
 
 		if(isKey.asBool() == true) {
@@ -297,7 +295,7 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	if((tf.m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED) &&
 	   !(tf.m_flags & filtercheck_field_flags::EPF_ARG_INDEX ||
 	     tf.m_flags & filtercheck_field_flags::EPF_ARG_KEY)) {
-		throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name +
+		throw sinsp_exception(std::string("error in plugin ") + m_name + ": field " + tf.m_name +
 		                      " arg has isRequired true, but none of isKey nor isIndex is true");
 	}
 	return;
@@ -447,14 +445,14 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 		//
 		const char* sfields = m_handle->api.get_fields();
 		if(sfields == NULL) {
-			throw sinsp_exception(string("error in plugin ") + name() +
+			throw sinsp_exception(std::string("error in plugin ") + name() +
 			                      ": get_fields returned a null string");
 		}
-		string json(sfields);
+		std::string json(sfields);
 
 		Json::Value root;
 		if(Json::Reader().parse(json, root) == false || root.type() != Json::arrayValue) {
-			throw sinsp_exception(string("error in plugin ") + name() +
+			throw sinsp_exception(std::string("error in plugin ") + name() +
 			                      ": get_fields returned an invalid JSON");
 		}
 
@@ -466,23 +464,23 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 			tf.m_flags = EPF_NO_PTR_STABILITY;
 
 			const Json::Value& jvtype = root[j]["type"];
-			string ftype = jvtype.asString();
+			std::string ftype = jvtype.asString();
 			if(ftype == "") {
-				throw sinsp_exception(string("error in plugin ") + name() +
+				throw sinsp_exception(std::string("error in plugin ") + name() +
 				                      ": field JSON entry has no type");
 			}
 			const Json::Value& jvname = root[j]["name"];
-			string fname = jvname.asString();
+			std::string fname = jvname.asString();
 			if(fname == "") {
-				throw sinsp_exception(string("error in plugin ") + name() +
+				throw sinsp_exception(std::string("error in plugin ") + name() +
 				                      ": field JSON entry has no name");
 			}
 			const Json::Value& jvdisplay = root[j]["display"];
-			string fdisplay = jvdisplay.asString();
+			std::string fdisplay = jvdisplay.asString();
 			const Json::Value& jvdesc = root[j]["desc"];
-			string fdesc = jvdesc.asString();
+			std::string fdesc = jvdesc.asString();
 			if(fdesc == "") {
-				throw sinsp_exception(string("error in plugin ") + name() +
+				throw sinsp_exception(std::string("error in plugin ") + name() +
 				                      ": field JSON entry has no desc");
 			}
 
@@ -493,15 +491,15 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 			if(s_pt_lut.find(ftype) != s_pt_lut.end()) {
 				tf.m_type = s_pt_lut.at(ftype);
 			} else {
-				throw sinsp_exception(string("error in plugin ") + name() +
+				throw sinsp_exception(std::string("error in plugin ") + name() +
 				                      ": invalid field type " + ftype);
 			}
 
 			const Json::Value& jvIsList = root[j].get("isList", Json::Value::null);
 			if(!jvIsList.isNull()) {
 				if(!jvIsList.isBool()) {
-					throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
-					                      " isList property is not boolean ");
+					throw sinsp_exception(std::string("error in plugin ") + name() + ": field " +
+					                      fname + " isList property is not boolean ");
 				}
 
 				if(jvIsList.asBool()) {
@@ -514,8 +512,8 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 			const Json::Value& jvoutput = root[j].get("addOutput", Json::Value::null);
 			if(!jvoutput.isNull()) {
 				if(!jvoutput.isBool()) {
-					throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
-					                      " addOutput property is not boolean ");
+					throw sinsp_exception(std::string("error in plugin ") + name() + ": field " +
+					                      fname + " addOutput property is not boolean ");
 				}
 
 				if(jvoutput.asBool()) {
@@ -530,14 +528,15 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 			const Json::Value& jvProperties = root[j].get("properties", Json::Value::null);
 			if(!jvProperties.isNull()) {
 				if(!jvProperties.isArray()) {
-					throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
-					                      " properties property is not array ");
+					throw sinsp_exception(std::string("error in plugin ") + name() + ": field " +
+					                      fname + " properties property is not array ");
 				}
 
 				for(const auto& prop : jvProperties) {
 					if(!prop.isString()) {
-						throw sinsp_exception(string("error in plugin ") + name() + ": field " +
-						                      fname + " properties value is not string ");
+						throw sinsp_exception(std::string("error in plugin ") + name() +
+						                      ": field " + fname +
+						                      " properties value is not string ");
 					}
 
 					const std::string& str = prop.asString();
@@ -564,12 +563,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 		auto fields_size = m_fields.size();
 		if(fields_size == 0) {
 			throw sinsp_exception(
-			        string("error in plugin ") + name() +
+			        std::string("error in plugin ") + name() +
 			        ": plugins with extraction capability must export at least one field");
 		}
 
 		// populate fields info
-		m_fields_info.m_name = name() + string(" (plugin)");
+		m_fields_info.m_name = name() + std::string(" (plugin)");
 		m_fields_info.m_fields = &m_fields[0];
 		m_fields_info.m_nfields = fields_size;
 		m_fields_info.m_flags = filter_check_info::FL_NONE;
@@ -715,9 +714,9 @@ void sinsp_plugin::validate_config(std::string& config) {
 			break;
 		default:
 			ASSERT(false);
-			throw sinsp_exception(string("error in plugin ") + name() +
+			throw sinsp_exception(std::string("error in plugin ") + name() +
 			                      ": get_init_schema returned an unknown schema type " +
-			                      to_string(schema_type));
+			                      std::to_string(schema_type));
 		}
 	}
 }
@@ -725,7 +724,7 @@ void sinsp_plugin::validate_config(std::string& config) {
 void sinsp_plugin::validate_config_json_schema(std::string& config, std::string& schema) {
 	Json::Value schemaJson;
 	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue) {
-		throw sinsp_exception(string("error in plugin ") + name() +
+		throw sinsp_exception(std::string("error in plugin ") + name() +
 		                      ": get_init_schema did not return a json object");
 	}
 
@@ -735,7 +734,7 @@ void sinsp_plugin::validate_config_json_schema(std::string& config, std::string&
 	}
 	Json::Value configJson;
 	if(!Json::Reader().parse(config, configJson)) {
-		throw sinsp_exception(string("error in plugin ") + name() +
+		throw sinsp_exception(std::string("error in plugin ") + name() +
 		                      ": init config is not a valid json");
 	}
 
@@ -752,12 +751,12 @@ void sinsp_plugin::validate_config_json_schema(std::string& config, std::string&
 		// report only the top-most error
 		if(validationResults.popError(error)) {
 			throw sinsp_exception(
-			        string("error in plugin ") + name() + " init config: In " +
+			        std::string("error in plugin ") + name() + " init config: In " +
 			        std::accumulate(error.context.begin(), error.context.end(), std::string("")) +
 			        ", " + error.description);
 		}
 		// validation failed with no specific error
-		throw sinsp_exception(string("error in plugin ") + name() +
+		throw sinsp_exception(std::string("error in plugin ") + name() +
 		                      " init config: failed parsing with provided schema");
 	}
 }
@@ -995,7 +994,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const {
 		throw sinsp_exception("can't format unknown non-plugin event to string");
 	}
 
-	string ret = "";
+	std::string ret = "";
 	const auto data_param = evt->get_param(1);
 	const auto data = data_param->data();
 	const auto data_len = data_param->len();
@@ -1032,23 +1031,24 @@ std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const {
 	std::vector<sinsp_plugin::open_param> list;
 	if(m_state && m_handle->api.list_open_params) {
 		ss_plugin_rc rc;
-		string jsonString = str_from_alloc_charbuf(m_handle->api.list_open_params(m_state, &rc));
+		std::string jsonString =
+		        str_from_alloc_charbuf(m_handle->api.list_open_params(m_state, &rc));
 		if(rc != SS_PLUGIN_SUCCESS) {
-			throw sinsp_exception(string("error in plugin ") + name() +
+			throw sinsp_exception(std::string("error in plugin ") + name() +
 			                      ": list_open_params has error " + get_last_error());
 		}
 
 		if(jsonString.size() > 0) {
 			Json::Value root;
 			if(Json::Reader().parse(jsonString, root) == false || root.type() != Json::arrayValue) {
-				throw sinsp_exception(string("error in plugin ") + name() +
+				throw sinsp_exception(std::string("error in plugin ") + name() +
 				                      ": list_open_params returned a non-array JSON");
 			}
 			for(Json::Value::ArrayIndex i = 0; i < root.size(); i++) {
 				open_param param;
 				param.value = root[i]["value"].asString();
 				if(param.value == "") {
-					throw sinsp_exception(string("error in plugin ") + name() +
+					throw sinsp_exception(std::string("error in plugin ") + name() +
 					                      ": list_open_params has entry with no value");
 				}
 				param.desc = root[i]["desc"].asString();
