@@ -2406,24 +2406,12 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
                                                   const uint8_t *packed_data,
                                                   const bool overwrite_dest,
                                                   const bool can_resolve_hostname_and_port) {
-	uint8_t family;
-	const char *parstr;
-	bool changed;
-
-	//
-	// Validate the family
-	//
-	family = *packed_data;
-
-	//
-	// Fill the fd with the socket info
-	//
-	if(family == PPM_AF_INET || family == PPM_AF_INET6) {
+	// Fill the fd with the socket info.
+	if(const uint8_t family = *packed_data; family == PPM_AF_INET || family == PPM_AF_INET6) {
+		bool changed;
 		if(family == PPM_AF_INET6) {
-			//
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-			//
 			const uint8_t *sip = packed_data + 1;
 			const uint8_t *dip = packed_data + 19;
 
@@ -2440,21 +2428,16 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			}
 		} else {
 			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-
-			//
-			// Update the FD info with this tuple
-			//
+			// Update the FD info with this tuple.
 			changed = set_ipv4_addresses_and_ports(*evt.get_fd_info(), packed_data, overwrite_dest);
 		}
 
 		if(changed && evt.get_fd_info()->is_role_server() && evt.get_fd_info()->is_udp_socket()) {
-			// connect done by a udp server, swap the addresses
+			// connect done by a udp server, swap the addresses.
 			swap_addresses(*evt.get_fd_info());
 		}
 
-		//
-		// Add the friendly name to the fd info
-		//
+		// Add the friendly name to the fd info.
 		sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
 		                             evt.get_fd_info()->m_type,
 		                             &evt.get_paramstr_storage()[0],
@@ -2464,30 +2447,23 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
 	} else {
 		if(!evt.get_fd_info()->is_unix_socket()) {
-			//
 			// This should happen only in case of a bug in our code, because I'm assuming that the
 			// OS causes a connect with the wrong socket type to fail. Assert in debug mode and just
 			// return in release mode.
-			//
 			ASSERT(false);
 			return;
 		}
 
-		//
-		// Add the friendly name to the fd info
-		//
+		// Add the friendly name to the fd info.
+		const char *parstr;
 		evt.get_fd_info()->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 
-		//
-		// Update the FD with this tuple
-		//
+		// Update the FD with this tuple.
 		evt.get_fd_info()->set_unix_info(packed_data);
 	}
 
 	if(evt.get_fd_info()->is_role_none()) {
-		//
-		// Mark this fd as a client
-		//
+		// Mark this fd as a client.
 		evt.get_fd_info()->set_role_client();
 	}
 }
