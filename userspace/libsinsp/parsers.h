@@ -95,7 +95,6 @@ private:
 	void parse_pipe_exit(sinsp_evt& evt) const;
 	void parse_socketpair_exit(sinsp_evt& evt) const;
 	void parse_socket_exit(sinsp_evt& evt) const;
-	void parse_connect_enter(sinsp_evt& evt) const;
 	void parse_connect_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_accept_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_close_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
@@ -151,12 +150,45 @@ private:
 	                                                   uint16_t tdport,
 	                                                   bool overwrite_dest = true);
 	static inline void fill_client_socket_info(sinsp_evt& evt,
-	                                           const uint8_t* packed_data,
-	                                           bool overwrite_dest,
+	                                           const uint8_t* exit_tuple_data,
+	                                           const uint8_t* exit_addr_data,
+	                                           const uint8_t* enter_addr_data,
 	                                           bool can_resolve_hostname_and_port);
 	static inline void fill_client_socket_info_from_addr(sinsp_evt& evt,
 	                                                     const uint8_t* packed_data,
 	                                                     bool can_resolve_hostname_and_port);
+	// Set `dip` and `dport` to the addresses of an IPv6 address and port, by taking them from one
+	// of the provided source of data. The choice is made depending on the availability and on
+	// TOCTOU mitigation considerations.
+	// note: this is meant to be used while parsing a connect exit event.
+	static inline void resolve_connect_ipv6_destination(const uint8_t* tuple_data,
+	                                                    const uint8_t* exit_addr_data,
+	                                                    const uint8_t* enter_addr_data,
+	                                                    const uint8_t*& dip,
+	                                                    const uint8_t*& dport);
+	// Set `dip` and `dport` to the addresses of an IPv4 address and port, by taking them from one
+	// of the provided source of data. The choice is made depending on the availability and on
+	// TOCTOU mitigation considerations.
+	// note: this is meant to be used while parsing a connect exit event.
+	static inline void resolve_connect_ipv4_destination(const uint8_t* tuple_data,
+	                                                    const uint8_t* exit_addr_data,
+	                                                    const uint8_t* enter_addr_data,
+	                                                    const uint8_t*& dip,
+	                                                    const uint8_t*& dport);
+	// Set `dpath` to the address of a unix socket destination path, by taking it from one of the
+	// provided source of data. The choice is made depending on the availability and on TOCTOU
+	// mitigation considerations.
+	// note: this is meant to be used while parsing a connect exit event.
+	static inline void resolve_connect_unix_destination(const uint8_t* tuple_data,
+	                                                    const uint8_t* exit_addr_data,
+	                                                    const uint8_t* enter_addr_data,
+	                                                    const char*& dpath);
+	// Encode a fd name by leveraging the provided unix tuple components. It uses `evt`'s underlying
+	// storage as fd name storage.
+	static inline const char* encode_unix_tuple_fd_name(sinsp_evt& evt,
+	                                                    uint64_t src,
+	                                                    uint64_t dst,
+	                                                    const char* path);
 
 	inline void add_socket(sinsp_evt& evt,
 	                       int64_t fd,

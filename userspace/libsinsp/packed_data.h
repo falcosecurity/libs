@@ -99,4 +99,10 @@ inline const uint8_t *dpath(const uint8_t *addr) {
 }
 }  // namespace un_sockaddr
 
+namespace in6_addr {
+inline const uint8_t *ipv4_mapped_ip(const uint8_t *ip) {
+	return ip + 12;
+}
+}  // namespace in6_addr
+
 }  // namespace packed

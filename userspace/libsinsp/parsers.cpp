@@ -109,6 +109,7 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		// fallthrough
 	// See comment above about why we still store `PPME_SYSCALL_EXECVEAT_E` events.
 	case PPME_SYSCALL_EXECVEAT_E:
+	case PPME_SOCKET_CONNECT_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -178,9 +179,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	case PPME_SOCKET_BIND_X:
 		parse_bind_exit(evt, verdict);
-		break;
-	case PPME_SOCKET_CONNECT_E:
-		parse_connect_enter(evt);
 		break;
 	case PPME_SOCKET_CONNECT_X:
 		parse_connect_exit(evt, verdict);
@@ -2317,39 +2315,6 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	}
 }
 
-/**
- * Register a socket in pending state
- */
-void sinsp_parser::parse_connect_enter(sinsp_evt &evt) const {
-	const auto fdinfo = evt.get_fd_info();
-	if(fdinfo == nullptr) {
-		return;
-	}
-
-	if(m_track_connection_status) {
-		fdinfo->set_socket_pending();
-	}
-
-	const sinsp_evt_param *addr_param = evt.get_param(1);
-	if(addr_param->empty()) {
-		// Address can be nullptr:
-		// sk is a TCP fastopen active socket and
-		// TCP_FASTOPEN_CONNECT sockopt is set and
-		// we already have a valid cookie for this socket.
-		return;
-	}
-
-	const auto packed_data = reinterpret_cast<const uint8_t *>(addr_param->data());
-	fill_client_socket_info_from_addr(evt, packed_data, m_hostname_and_port_resolution_enabled);
-
-	// If there's a listener callback, and we're tracking connection status, invoke it.
-	if(m_track_connection_status && m_observer) {
-		// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to accept
-		//    const pointers/references.
-		m_observer->on_connect(&evt, const_cast<uint8_t *>(packed_data));
-	}
-}
-
 void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt,
                                                      const uint8_t *packed_data,
                                                      const bool can_resolve_hostname_and_port) {
@@ -2411,18 +2376,138 @@ void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt,
 	}
 }
 
+void sinsp_parser::resolve_connect_ipv6_destination(const uint8_t *tuple_data,
+                                                    const uint8_t *exit_addr_data,
+                                                    const uint8_t *enter_addr_data,
+                                                    const uint8_t *&dip,
+                                                    const uint8_t *&dport) {
+	// This code either returns the exit event tuple destination address or the enter event address.
+	// If the exit event address is different from the exit event tuple destination address, it
+	// means that the tuple destination address is taken from kernel data, so it is safe to use this
+	// latter one. Otherwise, always rely on the enter event address, which is not susceptible to
+	// changes in the context of TOCTOU attacks.
+	const auto *tuple_dip = packed::in6_socktuple::dip(tuple_data);
+	const auto *tuple_dport = packed::in6_socktuple::dport(tuple_data);
+
+	if(!exit_addr_data || !enter_addr_data) {
+		dip = tuple_dip;
+		dport = tuple_dport;
+		return;
+	}
+
+	const auto *exit_addr_dip = packed::in6_sockaddr::ip(exit_addr_data);
+	const auto *exit_addr_dport = packed::in6_sockaddr::port(exit_addr_data);
+	if(std::memcmp(tuple_dport, exit_addr_dport, 2) || std::memcmp(tuple_dip, exit_addr_dip, 16)) {
+		dip = tuple_dip;
+		dport = tuple_dport;
+		return;
+	}
+
+	dip = packed::in6_sockaddr::ip(enter_addr_data);
+	dport = packed::in6_sockaddr::port(enter_addr_data);
+}
+
+void sinsp_parser::resolve_connect_ipv4_destination(const uint8_t *tuple_data,
+                                                    const uint8_t *exit_addr_data,
+                                                    const uint8_t *enter_addr_data,
+                                                    const uint8_t *&dip,
+                                                    const uint8_t *&dport) {
+	// This code either returns the exit event tuple destination address or the enter event address.
+	// If the exit event address is different from the exit event tuple destination address, it
+	// means that the tuple destination address is taken from kernel data, so it is safe to use this
+	// latter one. Otherwise, always rely on the enter event address, which is not susceptible to
+	// changes in the context of TOCTOU attacks.
+	const auto *tuple_dip = packed::in_socktuple::dip(tuple_data);
+	const auto *tuple_dport = packed::in_socktuple::dport(tuple_data);
+
+	if(!exit_addr_data || !enter_addr_data) {
+		dip = tuple_dip;
+		dport = tuple_dport;
+		return;
+	}
+
+	const auto *exit_addr_dip = packed::in_sockaddr::ip(exit_addr_data);
+	const auto *exit_addr_dport = packed::in_sockaddr::port(exit_addr_data);
+	if(std::memcmp(tuple_dport, exit_addr_dport, 2) || std::memcmp(tuple_dip, exit_addr_dip, 4)) {
+		dip = tuple_dip;
+		dport = tuple_dport;
+		return;
+	}
+
+	dip = packed::in_sockaddr::ip(enter_addr_data);
+	dport = packed::in_sockaddr::port(enter_addr_data);
+}
+
+void sinsp_parser::resolve_connect_unix_destination(const uint8_t *tuple_data,
+                                                    const uint8_t *exit_addr_data,
+                                                    const uint8_t *enter_addr_data,
+                                                    const char *&dpath) {
+	// This code either returns the tuple destination path or the enter event path.
+	// If the exit event path is different from the exit event tuple destination path, it means that
+	// the tuple destination path is taken from kernel data, so it is safe to use this latter one.
+	// Otherwise, always rely on the enter event path, which is not susceptible to changes in the
+	// context of TOCTOU attacks.
+	const auto *tuple_dpath =
+	        reinterpret_cast<const char *>(packed::un_socktuple::dpath(tuple_data));
+
+	if(!exit_addr_data || !enter_addr_data) {
+		dpath = tuple_dpath;
+		return;
+	}
+
+	const auto *exit_addr_dpath =
+	        reinterpret_cast<const char *>(packed::un_sockaddr::dpath(exit_addr_data));
+#define UNIX_PATH_MAX 108  // Taken from kernel code.
+	if(std::strncmp(tuple_dpath, exit_addr_dpath, UNIX_PATH_MAX)) {
+		dpath = tuple_dpath;
+		return;
+	}
+#undef UNIX_PATH_MAX
+
+	dpath = reinterpret_cast<const char *>(packed::un_sockaddr::dpath(enter_addr_data));
+}
+
+const char *sinsp_parser::encode_unix_tuple_fd_name(sinsp_evt &evt,
+                                                    const uint64_t src,
+                                                    const uint64_t dst,
+                                                    const char *path) {
+	// Sanitize the file string.
+	std::string sanitized_str = path;
+	sanitize_string(sanitized_str);
+
+	auto &storage = evt.get_paramstr_storage();
+
+	// Taken from `sinsp_evt::get_param_as_str()` implementation.
+	snprintf(&storage[0],
+	         storage.size(),
+	         "%" PRIx64 "->%" PRIx64 " %s",
+	         src,
+	         dst,
+	         sanitized_str.c_str());
+
+	return &storage[0];
+}
+
 inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
-                                                  const uint8_t *packed_data,
-                                                  const bool overwrite_dest,
+                                                  const uint8_t *exit_tuple_data,
+                                                  const uint8_t *exit_addr_data,
+                                                  const uint8_t *enter_addr_data,
                                                   const bool can_resolve_hostname_and_port) {
 	// Fill the fd with the socket info.
-	if(const uint8_t family = *packed_data; family == PPM_AF_INET || family == PPM_AF_INET6) {
+	if(const uint8_t family = *exit_tuple_data; family == PPM_AF_INET || family == PPM_AF_INET6) {
+		// Always overwrite destination address and port.
+		constexpr bool overwrite_dest = true;
 		bool changed;
 		if(family == PPM_AF_INET6) {
-			const auto *sip = packed::in6_socktuple::sip(packed_data);
-			const auto *sport = packed::in6_socktuple::sport(packed_data);
-			const auto *dip = packed::in6_socktuple::dip(packed_data);
-			const auto *dport = packed::in6_socktuple::dport(packed_data);
+			const auto *sip = packed::in6_socktuple::sip(exit_tuple_data);
+			const auto *sport = packed::in6_socktuple::sport(exit_tuple_data);
+			const uint8_t *dip;
+			const uint8_t *dport;
+			resolve_connect_ipv6_destination(exit_tuple_data,
+			                                 exit_addr_data,
+			                                 enter_addr_data,
+			                                 dip,
+			                                 dport);
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
@@ -2435,8 +2520,8 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 				                                       overwrite_dest);
 			} else {
 				evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-				const auto *mapped_sip = packed::in6_socktuple::ipv4_mapped_sip(packed_data);
-				const auto *mapped_dip = packed::in6_socktuple::ipv4_mapped_dip(packed_data);
+				const auto *mapped_sip = packed::in6_addr::ipv4_mapped_ip(sip);
+				const auto *mapped_dip = packed::in6_addr::ipv4_mapped_ip(dip);
 				changed = set_ipv4_mapped_ipv6_addresses_and_ports(*evt.get_fd_info(),
 				                                                   mapped_sip,
 				                                                   sport,
@@ -2447,10 +2532,15 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		} else {
 			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
 			// Update the FD info with this tuple.
-			const auto *sip = packed::in_socktuple::sip(packed_data);
-			const auto *sport = packed::in_socktuple::sport(packed_data);
-			const auto *dip = packed::in_socktuple::dip(packed_data);
-			const auto *dport = packed::in_socktuple::dport(packed_data);
+			const auto *sip = packed::in_socktuple::sip(exit_tuple_data);
+			const auto *sport = packed::in_socktuple::sport(exit_tuple_data);
+			const uint8_t *dip;
+			const uint8_t *dport;
+			resolve_connect_ipv4_destination(exit_tuple_data,
+			                                 exit_addr_data,
+			                                 enter_addr_data,
+			                                 dip,
+			                                 dport);
 			changed = set_ipv4_addresses_and_ports(*evt.get_fd_info(),
 			                                       sip,
 			                                       sport,
@@ -2481,12 +2571,14 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			return;
 		}
 
-		// Add the friendly name to the fd info.
-		const char *parstr;
-		evt.get_fd_info()->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		const char *dpath;
+		resolve_connect_unix_destination(exit_tuple_data, exit_addr_data, enter_addr_data, dpath);
 
-		// Update the FD with this tuple.
-		evt.get_fd_info()->set_unix_info(packed_data);
+		// Update tuple info.
+		evt.get_fd_info()->set_unix_info(exit_tuple_data);
+		const auto source = evt.get_fd_info()->m_sockinfo.m_unixinfo.m_fields.m_source;
+		const auto dest = evt.get_fd_info()->m_sockinfo.m_unixinfo.m_fields.m_dest;
+		evt.get_fd_info()->m_name = encode_unix_tuple_fd_name(evt, source, dest, dpath);
 	}
 
 	if(evt.get_fd_info()->is_role_none()) {
@@ -2517,25 +2609,62 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 		evt.get_fd_info()->set_socket_connected();
 	}
 
+	// Extract enter event address parameter. This is used as a fallback in case the event tuple is
+	// empty or in case a TOCTOU attack is attempted.
+	auto &enter_evt = m_tmp_evt;
+	const bool enter_evt_retrieved = retrieve_enter_event(enter_evt, evt);
+	const uint8_t *enter_addr_data = nullptr;
+	if(enter_evt_retrieved) {
+		if(const auto *enter_addr_param = enter_evt.get_param(1); !enter_addr_param->empty()) {
+			enter_addr_data = reinterpret_cast<const uint8_t *>(enter_addr_param->data());
+		}
+	}
+
 	const sinsp_evt_param *tuple_param = evt.get_param(1);
 	if(tuple_param->empty()) {
-		// Address can be nullptr:
-		// sk is a TCP fastopen active socket and
-		// TCP_FASTOPEN_CONNECT sockopt is set and
-		// we already have a valid cookie for this socket.
+		// Address can be nullptr: sk is a TCP fastopen active socket and TCP_FASTOPEN_CONNECT
+		// sockopt is set and, we already have a valid cookie for this socket.
+		if(!enter_addr_data) {
+			// No tuple, no enter address. Just give up.
+			return;
+		}
+
+		// Use the enter event address to populate the fdinfo.
+		fill_client_socket_info_from_addr(evt,
+		                                  enter_addr_data,
+		                                  m_hostname_and_port_resolution_enabled);
+
+		// If there's a listener callback, and we're tracking connection status, invoke it.
+		if(m_track_connection_status && m_observer) {
+			// todo(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
+			//   accept const pointers/references.
+			m_observer->on_connect(&evt, const_cast<uint8_t *>(enter_addr_data));
+		}
 		return;
 	}
 
-	const auto packed_data = reinterpret_cast<const uint8_t *>(tuple_param->data());
+	// Extract exit event address parameter. This is used to detect TOCTOU attacks.
+	const uint8_t *addr_data = nullptr;
+	if(const auto *addr_param = evt.get_param(3); !addr_param->empty()) {
+		addr_data = reinterpret_cast<const uint8_t *>(addr_param->data());
+	}
 
-	fill_client_socket_info(evt, packed_data, true, m_hostname_and_port_resolution_enabled);
+	const auto tuple_data = reinterpret_cast<const uint8_t *>(tuple_param->data());
+
+	// Use the enter event address, the exit event tuple and the exit event address to populate the
+	// fdinfo.
+	fill_client_socket_info(evt,
+	                        tuple_data,
+	                        addr_data,
+	                        enter_addr_data,
+	                        m_hostname_and_port_resolution_enabled);
 
 	// If there's a listener, add a callback to later invoke it.
 	if(m_observer) {
-		verdict.add_post_process_cbs([packed_data](sinsp_observer *observer, sinsp_evt *evt) {
+		verdict.add_post_process_cbs([tuple_data](sinsp_observer *observer, sinsp_evt *evt) {
 			// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
 			//   accept const pointers/references.
-			observer->on_connect(evt, const_cast<uint8_t *>(packed_data));
+			observer->on_connect(evt, const_cast<uint8_t *>(tuple_data));
 		});
 	}
 }
