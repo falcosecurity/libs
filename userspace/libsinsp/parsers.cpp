@@ -2415,26 +2415,44 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 	if(const uint8_t family = *packed_data; family == PPM_AF_INET || family == PPM_AF_INET6) {
 		bool changed;
 		if(family == PPM_AF_INET6) {
+			const auto *sip = packed_data + 1;
+			const auto *sport = packed_data + 17;
+			const auto *dip = packed_data + 19;
+			const auto *dport = packed_data + 35;
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-			const uint8_t *sip = packed_data + 1;
-			const uint8_t *dip = packed_data + 19;
-
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
 				evt.get_fd_info()->m_type = SCAP_FD_IPV6_SOCK;
 				changed = set_ipv6_addresses_and_ports(*evt.get_fd_info(),
-				                                       packed_data,
+				                                       sip,
+				                                       sport,
+				                                       dip,
+				                                       dport,
 				                                       overwrite_dest);
 			} else {
 				evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
+				const auto *mapped_sip = packed_data + 13;
+				const auto *mapped_dip = packed_data + 31;
 				changed = set_ipv4_mapped_ipv6_addresses_and_ports(*evt.get_fd_info(),
-				                                                   packed_data,
+				                                                   mapped_sip,
+				                                                   sport,
+				                                                   mapped_dip,
+				                                                   dport,
 				                                                   overwrite_dest);
 			}
 		} else {
 			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
 			// Update the FD info with this tuple.
-			changed = set_ipv4_addresses_and_ports(*evt.get_fd_info(), packed_data, overwrite_dest);
+			const auto *sip = packed_data + 1;
+			const auto *sport = packed_data + 5;
+			const auto *dip = packed_data + 7;
+			const auto *dport = packed_data + 11;
+			changed = set_ipv4_addresses_and_ports(*evt.get_fd_info(),
+			                                       sip,
+			                                       sport,
+			                                       dip,
+			                                       dport,
+			                                       overwrite_dest);
 		}
 
 		if(changed && evt.get_fd_info()->is_role_server() && evt.get_fd_info()->is_udp_socket()) {
@@ -2549,21 +2567,28 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	// Populate the fd info class.
 	std::shared_ptr fdi = m_fdinfo_factory.create();
 	if(*packed_data == PPM_AF_INET) {
-		set_ipv4_addresses_and_ports(*fdi, packed_data);
+		const auto *sip = packed_data + 1;
+		const auto *sport = packed_data + 5;
+		const auto *dip = packed_data + 7;
+		const auto *dport = packed_data + 11;
+		set_ipv4_addresses_and_ports(*fdi, sip, sport, dip, dport);
 		fdi->m_type = SCAP_FD_IPV4_SOCK;
 		fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 	} else if(*packed_data == PPM_AF_INET6) {
 		// Check to see if it's an IPv4-mapped IPv6 address
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-		const uint8_t *sip = packed_data + 1;
-		const uint8_t *dip = packed_data + 19;
-
+		const auto *sip = packed_data + 1;
+		const auto *sport = packed_data + 17;
+		const auto *dip = packed_data + 19;
+		const auto *dport = packed_data + 35;
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)) {
-			set_ipv4_mapped_ipv6_addresses_and_ports(*fdi, packed_data);
+			const auto *mapped_sip = packed_data + 13;
+			const auto *mapped_dip = packed_data + 31;
+			set_ipv4_mapped_ipv6_addresses_and_ports(*fdi, mapped_sip, sport, mapped_dip, dport);
 			fdi->m_type = SCAP_FD_IPV4_SOCK;
 			fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 		} else {
-			set_ipv6_addresses_and_ports(*fdi, packed_data);
+			set_ipv6_addresses_and_ports(*fdi, sip, sport, dip, dport);
 			fdi->m_type = SCAP_FD_IPV6_SOCK;
 			fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = SCAP_L4_TCP;
 		}
@@ -2826,79 +2851,94 @@ inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo &fdinfo,
 }
 
 bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo &fdinfo,
-                                                const uint8_t *packed_data,
+                                                const uint8_t *sip,
+                                                const uint8_t *sport,
+                                                const uint8_t *dip,
+                                                const uint8_t *dport,
                                                 const bool overwrite_dest) {
-	uint32_t tsip, tdip;
-	uint16_t tsport, tdport;
+	uint32_t tmp_sip, tmp_dip;
+	uint16_t tmp_sport, tmp_dport;
 
-	memcpy(&tsip, packed_data + 1, sizeof(uint32_t));
-	memcpy(&tsport, packed_data + 5, sizeof(uint16_t));
-	memcpy(&tdip, packed_data + 7, sizeof(uint32_t));
-	memcpy(&tdport, packed_data + 11, sizeof(uint16_t));
+	memcpy(&tmp_sip, sip, sizeof(uint32_t));
+	memcpy(&tmp_sport, sport, sizeof(uint16_t));
+	memcpy(&tmp_dip, dip, sizeof(uint32_t));
+	memcpy(&tmp_dport, dport, sizeof(uint16_t));
 
-	return update_ipv4_addresses_and_ports(fdinfo, tsip, tsport, tdip, tdport, overwrite_dest);
+	return update_ipv4_addresses_and_ports(fdinfo,
+	                                       tmp_sip,
+	                                       tmp_sport,
+	                                       tmp_dip,
+	                                       tmp_dport,
+	                                       overwrite_dest);
 }
 
 bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo &fdinfo,
-                                                            const uint8_t *packed_data,
+                                                            const uint8_t *sip,
+                                                            const uint8_t *sport,
+                                                            const uint8_t *dip,
+                                                            const uint8_t *dport,
                                                             const bool overwrite_dest) {
-	uint32_t tsip, tdip;
-	uint16_t tsport, tdport;
+	uint32_t tmp_sip, tmp_dip;
+	uint16_t tmp_sport, tmp_dport;
 
-	memcpy(&tsip, packed_data + 13, sizeof(uint32_t));
-	memcpy(&tsport, packed_data + 17, sizeof(uint16_t));
-	memcpy(&tdip, packed_data + 31, sizeof(uint32_t));
-	memcpy(&tdport, packed_data + 35, sizeof(uint16_t));
+	memcpy(&tmp_sip, sip, sizeof(uint32_t));
+	memcpy(&tmp_sport, sport, sizeof(uint16_t));
+	memcpy(&tmp_dip, dip, sizeof(uint32_t));
+	memcpy(&tmp_dport, dport, sizeof(uint16_t));
 
-	return update_ipv4_addresses_and_ports(fdinfo, tsip, tsport, tdip, tdport, overwrite_dest);
+	return update_ipv4_addresses_and_ports(fdinfo,
+	                                       tmp_sip,
+	                                       tmp_sport,
+	                                       tmp_dip,
+	                                       tmp_dport,
+	                                       overwrite_dest);
 }
 
 bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo &fdinfo,
-                                                const uint8_t *packed_data,
+                                                const uint8_t *sip,
+                                                const uint8_t *sport,
+                                                const uint8_t *dip,
+                                                const uint8_t *dport,
                                                 const bool overwrite_dest) {
-	ipv6addr tsip, tdip;
-	uint16_t tsport, tdport;
+	ipv6addr tmp_sip, tmp_dip;
+	uint16_t tmp_sport, tmp_dport;
 
-	memcpy((uint8_t *)tsip.m_b, packed_data + 1, sizeof(tsip.m_b));
-	memcpy(&tsport, packed_data + 17, sizeof(tsport));
+	memcpy(tmp_sip.m_b, sip, sizeof(tmp_sip.m_b));
+	memcpy(&tmp_sport, sport, sizeof(tmp_sport));
+	memcpy(tmp_dip.m_b, dip, sizeof(tmp_dip.m_b));
+	memcpy(&tmp_dport, dport, sizeof(tmp_dport));
 
-	memcpy((uint8_t *)tdip.m_b, packed_data + 19, sizeof(tdip.m_b));
-	memcpy(&tdport, packed_data + 35, sizeof(tdport));
+	auto &ipv6_info_fields = fdinfo.m_sockinfo.m_ipv6info.m_fields;
 
 	if(fdinfo.m_type == SCAP_FD_IPV6_SOCK) {
-		if((tsip == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sip &&
-		    tsport == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sport &&
-		    tdip == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dip &&
-		    tdport == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dport) ||
-		   (tdip == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sip &&
-		    tdport == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sport &&
-		    tsip == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dip &&
-		    tsport == fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dport)) {
+		if((tmp_sip == ipv6_info_fields.m_sip && tmp_sport == ipv6_info_fields.m_sport &&
+		    tmp_dip == ipv6_info_fields.m_dip && tmp_dport == ipv6_info_fields.m_dport) ||
+		   (tmp_dip == ipv6_info_fields.m_sip && tmp_dport == ipv6_info_fields.m_sport &&
+		    tmp_sip == ipv6_info_fields.m_dip && tmp_sport == ipv6_info_fields.m_dport)) {
 			return false;
 		}
 	}
 
 	bool changed = false;
 
-	if(fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sip != tsip) {
-		fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sip = tsip;
+	if(ipv6_info_fields.m_sip != tmp_sip) {
+		ipv6_info_fields.m_sip = tmp_sip;
 		changed = true;
 	}
 
-	if(fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sport != tsport) {
-		fdinfo.m_sockinfo.m_ipv6info.m_fields.m_sport = tsport;
+	if(ipv6_info_fields.m_sport != tmp_sport) {
+		ipv6_info_fields.m_sport = tmp_sport;
 		changed = true;
 	}
 
-	if(fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dip == ipv6addr::empty_address ||
-	   (overwrite_dest && fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dip != tdip)) {
-		fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dip = tdip;
+	if(ipv6_info_fields.m_dip == ipv6addr::empty_address ||
+	   (overwrite_dest && ipv6_info_fields.m_dip != tmp_dip)) {
+		ipv6_info_fields.m_dip = tmp_dip;
 		changed = true;
 	}
 
-	if(fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dport == 0 ||
-	   (overwrite_dest && fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dport != tdport)) {
-		fdinfo.m_sockinfo.m_ipv6info.m_fields.m_dport = tdport;
+	if(ipv6_info_fields.m_dport == 0 || (overwrite_dest && ipv6_info_fields.m_dport != tmp_dport)) {
+		ipv6_info_fields.m_dport = tmp_dport;
 		changed = true;
 	}
 
@@ -2924,26 +2964,36 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 		}
 
 		evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-		if(set_ipv4_addresses_and_ports(*evt.get_fd_info(), packed_data) == false) {
+		const auto *sip = packed_data + 1;
+		const auto *sport = packed_data + 5;
+		const auto *dip = packed_data + 7;
+		const auto *dport = packed_data + 11;
+		if(set_ipv4_addresses_and_ports(*evt.get_fd_info(), sip, sport, dip, dport) == false) {
 			return false;
 		}
 	} else if(family == PPM_AF_INET6) {
+		const auto *sip = packed_data + 1;
+		const auto *sport = packed_data + 17;
+		const auto *dip = packed_data + 19;
+		const auto *dport = packed_data + 35;
 		//
 		// Check to see if it's an IPv4-mapped IPv6 address
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 		//
-		auto sip = packed_data + 1;
-		auto dip = packed_data + 19;
-
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)) {
 			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-
-			if(set_ipv4_mapped_ipv6_addresses_and_ports(*evt.get_fd_info(), packed_data) == false) {
+			const auto mapped_sip = packed_data + 13;
+			const auto mapped_dip = packed_data + 31;
+			if(set_ipv4_mapped_ipv6_addresses_and_ports(*evt.get_fd_info(),
+			                                            mapped_sip,
+			                                            sport,
+			                                            mapped_dip,
+			                                            dport) == false) {
 				return false;
 			}
 		} else {
 			// It's not an ipv4-mapped ipv6 address. Extract it as a normal address.
-			if(set_ipv6_addresses_and_ports(*evt.get_fd_info(), packed_data) == false) {
+			if(set_ipv6_addresses_and_ports(*evt.get_fd_info(), sip, sport, dip, dport) == false) {
 				return false;
 			}
 		}
