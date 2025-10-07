@@ -93,7 +93,6 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	 * `client_fd` (first parameter).
 	 */
 	auto* fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
-	// auto* fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket()); /* in `parse_connect_enter` we set `SCAP_FD_IPV4_SOCK` as
 	                                          type */
@@ -104,11 +103,9 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	ASSERT_FALSE(fdinfo->is_socket_failed());
 	ASSERT_FALSE(fdinfo->is_socket_pending());
 
-	/* Check that ip and port are saved from the server sockaddr in the fdinfo */
-	char ipv4_string[DEFAULT_IP_STRING_SIZE];
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
-	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
+	/* Check that ip and port are not set. */
+	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, 0);
+	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, 0);
 
 	/* Since the role of the fd is none, all these fields are null. The fdinfo state is updated but
 	 * we cannot use these info in the filterchecks */
@@ -139,6 +136,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	ASSERT_TRUE(fdinfo->is_role_client());  /* The connect exit set the client role */
 
 	/* Check that ip and port are saved from the server socktuple */
+	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
 	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
@@ -471,7 +469,6 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 	sinsp_fdinfo* fdinfo = NULL;
-	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	generate_socket_exit_event();
 
@@ -533,21 +530,19 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	 * PPME_SOCKET_CONNECT_X event so both filterchecks and internal state are aligned
 	 */
 
-	// todo!: this sounds like an incosistency, the fdinfo shouldn't be updated if the syscall fails
-	// and also the filterchecks should not see the updated fdname, keep like this for now.
-	std::string fdname = std::string(DEFAULT_IPV4_CLIENT_STRING) + ":" +
-	                     std::string(DEFAULT_CLIENT_PORT_STRING) + "->" + ipv4_server2 + ":" +
-	                     port_server2_string;
+	// note: as the inspector is not configured to track the connection status, the failed connect
+	// events leave the fdinfo untouched.
+	std::string fdname = DEFAULT_IPV4_FDNAME;
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
 	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "true");
-	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), ipv4_server2);
+	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), DEFAULT_IPV4_SERVER_STRING);
 	ASSERT_EQ(get_field_as_string(evt, "fd.cip"), DEFAULT_IPV4_CLIENT_STRING);
 	ASSERT_EQ(get_field_as_string(evt, "fd.rip"), DEFAULT_IPV4_CLIENT_STRING);
-	ASSERT_EQ(get_field_as_string(evt, "fd.lip"), ipv4_server2);
-	ASSERT_EQ(get_field_as_string(evt, "fd.sport"), port_server2_string);
+	ASSERT_EQ(get_field_as_string(evt, "fd.lip"), DEFAULT_IPV4_SERVER_STRING);
+	ASSERT_EQ(get_field_as_string(evt, "fd.sport"), DEFAULT_SERVER_PORT_STRING);
 	ASSERT_EQ(get_field_as_string(evt, "fd.cport"), DEFAULT_CLIENT_PORT_STRING);
 	ASSERT_EQ(get_field_as_string(evt, "fd.rport"), DEFAULT_CLIENT_PORT_STRING);
-	ASSERT_EQ(get_field_as_string(evt, "fd.lport"), port_server2_string);
+	ASSERT_EQ(get_field_as_string(evt, "fd.lport"), DEFAULT_SERVER_PORT_STRING);
 
 	/* The parser is not able to obtain an updated fdname because the syscall fails and the parser
 	 * flow is truncated */
@@ -555,14 +550,15 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->m_name.c_str(), DEFAULT_IPV4_FDNAME);
 
-	/* There are updated by the enter event */
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip), ipv4_string, 100);
-	ASSERT_STREQ(ipv4_string, ipv4_server2.c_str());
+	/* Addresses and ports are not updated. */
+	char ipv4_string[DEFAULT_IP_STRING_SIZE];
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
+	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
 
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip), ipv4_string, 100);
+	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
 
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, port_server2);
+	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
 }
 
@@ -625,8 +621,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
 	                                 null_buf);
 
 	/* Only filterchecks will see the new tuple in the fdname all the rest is not updated */
-	std::string fdname = ipv4_client2 + ":" + port_client2_string + "->" + ipv4_server2 + ":" +
-	                     port_server2_string;
+	std::string fdname = DEFAULT_IPV4_FDNAME;
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
 	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), DEFAULT_IPV4_SERVER_STRING);
 	ASSERT_EQ(get_field_as_string(evt, "fd.cip"), DEFAULT_IPV4_CLIENT_STRING);
