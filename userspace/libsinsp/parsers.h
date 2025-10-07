@@ -181,13 +181,22 @@ private:
 	// Next 4 return false if the update didn't happen because the tuple is identical to the given
 	// address
 	static bool set_ipv4_addresses_and_ports(sinsp_fdinfo& fdinfo,
-	                                         const uint8_t* packed_data,
+	                                         const uint8_t* sip,
+	                                         const uint8_t* sport,
+	                                         const uint8_t* dip,
+	                                         const uint8_t* dport,
 	                                         bool overwrite_dest = true);
 	static bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo& fdinfo,
-	                                                     const uint8_t* packed_data,
+	                                                     const uint8_t* sip,
+	                                                     const uint8_t* sport,
+	                                                     const uint8_t* dip,
+	                                                     const uint8_t* dport,
 	                                                     bool overwrite_dest = true);
 	static bool set_ipv6_addresses_and_ports(sinsp_fdinfo& fdinfo,
-	                                         const uint8_t* packed_data,
+	                                         const uint8_t* sip,
+	                                         const uint8_t* sport,
+	                                         const uint8_t* dip,
+	                                         const uint8_t* dport,
 	                                         bool overwrite_dest = true);
 
 	static void swap_addresses(sinsp_fdinfo& fdinfo);
