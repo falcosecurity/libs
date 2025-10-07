@@ -25,6 +25,7 @@ limitations under the License.
 
 #include <unordered_map>
 #include <memory>
+#include <packed_data.h>
 
 // fd type characters
 #define CHAR_FD_FILE 'f'
@@ -215,8 +216,10 @@ public:
 	inline int64_t get_pid() const { return m_pid; }
 
 	inline void set_unix_info(const uint8_t* packed_data) {
-		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_source, packed_data + 1, sizeof(uint64_t));
-		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, packed_data + 9, sizeof(uint64_t));
+		const auto* source = packed::un_socktuple::source(packed_data);
+		const auto* dest = packed::un_socktuple::dest(packed_data);
+		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_source, source, sizeof(uint64_t));
+		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, dest, sizeof(uint64_t));
 	}
 
 	/*!
