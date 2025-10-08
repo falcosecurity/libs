@@ -602,6 +602,7 @@ int push_parameter_from_callback(scap_evt *new_evt,
                                  size_t *new_evt_params_offset,
                                  const uint8_t new_evt_param_num,
                                  const conversion_instruction_callback callback,
+                                 const conversion_instruction_flags instr_flags,
                                  char *error) {
 	if(callback == nullptr) {
 		scap_errprintf(error,
@@ -618,7 +619,19 @@ int push_parameter_from_callback(scap_evt *new_evt,
 	const auto len_size = get_param_len_size(new_evt);
 	const auto min_param_len = get_min_param_len_from_type(param_type);
 	const auto max_param_len = get_max_param_len_from_type(param_type, len_size);
-	const auto buffer = callback(scap_evt_param_reader{*old_evt}, min_param_len, max_param_len);
+	std::vector<char> buffer;
+	try {
+		buffer = callback(scap_evt_param_reader{*old_evt}, min_param_len, max_param_len);
+	} catch(...) {
+		// todo: log info about exception.
+		if(instr_flags & CIF_FALLBACK_TO_EMPTY) {
+			push_empty_parameter(new_evt, new_evt_param_num);
+		} else {
+			push_default_parameter(new_evt, new_evt_params_offset, new_evt_param_num);
+		}
+		return 0;
+	}
+
 	const auto *buffer_ptr = std::data(buffer);
 	const auto buffer_len = std::size(buffer);
 	if(buffer_len < min_param_len || buffer_len > max_param_len) {
@@ -792,6 +805,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 			                                &params_offset,
 			                                param_to_populate,
 			                                instr.callback,
+			                                instr.flags,
 			                                error) != 0) {
 				return CONVERSION_ERROR;
 			}

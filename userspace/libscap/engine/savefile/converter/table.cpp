@@ -1113,7 +1113,7 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
                  .instrs({
                          {C_INSTR_FROM_CALLBACK,
                           0,
-                          CIF_NO_FLAGS,
+                          CIF_FALLBACK_TO_EMPTY,
                           extract_ppme_container_json_e_json_param},  // json
                  })},
         {conversion_key{PPME_CONTAINER_JSON_E, 1},
