@@ -34,9 +34,9 @@ enum conversion_instruction_code {
 //   handle empty parameters for all the EF_CONVERTER_MANAGED entries in the converter table.
 enum conversion_instruction_flags {
 	CIF_NO_FLAGS = 0,
-	CIF_FALLBACK_TO_EMPTY,  // C_INSTR_FROM_ENTER-only flag: fallback to the empty value instead of
-	                        // the default one if for some reason the converter is not able to
-	                        // obtain the parameter.
+	CIF_FALLBACK_TO_EMPTY,  // only for `C_INSTR_FROM_ENTER` and `C_INSTR_FROM_CALLBACK`: fallback
+	                        // to the empty value instead of the default one if for some reason the
+	                        // converter is not able to obtain the parameter.
 };
 
 // Conversion actions
