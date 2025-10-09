@@ -407,7 +407,7 @@ std::string sinsp_threadinfo::get_exepath() const {
 	return m_exepath;
 }
 
-std::string sinsp_threadinfo::get_container_id() {
+std::string sinsp_threadinfo::get_container_id() const {
 	std::string container_id;
 
 	const auto accessor = m_params->thread_manager->get_field_accessor(
