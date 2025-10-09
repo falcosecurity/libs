@@ -2345,28 +2345,6 @@ void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt,
 		}
 		break;
 	}
-	case PPM_AF_UNSPEC: {
-		switch(fdinfo->m_type) {
-		case SCAP_FD_IPV4_SOCK:
-			sockinfo.m_ipv4info.m_fields.m_dip = 0;
-			sockinfo.m_ipv4info.m_fields.m_dport = 0;
-			break;
-		case SCAP_FD_IPV6_SOCK:
-			sockinfo.m_ipv6info.m_fields.m_dip = ipv6addr::empty_address;
-			sockinfo.m_ipv6info.m_fields.m_dport = 0;
-			break;
-		default:
-			break;
-		}
-		sinsp_utils::sockinfo_to_str(&sockinfo,
-		                             fdinfo->m_type,
-		                             &evt.get_paramstr_storage()[0],
-		                             static_cast<uint32_t>(evt.get_paramstr_storage().size()),
-		                             can_resolve_hostname_and_port);
-
-		fdinfo->m_name = &evt.get_paramstr_storage()[0];
-		return;
-	}
 	default: {
 		// Add the friendly name to the fd info.
 		const char *parstr;

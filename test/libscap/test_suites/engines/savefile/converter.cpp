@@ -2577,8 +2577,10 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_no_enter) {
 	constexpr char tuple[] = "tuple";
 	constexpr int64_t fd = 25;
 
-	// Defaulted
-	constexpr uint8_t addr = PPM_AF_UNSPEC;
+	// Set to empty.
+	constexpr auto addr = empty_value<scap_const_sized_buffer>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 3);
 
 	assert_single_conversion_success(
 	        CONVERSION_PASS,
@@ -2589,14 +2591,15 @@ TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_no_enter) {
 	                               res,
 	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
 	                               fd),
-	        create_safe_scap_event(ts,
-	                               tid,
-	                               PPME_SOCKET_CONNECT_X,
-	                               4,
-	                               res,
-	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
-	                               fd,
-	                               scap_const_sized_buffer{&addr, sizeof(addr)}));
+	        create_safe_scap_event_with_empty_params(ts,
+	                                                 tid,
+	                                                 PPME_SOCKET_CONNECT_X,
+	                                                 &empty_params_set,
+	                                                 4,
+	                                                 res,
+	                                                 scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                                                 fd,
+	                                                 addr));
 }
 
 TEST_F(convert_event_test, PPME_SOCKET_CONNECT_X_3_to_4_params_with_enter) {
