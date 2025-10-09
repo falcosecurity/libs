@@ -179,102 +179,6 @@ static const char *get_param_ptr(const scap_evt *evt,
 	return get_param_ptr_unchecked(evt, param_num, len_size);
 }
 
-static uint8_t get_default_value_size_bytes_from_type(const ppm_param_type t) {
-	switch(t) {
-	case PT_INT8:
-	case PT_UINT8:
-	case PT_FLAGS8:
-	case PT_ENUMFLAGS8:
-	case PT_SIGTYPE:
-	case PT_SOCKADDR:  // Sockaddr default parameter is a single-byte PPM_AF_UNSPEC family value.
-		return 1;
-
-	case PT_INT16:
-	case PT_UINT16:
-	case PT_FLAGS16:
-	case PT_ENUMFLAGS16:
-	case PT_SYSCALLID:
-		return 2;
-
-	case PT_INT32:
-	case PT_UINT32:
-	case PT_FLAGS32:
-	case PT_ENUMFLAGS32:
-	case PT_UID:
-	case PT_GID:
-	case PT_MODE:
-	case PT_SIGSET:
-		return 4;
-
-	case PT_INT64:
-	case PT_UINT64:
-	case PT_RELTIME:
-	case PT_ABSTIME:
-	case PT_ERRNO:
-	case PT_FD:
-	case PT_PID:
-		return 8;
-
-	case PT_BYTEBUF:
-	case PT_CHARBUF:
-	case PT_SOCKTUPLE:
-	case PT_FDLIST:
-	case PT_FSPATH:
-	case PT_CHARBUFARRAY:
-	case PT_CHARBUF_PAIR_ARRAY:
-	case PT_FSRELPATH:
-	case PT_DYN:
-		return 0;
-
-	default:
-		// We forgot to handle something
-		assert(false);
-		break;
-	}
-	assert(false);
-	return 0;
-}
-
-// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
-// have `len==0`. Just remember that the returned value effective content and size should be aligned
-// with what is returned by `get_default_value_size_bytes_from_type()`.
-static uint64_t get_default_value_from_type(const ppm_param_type t) {
-	switch(t) {
-	case PT_UID:
-	case PT_GID:
-		return std::numeric_limits<uint32_t>::max();
-	case PT_SOCKADDR:
-		return PPM_AF_UNSPEC;
-	default:
-		return 0;
-	}
-}
-
-// Writes parameter length and value and update the provided parameter offsets accordingly to the
-// written length.
-static void push_default_parameter(scap_evt *evt, size_t *params_offset, const uint8_t param_num) {
-	// Please ensure that `evt->type` is already the final type you want to obtain.
-	// Otherwise, we will access the wrong entry in the event table.
-	const auto param_type = get_param_type(evt, param_num);
-	const auto len = get_default_value_size_bytes_from_type(param_type);
-	const auto len_size = get_param_len_size(evt);
-
-	PRINT_MESSAGE(
-	        "push default param (%d, type: %d) with len (%d) at {params_offest (%d), "
-	        "lens_offset (%d)}\n",
-	        param_num,
-	        param_type,
-	        len,
-	        *params_offset,
-	        sizeof(scap_evt) + param_num * len_size);
-
-	const uint64_t val = get_default_value_from_type(param_type);
-	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &val, len);
-	*params_offset += len;
-	set_param_len_unchecked(evt, param_num, len, len_size);
-	evt->len += len;
-}
-
 static uint32_t get_min_param_len_from_type(const ppm_param_type t) {
 	switch(t) {
 	case PT_INT8:
@@ -393,6 +297,48 @@ static uint32_t get_max_param_len_from_type(const ppm_param_type t, const size_t
 		break;
 	}
 	return 0;
+}
+
+static uint8_t get_default_value_size_bytes_from_type(const ppm_param_type t) {
+	return get_min_param_len_from_type(t);
+}
+
+// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
+// have `len==0`. Just remember that the returned value effective content and size should be aligned
+// with what is returned by `get_default_value_size_bytes_from_type()`.
+static uint64_t get_default_value_from_type(const ppm_param_type t) {
+	switch(t) {
+	case PT_UID:
+	case PT_GID:
+		return std::numeric_limits<uint32_t>::max();
+	default:
+		return 0;
+	}
+}
+
+// Writes parameter length and value and update the provided parameter offsets accordingly to the
+// written length.
+static void push_default_parameter(scap_evt *evt, size_t *params_offset, const uint8_t param_num) {
+	// Please ensure that `evt->type` is already the final type you want to obtain.
+	// Otherwise, we will access the wrong entry in the event table.
+	const auto param_type = get_param_type(evt, param_num);
+	const auto len = get_default_value_size_bytes_from_type(param_type);
+	const auto len_size = get_param_len_size(evt);
+
+	PRINT_MESSAGE(
+	        "push default param (%d, type: %d) with len (%d) at {params_offest (%d), "
+	        "lens_offset (%d)}\n",
+	        param_num,
+	        param_type,
+	        len,
+	        *params_offset,
+	        sizeof(scap_evt) + param_num * len_size);
+
+	const uint64_t val = get_default_value_from_type(param_type);
+	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &val, len);
+	*params_offset += len;
+	set_param_len_unchecked(evt, param_num, len, len_size);
+	evt->len += len;
 }
 
 // Writes parameter length and value and update the provided parameter offsets accordingly to the
