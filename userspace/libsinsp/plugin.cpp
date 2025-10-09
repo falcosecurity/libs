@@ -652,7 +652,8 @@ bool sinsp_plugin::check_required_schema_version(sinsp_version event_schema_vers
 				          &major,
 				          &minor,
 				          &patch) != 3) {
-					err = "plugin provided an invalid required event schema version: '" +
+					err = "plugin " + name() +
+					      " provided an invalid required event schema version: '" +
 					      std::string(required_version) + "'";
 					return false;
 				}
@@ -670,7 +671,7 @@ bool sinsp_plugin::check_required_schema_version(sinsp_version event_schema_vers
 		}
 
 		if(!failmsg.empty()) {
-			err = "plugin required event schema version '" +
+			err = "plugin " + name() + " required event schema version '" +
 			      (required_version ? std::string(required_version) : "3.0.0") +
 			      "' not compatible with the event schema version in use '" +
 			      event_schema_version.as_string() + "': " + failmsg;
