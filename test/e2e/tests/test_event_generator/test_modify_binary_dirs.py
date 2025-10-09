@@ -27,7 +27,6 @@ def test_modify_binary_dirs(sinsp, run_containers: dict):
         {
             "evt.args": "res=0 olddirfd=-100(AT_FDCWD) oldpath=/bin/true newdirfd=-100(AT_FDCWD) newpath=/bin/true.event-generator",
             "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
             "evt.type": "renameat",
@@ -37,7 +36,6 @@ def test_modify_binary_dirs(sinsp, run_containers: dict):
         {
             "evt.args": "res=0 olddirfd=-100(AT_FDCWD) oldpath=/bin/true.event-generator newdirfd=-100(AT_FDCWD) newpath=/bin/true",
             "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
             "evt.type": "renameat",

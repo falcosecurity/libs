@@ -27,7 +27,6 @@ def test_make_binary_dirs(sinsp, run_containers: dict):
         {
             "evt.args": "res=0 dirfd=-100(AT_FDCWD) path=/bin/directory-created-by-event-generator mode=1ED",
             "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
             "evt.type": "mkdirat",
@@ -37,7 +36,6 @@ def test_make_binary_dirs(sinsp, run_containers: dict):
         {
             "evt.args": "res=-21(EISDIR) dirfd=-100(AT_FDCWD) name=/bin/directory-created-by-event-generator flags=0",
             "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
             "evt.type": "unlinkat",
@@ -47,7 +45,6 @@ def test_make_binary_dirs(sinsp, run_containers: dict):
         {
             "evt.args": "res=0 dirfd=-100(AT_FDCWD) name=/bin/directory-created-by-event-generator flags=512(AT_REMOVEDIR)",
             "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
             "evt.type": "unlinkat",

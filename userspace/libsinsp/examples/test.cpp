@@ -287,7 +287,7 @@ void print_table_entries(sinsp& inspector) {
 #define EVENT_HEADER                        \
 	"%evt.num %evt.time cat=%evt.category " \
 	"proc=%proc.name(%proc.pid.%thread.tid) "
-#define EVENT_TRAILER "%evt.dir %evt.type %evt.args"
+#define EVENT_TRAILER "%evt.type %evt.args"
 
 #define EVENT_DEFAULTS EVENT_HEADER EVENT_TRAILER
 #define PROCESS_DEFAULTS \
@@ -703,8 +703,8 @@ static void print_perftest_table_data(const uint64_t num_events_diff,
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
-//   "evt.dir=< and (evt.category=net or (evt.type=execveat or evt.type=execve or evt.type=clone or
-//   evt.type=fork or evt.type=vfork))"
+//   "evt.category=net or (evt.type=execveat or evt.type=execve or evt.type=clone or evt.type=fork
+//   or evt.type=vfork)"
 //
 int main(int argc, char** argv) {
 	sinsp inspector;

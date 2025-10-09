@@ -168,7 +168,7 @@ TEST(parser, parse_smoke_test) {
 	test_accept("a.b contains bla");
 	test_accept("a.b icontains 'bla'");
 	test_accept("a.g in (1, 'a', b)");
-	test_accept("evt.dir=> and fd.name=*.log");
+	test_accept("fd.name=*.log");
 	test_accept("a.g in (1, 'a', b.c)");
 	test_accept("a.b = a.a");
 	test_accept("a and notb");
@@ -224,7 +224,7 @@ TEST(parser, parse_smoke_test) {
 	test_reject("a.g in ( 1 ,, , b)");
 	test_reject("#a and b; a and b");
 	test_reject("#a and b; # ; ; a and b");
-	test_reject("evt.dir=> and fd.name=/var/lo);g/httpd.log");
+	test_reject("fd.name=/var/lo);g/httpd.log");
 }
 
 TEST(parser, parse_str) {
@@ -636,10 +636,6 @@ TEST(parser, expr_all_node_types) {
 	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""),
 	                                                 "in",
 	                                                 list_expr::create({"a", "b"})));
-	and_children.push_back(
-	        not_expr::create(binary_check_expr::create(field_expr::create("evt.dir", ""),
-	                                                   "=",
-	                                                   value_expr::create("<"))));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
@@ -649,8 +645,7 @@ TEST(parser, expr_all_node_types) {
 
 	std::unique_ptr<expr> ast = or_expr::create(or_children);
 
-	test_equal_ast("evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-	               ast.get());
+	test_equal_ast("evt.name exists and evt.type in (a, b) or proc.name=cat", ast.get());
 }
 
 TEST(parser, expr_transformers) {
@@ -664,10 +659,6 @@ TEST(parser, expr_transformers) {
 	                field_transformer_expr::create("toupper", field_expr::create("evt.type", ""))),
 	        "in",
 	        field_transformer_expr::create("val", field_expr::create("some.field", ""))));
-	and_children.push_back(not_expr::create(binary_check_expr::create(
-	        field_expr::create("evt.dir", ""),
-	        "=",
-	        field_transformer_expr::create("b64", field_expr::create("some.field", "")))));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
@@ -682,8 +673,8 @@ TEST(parser, expr_transformers) {
 	std::unique_ptr<expr> ast = or_expr::create(or_children);
 
 	test_equal_ast(
-	        "b64(evt.name) exists and tolower(toupper(evt.type)) in val(some.field) and not "
-	        "evt.dir=b64(some.field) or proc.name=b64(tolower(some.field))",
+	        "b64(evt.name) exists and tolower(toupper(evt.type)) in val(some.field) or "
+	        "proc.name=b64(tolower(some.field))",
 	        ast.get());
 }
 
@@ -694,10 +685,6 @@ TEST(parser, expr_parenthesis) {
 	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""),
 	                                                 "in",
 	                                                 list_expr::create({"a", "b"})));
-	and_children.push_back(
-	        not_expr::create(binary_check_expr::create(field_expr::create("evt.dir", ""),
-	                                                   "=",
-	                                                   value_expr::create("<"))));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
@@ -707,8 +694,7 @@ TEST(parser, expr_parenthesis) {
 
 	std::unique_ptr<expr> ast = or_expr::create(or_children);
 
-	test_equal_ast("evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-	               ast.get());
+	test_equal_ast("evt.name exists and evt.type in (a, b) or proc.name=cat", ast.get());
 }
 
 // stressing nested negation and identifiers
@@ -718,10 +704,6 @@ TEST(parser, expr_multi_negation) {
 	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""),
 	                                                 "in",
 	                                                 list_expr::create({"a", "b"})));
-	and_children.push_back(
-	        not_expr::create(binary_check_expr::create(field_expr::create("evt.dir", ""),
-	                                                   "=",
-	                                                   value_expr::create("<"))));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
@@ -731,8 +713,7 @@ TEST(parser, expr_multi_negation) {
 
 	std::unique_ptr<expr> ast = or_expr::create(or_children);
 
-	test_equal_ast("evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-	               ast.get());
+	test_equal_ast("evt.name exists and evt.type in (a, b) or proc.name=cat", ast.get());
 
 	ast = not_expr::create(not_expr::create(identifier_expr::create("not_macro")));
 
@@ -954,14 +935,13 @@ TEST(parser, position_complex_multiline) {
 
 TEST(parser, position_complex_transformers) {
 	parser parser(
-	        "b64(evt.name) exists and tolower(toupper(evt.type)) in val(some.field) and not "
-	        "evt.dir=b64(some.field) or proc.name=b64(tolower(some.field))");
+	        "b64(evt.name) exists and tolower(toupper(evt.type)) in val(some.field) or "
+	        "proc.name=b64(tolower(some.field))");
 	auto expr = parser.parse();
 	pos_visitor pv;
 	expr->accept(&pv);
 	EXPECT_STREQ(pv.as_string().c_str(),
 	             "or0 1 1and0 1 1unary0 1 1transformer0 1 1field4 1 5binary25 1 26transformer25 1 "
-	             "26transformer33 1 34field41 1 42transformer55 1 56field59 1 60not75 1 76binary79 "
-	             "1 80field79 1 80transformer87 1 88field91 1 92binary106 1 107field106 1 "
-	             "107transformer116 1 117transformer120 1 121field128 1 129");
+	             "26transformer33 1 34field41 1 42transformer55 1 56field59 1 60binary74 1 "
+	             "75field74 1 75transformer84 1 85transformer88 1 89field96 1 97");
 }

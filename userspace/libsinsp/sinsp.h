@@ -110,7 +110,7 @@ class sinsp_usergroup_manager;
   \brief The default way an event is converted to string by the library
 */
 #define DEFAULT_OUTPUT_STR \
-	"*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
+	"*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.type %evt.args"
 
 /**
  * @brief Possible platforms to use with plugins

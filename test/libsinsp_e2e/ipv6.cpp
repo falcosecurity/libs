@@ -59,7 +59,7 @@ protected:
 		std::string filter =
 		        "evt.type in (socket, connect, recvfrom, sendto, close, accept, connect, bind, "
 		        "read, "
-		        "write, poll) and evt.dir=< and fd.type!=file and fd.type!=unix and fd.type!=file "
+		        "write, poll) and fd.type!=file and fd.type!=unix and fd.type!=file "
 		        "and "
 		        "fd.type!=pipe";
 		if(extra_filter) {
@@ -73,8 +73,7 @@ protected:
 	void check_ipv6_filterchecks(sinsp_evt* evt) {
 		std::string full_output;
 		std::string full =
-		        "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type "
-		        "%evt.info";
+		        "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.type %evt.info";
 		sinsp_evt_formatter(m_inspector.get(), full, m_filterlist).tostring(evt, &full_output);
 
 		verify_filtercheck(evt, "*%fd.type", "ipv6", full_output);
@@ -387,8 +386,7 @@ TEST_F(ipv6_filtercheck_test, test_ipv6_client) {
 
 		        std::string full_output;
 		        std::string full =
-		                "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir "
-		                "%evt.type "
+		                "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.type "
 		                "%evt.info";
 		        sinsp_evt_formatter(m_inspector.get(), full, m_filterlist)
 		                .tostring(evt, &full_output);
