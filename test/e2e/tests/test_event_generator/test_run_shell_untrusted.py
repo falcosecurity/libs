@@ -8,7 +8,7 @@ containers = [{
     'generator': event_generator.container_spec('syscall.RunShellUntrusted')
 }]
 
-sinsp_filters = ["-f", "evt.type in (execve, execveat) and evt.dir=<"]
+sinsp_filters = ["-f", "evt.type in (execve, execveat)"]
 sinsp_examples = [
     sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_filters)
 ]

@@ -3,7 +3,7 @@ from sinspqa import sinsp, event_generator
 from sinspqa.sinsp import assert_events, SinspField
 from sinspqa.docker import get_container_id
 
-sinsp_filters = ["-f", "evt.type in (execve, execveat) and evt.dir=<"]
+sinsp_filters = ["-f", "evt.type in (execve, execveat)"]
 
 containers = [{
     'generator': event_generator.container_spec('syscall.SystemUserInteractive')

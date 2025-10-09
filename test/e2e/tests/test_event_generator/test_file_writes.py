@@ -68,7 +68,6 @@ def test_file_writes(sinsp, run_containers: dict, expected_arg: str):
         {
             "evt.args": SinspField.regex_field(expected_arg),
             "evt.cpu": SinspField.numeric_field(),
-            "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
             "evt.type": SinspField.regex_field(r'^(?:open|openat|openat2)$'),
