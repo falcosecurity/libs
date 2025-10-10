@@ -27,3 +27,4 @@ struct proc_info {
 };
 
 bool get_proc_info(pid_t pid, proc_info* info);
+pid_t get_proc_max_pid();
