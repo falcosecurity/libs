@@ -1,4 +1,5 @@
 #include "../../event_class/event_class.h"
+#include "../../helpers/proc_parsing.h"
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -96,15 +97,24 @@ TEST(GenericTracepoints, sched_proc_exit_prctl_subreaper) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* - p1_t1 (we set it as a sub_reaper through `prctl`)
 	 *  - p2_t1
 	 *   - p3_t1
 	 *
 	 * when `p2_t1` dies we should see p1_t1 has a new reaper
 	 */
-	pid_t p1_t1 = 61024;
-	pid_t p2_t1 = 61030;
-	pid_t p3_t1 = 61050;
+	pid_t p1_t1 = 61024 % maxpid;
+	pid_t p2_t1 = 61030 % maxpid;
+	pid_t p3_t1 = 61050 % maxpid;
 
 	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
@@ -201,6 +211,15 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* - p1_t1 (this is the reaper of the namespace, init)
 	 *  - p2_t1
 	 *   - p3_t1
@@ -209,9 +228,9 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper) {
 	 */
 
 	/* The first pid is the one in the innermost namespace */
-	pid_t p1_t1[2] = {1, 59024};
-	pid_t p2_t1[2] = {2, 59025};
-	pid_t p3_t1[2] = {3, 59026};
+	pid_t p1_t1[2] = {1, 59024 % maxpid};
+	pid_t p2_t1[2] = {2, 59025 % maxpid};
+	pid_t p3_t1[2] = {3, 59026 % maxpid};
 
 	/* p1_t1 is in the new namespace */
 	clone_args cl_args_parent = {};
@@ -306,6 +325,15 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* - p1_t1 (init process)
 	 *  - p2_t1
 	 *
@@ -314,8 +342,8 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die) {
 	 */
 
 	/* The first pid is the one in the innermost namespace */
-	pid_t p1_t1[2] = {1, 59024};
-	pid_t p2_t1[2] = {2, 59025};
+	pid_t p1_t1[2] = {1, 59024 % maxpid};
+	pid_t p2_t1[2] = {2, 59025 % maxpid};
 
 	/* p1_t1 is in the new namespace */
 	clone_args cl_args_parent = {};
@@ -384,7 +412,15 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die) {
 
 #ifdef __NR_kill
 static int child_func(void* arg) {
-	pid_t p2_t1 = 57006;
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		exit(EXIT_FAILURE);
+	}
+	pid_t p2_t1 = 57006 % maxpid;
 	clone_args cl_args_child = {};
 	cl_args_child.set_tid = (uint64_t)&p2_t1;
 	cl_args_child.set_tid_size = 1;

@@ -149,3 +149,35 @@ bool get_proc_info(pid_t pid, proc_info* info) {
 
 	return true;
 }
+
+pid_t get_proc_max_pid() {
+	static pid_t maxpid = -1;
+
+	if(maxpid == -1) {
+		char path_to_read[MAX_PATH];
+
+		/*
+		 * Gather the maximum PID value on the system
+		 */
+		snprintf(path_to_read, sizeof(path_to_read), "/proc/sys/kernel/pid_max");
+		FILE* pidmax = fopen(path_to_read, "r");
+		if(pidmax == NULL) {
+			std::cerr << "'fopen /proc/sys/kernel/pid_max' must not fail: (" << errno << "), "
+			          << strerror(errno) << std::endl;
+			/*
+			 * If reading fails once, we don't try again
+			 */
+			maxpid = 0;
+			return 0;
+		}
+		if(fscanf(pidmax, "%d", &maxpid) != 1) {
+			std::cerr << "'fscanf /proc/sys/kernel/pid_max' must not fail: (" << errno << "), "
+			          << strerror(errno) << std::endl;
+			fclose(pidmax);
+			maxpid = 0;
+			return 0;
+		}
+		fclose(pidmax);
+	}
+	return maxpid;
+}

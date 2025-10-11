@@ -256,14 +256,23 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads) {
 
 	evt_test->enable_capture();
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Here we create a child process that will have:
 	 * - a leader thread with `tid` equal to `p1_t1`
 	 * - a second thread with `tid` equal to `p1_t2`.
 	 */
-	pid_t p1_t1 = 61001;
-	pid_t p1_t2 = 61004;
+	pid_t p1_t1 = 61001 % maxpid;
+	pid_t p1_t2 = 61004 % maxpid;
 
 	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
@@ -363,12 +372,21 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* Here we create a child process that will have:
 	 * - a leader thread with `tid` equal to `p1_t1`
 	 * - a child process with `tid` equal to `p2_t1`
 	 */
-	pid_t p1_t1 = 61024;
-	pid_t p2_t1 = 60128;
+	pid_t p1_t1 = 61024 % maxpid;
+	pid_t p2_t1 = 60128 % maxpid;
 
 	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
@@ -475,8 +493,17 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* Here we create a child process in a new namespace. */
-	pid_t p1_t1[2] = {1, 61032};
+	pid_t p1_t1[2] = {1, 61032 % maxpid};
 
 	clone_args cl_args = {};
 	cl_args.set_tid = (uint64_t)&p1_t1;
@@ -558,8 +585,17 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_caller) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* Here we create a child process in a new namespace. */
-	pid_t p1_t1[2] = {1, 61032};
+	pid_t p1_t1[2] = {1, 61032 % maxpid};
 
 	clone_args cl_args = {};
 	cl_args.set_tid = (uint64_t)&p1_t1;
@@ -634,13 +670,22 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* Get the maximum pid value from the proc filesystem in order
+	 * to prevent failures in systems where the pid has a low maximum
+	 * value (e.g. 32768).
+	 */
+	pid_t maxpid = get_proc_max_pid();
+	if(maxpid == 0) {
+		FAIL() << "Unable to get maximum pid info from proc" << std::endl;
+	}
+
 	/* Here we create a child process in a new namespace.
 	 * The child process will have `tid` equal to `p1_t1`.
 	 * The child process will create a new thread with `tid` equal to `p1_t2`
 	 */
-	pid_t p1_t1[2] = {1, 61032};
+	pid_t p1_t1[2] = {1, 61032 % maxpid};
 	/* Please note that a process can have the same pid number in different namespaces */
-	pid_t p1_t2[2] = {61036, 61036};
+	pid_t p1_t2[2] = {61036 % maxpid, 61036 % maxpid};
 
 	clone_args cl_args = {};
 	cl_args.set_tid = (uint64_t)&p1_t1;
