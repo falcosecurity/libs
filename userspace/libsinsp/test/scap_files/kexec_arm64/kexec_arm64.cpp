@@ -38,7 +38,7 @@ TEST_F(scap_file_test, kexec_arm64_tail_lineage) {
 	auto evt = capture_search_evt_by_type_and_tid(PPME_SYSCALL_EXECVE_19_X, tid_tail);
 
 	std::vector<int64_t> traverse_parents;
-	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
 		/* we stop when we reach the init parent */
 		traverse_parents.push_back(pt->m_tid);
 		if(pt->m_tid == INIT_TID) {
@@ -73,7 +73,7 @@ TEST_F(scap_file_test, kexec_arm64_tail_lineage) {
 	                                                               tid_systemd2};
 	traverse_parents.clear();
 	ASSERT_TRUE(evt->get_thread_info());
-	evt->get_thread_info()->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*evt->get_thread_info(), visitor);
 	ASSERT_EQ(traverse_parents, expected_traverse_parents_after_execve);
 
 	/* At the beninning of the capture containerd_shim1 was not a reaper */
