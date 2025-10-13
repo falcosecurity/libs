@@ -66,19 +66,21 @@ protected:
 		promise<bool> finished;
 		auto result = finished.get_future();
 
-		sinsp_threadinfo::visitor_func_t visitor = [](sinsp_threadinfo* tinfo) {
+		sinsp_thread_manager::visitor_func_t visitor = [](sinsp_threadinfo* tinfo) {
 			tinfo->m_lastevent_fd = 1;
 			return true;
 		};
 
 		thread runner = thread(
 		        [](promise<bool> finished,
+		           const std::shared_ptr<sinsp_thread_manager>& thread_manager,
 		           sinsp_threadinfo* tinfo,
-		           sinsp_threadinfo::visitor_func_t visitor) {
-			        tinfo->traverse_parent_state(visitor);
+		           sinsp_thread_manager::visitor_func_t visitor) {
+			        thread_manager->traverse_parent_state(*tinfo, visitor);
 			        finished.set_value(true);
 		        },
 		        std::move(finished),
+		        m_inspector.m_thread_manager,
 		        tinfo,
 		        visitor);
 

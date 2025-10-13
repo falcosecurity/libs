@@ -132,6 +132,13 @@ public:
 	  \return Pointer to the threadinfo or NULL if it doesn't exist
 	*/
 	sinsp_threadinfo* get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
+	//
+	// Walk up the parent process hierarchy, calling the provided
+	// function for each node. If the function returns false, the
+	// traversal stops.
+	//
+	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
+	void traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor);
 
 	void dump_threads_to_file(scap_dumper_t* dumper);
 

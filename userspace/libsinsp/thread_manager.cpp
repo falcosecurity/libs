@@ -661,6 +661,41 @@ void sinsp_thread_manager::maybe_log_max_lookup(int64_t tid, bool scan_sockets, 
 	}
 }
 
+void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor) {
+	// Use two pointers starting at this, traversing the parent
+	// state, at different rates. If they ever equal each other
+	// before slow is NULL there's a loop.
+
+	sinsp_threadinfo *slow = find_thread(tinfo.m_ptid, true).get(), *fast = slow;
+
+	// Move fast to its parent
+	fast = (fast ? find_thread(fast->m_ptid, true).get() : fast);
+
+	// The slow pointer must be valid and not have a tid of -1.
+	while(slow && slow->m_tid != -1) {
+		if(!visitor(slow)) {
+			break;
+		}
+
+		// Advance slow one step and advance fast two steps
+		slow = find_thread(slow->m_ptid, true).get();
+
+		// advance fast 2 steps, checking to see if we meet
+		// slow after each step.
+		for(uint32_t i = 0; i < 2; i++) {
+			fast = (fast ? find_thread(fast->m_ptid, true).get() : fast);
+
+			// If not at the end but fast == slow or if
+			// slow points to itself, there's a loop in
+			// the thread state.
+			if(slow && (slow == fast || slow->m_tid == slow->m_ptid)) {
+				tinfo.report_thread_loop(*slow);
+				return;
+			}
+		}
+	}
+}
+
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	if(m_threadtable.size() == 0) {
 		return;
