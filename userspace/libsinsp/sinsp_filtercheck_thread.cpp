@@ -1209,8 +1209,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			for(int32_t j = 0; j < 20; j++)  // up to 20 levels, but realistically we will exit way
 			                                 // before given the mt nullptr check
 			{
-				mt = mt->get_parent_thread();
-
+				mt = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true).get();
 				if(mt == NULL) {
 					break;
 				}
@@ -1224,8 +1223,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		} else if(m_argid > 0) {
 			// start parent lineage traversal
 			for(int32_t j = 0; j < m_argid; j++) {
-				mt = mt->get_parent_thread();
-
+				mt = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true).get();
 				if(mt == NULL) {
 					return NULL;
 				}

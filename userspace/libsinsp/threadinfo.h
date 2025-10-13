@@ -280,11 +280,6 @@ public:
 	}
 
 	/*!
-	  \brief Get the thread that launched this thread's process.
-	*/
-	sinsp_threadinfo* get_parent_thread();
-
-	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
 	  ancestors.
 
@@ -390,20 +385,7 @@ public:
 	}
 
 	/* We call it immediately before removing the thread from the thread table. */
-	inline void remove_child_from_parent() {
-		auto parent = get_parent_thread();
-		if(parent == nullptr) {
-			return;
-		}
-
-		parent->m_not_expired_children--;
-
-		/* Clean expired children if necessary. */
-		if((parent->m_children.size() - parent->m_not_expired_children) >=
-		   DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
-			parent->clean_expired_children();
-		}
-	}
+	void remove_child_from_parent(sinsp_thread_manager& thread_manager) const;
 
 	inline void clean_expired_children() {
 		auto child = m_children.begin();
