@@ -703,10 +703,6 @@ void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 	m_cgroups = cgroups;
 }
 
-sinsp_threadinfo* sinsp_threadinfo::get_parent_thread() {
-	return m_params->thread_manager->find_thread(m_ptid, true).get();
-}
-
 sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
 	sinsp_threadinfo* mt = get_main_thread();
 
@@ -714,7 +710,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
 		if(mt == nullptr) {
 			return nullptr;
 		}
-		mt = mt->get_parent_thread();
+		mt = m_params->thread_manager->find_thread(mt->m_ptid, true).get();
 		if(mt == nullptr) {
 			return nullptr;
 		}
@@ -965,10 +961,11 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t& visitor) {
 	// state, at different rates. If they ever equal each other
 	// before slow is NULL there's a loop.
 
-	sinsp_threadinfo *slow = this->get_parent_thread(), *fast = slow;
+	sinsp_threadinfo *slow = m_params->thread_manager->find_thread(m_ptid, true).get(),
+	                 *fast = slow;
 
 	// Move fast to its parent
-	fast = (fast ? fast->get_parent_thread() : fast);
+	fast = (fast ? m_params->thread_manager->find_thread(fast->m_ptid, true).get() : fast);
 
 	// The slow pointer must be valid and not have a tid of -1.
 	while(slow && slow->m_tid != -1) {
@@ -977,12 +974,12 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t& visitor) {
 		}
 
 		// Advance slow one step and advance fast two steps
-		slow = slow->get_parent_thread();
+		slow = m_params->thread_manager->find_thread(slow->m_ptid, true).get();
 
 		// advance fast 2 steps, checking to see if we meet
 		// slow after each step.
 		for(uint32_t i = 0; i < 2; i++) {
-			fast = (fast ? fast->get_parent_thread() : fast);
+			fast = (fast ? m_params->thread_manager->find_thread(fast->m_ptid, true).get() : fast);
 
 			// If not at the end but fast == slow or if
 			// slow points to itself, there's a loop in
@@ -1038,6 +1035,21 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 		child = m_children.erase(child);
 	}
 	m_not_expired_children = 0;
+}
+
+void sinsp_threadinfo::remove_child_from_parent(sinsp_thread_manager& thread_manager) const {
+	auto parent = thread_manager.find_thread(m_ptid, true).get();
+	if(parent == nullptr) {
+		return;
+	}
+
+	parent->m_not_expired_children--;
+
+	/* Clean expired children if necessary. */
+	if((parent->m_children.size() - parent->m_not_expired_children) >=
+	   DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
+		parent->clean_expired_children();
+	}
 }
 
 void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo) {
