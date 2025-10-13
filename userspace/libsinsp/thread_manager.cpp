@@ -322,7 +322,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	std::unordered_set<int64_t> loop_detection_set{tinfo->m_tid};
 	uint16_t prev_set_size = 1;
 
-	auto parent_tinfo = tinfo->get_parent_thread();
+	auto parent_tinfo = find_thread(tinfo->m_ptid, true).get();
 	while(parent_tinfo != nullptr) {
 		prev_set_size = loop_detection_set.size();
 		loop_detection_set.insert(parent_tinfo->m_tid);
@@ -355,7 +355,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 				}
 			}
 		}
-		parent_tinfo = parent_tinfo->get_parent_thread();
+		parent_tinfo = find_thread(parent_tinfo->m_ptid, true).get();
 	}
 
 	return nullptr;
@@ -410,7 +410,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * which don't have a group or children.
 	 */
 	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr) {
-		thread_to_remove->remove_child_from_parent();
+		thread_to_remove->remove_child_from_parent(*this);
 		m_threadtable.erase(tid);
 		m_last_tid = -1;
 		m_last_tinfo.reset();
@@ -494,7 +494,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		/* even if thread_to_remove is not the main thread the parent will be
 		 * the same so it's ok.
 		 */
-		thread_to_remove->remove_child_from_parent();
+		thread_to_remove->remove_child_from_parent(*this);
 		m_thread_groups.erase(thread_to_remove->m_pid);
 		m_threadtable.erase(thread_to_remove->m_pid);
 	}
@@ -505,7 +505,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * in the previous `if`.
 	 */
 	if(!thread_to_remove->is_main_thread()) {
-		thread_to_remove->remove_child_from_parent();
+		thread_to_remove->remove_child_from_parent(*this);
 		m_threadtable.erase(tid);
 	}
 

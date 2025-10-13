@@ -82,7 +82,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation) {
 	ASSERT_TRUE(tinfo);
 	ASSERT_TRUE(tinfo->is_main_thread());
 	ASSERT_EQ(tinfo->get_main_thread(), tinfo);
-	ASSERT_EQ(tinfo->get_parent_thread(), nullptr);
+	ASSERT_EQ(m_inspector.m_thread_manager->find_thread(tinfo->m_ptid, true), nullptr);
 	ASSERT_EQ(tinfo->m_tid, INIT_TID);
 	ASSERT_EQ(tinfo->m_pid, INIT_PID);
 	ASSERT_EQ(tinfo->m_ptid, INIT_PTID);
