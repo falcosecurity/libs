@@ -710,6 +710,52 @@ void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visito
 		}
 	}
 }
+sinsp_threadinfo* sinsp_thread_manager::get_oldest_matching_ancestor(
+        sinsp_threadinfo* tinfo,
+        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+        bool is_virtual_id) {
+	int64_t id = get_thread_id(tinfo);
+	if(id == -1) {
+		// the id is not set
+		return nullptr;
+	}
+
+	// If we are using a non virtual id or if the id is virtual but we are in the init namespace we
+	// can access the thread table directly!
+	// if is_virtual_id == false we don't care about the namespace in which we are
+	sinsp_threadinfo* leader = nullptr;
+	if(!is_virtual_id || !tinfo->is_in_pid_namespace()) {
+		leader = find_thread(id, true).get();
+		if(leader != nullptr) {
+			return leader;
+		}
+	}
+
+	// If we are in a pid_namespace we cannot use directly m_sid to access the table
+	// since it could be related to a pid namespace.
+	visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
+		if(get_thread_id(pt) != id) {
+			return false;
+		}
+		leader = pt;
+		return true;
+	};
+
+	traverse_parent_state(*tinfo, visitor);
+	return leader;
+}
+
+std::string sinsp_thread_manager::get_ancestor_field_as_string(
+        sinsp_threadinfo* tinfo,
+        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
+        bool is_virtual_id) {
+	auto ancestor = get_oldest_matching_ancestor(tinfo, get_thread_id, is_virtual_id);
+	if(ancestor) {
+		return get_field_str(ancestor);
+	}
+	return "";
+}
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	if(m_threadtable.size() == 0) {
