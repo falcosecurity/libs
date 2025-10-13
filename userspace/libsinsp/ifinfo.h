@@ -29,6 +29,7 @@ typedef struct scap_addrlist scap_addrlist;
 typedef struct scap_ifinfo_ipv4 scap_ifinfo_ipv4;
 typedef struct scap_ifinfo_ipv6 scap_ifinfo_ipv6;
 class sinsp_threadinfo;
+class plugin_tables;
 
 //
 // network interface info ipv4
@@ -65,6 +66,8 @@ public:
 	std::string m_name;
 };
 
+class sinsp_thread_manager;
+
 class SINSP_PUBLIC sinsp_network_interfaces {
 public:
 	sinsp_network_interfaces();
@@ -73,9 +76,13 @@ public:
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void update_fd(sinsp_fdinfo& fd) const;
 	bool is_ipv4addr_in_subnet(uint32_t addr) const;
-	bool is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo) const;
+	bool is_ipv4addr_in_local_machine(uint32_t addr,
+	                                  ::plugin_tables& plugin_tables,
+	                                  sinsp_threadinfo* tinfo) const;
 	void import_ipv6_interface(const sinsp_ipv6_ifinfo& ifinfo);
-	bool is_ipv6addr_in_local_machine(const ipv6addr& addr, sinsp_threadinfo* tinfo) const;
+	bool is_ipv6addr_in_local_machine(const ipv6addr& addr,
+	                                  const plugin_tables& plugin_tables,
+	                                  sinsp_threadinfo* tinfo) const;
 	std::vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
 	std::vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
 	inline void clear();
