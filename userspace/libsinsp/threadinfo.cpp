@@ -437,29 +437,6 @@ std::string sinsp_threadinfo::get_container_user() {
 	return user;
 }
 
-std::string sinsp_threadinfo::get_container_ip() {
-	std::string ip;
-
-	const auto container_id = get_container_id();
-	if(!container_id.empty()) {
-		auto table =
-		        m_params->thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
-		if(table != nullptr) {
-			auto fld = table->get_field<std::string>(
-			        sinsp_thread_manager::s_containers_table_field_ip);
-			try {
-				auto e = table->get_entry(container_id);
-				e.read_field(fld, ip);
-			} catch(...) {
-				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-				                          "Failed to read ip from container %s",
-				                          container_id.c_str());
-			}
-		}
-	}
-	return ip;
-}
-
 void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
 	const auto container_id = get_container_id();
 	m_uid = uid;
