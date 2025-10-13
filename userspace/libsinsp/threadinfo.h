@@ -567,15 +567,6 @@ public:
 
 	inline sinsp_evt::category& get_lastevent_category() { return m_lastevent_category; }
 
-	sinsp_threadinfo* get_oldest_matching_ancestor(
-	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-	        bool is_virtual_id = false);
-
-	std::string get_ancestor_field_as_string(
-	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-	        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
-	        bool is_virtual_id = false);
-
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();
 		m_main_fdtable =

@@ -840,52 +840,6 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct() {
 	}
 }
 
-sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(
-        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-        bool is_virtual_id) {
-	int64_t id = get_thread_id(this);
-	if(id == -1) {
-		// the id is not set
-		return nullptr;
-	}
-
-	// If we are using a non virtual id or if the id is virtual but we are in the init namespace we
-	// can access the thread table directly!
-	// if is_virtual_id == false we don't care about the namespace in which we are
-	sinsp_threadinfo* leader = nullptr;
-	if(!is_virtual_id || !is_in_pid_namespace()) {
-		leader = m_params->thread_manager->find_thread(id, true).get();
-		if(leader != nullptr) {
-			return leader;
-		}
-	}
-
-	// If we are in a pid_namespace we cannot use directly m_sid to access the table
-	// since it could be related to a pid namespace.
-	sinsp_thread_manager::visitor_func_t visitor =
-	        [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
-		        if(get_thread_id(pt) != id) {
-			        return false;
-		        }
-		        leader = pt;
-		        return true;
-	        };
-
-	m_params->thread_manager->traverse_parent_state(*this, visitor);
-	return leader;
-}
-
-std::string sinsp_threadinfo::get_ancestor_field_as_string(
-        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
-        bool is_virtual_id) {
-	auto ancestor = this->get_oldest_matching_ancestor(get_thread_id, is_virtual_id);
-	if(ancestor) {
-		return get_field_str(ancestor);
-	}
-	return "";
-}
-
 double sinsp_threadinfo::get_fd_usage_pct_d() {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0) {
