@@ -125,13 +125,6 @@ public:
 	std::string get_container_user();
 
 	/*!
-	  \brief Given the container_id associated with this thread, feetches the container ip from the
-	  containers table, created by the container plugins if running, leveraging sinsp state table
-	  API.
-	*/
-	std::string get_container_ip();
-
-	/*!
 	  \brief Return the full info about thread uid.
 	*/
 	scap_userinfo* get_user();
