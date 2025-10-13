@@ -1421,7 +1421,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			}
 		}
 
-		sinsp_threadinfo::visitor_func_t check_thread_for_shell = [&res](sinsp_threadinfo* pt) {
+		sinsp_thread_manager::visitor_func_t check_thread_for_shell = [&res](sinsp_threadinfo* pt) {
 			size_t len = pt->m_comm.size();
 
 			if(len >= 2 && pt->m_comm[len - 2] == 's' && pt->m_comm[len - 1] == 'h') {
@@ -1435,7 +1435,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		check_thread_for_shell(mt);
 
 		// Then check all its parents to see if they are shells
-		mt->traverse_parent_state(check_thread_for_shell);
+		m_inspector->m_thread_manager->traverse_parent_state(*mt, check_thread_for_shell);
 
 		RETURN_EXTRACT_PTR(res);
 	}
@@ -1759,7 +1759,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 	// No id specified, search in all of the ancestors
 	//
 	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
 		res = compare_rhs(m_cmpop, PT_PID, &pt->m_pid);
@@ -1774,7 +1774,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 		return true;
 	};
 
-	mt->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
 
 	return found;
 }
@@ -1802,7 +1802,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt* evt) {
 	// No id specified, search in all of the ancestors
 	//
 	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
 		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)pt->m_comm.c_str());
@@ -1817,7 +1817,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt* evt) {
 		return true;
 	};
 
-	mt->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
 
 	return found;
 }
@@ -1845,7 +1845,7 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt* evt) {
 	// No id specified, search in all of the ancestors
 	//
 	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
 		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)pt->m_exe.c_str());
@@ -1860,7 +1860,7 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt* evt) {
 		return true;
 	};
 
-	mt->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
 
 	return found;
 }
@@ -1888,7 +1888,7 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt* evt) {
 	// No id specified, search in all of the ancestors
 	//
 	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
 		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)pt->m_exepath.c_str());
@@ -1903,7 +1903,7 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt* evt) {
 		return true;
 	};
 
-	mt->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
 
 	return found;
 }
@@ -1931,7 +1931,7 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt* evt) {
 	// No id specified, search in all of the ancestors
 	//
 	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 		std::string cmdline;
 		sinsp_threadinfo::populate_cmdline(cmdline, pt);
@@ -1948,7 +1948,7 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt* evt) {
 		return true;
 	};
 
-	mt->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
 
 	return found;
 }
@@ -1976,7 +1976,7 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt* evt) {
 	// No id specified, search in all of the ancestors
 	//
 	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		std::string full_env = pt->concatenate_all_env();
 		bool res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)full_env.c_str());
 
@@ -1990,7 +1990,7 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt* evt) {
 		return true;
 	};
 
-	mt->traverse_parent_state(visitor);
+	m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
 
 	return found;
 }
