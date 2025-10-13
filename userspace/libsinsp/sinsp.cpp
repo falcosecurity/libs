@@ -388,6 +388,13 @@ void sinsp::init() {
 	// Load state table API field accessors and tables
 	//
 	set_thread_manager_foreign_accessors_and_tables();
+	try {
+		m_plugin_tables.init(*this);
+	} catch(const sinsp_exception& e) {
+		sinsp_logger::instance()->log(
+		        "unable to initialize the state table API: " + std::string(e.what()),
+		        sinsp_logger::SEV_DEBUG);
+	}
 
 	// If we are in capture, this is already called by consume_initialstate_events
 	if(!is_capture() && m_external_event_processor) {
