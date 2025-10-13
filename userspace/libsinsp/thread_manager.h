@@ -141,6 +141,17 @@ public:
 	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
 	void traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor);
 
+	sinsp_threadinfo* get_oldest_matching_ancestor(
+	        sinsp_threadinfo* tinfo,
+	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+	        bool is_virtual_id = false);
+
+	std::string get_ancestor_field_as_string(
+	        sinsp_threadinfo* tinfo,
+	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+	        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
+	        bool is_virtual_id = false);
+
 	void dump_threads_to_file(scap_dumper_t* dumper);
 
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
