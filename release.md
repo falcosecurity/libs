@@ -71,14 +71,14 @@ For processes that involve both _drivers_ and _libs_ releases, only the _libs_ v
 
 When working with a release branch, adhere to the following rules:
 - New commits should be added to the branch via cherry-picking.
-- All tags within the release branch must maintain the same _major_ and _minor_ version as the release branch.
+- All tags within the release branch (except the ones related to _drivers_ releases) must maintain the same _major_ and _minor_ version as the release branch.
 - Patch releases for the `M.m.x` series must be tagged directly within the respective `release/M.m.x` branch.
 - If there's a need to bump the _major_ or _minor_ version (for either _libs_ or _drivers_) after the release branch is created, a new release branch should be created for the relevant component with the corresponding version.
 
 For example, a `release/0.10.x` is created; it will host tags `0.10.0`, `0.10.1`, `0.10.2` and so on. `0.10.1` will be made of some cherry picked commits on top of `0.10.0`.  
 It will also host driver tags that are made within the same release cycle as the userspace part.  
 
-Once the release brach has been created:
+Once the release branch has been created:
 
  - A PR must be opened in our [test-infra](https://github.com/falcosecurity/test-infra/blob/master/config/config.yaml) repository to set the newly created branch as protected.
 
