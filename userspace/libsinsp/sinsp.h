@@ -60,6 +60,7 @@ limitations under the License.
 #include <libsinsp/mpsc_priority_queue.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_parser.h>
+#include <libsinsp/plugin_tables.h>
 #include <libsinsp/settings.h>
 #include <libsinsp/sinsp_cycledumper.h>
 #include <libsinsp/sinsp_exception.h>
@@ -1081,6 +1082,8 @@ public:
 
 	bool m_inited;
 	static std::atomic<int> instance_count;
+
+	plugin_tables m_plugin_tables;
 };
 
 /*@}*/

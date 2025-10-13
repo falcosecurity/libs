@@ -17,12 +17,10 @@ limitations under the License.
 */
 
 #ifndef _WIN32
-#include <inttypes.h>
 #include <unistd.h>
 #include <limits.h>
 #endif
 #include <stdio.h>
-#include <algorithm>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
@@ -44,9 +42,7 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
-        m_cgroups_table_adapter("cgroups", m_cgroups),
-        m_container_id_accessor(params->thread_manager->get_field_accessor(
-                sinsp_thread_manager::s_container_id_field_name)) {
+        m_cgroups_table_adapter("cgroups", m_cgroups) {
 	init();
 }
 
