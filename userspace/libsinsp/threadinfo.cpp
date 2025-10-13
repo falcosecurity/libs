@@ -862,15 +862,16 @@ sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(
 
 	// If we are in a pid_namespace we cannot use directly m_sid to access the table
 	// since it could be related to a pid namespace.
-	sinsp_threadinfo::visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
-		if(get_thread_id(pt) != id) {
-			return false;
-		}
-		leader = pt;
-		return true;
-	};
+	sinsp_thread_manager::visitor_func_t visitor =
+	        [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
+		        if(get_thread_id(pt) != id) {
+			        return false;
+		        }
+		        leader = pt;
+		        return true;
+	        };
 
-	traverse_parent_state(visitor);
+	m_params->thread_manager->traverse_parent_state(*this, visitor);
 	return leader;
 }
 
@@ -939,48 +940,15 @@ bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup
 	return false;
 }
 
-void sinsp_threadinfo::traverse_parent_state(visitor_func_t& visitor) {
-	// Use two pointers starting at this, traversing the parent
-	// state, at different rates. If they ever equal each other
-	// before slow is NULL there's a loop.
-
-	sinsp_threadinfo *slow = m_params->thread_manager->find_thread(m_ptid, true).get(),
-	                 *fast = slow;
-
-	// Move fast to its parent
-	fast = (fast ? m_params->thread_manager->find_thread(fast->m_ptid, true).get() : fast);
-
-	// The slow pointer must be valid and not have a tid of -1.
-	while(slow && slow->m_tid != -1) {
-		if(!visitor(slow)) {
-			break;
-		}
-
-		// Advance slow one step and advance fast two steps
-		slow = m_params->thread_manager->find_thread(slow->m_ptid, true).get();
-
-		// advance fast 2 steps, checking to see if we meet
-		// slow after each step.
-		for(uint32_t i = 0; i < 2; i++) {
-			fast = (fast ? m_params->thread_manager->find_thread(fast->m_ptid, true).get() : fast);
-
-			// If not at the end but fast == slow or if
-			// slow points to itself, there's a loop in
-			// the thread state.
-			if(slow && (slow == fast || slow->m_tid == slow->m_ptid)) {
-				// Note we only log a loop once for a given main thread, to avoid flooding logs.
-				if(!m_parent_loop_detected) {
-					libsinsp_logger()->log(
-					        std::string("Loop in parent thread state detected for pid ") +
-					                std::to_string(m_pid) +
-					                ". stopped at tid= " + std::to_string(slow->m_tid) +
-					                " ptid=" + std::to_string(slow->m_ptid),
-					        sinsp_logger::SEV_WARNING);
-					m_parent_loop_detected = true;
-				}
-				return;
-			}
-		}
+void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread) {
+	// Note we only log a loop once for a given main thread, to avoid flooding logs.
+	if(!m_parent_loop_detected) {
+		libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
+		                               std::to_string(m_pid) +
+		                               ". stopped at tid= " + std::to_string(looping_thread.m_tid) +
+		                               " ptid=" + std::to_string(looping_thread.m_ptid),
+		                       sinsp_logger::SEV_WARNING);
+		m_parent_loop_detected = true;
 	}
 }
 

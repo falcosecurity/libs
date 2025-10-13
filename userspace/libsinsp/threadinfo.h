@@ -356,13 +356,7 @@ public:
 	 */
 	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
 
-	//
-	// Walk up the parent process hierarchy, calling the provided
-	// function for each node. If the function returns false, the
-	// traversal stops.
-	//
-	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
-	void traverse_parent_state(visitor_func_t& visitor);
+	void report_thread_loop(const sinsp_threadinfo& looping_thread);
 
 	void assign_children_to_reaper(sinsp_threadinfo* reaper);
 
