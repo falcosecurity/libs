@@ -41,11 +41,6 @@ struct iovec {
 #include <libsinsp/ifinfo.h>
 #include <libscap/scap_savefile_api.h>
 
-// Forward declare `sinsp_thread_manager` and `sinsp_usergroup_manager` to avoid cyclic
-// dependencies.
-class sinsp_thread_manager;
-class sinsp_usergroup_manager;
-
 struct erase_fd_params {
 	bool m_remove_from_table;
 	int64_t m_fd;
@@ -69,11 +64,6 @@ struct sinsp_threadinfo_ctor_params {
 	const sinsp_fdtable_factory& fdtable_factory;
 	const std::shared_ptr<libsinsp::state::table_entry::dynamic_struct::field_infos>&
 	        thread_manager_dyn_fields;
-
-	// The following fields are externally provided and expected to be populated/updated by the
-	// thread info.
-	std::shared_ptr<sinsp_thread_manager>& thread_manager;
-	std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager;
 };
 
 /*!
@@ -360,11 +350,6 @@ public:
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	const cgroups_t& cgroups() const;
-
-	/*!
-	  \brief Return the thread manager associated with this thread.
-	*/
-	std::shared_ptr<sinsp_thread_manager> get_thread_manager() const;
 
 	//
 	// Core state
