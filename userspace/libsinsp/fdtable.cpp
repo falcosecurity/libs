@@ -163,7 +163,7 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 	if(m_tid != 0 && m_tid != static_cast<uint64_t>(-1) && fdi.is_file() && fdi.m_dev == 0 &&
 	   fdi.m_mount_id != 0) {
 		char procdir[SCAP_MAX_PATH_SIZE];
-		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
+		snprintf(procdir, sizeof(procdir), "%s/proc/%" PRIu64 "/", scap_get_host_root(), m_tid);
 		fdi.m_dev = scap_get_device_by_mount_id(m_params->m_scap_platform, procdir, fdi.m_mount_id);
 		fdi.m_mount_id = 0;  // don't try again
 	}
