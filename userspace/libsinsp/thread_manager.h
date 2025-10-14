@@ -35,6 +35,7 @@ limitations under the License.
 #include <libsinsp/timestamper.h>
 
 class sinsp_observer;
+class sinsp_usergroup_manager;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
@@ -42,22 +43,23 @@ class sinsp_observer;
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
                                           public libsinsp::state::sinsp_table_owner {
 public:
-	sinsp_thread_manager(const sinsp_mode& sinsp_mode,
-	                     const sinsp_threadinfo_factory& threadinfo_factory,
-	                     sinsp_observer* const& observer,
-	                     const std::shared_ptr<const sinsp_plugin>& input_plugin,
-	                     const bool& large_envs_enabled,
-	                     const timestamper& timestamper,
-	                     const int64_t& sinsp_pid,
-	                     const uint64_t& threads_purging_scan_time_ns,
-	                     const uint64_t& thread_timeout_ns,
-	                     const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-	                     scap_platform* const& scap_platform,
-	                     scap_t* const& scap_handle,
-	                     const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                             thread_manager_dyn_fields,
-	                     const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                             fdtable_dyn_fields);
+	sinsp_thread_manager(
+	        const sinsp_mode& sinsp_mode,
+	        const sinsp_threadinfo_factory& threadinfo_factory,
+	        sinsp_observer* const& observer,
+	        const std::shared_ptr<const sinsp_plugin>& input_plugin,
+	        const bool& large_envs_enabled,
+	        const timestamper& timestamper,
+	        const int64_t& sinsp_pid,
+	        const uint64_t& threads_purging_scan_time_ns,
+	        const uint64_t& thread_timeout_ns,
+	        const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
+	        scap_platform* const& scap_platform,
+	        scap_t* const& scap_handle,
+	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	                thread_manager_dyn_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager);
 	void clear();
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
@@ -361,6 +363,8 @@ private:
 	        m_nullptr_tinfo_ret;  // needed for returning a reference
 	const std::shared_ptr<thread_group_info>
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
+
+	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	// State table API field accessors to foreign keys written by plugins.
 	std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>

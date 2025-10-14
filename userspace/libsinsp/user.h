@@ -121,10 +121,19 @@ public:
 	                        int64_t pid,
 	                        uint32_t uid,
 	                        uint32_t gid,
+	                        bool notify = false);
+	scap_userinfo *add_user(const std::string &container_id,
+	                        int64_t pid,
+	                        uint32_t uid,
+	                        uint32_t gid,
 	                        std::string_view name,
 	                        std::string_view home,
 	                        std::string_view shell,
 	                        bool notify = false);
+	scap_groupinfo *add_group(const std::string &container_id,
+	                          int64_t pid,
+	                          uint32_t gid,
+	                          bool notify = false);
 	scap_groupinfo *add_group(const std::string &container_id,
 	                          int64_t pid,
 	                          uint32_t gid,
@@ -205,10 +214,12 @@ private:
 // upon container_id updates.
 struct user_group_updater {
 	explicit user_group_updater(sinsp_evt *const evt,
+	                            plugin_tables &plugin_tables,
 	                            const bool must_notify_user_update,
 	                            const bool must_notify_group_update):
 	        m_check_cleanup(false),
 	        m_evt(nullptr),
+	        m_plugin_tables(plugin_tables),
 	        m_must_notify_user_update{must_notify_user_update},
 	        m_must_notify_group_update{must_notify_group_update} {
 		switch(evt->get_type()) {
@@ -224,7 +235,7 @@ struct user_group_updater {
 		case PPME_SYSCALL_CHROOT_X:
 			m_evt = evt;
 			if(m_evt->get_tinfo() != nullptr) {
-				m_container_id = m_evt->get_tinfo()->get_container_id();
+				m_container_id = plugin_tables.get_container_id(*m_evt->get_tinfo());
 			}
 			break;
 		default:
@@ -235,15 +246,23 @@ struct user_group_updater {
 	~user_group_updater() {
 		if(m_evt != nullptr && m_evt->get_tinfo() != nullptr) {
 			const auto tinfo = m_evt->get_tinfo();
-			const auto container_id = tinfo->get_container_id();
+			const auto container_id = m_plugin_tables.get_container_id(*tinfo);
+			const auto inspector = m_evt->get_inspector();
+			auto &usergroup_manager = inspector->m_usergroup_manager;
 			if(container_id != m_container_id) {
 				// Refresh user/group
-				tinfo->set_group(tinfo->m_gid, m_must_notify_group_update);
-				tinfo->set_user(tinfo->m_uid, m_must_notify_user_update);
+				usergroup_manager->add_group(container_id,
+				                             tinfo->m_pid,
+				                             tinfo->m_gid,
+				                             m_must_notify_group_update);
+				usergroup_manager->add_user(container_id,
+				                            tinfo->m_pid,
+				                            tinfo->m_uid,
+				                            tinfo->m_gid,
+				                            m_must_notify_user_update);
 			} else if(m_check_cleanup && !container_id.empty()) {
 				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
 					// main container process left, clean up user and groups for the container
-					const auto inspector = m_evt->get_inspector();
 					if(inspector->m_usergroup_manager->m_import_users &&
 					   (inspector->is_live() || inspector->is_syscall_plugin())) {
 						inspector->m_usergroup_manager->delete_container(container_id);
@@ -256,6 +275,7 @@ struct user_group_updater {
 	bool m_check_cleanup;
 	sinsp_evt *m_evt;
 	std::string m_container_id;
+	plugin_tables &m_plugin_tables;
 	bool m_must_notify_user_update;
 	bool m_must_notify_group_update;
 };

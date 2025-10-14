@@ -43,6 +43,7 @@ public:
 	             const sinsp_threadinfo_factory& threadinfo_factory,
 	             const sinsp_fdinfo_factory& fdinfo_factory,
 	             const std::shared_ptr<const sinsp_plugin>& input_plugin,
+	             const plugin_tables& plugin_tables,
 	             const bool& large_envs_enabled,
 	             const std::shared_ptr<sinsp_plugin_manager>& plugin_manager,
 	             const std::shared_ptr<sinsp_thread_manager>& thread_manager,
@@ -261,6 +262,7 @@ private:
 	const sinsp_threadinfo_factory m_threadinfo_factory;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
+	const plugin_tables& m_plugin_tables;
 	const bool& m_large_envs_enabled;
 
 	// The following fields are externally provided and expected to be populated/updated by the

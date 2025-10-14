@@ -118,28 +118,6 @@ public:
 	std::string get_container_id();
 
 	/*!
-	  \brief Given the container_id associated with this thread, feetches the container user from
-	  the containers table, created by the container plugins if running, leveraging sinsp state
-	  table API.
-	*/
-	std::string get_container_user();
-
-	/*!
-	  \brief Return the full info about thread uid.
-	*/
-	scap_userinfo* get_user();
-
-	/*!
-	  \brief Return the full info about thread gid.
-	*/
-	scap_groupinfo* get_group();
-
-	/*!
-	  \brief Return the full info about thread loginuid.
-	*/
-	scap_userinfo* get_loginuser();
-
-	/*!
 	  \brief Return the working directory of the process containing this thread.
 	*/
 	std::string get_cwd();
@@ -386,20 +364,6 @@ public:
 	 */
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
-	/*!
-	  \brief Set the thread user and optionally notify any interested component.
-	  \param uid The user id.
-	  \param notify A boolean indicating if any interested component must be notified of the update.
-	*/
-	void set_user(uint32_t uid, bool notify);
-	/*!
-	  \brief Set the thread group and optionally notify any interested component.
-	  \param gid The group id.
-	  \param notify A boolean indicating if any interested component must be notified of the update.
-	*/
-	void set_group(uint32_t gid, bool notify);
-	void set_loginuid(uint32_t loginuid);
-
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	const cgroups_t& cgroups() const;
 
@@ -511,10 +475,7 @@ public:
 	}
 
 	void init();
-	void init(const scap_threadinfo& pinfo,
-	          bool can_load_env_from_proc,
-	          bool notify_user_update,
-	          bool notify_group_update);
+	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
 	void fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
 	                                  bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);

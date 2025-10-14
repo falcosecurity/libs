@@ -50,6 +50,7 @@ sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
                            const sinsp_threadinfo_factory &threadinfo_factory,
                            const sinsp_fdinfo_factory &fdinfo_factory,
                            const std::shared_ptr<const sinsp_plugin> &input_plugin,
+                           const plugin_tables &plugin_tables,
                            const bool &large_envs_enabled,
                            const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
                            const std::shared_ptr<sinsp_thread_manager> &thread_manager,
@@ -67,6 +68,7 @@ sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
         m_threadinfo_factory{threadinfo_factory},
         m_fdinfo_factory{fdinfo_factory},
         m_input_plugin{input_plugin},
+        m_plugin_tables{plugin_tables},
         m_large_envs_enabled{large_envs_enabled},
         m_plugin_manager{plugin_manager},
         m_thread_manager{thread_manager},
@@ -956,11 +958,18 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/* uid */
 	const auto uid = evt.get_param(16)->as<int32_t>();
-	child_tinfo->set_user(uid, must_notify_thread_user_update());
+	child_tinfo->m_uid = uid;
 
 	/* gid */
 	const auto gid = evt.get_param(17)->as<int32_t>();
-	child_tinfo->set_group(gid, must_notify_thread_group_update());
+	child_tinfo->m_gid = gid;
+
+	m_usergroup_manager->add_user("",
+	                              child_tinfo->m_pid,
+	                              uid,
+	                              gid,
+	                              must_notify_thread_user_update());
+	m_usergroup_manager->add_group("", child_tinfo->m_pid, gid, must_notify_thread_group_update());
 
 	// Set cgroups
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -996,7 +1005,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 		child_tinfo->m_tty = caller_tinfo->m_tty;
 
-		child_tinfo->set_loginuid(caller_tinfo->m_loginuid);
+		child_tinfo->m_loginuid = caller_tinfo->m_loginuid;
 
 		child_tinfo->m_cap_permitted = caller_tinfo->m_cap_permitted;
 
@@ -1255,7 +1264,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 		child_tinfo->m_tty = lookup_tinfo->m_tty;
 
-		child_tinfo->set_loginuid(lookup_tinfo->m_loginuid);
+		child_tinfo->m_loginuid = lookup_tinfo->m_loginuid;
 
 		child_tinfo->m_cap_permitted = lookup_tinfo->m_cap_permitted;
 
@@ -1356,11 +1365,18 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 	/* uid */
 	const auto uid = evt.get_param(16)->as<int32_t>();
-	child_tinfo->set_user(uid, must_notify_thread_user_update());
+	child_tinfo->m_uid = uid;
 
 	/* gid */
 	const auto gid = evt.get_param(17)->as<int32_t>();
-	child_tinfo->set_group(gid, must_notify_thread_group_update());
+	child_tinfo->m_gid = gid;
+
+	m_usergroup_manager->add_user("",
+	                              child_tinfo->m_pid,
+	                              uid,
+	                              gid,
+	                              must_notify_thread_user_update());
+	m_usergroup_manager->add_group("", child_tinfo->m_pid, gid, must_notify_thread_group_update());
 
 	// Set cgroups
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -1660,7 +1676,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	if(const auto loginuid_param = evt.get_param(18); !loginuid_param->empty()) {
 		// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an
 		// uid invalid value.
-		evt.get_tinfo()->set_loginuid(loginuid_param->as<uint32_t>());
+		evt.get_tinfo()->m_loginuid = loginuid_param->as<uint32_t>();
 	}
 
 	// Set execve/execveat flags.
@@ -1709,7 +1725,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	if(const auto uid_param = evt.get_param(26); !uid_param->empty()) {
 		// Notice: this can potentially set uid to UINT32_MAX, which is used to denote an uid
 		// invalid value.
-		evt.get_tinfo()->set_user(uid_param->as<uint32_t>(), must_notify_thread_user_update());
+		evt.get_tinfo()->m_uid = uid_param->as<uint32_t>();
 	}
 
 	// Set pgid.
@@ -1721,9 +1737,19 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	// Set gid.
 	if(const auto gid_param = evt.get_param(29); !gid_param->empty()) {
-		evt.get_tinfo()->set_group(gid_param->as<uint32_t>(), must_notify_thread_group_update());
+		evt.get_tinfo()->m_gid = gid_param->as<uint32_t>();
 	}
 
+	std::string container_id = m_plugin_tables.get_container_id(*evt.get_tinfo());
+	m_usergroup_manager->add_user(container_id,
+	                              evt.get_tinfo()->m_pid,
+	                              evt.get_tinfo()->m_uid,
+	                              evt.get_tinfo()->m_gid,
+	                              must_notify_thread_user_update());
+	m_usergroup_manager->add_group(container_id,
+	                               evt.get_tinfo()->m_pid,
+	                               evt.get_tinfo()->m_gid,
+	                               must_notify_thread_group_update());
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -3892,7 +3918,13 @@ void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const sinsp_evt_param &eu
 		return;
 	}
 
-	ti->set_user(euid_param.as<uint32_t>(), must_notify_thread_user_update());
+	ti->m_uid = euid_param.as<uint32_t>();
+	std::string container_id = m_plugin_tables.get_container_id(*ti);
+	m_usergroup_manager->add_user(container_id,
+	                              ti->m_pid,
+	                              ti->m_uid,
+	                              ti->m_gid,
+	                              must_notify_thread_user_update());
 }
 
 void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &egid_param) const {
@@ -3905,7 +3937,12 @@ void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &e
 		return;
 	}
 
-	ti->set_group(egid_param.as<uint32_t>(), must_notify_thread_group_update());
+	ti->m_gid = egid_param.as<uint32_t>();
+	std::string container_id = m_plugin_tables.get_container_id(*ti);
+	m_usergroup_manager->add_group(container_id,
+	                               ti->m_pid,
+	                               ti->m_gid,
+	                               must_notify_thread_group_update());
 }
 
 void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
@@ -3977,7 +4014,7 @@ void sinsp_parser::parse_group_evt(sinsp_evt &evt) const {
 	const auto container_id = evt.get_param(2)->as<std::string_view>();
 
 	if(evt.get_scap_evt()->type == PPME_GROUP_ADDED_E) {
-		m_usergroup_manager->add_group(container_id.data(), -1, gid, name.data());
+		m_usergroup_manager->add_group(container_id.data(), -1, gid, name);
 	} else {
 		m_usergroup_manager->rm_group(container_id.data(), gid);
 	}
