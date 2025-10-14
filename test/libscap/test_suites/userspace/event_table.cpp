@@ -203,23 +203,29 @@ TEST(event_table, check_EF_USED_FD) {
 			const int location = get_enter_event_fd_location(static_cast<ppm_event_code>(evt));
 			ASSERT_EQ(evt_info.params[location].type, PT_FD)
 			        << "event_type " << evt << " uses a wrong location " << location;
+			continue;
 		}
 
-		if(PPME_IS_EXIT(evt) && evt_info.flags & EF_CONVERTER_MANAGED) {
-			const int location = get_exit_event_fd_location(static_cast<ppm_event_code>(evt));
-			// Currently, get_exit_event_fd_location() returns -1 for all old event versions, based
-			// on the assumption that such events are not propagated by scap. If, in the future, we
-			// need to support this information, we can update get_exit_event_fd_location() to
-			// handle fd positions for old event versions, and adjust this test as needed.
-			if(evt_info.flags & EF_OLD_VERSION) {
-				ASSERT_EQ(location, -1)
-				        << "event_type " << evt << " uses a wrong location " << location;
-			} else {
-				ASSERT_NE(location, -1)
-				        << "event_type " << evt << " uses a wrong location " << location;
-				ASSERT_EQ(evt_info.params[location].type, PT_FD)
-				        << "event_type " << evt << " uses a wrong location " << location;
-			}
+		const int location = get_exit_event_fd_location(static_cast<ppm_event_code>(evt));
+		if((evt_info.flags & EF_CONVERTER_MANAGED) == 0) {
+			ASSERT_NE(location, -1)
+			        << "event_type " << evt << " uses a wrong location " << location;
+			continue;
+		}
+
+		// Currently, get_exit_event_fd_location() returns -1 for all old event versions, based
+		// on the assumption that such events are not propagated by scap. If, in the future, we
+		// need to support this information, we can update get_exit_event_fd_location() to
+		// handle fd positions for old event versions, and adjust this test as needed.
+		if(evt_info.flags & EF_OLD_VERSION) {
+			ASSERT_EQ(location, -1) << "event_type (converter-managed, old) " << evt
+			                        << " uses a wrong location " << location;
+		} else {
+			ASSERT_NE(location, -1) << "event_type (converter-managed) " << evt
+			                        << " uses a wrong location " << location;
+			ASSERT_EQ(evt_info.params[location].type, PT_FD)
+			        << "event_type (converter-managed) " << evt << " uses a wrong location "
+			        << location;
 		}
 	}
 }
