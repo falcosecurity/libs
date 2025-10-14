@@ -194,21 +194,21 @@ sinsp::sinsp(bool with_metrics):
                 m_external_event_processor,
                 m_fdtable_dyn_fields,
         },
-        m_thread_manager_factory{
-                m_mode,
-                m_threadinfo_factory,
-                m_observer,
-                m_input_plugin,
-                m_large_envs_enabled,
-                m_timestamper,
-                m_self_pid,
-                m_threads_purging_scan_time_ns,
-                m_thread_timeout_ns,
-                m_sinsp_stats_v2,
-                m_platform,
-                m_h,
-                m_thread_manager_dyn_fields,
-                m_fdtable_dyn_fields,
+        m_thread_manager_factory{m_mode,
+                                 m_threadinfo_factory,
+                                 m_observer,
+                                 m_input_plugin,
+                                 m_large_envs_enabled,
+                                 m_timestamper,
+                                 m_self_pid,
+                                 m_threads_purging_scan_time_ns,
+                                 m_thread_timeout_ns,
+                                 m_sinsp_stats_v2,
+                                 m_platform,
+                                 m_h,
+                                 m_thread_manager_dyn_fields,
+                                 m_fdtable_dyn_fields,
+                                 m_usergroup_manager
 
         },
         m_table_registry{std::make_shared<libsinsp::state::table_registry>()},
@@ -220,10 +220,10 @@ sinsp::sinsp(bool with_metrics):
 	m_parser = nullptr;
 	m_is_dumping = false;
 	m_parser_tmp_evt = sinsp_evt{this};
+	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
 	m_thread_manager = m_thread_manager_factory.create();
 	// Add thread manager table to state tables registry.
 	m_table_registry->add_table(m_thread_manager.get());
-	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
 	m_filter = nullptr;
 	m_machine_info = nullptr;
 	m_agent_info = nullptr;
@@ -268,6 +268,7 @@ sinsp::sinsp(bool with_metrics):
 	                                          m_threadinfo_factory,
 	                                          m_fdinfo_factory,
 	                                          m_input_plugin,
+	                                          m_plugin_tables,
 	                                          m_large_envs_enabled,
 	                                          m_plugin_manager,
 	                                          m_thread_manager,
@@ -1027,10 +1028,18 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
-		newti->init(*tinfo,
-		            large_envs_enabled(),
-		            must_notify_thread_user_update(),
-		            must_notify_thread_group_update());
+		newti->init(*tinfo, large_envs_enabled());
+		// we haven't run container detection yet, so we don't know the container_id
+		// usergroup_updater should fix it up later
+		m_usergroup_manager->add_user("",
+		                              tinfo->pid,
+		                              tinfo->uid,
+		                              tinfo->gid,
+		                              must_notify_thread_user_update());
+		m_usergroup_manager->add_group("",
+		                               tinfo->pid,
+		                               tinfo->gid,
+		                               must_notify_thread_user_update());
 		if(is_nodriver()) {
 			auto existing_tinfo = find_thread(tid, true);
 			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts) {
@@ -1121,10 +1130,18 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 
 			auto newti = m_threadinfo_factory.create();
-			newti->init(*tinfo,
-			            large_envs_enabled(),
-			            must_notify_thread_user_update(),
-			            must_notify_thread_group_update());
+			newti->init(*tinfo, large_envs_enabled());
+			// we haven't run container detection yet, so we don't know the container_id
+			// usergroup_updater should fix it up later
+			m_usergroup_manager->add_user("",
+			                              tinfo->pid,
+			                              tinfo->uid,
+			                              tinfo->gid,
+			                              must_notify_thread_user_update());
+			m_usergroup_manager->add_group("",
+			                               tinfo->pid,
+			                               tinfo->gid,
+			                               must_notify_thread_user_update());
 			sinsp_tinfo = m_thread_manager->add_thread(std::move(newti), true);
 			if(sinsp_tinfo == nullptr) {
 				ASSERT(false);
@@ -1245,7 +1262,10 @@ void sinsp::import_user_list() {
 		}
 
 		for(j = 0; j < ul->ngroups; j++) {
-			m_usergroup_manager->add_group("", -1, ul->groups[j].gid, ul->groups[j].name);
+			m_usergroup_manager->add_group("",
+			                               -1,
+			                               ul->groups[j].gid,
+			                               std::string_view{ul->groups[j].name});
 		}
 	}
 }
@@ -1542,6 +1562,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// Since the threadinfo state might get changed from a plugin parser,
 		// evaluate this one after all parsers get run.
 		user_group_updater usr_grp_updater(evt,
+		                                   m_plugin_tables,
 		                                   must_notify_thread_user_update(),
 		                                   must_notify_thread_group_update());
 
