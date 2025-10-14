@@ -514,7 +514,7 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	// todo!: this should become the unique logic when we'll disable the enter events.
 	if(tinfo->m_lastevent_fd == -1) {
 		if(const int fd_location = get_exit_event_fd_location(static_cast<ppm_event_code>(etype));
-		   fd_location != -1) {
+		   fd_location != -1 && static_cast<uint32_t>(fd_location) < evt.get_num_params()) {
 			// It is possible that the fd_param is empty.
 			if(const auto fd_param = evt.get_param(fd_location); !fd_param->empty()) {
 				tinfo->m_lastevent_fd = fd_param->as<int64_t>();
