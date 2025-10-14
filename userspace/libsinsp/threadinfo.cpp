@@ -402,15 +402,6 @@ std::string sinsp_threadinfo::get_exepath() const {
 	return m_exepath;
 }
 
-std::string sinsp_threadinfo::get_container_id() {
-	if(!m_container_id_accessor) {
-		return {};
-	}
-	std::string container_id;
-	get_dynamic_field(*m_container_id_accessor, container_id);
-	return container_id;
-}
-
 void sinsp_threadinfo::set_args(const char* args, size_t len) {
 	if(len > 0 && args[len - 1] == '\0') {
 		len--;

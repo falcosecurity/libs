@@ -519,7 +519,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 	std::string container_id;
 	if(m_tinfo != NULL) {
-		container_id = m_tinfo->get_container_id();
+		container_id = m_inspector->m_plugin_tables.get_container_id(*m_tinfo);
 	}
 	switch(m_field_id) {
 	case TYPE_FDNAME:
