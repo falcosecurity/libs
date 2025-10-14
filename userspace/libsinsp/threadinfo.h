@@ -112,12 +112,6 @@ public:
 	std::string get_exepath() const;
 
 	/*!
-	  \brief Return the container_id associated with this thread, if the container plugins is
-	  running, leveraging sinsp state table API.
-	*/
-	std::string get_container_id();
-
-	/*!
 	  \brief Return the working directory of the process containing this thread.
 	*/
 	std::string get_cwd();
