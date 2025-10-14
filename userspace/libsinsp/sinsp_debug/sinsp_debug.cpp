@@ -53,7 +53,7 @@ void display_thread_lineage(sinsp_threadinfo* tinfo) {
 		return true;
 	};
 
-	printf("📜 Task Lineage for tid: %ld\n", tinfo->m_tid);
+	printf("📜 Task Lineage for tid: %" PRId64 "\n", tinfo->m_tid);
 	printf("⬇️ %s\n", thread_info_to_string(tinfo).c_str());
 
 	/* If the thread is invalid it has no parent */
@@ -123,9 +123,9 @@ int main(int argc, char** argv) {
 		case PPME_SYSCALL_CLONE3_X: {
 			int64_t child_tid = ev->get_syscall_return_value();
 			if(child_tid == 0) {
-				printf("🧵 CLONE CHILD EXIT: evt_num(%ld)\n", ev->get_num());
+				printf("🧵 CLONE CHILD EXIT: evt_num(%" PRIu64 ")\n", ev->get_num());
 			} else {
-				printf("🧵 CLONE CALLER EXIT for child (%ld): evt_num(%ld)\n",
+				printf("🧵 CLONE CALLER EXIT for child (%" PRId64 "): evt_num(%" PRIu64 ")\n",
 				       child_tid,
 				       ev->get_num());
 			}
@@ -134,16 +134,17 @@ int main(int argc, char** argv) {
 
 		case PPME_SYSCALL_EXECVE_19_X:
 		case PPME_SYSCALL_EXECVEAT_X:
-			printf("🟢 EXECVE EXIT: evt_num(%ld)\n", ev->get_num());
+			printf("🟢 EXECVE EXIT: evt_num(%" PRIu64 ")\n", ev->get_num());
 			display_thread_lineage(tinfo);
 			break;
 
 		case PPME_PROCEXIT_1_E:
-			printf("💥 THREAD EXIT: evt_num(%ld)\n", ev->get_num());
+			printf("💥 THREAD EXIT: evt_num(%" PRIu64 ")\n", ev->get_num());
 			for(const auto& child : tinfo->m_children) {
 				if(!child.expired()) {
 					auto child_shr = child.lock().get();
-					printf("- move child, tid: %ld, ptid: %ld (dead) to a new reaper.\n",
+					printf("- move child, tid: %" PRId64 ", ptid: %" PRId64
+					       " (dead) to a new reaper.\n",
 					       child_shr->m_tid,
 					       child_shr->m_ptid);
 				}

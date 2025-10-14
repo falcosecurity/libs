@@ -438,7 +438,7 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 	if(expected->ts != (UINT64_MAX - 1) && curr->ts != expected->ts) {
 		scap_errprintf(error,
 		               0,
-		               "Event timestamp mismatch. Current (%ld) != expected (%ld)",
+		               "Event timestamp mismatch. Current (%" PRIu64 ") != expected (%" PRIu64 ")",
 		               curr->ts,
 		               expected->ts);
 		return false;
@@ -446,7 +446,7 @@ bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
 	if(curr->tid != expected->tid) {
 		scap_errprintf(error,
 		               0,
-		               "Event tid mismatch. Current (%ld) != expected (%ld)",
+		               "Event tid mismatch. Current (%" PRIu64 ") != expected (%" PRIu64 ")",
 		               curr->tid,
 		               expected->tid);
 		return false;
