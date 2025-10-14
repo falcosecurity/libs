@@ -146,20 +146,12 @@ int pman_attach_signal_deliver() {
 	return 0;
 }
 
-static void print_prog_attachment_failure_error(const struct bpf_program* prog) {
-	const char* prog_name = bpf_program__name(prog);
-	char error_message[MAX_ERROR_MESSAGE_LEN];
-	snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "failed to attach the '%s' program", prog_name);
-	pman_print_error(error_message);
-}
-
 static int attach_64bit_toctou_prog(const struct bpf_program* prog, struct bpf_link** prog_link) {
 	if(*prog_link != NULL) {
 		return 0;
 	}
 	*prog_link = bpf_program__attach(prog);
 	if(!*prog_link) {
-		print_prog_attachment_failure_error(prog);
 		return errno;
 	}
 	return 0;
@@ -177,13 +169,11 @@ static int attach_ia32_toctou_prog(const struct bpf_program* ia32_compat_prog,
 	if(bpf_program__fd(ia32_compat_prog) >= 0) {
 		*ia32_compat_prog_link = bpf_program__attach(ia32_compat_prog);
 		if(!*ia32_compat_prog_link) {
-			print_prog_attachment_failure_error(ia32_compat_prog);
 			return errno;
 		}
 	} else if(bpf_program__fd(ia32_prog) >= 0) {
 		*ia32_prog_link = bpf_program__attach(ia32_prog);
 		if(!*ia32_prog_link) {
-			print_prog_attachment_failure_error(ia32_prog);
 			return errno;
 		}
 	}
