@@ -4080,55 +4080,35 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt &evt) {
 }
 
 void sinsp_parser::parse_getsockopt_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	const sinsp_evt_param *parinfo;
-	int64_t retval;
-	int8_t level, optname;
-
-	if(evt.get_tinfo() == nullptr || evt.get_fd_info() == nullptr) {
+	if(evt.get_tinfo() == nullptr || evt.get_fd_info() == nullptr || !m_track_connection_status ||
+	   evt.get_syscall_return_value() < 0) {
 		return;
 	}
 
-	// right now we only parse getsockopt() for SO_ERROR options
-	// if that ever changes, move this check inside
-	// the `if (level == PPM_SOCKOPT_LEVEL_SOL_SOCKET ...)` block
-	if(!m_track_connection_status) {
+	const auto level = evt.get_param(2)->as<int8_t>();
+	const auto optname = evt.get_param(3)->as<int8_t>();
+	if(level != PPM_SOCKOPT_LEVEL_SOL_SOCKET || optname != PPM_SOCKOPT_SO_ERROR) {
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
-	retval = evt.get_syscall_return_value();
+	const auto val_param = evt.get_param(4);
+	ASSERT(*val_param->data() == PPM_SOCKOPT_IDX_ERRNO);
+	ASSERT(val_param->len() == sizeof(int64_t) + 1);
+	const auto err = *reinterpret_cast<const int64_t *>(
+	        val_param->data() + 1);  // Add 1 byte to skip over PT_DYN param index.
 
-	if(retval < 0) {
-		return;
+	evt.set_errorcode(static_cast<int32_t>(err));
+	if(err < 0) {
+		evt.get_fd_info()->set_socket_failed();
+	} else {
+		evt.get_fd_info()->set_socket_connected();
 	}
 
-	level = evt.get_param(2)->as<int8_t>();
-
-	optname = evt.get_param(3)->as<int8_t>();
-
-	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR) {
-		parinfo = evt.get_param(4);
-		ASSERT(*parinfo->data() == PPM_SOCKOPT_IDX_ERRNO);
-		ASSERT(parinfo->len() == sizeof(int64_t) + 1);
-		const auto err = *reinterpret_cast<const int64_t *>(
-		        parinfo->data() + 1);  // add 1 byte to skip over PT_DYN param index
-
-		evt.set_errorcode(static_cast<int32_t>(err));
-		if(err < 0) {
-			evt.get_fd_info()->set_socket_failed();
-		} else {
-			evt.get_fd_info()->set_socket_connected();
-		}
-		//
-		// If there's a listener, add a callback to later invoke it.
-		//
-		if(m_observer) {
-			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
-				observer->on_socket_status_changed(evt);
-			});
-		}
+	// If there's a listener, add a callback to later invoke it.
+	if(m_observer) {
+		verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
+			observer->on_socket_status_changed(evt);
+		});
 	}
 }
 
