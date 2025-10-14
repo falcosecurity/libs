@@ -72,29 +72,6 @@ public:
 	inline bool remove_inactive_threads();
 	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
 
-	typedef std::pair<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
-	        foreign_field_accessor_entry;
-	/*!
-	  \brief Set the list of foreign field accessors. Any previously set foreign field accessor is
-	    unset.
-	  \param accessors A list of {field_name, field_accessor} pairs.
-	 */
-	void set_foreign_field_accessors(const std::vector<foreign_field_accessor_entry>& accessors) {
-		m_foreign_fields_accessors = std::map{accessors.cbegin(), accessors.cend()};
-	}
-
-	typedef std::pair<std::string, base_table*> foreign_table_entry;
-	/*!
-	  \brief Set the list of foreign tables. Any previously set foreign table is unset.
-	  \param tables A list of {table_name, table} pairs.
-	 */
-	void set_foreign_tables(const std::vector<foreign_table_entry>& tables) {
-		m_foreign_tables.clear();
-		for(const auto& [name, table] : tables) {
-			m_foreign_tables.emplace(name, sinsp_table<std::string>(this, table));
-		}
-	}
-
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
 	/*!
@@ -275,12 +252,6 @@ public:
 	inline void set_last_flush_time_ns(uint64_t v) { m_last_flush_time_ns = v; }
 
 	inline uint32_t get_max_thread_table_size() const { return m_max_thread_table_size; }
-
-	// Tables and fields names.
-	constexpr static auto s_containers_table_name = "containers";
-	constexpr static auto s_containers_table_field_user = "user";
-	constexpr static auto s_containers_table_field_ip = "ip";
-	constexpr static auto s_container_id_field_name = "container_id";
 
 	/*!
 	  \brief Account the file descriptor for the provided thread.

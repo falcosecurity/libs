@@ -186,9 +186,7 @@ sinsp::sinsp(bool with_metrics):
                 sinsp_threadinfo::ctor_params{m_network_interfaces,
                                               m_fdinfo_factory,
                                               m_fdtable_factory,
-                                              m_thread_manager_dyn_fields,
-                                              m_thread_manager,
-                                              m_usergroup_manager})},
+                                              m_thread_manager_dyn_fields})},
         m_threadinfo_factory{
                 m_threadinfo_ctor_params,
                 m_external_event_processor,
@@ -388,7 +386,6 @@ void sinsp::init() {
 	//
 	// Load state table API field accessors and tables
 	//
-	set_thread_manager_foreign_accessors_and_tables();
 	try {
 		m_plugin_tables.init(*this);
 	} catch(const sinsp_exception& e) {
@@ -432,31 +429,6 @@ void sinsp::init() {
 		(void)res;
 	}
 	m_inited = true;
-}
-
-void sinsp::set_thread_manager_foreign_accessors_and_tables() const {
-	std::vector<sinsp_thread_manager::foreign_field_accessor_entry> accessors;
-	std::vector<sinsp_thread_manager::foreign_table_entry> tables;
-
-	// Add "container_id" accessor.
-	const auto& container_id_field_name = sinsp_thread_manager::s_container_id_field_name;
-	const auto& fields = m_thread_manager->dynamic_fields()->fields();
-	if(const auto field = fields.find(container_id_field_name); field != fields.end()) {
-		accessors.emplace_back(container_id_field_name, field->second.new_accessor<std::string>());
-	}
-
-	// Add "containers" table.
-	const auto& containers_table_name = sinsp_thread_manager::s_containers_table_name;
-	const auto containers_table = dynamic_cast<libsinsp::state::base_table*>(
-	        get_table_registry()->get_table<std::string>(containers_table_name));
-	if(containers_table != nullptr) {
-		tables.emplace_back(containers_table_name, containers_table);
-	}
-
-	// Add other accessors/tables here
-
-	m_thread_manager->set_foreign_field_accessors(accessors);
-	m_thread_manager->set_foreign_tables(tables);
 }
 
 void sinsp::set_import_users(bool import_users) {

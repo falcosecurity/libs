@@ -386,10 +386,6 @@ const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
 	return m_cgroups;
 }
 
-std::shared_ptr<sinsp_thread_manager> sinsp_threadinfo::get_thread_manager() const {
-	return m_params->thread_manager;
-}
-
 std::string sinsp_threadinfo::get_comm() const {
 	return m_comm;
 }
