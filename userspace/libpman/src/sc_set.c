@@ -22,7 +22,7 @@ limitations under the License.
 
 /* If the provided error is ENOENT, logs a message and returns 0. Otherwise, simply returns the
  * provided error. */
-static int ignore_and_log_enoent(const char *progs_name, const int err) {
+static int ignore_and_log_enoent(const char *sc_name, const int err) {
 	if(err != ENOENT) {
 		return err;
 	}
@@ -30,8 +30,9 @@ static int ignore_and_log_enoent(const char *progs_name, const int err) {
 	char msg[MAX_ERROR_MESSAGE_LEN];
 	snprintf(msg,
 	         MAX_ERROR_MESSAGE_LEN,
-	         "couldn't attach '%s' programs. Skipped progs attachment",
-	         progs_name);
+	         "failure while attaching TOCTOU mitigation program for '%s' system call. Detection "
+	         "will continue to work, but TOCTOU mitigation may not properly work",
+	         sc_name);
 	pman_print_msg(FALCOSECURITY_LOG_SEV_WARNING, msg);
 	return 0;
 }
@@ -125,34 +126,30 @@ int pman_enforce_sc_set(bool *sc_set) {
 	 */
 	if(attach_connect_ttm_progs)
 		ret = ret
-		              ?: ignore_and_log_enoent("connect_ttm",
+		              ?: ignore_and_log_enoent("connect",
 		                                       pman_attach_connect_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_connect_toctou_mitigation_progs();
 
 	if(attach_creat_ttm_progs)
-		ret = ret
-		              ?: ignore_and_log_enoent("creat_ttm",
-		                                       pman_attach_creat_toctou_mitigation_progs());
+		ret = ret ?: ignore_and_log_enoent("creat", pman_attach_creat_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_creat_toctou_mitigation_progs();
 
 	if(attach_open_ttm_progs)
-		ret = ret ?: ignore_and_log_enoent("open_ttm", pman_attach_open_toctou_mitigation_progs());
+		ret = ret ?: ignore_and_log_enoent("open", pman_attach_open_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_open_toctou_mitigation_progs();
 
 	if(attach_openat2_ttm_progs)
 		ret = ret
-		              ?: ignore_and_log_enoent("openat2_ttm",
+		              ?: ignore_and_log_enoent("openat2",
 		                                       pman_attach_openat2_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_openat2_toctou_mitigation_progs();
 
 	if(attach_openat_ttm_progs)
-		ret = ret
-		              ?: ignore_and_log_enoent("openat_ttm",
-		                                       pman_attach_openat_toctou_mitigation_progs());
+		ret = ret ?: ignore_and_log_enoent("openat", pman_attach_openat_toctou_mitigation_progs());
 	else
 		ret = ret ?: pman_detach_openat_toctou_mitigation_progs();
 
