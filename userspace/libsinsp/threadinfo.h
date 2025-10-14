@@ -31,7 +31,7 @@ struct iovec {
 
 #include <functional>
 #include <memory>
-#include <sinsp_fdtable_factory.h>
+#include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/state/table.h>

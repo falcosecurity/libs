@@ -9,4 +9,4 @@ Version: @FALCOSECURITY_LIBS_VERSION@
 Requires: @LIBSCAP_PKGCONFIG_REQUIRES@
 Requires.private: @LIBSCAP_PKGCONFIG_REQUIRES_PRIVATE@
 Libs: -L${libdir} @LIBSCAP_LINK_LIBDIRS_FLAGS@ @LIBSCAP_LINK_LIBRARIES_FLAGS@
-Cflags: -I${includedir} -I${includedir}/libscap -I${includedir}/driver
+Cflags: -I${includedir}
