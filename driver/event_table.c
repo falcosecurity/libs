@@ -528,7 +528,7 @@ const struct ppm_event_info g_event_info[] = {
                                     1,
                                     {{"fd", PT_FD, PF_NA}}},
         [PPME_SYSCALL_FSTAT64_X] =
-                {"fstat64", EC_FILE | EC_SYSCALL, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC}}},
+                {"fstat64", EC_FILE | EC_SYSCALL, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC}}},
         [PPME_SYSCALL_EPOLLWAIT_E] = {"epoll_wait",
                                       EC_WAIT | EC_SYSCALL,
                                       EF_OLD_VERSION | EF_WAITS | EF_CONVERTER_MANAGED,
