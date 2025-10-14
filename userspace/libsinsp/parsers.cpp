@@ -140,10 +140,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 		parse_open_openat_creat_exit(evt);
 		break;
-	case PPME_SYSCALL_FCHMOD_X:
-	case PPME_SYSCALL_FCHOWN_X:
-		parse_fchmod_fchown_exit(evt);
-		break;
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_SETNS_X:
 		parse_unshare_setns_exit(evt);
@@ -2048,20 +2044,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 	if(m_observer && !(flags & PPM_O_DIRECTORY)) {
 		m_observer->on_file_open(&evt, fullpath, flags);
 	}
-}
-
-void sinsp_parser::parse_fchmod_fchown_exit(sinsp_evt &evt) {
-	// Both of these syscalls act on fds although they do not
-	// create them. Take the fd argument and attempt to look up
-	// the fd from the thread.
-	if(evt.get_tinfo() == nullptr) {
-		return;
-	}
-
-	ASSERT(evt.get_param_info(1)->type == PT_FD);
-	const int64_t fd = evt.get_param(1)->as<int64_t>();
-	evt.get_tinfo()->m_lastevent_fd = fd;
-	evt.set_fd_info(evt.get_tinfo()->get_fd(fd));
 }
 
 //
