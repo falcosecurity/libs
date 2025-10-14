@@ -91,7 +91,6 @@ private:
 	void parse_clone_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_execve_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_open_openat_creat_exit(sinsp_evt& evt) const;
-	static void parse_fchmod_fchown_exit(sinsp_evt& evt);
 	void parse_pipe_exit(sinsp_evt& evt) const;
 	void parse_socketpair_exit(sinsp_evt& evt) const;
 	void parse_socket_exit(sinsp_evt& evt) const;
