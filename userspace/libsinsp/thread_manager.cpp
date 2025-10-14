@@ -121,7 +121,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         scap_t* const& scap_handle,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
                 thread_manager_dyn_fields,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields):
+        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
         m_sinsp_mode{sinsp_mode},
         m_threadinfo_factory{threadinfo_factory},
@@ -137,7 +138,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         m_scap_handle{scap_handle},
         m_fdtable_dyn_fields{fdtable_dyn_fields},
         m_max_thread_table_size(m_thread_table_default_size),
-        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()) {
+        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()),
+        m_usergroup_manager{usergroup_manager} {
 	clear();
 }
 
@@ -956,10 +958,18 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 		}
 
 		if(have_scap_proc) {
-			newti->init(scap_proc,
-			            is_large_envs_enabled(),
-			            must_notify_thread_user_update(),
-			            must_notify_thread_group_update());
+			newti->init(scap_proc, is_large_envs_enabled());
+			// we haven't run container detection yet, so use an empty container_id
+			// and hope the usergroup_updater fixes it later
+			m_usergroup_manager->add_user("",
+			                              newti->m_pid,
+			                              newti->m_uid,
+			                              newti->m_gid,
+			                              must_notify_thread_user_update());
+			m_usergroup_manager->add_group("",
+			                               newti->m_pid,
+			                               newti->m_gid,
+			                               must_notify_thread_user_update());
 		} else {
 			//
 			// Add a fake entry to avoid a continuous lookup

@@ -317,10 +317,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 	return m_fdtable.add(fdi.fd, std::move(newfdi));
 }
 
-void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
-                            const bool can_load_env_from_proc,
-                            const bool notify_user_update,
-                            const bool notify_group_update) {
+void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
 	init();
 
 	m_tid = pinfo.tid;
@@ -380,9 +377,9 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
 	set_cgroups(pinfo.cgroups.path, pinfo.cgroups.len);
 	m_root = pinfo.root;
 
-	set_group(pinfo.gid, notify_group_update);
-	set_user(pinfo.uid, notify_user_update);
-	set_loginuid(pinfo.loginuid);
+	m_gid = pinfo.gid;
+	m_uid = pinfo.uid;
+	m_loginuid = pinfo.loginuid;
 }
 
 const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
@@ -412,104 +409,6 @@ std::string sinsp_threadinfo::get_container_id() {
 	std::string container_id;
 	get_dynamic_field(*m_container_id_accessor, container_id);
 	return container_id;
-}
-
-std::string sinsp_threadinfo::get_container_user() {
-	std::string user;
-
-	const auto container_id = get_container_id();
-	if(!container_id.empty()) {
-		auto table =
-		        m_params->thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
-		if(table != nullptr) {
-			auto fld = table->get_field<std::string>(
-			        sinsp_thread_manager::s_containers_table_field_user);
-			try {
-				auto e = table->get_entry(container_id);
-				e.read_field(fld, user);
-			} catch(...) {
-				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-				                          "Failed to read user from container %s",
-				                          container_id.c_str());
-			}
-		}
-	}
-	return user;
-}
-
-void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
-	const auto container_id = get_container_id();
-	m_uid = uid;
-	// Do not notify if the user is already present.
-	if(m_params->usergroup_manager->get_user(container_id, uid)) {
-		return;
-	}
-	// For uid 0 force set root related info.
-	if(uid == 0) {
-		m_params->usergroup_manager
-		        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
-	} else {
-		m_params->usergroup_manager->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
-	}
-}
-
-void sinsp_threadinfo::set_group(const uint32_t gid, const bool notify) {
-	const auto container_id = get_container_id();
-	m_gid = gid;
-	// Do not notify if the group is already present.
-	if(m_params->usergroup_manager->get_group(container_id, gid)) {
-		return;
-	}
-	// For gid 0 force set root related info.
-	if(gid == 0) {
-		m_params->usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
-	} else {
-		m_params->usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
-	}
-}
-
-void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
-	m_loginuid = loginuid;
-}
-
-scap_userinfo* sinsp_threadinfo::get_user() {
-	if(const auto user = m_params->usergroup_manager->get_user(get_container_id(), m_uid);
-	   user != nullptr) {
-		return user;
-	}
-
-	static scap_userinfo usr{};
-	usr.uid = m_uid;
-	usr.gid = m_gid;
-	strlcpy(usr.name, m_uid == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, m_uid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
-	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
-	return &usr;
-}
-
-scap_groupinfo* sinsp_threadinfo::get_group() {
-	if(const auto group = m_params->usergroup_manager->get_group(get_container_id(), m_gid);
-	   group != nullptr) {
-		return group;
-	}
-	static scap_groupinfo grp = {};
-	grp.gid = m_gid;
-	strlcpy(grp.name, m_gid == 0 ? "root" : "<NA>", sizeof(grp.name));
-	return &grp;
-}
-
-scap_userinfo* sinsp_threadinfo::get_loginuser() {
-	if(const auto user = m_params->usergroup_manager->get_user(get_container_id(), m_loginuid);
-	   user != nullptr) {
-		return user;
-	}
-	static scap_userinfo usr{};
-	usr.uid = m_loginuid;
-	usr.gid = m_gid;
-	strlcpy(usr.name, m_loginuid == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, m_loginuid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
-	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
-	return &usr;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len) {

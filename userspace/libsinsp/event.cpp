@@ -1338,10 +1338,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			sinsp_threadinfo *tinfo = get_thread_info();
 			scap_userinfo *user_info = NULL;
 			if(tinfo) {
-				user_info =
-				        m_inspector->m_usergroup_manager->get_user(tinfo->get_container_id(), val);
+				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
+				user_info = m_inspector->m_usergroup_manager->get_user(container_id, val);
 			}
-			if(user_info != NULL) {
+			if(user_info != NULL && user_info->name[0] != 0) {
 				strcpy_sanitized(&m_resolved_paramstr_storage[0],
 				                 user_info->name,
 				                 (uint32_t)m_resolved_paramstr_storage.size());
@@ -1368,10 +1368,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			sinsp_threadinfo *tinfo = get_thread_info();
 			scap_groupinfo *group_info = NULL;
 			if(tinfo) {
-				group_info =
-				        m_inspector->m_usergroup_manager->get_group(tinfo->get_container_id(), val);
+				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
+				group_info = m_inspector->m_usergroup_manager->get_group(container_id, val);
 			}
-			if(group_info != NULL) {
+			if(group_info != NULL && group_info->name[0] != 0) {
 				strcpy_sanitized(&m_resolved_paramstr_storage[0],
 				                 group_info->name,
 				                 (uint32_t)m_resolved_paramstr_storage.size());

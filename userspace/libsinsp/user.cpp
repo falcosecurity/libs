@@ -248,6 +248,21 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 	return add_container_user(container_id, pid, uid, notify);
 }
 
+scap_groupinfo *sinsp_usergroup_manager::add_group(const std::string &container_id,
+                                                   int64_t pid,
+                                                   uint32_t gid,
+                                                   bool notify) {
+	if(auto gr = get_group(container_id, gid); gr != nullptr) {
+		return gr;
+	}
+
+	if(gid == 0) {
+		return add_group(container_id, pid, gid, "root", notify);
+	} else {
+		return add_group(container_id, pid, gid, {}, notify);
+	}
+}
+
 scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid,
                                                       uint32_t gid,
                                                       std::string_view name,
@@ -501,6 +516,22 @@ scap_groupinfo *sinsp_usergroup_manager::get_group(const std::string &container_
 		return nullptr;
 	}
 	return &it->second;
+}
+
+scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id,
+                                                 int64_t pid,
+                                                 uint32_t uid,
+                                                 uint32_t gid,
+                                                 bool notify) {
+	if(auto usr = get_user(container_id, uid); usr != nullptr) {
+		return usr;
+	}
+
+	if(uid == 0) {
+		return add_user(container_id, pid, uid, gid, "root", "/root", {}, notify);
+	} else {
+		return add_user(container_id, pid, uid, gid, {}, {}, {}, notify);
+	}
 }
 
 bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user,

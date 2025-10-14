@@ -59,7 +59,7 @@ TEST_F(usergroup_manager_test, add_rm) {
 	}
 
 	// group
-	mgr.add_group(container_id, -1, 0, "test");
+	mgr.add_group(container_id, -1, 0, std::string_view("test"));
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
@@ -102,7 +102,7 @@ TEST_F(usergroup_manager_test, system_lookup) {
 #endif
 	ASSERT_EQ(std::string(user->shell).empty(), false);
 
-	mgr.add_group(container_id, -1, 0, {});
+	mgr.add_group(container_id, -1, 0, std::string_view{});
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
@@ -134,7 +134,7 @@ TEST_F(usergroup_manager_test, add_no_import_users) {
 	auto* user = mgr.get_user(container_id, 37);
 	ASSERT_EQ(user, nullptr);
 
-	auto* added_grp = mgr.add_group(container_id, -1, 15, "foo");
+	auto* added_grp = mgr.add_group(container_id, -1, 15, std::string_view{"foo"});
 	ASSERT_NE(added_grp, nullptr);
 	ASSERT_EQ(added_grp->gid, 15);
 	ASSERT_STREQ(added_grp->name, "<NA>");
@@ -197,7 +197,7 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup) {
 	ASSERT_STREQ(user->homedir, "/toor");
 	ASSERT_STREQ(user->shell, "/bin/ash");
 
-	mgr.add_group(container_id, -1, 0, {});
+	mgr.add_group(container_id, -1, 0, std::string_view{});
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
@@ -214,7 +214,7 @@ TEST_F(usergroup_manager_host_root_test, nss_user_lookup) {
 	auto* usr = mgr.add_user(container_id, -1, 0, 0, "+test_user", "", "");
 	ASSERT_EQ(usr, nullptr);
 
-	auto* grp = mgr.add_group(container_id, -1, 0, "+test_group");
+	auto* grp = mgr.add_group(container_id, -1, 0, std::string_view("+test_group"));
 	ASSERT_EQ(grp, nullptr);
 }
 #endif

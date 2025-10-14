@@ -38,6 +38,7 @@ class sinsp_thread_manager_factory {
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	        m_thread_manager_dyn_fields;
 	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& m_fdtable_dyn_fields;
+	const std::shared_ptr<sinsp_usergroup_manager>& m_usergroup_manager;
 
 public:
 	sinsp_thread_manager_factory(
@@ -55,8 +56,8 @@ public:
 	        scap_t* const& scap_handle,
 	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                thread_manager_dyn_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                fdtable_dyn_fields):
+	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
 	        m_sinsp_mode{sinsp_mode},
 	        m_threadinfo_factory{threadinfo_factory},
 	        m_observer{observer},
@@ -70,7 +71,8 @@ public:
 	        m_scap_platform{scap_platform},
 	        m_scap_handle{scap_handle},
 	        m_thread_manager_dyn_fields{thread_manager_dyn_fields},
-	        m_fdtable_dyn_fields{fdtable_dyn_fields} {}
+	        m_fdtable_dyn_fields{fdtable_dyn_fields},
+	        m_usergroup_manager(usergroup_manager) {}
 
 	std::shared_ptr<sinsp_thread_manager> create() const {
 		return std::make_unique<sinsp_thread_manager>(m_sinsp_mode,
@@ -86,6 +88,7 @@ public:
 		                                              m_scap_platform,
 		                                              m_scap_handle,
 		                                              m_thread_manager_dyn_fields,
-		                                              m_fdtable_dyn_fields);
+		                                              m_fdtable_dyn_fields,
+		                                              m_usergroup_manager);
 	}
 };
