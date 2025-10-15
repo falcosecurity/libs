@@ -100,9 +100,6 @@ public:
 
 	  \param tid the ID of the thread. In case of multi-thread processes,
 	   this corresponds to the PID.
-	  \param query_os_if_not_found if true, the library will search for this
-	   thread's information in proc, use the result to create a new thread
-	   entry, and return the new entry.
 
 	  \return the \ref sinsp_threadinfo object containing full thread information
 	   and state.
@@ -113,10 +110,9 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid,
-	                                              bool query_os_if_not_found = false,
-	                                              bool lookup_only = true,
-	                                              bool main_thread = false);
+	const threadinfo_map_t::ptr_t& get_thread(int64_t tid,
+	                                          bool lookup_only = true,
+	                                          bool main_thread = false);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made

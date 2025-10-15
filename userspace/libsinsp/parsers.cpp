@@ -428,7 +428,7 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	const auto tid = evt.get_scap_evt()->tid;
 	const bool query_os = can_query_os_for_thread_info(etype);
-	const auto tinfo = query_os ? m_thread_manager->get_thread_ref(tid, true, false).get()
+	const auto tinfo = query_os ? m_thread_manager->get_thread(tid, false).get()
 	                            : m_thread_manager->find_thread(tid, false).get();
 
 	evt.set_tinfo(tinfo);
@@ -673,7 +673,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * ===========================*/
 
 	/* Let's see if we have some info regarding the caller */
-	auto caller_tinfo = m_thread_manager->get_thread_ref(caller_tid, true);
+	auto caller_tinfo = m_thread_manager->get_thread(caller_tid);
 
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
@@ -1175,7 +1175,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
 	}
 
-	auto lookup_tinfo = m_thread_manager->get_thread_ref(lookup_tid, true);
+	auto lookup_tinfo = m_thread_manager->get_thread(lookup_tid);
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
 	 * `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
@@ -3803,7 +3803,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 			tid = evt.get_tid();
 		}
 
-		sinsp_threadinfo *ptinfo = m_thread_manager->get_thread_ref(tid, true, true).get();
+		sinsp_threadinfo *ptinfo = m_thread_manager->get_thread(tid, true).get();
 		/* If the thread info is invalid we cannot recover the main thread because we don't
 		 * even have the `pid` of the thread.
 		 */

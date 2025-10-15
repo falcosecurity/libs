@@ -453,7 +453,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 			 * We should have the reaper thread in the table, but if we don't have
 			 * it, we try to create it from /proc
 			 */
-			reaper_tinfo = get_thread_ref(thread_to_remove->m_reaper_tid, true).get();
+			reaper_tinfo = get_thread(thread_to_remove->m_reaper_tid).get();
 		}
 
 		if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid()) {
@@ -798,15 +798,12 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	});
 }
 
-const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(
-        const int64_t tid,
-        const bool query_os_if_not_found,
-        const bool lookup_only,
-        const bool main_thread) {
+const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t tid,
+                                                                const bool lookup_only,
+                                                                const bool main_thread) {
 	const auto& sinsp_proc = find_thread(tid, lookup_only);
 
-	if(!sinsp_proc && query_os_if_not_found &&
-	   (m_threadtable.size() < m_max_thread_table_size || tid == m_sinsp_pid)) {
+	if(!sinsp_proc && (m_threadtable.size() < m_max_thread_table_size || tid == m_sinsp_pid)) {
 		// Certain code paths can lead to this point from scap_open() (incomplete example:
 		// scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
 		// defensive check here to protect both, callers of get_env and get_thread.
