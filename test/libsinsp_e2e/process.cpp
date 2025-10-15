@@ -367,7 +367,7 @@ TEST(procinfo, process_not_existent) {
 	//
 	// Now a new entry should be added to the process list...
 	//
-	sinsp_threadinfo* tinfo = thread_manager->get_thread_ref(0xffff, true, true).get();
+	sinsp_threadinfo* tinfo = thread_manager->get_thread(0xffff, true).get();
 	EXPECT_NE((sinsp_threadinfo*)NULL, tinfo);
 	if(tinfo) {
 		EXPECT_EQ("<NA>", tinfo->m_comm);

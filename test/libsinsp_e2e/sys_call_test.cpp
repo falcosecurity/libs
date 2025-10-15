@@ -1032,7 +1032,7 @@ TEST_F(sys_call_test, unshare_) {
 		auto tinfo = evt->get_thread_info();
 		if(tinfo == nullptr) {
 			auto sinsp = evt->get_inspector();
-			tinfo = sinsp->m_thread_manager->get_thread_ref(evt->get_tid(), true).get();
+			tinfo = sinsp->m_thread_manager->get_thread(evt->get_tid()).get();
 		}
 		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SYSCALL_UNSHARE_X;
 	};
@@ -1061,7 +1061,7 @@ TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS) {
 		auto tinfo = evt->get_thread_info();
 		if(tinfo == nullptr) {
 			auto sinsp = evt->get_inspector();
-			tinfo = sinsp->m_thread_manager->get_thread_ref(evt->get_tid(), true).get();
+			tinfo = sinsp->m_thread_manager->get_thread(evt->get_tid()).get();
 		}
 		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SOCKET_RECVMSG_X;
 	};
@@ -1206,7 +1206,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		auto tinfo = evt->get_thread_info();
 		if(tinfo == nullptr) {
 			auto sinsp = evt->get_inspector();
-			tinfo = sinsp->m_thread_manager->get_thread_ref(evt->get_tid(), true).get();
+			tinfo = sinsp->m_thread_manager->get_thread(evt->get_tid()).get();
 		}
 		return tinfo->m_comm != "sudo" && tinfo->m_pid == self &&
 		       (type == PPME_USER_ADDED_E || type == PPME_USER_ADDED_X ||
