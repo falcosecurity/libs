@@ -63,7 +63,7 @@ public:
 
 	void validate(sinsp_evt* e) {
 		uint16_t type = e->get_type();
-		sinsp_threadinfo* pinfo = e->get_thread_info(false);
+		sinsp_threadinfo* pinfo = e->get_thread_info();
 
 		switch(m_callnum) {
 		case 0:
@@ -431,7 +431,7 @@ TEST_F(sys_call_test, dir_getcwd) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		sinsp_threadinfo* pinfo = e->get_thread_info(false);
+		sinsp_threadinfo* pinfo = e->get_thread_info();
 		string cdir;
 		string cdir1;
 		string adir;
@@ -580,7 +580,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
-		sinsp_threadinfo* pinfo = e->get_thread_info(false);
+		sinsp_threadinfo* pinfo = e->get_thread_info();
 
 		if(type == PPME_SYSCALL_FCHDIR_X) {
 			string cdir;

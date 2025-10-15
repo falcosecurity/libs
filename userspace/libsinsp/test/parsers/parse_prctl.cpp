@@ -74,7 +74,7 @@ TEST_F(sinsp_with_test_input, PRCTL_failed) {
 	                     (int64_t)1);
 
 	sinsp_threadinfo* invalid_tid_tinfo =
-	        m_inspector.m_thread_manager->get_thread_ref(invalid_tid, false).get();
+	        m_inspector.m_thread_manager->find_thread(invalid_tid, true).get();
 	ASSERT_TRUE(invalid_tid_tinfo);
 	ASSERT_FALSE(invalid_tid_tinfo->m_tginfo);
 

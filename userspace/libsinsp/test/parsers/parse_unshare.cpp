@@ -36,7 +36,7 @@ TEST_F(sinsp_with_test_input, UNSHARE_parse) {
 
 	// Verify the thread has the entire set of capabilities in its inheritable, permitted and
 	// effective set.
-	const auto tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID);
+	const auto tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true);
 	const auto max_caps = sinsp_utils::get_max_caps();
 	ASSERT_EQ(tinfo->m_cap_inheritable, max_caps);
 	ASSERT_EQ(tinfo->m_cap_permitted, max_caps);

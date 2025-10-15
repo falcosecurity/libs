@@ -82,7 +82,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	/* See the `reset` logic for enter events with `EF_USES_FD` flag */
-	auto* tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID).get();
+	auto* tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_NE(tinfo, nullptr);
 	ASSERT_EQ(tinfo->m_lastevent_fd, sinsp_test_input::socket_params::default_fd);
 	ASSERT_EQ(tinfo->m_lastevent_ts, evt_ts);

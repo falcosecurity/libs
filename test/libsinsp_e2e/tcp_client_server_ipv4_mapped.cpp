@@ -552,9 +552,9 @@ void runtest_ipv4m(iotype iot,
 				if(std::stoll(evt->get_param_value_str("ID", false)) == PPM_SC_TEE) {
 					const auto& thread_manager = param.m_inspector->m_thread_manager;
 					sinsp_threadinfo* ti =
-					        thread_manager->get_thread_ref(server.get_tid(), false, true).get();
+					        thread_manager->find_thread(server.get_tid(), true).get();
 					ASSERT_NE(ti, nullptr);
-					ti = thread_manager->get_thread_ref(ctid, false, true).get();
+					ti = thread_manager->find_thread(ctid, true).get();
 					ASSERT_NE(ti, nullptr);
 				}
 			}

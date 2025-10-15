@@ -406,7 +406,7 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	if(const auto eflags = evt.get_info_flags(); eflags & EF_SKIPPARSERESET) {
 		sinsp_threadinfo *tinfo = nullptr;
 		if(etype == PPME_PROCINFO_E) {
-			tinfo = m_thread_manager->get_thread_ref(evt.get_scap_evt()->tid, false, false).get();
+			tinfo = m_thread_manager->find_thread(evt.get_scap_evt()->tid, false).get();
 		}
 		evt.set_tinfo(tinfo);
 		return false;
@@ -424,7 +424,8 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	const auto tid = evt.get_scap_evt()->tid;
 	const bool query_os = can_query_os_for_thread_info(etype);
-	const auto tinfo = m_thread_manager->get_thread_ref(tid, query_os, false).get();
+	const auto tinfo = query_os ? m_thread_manager->get_thread_ref(tid, true, false).get()
+	                            : m_thread_manager->find_thread(tid, false).get();
 
 	evt.set_tinfo(tinfo);
 
@@ -798,8 +799,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* See if the child is already there, if yes and it is valid we return immediately */
-	sinsp_threadinfo *existing_child_tinfo =
-	        m_thread_manager->get_thread_ref(child_tid, false, true).get();
+	sinsp_threadinfo *existing_child_tinfo = m_thread_manager->find_thread(child_tid, true).get();
 	if(existing_child_tinfo != nullptr) {
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
@@ -1510,7 +1510,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			evt.get_tinfo()->m_vpid = evt.get_tinfo()->m_pid;
 		}
 
-		auto tinfo = m_thread_manager->get_thread_ref(evt.get_tinfo()->m_tid, false);
+		auto tinfo = m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
 		/* Create thread groups and parenting relationships */
 		m_thread_manager->create_thread_dependencies(tinfo);
 	}
@@ -4238,7 +4238,7 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	auto pidfd_tinfo = m_thread_manager->get_thread_ref(pidfd_fdinfo->m_pid);
+	auto pidfd_tinfo = m_thread_manager->find_thread(pidfd_fdinfo->m_pid, true);
 	if(pidfd_tinfo == nullptr) {
 		return;
 	}

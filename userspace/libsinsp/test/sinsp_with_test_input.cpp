@@ -681,7 +681,7 @@ void sinsp_with_test_input::add_thread(const scap_threadinfo& tinfo,
 }
 
 void sinsp_with_test_input::set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns) {
-	auto tinfo = m_inspector.m_thread_manager->get_thread_ref(tid, false).get();
+	auto tinfo = m_inspector.m_thread_manager->find_thread(tid, true).get();
 	if(tinfo != nullptr) {
 		tinfo->m_lastaccess_ts = access_time_ns;
 	} else {

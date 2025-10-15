@@ -92,7 +92,7 @@ TEST_F(sinsp_with_test_input, EXECVE_resurrect_thread) {
 	remove_thread(p2_t1_tid, p2_t2_tid);
 	ASSERT_THREAD_CHILDREN(p2_t2_tid, 1, 1, p3_t1_tid);
 	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 2, false, 3, 3);
-	auto p2_t1_tinfo = m_inspector.m_thread_manager->get_thread_ref(p2_t1_tid).get();
+	auto p2_t1_tinfo = m_inspector.m_thread_manager->find_thread(p2_t1_tid, true).get();
 	ASSERT_TRUE(p2_t1_tinfo);
 	/* p2t1 is present but dead */
 	ASSERT_TRUE(p2_t1_tinfo->is_dead());
@@ -148,7 +148,7 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath) {
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
-	auto p6_t1_tinfo = thread_manager->get_thread_ref(p6_t1_tid, false).get();
+	auto p6_t1_tinfo = thread_manager->find_thread(p6_t1_tid, true).get();
 	ASSERT_TRUE(p6_t1_tinfo);
 
 	ASSERT_EQ(p6_t1_tinfo->get_exepath(), "/usr/bin/bad-exe");
@@ -170,7 +170,7 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath) {
 	                       p7_t1_vpid,
 	                       "new-comm");
 
-	auto p7_t1_tinfo = thread_manager->get_thread_ref(p7_t1_tid, false).get();
+	auto p7_t1_tinfo = thread_manager->find_thread(p7_t1_tid, true).get();
 	ASSERT_TRUE(p7_t1_tinfo);
 
 	ASSERT_EQ(p7_t1_tinfo->get_exepath(), "/usr/bin/bad-exe");
@@ -193,7 +193,7 @@ TEST_F(sinsp_with_test_input, EXECVE_check_pgid_population) {
 	                                     {},
 	                                     random_pgid);
 
-	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
+	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 	ASSERT_EQ(init_tinfo->m_pgid, random_pgid);
 }

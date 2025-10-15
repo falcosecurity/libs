@@ -28,7 +28,7 @@ TEST_F(scap_file_test, kexec_x86_tail_lineage) {
 	/* Check that containerd_shim main at the beginning is not a reaper since we cannot recover
 	 * that info from proc scan.
 	 */
-	auto containerd_shim1_tinfo = thread_manager->get_thread_ref(107196);
+	auto containerd_shim1_tinfo = thread_manager->find_thread(107196, true);
 	ASSERT_TRUE(containerd_shim1_tinfo);
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo);
 	ASSERT_FALSE(containerd_shim1_tinfo->m_tginfo->is_reaper());
@@ -110,7 +110,7 @@ TEST_F(scap_file_test, kexec_x86_tail_lineage) {
 	ASSERT_EQ(traverse_parents, expected_traverse_parents_after_remove);
 
 	/* At the beninning of the capture containerd_shim1 was not a reaper */
-	containerd_shim1_tinfo = thread_manager->get_thread_ref(tid_containerd_shim1);
+	containerd_shim1_tinfo = thread_manager->find_thread(tid_containerd_shim1, true);
 	ASSERT_TRUE(containerd_shim1_tinfo);
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo);
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo->is_reaper());

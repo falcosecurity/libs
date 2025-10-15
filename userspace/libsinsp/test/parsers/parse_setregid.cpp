@@ -31,7 +31,7 @@ TEST_F(sinsp_with_test_input, SETREGID_failure) {
 	                     (uint32_t)0,
 	                     (uint32_t)0);
 
-	sinsp_threadinfo* ti = m_inspector.m_thread_manager->get_thread_ref(p2_t2_tid, false).get();
+	sinsp_threadinfo* ti = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
 	ASSERT_TRUE(ti);
 	ASSERT_TRUE(ti->m_gid == 0);
 }
@@ -48,7 +48,7 @@ TEST_F(sinsp_with_test_input, SETREGID_success) {
 	                     (uint32_t)1337,
 	                     (uint32_t)1337);
 
-	sinsp_threadinfo* ti = m_inspector.m_thread_manager->get_thread_ref(p2_t2_tid, false).get();
+	sinsp_threadinfo* ti = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
 	ASSERT_TRUE(ti);
 	ASSERT_TRUE(ti->m_gid == 1337);
 }

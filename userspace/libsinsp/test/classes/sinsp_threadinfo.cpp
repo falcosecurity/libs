@@ -93,7 +93,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper) {
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
-	auto p3_t1_tinfo = thread_manager->get_thread_ref(p3_t1_tid, false).get();
+	auto p3_t1_tinfo = thread_manager->find_thread(p3_t1_tid, true).get();
 	ASSERT_NE(p3_t1_tinfo, nullptr);
 
 	/* The reaper cannot be the current process */
@@ -103,7 +103,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper) {
 	ASSERT_THREAD_CHILDREN(p3_t1_tid, 2, 2, p4_t1_tid, p4_t2_tid);
 	ASSERT_THREAD_CHILDREN(p1_t1_tid, 0, 0);
 
-	auto p1_t1_tinfo = thread_manager->get_thread_ref(p1_t1_tid, false).get();
+	auto p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_NE(p1_t1_tinfo, nullptr);
 	p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo);
 
@@ -126,7 +126,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper) {
 TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr) {
 	DEFAULT_TREE
 
-	auto p2_t1_tinfo = m_inspector.m_thread_manager->get_thread_ref(p2_t1_tid, false).get();
+	auto p2_t1_tinfo = m_inspector.m_thread_manager->find_thread(p2_t1_tid, true).get();
 	ASSERT_NE(p2_t1_tinfo, nullptr);
 	/* This call should change the parent of all children of p2_t1 to `0` */
 	p2_t1_tinfo->assign_children_to_reaper(nullptr);

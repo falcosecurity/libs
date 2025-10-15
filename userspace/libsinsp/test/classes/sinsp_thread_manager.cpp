@@ -192,7 +192,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_same_thread_group)
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
 	/* We mark it as dead otherwise it will be chosen as a new reaper */
-	const auto p5_t1_tinfo = thread_manager->get_thread_ref(p5_t1_tid, false).get();
+	const auto p5_t1_tinfo = thread_manager->find_thread(p5_t1_tid, true).get();
 	ASSERT_TRUE(p5_t1_tinfo);
 	p5_t1_tinfo->set_dead();
 
@@ -207,7 +207,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree) {
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
-	const auto p6_t1_tinfo = thread_manager->get_thread_ref(p6_t1_tid, false).get();
+	const auto p6_t1_tinfo = thread_manager->find_thread(p6_t1_tid, true).get();
 	ASSERT_TRUE(p6_t1_tinfo);
 
 	/* Call the find reaper method, the reaper for p6_t1 should be p4_t1  */
@@ -223,12 +223,12 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
 	/* If we detect a loop the new reaper will be nullptr.
 	 * We set p2_t1 group as a reaper.
 	 */
-	const auto p2_t1_tinfo = thread_manager->get_thread_ref(p2_t1_tid, false).get();
+	const auto p2_t1_tinfo = thread_manager->find_thread(p2_t1_tid, true).get();
 	ASSERT_TRUE(p2_t1_tinfo);
 	p2_t1_tinfo->m_tginfo->set_reaper(true);
 
 	/* We explicitly set p3_t1 ptid to p4_t1, so we create a loop */
-	const auto p3_t1_tinfo = thread_manager->get_thread_ref(p3_t1_tid, false).get();
+	const auto p3_t1_tinfo = thread_manager->find_thread(p3_t1_tid, true).get();
 	ASSERT_TRUE(p3_t1_tinfo);
 	p3_t1_tinfo->m_ptid = p4_t1_tid;
 
@@ -240,7 +240,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
 	/* We call find_new_reaper on p4_t1.
 	 * The new reaper should be nullptr since we detected a loop.
 	 */
-	const auto p4_t1_tinfo = thread_manager->get_thread_ref(p4_t1_tid, false).get();
+	const auto p4_t1_tinfo = thread_manager->find_thread(p4_t1_tid, true).get();
 	ASSERT_TRUE(p4_t1_tinfo);
 	ASSERT_EQ(thread_manager->find_new_reaper(p4_t1_tinfo), nullptr);
 }
