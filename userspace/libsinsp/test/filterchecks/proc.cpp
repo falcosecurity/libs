@@ -30,7 +30,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "2");
 
 	/* we remove the thread group info from the thread so we should obtain a count equal to 0 */
-	auto p2_t2_tinfo = m_inspector.m_thread_manager->get_thread_ref(p2_t2_tid, false).get();
+	auto p2_t2_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
 	ASSERT_TRUE(p2_t2_tinfo);
 	p2_t2_tinfo->m_tginfo.reset();
 
@@ -55,7 +55,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.nchilds"), "1");
 
 	/* we remove the thread group info from the thread so we should obtain a count equal to 0 */
-	auto p2_t2_tinfo = m_inspector.m_thread_manager->get_thread_ref(p2_t2_tid, false).get();
+	auto p2_t2_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
 	ASSERT_TRUE(p2_t2_tinfo);
 	p2_t2_tinfo->m_tginfo.reset();
 
@@ -170,10 +170,10 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
-	auto p3_t1_tinfo = thread_manager->get_thread_ref(p3_t1_tid, false).get();
+	auto p3_t1_tinfo = thread_manager->find_thread(p3_t1_tid, true).get();
 	ASSERT_TRUE(p3_t1_tinfo);
 
-	auto p1_t1_tinfo = thread_manager->get_thread_ref(p1_t1_tid, false).get();
+	auto p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 
 	//
@@ -215,7 +215,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
 	// Missing process group find ancestor
 	//
 
-	auto p2_t1_tinfo = m_inspector.m_thread_manager->get_thread_ref(p2_t1_tid, false).get();
+	auto p2_t1_tinfo = m_inspector.m_thread_manager->find_thread(p2_t1_tid, true).get();
 	ASSERT_TRUE(p2_t1_tinfo);
 
 	int64_t random_pgid = 100000;

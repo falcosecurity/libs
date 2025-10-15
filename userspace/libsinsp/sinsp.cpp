@@ -1512,7 +1512,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		const auto tid_of_fds_to_remove = m_parser_verdict.get_tid_of_fds_to_remove();
 		const auto& fds_to_remove = m_parser_verdict.get_fds_to_remove();
 		if(sinsp_threadinfo* ptinfo =
-		           m_thread_manager->get_thread_ref(tid_of_fds_to_remove, false).get()) {
+		           m_thread_manager->find_thread(tid_of_fds_to_remove, true).get()) {
 			for(const auto fd : fds_to_remove) {
 				ptinfo->remove_fd(fd);
 			}

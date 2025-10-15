@@ -512,7 +512,7 @@ TEST_F(sys_call_test, udp_client_server) {
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 				const auto fd_server_socket = std::stoll(e->get_param_value_str("fd", false));
-				sinsp_fdinfo* fdinfo = e->get_thread_info(false)->get_fd(fd_server_socket);
+				sinsp_fdinfo* fdinfo = e->get_thread_info()->get_fd(fd_server_socket);
 				ASSERT_TRUE(fdinfo);
 				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 
@@ -537,7 +537,7 @@ TEST_F(sys_call_test, udp_client_server) {
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 				const auto fd_server_socket = std::stoll(e->get_param_value_str("fd", false));
-				sinsp_fdinfo* fdinfo = e->get_thread_info(false)->get_fd(fd_server_socket);
+				sinsp_fdinfo* fdinfo = e->get_thread_info()->get_fd(fd_server_socket);
 				ASSERT_TRUE(fdinfo);
 				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 

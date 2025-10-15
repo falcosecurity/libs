@@ -435,11 +435,8 @@ public:
 	/*!
 	  \brief Return the information about the thread that generated the event.
 
-	  \param query_os_if_not_found if this is a live a capture and this flag is
-	   set to true, scan the /proc file system to find process information in
-	   case the thread is not in the table.
 	*/
-	sinsp_threadinfo* get_thread_info(bool query_os_if_not_found = false);
+	sinsp_threadinfo* get_thread_info();
 
 	/*!
 	  \brief Return the information about the FD on which this event operated.

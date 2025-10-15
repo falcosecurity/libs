@@ -89,9 +89,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		// make sure we don't add suppresed threads during initial /proc scan
 		if(param.m_inspector->check_suppressed(evt->get_tid())) {
 			ASSERT_EQ(nullptr,
-			          param.m_inspector->m_thread_manager->get_thread_ref(evt->get_tid(),
-			                                                              false,
-			                                                              true));
+			          param.m_inspector->m_thread_manager->find_thread(evt->get_tid(), true));
 		}
 
 		switch(evt->get_type()) {

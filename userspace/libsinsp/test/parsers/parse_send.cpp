@@ -60,7 +60,7 @@ TEST_F(sinsp_with_test_input, SEND_success) {
 	ASSERT_EQ(fdinfo->m_name, DEFAULT_IPV4_FDNAME);
 
 	// Check that fd info associated with the thread are as expected.
-	const auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
+	const auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 	fdinfo = init_tinfo->get_fd(fd);
 	ASSERT_TRUE(fdinfo);

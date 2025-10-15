@@ -73,7 +73,7 @@ TEST_F(sinsp_with_test_input, SOCKETPAIR_success) {
 	ASSERT_TRUE(fdinfo->is_role_none());
 	ASSERT_FALSE(fdinfo->is_socket_connected());
 
-	const auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
+	const auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 
 	// Checks that fdinfo associated with the thread are as expected for fd1.

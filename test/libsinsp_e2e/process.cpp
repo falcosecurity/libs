@@ -357,12 +357,12 @@ TEST(procinfo, process_not_existent) {
 	//
 	// The first lookup should fail
 	//
-	EXPECT_EQ(NULL, thread_manager->get_thread_ref(0xffff, false, true).get());
+	EXPECT_EQ(NULL, thread_manager->find_thread(0xffff, true).get());
 
 	//
 	// Even the second, to confirm that nothing was added to the table
 	//
-	EXPECT_EQ(NULL, thread_manager->get_thread_ref(0xffff, false, true).get());
+	EXPECT_EQ(NULL, thread_manager->find_thread(0xffff, true).get());
 
 	//
 	// Now a new entry should be added to the process list...
@@ -376,7 +376,7 @@ TEST(procinfo, process_not_existent) {
 	//
 	// ...and confirm
 	//
-	tinfo = thread_manager->get_thread_ref(0xffff, false, true).get();
+	tinfo = thread_manager->find_thread(0xffff, true).get();
 	EXPECT_NE((sinsp_threadinfo*)NULL, tinfo);
 	if(tinfo) {
 		EXPECT_EQ("<NA>", tinfo->m_comm);

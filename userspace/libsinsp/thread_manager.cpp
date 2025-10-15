@@ -219,7 +219,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * Here we avoid scanning `/proc` to not trigger a possible recursion
 	 * on all the parents
 	 */
-	const auto parent_thread = get_thread_ref(tinfo->m_ptid, false);
+	const auto parent_thread = find_thread(tinfo->m_ptid, true);
 	if(parent_thread == nullptr || parent_thread->is_invalid()) {
 		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
 		tinfo->m_ptid = 0;

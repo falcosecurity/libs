@@ -41,7 +41,7 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_EQ(fdinfo->m_name, "");
 
 	/* FDINFO associated with the thread */
-	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false).get();
+	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 	fdinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
 	ASSERT_TRUE(fdinfo);

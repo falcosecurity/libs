@@ -35,7 +35,7 @@ TEST_F(sinsp_with_test_input, parse_brk_updated_prog_break) {
 	                                vm_swap,
 	                                addr);
 
-	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false, true).get();
+	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 	ASSERT_EQ(init_tinfo->m_vmsize_kb, vm_size);
 	ASSERT_EQ(init_tinfo->m_vmrss_kb, vm_rss);
@@ -77,7 +77,7 @@ TEST_F(sinsp_with_test_input, parse_brk_no_update) {
 	                                vm_swap,
 	                                addr);
 
-	auto init_tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID, false, true).get();
+	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 	// We should always update the info
 	ASSERT_EQ(init_tinfo->m_vmsize_kb, vm_size);

@@ -690,7 +690,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(subtable->entries_count(), max_iterations - 1);
 
 	// check that changes are reflected in thread's table
-	auto tinfo = inspector.m_thread_manager->get_thread_ref(1);
+	auto tinfo = inspector.m_thread_manager->find_thread(1, true);
 	ASSERT_NE(tinfo, nullptr);
 
 	ASSERT_EQ(tinfo->m_env.size(), max_iterations - 1);

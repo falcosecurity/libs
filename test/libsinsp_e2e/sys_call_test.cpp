@@ -289,7 +289,7 @@ TEST_F(sys_call_test, poll_timeout) {
 	int callnum = 0;
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto ti = evt->get_thread_info(false);
+		auto ti = evt->get_thread_info();
 		return evt->get_type() == PPME_SYSCALL_POLL_X && ti->m_comm == "test_helper";
 	};
 
@@ -559,8 +559,8 @@ TEST_F(sys_call_test, brk) {
 			uint32_t vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			uint32_t vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 
-			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, vmsize);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, vmrss);
+			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, vmsize);
+			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, vmrss);
 
 			if(callnum == 0) {
 				before_brk_vmsize = vmsize;
@@ -614,9 +614,9 @@ TEST_F(sys_call_test, mmap) {
 			const auto exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			const auto exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			const auto exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 1:
@@ -645,9 +645,9 @@ TEST_F(sys_call_test, mmap) {
 			const auto exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			const auto exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			const auto exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 2: {
@@ -1029,7 +1029,11 @@ TEST_F(sys_call_test, setns_test) {
 TEST_F(sys_call_test, unshare_) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto tinfo = evt->get_thread_info(true);
+		auto tinfo = evt->get_thread_info();
+		if(tinfo == nullptr) {
+			auto sinsp = evt->get_inspector();
+			tinfo = sinsp->m_thread_manager->get_thread_ref(evt->get_tid(), true).get();
+		}
 		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SYSCALL_UNSHARE_X;
 	};
 	run_callback_t test = [&](sinsp* inspector) {
@@ -1054,7 +1058,11 @@ TEST_F(sys_call_test, unshare_) {
 TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto tinfo = evt->get_thread_info(true);
+		auto tinfo = evt->get_thread_info();
+		if(tinfo == nullptr) {
+			auto sinsp = evt->get_inspector();
+			tinfo = sinsp->m_thread_manager->get_thread_ref(evt->get_tid(), true).get();
+		}
 		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SOCKET_RECVMSG_X;
 	};
 	run_callback_t test = [&](sinsp* inspector) {
@@ -1139,7 +1147,7 @@ TEST_F(sys_call_test, ppoll_timeout) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return evt->get_type() == PPME_SYSCALL_PPOLL_X &&
-		       evt->get_thread_info(false)->m_comm == "test_helper";
+		       evt->get_thread_info()->m_comm == "test_helper";
 	};
 
 	run_callback_t test = [&](sinsp* inspector) {
@@ -1195,7 +1203,11 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto type = evt->get_type();
-		auto tinfo = evt->get_thread_info(true);
+		auto tinfo = evt->get_thread_info();
+		if(tinfo == nullptr) {
+			auto sinsp = evt->get_inspector();
+			tinfo = sinsp->m_thread_manager->get_thread_ref(evt->get_tid(), true).get();
+		}
 		return tinfo->m_comm != "sudo" && tinfo->m_pid == self &&
 		       (type == PPME_USER_ADDED_E || type == PPME_USER_ADDED_X ||
 		        type == PPME_GROUP_ADDED_E || type == PPME_GROUP_ADDED_X ||
@@ -1506,7 +1518,7 @@ TEST_F(sys_call_test32, mmap) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto tinfo = evt->get_thread_info(false);
+		auto tinfo = evt->get_thread_info();
 		return tinfo && tinfo->m_comm == "test_helper_32" && ps_filter(evt);
 	};
 
@@ -1548,9 +1560,9 @@ TEST_F(sys_call_test32, mmap) {
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 1:
@@ -1579,9 +1591,9 @@ TEST_F(sys_call_test32, mmap) {
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info(false)->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
 
 			switch(callnum) {
 			case 2: {
@@ -1639,7 +1651,7 @@ TEST_F(sys_call_test32, mmap) {
 TEST_F(sys_call_test32, ppoll_timeout) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto tinfo = evt->get_thread_info(false);
+		auto tinfo = evt->get_thread_info();
 		return evt->get_type() == PPME_SYSCALL_PPOLL_X && tinfo != nullptr &&
 		       tinfo->m_comm == "test_helper_32";
 	};
@@ -1710,7 +1722,7 @@ TEST_F(sys_call_test32, fs_preadv) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		auto tinfo = evt->get_thread_info(false);
+		auto tinfo = evt->get_thread_info();
 		if(tinfo && tinfo->m_comm == "test_helper_32") {
 			auto type = evt->get_type();
 			return type == PPME_SYSCALL_PREADV_X || type == PPME_SYSCALL_PWRITEV_X;
@@ -1872,7 +1884,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		                         &scap_tinfo,
 		                         err_buf,
 		                         false) == SCAP_SUCCESS) {
-			auto tinfo = e->get_thread_info(false);
+			auto tinfo = e->get_thread_info();
 			if(!tinfo) {
 				return;
 			}

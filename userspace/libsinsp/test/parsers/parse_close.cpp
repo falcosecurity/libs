@@ -23,7 +23,7 @@ TEST_F(sinsp_with_test_input, CLOSE_success) {
 	const sinsp_test_input::socket_params sock_params;
 
 	// Verify the thread doesn't have any information associated with the fd.
-	const auto tinfo = m_inspector.m_thread_manager->get_thread_ref(INIT_TID);
+	const auto tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true);
 	ASSERT_NE(tinfo, nullptr);
 	ASSERT_FALSE(tinfo->get_fd(sock_params.fd));
 

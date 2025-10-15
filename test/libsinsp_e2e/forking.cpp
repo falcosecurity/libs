@@ -175,7 +175,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 		// In both cases, the process should exist
 		//
 		if(e->get_tid() == ptid && !parent_exists) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 			if(ti) {
 				parent_exists = true;
 			}
@@ -184,7 +184,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 		}
 
 		if(e->get_tid() == ctid && !child_exists) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 			if(ti) {
 				child_exists = true;
 			}
@@ -250,7 +250,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 		if(!sleep_caught) {
 			// The child should exist.
 			const auto& thread_manager = param.m_inspector->m_thread_manager;
-			sinsp_threadinfo* ti = thread_manager->get_thread_ref(ctid, false, true).get();
+			sinsp_threadinfo* ti = thread_manager->find_thread(ctid, true).get();
 			EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 			sleep_caught = true;
 		}
@@ -384,7 +384,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 		sinsp_evt* e = param.m_evt;
 		if(e->get_type() == PPME_SYSCALL_CLONE_20_X && callnum == 0) {
 			uint64_t res = std::stoll(e->get_param_value_str("res", false));
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 
 			if(ti->get_comm() != "libsinsp_e2e_te") {
 				return;
@@ -405,7 +405,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 				callnum++;
 			}
 		} else if(e->get_type() == PPME_SYSCALL_CLOSE_X) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 
 			if(callnum < 3) {
 				return;
@@ -507,7 +507,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 		sinsp_evt* e = param.m_evt;
 		if(e->get_type() == PPME_SYSCALL_CLONE_20_X && callnum == 0) {
 			uint64_t res = std::stoull(e->get_param_value_str("res", false));
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 
 			if(ti->get_comm() != "libsinsp_e2e_te") {
 				return;
@@ -528,7 +528,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 				callnum++;
 			}
 		} else if(e->get_type() == PPME_SYSCALL_CLOSE_X) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 
 			if(callnum < 1) {
 				return;
@@ -628,7 +628,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 		sinsp_evt* e = param.m_evt;
 		if(e->get_type() == PPME_SYSCALL_CLONE_20_X) {
 			uint64_t res = std::stoull(e->get_param_value_str("res", false));
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 			if(ti->get_comm() != "libsinsp_e2e_te") {
 				return;
 			}
@@ -644,7 +644,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 			EXPECT_EQ(drflags, std::stol(e->get_param_value_str("flags", false)));
 			callnum++;
 		} else if(e->get_type() == PPME_SYSCALL_GETCWD_X) {
-			sinsp_threadinfo* ti = e->get_thread_info(false);
+			sinsp_threadinfo* ti = e->get_thread_info();
 
 			if(ti->m_tid == ptid) {
 				if(callnum > 1) {

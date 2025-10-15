@@ -704,7 +704,7 @@ void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread() {
-	return m_params->thread_manager->get_thread_ref(m_ptid).get();
+	return m_params->thread_manager->find_thread(m_ptid, true).get();
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
@@ -875,7 +875,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(
 	// if is_virtual_id == false we don't care about the namespace in which we are
 	sinsp_threadinfo* leader = nullptr;
 	if(!is_virtual_id || !is_in_pid_namespace()) {
-		leader = m_params->thread_manager->get_thread_ref(id).get();
+		leader = m_params->thread_manager->find_thread(id, true).get();
 		if(leader != nullptr) {
 			return leader;
 		}

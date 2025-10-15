@@ -1303,7 +1303,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			m_val.u64 = 0;
 		}
 
-		sinsp_threadinfo* tinfo = evt->get_thread_info(false);
+		sinsp_threadinfo* tinfo = evt->get_thread_info();
 
 		if(tinfo != NULL) {
 			uint64_t ptot = 0;
@@ -1614,7 +1614,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 	}
 	case TYPE_PVPID: {
 		sinsp_threadinfo* ptinfo =
-		        m_inspector->m_thread_manager->get_thread_ref(tinfo->m_ptid, false, true).get();
+		        m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true).get();
 
 		if(ptinfo != NULL) {
 			RETURN_EXTRACT_VAR(ptinfo->m_vpid);
@@ -1660,7 +1660,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(tinfo->m_clone_ts);
 	case TYPE_PPID_CLONE_TS: {
 		sinsp_threadinfo* ptinfo =
-		        m_inspector->m_thread_manager->get_thread_ref(tinfo->m_ptid, false, true).get();
+		        m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true).get();
 
 		if(ptinfo != NULL) {
 			RETURN_EXTRACT_VAR(ptinfo->m_clone_ts);

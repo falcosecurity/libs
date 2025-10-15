@@ -46,7 +46,7 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
-	EXPECT_NE(thread_manager->get_thread_ref(pid), nullptr);
+	EXPECT_NE(thread_manager->find_thread(pid, true), nullptr);
 
 	add_event_advance_ts(increasing_ts(),
 	                     pid,
@@ -61,7 +61,7 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_GETSOCKNAME_X, 0);
 
-	EXPECT_EQ(thread_manager->get_thread_ref(pid), nullptr);
+	EXPECT_EQ(thread_manager->find_thread(pid, true), nullptr);
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);
@@ -100,7 +100,7 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
-	EXPECT_NE(thread_manager->get_thread_ref(pid), nullptr);
+	EXPECT_NE(thread_manager->find_thread(pid, true), nullptr);
 
 	add_event_advance_ts(increasing_ts(),
 	                     pid,
@@ -115,7 +115,7 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_GETSOCKNAME_X, 0);
 
-	EXPECT_EQ(thread_manager->get_thread_ref(pid), nullptr);
+	EXPECT_EQ(thread_manager->find_thread(pid, true), nullptr);
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);
