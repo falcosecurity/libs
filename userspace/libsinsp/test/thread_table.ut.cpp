@@ -640,10 +640,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_apid_ppid) {
 	ASSERT_EQ(p5_t1_info->m_ptid, p4_t2_tid);
 
 	auto p4_t1_info = thread_manager->find_thread(p4_t1_tid, true).get();
-	auto p5_t1_parent_info = p5_t1_info->get_ancestor_process();
+	auto p5_t1_parent_info = m_inspector.m_thread_manager->get_ancestor_process(*p5_t1_info);
 	ASSERT_EQ(p4_t1_info->m_pid, p5_t1_parent_info->m_pid);
 
 	auto p3_t1_info = thread_manager->find_thread(p3_t1_tid, true).get();
-	auto p5_t1_gparent_info = p5_t1_info->get_ancestor_process(2);
+	auto p5_t1_gparent_info = m_inspector.m_thread_manager->get_ancestor_process(*p5_t1_info, 2);
 	ASSERT_EQ(p3_t1_info->m_pid, p5_t1_gparent_info->m_pid);
 }

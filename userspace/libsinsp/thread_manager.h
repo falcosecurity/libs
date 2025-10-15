@@ -122,6 +122,17 @@ public:
 	//
 	const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
 
+	/*!
+	  \brief Get the process that launched this thread's process (its parent) or any of its
+	  ancestors.
+
+	  \param thread_manager
+	  \param n when 1 it will look for the parent process, when 2 the grandparent and so forth.
+
+	  \return Pointer to the threadinfo or NULL if it doesn't exist
+	*/
+	sinsp_threadinfo* get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
+
 	void dump_threads_to_file(scap_dumper_t* dumper);
 
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
