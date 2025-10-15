@@ -703,23 +703,6 @@ void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 	m_cgroups = cgroups;
 }
 
-sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
-	sinsp_threadinfo* mt = get_main_thread();
-
-	for(uint32_t i = 0; i < n; i++) {
-		if(mt == nullptr) {
-			return nullptr;
-		}
-		mt = m_params->thread_manager->find_thread(mt->m_ptid, true).get();
-		if(mt == nullptr) {
-			return nullptr;
-		}
-		mt = mt->get_main_thread();
-	}
-
-	return mt;
-}
-
 sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
