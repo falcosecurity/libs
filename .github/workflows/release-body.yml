@@ -12,16 +12,26 @@ jobs:
   release-settings:
     runs-on: ubuntu-latest
     outputs:
-      is_latest: ${{ steps.get_settings.outputs.is_latest }}
-      is_driver: ${{ steps.get_settings.outputs.is_driver }}
+      is_latest_drivers: ${{ steps.get_settings.outputs.is_latest_drivers }}
+      is_latest_libs: ${{ steps.get_settings.outputs.is_latest_libs }}
     steps:
-      - name: Get latest release
-        uses: rez0n/actions-github-release@27a57820ee808f8fd940c8a9d1f7188f854aa2b5 # v2.0
-        id: latest_release
+      - name: Get latest drivers release
+        uses: ekoops/actions-github-release@667c095dfa9c26dc09bef7647fed6941254b286a # 0.1.0
+        id: latest_drivers_release
         env:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           type: "stable"
+          filter: '^.*\+driver$' # Only include drivers releases.
+
+      - name: Get latest libs release
+        uses: ekoops/actions-github-release@667c095dfa9c26dc09bef7647fed6941254b286a # 0.1.0
+        id: latest_libs_release
+        env:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          type: "stable"
+          filter: '^.*(?<!\+driver)$' # Exclude drivers releases.
 
       - name: Get settings for this release
         id: get_settings
@@ -41,18 +51,26 @@ jobs:
 
           is_prerelease = '-' in tag_name
 
+          latest_drivers_release = '${{ steps.latest_drivers_release.outputs.release }}'
+          latest_libs_release = '${{ steps.latest_libs_release.outputs.release }}'
           # Safeguard: you need to both set "latest" in GH and not have suffixes to overwrite latest
-          is_latest = '${{ steps.latest_release.outputs.release }}' == tag_name and not is_prerelease
+          is_latest_drivers = tag_name == latest_drivers_release and not is_prerelease
+          is_latest_libs = tag_name == latest_libs_release and not is_prerelease
 
-          is_driver = "+driver" in tag_name
+          # Print useful info for debugging purposes.
+          print(f'tag name: {tag_name}')
+          print(f'latest drivers release: {latest_drivers_release}')
+          print(f'latest libs release: {latest_libs_release}')
+          print(f'is latest drivers release: {is_latest_drivers}')
+          print(f'is latest libs release: {is_latest_drivers}')
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as ofp:
-            print(f'is_latest={is_latest}'.lower(), file=ofp)
-            print(f'is_driver={is_driver}'.lower(), file=ofp)
+            print(f'is_latest_drivers={is_latest_drivers}'.lower(), file=ofp)
+            print(f'is_latest_libs={is_latest_libs}'.lower(), file=ofp)
 
   release-body-libs:
     needs: [release-settings]
-    if: ${{ needs.release-settings.outputs.is_latest == 'true' && needs.release-settings.outputs.is_driver == 'false' }} # only for latest releases and not driver ones
+    if: ${{ needs.release-settings.outputs.is_latest_libs == 'true' }} # Only for latest libs releases.
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -106,15 +124,15 @@ jobs:
 
   kernel-tests-release:
     needs: [release-settings]
-    if: ${{ needs.release-settings.outputs.is_latest == 'true' && needs.release-settings.outputs.is_driver == 'true' }} # only for latest driver releases
+    if: ${{ needs.release-settings.outputs.is_latest_drivers == 'true' }} # Only for latest drivers releases.
     uses: ./.github/workflows/reusable_kernel_tests.yaml
     with:
       libsversion: ${{ github.event.release.tag_name }}
     secrets: inherit
 
-  release-body-driver:
+  release-body-drivers:
     needs: [release-settings, kernel-tests-release]
-    if: ${{ needs.release-settings.outputs.is_latest == 'true' && needs.release-settings.outputs.is_driver == 'true' }} # only for latest driver releases
+    if: ${{ needs.release-settings.outputs.is_latest_drivers == 'true' }} # Only for latest drivers releases.
     permissions:
       contents: write
     runs-on: ubuntu-latest
