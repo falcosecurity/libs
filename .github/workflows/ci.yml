@@ -26,11 +26,11 @@ jobs:
           - name: system_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
+            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
-            cmake_opts: -DUSE_BUNDLED_DEPS=True
+            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
     container:
       image: debian:buster
     steps:
@@ -39,7 +39,7 @@ jobs:
           # Use 20250630T203427Z debian apt snapshot as it still contains support for buster.
           printf "deb http://snapshot.debian.org/archive/debian/20250630T203427Z buster main\ndeb http://snapshot.debian.org/archive/debian-security/20250630T203427Z buster/updates main\ndeb http://snapshot.debian.org/archive/debian/20250630T203427Z buster-updates main" > /etc/apt/sources.list
           apt update && apt install -y --no-install-recommends curl zip unzip tar ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
-      
+
       - name: Install a recent version of CMake ⛓️
         run: |
           curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-$(uname -m).tar.gz
@@ -105,7 +105,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apk add build-base cmake ninja zip unzip curl git curl tar g++ gcc make bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm
+          apk add build-base cmake ninja zip unzip curl git tar g++ gcc make bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
           cd bpftool
           git submodule update --init
