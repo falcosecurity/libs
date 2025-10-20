@@ -24,6 +24,8 @@
 
 > /kind feature
 
+> /kind sync
+
 <!--
 Please remove the leading whitespace before the `/kind <>` you uncommented.
 -->
