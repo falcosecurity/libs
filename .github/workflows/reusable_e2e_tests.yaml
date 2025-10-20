@@ -70,6 +70,14 @@ jobs:
             protobuf-compiler \
             "linux-headers-$(uname -r)"
 
+      - name: Install bpftool from released package 🐝
+        run: |
+          [[ "$(uname -m)" == 'x86_64' ]] && BPFTOOL_ARCH=amd64 || BPFTOOL_ARCH=arm64
+          curl -Lo bpftool.tar.gz https://github.com/libbpf/bpftool/releases/download/v7.6.0/bpftool-v7.6.0-$BPFTOOL_ARCH.tar.gz
+          sudo tar -C /usr/sbin --overwrite -xzvf bpftool.tar.gz bpftool
+          rm -rf bpftool.tar.gz
+          chmod +x /usr/sbin/bpftool
+
       - name: Checkout Libs ⤵️
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
