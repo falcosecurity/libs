@@ -1,6 +1,12 @@
 name: 'install-vcpkg'
 description: 'Install vcpkg and make it available in PATH.'
 
+inputs:
+  vcpkg-version:
+    description: 'vcpkg version to install (e.g., 2025.08.27)'
+    required: false
+    default: '2025.08.27'
+
 outputs:
   vcpkg_root:
     description: "VCPKG_ROOT"
@@ -12,10 +18,8 @@ runs:
     - name: Store vcpkg version as local output
       shell: bash
       id: store
-      env:
-        VCPKG_VERSION: '2025.08.27'
       run: |
-        echo "vcpkg_version=${VCPKG_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "vcpkg_version=${{ inputs.vcpkg-version }}" >> "$GITHUB_OUTPUT"
 
     - name: Download vcpkg
       shell: bash
