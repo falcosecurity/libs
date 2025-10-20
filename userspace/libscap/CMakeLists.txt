@@ -125,7 +125,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 	add_library(driver_event_schema STATIC ${LIBS_DIR}/driver/fillers_table.c)
 
-    target_link_libraries(scap_event_schema driver_event_schema scap_error)
+	target_link_libraries(scap_event_schema driver_event_schema scap_error)
 
 	add_library(
 		scap_engine_util STATIC scap_engine_util.c ringbuffer/devset.c ringbuffer/ringbuffer.c

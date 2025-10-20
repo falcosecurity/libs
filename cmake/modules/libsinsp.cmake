@@ -30,7 +30,6 @@ if(NOT HAVE_LIBSINSP)
 	include(ExternalProject)
 	include(libscap)
 
-
 	set(LIBSINSP_INCLUDE_DIRS)
 
 	function(set_sinsp_target_properties target)

@@ -19,8 +19,8 @@ add_library(scap_savefile_converter OBJECT converter.cpp table.cpp)
 
 find_package(Uthash REQUIRED)
 target_include_directories(
-	scap_savefile_converter PRIVATE ${LIBS_DIR} ${LIBS_DIR}/userspace
-									${LIBS_DIR}/userspace/libscap/engine/savefile
-									${UTHASH_INCLUDE_DIRS}
+	scap_savefile_converter
+	PRIVATE ${LIBS_DIR} ${LIBS_DIR}/userspace ${LIBS_DIR}/userspace/libscap/engine/savefile
+			${UTHASH_INCLUDE_DIRS}
 )
 target_link_libraries(scap_savefile_converter PRIVATE scap_error)

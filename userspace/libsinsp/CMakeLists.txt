@@ -33,16 +33,16 @@ include(BuildPkgConfigDependencies)
 include(jsoncpp)
 find_package(re2 CONFIG REQUIRED)
 if(NOT EMSCRIPTEN)
-    # TBB is not supported on Emscripten
-    find_package(TBB CONFIG)
-    if(NOT TBB_FOUND)
-        find_package(TBB REQUIRED)
-    endif()
+	# TBB is not supported on Emscripten
+	find_package(TBB CONFIG)
+	if(NOT TBB_FOUND)
+		find_package(TBB REQUIRED)
+	endif()
 endif()
 find_package(ZLIB REQUIRED)
 find_package(valijson REQUIRED)
 if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
-    find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
+	find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
 endif()
 
 add_library(

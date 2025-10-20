@@ -24,6 +24,7 @@ add_library(
 	scap_cgroup.c
 	scap_machine_info.c
 )
-target_include_directories(scap_platform PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-										${UTHASH_INCLUDE_DIRS})
+target_include_directories(
+	scap_platform PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> ${UTHASH_INCLUDE_DIRS}
+)
 target_link_libraries(scap_platform PRIVATE scap_error scap_platform_util)

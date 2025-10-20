@@ -15,10 +15,10 @@
 
 find_package(jsoncpp CONFIG REQUIRED)
 # Alias JsonCpp::JsonCpp to jsoncpp_lib
-if (NOT TARGET JsonCpp::JsonCpp)
-	if (TARGET jsoncpp_static)
+if(NOT TARGET JsonCpp::JsonCpp)
+	if(TARGET jsoncpp_static)
 		add_library(JsonCpp::JsonCpp ALIAS jsoncpp_static)
-	elseif (TARGET jsoncpp_lib)
+	elseif(TARGET jsoncpp_lib)
 		add_library(JsonCpp::JsonCpp ALIAS jsoncpp_lib)
-	endif ()
-endif ()
+	endif()
+endif()
