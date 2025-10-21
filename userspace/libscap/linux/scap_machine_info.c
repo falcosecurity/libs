@@ -22,6 +22,7 @@ limitations under the License.
 #include <libscap/scap_assert.h>
 #include <libscap/scap.h>
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/stat.h>

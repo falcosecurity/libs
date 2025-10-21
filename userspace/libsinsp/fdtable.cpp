@@ -19,6 +19,8 @@ limitations under the License.
 #ifndef _WIN32
 #include <algorithm>
 #endif
+#include <cinttypes>
+
 #include <libsinsp/fdtable.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
