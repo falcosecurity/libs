@@ -1,7 +1,9 @@
 
+
 #include <libsinsp/sinsp.h>
 #include <iostream>
 #include <csignal>
+#include <cinttypes>
 
 static bool g_interrupted = false;
 

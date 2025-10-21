@@ -16,6 +16,8 @@ limitations under the License.
 
 */
 
+#include <cinttypes>
+
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/utils.h>

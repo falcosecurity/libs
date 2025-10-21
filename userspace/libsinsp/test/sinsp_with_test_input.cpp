@@ -16,6 +16,8 @@ limitations under the License.
 
 */
 
+#include <cinttypes>
+
 #include "sinsp_with_test_input.h"
 
 sinsp_with_test_input::sinsp_with_test_input() {

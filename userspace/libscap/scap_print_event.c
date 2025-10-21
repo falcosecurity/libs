@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>

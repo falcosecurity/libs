@@ -17,12 +17,12 @@ limitations under the License.
 */
 
 #ifndef _WIN32
-#include <inttypes.h>
 #include <unistd.h>
 #include <limits.h>
 #endif
 #include <stdio.h>
 #include <algorithm>
+#include <cinttypes>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>

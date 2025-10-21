@@ -38,6 +38,7 @@ limitations under the License.
 #include <sys/time.h>
 #endif  // _WIN32
 
+#include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
