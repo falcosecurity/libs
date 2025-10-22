@@ -38,7 +38,6 @@ public:
 		deep_fields_copy(s);
 		return *this;
 	}
-	~extensible_struct() override { extensible_struct::destroy_dynamic_fields(); }
 
 	// dynamic_struct interface
 
@@ -68,21 +67,6 @@ protected:
 		return m_dynamic_fields;
 	}
 
-	/**
-	 * @brief Destroys all the dynamic field values currently allocated
-	 */
-	virtual void destroy_dynamic_fields() {
-		if(!m_dynamic_fields) {
-			return;
-		}
-		for(size_t i = 0; i < m_fields.size(); i++) {
-			auto type_info = typeinfo::from(m_dynamic_fields->m_definitions_ordered[i]->type_id());
-			type_info.destroy(m_fields[i]);
-			free(m_fields[i]);
-		}
-		m_fields.clear();
-	}
-
 private:
 	inline void _check_defsptr(const dynamic_field_info& i, bool write) const {
 		if(!i.valid()) {
@@ -97,7 +81,7 @@ private:
 		}
 	}
 
-	inline void* _access_dynamic_field_for_write(size_t index) {
+	inline dynamic_field_value* _access_dynamic_field_for_write(size_t index) {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
 		}
@@ -106,15 +90,12 @@ private:
 		}
 		while(m_fields.size() <= index) {
 			auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
-			auto type_info = typeinfo::from(def->type_id());
-			void* fieldbuf = malloc(type_info.size());
-			type_info.construct(fieldbuf);
-			m_fields.push_back(fieldbuf);
+			m_fields.emplace_back(def->type_id());
 		}
-		return m_fields[index];
+		return &m_fields[index];
 	}
 
-	inline void* _access_dynamic_field_for_read(size_t index) const {
+	inline const dynamic_field_value* _access_dynamic_field_for_read(size_t index) const {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
 		}
@@ -124,7 +105,7 @@ private:
 		if(m_fields.size() <= index) {
 			return nullptr;
 		}
-		return m_fields[index];
+		return &m_fields[index];
 	}
 
 	struct cloner {
@@ -134,8 +115,8 @@ private:
 
 		template<typename T>
 		void operator()() const {
-			auto ptr = static_cast<T*>(self->_access_dynamic_field_for_write(index));
-			auto val = static_cast<const T*>(other->_access_dynamic_field_for_read(index));
+			auto ptr = self->_access_dynamic_field_for_write(index);
+			auto val = other->_access_dynamic_field_for_read(index);
 			*ptr = *val;
 		}
 	};
@@ -149,14 +130,14 @@ private:
 		set_dynamic_fields(other.dynamic_fields());
 
 		// deep copy of all the fields
-		destroy_dynamic_fields();
+		m_fields.clear();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
 			const auto info = m_dynamic_fields->m_definitions_ordered[i];
 			dispatch_lambda(info->type_id(), cloner{this, &other, i});
 		}
 	}
 
-	std::vector<void*> m_fields;
+	std::vector<dynamic_field_value> m_fields;
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 	// end of dynamic_struct interface
 
@@ -170,8 +151,44 @@ protected:
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
+			thread_local std::string str;
 			_check_defsptr(dynamic_acc->info(), false);
-			return _access_dynamic_field_for_read(dynamic_acc->info().index());
+			auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index());
+			if(ptr) {
+				if(a.type_id() == SS_PLUGIN_ST_STRING) {
+					str = ptr->m_data.str;
+					return &str;
+				}
+
+				switch(a.type_id()) {
+				case SS_PLUGIN_ST_INT8:
+					return &ptr->m_data.s8;
+				case SS_PLUGIN_ST_INT16:
+					return &ptr->m_data.s16;
+				case SS_PLUGIN_ST_INT32:
+					return &ptr->m_data.s32;
+				case SS_PLUGIN_ST_INT64:
+					return &ptr->m_data.s64;
+				case SS_PLUGIN_ST_UINT8:
+					return &ptr->m_data.u8;
+				case SS_PLUGIN_ST_UINT16:
+					return &ptr->m_data.u16;
+				case SS_PLUGIN_ST_UINT32:
+					return &ptr->m_data.u32;
+				case SS_PLUGIN_ST_UINT64:
+					return &ptr->m_data.u64;
+				case SS_PLUGIN_ST_STRING:
+					return &ptr->m_data.str;
+				case SS_PLUGIN_ST_TABLE:
+					return &ptr->m_data.table;
+				case SS_PLUGIN_ST_BOOL:
+					return &ptr->m_data.b;
+				default:
+					throw sinsp_exception("can't convert plugin state type to typeinfo: " +
+					                      std::to_string(a.type_id()));
+				}
+			}
+			return nullptr;
 		}
 
 #ifdef _MSC_VER
@@ -205,10 +222,9 @@ protected:
 
 			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(acc)) {
 				self->_check_defsptr(dynamic_acc->info(), true);
-				auto ptr = static_cast<T*>(
-				        self->_access_dynamic_field_for_write(dynamic_acc->info().index()));
+				auto ptr = self->_access_dynamic_field_for_write(dynamic_acc->info().index());
 				auto val = static_cast<const T*>(in);
-				*ptr = *val;
+				ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
 				return;
 			}
 
