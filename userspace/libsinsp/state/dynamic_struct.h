@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/borrowed_state_data.h>
 #include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
@@ -28,6 +29,64 @@ limitations under the License.
 #include <vector>
 
 namespace libsinsp::state {
+
+struct dynamic_field_value {
+	ss_plugin_state_type m_type;
+	ss_plugin_state_data m_data;
+
+	explicit dynamic_field_value(ss_plugin_state_type type): m_type(type), m_data{} {
+		memset(&m_data, 0, sizeof(m_data));
+	}
+
+	void update(const borrowed_state_data& val) {
+		clear();
+		set(val);
+	}
+
+	dynamic_field_value(const dynamic_field_value& rhs) noexcept: m_type(rhs.m_type), m_data{} {
+		*this = rhs;
+	}
+
+	dynamic_field_value& operator=(const dynamic_field_value& rhs) {
+		clear();
+		m_type = rhs.m_type;
+		set(borrowed_state_data(rhs.m_data));
+		return *this;
+	}
+
+	dynamic_field_value(dynamic_field_value&& rhs) noexcept: m_type(rhs.m_type), m_data{} {
+		*this = std::move(rhs);
+	}
+
+	dynamic_field_value& operator=(dynamic_field_value&& rhs) noexcept {
+		m_type = rhs.m_type;
+		m_data = rhs.m_data;
+		rhs.m_type = static_cast<ss_plugin_state_type>(0);  // invalid type
+		return *this;
+	}
+
+	~dynamic_field_value() {
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			free(const_cast<char*>(m_data.str));
+		}
+	}
+
+private:
+	void clear() {
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			free(const_cast<char*>(m_data.str));
+			m_data.str = nullptr;
+		}
+	}
+
+	void set(const libsinsp::state::borrowed_state_data& val) {
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			m_data.str = strdup(val.data().str);
+		} else {
+			m_data = val.data();
+		}
+	}
+};
 
 class extensible_struct;
 class dynamic_field_accessor;
