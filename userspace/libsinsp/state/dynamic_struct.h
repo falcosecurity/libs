@@ -18,6 +18,8 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/borrowed_state_data.h>
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
@@ -28,6 +30,64 @@ limitations under the License.
 #include <vector>
 
 namespace libsinsp::state {
+
+struct dynamic_field_value {
+	ss_plugin_state_type m_type;
+	ss_plugin_state_data m_data;
+
+	explicit dynamic_field_value(ss_plugin_state_type type): m_type(type), m_data{} {
+		memset(&m_data, 0, sizeof(m_data));
+	}
+
+	void update(const borrowed_state_data& val) {
+		clear();
+		set(val);
+	}
+
+	dynamic_field_value(const dynamic_field_value& rhs) noexcept: m_type(rhs.m_type), m_data{} {
+		*this = rhs;
+	}
+
+	dynamic_field_value& operator=(const dynamic_field_value& rhs) {
+		clear();
+		m_type = rhs.m_type;
+		set(borrowed_state_data(rhs.m_data));
+		return *this;
+	}
+
+	dynamic_field_value(dynamic_field_value&& rhs) noexcept: m_type(rhs.m_type), m_data{} {
+		*this = std::move(rhs);
+	}
+
+	dynamic_field_value& operator=(dynamic_field_value&& rhs) noexcept {
+		m_type = rhs.m_type;
+		m_data = rhs.m_data;
+		rhs.m_type = static_cast<ss_plugin_state_type>(0);  // invalid type
+		return *this;
+	}
+
+	~dynamic_field_value() {
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			free(const_cast<char*>(m_data.str));
+		}
+	}
+
+private:
+	void clear() {
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			free(const_cast<char*>(m_data.str));
+			m_data.str = nullptr;
+		}
+	}
+
+	void set(const libsinsp::state::borrowed_state_data& val) {
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			m_data.str = strdup(val.data().str);
+		} else {
+			m_data = val.data();
+		}
+	}
+};
 
 /**
  * @brief A base class for classes and structs that allow dynamic programming
@@ -254,22 +314,23 @@ protected:
 	/**
 	 * @brief Destroys all the dynamic field values currently allocated
 	 */
-	virtual void destroy_dynamic_fields() {
-		if(!m_dynamic_fields) {
-			return;
-		}
-		for(size_t i = 0; i < m_fields.size(); i++) {
-			auto ti = typeinfo::from(m_dynamic_fields->m_definitions_ordered[i]->type_id());
-			ti.destroy(m_fields[i]);
-			free(m_fields[i]);
-		}
-		m_fields.clear();
-	}
+	virtual void destroy_dynamic_fields() { m_fields.clear(); }
 
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		thread_local std::string str;
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		_check_defsptr(acc->info(), false);
-		return _access_dynamic_field_for_read(acc->info().index());
+		auto ptr = _access_dynamic_field_for_read(acc->info().index());
+		if(ptr) {
+			if(a.type_info() == SS_PLUGIN_ST_STRING) {
+				str = ptr->m_data.str;
+				return &str;
+			}
+#define _X(ty, field) return &ptr->m_data.field;
+			__PLUGIN_STATETYPE_SWITCH(a.type_info());
+#undef _X
+		}
+		return nullptr;
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
@@ -280,9 +341,9 @@ protected:
 			                      acc->info().name());
 		}
 		auto writer = [&]<typename T>() {
-			auto ptr = static_cast<T*>(_access_dynamic_field_for_write(acc->info().index()));
 			auto val = static_cast<const T*>(in);
-			*ptr = *val;
+			auto ptr = _access_dynamic_field_for_write(acc->info().index());
+			ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
 		};
 		return dispatch_lambda(a.type_info(), writer);
 	}
@@ -301,7 +362,7 @@ private:
 		}
 	}
 
-	inline void* _access_dynamic_field_for_write(size_t index) {
+	inline dynamic_field_value* _access_dynamic_field_for_write(size_t index) {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
 		}
@@ -310,15 +371,12 @@ private:
 		}
 		while(m_fields.size() <= index) {
 			auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
-			auto ti = typeinfo::from(def->type_id());
-			void* fieldbuf = malloc(ti.size());
-			ti.construct(fieldbuf);
-			m_fields.push_back(fieldbuf);
+			m_fields.emplace_back(def->type_id());
 		}
-		return m_fields[index];
+		return &m_fields[index];
 	}
 
-	inline void* _access_dynamic_field_for_read(size_t index) const {
+	inline const dynamic_field_value* _access_dynamic_field_for_read(size_t index) const {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
 		}
@@ -328,7 +386,7 @@ private:
 		if(m_fields.size() <= index) {
 			return nullptr;
 		}
-		return m_fields[index];
+		return &m_fields[index];
 	}
 
 	inline void deep_fields_copy(const dynamic_struct& other_const) {
@@ -340,8 +398,8 @@ private:
 		set_dynamic_fields(other.dynamic_fields());
 
 		auto clone_from = [&]<typename T>(const field_info& fi, const dynamic_struct& src) {
-			auto src_ptr = static_cast<const T*>(src._access_dynamic_field_for_read(fi.index()));
-			auto dst_ptr = static_cast<T*>(_access_dynamic_field_for_write(fi.index()));
+			auto src_ptr = src._access_dynamic_field_for_read(fi.index());
+			auto dst_ptr = _access_dynamic_field_for_write(fi.index());
 			*dst_ptr = *src_ptr;
 		};
 
@@ -353,7 +411,7 @@ private:
 		}
 	}
 
-	std::vector<void*> m_fields;
+	std::vector<dynamic_field_value> m_fields;
 	std::shared_ptr<field_infos> m_dynamic_fields;
 };
 
