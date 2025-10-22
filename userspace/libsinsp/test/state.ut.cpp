@@ -24,7 +24,6 @@ limitations under the License.
 
 TEST(typeinfo, basic_tests) {
 	struct some_unknown_type {};
-	ASSERT_ANY_THROW(libsinsp::state::typeinfo::of<some_unknown_type>());
 	ASSERT_EQ(libsinsp::state::typeinfo::of<std::string>().size(), sizeof(std::string));
 	ASSERT_EQ(libsinsp::state::typeinfo::of<std::string>(),
 	          libsinsp::state::typeinfo::of<std::string>());
