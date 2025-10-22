@@ -740,7 +740,7 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_tables);
 	ASSERT_EQ(reg->tables().size(), 2);
 	ASSERT_NE(reg->tables().find("plugin_sample"), reg->tables().end());
-	ASSERT_ANY_THROW(reg->get_table<char>("plugin_sample"));  // wrong key type
+	ASSERT_ANY_THROW(reg->get_table<uint8_t>("plugin_sample"));  // wrong key type
 	ASSERT_NE(reg->get_table<uint64_t>("plugin_sample"), nullptr);
 
 	// get the plugin table and check its fields and info

@@ -39,10 +39,7 @@ public:
 	 * @brief Returns a type info for the type T.
 	 */
 	template<typename T>
-	static inline typeinfo of() {
-		throw sinsp_exception("state::typeinfo::of invoked for unsupported type: " +
-		                      std::string(typeid(T).name()));
-	}
+	static typeinfo of();
 
 	static typeinfo from(ss_plugin_state_type state_type);
 
