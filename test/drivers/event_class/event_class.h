@@ -547,6 +547,8 @@ public:
 	 */
 	void assert_charbuf_param(int param_num, const char* param);
 
+	void assert_charbuf_param_any_of(int param_num, const std::vector<const char*>& candidates);
+
 	/**
 	 * @brief Assert that the parameter is a `charbuf` array and
 	 * compare element per element the array with the one passed as a parameter `param`.
