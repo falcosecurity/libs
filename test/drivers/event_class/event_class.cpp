@@ -1132,6 +1132,31 @@ void event_test::assert_charbuf_param(int param_num, const char* param) {
 	        << VALUE_NOT_CORRECT << m_current_param << std::endl;
 }
 
+void event_test::assert_charbuf_param_any_of(const int param_num,
+                                             const std::vector<const char*>& candidates) {
+	assert_param_boundaries(param_num);
+	ASSERT_GT(candidates.size(), 0);
+	const auto& [param_value, param_size] = m_event_params[m_current_param];
+	for(const auto& candidate : candidates) {
+		// 'strlen()' does not include the terminating null byte while drivers adds it.
+		if(const auto candidate_size = strlen(candidate) + 1; param_size != candidate_size) {
+			continue;
+		}
+		if(!strncmp(param_value, candidate, param_size)) {
+			return;
+		}
+	}
+
+	// The parameter didn't match any of the provided candidates. Fail with a useful error message.
+	std::ostringstream oss;
+	oss << VALUE_NOT_CORRECT << m_current_param << ", value = \"" << param_value
+	    << "\". It must be equal to any of the provided candidates:\n";
+	for(const auto& value : candidates) {
+		oss << "- \"" << std::string{value} << "\"\n";
+	}
+	FAIL() << oss.str();
+}
+
 void event_test::assert_charbuf_array_param(int param_num, const char** param) {
 	assert_param_boundaries(param_num);
 	uint16_t total_len = 0;

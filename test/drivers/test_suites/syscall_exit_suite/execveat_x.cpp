@@ -528,8 +528,8 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd) {
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Prepare the execve args */
-	const char *exe_path = "/usr/bin/echo";
-	int dirfd = open(exe_path, O_RDONLY);
+	const std::string exe_path{"/usr/bin/echo"};
+	int dirfd = open(exe_path.c_str(), O_RDONLY);
 	if(dirfd < 0) {
 		FAIL() << "failed to open the file\n";
 	}
@@ -601,14 +601,21 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd) {
 	evt_test->assert_charbuf_array_param(3, &argv[1]);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	// This is exactly the behavior that we obtain using the `AT_EMPTY_PATH` flag
-	// https://github.com/torvalds/linux/blob/master/fs/exec.c#L1600
-	// https://github.com/torvalds/linux/blob/master/fs/exec.c#L1425
-	std::string comm = std::to_string(dirfd);
-	evt_test->assert_charbuf_param(14, comm.c_str());
+	// For comm parameter, we expect a different value depending on the kernel version. For kernel
+	// versions lower than 6.14, if the `AT_EMPTY_PATH` flag is specified while invoking execveat,
+	// we expect the comm value to be set to the dirfd numeric value. Starting from 6.14
+	// (https://github.com/torvalds/linux/commit/543841d1806029889c2f69f040e88b247aba8e22), this
+	// strange behaviour has been fixed, and the exact same execveat invocation results in the comm
+	// value to be correctly set to the dentry's filename value. For this reason, we must account
+	// for both scenarios.
+	const std::vector comm_candidates{
+	        std::to_string(dirfd).c_str(),                            // valid for kernel < 6.14
+	        exe_path.substr(exe_path.find_last_of('/') + 1).c_str(),  // valid since kernel >= 6.14
+	};
+	evt_test->assert_charbuf_param_any_of(14, comm_candidates);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	evt_test->assert_charbuf_param(28, exe_path);
+	evt_test->assert_charbuf_param(28, exe_path.c_str());
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
