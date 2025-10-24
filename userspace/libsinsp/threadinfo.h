@@ -671,6 +671,8 @@ private:
 	        decltype(m_cgroups),
 	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>
 	        m_cgroups_table_adapter;
+
+	const libsinsp::state::dynamic_struct::field_accessor<std::string>* m_container_id_accessor;
 };
 
 /*@}*/
