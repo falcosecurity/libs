@@ -42,17 +42,6 @@ public:
 	 */
 	class field_info {
 	public:
-		inline field_info():
-		        m_readonly(true),
-		        m_offset((size_t)-1),
-		        m_name(""),
-		        m_info(typeinfo::of<uint8_t>()) {}
-		inline ~field_info() = default;
-		inline field_info(field_info&&) = default;
-		inline field_info& operator=(field_info&&) = default;
-		inline field_info(const field_info& s) = default;
-		inline field_info& operator=(const field_info& s) = default;
-
 		friend inline bool operator==(const field_info& a, const field_info& b) {
 			return a.info() == b.info() && a.name() == b.name() && a.readonly() == b.readonly() &&
 			       a.m_offset == b.m_offset;
@@ -109,13 +98,6 @@ public:
 		        m_name(n),
 		        m_info(i) {}
 
-		template<typename T>
-		static inline field_info _build(const std::string& name,
-		                                size_t offset,
-		                                bool readonly = false) {
-			return field_info(name, offset, libsinsp::state::typeinfo::of<T>(), readonly);
-		}
-
 		bool m_readonly;
 		size_t m_offset;
 		std::string m_name;
@@ -150,8 +132,6 @@ public:
 	 * in a static struct.
 	 */
 	using field_infos = std::unordered_map<std::string, field_info>;
-
-	virtual ~static_struct() = default;
 
 	/**
 	 * @brief Accesses a field with the given accessor and reads its value.
@@ -214,7 +194,7 @@ protected:
 		}
 
 		// todo(jasondellaluce): add extra safety boundary checks here
-		fields.insert({name, field_info::_build<T>(name, offset, readonly)});
+		fields.insert({name, field_info(name, offset, typeinfo::of<T>(), readonly)});
 		return fields.at(name);
 	}
 };
