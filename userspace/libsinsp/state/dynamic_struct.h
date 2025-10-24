@@ -325,19 +325,15 @@ protected:
 		return {};
 	}
 
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		_check_defsptr(acc->info(), true);
 		if(acc->info().readonly()) {
 			throw sinsp_exception("can't set a read-only dynamic struct field: " +
 			                      acc->info().name());
 		}
-		auto writer = [&]<typename T>() {
-			auto val = static_cast<const T*>(in);
-			auto ptr = _access_dynamic_field_for_write(acc->info().index());
-			ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
-		};
-		return dispatch_lambda(a.type_info(), writer);
+		auto ptr = _access_dynamic_field_for_write(acc->info().index());
+		ptr->update(in);
 	}
 
 private:
@@ -389,17 +385,12 @@ private:
 		// copy the definitions
 		set_dynamic_fields(other.dynamic_fields());
 
-		auto clone_from = [&]<typename T>(const field_info& fi, const dynamic_struct& src) {
-			auto src_ptr = src._access_dynamic_field_for_read(fi.index());
-			auto dst_ptr = _access_dynamic_field_for_write(fi.index());
-			*dst_ptr = *src_ptr;
-		};
-
 		// deep copy of all the fields
 		destroy_dynamic_fields();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
-			const auto info = m_dynamic_fields->m_definitions_ordered[i];
-			dispatch_lambda(info->m_type_id, clone_from, *info, other_const);
+			auto src_ptr = other_const._access_dynamic_field_for_read(i);
+			auto dst_ptr = _access_dynamic_field_for_write(i);
+			*dst_ptr = *src_ptr;
 		}
 	}
 

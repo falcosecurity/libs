@@ -164,7 +164,7 @@ protected:
 		return dispatch_lambda(a.type_info(), reader);
 	}
 
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		if(!acc->info().valid()) {
 			throw sinsp_exception("can't set invalid field in static struct");
@@ -174,8 +174,10 @@ protected:
 			                      acc->info().name());
 		}
 		auto writer = [&]<typename T>() {
-			auto val = static_cast<const T*>(in);
-			*reinterpret_cast<T*>(reinterpret_cast<char*>(this) + acc->info().m_offset) = *val;
+			T val{};
+			in.copy_to<type_id_of<T>()>(val);
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(this) + acc->info().m_offset) =
+			        std::move(val);
 		};
 		return dispatch_lambda(a.type_info(), writer);
 	}
