@@ -141,11 +141,9 @@ public:
 
 	template<typename T, typename Val = T>
 	void write_field(const accessor::typed_ref<T>& a, const Val& in) {
-		// TODO: we could use a direct assignment of const char* to strings
-		//       but we'd have to handle it deep down in each individual
-		//       implementation of raw_write_field
-		T in_val = in;
-		this->raw_write_field(a, &in_val);
+		borrowed_state_data in_val =
+		        borrowed_state_data::from<libsinsp::state::type_id_of<T>(), Val>(in);
+		this->raw_write_field(a, in_val);
 	}
 
 	template<typename T, typename Val = T>
@@ -154,9 +152,7 @@ public:
 	}
 
 	[[nodiscard]] virtual borrowed_state_data raw_read_field(const accessor& a) const = 0;
-
-protected:
-	virtual void raw_write_field(const accessor& a, const void* in) = 0;
+	virtual void raw_write_field(const accessor& a, const borrowed_state_data& in) = 0;
 };
 
 template<>
