@@ -5,6 +5,7 @@ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
 Name: libpman
 Description: Utility library for BPF probes
 Version: @FALCOSECURITY_LIBS_VERSION@
+License: Apache-2.0
 
 Requires: libbpf zlib
 Libs: -L${libdir} -lpman -lscap_event_schema -lscap_platform
