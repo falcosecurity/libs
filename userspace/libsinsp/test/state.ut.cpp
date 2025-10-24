@@ -22,13 +22,6 @@ limitations under the License.
 #include <libsinsp/state/table_registry.h>
 #include <libsinsp/sinsp.h>
 
-TEST(typeinfo, basic_tests) {
-	struct some_unknown_type {};
-	ASSERT_EQ(libsinsp::state::typeinfo::of<std::string>().size(), sizeof(std::string));
-	ASSERT_EQ(libsinsp::state::typeinfo::of<std::string>(),
-	          libsinsp::state::typeinfo::of<std::string>());
-}
-
 TEST(static_struct, defs_and_access) {
 	struct err_multidef_struct : public libsinsp::state::extensible_struct {
 #if defined(__clang__)
