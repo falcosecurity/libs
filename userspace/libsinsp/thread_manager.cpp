@@ -121,7 +121,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         scap_t* const& scap_handle,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
                 thread_manager_dyn_fields,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields):
+        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
         m_sinsp_mode{sinsp_mode},
         m_threadinfo_factory{threadinfo_factory},
@@ -137,7 +138,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         m_scap_handle{scap_handle},
         m_fdtable_dyn_fields{fdtable_dyn_fields},
         m_max_thread_table_size(m_thread_table_default_size),
-        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()) {
+        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()),
+        m_usergroup_manager{usergroup_manager} {
 	clear();
 }
 
@@ -283,6 +285,21 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 	return m_threadtable.put(tinfo_shared_ptr);
 }
 
+void sinsp_thread_manager::remove_child_from_parent(int64_t ptid) {
+	auto parent = find_thread(ptid, true).get();
+	if(parent == nullptr) {
+		return;
+	}
+
+	parent->m_not_expired_children--;
+
+	/* Clean expired children if necessary. */
+	if((parent->m_children.size() - parent->m_not_expired_children) >=
+	   DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
+		parent->clean_expired_children();
+	}
+}
+
 /* Taken from `find_new_reaper` kernel function:
  *
  * When we die, we re-parent all our children, and try to:
@@ -322,7 +339,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	std::unordered_set<int64_t> loop_detection_set{tinfo->m_tid};
 	uint16_t prev_set_size = 1;
 
-	auto parent_tinfo = tinfo->get_parent_thread();
+	auto parent_tinfo = find_thread(tinfo->m_ptid, true).get();
 	while(parent_tinfo != nullptr) {
 		prev_set_size = loop_detection_set.size();
 		loop_detection_set.insert(parent_tinfo->m_tid);
@@ -355,7 +372,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 				}
 			}
 		}
-		parent_tinfo = parent_tinfo->get_parent_thread();
+		parent_tinfo = find_thread(parent_tinfo->m_ptid, true).get();
 	}
 
 	return nullptr;
@@ -410,7 +427,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * which don't have a group or children.
 	 */
 	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr) {
-		thread_to_remove->remove_child_from_parent();
+		remove_child_from_parent(thread_to_remove->m_ptid);
 		m_threadtable.erase(tid);
 		m_last_tid = -1;
 		m_last_tinfo.reset();
@@ -494,7 +511,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		/* even if thread_to_remove is not the main thread the parent will be
 		 * the same so it's ok.
 		 */
-		thread_to_remove->remove_child_from_parent();
+		remove_child_from_parent(thread_to_remove->m_ptid);
 		m_thread_groups.erase(thread_to_remove->m_pid);
 		m_threadtable.erase(thread_to_remove->m_pid);
 	}
@@ -505,7 +522,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * in the previous `if`.
 	 */
 	if(!thread_to_remove->is_main_thread()) {
-		thread_to_remove->remove_child_from_parent();
+		remove_child_from_parent(thread_to_remove->m_ptid);
 		m_threadtable.erase(tid);
 	}
 
@@ -659,6 +676,87 @@ void sinsp_thread_manager::maybe_log_max_lookup(int64_t tid, bool scan_sockets, 
 			                          m_n_proc_lookups_duration_ns / 1000000);
 		}
 	}
+}
+
+void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor) {
+	// Use two pointers starting at this, traversing the parent
+	// state, at different rates. If they ever equal each other
+	// before slow is NULL there's a loop.
+
+	sinsp_threadinfo *slow = find_thread(tinfo.m_ptid, true).get(), *fast = slow;
+
+	// Move fast to its parent
+	fast = (fast ? find_thread(fast->m_ptid, true).get() : fast);
+
+	// The slow pointer must be valid and not have a tid of -1.
+	while(slow && slow->m_tid != -1) {
+		if(!visitor(slow)) {
+			break;
+		}
+
+		// Advance slow one step and advance fast two steps
+		slow = find_thread(slow->m_ptid, true).get();
+
+		// advance fast 2 steps, checking to see if we meet
+		// slow after each step.
+		for(uint32_t i = 0; i < 2; i++) {
+			fast = (fast ? find_thread(fast->m_ptid, true).get() : fast);
+
+			// If not at the end but fast == slow or if
+			// slow points to itself, there's a loop in
+			// the thread state.
+			if(slow && (slow == fast || slow->m_tid == slow->m_ptid)) {
+				tinfo.report_thread_loop(*slow);
+				return;
+			}
+		}
+	}
+}
+sinsp_threadinfo* sinsp_thread_manager::get_oldest_matching_ancestor(
+        sinsp_threadinfo* tinfo,
+        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+        bool is_virtual_id) {
+	int64_t id = get_thread_id(tinfo);
+	if(id == -1) {
+		// the id is not set
+		return nullptr;
+	}
+
+	// If we are using a non virtual id or if the id is virtual but we are in the init namespace we
+	// can access the thread table directly!
+	// if is_virtual_id == false we don't care about the namespace in which we are
+	sinsp_threadinfo* leader = nullptr;
+	if(!is_virtual_id || !tinfo->is_in_pid_namespace()) {
+		leader = find_thread(id, true).get();
+		if(leader != nullptr) {
+			return leader;
+		}
+	}
+
+	// If we are in a pid_namespace we cannot use directly m_sid to access the table
+	// since it could be related to a pid namespace.
+	visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
+		if(get_thread_id(pt) != id) {
+			return false;
+		}
+		leader = pt;
+		return true;
+	};
+
+	traverse_parent_state(*tinfo, visitor);
+	return leader;
+}
+
+std::string sinsp_thread_manager::get_ancestor_field_as_string(
+        sinsp_threadinfo* tinfo,
+        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
+        bool is_virtual_id) {
+	auto ancestor = get_oldest_matching_ancestor(tinfo, get_thread_id, is_virtual_id);
+	if(ancestor) {
+		return get_field_str(ancestor);
+	}
+	return "";
 }
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
@@ -860,10 +958,18 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 		}
 
 		if(have_scap_proc) {
-			newti->init(scap_proc,
-			            is_large_envs_enabled(),
-			            must_notify_thread_user_update(),
-			            must_notify_thread_group_update());
+			newti->init(scap_proc, is_large_envs_enabled());
+			// we haven't run container detection yet, so use an empty container_id
+			// and hope the usergroup_updater fixes it later
+			m_usergroup_manager->add_user("",
+			                              newti->m_pid,
+			                              newti->m_uid,
+			                              newti->m_gid,
+			                              must_notify_thread_user_update());
+			m_usergroup_manager->add_group("",
+			                               newti->m_pid,
+			                               newti->m_gid,
+			                               must_notify_thread_user_update());
 		} else {
 			//
 			// Add a fake entry to avoid a continuous lookup
@@ -929,6 +1035,23 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 
 		return m_nullptr_tinfo_ret;
 	}
+}
+
+sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n) {
+	sinsp_threadinfo* mt = tinfo.get_main_thread();
+
+	for(uint32_t i = 0; i < n; i++) {
+		if(mt == nullptr) {
+			return nullptr;
+		}
+		mt = find_thread(mt->m_ptid, true).get();
+		if(mt == nullptr) {
+			return nullptr;
+		}
+		mt = mt->get_main_thread();
+	}
+
+	return mt;
 }
 
 void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {

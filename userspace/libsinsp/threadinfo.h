@@ -41,11 +41,6 @@ struct iovec {
 #include <libsinsp/ifinfo.h>
 #include <libscap/scap_savefile_api.h>
 
-// Forward declare `sinsp_thread_manager` and `sinsp_usergroup_manager` to avoid cyclic
-// dependencies.
-class sinsp_thread_manager;
-class sinsp_usergroup_manager;
-
 struct erase_fd_params {
 	bool m_remove_from_table;
 	int64_t m_fd;
@@ -69,11 +64,6 @@ struct sinsp_threadinfo_ctor_params {
 	const sinsp_fdtable_factory& fdtable_factory;
 	const std::shared_ptr<libsinsp::state::table_entry::dynamic_struct::field_infos>&
 	        thread_manager_dyn_fields;
-
-	// The following fields are externally provided and expected to be populated/updated by the
-	// thread info.
-	std::shared_ptr<sinsp_thread_manager>& thread_manager;
-	std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager;
 };
 
 /*!
@@ -110,41 +100,6 @@ public:
 	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
 	*/
 	std::string get_exepath() const;
-
-	/*!
-	  \brief Return the container_id associated with this thread, if the container plugins is
-	  running, leveraging sinsp state table API.
-	*/
-	std::string get_container_id();
-
-	/*!
-	  \brief Given the container_id associated with this thread, feetches the container user from
-	  the containers table, created by the container plugins if running, leveraging sinsp state
-	  table API.
-	*/
-	std::string get_container_user();
-
-	/*!
-	  \brief Given the container_id associated with this thread, feetches the container ip from the
-	  containers table, created by the container plugins if running, leveraging sinsp state table
-	  API.
-	*/
-	std::string get_container_ip();
-
-	/*!
-	  \brief Return the full info about thread uid.
-	*/
-	scap_userinfo* get_user();
-
-	/*!
-	  \brief Return the full info about thread gid.
-	*/
-	scap_groupinfo* get_group();
-
-	/*!
-	  \brief Return the full info about thread loginuid.
-	*/
-	scap_userinfo* get_loginuser();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -280,21 +235,6 @@ public:
 	}
 
 	/*!
-	  \brief Get the thread that launched this thread's process.
-	*/
-	sinsp_threadinfo* get_parent_thread();
-
-	/*!
-	  \brief Get the process that launched this thread's process (its parent) or any of its
-	  ancestors.
-
-	  \param n when 1 it will look for the parent process, when 2 the grandparent and so forth.
-
-	  \return Pointer to the threadinfo or NULL if it doesn't exist
-	*/
-	sinsp_threadinfo* get_ancestor_process(uint32_t n = 1);
-
-	/*!
 	  \brief Retrieve information about one of this thread/process FDs.
 
 	  \param fd The file descriptor number, e.g. 0 for stdin.
@@ -371,13 +311,7 @@ public:
 	 */
 	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
 
-	//
-	// Walk up the parent process hierarchy, calling the provided
-	// function for each node. If the function returns false, the
-	// traversal stops.
-	//
-	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
-	void traverse_parent_state(visitor_func_t& visitor);
+	void report_thread_loop(const sinsp_threadinfo& looping_thread);
 
 	void assign_children_to_reaper(sinsp_threadinfo* reaper);
 
@@ -387,22 +321,6 @@ public:
 		child->m_ptid = m_tid;
 		/* Increment the number of not expired children */
 		m_not_expired_children++;
-	}
-
-	/* We call it immediately before removing the thread from the thread table. */
-	inline void remove_child_from_parent() {
-		auto parent = get_parent_thread();
-		if(parent == nullptr) {
-			return;
-		}
-
-		parent->m_not_expired_children--;
-
-		/* Clean expired children if necessary. */
-		if((parent->m_children.size() - parent->m_not_expired_children) >=
-		   DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
-			parent->clean_expired_children();
-		}
 	}
 
 	inline void clean_expired_children() {
@@ -430,27 +348,8 @@ public:
 	 */
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
-	/*!
-	  \brief Set the thread user and optionally notify any interested component.
-	  \param uid The user id.
-	  \param notify A boolean indicating if any interested component must be notified of the update.
-	*/
-	void set_user(uint32_t uid, bool notify);
-	/*!
-	  \brief Set the thread group and optionally notify any interested component.
-	  \param gid The group id.
-	  \param notify A boolean indicating if any interested component must be notified of the update.
-	*/
-	void set_group(uint32_t gid, bool notify);
-	void set_loginuid(uint32_t loginuid);
-
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	const cgroups_t& cgroups() const;
-
-	/*!
-	  \brief Return the thread manager associated with this thread.
-	*/
-	std::shared_ptr<sinsp_thread_manager> get_thread_manager() const;
 
 	//
 	// Core state
@@ -555,10 +454,7 @@ public:
 	}
 
 	void init();
-	void init(const scap_threadinfo& pinfo,
-	          bool can_load_env_from_proc,
-	          bool notify_user_update,
-	          bool notify_group_update);
+	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
 	void fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
 	                                  bool resolve_hostname_and_port);
 	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
@@ -603,15 +499,6 @@ public:
 	}
 
 	inline sinsp_evt::category& get_lastevent_category() { return m_lastevent_category; }
-
-	sinsp_threadinfo* get_oldest_matching_ancestor(
-	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-	        bool is_virtual_id = false);
-
-	std::string get_ancestor_field_as_string(
-	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-	        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
-	        bool is_virtual_id = false);
 
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();

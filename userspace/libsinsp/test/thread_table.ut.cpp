@@ -82,7 +82,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation) {
 	ASSERT_TRUE(tinfo);
 	ASSERT_TRUE(tinfo->is_main_thread());
 	ASSERT_EQ(tinfo->get_main_thread(), tinfo);
-	ASSERT_EQ(tinfo->get_parent_thread(), nullptr);
+	ASSERT_EQ(m_inspector.m_thread_manager->find_thread(tinfo->m_ptid, true), nullptr);
 	ASSERT_EQ(tinfo->m_tid, INIT_TID);
 	ASSERT_EQ(tinfo->m_pid, INIT_PID);
 	ASSERT_EQ(tinfo->m_ptid, INIT_PTID);
@@ -243,7 +243,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	DEFAULT_TREE
 
 	std::vector<int64_t> traverse_parents;
-	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
+	sinsp_thread_manager::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
 		/* we stop when we reach the init parent */
 		traverse_parents.push_back(pt->m_tid);
 		if(pt->m_tid == INIT_TID) {
@@ -262,7 +262,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	std::vector<int64_t> expected_p4_traverse_parents = {p4_t1_ptid, p3_t1_ptid, p2_t1_ptid};
 
 	traverse_parents.clear();
-	tinfo->traverse_parent_state(visitor);
+	m_inspector.m_thread_manager->traverse_parent_state(*tinfo, visitor);
 	ASSERT_EQ(traverse_parents, expected_p4_traverse_parents);
 
 	/*=============================== p4_t1 traverse ===========================*/
@@ -278,7 +278,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	                                                     p2_t1_ptid};
 
 	traverse_parents.clear();
-	tinfo->traverse_parent_state(visitor);
+	m_inspector.m_thread_manager->traverse_parent_state(*tinfo, visitor);
 	ASSERT_EQ(traverse_parents, expected_p5_traverse_parents);
 
 	/*=============================== p5_t2 traverse ===========================*/
@@ -336,7 +336,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	std::vector<int64_t> expected_p6_traverse_parents = {p4_t1_tid, p2_t3_tid, INIT_TID};
 
 	traverse_parents.clear();
-	tinfo->traverse_parent_state(visitor);
+	m_inspector.m_thread_manager->traverse_parent_state(*tinfo, visitor);
 	ASSERT_EQ(traverse_parents, expected_p6_traverse_parents);
 
 	/*=============================== p6_t1 traverse ===========================*/
@@ -640,10 +640,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_apid_ppid) {
 	ASSERT_EQ(p5_t1_info->m_ptid, p4_t2_tid);
 
 	auto p4_t1_info = thread_manager->find_thread(p4_t1_tid, true).get();
-	auto p5_t1_parent_info = p5_t1_info->get_ancestor_process();
+	auto p5_t1_parent_info = m_inspector.m_thread_manager->get_ancestor_process(*p5_t1_info);
 	ASSERT_EQ(p4_t1_info->m_pid, p5_t1_parent_info->m_pid);
 
 	auto p3_t1_info = thread_manager->find_thread(p3_t1_tid, true).get();
-	auto p5_t1_gparent_info = p5_t1_info->get_ancestor_process(2);
+	auto p5_t1_gparent_info = m_inspector.m_thread_manager->get_ancestor_process(*p5_t1_info, 2);
 	ASSERT_EQ(p3_t1_info->m_pid, p5_t1_gparent_info->m_pid);
 }

@@ -77,6 +77,7 @@ add_library(
 	${LIBS_DIR}/userspace/plugin/plugin_loader.c
 	plugin.cpp
 	plugin_table_api.cpp
+	plugin_tables.cpp
 	plugin_filtercheck.cpp
 	prefix_search.cpp
 	threadinfo.cpp

@@ -206,9 +206,10 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(const uint32_t addr) const 
 }
 
 bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(const uint32_t addr,
+                                                            ::plugin_tables& plugin_tables,
                                                             sinsp_threadinfo* tinfo) const {
-	if(!tinfo->get_container_id().empty()) {
-		const auto ip = tinfo->get_container_ip();
+	if(!plugin_tables.get_container_id(*tinfo).empty()) {
+		const auto ip = plugin_tables.get_container_ip(*tinfo);
 		if(!ip.empty()) {
 			struct in_addr in;
 			if(inet_pton(AF_INET, ip.c_str(), &in)) {
@@ -217,31 +218,18 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(const uint32_t addr,
 				}
 			}
 		} else {
-			const auto table = tinfo->get_thread_manager()->get_table(
-			        sinsp_thread_manager::s_containers_table_name);
-			if(table != nullptr) {
-				bool found = false;
-				auto fld = table->get_field<std::string>(
-				        sinsp_thread_manager::s_containers_table_field_ip);
-				auto it = [&](sinsp_table_entry& e) -> bool {
-					std::string ip;
-					e.read_field(fld, ip);
-					if(!ip.empty()) {
-						struct in_addr in;
-						if(inet_pton(AF_INET, ip.c_str(), &in)) {
-							if(addr == in.s_addr) {
-								found = true;
-								return false;  // break-out loop
-							}
-						}
+			bool found = false;
+			plugin_tables.foreach_container_ip([&](const std::string& ip) {
+				struct in_addr in;
+				if(!ip.empty() && inet_pton(AF_INET, ip.c_str(), &in)) {
+					if(addr == in.s_addr) {
+						found = true;
+						return false;  // break-out loop
 					}
-					return true;
-				};
-				table->foreach_entry(it);
-				if(found) {
-					return true;
 				}
-			}
+				return true;
+			});
+			return found;
 		}
 	}
 
@@ -299,8 +287,9 @@ ipv6addr sinsp_network_interfaces::infer_ipv6_address(const ipv6addr& destinatio
 }
 
 bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(const ipv6addr& addr,
+                                                            const plugin_tables& plugin_tables,
                                                             sinsp_threadinfo* tinfo) const {
-	if(!tinfo->get_container_id().empty()) {
+	if(!plugin_tables.get_container_id(*tinfo).empty()) {
 		// For now, not supporting ipv6 networking for containers. So always return false;
 		return false;
 	}
