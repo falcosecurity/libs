@@ -180,44 +180,41 @@ private:
 protected:
 	struct writer {
 		extensible_struct* self;
-		const accessor* acc;
-		const void* in;
+		const static_field_accessor* acc;
+		const borrowed_state_data& in;
 
 		template<typename T>
 		void operator()() const {
-			if(auto static_acc = dynamic_cast<const static_field_accessor*>(acc)) {
-				if(!static_acc->info().valid()) {
-					throw sinsp_exception("can't set invalid field in static struct");
-				}
-				if(static_acc->info().readonly()) {
-					throw sinsp_exception("can't set a read-only static struct field: " +
-					                      static_acc->info().name());
-				}
-				auto ptr = reinterpret_cast<T*>(reinterpret_cast<char*>(self) +
-				                                static_acc->info().offset());
-				auto val = static_cast<const T*>(in);
-				*ptr = *val;
-				return;
-			}
-
-			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(acc)) {
-				self->_check_defsptr(dynamic_acc->info(), true);
-				auto ptr = self->_access_dynamic_field_for_write(dynamic_acc->info().index());
-				auto val = static_cast<const T*>(in);
-				ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
-				return;
-			}
-
-#ifdef _MSC_VER
-			_assume(0);
-#else
-			__builtin_unreachable();
-#endif
+			T val{};
+			in.copy_to<type_id_of<T>()>(val);
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().offset()) =
+			        std::move(val);
 		}
 	};
 
-	void raw_write_field(const accessor& a, const void* in) override {
-		return dispatch_lambda(a.type_id(), writer{this, &a, in});
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
+		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
+			if(!static_acc->info().valid()) {
+				throw sinsp_exception("can't set invalid field in static struct");
+			}
+			if(static_acc->info().readonly()) {
+				throw sinsp_exception("can't set a read-only static struct field: " +
+				                      static_acc->info().name());
+			}
+			return dispatch_lambda(a.type_id(), writer{this, static_acc, in});
+		}
+
+		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
+			auto ptr = _access_dynamic_field_for_write(dynamic_acc->info().index());
+			ptr->update(in);
+			return;
+		}
+
+#ifdef _MSC_VER
+		_assume(0);
+#else
+		__builtin_unreachable();
+#endif
 	}
 };
 

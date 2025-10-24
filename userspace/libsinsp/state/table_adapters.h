@@ -90,22 +90,21 @@ public:
 		                      std::string(type_name(a.type_id())));
 	}
 
-protected:
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() == 0) {
 			if(a.type_id() != type_id_of<Tfirst>()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(type_name(a.type_id())));
 			}
-			m_value->first = *static_cast<const Tfirst*>(in);
+			in.copy_to<type_id_of<Tfirst>(), Tfirst>(m_value->first);
 			return;
 		} else {
 			if(a.type_id() != type_id_of<Tsecond>()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(type_name(a.type_id())));
 			}
-			m_value->second = *static_cast<const Tsecond*>(in);
+			in.copy_to<type_id_of<Tsecond>(), Tsecond>(m_value->second);
 			return;
 		}
 	}
@@ -166,7 +165,7 @@ public:
 	}
 
 protected:
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		if(a.type_id() != type_id_of<T>()) {
 			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 			                      std::string(type_name(a.type_id())));
@@ -176,7 +175,7 @@ protected:
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::write_field");
 		}
-		*m_value = *static_cast<const T*>(in);
+		in.copy_to<type_id_of<T>(), T>(*m_value);
 	}
 
 private:
