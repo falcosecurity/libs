@@ -836,10 +836,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.apid", val, NULL);
 		} catch(...) {
-			if(val == "proc.apid") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.apid")) - 1;
 		}
 
 		return res;
@@ -852,10 +850,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.aname", val, NULL);
 		} catch(...) {
-			if(val == "proc.aname") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.aname")) - 1;
 		}
 
 		return res;
@@ -868,10 +864,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.aexepath", val, NULL);
 		} catch(...) {
-			if(val == "proc.aexepath") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.aexepath")) - 1;
 		}
 
 		return res;
@@ -887,10 +881,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.aexe", val, NULL);
 		} catch(...) {
-			if(val == "proc.aexe") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.aexe")) - 1;
 		}
 
 		return res;
@@ -903,10 +895,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.acmdline", val, NULL);
 		} catch(...) {
-			if(val == "proc.acmdline") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.acmdline")) - 1;
 		}
 
 		return res;
@@ -919,10 +909,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.aargs", val, NULL);
 		} catch(...) {
-			if(val == "proc.aargs") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.aargs")) - 1;
 		}
 
 		return res;
@@ -935,10 +923,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.env", val, NULL);
 		} catch(...) {
-			if(val == "proc.env") {
-				m_argname.clear();
-				res = (int32_t)val.size();
-			}
+			m_argname.clear();
+			res = static_cast<int32_t>(std::size("proc.env")) - 1;
 		}
 
 		return res;
@@ -951,10 +937,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.args", val, NULL);
 		} catch(...) {
-			if(val == "proc.args") {
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.args")) - 1;
 		}
 
 		return res;
@@ -967,11 +951,9 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		try {
 			res = extract_arg("proc.aenv", val, NULL);
 		} catch(...) {
-			if(val == "proc.aenv") {
-				m_argname.clear();
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
+			m_argname.clear();
+			m_argid = -1;
+			res = static_cast<int32_t>(std::size("proc.aenv")) - 1;
 		}
 
 		return res;
