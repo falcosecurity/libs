@@ -24,6 +24,8 @@ limitations under the License.
 
 typedef std::unique_ptr<scap_evt, decltype(free)*> safe_scap_evt_t;
 
+#define ASSERT_EVENT_PRESENCE(expected_evt) assert_event_presence(__FILE__, __LINE__, expected_evt)
+
 class scap_file_test : public testing::Test {
 private:
 	safe_scap_evt_t create_safe_scap_evt(scap_evt* evt) { return safe_scap_evt_t{evt, free}; }
@@ -125,11 +127,14 @@ protected:
 		return create_safe_scap_evt(evt);
 	}
 
-	void assert_event_presence(safe_scap_evt_t expected_evt) {
+	void assert_event_presence(const std::string& filename,
+	                           const int line_num,
+	                           const safe_scap_evt_t& expected_evt) const {
+		const auto prefix = filename + ':' + std::to_string(line_num) + " | ";
 		sinsp_evt* evt = nullptr;
-		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		char error[SCAP_LASTERR_SIZE]{};
 		int ret = SCAP_SUCCESS;
-		while(1) {
+		while(true) {
 			ret = m_inspector->next(&evt);
 			if(ret == SCAP_EOF) {
 				break;
@@ -138,22 +143,22 @@ protected:
 				continue;
 			}
 			if(ret != SCAP_SUCCESS) {
-				throw std::runtime_error("Error reading event. scap_code: " + std::to_string(ret) +
-				                         ", " + m_inspector->getlasterr());
+				throw std::runtime_error(prefix + "Error reading event. scap_code: " +
+				                         std::to_string(ret) + ", " + m_inspector->getlasterr());
 			}
 			if(evt->get_scap_evt()->ts == expected_evt->ts &&
 			   evt->get_scap_evt()->tid == expected_evt->tid) {
 				if(!scap_compare_events(evt->get_scap_evt(), expected_evt.get(), error)) {
-					printf("\nExpected event:\n");
+					printf("\n%sExpected event:\n", prefix.c_str());
 					scap_print_event(expected_evt.get(), PRINT_FULL);
-					printf("\nConverted event:\n");
+					printf("\n%sConverted event:\n", prefix.c_str());
 					scap_print_event(evt->get_scap_evt(), PRINT_FULL);
-					FAIL() << error;
+					FAIL() << prefix + error;
 				}
 				return;
 			}
 		}
-		FAIL() << "There is no an event with ts: " << expected_evt->ts
+		FAIL() << prefix + "There is no an event with ts: " << expected_evt->ts
 		       << " and tid: " << expected_evt->tid;
 	}
 

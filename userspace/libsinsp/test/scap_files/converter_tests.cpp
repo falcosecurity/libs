@@ -147,7 +147,7 @@ TEST_F(scap_file_test, generic_x_check_final_converted_event) {
 	constexpr uint16_t id = 46;
 	constexpr uint16_t native_id = 165;  // getrusage on ARM64
 
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_GENERIC_X, 2, id, native_id));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_GENERIC_X, 2, id, native_id));
 }
 
 ////////////////////////////
@@ -174,7 +174,7 @@ TEST_F(scap_file_test, close_x_check_final_converted_event) {
 	constexpr int64_t tid = 115186;
 	constexpr int64_t res = 0;
 	constexpr int64_t fd = 13;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLOSE_X, 2, res, fd));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLOSE_X, 2, res, fd));
 }
 
 ////////////////////////////
@@ -208,7 +208,7 @@ TEST_F(scap_file_test, read_x_check_final_converted_event) {
 	        "(U"};
 	constexpr int64_t fd = 33;
 	constexpr uint32_t size = 8192;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SYSCALL_READ_X,
@@ -251,7 +251,7 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	constexpr int64_t fd = 19;
 	constexpr uint32_t size = 400;
 	constexpr int64_t pos = 800;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SYSCALL_PREAD_X,
@@ -295,7 +295,7 @@ TEST_F(scap_file_test, kill_x_check_final_converted_event) {
 	constexpr int64_t pid = 121080;
 	constexpr uint8_t sig = 0;
 
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_KILL_X, 3, res, pid, sig));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_KILL_X, 3, res, pid, sig));
 }
 
 ////////////////////////////
@@ -331,7 +331,7 @@ TEST_F(scap_file_test, tgkill_x_check_final_converted_event) {
 	constexpr int64_t tid_param = 678;
 	constexpr uint8_t sig = 23;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_TGKILL_X, 4, res, pid, tid_param, sig));
 }
 
@@ -360,7 +360,7 @@ TEST_F(scap_file_test, nanosleep_x_check_final_converted_event) {
 	constexpr int64_t res = 0;
 	constexpr uint64_t interval = 0;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_NANOSLEEP_X, 2, res, interval));
 }
 
@@ -395,7 +395,7 @@ TEST_F(scap_file_test, inotify_init_x_check_final_converted_event) {
 	constexpr int64_t res = 4;
 	constexpr uint8_t flags = 0;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_INOTIFY_INIT_X, 2, res, flags));
 }
 
@@ -426,7 +426,7 @@ TEST_F(scap_file_test, getrlimit_x_check_final_converted_event) {
 	constexpr int64_t max = 1048576;
 	constexpr uint8_t resource = 7;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_GETRLIMIT_X, 4, res, cur, max, resource));
 }
 
@@ -457,7 +457,7 @@ TEST_F(scap_file_test, setrlimit_x_check_final_converted_event) {
 	constexpr int64_t max = 1048576;
 	constexpr uint8_t resource = 7;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRLIMIT_X, 4, res, cur, max, resource));
 }
 
@@ -491,7 +491,7 @@ TEST_F(scap_file_test, prlimit_x_check_final_converted_event) {
 	constexpr int64_t pid = 0;
 	constexpr uint8_t resource = 3;
 
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_PRLIMIT_X,
 	                                             7,
@@ -533,7 +533,7 @@ TEST_F(scap_file_test, fcntl_x_check_final_converted_event) {
 	constexpr int64_t fd = 19;
 	constexpr uint8_t cmd = 5;
 
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCNTL_X, 3, res, fd, cmd));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCNTL_X, 3, res, fd, cmd));
 }
 
 ////////////////////////////
@@ -565,7 +565,7 @@ TEST_F(scap_file_test, brk_x_check_final_converted_event) {
 	constexpr uint32_t vm_swap = 0;
 	constexpr uint64_t addr = 0xAAAB08F60000;
 
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_BRK_4_X,
 	                                             5,
@@ -659,7 +659,7 @@ TEST_F(scap_file_test, execve_x_check_final_converted_event) {
 	constexpr auto gid = empty_value<uint32_t>();
 
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 27, 28, 29);
-	assert_event_presence(create_safe_scap_event_with_empty_params(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event_with_empty_params(ts,
 	                                                               tid_hdr,
 	                                                               PPME_SYSCALL_EXECVE_19_X,
 	                                                               &empty_params_set,
@@ -722,7 +722,7 @@ TEST_F(scap_file_test, socket_x_check_final_converted_event) {
 	constexpr uint32_t type = 524289;
 	constexpr uint32_t proto = 0;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
 }
 
@@ -759,7 +759,7 @@ TEST_F(scap_file_test, connect_x_check_final_converted_event) {
 	const std::vector<uint8_t> packed_server_sockaddr =
 	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr *>(&server_sockaddr));
 
-	assert_event_presence(create_safe_scap_event(
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(
 	        ts,
 	        tid,
 	        PPME_SOCKET_CONNECT_X,
@@ -797,7 +797,7 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 	constexpr int64_t res = 0;
 	constexpr int64_t fd = 25;
 	constexpr int32_t backlog = 4096;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
 }
 
@@ -836,7 +836,7 @@ TEST_F(scap_file_test, accept_x_check_final_converted_event) {
 	constexpr int32_t queuepct = 37;
 	constexpr int32_t queuelen = 0;
 	constexpr int32_t queuemax = 0;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_ACCEPT_5_X,
@@ -879,7 +879,7 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 	        "*/*\r\n\r\n"};
 	constexpr int64_t fd = 13;
 	constexpr uint32_t size = 77;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_WRITE_X,
 	                                             4,
@@ -936,7 +936,7 @@ TEST_F(scap_file_test, writev_x_check_final_converted_event) {
 	        "f45051394208e04ef35f";
 	constexpr int64_t fd = 1;
 	constexpr uint32_t size = 168;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_WRITEV_X,
 	                                             4,
@@ -986,7 +986,7 @@ TEST_F(scap_file_test, setresuid_x_check_final_converted_event) {
 	constexpr uint32_t euid = static_cast<uint32_t>(-1);
 	constexpr uint32_t suid = static_cast<uint32_t>(-1);
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESUID_X, 4, res, ruid, euid, suid));
 }
 
@@ -1015,7 +1015,7 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 	constexpr int64_t tid = 141446;
 	constexpr int64_t res = 0;
 	constexpr int32_t uid = 0;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETUID_X, 2, res, uid));
 }
 
 ////////////////////////////
@@ -1064,7 +1064,7 @@ TEST_F(scap_file_test, recvfrom_x_check_final_converted_event) {
 	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
 	constexpr int64_t fd = 6;
 	constexpr int32_t size = 2048;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_RECVFROM_X,
@@ -1110,7 +1110,7 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 	constexpr char data[] = "\x11\x0\x0\x0\x16\x0\x1\x3\x1\x0\x0\x0\x0\x0\x0\x0";
 	constexpr uint32_t size = sizeof(data);
 	constexpr int64_t fd = 22;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SOCKET_SENDTO_X,
 	                                             5,
@@ -1146,7 +1146,7 @@ TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 	constexpr int64_t res = -107;
 	constexpr int64_t fd = 13;
 	constexpr uint8_t how = 1;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SOCKET_SHUTDOWN_X, 3, res, fd, how));
 }
 
 ////////////////////////////
@@ -1180,7 +1180,7 @@ TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
 	constexpr uint32_t domain = AF_UNIX;
 	constexpr uint32_t type = 524289;
 	constexpr uint32_t proto = 0;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SOCKET_SOCKETPAIR_X,
 	                                             8,
@@ -1236,7 +1236,7 @@ TEST_F(scap_file_test, sendmsg_x_check_final_converted_event) {
 	const std::vector<uint8_t> tuple =
 	        test_utils::pack_socktuple(reinterpret_cast<struct sockaddr *>(&client_sockaddr),
 	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_SENDMSG_X,
@@ -1293,7 +1293,7 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 	                                   reinterpret_cast<struct sockaddr *>(&server_sockaddr));
 	constexpr int64_t fd = 13;
 
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts,
 	                               tid,
 	                               PPME_SOCKET_RECVMSG_X,
@@ -1339,7 +1339,7 @@ TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 	constexpr int64_t res = -13;
 	constexpr char path[] = "/hello";
 	constexpr uint32_t mode = 0x1ff;  // 0777 in octal
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MKDIR_2_X, 3, res, path, mode));
 }
 
@@ -1368,7 +1368,7 @@ TEST_F(scap_file_test, unshare_x_check_final_converted_event) {
 	constexpr int64_t tid = 141445;
 	constexpr int64_t res = 0;
 	constexpr uint32_t flags = 0;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_UNSHARE_X, 2, res, flags));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_UNSHARE_X, 2, res, flags));
 }
 
 ////////////////////////////
@@ -1398,7 +1398,7 @@ TEST_F(scap_file_test, futex_x_check_final_converted_event) {
 	constexpr uint64_t addr = 0x5600C32351E0;
 	constexpr uint16_t op = 129;
 	constexpr uint64_t val = 1;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FUTEX_X, 4, res, addr, op, val));
 }
 
@@ -1428,7 +1428,7 @@ TEST_F(scap_file_test, fstat_x_check_final_converted_event) {
 	constexpr int64_t tid = 114100;
 	constexpr int64_t res = 0;
 	constexpr int64_t fd = 19;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FSTAT_X, 2, res, fd));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_FSTAT_X, 2, res, fd));
 }
 
 ////////////////////////////
@@ -1456,7 +1456,7 @@ TEST_F(scap_file_test, epoll_wait_x_check_final_converted_event) {
 	constexpr int64_t tid = 1385;
 	constexpr int64_t res = 0;
 	constexpr int64_t maxevents = 1024;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLLWAIT_X, 2, res, maxevents));
 }
 
@@ -1486,7 +1486,7 @@ TEST_F(scap_file_test, poll_x_check_final_converted_event) {
 	constexpr int64_t res = 1;
 	constexpr uint8_t fds[] = {0x1, 0x0, 0x16, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0};
 	constexpr int64_t timeout = 500;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_POLL_X,
 	                                             3,
@@ -1524,7 +1524,7 @@ TEST_F(scap_file_test, lseek_x_check_final_converted_event) {
 	constexpr int64_t fd = 255;
 	constexpr uint64_t offset = -751;
 	constexpr uint8_t whence = 1;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_LSEEK_X, 4, res, fd, offset, whence));
 }
 
@@ -1561,7 +1561,7 @@ TEST_F(scap_file_test, ioctl_x_check_final_converted_event) {
 	constexpr int64_t fd = 21;
 	constexpr uint64_t request = 0x5414;
 	constexpr uint64_t argument = 0xFFFFD297F908;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_IOCTL_3_X, 4, res, fd, request, argument));
 }
 
@@ -1599,7 +1599,7 @@ TEST_F(scap_file_test, mmap_x_check_final_converted_event) {
 	constexpr uint32_t flags = 10;
 	constexpr int64_t fd = -1;
 	constexpr uint64_t offset = 0;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_MMAP_X,
 	                                             10,
@@ -1650,7 +1650,7 @@ TEST_F(scap_file_test, munmap_x_check_final_converted_event) {
 	constexpr uint32_t vm_swap = 0;
 	constexpr uint64_t addr = 0xFFFFA778E000;
 	constexpr uint64_t length = 139264;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_MUNMAP_X,
 	                                             6,
@@ -1691,7 +1691,7 @@ TEST_F(scap_file_test, splice_x_check_final_converted_event) {
 	constexpr int64_t fd_out = 12;
 	constexpr uint64_t size = 4194304;
 	constexpr uint32_t flags = 2;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_SPLICE_X,
 	                                             5,
@@ -1730,7 +1730,7 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 	constexpr uint8_t data[] = {0x00, 0x3b, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 	constexpr uint16_t request = 4;
 	constexpr int64_t pid = 368861;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_PTRACE_X,
 	                                             5,
@@ -1787,7 +1787,7 @@ TEST_F(scap_file_test, getdents64_x_check_final_converted_event) {
 	constexpr int64_t tid = 114095;
 	constexpr int64_t res = 144;
 	constexpr int64_t fd = 19;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 2, res, fd));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_GETDENTS64_X, 2, res, fd));
 }
 
 ////////////////////////////
@@ -1816,7 +1816,7 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 	constexpr int64_t res = 0;
 	constexpr int64_t fd = 6;
 	constexpr uint32_t nstype = 8;  // CLONE_NEWIPC
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETNS_X, 3, res, fd, nstype));
 }
 
@@ -1861,7 +1861,7 @@ TEST_F(scap_file_test, ppoll_x_check_final_converted_event) {
 	constexpr uint8_t fds[] = {0x1, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x4, 0x0};
 	constexpr uint64_t timeout = 0;
 	constexpr uint32_t sigmask = 0;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SYSCALL_PPOLL_X,
 	                                             4,
@@ -1903,7 +1903,7 @@ TEST_F(scap_file_test, mount_x_check_final_converted_event) {
 	        "d7717c36108697b040257e6d78a8980a763d3b22e437cf199477b9a142537c67/runc.J8eCT9";
 	constexpr char fstype[] = "";
 	constexpr uint32_t flags = 4129;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MOUNT_X, 5, res, dev, dir, fstype, flags));
 }
 
@@ -1945,7 +1945,7 @@ TEST_F(scap_file_test, access_x_check_final_converted_event) {
 	constexpr int64_t res = -2;
 	constexpr char name[] = "/etc/ld.so.preload";
 	constexpr uint32_t mode = 4;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_ACCESS_X, 3, res, name, mode));
 }
 
@@ -1974,7 +1974,7 @@ TEST_F(scap_file_test, fchdir_x_check_final_converted_event) {
 	constexpr int64_t tid = 1377498;
 	constexpr int64_t res = -9;
 	constexpr int64_t fd = 25;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 2, res, fd));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCHDIR_X, 2, res, fd));
 }
 
 ////////////////////////////
@@ -2003,7 +2003,7 @@ TEST_F(scap_file_test, setpgid_x_check_final_converted_event) {
 	constexpr int64_t res = 0;
 	constexpr int64_t pid = 0;
 	constexpr int64_t pgid = 107344;  // zsh process ID
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETPGID_X, 3, res, pid, pgid));
 }
 
@@ -2033,7 +2033,7 @@ TEST_F(scap_file_test, seccomp_x_check_final_converted_event) {
 	constexpr int64_t res = -14;
 	constexpr uint64_t op = 1;
 	constexpr uint64_t flags = 0;  // Defaulted.
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SECCOMP_X, 3, res, op, flags));
 }
 
@@ -2064,7 +2064,7 @@ TEST_F(scap_file_test, mprotect_x_check_final_converted_event) {
 	constexpr uint64_t addr = 0x7EFE8F2D7000;
 	constexpr uint64_t len = 8192;
 	constexpr uint32_t proto = 1;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_MPROTECT_X, 4, res, addr, len, proto));
 }
 
@@ -2111,7 +2111,7 @@ TEST_F(scap_file_test, epoll_create1_x_check_final_converted_event) {
 	constexpr int64_t tid = 141635;
 	constexpr int64_t res = 7;
 	constexpr uint32_t flags = 1;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_EPOLL_CREATE1_X, 2, res, flags));
 }
 
@@ -2140,7 +2140,7 @@ TEST_F(scap_file_test, setgid_x_check_final_converted_event) {
 	constexpr int64_t tid = 107364;
 	constexpr int64_t res = 0;
 	constexpr uint32_t gid = 0;
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid));
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_SETGID_X, 2, res, gid));
 }
 
 ////////////////////////////
@@ -2170,7 +2170,7 @@ TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
 	constexpr uint32_t rgid = static_cast<uint32_t>(-1);
 	constexpr uint32_t egid = 1000;
 	constexpr uint32_t sgid = static_cast<uint32_t>(-1);
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SETRESGID_X, 4, res, rgid, egid, sgid));
 }
 
@@ -2202,7 +2202,7 @@ TEST_F(scap_file_test, accept4_x_check_final_converted_event) {
 	constexpr uint32_t queuelen = 0;
 	constexpr uint32_t queuemax = 0;
 	constexpr int32_t flags = 0;
-	assert_event_presence(create_safe_scap_event(ts,
+	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts,
 	                                             tid,
 	                                             PPME_SOCKET_ACCEPT4_6_X,
 	                                             6,
@@ -2244,7 +2244,7 @@ TEST_F(scap_file_test, umount2_x_check_final_converted_event) {
 	        "run-containerd-runc-k8s.io-"
 	        "d7717c36108697b040257e6d78a8980a763d3b22e437cf199477b9a142537c67-runc.J8eCT9.mount";
 	constexpr uint32_t flags = 10;
-	assert_event_presence(
+	ASSERT_EVENT_PRESENCE(
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_UMOUNT2_X, 3, res, name, flags));
 }
 
