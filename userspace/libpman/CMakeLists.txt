@@ -16,6 +16,7 @@
 add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
 add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 include(libbpf)
+find_package(ZLIB REQUIRED)
 
 add_library(
 	pman
@@ -40,7 +41,7 @@ target_include_directories(
 			${MODERN_BPF_SKEL_DIR}
 )
 
-target_link_libraries(pman PUBLIC scap_event_schema scap_platform lbpf ${ZLIB_LIB})
+target_link_libraries(pman PUBLIC scap_event_schema scap_platform lbpf ZLIB::ZLIB)
 
 if(TARGET ProbeSkeleton)
 	add_dependencies(pman ProbeSkeleton)
