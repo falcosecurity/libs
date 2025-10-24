@@ -39,7 +39,7 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
         m_fdtable{params->fdtable_factory.create()},
-        m_main_fdtable(m_fdtable.table_ptr()),
+        m_main_fdtable(&m_fdtable),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
         m_cgroups_table_adapter("cgroups", m_cgroups) {
@@ -68,8 +68,9 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	        "args",
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
-		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_TABLE>(
-		                c->m_args_table_adapter.table_ptr());
+		        return libsinsp::state::borrowed_state_data::
+		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
+		                        &c->m_args_table_adapter);
 	        },
 	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
 		        throw sinsp_exception("attempt to write to read-only static struct field: args");
@@ -80,8 +81,9 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	        "env",
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
-		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_TABLE>(
-		                c->m_env_table_adapter.table_ptr());
+		        return libsinsp::state::borrowed_state_data::
+		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
+		                        &c->m_env_table_adapter);
 	        },
 	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
 		        throw sinsp_exception("attempt to write to read-only static struct field: env");
@@ -92,8 +94,9 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	        "cgroups",
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
-		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_TABLE>(
-		                c->m_cgroups_table_adapter.table_ptr());
+		        return libsinsp::state::borrowed_state_data::
+		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
+		                        &c->m_cgroups_table_adapter);
 	        },
 	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
 		        throw sinsp_exception("attempt to write to read-only static struct field: cgroups");

@@ -184,16 +184,7 @@ public:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
-	inline built_in_table(const std::string& name):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name) {}
-
-	/**
-	 * @brief Returns a pointer to the area of memory in which this table
-	 * object is allocated. Here for convenience as required in other code parts.
-	 */
-	inline const base_table* const& table_ptr() const { return m_this_ptr; }
+	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
 
 	const char* name() const override { return m_name.c_str(); }
 
@@ -334,7 +325,6 @@ public:
 	                               const ss_plugin_state_data* in) override;
 
 private:
-	const base_table* m_this_ptr;
 	std::string m_name;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, const accessor*> m_field_accessors;
