@@ -494,8 +494,7 @@ public:
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();
 		m_main_fdtable =
-		        !fdtable ? nullptr
-		                 : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+		        !fdtable ? nullptr : static_cast<const libsinsp::state::base_table*>(fdtable);
 	}
 
 	void set_exepath(std::string&& exepath);
