@@ -34,6 +34,7 @@ limitations under the License.
 #endif
 #include <fnmatch.h>
 #include <netdb.h>
+#include <cinttypes>
 #include <string>
 #include <sys/ioctl.h>
 #include <sys/time.h>

@@ -27,6 +27,7 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <cinttypes>
 #include <limits>
 
 #include <libsinsp/sinsp.h>

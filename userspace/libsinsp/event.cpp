@@ -19,7 +19,6 @@ limitations under the License.
 #include <libsinsp/sinsp_errno.h>
 
 #ifndef _WIN32
-#include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
 #include <unistd.h>
@@ -27,6 +26,7 @@ limitations under the License.
 #define localtime_r(a, b) (localtime_s(b, a) == 0 ? b : NULL)
 #endif
 
+#include <cinttypes>
 #include <limits>
 #include <string>
 #include <optional>

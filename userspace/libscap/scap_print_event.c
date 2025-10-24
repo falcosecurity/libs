@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>
@@ -97,7 +98,7 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 	case PT_ABSTIME: {
 		uint64_t val;
 		memcpy(&val, valptr, sizeof(val));
-		printf("PARAM %d: %lu\n", num_param, val);
+		printf("PARAM %d: %" PRIu64 "\n", num_param, val);
 		break;
 	}
 
@@ -125,7 +126,7 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 	case PT_PID: {
 		int64_t val;
 		memcpy(&val, valptr, sizeof(val));
-		printf("PARAM %d: %ld\n", num_param, val);
+		printf("PARAM %d: %" PRId64 "\n", num_param, val);
 		break;
 	}
 
@@ -238,8 +239,8 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 
 static void scap_print_event_header(scap_evt *ev) {
 	printf("----------------------- HEADER\n");
-	printf("timestamp: %lu\n", ev->ts);
-	printf("tid: %lu\n", ev->tid);
+	printf("timestamp: %" PRIu64 "\n", ev->ts);
+	printf("tid: %" PRIu64 "\n", ev->tid);
 	printf("len: %d\n", ev->len);
 	printf("type: %d\n", ev->type);
 	printf("num params: %d\n", ev->nparams);

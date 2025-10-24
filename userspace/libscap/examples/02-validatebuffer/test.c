@@ -16,6 +16,7 @@ limitations under the License.
 
 */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
