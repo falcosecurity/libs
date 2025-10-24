@@ -44,7 +44,9 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
-        m_cgroups_table_adapter("cgroups", m_cgroups) {
+        m_cgroups_table_adapter("cgroups", m_cgroups),
+        m_container_id_accessor(params->thread_manager->get_field_accessor(
+                sinsp_thread_manager::s_container_id_field_name)) {
 	init();
 }
 
@@ -408,13 +410,11 @@ std::string sinsp_threadinfo::get_exepath() const {
 }
 
 std::string sinsp_threadinfo::get_container_id() {
-	std::string container_id;
-
-	const auto accessor = m_params->thread_manager->get_field_accessor(
-	        sinsp_thread_manager::s_container_id_field_name);
-	if(accessor) {
-		get_dynamic_field(*accessor, container_id);
+	if(!m_container_id_accessor) {
+		return {};
 	}
+	std::string container_id;
+	get_dynamic_field(*m_container_id_accessor, container_id);
 	return container_id;
 }
 

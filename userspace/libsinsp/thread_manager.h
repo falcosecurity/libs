@@ -202,8 +202,9 @@ public:
 
 	const libsinsp::state::dynamic_struct::field_accessor<std::string>* get_field_accessor(
 	        const std::string& field) const {
-		if(m_foreign_fields_accessors.count(field) > 0) {
-			return &m_foreign_fields_accessors.at(field);
+		if(auto it = m_foreign_fields_accessors.find(field);
+		   it != m_foreign_fields_accessors.end()) {
+			return &it->second;
 		}
 		return nullptr;
 	}
