@@ -19,16 +19,6 @@ limitations under the License.
 #include <libsinsp/state/table.h>
 #include <libsinsp/plugin.h>
 
-template<typename From, typename To>
-static inline void convert_types(const From& from, To& to) {
-	to = from;
-}
-
-template<>
-inline void convert_types(ss_plugin_table_t* const& from, libsinsp::state::base_table*& to) {
-	to = static_cast<libsinsp::state::base_table*>(from);
-}
-
 template<typename KeyType>
 void extract_key(const ss_plugin_state_data& key, KeyType& out) {
 	throw sinsp_exception("unsupported key type");
@@ -483,17 +473,8 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 		return SS_PLUGIN_FAILURE;
 	}
 
-#define _X(_type, _dtype)               \
-	{                                   \
-		auto aa = a->as<_type>();       \
-		_type val;                      \
-		convert_types(in->_dtype, val); \
-		e->write_field<_type>(aa, val); \
-		return SS_PLUGIN_SUCCESS;       \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->type_info()); });
-#undef _X
-	return SS_PLUGIN_FAILURE;
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { e->raw_write_field(*a, borrowed_state_data(*in)); });
+	return SS_PLUGIN_SUCCESS;
 }
 
 template class libsinsp::state::built_in_table<int64_t>;

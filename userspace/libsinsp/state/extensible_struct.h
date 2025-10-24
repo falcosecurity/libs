@@ -37,7 +37,7 @@ protected:
 		}
 	}
 
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
 			static_struct::raw_write_field(a, in);
 		} else {

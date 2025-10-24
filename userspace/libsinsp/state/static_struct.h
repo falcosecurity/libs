@@ -118,18 +118,6 @@ public:
 		friend class static_struct;
 	};
 
-	struct writer {
-		static_struct* self;
-		const field_accessor* acc;
-		const void* in;
-
-		template<typename T>
-		void operator()() const {
-			auto val = static_cast<const T*>(in);
-			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().m_offset) = *val;
-		}
-	};
-
 	/**
 	 * @brief A group of field infos, describing all the ones available
 	 * in a static struct.
@@ -183,7 +171,21 @@ protected:
 		return dispatch_lambda(a.type_info(), reader{this, acc});
 	}
 
-	void raw_write_field(const accessor& a, const void* in) override {
+	struct writer {
+		static_struct* self;
+		const field_accessor* acc;
+		const borrowed_state_data& in;
+
+		template<typename T>
+		void operator()() const {
+			T val{};
+			in.copy_to<type_id_of<T>()>(val);
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().m_offset) =
+			        std::move(val);
+		}
+	};
+
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		if(!acc->info().valid()) {
 			throw sinsp_exception("can't set invalid field in static struct");
