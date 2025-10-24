@@ -28,10 +28,12 @@ typedef std::unique_ptr<scap_evt, decltype(free)*> safe_scap_evt_t;
 
 class scap_file_test : public testing::Test {
 private:
-	safe_scap_evt_t create_safe_scap_evt(scap_evt* evt) { return safe_scap_evt_t{evt, free}; }
+	static safe_scap_evt_t create_safe_scap_evt(scap_evt* evt) {
+		return safe_scap_evt_t{evt, free};
+	}
 
 protected:
-	void open_filename(const std::string file_name) {
+	void open_filename(const std::string& file_name) {
 		std::string path = LIBSINSP_TEST_SCAP_FILES_DIR + file_name;
 		m_inspector = std::make_unique<sinsp>();
 		m_inspector->open_savefile(path);
@@ -93,11 +95,11 @@ protected:
 		}
 	}
 
-	safe_scap_evt_t create_safe_scap_event(uint64_t ts,
-	                                       uint64_t tid,
-	                                       ppm_event_code event_type,
-	                                       uint32_t n,
-	                                       ...) {
+	static safe_scap_evt_t create_safe_scap_event(uint64_t ts,
+	                                              uint64_t tid,
+	                                              ppm_event_code event_type,
+	                                              uint32_t n,
+	                                              ...) {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		va_list args;
 		va_start(args, n);
@@ -115,7 +117,7 @@ protected:
 	        ppm_event_code event_type,
 	        scap_empty_params_set* empty_params_set,
 	        uint32_t n,
-	        ...) {
+	        ...) const {
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		va_list args;
 		va_start(args, n);
@@ -182,20 +184,77 @@ protected:
 		}
 	}
 
-	// Return an empty value for the type T.
-	template<typename T>
-	constexpr static T empty_value() {
-		return static_cast<T>(0);
+	void reopen() const {
+		const auto open_file_path = m_inspector->get_input_filename();
+		m_inspector->close();
+		m_inspector->open_savefile(open_file_path);
 	}
+
+	void kexec_arm64_assert_generic_x_final_converted_event() const;
+	void kexec_arm64_assert_close_x_final_converted_event() const;
+	void kexec_arm64_assert_pread_x_final_converted_event() const;
+	void kexec_arm64_assert_kill_x_final_converted_event() const;
+	void kexec_arm64_assert_tgkill_x_final_converted_event() const;
+	void kexec_arm64_assert_getrlimit_x_final_converted_event() const;
+	void kexec_arm64_assert_fcntl_x_final_converted_event() const;
+	void kexec_arm64_assert_brk_x_final_converted_event() const;
+	void kexec_arm64_assert_execve_x_final_converted_event() const;
+	void kexec_arm64_assert_listen_x_final_converted_event() const;
+	void kexec_arm64_assert_writev_x_final_converted_event() const;
+	void kexec_arm64_assert_setuid_x_final_converted_event() const;
+	void kexec_arm64_assert_sendto_x_final_converted_event() const;
+	void kexec_arm64_assert_shutdown_x_final_converted_event() const;
+	void kexec_arm64_assert_socketpair_x_final_converted_event() const;
+	void kexec_arm64_assert_unshare_x_final_converted_event() const;
+	void kexec_arm64_assert_fstat_x_final_converted_event() const;
+	void kexec_arm64_assert_lseek_x_final_converted_event() const;
+	void kexec_arm64_assert_ioctl_x_final_converted_event() const;
+	void kexec_arm64_assert_munmap_x_final_converted_event() const;
+	void kexec_arm64_assert_splice_x_final_converted_event() const;
+	void kexec_arm64_assert_getdents64_x_final_converted_event() const;
+	void kexec_arm64_assert_ppoll_x_final_converted_event() const;
+	void kexec_arm64_assert_seccomp_x_final_converted_event() const;
+	void kexec_arm64_assert_epoll_create1_x_final_converted_event() const;
+	void kexec_arm64_assert_accept4_x_final_converted_event() const;
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+	void kexec_arm64_assert_recvfrom_x_final_converted_event() const;
+	void kexec_arm64_assert_sendmsg_x_final_converted_event() const;
+	void kexec_arm64_assert_recvmsg_x_final_converted_event() const;
+	void kexec_arm64_assert_connect_x_final_converted_event() const;
+#endif
+
+	void kexec_x86_assert_inotify_init_x_final_converted_event() const;
+	void kexec_x86_assert_setrlimit_x_final_converted_event() const;
+	void kexec_x86_assert_prlimit_x_final_converted_event() const;
+	void kexec_x86_assert_setresuid_x_final_converted_event() const;
+	void kexec_x86_assert_epoll_wait_x_final_converted_event() const;
+	void kexec_x86_assert_poll_x_final_converted_event() const;
+	void kexec_x86_assert_mmap_x_final_converted_event() const;
+	void kexec_x86_assert_setns_x_final_converted_event() const;
+	void kexec_x86_assert_mount_x_final_converted_event() const;
+	void kexec_x86_assert_access_x_final_converted_event() const;
+	void kexec_x86_assert_setpgid_x_final_converted_event() const;
+	void kexec_x86_assert_mprotect_x_final_converted_event() const;
+	void kexec_x86_assert_setgid_x_final_converted_event() const;
+	void kexec_x86_assert_setresgid_x_final_converted_event() const;
+	void kexec_x86_assert_umount2_x_final_converted_event() const;
+
+	void scap_2013_read_x_final_converted_event() const;
+	void scap_2013_socket_x_final_converted_event() const;
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+	void scap_2013_accept_x_final_converted_event() const;
+#endif
+
+	void scap_2013_write_x_final_converted_event() const;
+
+	void sample_nanosleep_x_final_converted_event() const;
+	void sample_futex_x_final_converted_event() const;
+
+	void mkdir_mkdir_x_final_converted_event() const;
+
+	void ptrace_ptrace_x_final_converted_event() const;
+
+	void fchdir_fchdir_x_final_converted_event() const;
 
 	std::unique_ptr<sinsp> m_inspector;
 };
-
-template<>
-constexpr scap_const_sized_buffer scap_file_test::empty_value() {
-	return {nullptr, 0};
-}
-template<>
-constexpr char* scap_file_test::empty_value() {
-	return nullptr;
-}

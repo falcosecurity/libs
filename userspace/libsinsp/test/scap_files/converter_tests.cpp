@@ -126,9 +126,144 @@ TEST_F(scap_file_test, same_number_of_events) {
 // GENERIC
 ////////////////////////////
 
-TEST_F(scap_file_test, generic_x_check_final_converted_event) {
+TEST_F(scap_file_test, kexec_arm64_final_converted_events) {
 	open_filename("kexec_arm64.scap");
 
+	kexec_arm64_assert_generic_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_close_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_pread_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_kill_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_tgkill_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_getrlimit_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_fcntl_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_brk_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_execve_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_connect_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_listen_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_writev_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_setuid_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_recvfrom_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_sendto_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_shutdown_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_socketpair_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_sendmsg_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_recvmsg_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_unshare_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_fstat_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_lseek_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_ioctl_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_munmap_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_splice_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_getdents64_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_ppoll_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_seccomp_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_epoll_create1_x_final_converted_event();
+	reopen();
+	kexec_arm64_assert_accept4_x_final_converted_event();
+	reopen();
+}
+
+TEST_F(scap_file_test, kexec_x86_final_converted_events) {
+	open_filename("kexec_x86.scap");
+
+	kexec_x86_assert_inotify_init_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_setrlimit_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_prlimit_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_setresuid_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_epoll_wait_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_poll_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_mmap_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_setns_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_mount_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_access_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_setpgid_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_mprotect_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_setgid_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_setresgid_x_final_converted_event();
+	reopen();
+	kexec_x86_assert_umount2_x_final_converted_event();
+}
+
+TEST_F(scap_file_test, scap_2013_final_converted_events) {
+	open_filename("scap_2013.scap");
+
+	scap_2013_read_x_final_converted_event();
+	reopen();
+	scap_2013_socket_x_final_converted_event();
+	reopen();
+	scap_2013_accept_x_final_converted_event();
+	reopen();
+	scap_2013_write_x_final_converted_event();
+}
+
+TEST_F(scap_file_test, sample_final_converted_events) {
+	open_filename("sample.scap");
+
+	sample_nanosleep_x_final_converted_event();
+	reopen();
+	sample_futex_x_final_converted_event();
+}
+
+TEST_F(scap_file_test, mkdir_final_converted_events) {
+	open_filename("mkdir.scap");
+
+	mkdir_mkdir_x_final_converted_event();
+}
+
+TEST_F(scap_file_test, ptrace_final_converted_events) {
+	open_filename("ptrace.scap");
+
+	ptrace_ptrace_x_final_converted_event();
+}
+
+TEST_F(scap_file_test, fchdir_final_converted_events) {
+	open_filename("fchdir.scap");
+
+	fchdir_fchdir_x_final_converted_event();
+}
+
+void scap_file_test::kexec_arm64_assert_generic_x_final_converted_event() const {
 	// Inside the scap-file the event `881322` is the following:
 	// - type=PPME_GENERIC_X,
 	// - ts=1687966733260046394
@@ -154,9 +289,7 @@ TEST_F(scap_file_test, generic_x_check_final_converted_event) {
 // CLOSE
 ////////////////////////////
 
-TEST_F(scap_file_test, close_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_close_x_final_converted_event() const {
 	// Inside the scap-file the event `907955` is the following:
 	// - type=PPME_SYSCALL_CLOSE_X
 	// - ts=1687966734290924121
@@ -174,16 +307,15 @@ TEST_F(scap_file_test, close_x_check_final_converted_event) {
 	constexpr int64_t tid = 115186;
 	constexpr int64_t res = 0;
 	constexpr int64_t fd = 13;
-	ASSERT_EVENT_PRESENCE(create_safe_scap_event(ts, tid, PPME_SYSCALL_CLOSE_X, 2, res, fd));
+	ASSERT_EVENT_PRESENCE(
+	        scap_file_test::create_safe_scap_event(ts, tid, PPME_SYSCALL_CLOSE_X, 2, res, fd));
 }
 
 ////////////////////////////
 // READ
 ////////////////////////////
 
-TEST_F(scap_file_test, read_x_check_final_converted_event) {
-	open_filename("scap_2013.scap");
-
+void scap_file_test::scap_2013_read_x_final_converted_event() const {
 	// Inside the scap-file the event `430682` is the following:
 	// - type=PPME_SYSCALL_READ_X
 	// - ts=1380933088076148247
@@ -223,9 +355,7 @@ TEST_F(scap_file_test, read_x_check_final_converted_event) {
 // PREAD
 ////////////////////////////
 
-TEST_F(scap_file_test, pread_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_pread_x_final_converted_event() const {
 	// Inside the scap-file the event `862450` is the following:
 	// - type=PPME_SYSCALL_PREAD_X,
 	// - ts=1687966733234634809
@@ -273,9 +403,7 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 // KILL
 ////////////////////////////
 
-TEST_F(scap_file_test, kill_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_kill_x_final_converted_event() const {
 	// Inside the scap-file the event `900011` is the following:
 	// - type=PPME_SYSCALL_KILL_X,
 	// - ts=1687966733867745508
@@ -308,9 +436,7 @@ TEST_F(scap_file_test, kill_x_check_final_converted_event) {
 // TGKILL
 ////////////////////////////
 
-TEST_F(scap_file_test, tgkill_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_tgkill_x_final_converted_event() const {
 	// Inside the scap-file the event `907496` is the following:
 	// - type=PPME_SYSCALL_TGKILL_X,
 	// - ts=1687966734248771138
@@ -339,9 +465,7 @@ TEST_F(scap_file_test, tgkill_x_check_final_converted_event) {
 // NANOSLEEP
 ////////////////////////////
 
-TEST_F(scap_file_test, nanosleep_x_check_final_converted_event) {
-	open_filename("sample.scap");
-
+void scap_file_test::sample_nanosleep_x_final_converted_event() const {
 	// Inside the scap-file the event `559` is the following:
 	// - type=PPME_SYSCALL_NANOSLEEP_X,
 	// - ts=1690557263532873130
@@ -374,9 +498,7 @@ TEST_F(scap_file_test, nanosleep_x_check_final_converted_event) {
 // INOTIFY_INIT
 ////////////////////////////
 
-TEST_F(scap_file_test, inotify_init_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_inotify_init_x_final_converted_event() const {
 	// Inside the scap-file the event `161340` is the following:
 	// - type=PPME_SYSCALL_INOTIFY_INIT_X,
 	// - ts=1687889193632611044
@@ -403,9 +525,7 @@ TEST_F(scap_file_test, inotify_init_x_check_final_converted_event) {
 // GETRLIMIT
 ////////////////////////////
 
-TEST_F(scap_file_test, getrlimit_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_getrlimit_x_final_converted_event() const {
 	// Inside the scap-file the event `64634` is the following:
 	// - type=PPME_SYSCALL_GETRLIMIT_X,
 	// - ts=1687966709997975281
@@ -434,9 +554,7 @@ TEST_F(scap_file_test, getrlimit_x_check_final_converted_event) {
 // SETRLIMIT
 ////////////////////////////
 
-TEST_F(scap_file_test, setrlimit_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_setrlimit_x_final_converted_event() const {
 	// Inside the scap-file the event `297081` is the following:
 	// - type=PPME_SYSCALL_SETRLIMIT_X,
 	// - ts=1687889196237251155
@@ -465,9 +583,7 @@ TEST_F(scap_file_test, setrlimit_x_check_final_converted_event) {
 // PRLIMIT
 ////////////////////////////
 
-TEST_F(scap_file_test, prlimit_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_prlimit_x_final_converted_event() const {
 	// Inside the scap-file the event `513076` is the following:
 	// - type=PPME_SYSCALL_PRLIMIT_X,
 	// - ts=1687889198695794034
@@ -508,9 +624,7 @@ TEST_F(scap_file_test, prlimit_x_check_final_converted_event) {
 // FCNTL
 ////////////////////////////
 
-TEST_F(scap_file_test, fcntl_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_fcntl_x_final_converted_event() const {
 	// Inside the scap-file the event `906671` is the following:
 	// - type=PPME_SYSCALL_FCNTL_X,
 	// - ts=1687966734198994052
@@ -540,9 +654,7 @@ TEST_F(scap_file_test, fcntl_x_check_final_converted_event) {
 ///// BRK
 ////////////////////////////
 
-TEST_F(scap_file_test, brk_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_brk_x_final_converted_event() const {
 	// Inside the scap-file the event `897489` is the following:
 	// - type=PPME_SYSCALL_BRK_4_X,
 	// - ts=1687966733729257738
@@ -580,9 +692,7 @@ TEST_F(scap_file_test, brk_x_check_final_converted_event) {
 ///// EXECVE
 ////////////////////////////
 
-TEST_F(scap_file_test, execve_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_execve_x_final_converted_event() const {
 	// Inside the scap-file the event `897489` is the following:
 	// - type=PPME_SYSCALL_EXECVE_19_X,
 	// - ts=1687966733728778931
@@ -613,7 +723,7 @@ TEST_F(scap_file_test, execve_x_check_final_converted_event) {
 	constexpr int64_t tid = 141707;
 	constexpr int64_t pid = 141707;
 	constexpr int64_t ptid = 141698;
-	constexpr auto cwd = empty_value<char *>();
+	constexpr auto cwd = nullptr;
 	constexpr uint64_t fdlimit = 1048576;
 	constexpr uint64_t pgft_maj = 0;
 	constexpr uint64_t pgft_min = 56;
@@ -654,9 +764,9 @@ TEST_F(scap_file_test, execve_x_check_final_converted_event) {
 	constexpr int64_t exe_ino_ctime = 1677809781531741984;
 	constexpr int64_t exe_ino_mtime = 1644249788000000000;
 	constexpr uint32_t uid = 1000;
-	constexpr auto trusted_exepath = empty_value<char *>();
-	constexpr auto pgid = empty_value<int64_t>();
-	constexpr auto gid = empty_value<uint32_t>();
+	constexpr auto trusted_exepath = nullptr;
+	constexpr auto pgid = 0;
+	constexpr auto gid = 0;
 
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 27, 28, 29);
 	ASSERT_EVENT_PRESENCE(create_safe_scap_event_with_empty_params(ts,
@@ -700,9 +810,7 @@ TEST_F(scap_file_test, execve_x_check_final_converted_event) {
 // SOCKET
 ////////////////////////////
 
-TEST_F(scap_file_test, socket_x_check_final_converted_event) {
-	open_filename("scap_2013.scap");
-
+void scap_file_test::scap_2013_socket_x_final_converted_event() const {
 	// Inside the scap-file the event `515881` is the following:
 	// - type=PPME_SOCKET_SOCKET_X
 	// - ts=1380933088295552884
@@ -732,9 +840,7 @@ TEST_F(scap_file_test, socket_x_check_final_converted_event) {
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(scap_file_test, connect_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_connect_x_final_converted_event() const {
 	// Inside the scap-file the event `907953` is the following:
 	// - type=PPME_SOCKET_CONNECT_X
 	// - ts=1687966734290916318
@@ -775,9 +881,7 @@ TEST_F(scap_file_test, connect_x_check_final_converted_event) {
 // LISTEN
 ////////////////////////////
 
-TEST_F(scap_file_test, listen_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_listen_x_final_converted_event() const {
 	// Inside the scap-file the event `57008` is the following:
 	// - type=PPME_SOCKET_LISTEN_X,
 	// - ts=1687966709944348874
@@ -807,9 +911,7 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(scap_file_test, accept_x_check_final_converted_event) {
-	open_filename("scap_2013.scap");
-
+void scap_file_test::scap_2013_accept_x_final_converted_event() const {
 	// Inside the scap-file the event `519217` is the following:
 	// - type=PPME_SOCKET_ACCEPT_X,
 	// - ts=1380933088302022447
@@ -853,9 +955,7 @@ TEST_F(scap_file_test, accept_x_check_final_converted_event) {
 // WRITE
 ////////////////////////////
 
-TEST_F(scap_file_test, write_x_check_final_converted_event) {
-	open_filename("scap_2013.scap");
-
+void scap_file_test::scap_2013_write_x_final_converted_event() const {
 	// Inside the scap-file the event `511534` is the following:
 	// - type=PPME_SYSCALL_WRITE_X
 	// - ts=1380933088286397273
@@ -905,9 +1005,7 @@ TEST_F(scap_file_test, write_x_check_final_converted_event) {
 // WRITEV
 ////////////////////////////
 
-TEST_F(scap_file_test, writev_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_writev_x_final_converted_event() const {
 	// Inside the scap-file the event `881318` is the following:
 	// - type=PPME_SYSCALL_WRITEV_X,
 	// - ts=1687966733260040207
@@ -962,9 +1060,7 @@ TEST_F(scap_file_test, writev_x_check_final_converted_event) {
 // SETRESUID
 ////////////////////////////
 
-TEST_F(scap_file_test, setresuid_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_setresuid_x_final_converted_event() const {
 	// Inside the scap-file the event `293991` is the following:
 	// - type=PPME_SYSCALL_SETRESUID_X,
 	// - ts=1687889196229754428
@@ -994,9 +1090,7 @@ TEST_F(scap_file_test, setresuid_x_check_final_converted_event) {
 // SETUID
 ////////////////////////////
 
-TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_setuid_x_final_converted_event() const {
 	// Inside the scap-file the event `61288` is the following:
 	// - type=PPME_SYSCALL_SETUID_X,
 	// - ts=1687966709959025387
@@ -1030,9 +1124,7 @@ TEST_F(scap_file_test, setuid_x_check_final_converted_event) {
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(scap_file_test, recvfrom_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_recvfrom_x_final_converted_event() const {
 	// Inside the scap-file the event `593051` is the following:
 	// - type=PPME_SOCKET_RECVFROM_X,
 	// - ts=1687966725502692767
@@ -1087,9 +1179,7 @@ TEST_F(scap_file_test, recvfrom_x_check_final_converted_event) {
 // SENDTO
 ////////////////////////////
 
-TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_sendto_x_final_converted_event() const {
 	// Inside the scap-file the event `857231` is the following:
 	// - type=PPME_SOCKET_SENDTO_X
 	// - ts=1687966733172651252
@@ -1124,9 +1214,7 @@ TEST_F(scap_file_test, sendto_x_check_final_converted_event) {
 ////////////////////////////
 // SHUTDOWN
 ////////////////////////////
-TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_shutdown_x_final_converted_event() const {
 	// Inside the scap-file the event `861764` is the following:
 	// - type=PPME_SOCKET_SHUTDOWN_X
 	// - ts=1687966733231918487
@@ -1153,9 +1241,7 @@ TEST_F(scap_file_test, shutdown_x_check_final_converted_event) {
 // SOCKETPAIR
 ////////////////////////////
 
-TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_socketpair_x_final_converted_event() const {
 	// Inside the scap-file the event `839802` is the following:
 	// - type=PPME_SOCKET_SOCKETPAIR_X
 	// - ts=1687966732709347847
@@ -1200,9 +1286,7 @@ TEST_F(scap_file_test, socketpair_x_check_final_converted_event) {
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(scap_file_test, sendmsg_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_sendmsg_x_final_converted_event() const {
 	// Inside the scap-file the event `593037` is the following:
 	// - type=PPME_SOCKET_SENDMSG_X
 	// - ts=1687966725502664007
@@ -1255,9 +1339,7 @@ TEST_F(scap_file_test, sendmsg_x_check_final_converted_event) {
 
 // Compile out this test if test_utils helpers are not defined.
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_recvmsg_x_final_converted_event() const {
 	// Inside the scap-file the event `593019` is the following:
 	// - type=PPME_SOCKET_RECVMSG_X
 	// - ts=1687966725502520629
@@ -1317,9 +1399,7 @@ TEST_F(scap_file_test, recvmsg_x_check_final_converted_event) {
 // MKDIR
 ////////////////////////////
 
-TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
-	open_filename("mkdir.scap");
-
+void scap_file_test::mkdir_mkdir_x_final_converted_event() const {
 	// Inside the scap-file the event `465` is the following:
 	// - type=PPME_SYSCALL_MKDIR_2_X,
 	// - ts=1749017847850665826
@@ -1347,9 +1427,7 @@ TEST_F(scap_file_test, mkdir_x_check_final_converted_event) {
 // UNSHARE
 ////////////////////////////
 
-TEST_F(scap_file_test, unshare_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_unshare_x_final_converted_event() const {
 	// Inside the scap-file the event `61225` is the following:
 	// - type=PPME_SYSCALL_UNSHARE_X,
 	// - ts=1687966709958564213
@@ -1375,9 +1453,7 @@ TEST_F(scap_file_test, unshare_x_check_final_converted_event) {
 ///// FUTEX
 ////////////////////////////
 
-TEST_F(scap_file_test, futex_x_check_final_converted_event) {
-	open_filename("sample.scap");
-
+void scap_file_test::sample_futex_x_final_converted_event() const {
 	// Inside the scap-file the event `177` is the following:
 	// - type=PPME_SYSCALL_FUTEX_X,
 	// - ts=1690557262892768316
@@ -1406,9 +1482,7 @@ TEST_F(scap_file_test, futex_x_check_final_converted_event) {
 ///// FSTAT
 ////////////////////////////
 
-TEST_F(scap_file_test, fstat_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_fstat_x_final_converted_event() const {
 	// Inside the scap-file the event `899035` is the following:
 	// - type=PPME_SYSCALL_FSTAT_X,
 	// - ts=1687966733785539028
@@ -1435,9 +1509,7 @@ TEST_F(scap_file_test, fstat_x_check_final_converted_event) {
 ///// EPOLL_WAIT
 ////////////////////////////
 
-TEST_F(scap_file_test, epoll_wait_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_epoll_wait_x_final_converted_event() const {
 	// Inside the scap-file the event `522235` is the following:
 	// - type=PPME_SYSCALL_EPOLLWAIT_X,
 	// - ts=1687889198957001006
@@ -1464,9 +1536,7 @@ TEST_F(scap_file_test, epoll_wait_x_check_final_converted_event) {
 ///// POLL
 ////////////////////////////
 
-TEST_F(scap_file_test, poll_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_poll_x_final_converted_event() const {
 	// Inside the scap-file the event `520415` is the following:
 	// - type=PPME_SYSCALL_POLL_X,
 	// - ts=1687889198874896483
@@ -1499,9 +1569,7 @@ TEST_F(scap_file_test, poll_x_check_final_converted_event) {
 ///// LSEEK
 ////////////////////////////
 
-TEST_F(scap_file_test, lseek_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_lseek_x_final_converted_event() const {
 	// Inside the scap-file the event `896635` is the following:
 	// - type=PPME_SYSCALL_LSEEK_X,
 	// - ts=1687966733725654218
@@ -1538,9 +1606,7 @@ TEST_F(scap_file_test, lseek_x_check_final_converted_event) {
 ///// IOCTL
 ////////////////////////////
 
-TEST_F(scap_file_test, ioctl_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_ioctl_x_final_converted_event() const {
 	// Inside the scap-file the event `903005` is the following:
 	// - type=PPME_SYSCALL_IOCTL_3_X,
 	// - ts=1687966733986436903
@@ -1569,9 +1635,7 @@ TEST_F(scap_file_test, ioctl_x_check_final_converted_event) {
 // MMAP
 ////////////////////////////
 
-TEST_F(scap_file_test, mmap_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_mmap_x_final_converted_event() const {
 	// Inside the scap-file the event `513124` is the following:
 	// - type=PPME_SYSCALL_MMAP_X,
 	// - ts=1687889198695960021
@@ -1625,9 +1689,7 @@ TEST_F(scap_file_test, mmap_x_check_final_converted_event) {
 // MUNMAP
 ////////////////////////////
 
-TEST_F(scap_file_test, munmap_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_munmap_x_final_converted_event() const {
 	// Inside the scap-file the event `897614` is the following:
 	// - type=PPME_SYSCALL_MUNMAP_X,
 	// - ts=1687966733729451471
@@ -1666,9 +1728,7 @@ TEST_F(scap_file_test, munmap_x_check_final_converted_event) {
 // SPLICE
 ////////////////////////////
 
-TEST_F(scap_file_test, splice_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_splice_x_final_converted_event() const {
 	// Inside the scap-file the event `862252` is the following:
 	// - type=PPME_SYSCALL_SPLICE_X,
 	// - ts=1687966733234462655
@@ -1706,9 +1766,7 @@ TEST_F(scap_file_test, splice_x_check_final_converted_event) {
 // PTRACE
 ////////////////////////////
 
-TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
-	open_filename("ptrace.scap");
-
+void scap_file_test::ptrace_ptrace_x_final_converted_event() const {
 	// Inside the scap-file the event `464` is the following:
 	// - type=PPME_SYSCALL_PTRACE_X,
 	// - ts=1747834548577695347
@@ -1765,9 +1823,7 @@ TEST_F(scap_file_test, ptrace_x_check_final_converted_event) {
 // GETDENTS64
 ////////////////////////////
 
-TEST_F(scap_file_test, getdents64_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_getdents64_x_final_converted_event() const {
 	// Inside the scap-file the event `902321` is the following:
 	// - type=PPME_SYSCALL_GETDENTS64_X,
 	// - ts=1687966733947098286
@@ -1794,9 +1850,7 @@ TEST_F(scap_file_test, getdents64_x_check_final_converted_event) {
 // SETNS
 ////////////////////////////
 
-TEST_F(scap_file_test, setns_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_setns_x_final_converted_event() const {
 	// Inside the scap-file the event `156638` is the following:
 	// - type=PPME_SYSCALL_SETNS_X,
 	// - ts=1687889193606963670
@@ -1838,9 +1892,7 @@ TEST_F(scap_file_test, setns_x_check_final_converted_event) {
 // PPOLL
 ////////////////////////////
 
-TEST_F(scap_file_test, ppoll_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_ppoll_x_final_converted_event() const {
 	// Inside the scap-file the event `903273` is the following:
 	// - type=PPME_SYSCALL_PPOLL_X,
 	// - ts=1687966733988132906
@@ -1875,9 +1927,7 @@ TEST_F(scap_file_test, ppoll_x_check_final_converted_event) {
 // MOUNT
 ////////////////////////////
 
-TEST_F(scap_file_test, mount_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_mount_x_final_converted_event() const {
 	// Inside the scap-file the event `155639` is the following:
 	// - type=PPME_SYSCALL_MOUNT_X,
 	// - ts=1687889193604667914
@@ -1923,9 +1973,7 @@ TEST_F(scap_file_test, mount_x_check_final_converted_event) {
 // ACCESS
 ////////////////////////////
 
-TEST_F(scap_file_test, access_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_access_x_final_converted_event() const {
 	// Inside the scap-file the event `513024` is the following:
 	// - type=PPME_SYSCALL_ACCESS_X,
 	// - ts=1687889198695606972
@@ -1953,9 +2001,7 @@ TEST_F(scap_file_test, access_x_check_final_converted_event) {
 // FCHDIR
 ////////////////////////////
 
-TEST_F(scap_file_test, fchdir_x_check_final_converted_event) {
-	open_filename("fchdir.scap");
-
+void scap_file_test::fchdir_fchdir_x_final_converted_event() const {
 	// Inside the scap-file the event `370` is the following:
 	// - type=PPME_SYSCALL_FCHDIR_X,
 	// - ts=1749117249748433380
@@ -1981,9 +2027,7 @@ TEST_F(scap_file_test, fchdir_x_check_final_converted_event) {
 // SETPGID
 ////////////////////////////
 
-TEST_F(scap_file_test, setpgid_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_setpgid_x_final_converted_event() const {
 	// Inside the scap-file the event `123127` is the following:
 	// - type=PPME_SYSCALL_SETPGID_X,
 	// - ts=1687889193490376726
@@ -2011,9 +2055,7 @@ TEST_F(scap_file_test, setpgid_x_check_final_converted_event) {
 // SECCOMP
 ////////////////////////////
 
-TEST_F(scap_file_test, seccomp_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_seccomp_x_final_converted_event() const {
 	// Inside the scap-file the event `62555` is the following:
 	// - type=PPME_SYSCALL_SECCOMP_X,
 	// - ts=1687966709992615590
@@ -2041,9 +2083,7 @@ TEST_F(scap_file_test, seccomp_x_check_final_converted_event) {
 // MPROTECT
 ////////////////////////////
 
-TEST_F(scap_file_test, mprotect_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_mprotect_x_final_converted_event() const {
 	// Inside the scap-file the event `513074` is the following:
 	// - type=PPME_SYSCALL_MPROTECT_X,
 	// - ts=1687889198695780437
@@ -2090,9 +2130,7 @@ TEST_F(scap_file_test, mprotect_x_check_final_converted_event) {
 // EPOLL_CREATE1
 ////////////////////////////
 
-TEST_F(scap_file_test, epoll_create1_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_epoll_create1_x_final_converted_event() const {
 	// Inside the scap-file the event `597328` is the following:
 	// - type=PPME_SYSCALL_EPOLL_CREATE1_X,
 	// - ts=1687966725514490462
@@ -2119,9 +2157,7 @@ TEST_F(scap_file_test, epoll_create1_x_check_final_converted_event) {
 // SETGID
 ////////////////////////////
 
-TEST_F(scap_file_test, setgid_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_setgid_x_final_converted_event() const {
 	// Inside the scap-file the event `160719` is the following:
 	// - type=PPME_SYSCALL_SETGID_X,
 	// - ts=1687889193630645846
@@ -2147,9 +2183,7 @@ TEST_F(scap_file_test, setgid_x_check_final_converted_event) {
 // SETRESGID
 ////////////////////////////
 
-TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_setresgid_x_final_converted_event() const {
 	// Inside the scap-file the event `293989` is the following:
 	// - type=PPME_SYSCALL_SETRESGID_X,
 	// - ts=1687889196229751724
@@ -2178,9 +2212,7 @@ TEST_F(scap_file_test, setresgid_x_check_final_converted_event) {
 // ACCEPT4
 ////////////////////////////
 
-TEST_F(scap_file_test, accept4_x_check_final_converted_event) {
-	open_filename("kexec_arm64.scap");
-
+void scap_file_test::kexec_arm64_assert_accept4_x_final_converted_event() const {
 	// Inside the scap-file the event `901231` is the following:
 	// - type=PPME_SOCKET_ACCEPT4_6_X,
 	// - ts=1687966733926550576
@@ -2218,9 +2250,7 @@ TEST_F(scap_file_test, accept4_x_check_final_converted_event) {
 // UMOUNT2
 ////////////////////////////
 
-TEST_F(scap_file_test, umount2_x_check_final_converted_event) {
-	open_filename("kexec_x86.scap");
-
+void scap_file_test::kexec_x86_assert_umount2_x_final_converted_event() const {
 	// Inside the scap-file the event `156249` is the following:
 	// - type=PPME_SYSCALL_UMOUNT2_X,
 	// - ts=1687889193605753138
