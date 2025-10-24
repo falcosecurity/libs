@@ -25,7 +25,7 @@ limitations under the License.
 
 #include <unordered_map>
 #include <memory>
-#include <packed_data.h>
+#include <libsinsp/packed_data.h>
 
 // fd type characters
 #define CHAR_FD_FILE 'f'

@@ -5,8 +5,9 @@ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/@LIBS_PACKAGE_NAME@
 Name: libsinsp
 Description: lib for System INSPection
 Version: @FALCOSECURITY_LIBS_VERSION@
+License: Apache-2.0
 
 Requires: libscap @LIBSINSP_REQUIRES@
 Requires.private: @LIBSINSP_REQUIRES_PRIVATE@
 Libs: -L${libdir} @SINSP_PKG_CONFIG_LIBDIRS@ @SINSP_PKG_CONFIG_LIBS@
-Cflags: -I${includedir} -I${includedir}/libsinsp -I${includedir}/driver @SINSP_PKG_CONFIG_INCLUDES@
+Cflags: -I${includedir} @SINSP_PKG_CONFIG_INCLUDES@

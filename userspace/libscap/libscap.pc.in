@@ -5,8 +5,9 @@ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/@LIBS_PACKAGE_NAME@
 Name: libscap
 Description: lib for System CAPture
 Version: @FALCOSECURITY_LIBS_VERSION@
+License: Apache-2.0
 
 Requires: @LIBSCAP_PKGCONFIG_REQUIRES@
 Requires.private: @LIBSCAP_PKGCONFIG_REQUIRES_PRIVATE@
 Libs: -L${libdir} @LIBSCAP_LINK_LIBDIRS_FLAGS@ @LIBSCAP_LINK_LIBRARIES_FLAGS@
-Cflags: -I${includedir} -I${includedir}/libscap -I${includedir}/driver
+Cflags: -I${includedir}
