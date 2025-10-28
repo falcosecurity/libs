@@ -12,6 +12,7 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 #
+find_package(Uthash REQUIRED)
 add_library(
 	scap_platform
 	scap_linux_platform.c
@@ -23,6 +24,7 @@ add_library(
 	scap_cgroup.c
 	scap_machine_info.c
 )
-target_include_directories(scap_platform PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(
+	scap_platform PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> ${UTHASH_INCLUDE_DIRS}
+)
 target_link_libraries(scap_platform PRIVATE scap_error scap_platform_util)
-add_dependencies(scap_platform uthash)

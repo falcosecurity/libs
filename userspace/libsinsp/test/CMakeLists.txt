@@ -12,11 +12,7 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 #
-
-include(jsoncpp)
-if(NOT EMSCRIPTEN)
-	include(tbb)
-endif()
+find_package(GTest REQUIRED)
 
 if(WIN32)
 	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi /std:c++17")
@@ -197,7 +193,8 @@ target_include_directories(
 )
 
 target_link_libraries(
-	unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${TBB_LIB}" "${JSONCPP_LIB}"
+	unit-test-libsinsp PRIVATE sinsp GTest::gtest GTest::gtest_main JsonCpp::JsonCpp
+							   $<IF:$<BOOL:EMSCRIPTEN>,,TBB::tbb>
 )
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`

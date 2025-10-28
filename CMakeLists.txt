@@ -108,10 +108,6 @@ include(CompilerFlags)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
-if(CREATE_TEST_TARGETS)
-	include(gtest)
-endif()
-
 if(BUILD_SHARED_LIBS)
 	get_shared_libs_versions(FALCOSECURITY_SHARED_LIBS_VERSION FALCOSECURITY_SHARED_LIBS_SOVERSION)
 	message(STATUS "Shared library version: ${FALCOSECURITY_SHARED_LIBS_VERSION}")
