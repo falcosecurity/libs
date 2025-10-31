@@ -32,11 +32,11 @@ void plugin_tables::init(const sinsp& inspector) {
 }
 
 std::string plugin_tables::get_container_id(sinsp_threadinfo& threadinfo) const {
-	std::string container_id;
-	if(m_containers_table) {
-		threadinfo.get_dynamic_field(*m_container_id_field, container_id);
+	if(!m_container_id_field) {
+		return {};
 	}
-
+	std::string container_id;
+	threadinfo.get_dynamic_field(*m_container_id_field, container_id);
 	return container_id;
 }
 
