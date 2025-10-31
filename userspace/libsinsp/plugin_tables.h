@@ -28,7 +28,7 @@ public:
 	std::string get_container_id(sinsp_threadinfo& threadinfo) const;
 
 	/*!
-	  \brief Given the container_id associated with this thread, feetches the container user from
+	  \brief Given the container_id associated with this thread, fetches the container user from
 	  the containers table, created by the container plugins if running, leveraging sinsp state
 	  table API.
 	*/
