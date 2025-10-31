@@ -39,8 +39,8 @@ std::string thread_info_to_string(sinsp_threadinfo* tinfo) {
 	return out.str();
 }
 
-void display_thread_lineage(sinsp_threadinfo* tinfo) {
-	sinsp_threadinfo::visitor_func_t scap_file_visitor = [](sinsp_threadinfo* pt) {
+void display_thread_lineage(sinsp_thread_manager& thread_manager, sinsp_threadinfo* tinfo) {
+	sinsp_thread_manager::visitor_func_t scap_file_visitor = [](sinsp_threadinfo* pt) {
 		if(pt == nullptr) {
 			printf("X - Null thread info detected\n");
 		}
@@ -64,7 +64,7 @@ void display_thread_lineage(sinsp_threadinfo* tinfo) {
 		return;
 	}
 
-	tinfo->traverse_parent_state(scap_file_visitor);
+	thread_manager.traverse_parent_state(*tinfo, scap_file_visitor);
 }
 
 int main(int argc, char** argv) {
@@ -131,13 +131,13 @@ int main(int argc, char** argv) {
 				       child_tid,
 				       ev->get_num());
 			}
-			display_thread_lineage(tinfo);
+			display_thread_lineage(*inspector.m_thread_manager, tinfo);
 		} break;
 
 		case PPME_SYSCALL_EXECVE_19_X:
 		case PPME_SYSCALL_EXECVEAT_X:
 			printf("🟢 EXECVE EXIT: evt_num(%" PRIu64 ")\n", ev->get_num());
-			display_thread_lineage(tinfo);
+			display_thread_lineage(*inspector.m_thread_manager, tinfo);
 			break;
 
 		case PPME_PROCEXIT_1_E:
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 					       child_shr->m_ptid);
 				}
 			}
-			display_thread_lineage(tinfo);
+			display_thread_lineage(*inspector.m_thread_manager, tinfo);
 			break;
 
 		default:
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 
 	// Print lineage for all threads in the table
 	inspector.m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
-		display_thread_lineage(&tinfo);
+		display_thread_lineage(*inspector.m_thread_manager, &tinfo);
 		return true;
 	});
 

@@ -17,12 +17,10 @@ limitations under the License.
 */
 
 #ifndef _WIN32
-#include <inttypes.h>
 #include <unistd.h>
 #include <limits.h>
 #endif
 #include <stdio.h>
-#include <algorithm>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
@@ -44,9 +42,7 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
-        m_cgroups_table_adapter("cgroups", m_cgroups),
-        m_container_id_accessor(params->thread_manager->get_field_accessor(
-                sinsp_thread_manager::s_container_id_field_name)) {
+        m_cgroups_table_adapter("cgroups", m_cgroups) {
 	init();
 }
 
@@ -321,10 +317,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 	return m_fdtable.add(fdi.fd, std::move(newfdi));
 }
 
-void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
-                            const bool can_load_env_from_proc,
-                            const bool notify_user_update,
-                            const bool notify_group_update) {
+void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
 	init();
 
 	m_tid = pinfo.tid;
@@ -384,17 +377,13 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo,
 	set_cgroups(pinfo.cgroups.path, pinfo.cgroups.len);
 	m_root = pinfo.root;
 
-	set_group(pinfo.gid, notify_group_update);
-	set_user(pinfo.uid, notify_user_update);
-	set_loginuid(pinfo.loginuid);
+	m_gid = pinfo.gid;
+	m_uid = pinfo.uid;
+	m_loginuid = pinfo.loginuid;
 }
 
 const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
 	return m_cgroups;
-}
-
-std::shared_ptr<sinsp_thread_manager> sinsp_threadinfo::get_thread_manager() const {
-	return m_params->thread_manager;
 }
 
 std::string sinsp_threadinfo::get_comm() const {
@@ -407,136 +396,6 @@ std::string sinsp_threadinfo::get_exe() const {
 
 std::string sinsp_threadinfo::get_exepath() const {
 	return m_exepath;
-}
-
-std::string sinsp_threadinfo::get_container_id() {
-	if(!m_container_id_accessor) {
-		return {};
-	}
-	std::string container_id;
-	get_dynamic_field(*m_container_id_accessor, container_id);
-	return container_id;
-}
-
-std::string sinsp_threadinfo::get_container_user() {
-	std::string user;
-
-	const auto container_id = get_container_id();
-	if(!container_id.empty()) {
-		auto table =
-		        m_params->thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
-		if(table != nullptr) {
-			auto fld = table->get_field<std::string>(
-			        sinsp_thread_manager::s_containers_table_field_user);
-			try {
-				auto e = table->get_entry(container_id);
-				e.read_field(fld, user);
-			} catch(...) {
-				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-				                          "Failed to read user from container %s",
-				                          container_id.c_str());
-			}
-		}
-	}
-	return user;
-}
-
-std::string sinsp_threadinfo::get_container_ip() {
-	std::string ip;
-
-	const auto container_id = get_container_id();
-	if(!container_id.empty()) {
-		auto table =
-		        m_params->thread_manager->get_table(sinsp_thread_manager::s_containers_table_name);
-		if(table != nullptr) {
-			auto fld = table->get_field<std::string>(
-			        sinsp_thread_manager::s_containers_table_field_ip);
-			try {
-				auto e = table->get_entry(container_id);
-				e.read_field(fld, ip);
-			} catch(...) {
-				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-				                          "Failed to read ip from container %s",
-				                          container_id.c_str());
-			}
-		}
-	}
-	return ip;
-}
-
-void sinsp_threadinfo::set_user(const uint32_t uid, const bool notify) {
-	const auto container_id = get_container_id();
-	m_uid = uid;
-	// Do not notify if the user is already present.
-	if(m_params->usergroup_manager->get_user(container_id, uid)) {
-		return;
-	}
-	// For uid 0 force set root related info.
-	if(uid == 0) {
-		m_params->usergroup_manager
-		        ->add_user(container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
-	} else {
-		m_params->usergroup_manager->add_user(container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
-	}
-}
-
-void sinsp_threadinfo::set_group(const uint32_t gid, const bool notify) {
-	const auto container_id = get_container_id();
-	m_gid = gid;
-	// Do not notify if the group is already present.
-	if(m_params->usergroup_manager->get_group(container_id, gid)) {
-		return;
-	}
-	// For gid 0 force set root related info.
-	if(gid == 0) {
-		m_params->usergroup_manager->add_group(container_id, m_pid, gid, "root", notify);
-	} else {
-		m_params->usergroup_manager->add_group(container_id, m_pid, gid, {}, notify);
-	}
-}
-
-void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
-	m_loginuid = loginuid;
-}
-
-scap_userinfo* sinsp_threadinfo::get_user() {
-	if(const auto user = m_params->usergroup_manager->get_user(get_container_id(), m_uid);
-	   user != nullptr) {
-		return user;
-	}
-
-	static scap_userinfo usr{};
-	usr.uid = m_uid;
-	usr.gid = m_gid;
-	strlcpy(usr.name, m_uid == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, m_uid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
-	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
-	return &usr;
-}
-
-scap_groupinfo* sinsp_threadinfo::get_group() {
-	if(const auto group = m_params->usergroup_manager->get_group(get_container_id(), m_gid);
-	   group != nullptr) {
-		return group;
-	}
-	static scap_groupinfo grp = {};
-	grp.gid = m_gid;
-	strlcpy(grp.name, m_gid == 0 ? "root" : "<NA>", sizeof(grp.name));
-	return &grp;
-}
-
-scap_userinfo* sinsp_threadinfo::get_loginuser() {
-	if(const auto user = m_params->usergroup_manager->get_user(get_container_id(), m_loginuid);
-	   user != nullptr) {
-		return user;
-	}
-	static scap_userinfo usr{};
-	usr.uid = m_loginuid;
-	usr.gid = m_gid;
-	strlcpy(usr.name, m_loginuid == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, m_loginuid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
-	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
-	return &usr;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len) {
@@ -703,27 +562,6 @@ void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 	m_cgroups = cgroups;
 }
 
-sinsp_threadinfo* sinsp_threadinfo::get_parent_thread() {
-	return m_params->thread_manager->find_thread(m_ptid, true).get();
-}
-
-sinsp_threadinfo* sinsp_threadinfo::get_ancestor_process(uint32_t n) {
-	sinsp_threadinfo* mt = get_main_thread();
-
-	for(uint32_t i = 0; i < n; i++) {
-		if(mt == nullptr) {
-			return nullptr;
-		}
-		mt = mt->get_parent_thread();
-		if(mt == nullptr) {
-			return nullptr;
-		}
-		mt = mt->get_main_thread();
-	}
-
-	return mt;
-}
-
 sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
@@ -861,51 +699,6 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct() {
 	}
 }
 
-sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(
-        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-        bool is_virtual_id) {
-	int64_t id = get_thread_id(this);
-	if(id == -1) {
-		// the id is not set
-		return nullptr;
-	}
-
-	// If we are using a non virtual id or if the id is virtual but we are in the init namespace we
-	// can access the thread table directly!
-	// if is_virtual_id == false we don't care about the namespace in which we are
-	sinsp_threadinfo* leader = nullptr;
-	if(!is_virtual_id || !is_in_pid_namespace()) {
-		leader = m_params->thread_manager->find_thread(id, true).get();
-		if(leader != nullptr) {
-			return leader;
-		}
-	}
-
-	// If we are in a pid_namespace we cannot use directly m_sid to access the table
-	// since it could be related to a pid namespace.
-	sinsp_threadinfo::visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
-		if(get_thread_id(pt) != id) {
-			return false;
-		}
-		leader = pt;
-		return true;
-	};
-
-	traverse_parent_state(visitor);
-	return leader;
-}
-
-std::string sinsp_threadinfo::get_ancestor_field_as_string(
-        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
-        bool is_virtual_id) {
-	auto ancestor = this->get_oldest_matching_ancestor(get_thread_id, is_virtual_id);
-	if(ancestor) {
-		return get_field_str(ancestor);
-	}
-	return "";
-}
-
 double sinsp_threadinfo::get_fd_usage_pct_d() {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0) {
@@ -960,47 +753,15 @@ bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup
 	return false;
 }
 
-void sinsp_threadinfo::traverse_parent_state(visitor_func_t& visitor) {
-	// Use two pointers starting at this, traversing the parent
-	// state, at different rates. If they ever equal each other
-	// before slow is NULL there's a loop.
-
-	sinsp_threadinfo *slow = this->get_parent_thread(), *fast = slow;
-
-	// Move fast to its parent
-	fast = (fast ? fast->get_parent_thread() : fast);
-
-	// The slow pointer must be valid and not have a tid of -1.
-	while(slow && slow->m_tid != -1) {
-		if(!visitor(slow)) {
-			break;
-		}
-
-		// Advance slow one step and advance fast two steps
-		slow = slow->get_parent_thread();
-
-		// advance fast 2 steps, checking to see if we meet
-		// slow after each step.
-		for(uint32_t i = 0; i < 2; i++) {
-			fast = (fast ? fast->get_parent_thread() : fast);
-
-			// If not at the end but fast == slow or if
-			// slow points to itself, there's a loop in
-			// the thread state.
-			if(slow && (slow == fast || slow->m_tid == slow->m_ptid)) {
-				// Note we only log a loop once for a given main thread, to avoid flooding logs.
-				if(!m_parent_loop_detected) {
-					libsinsp_logger()->log(
-					        std::string("Loop in parent thread state detected for pid ") +
-					                std::to_string(m_pid) +
-					                ". stopped at tid= " + std::to_string(slow->m_tid) +
-					                " ptid=" + std::to_string(slow->m_ptid),
-					        sinsp_logger::SEV_WARNING);
-					m_parent_loop_detected = true;
-				}
-				return;
-			}
-		}
+void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread) {
+	// Note we only log a loop once for a given main thread, to avoid flooding logs.
+	if(!m_parent_loop_detected) {
+		libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
+		                               std::to_string(m_pid) +
+		                               ". stopped at tid= " + std::to_string(looping_thread.m_tid) +
+		                               " ptid=" + std::to_string(looping_thread.m_ptid),
+		                       sinsp_logger::SEV_WARNING);
+		m_parent_loop_detected = true;
 	}
 }
 
@@ -1152,7 +913,7 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec** iov,
 	// intermediate '=' signs. Based on alen, we might not use all
 	// of the iovec.
 	*iov = (struct iovec*)malloc((3 * cgroups.size()) * sizeof(struct iovec));
-	if(iov == NULL) {
+	if(*iov == NULL) {
 		throw sinsp_exception("memory allocation error in sinsp_threadinfo::cgroups_to_iovec.");
 	}
 
@@ -1192,7 +953,7 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
 	// We allocate an iovec big enough to hold all the entries in
 	// strs. Based on alen, we might not use all of the iovec.
 	*iov = (struct iovec*)malloc(strs.size() * sizeof(struct iovec));
-	if(iov == NULL) {
+	if(*iov == NULL) {
 		throw sinsp_exception("memory allocation error in sinsp_threadinfo::strvec_to_iovec.");
 	}
 

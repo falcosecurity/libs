@@ -98,26 +98,43 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	}
 	if(m_field_id == TYPE_NAME &&
 	   (evt->get_type() == PPME_CONTAINER_JSON_2_E || is_container_asyncevent)) {
-		m_strval = tinfo->get_container_user();
+		m_strval = m_inspector->m_plugin_tables.get_container_user(*tinfo);
 		if(!m_strval.empty()) {
 			RETURN_EXTRACT_STRING(m_strval);
 		}
 	}
 
-	auto user = tinfo->get_user();
-	auto loginuser = tinfo->get_loginuser();
+	auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
+	auto user = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_uid);
+	auto loginuser = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_loginuid);
 	switch(m_field_id) {
 	case TYPE_UID:
 		m_val.u32 = tinfo->m_uid;
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_NAME:
-		m_strval = user->name;
+		if(user) {
+			m_strval = user->name;
+		} else if(tinfo->m_uid == 0) {
+			m_strval = "root";
+		} else {
+			m_strval = "<NA>";
+		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_HOMEDIR:
-		m_strval = user->homedir;
+		if(user) {
+			m_strval = user->homedir;
+		} else if(tinfo->m_uid == 0) {
+			m_strval = "/root";
+		} else {
+			m_strval = "<NA>";
+		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_SHELL:
-		m_strval = user->shell;
+		if(user) {
+			m_strval = user->shell;
+		} else {
+			m_strval = "<NA>";
+		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_LOGINUID:
 		m_val.s64 = (int64_t)-1;
@@ -126,7 +143,13 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		}
 		RETURN_EXTRACT_VAR(m_val.s64);
 	case TYPE_LOGINNAME:
-		m_strval = loginuser->name;
+		if(loginuser) {
+			m_strval = loginuser->name;
+		} else if(tinfo->m_loginuid == 0) {
+			m_strval = "root";
+		} else {
+			m_strval = "<NA>";
+		}
 		RETURN_EXTRACT_STRING(m_strval);
 	default:
 		ASSERT(false);

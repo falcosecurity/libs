@@ -76,11 +76,7 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_default_user_entry) {
 
 	open_inspector();
 
-	// The entry gets created when the inspector is opened and its threadtable created.
-	// Since default thread uid is 0, the entry is created with "root" name and "/root" homedir.
-	ASSERT_NE(m_inspector.m_usergroup_manager->get_user("", 0), nullptr);
-
-	// remove the loaded "root" user to test defaults for uid 0
+	// ensure the root user does not exist to test defaults for uid 0
 	m_inspector.m_usergroup_manager->rm_user("", 0);
 	ASSERT_EQ(m_inspector.m_usergroup_manager->get_user("", 0), nullptr);
 

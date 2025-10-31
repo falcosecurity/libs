@@ -60,6 +60,7 @@ limitations under the License.
 #include <libsinsp/mpsc_priority_queue.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_parser.h>
+#include <libsinsp/plugin_tables.h>
 #include <libsinsp/settings.h>
 #include <libsinsp/sinsp_cycledumper.h>
 #include <libsinsp/sinsp_exception.h>
@@ -816,7 +817,6 @@ private:
 	                 struct scap_platform* platform,
 	                 sinsp_mode_t mode);
 	void init();
-	void set_thread_manager_foreign_accessors_and_tables() const;
 	void deinit_state();
 	void consume_initialstate_events();
 	static bool is_initialstate_event(const scap_evt& pevent);
@@ -1081,6 +1081,8 @@ public:
 
 	bool m_inited;
 	static std::atomic<int> instance_count;
+
+	plugin_tables m_plugin_tables;
 };
 
 /*@}*/
