@@ -251,15 +251,15 @@ struct user_group_updater {
 			auto &usergroup_manager = inspector->m_usergroup_manager;
 			if(container_id != m_container_id) {
 				// Refresh user/group
+				usergroup_manager->add_group(container_id,
+				                             tinfo->m_pid,
+				                             tinfo->m_gid,
+				                             m_must_notify_group_update);
 				usergroup_manager->add_user(container_id,
 				                            tinfo->m_pid,
 				                            tinfo->m_uid,
 				                            tinfo->m_gid,
-				                            m_must_notify_group_update);
-				usergroup_manager->add_group(container_id,
-				                             tinfo->m_pid,
-				                             tinfo->m_gid,
-				                             m_must_notify_user_update);
+				                            m_must_notify_user_update);
 			} else if(m_check_cleanup && !container_id.empty()) {
 				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
 					// main container process left, clean up user and groups for the container
