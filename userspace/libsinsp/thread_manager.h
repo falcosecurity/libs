@@ -65,9 +65,6 @@ public:
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool from_scap_proctable);
 
-	/* We call it immediately before removing the thread from the thread table. */
-	void remove_child_from_parent(int64_t ptid);
-
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
 	// Returns true if the table is actually scanned
@@ -273,6 +270,9 @@ public:
 	                                      bool resolve_hostname_and_port);
 
 private:
+	/* We call it immediately before removing the thread from the thread table. */
+	void remove_child_from_parent(int64_t ptid);
+
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const;
