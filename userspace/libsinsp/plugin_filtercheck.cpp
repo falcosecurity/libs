@@ -49,7 +49,7 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val,
 
 	m_arg_present = false;
 	m_arg_key = NULL;
-	m_arg_index = 0;
+	m_arg_index = -1;
 	m_argstr.clear();
 
 	// the field is parsed successfully
