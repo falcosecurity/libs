@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
+          # Use 20250630T203427Z debian apt snapshot as it still contains support for buster.
+          printf "deb http://snapshot.debian.org/archive/debian/20250630T203427Z buster main\ndeb http://snapshot.debian.org/archive/debian-security/20250630T203427Z buster/updates main\ndeb http://snapshot.debian.org/archive/debian/20250630T203427Z buster-updates main" > /etc/apt/sources.list
           apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
 
       - name: Install a recent version of CMake ⛓️

@@ -1,6 +1,12 @@
 name: 'install-zig'
 description: 'Install zig compiler and make it available in PATH.'
 
+inputs:
+  zig_download_retries:
+    description: 'Number of retries for the download'
+    required: false
+    default: 20
+
 runs:
   using: "composite"
   steps:
@@ -8,41 +14,29 @@ runs:
       shell: bash
       id: store
       env:
-        ZIG_VERSION: '0.14.0-dev.2591+5333d2443'
+        ZIG_VERSION: '0.14.1'
       run: |
         echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
 
-    # TODO: this is only needed because we are using a development version of zig,
-    # since we need https://github.com/ziglang/zig/pull/21253 to be included.
-    # Development versions of zig are not kept alive forever, but get overridden.
-    # We cache it to keep it alive.
-    - name: Download zig (cached)
-      id: cache-zig
-      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-      with:
-        path: zig
-        key: zig-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.zig_version }}
-
     - name: Download zig
-      if: steps.cache-zig.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        curl -L -o zig.tar.xz https://ziglang.org/builds/zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}.tar.xz
+        wget --tries=${{ inputs.zig_download_retries }} -O zig.tar.xz https://ziglang.org/download/${{ steps.store.outputs.zig_version }}/zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}.tar.xz
         tar -xvf zig.tar.xz
 
-        cat > zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-cc <<EOF
+        cat > zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-cc <<EOF
         #!/bin/bash
         exec zig cc -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
         EOF
-        chmod +x zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-cc
+        chmod +x zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-cc
 
-        cat > zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-c++ <<EOF
+        cat > zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-c++ <<EOF
         #!/bin/bash
         exec zig c++ -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
         EOF
-        chmod +x zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-c++
+        chmod +x zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-c++
 
-        mv zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/ zig
+        mv zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/ zig
 
     - name: Setup zig
       shell: bash
