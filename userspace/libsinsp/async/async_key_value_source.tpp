@@ -27,60 +27,49 @@ limitations under the License.
 #include <vector>
 #include <tuple>
 
-namespace libsinsp
-{
+namespace libsinsp {
 
 template<typename key_type, typename value_type>
-async_key_value_source<key_type, value_type>::async_key_value_source(
-		const uint64_t max_wait_ms,
-		const uint64_t ttl_ms) noexcept:
-	m_max_wait_ms(max_wait_ms),
-	m_ttl_ms(ttl_ms),
-	m_thread(),
-	m_running(false),
-	m_terminate(false),
-	m_mutex(),
-	m_queue_not_empty_condition(),
-	m_value_map()
-{ }
+async_key_value_source<key_type, value_type>::async_key_value_source(const uint64_t max_wait_ms,
+                                                                     const uint64_t ttl_ms) noexcept
+        :
+        m_max_wait_ms(max_wait_ms),
+        m_ttl_ms(ttl_ms),
+        m_thread(),
+        m_running(false),
+        m_terminate(false),
+        m_mutex(),
+        m_queue_not_empty_condition(),
+        m_value_map() {}
 
 template<typename key_type, typename value_type>
-async_key_value_source<key_type, value_type>::~async_key_value_source()
-{
-	try
-	{
+async_key_value_source<key_type, value_type>::~async_key_value_source() {
+	try {
 		stop();
-	}
-	catch(...)
-	{
-		libsinsp_logger()->log(std::string(__FUNCTION__) +
-		             ": Exception in destructor",
-		             sinsp_logger::SEV_ERROR);
+	} catch(...) {
+		libsinsp_logger()->log(std::string(__FUNCTION__) + ": Exception in destructor",
+		                       sinsp_logger::SEV_ERROR);
 	}
 }
 
 template<typename key_type, typename value_type>
-uint64_t async_key_value_source<key_type, value_type>::get_max_wait() const
-{
+uint64_t async_key_value_source<key_type, value_type>::get_max_wait() const {
 	return m_max_wait_ms;
 }
 
 template<typename key_type, typename value_type>
-uint64_t async_key_value_source<key_type, value_type>::get_ttl() const
-{
+uint64_t async_key_value_source<key_type, value_type>::get_ttl() const {
 	return m_ttl_ms;
 }
 
 template<typename key_type, typename value_type>
-void async_key_value_source<key_type, value_type>::stop()
-{
+void async_key_value_source<key_type, value_type>::stop() {
 	bool join_needed = false;
 
 	{
 		std::unique_lock<std::mutex> guard(m_mutex);
 
-		if(m_running)
-		{
+		if(m_running) {
 			m_terminate = true;
 			join_needed = true;
 
@@ -88,10 +77,9 @@ void async_key_value_source<key_type, value_type>::stop()
 			// so wake it up
 			m_queue_not_empty_condition.notify_one();
 		}
-	} // Drop the mutex before join()
+	}  // Drop the mutex before join()
 
-	if (join_needed)
-	{
+	if(join_needed) {
 		m_thread.join();
 
 		// Remove any pointers from the thread to this object
@@ -103,8 +91,7 @@ void async_key_value_source<key_type, value_type>::stop()
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::is_running() const
-{
+bool async_key_value_source<key_type, value_type>::is_running() const {
 	// Since this is for information only and it's ok to race, we
 	// explicitly do not lock here.
 
@@ -112,30 +99,22 @@ bool async_key_value_source<key_type, value_type>::is_running() const
 }
 
 template<typename key_type, typename value_type>
-void async_key_value_source<key_type, value_type>::run()
-{
+void async_key_value_source<key_type, value_type>::run() {
 	bool terminate = false;
 
-	while(!terminate)
-	{
+	while(!terminate) {
 		{
 			std::unique_lock<std::mutex> guard(m_mutex);
 
-			while(!m_terminate)
-			{
+			while(!m_terminate) {
 				// Wait for something to show up on the queue
 				auto deadline = get_deadline();
-				if (deadline == std::chrono::steady_clock::time_point::min())
-				{
+				if(deadline == std::chrono::steady_clock::time_point::min()) {
 					break;
-				}
-				else if (deadline == std::chrono::steady_clock::time_point::max())
-				{
+				} else if(deadline == std::chrono::steady_clock::time_point::max()) {
 					// https://stackoverflow.com/questions/39041450/stdcondition-variable-wait-until-surprising-behaviour
 					m_queue_not_empty_condition.wait(guard);
-				}
-				else
-				{
+				} else {
 					m_queue_not_empty_condition.wait_until(guard, deadline);
 				}
 			}
@@ -145,9 +124,7 @@ void async_key_value_source<key_type, value_type>::run()
 			prune_stale_requests();
 		}
 
-		if(!terminate)
-		{
-
+		if(!terminate) {
 			run_impl();
 		}
 	}
@@ -155,16 +132,14 @@ void async_key_value_source<key_type, value_type>::run()
 
 template<typename key_type, typename value_type>
 bool async_key_value_source<key_type, value_type>::lookup_delayed(
-	const key_type& key,
-	value_type& value,
-	std::chrono::milliseconds delay,
-	const callback_handler& handler,
-	const ttl_expired_handler& ttl_expired)
-{
+        const key_type& key,
+        value_type& value,
+        std::chrono::milliseconds delay,
+        const callback_handler& handler,
+        const ttl_expired_handler& ttl_expired) {
 	std::unique_lock<std::mutex> guard(m_mutex);
 
-	if(!m_running && !m_thread.joinable())
-	{
+	if(!m_running && !m_thread.joinable()) {
 		m_running = true;
 		m_thread = std::thread(&async_key_value_source::run, this);
 	}
@@ -172,16 +147,14 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 	auto itr = m_value_map.find(key);
 	bool request_complete;
 
-	if (itr == m_value_map.end())
-	{
+	if(itr == m_value_map.end()) {
 		// Haven't made the request yet. Be explicit and validate insertion.
 		bool inserted;
 		std::tie(itr, inserted) = m_value_map.emplace(key, lookup_request());
 
-		if(!inserted)
-		{
+		if(!inserted) {
 			libsinsp_logger()->log("async_key_value_source: Failed to insert",
-				     sinsp_logger::SEV_ERROR);
+			                       sinsp_logger::SEV_ERROR);
 			return false;
 		}
 
@@ -189,24 +162,18 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 		itr->second.m_value = value;
 
 		// Make request to API and let the async thread know about it
-		if (std::find(m_request_set.begin(),
-		              m_request_set.end(),
-		              key) == m_request_set.end())
-		{
+		if(std::find(m_request_set.begin(), m_request_set.end(), key) == m_request_set.end()) {
 			auto start_time = std::chrono::steady_clock::now() + delay;
 			m_request_queue.push(std::make_pair(start_time, key));
 			m_request_set.insert(key);
 			m_queue_not_empty_condition.notify_one();
 		}
 		request_complete = false;
-	}
-	else
-	{
+	} else {
 		request_complete = itr->second.m_available;
 	}
 
-	if(!request_complete && m_max_wait_ms > 0)
-	{
+	if(!request_complete && m_max_wait_ms > 0) {
 		//
 		// If the client code is willing to wait a short amount of time
 		// to satisfy the request, then wait for the async thread to
@@ -216,23 +183,18 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 		// and the async thread will continue handling the request so
 		// that it'll be available on the next call.
 		//
-		itr->second.m_available_condition.wait_for(
-				guard,
-				std::chrono::milliseconds(m_max_wait_ms));
+		itr->second.m_available_condition.wait_for(guard, std::chrono::milliseconds(m_max_wait_ms));
 
 		// Replace the iterator in case something changed
 		itr = m_value_map.find(key);
 		request_complete = (itr != m_value_map.end()) && itr->second.m_available;
 	}
 
-	if(request_complete)
-	{
+	if(request_complete) {
 		// Pass the value back the caller and erase from the list.
 		value = itr->second.m_value;
 		m_value_map.erase(itr);
-	}
-	else
-	{
+	} else {
 		// Set the callback to fill the value later
 		itr->second.m_callback = handler;
 		itr->second.m_ttl_callback = ttl_expired;
@@ -242,45 +204,43 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::lookup(
-	const key_type& key,
-	value_type& value)
-{
-	return lookup_delayed(key, value, std::chrono::milliseconds::zero(),
-			      callback_handler(), ttl_expired_handler());
+bool async_key_value_source<key_type, value_type>::lookup(const key_type& key, value_type& value) {
+	return lookup_delayed(key,
+	                      value,
+	                      std::chrono::milliseconds::zero(),
+	                      callback_handler(),
+	                      ttl_expired_handler());
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::lookup(
-	const key_type& key,
-	value_type& value,
-	const callback_handler& handler)
-{
-	return lookup_delayed(key, value, std::chrono::milliseconds::zero(), handler, ttl_expired_handler());
+bool async_key_value_source<key_type, value_type>::lookup(const key_type& key,
+                                                          value_type& value,
+                                                          const callback_handler& handler) {
+	return lookup_delayed(key,
+	                      value,
+	                      std::chrono::milliseconds::zero(),
+	                      handler,
+	                      ttl_expired_handler());
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::lookup(
-	const key_type& key,
-	value_type& value,
-	const callback_handler& handler,
-	const ttl_expired_handler& ttl_expired)
-{
+bool async_key_value_source<key_type, value_type>::lookup(const key_type& key,
+                                                          value_type& value,
+                                                          const callback_handler& handler,
+                                                          const ttl_expired_handler& ttl_expired) {
 	return lookup_delayed(key, value, std::chrono::milliseconds::zero(), handler, ttl_expired);
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& key, value_type* value_ptr)
-{
+bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& key,
+                                                                    value_type* value_ptr) {
 	std::lock_guard<std::mutex> guard(m_mutex);
 	bool key_found = false;
 
-	if(!m_request_queue.empty())
-	{
+	if(!m_request_queue.empty()) {
 		auto top_element = m_request_queue.top();
 		auto now = std::chrono::steady_clock::now();
-		if(top_element.first < now)
-		{
+		if(top_element.first < now) {
 			key = std::move(top_element.second);
 			m_request_queue.pop();
 			m_request_set.erase(key);
@@ -288,28 +248,23 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 			// The value associated to the key may have been removed because
 			// of TTL expired.
 			auto itr = m_value_map.find(key);
-			if(itr != m_value_map.end())
-			{
+			if(itr != m_value_map.end()) {
 				key_found = true;
-				if(value_ptr)
-				{
+				if(value_ptr) {
 					*value_ptr = m_value_map[key].m_value;
 				}
+			} else {
+				libsinsp_logger()->log(
+				        "async_key_value_source: Key not found when"
+				        "retrieving value, TTL expired",
+				        sinsp_logger::SEV_DEBUG);
 			}
-			else
-			{
-				libsinsp_logger()->log("async_key_value_source: Key not found when"
-					"retrieving value, TTL expired",
-					sinsp_logger::SEV_DEBUG);
-			}
-		}
-		else
-		{
+		} else {
 			std::chrono::duration<double> dur = top_element.first - now;
 			libsinsp_logger()->log("async_key_value_source: Waiting " +
-				     std::to_string(dur.count()) +
-				     " before dequeuing top job",
-				     sinsp_logger::SEV_DEBUG);
+			                               std::to_string(dur.count()) +
+			                               " before dequeuing top job",
+			                       sinsp_logger::SEV_DEBUG);
 		}
 	}
 
@@ -317,36 +272,28 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 }
 
 template<typename key_type, typename value_type>
-value_type async_key_value_source<key_type, value_type>::get_value(
-		const key_type& key)
-{
+value_type async_key_value_source<key_type, value_type>::get_value(const key_type& key) {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
 	return m_value_map[key].m_value;
 }
 
 template<typename key_type, typename value_type>
-void async_key_value_source<key_type, value_type>::store_value(
-		const key_type& key,
-		const value_type& value)
-{
+void async_key_value_source<key_type, value_type>::store_value(const key_type& key,
+                                                               const value_type& value) {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
 	auto itr = m_value_map.find(key);
-	if(itr == m_value_map.end())
-	{
+	if(itr == m_value_map.end()) {
 		libsinsp_logger()->log("async_key_value_source: Key not found when storing value",
-			     sinsp_logger::SEV_WARNING);
+		                       sinsp_logger::SEV_WARNING);
 		return;
 	}
 
-	if (itr->second.m_callback)
-	{
+	if(itr->second.m_callback) {
 		itr->second.m_callback(key, value);
 		m_value_map.erase(itr);
-	}
-	else
-	{
+	} else {
 		itr->second.m_value = value;
 		itr->second.m_available = true;
 		itr->second.m_available_condition.notify_one();
@@ -354,23 +301,21 @@ void async_key_value_source<key_type, value_type>::store_value(
 }
 
 template<typename key_type, typename value_type>
-void async_key_value_source<key_type, value_type>::defer_lookup(
-		const key_type& key,
-		value_type* value_ptr,
-		std::chrono::milliseconds delay)
-{
+void async_key_value_source<key_type, value_type>::defer_lookup(const key_type& key,
+                                                                value_type* value_ptr,
+                                                                std::chrono::milliseconds delay) {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
 	auto start_time = std::chrono::steady_clock::now() + delay;
 
-	libsinsp_logger()->log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
-		     std::to_string(delay.count()),
-		     sinsp_logger::SEV_DEBUG);
+	libsinsp_logger()->log(
+	        "async_key_value_source: defer_lookup re-adding to request queue delay=" +
+	                std::to_string(delay.count()),
+	        sinsp_logger::SEV_DEBUG);
 
 	m_request_queue.push(std::make_pair(start_time, key));
 	m_request_set.insert(key);
-	if(value_ptr)
-	{
+	if(value_ptr) {
 		m_value_map[key].m_value = *value_ptr;
 	}
 	m_queue_not_empty_condition.notify_one();
@@ -381,36 +326,27 @@ void async_key_value_source<key_type, value_type>::defer_lookup(
  * is holding m_mutex.
  */
 template<typename key_type, typename value_type>
-void async_key_value_source<key_type, value_type>::prune_stale_requests()
-{
+void async_key_value_source<key_type, value_type>::prune_stale_requests() {
 	// Avoid both iterating over and modifying the map by saving a list
 	// of keys to prune.
 	std::vector<std::pair<key_type, ttl_expired_handler>> keys_to_prune;
 
-	for(auto i = m_value_map.begin();
-	    !m_terminate && (i != m_value_map.end());
-	    ++i)
-	{
+	for(auto i = m_value_map.begin(); !m_terminate && (i != m_value_map.end()); ++i) {
 		const auto now = std::chrono::steady_clock::now();
 
 		const uint64_t age_ms =
-			std::chrono::duration_cast<std::chrono::milliseconds>(
-					now - i->second.m_start_time).count();
+		        std::chrono::duration_cast<std::chrono::milliseconds>(now - i->second.m_start_time)
+		                .count();
 
-		if(age_ms > m_ttl_ms)
-		{
+		if(age_ms > m_ttl_ms) {
 			keys_to_prune.emplace_back(i->first, i->second.m_ttl_callback);
 		}
 	}
 
-	for(auto i = keys_to_prune.begin();
-	    !m_terminate && (i != keys_to_prune.end());
-	    ++i)
-	{
+	for(auto i = keys_to_prune.begin(); !m_terminate && (i != keys_to_prune.end()); ++i) {
 		key_type key = i->first;
 		ttl_expired_handler ttl_expired_callback = i->second;
-		if(ttl_expired_callback)
-		{
+		if(ttl_expired_callback) {
 			ttl_expired_callback(key);
 		}
 		m_value_map.erase(key);
@@ -418,22 +354,19 @@ void async_key_value_source<key_type, value_type>::prune_stale_requests()
 }
 
 template<typename key_type, typename value_type>
-std::unordered_map<key_type, value_type> async_key_value_source<key_type, value_type>::get_complete_results()
-{
+std::unordered_map<key_type, value_type>
+async_key_value_source<key_type, value_type>::get_complete_results() {
 	std::unordered_map<key_type, value_type> results;
 
 	std::lock_guard<std::mutex> guard(m_mutex);
 
-	for(const auto& it : m_value_map)
-	{
-		if(it.second.m_available)
-		{
+	for(const auto& it : m_value_map) {
+		if(it.second.m_available) {
 			results[it.first] = it.second.m_value;
 		}
 	}
 
-	for(const auto& it : results)
-	{
+	for(const auto& it : results) {
 		m_value_map.erase(it.first);
 	}
 
@@ -442,21 +375,18 @@ std::unordered_map<key_type, value_type> async_key_value_source<key_type, value_
 
 // called with m_mutex held
 template<typename key_type, typename value_type>
-std::chrono::steady_clock::time_point async_key_value_source<key_type, value_type>::get_deadline() const
-{
-	if (m_request_queue.empty())
-	{
+std::chrono::steady_clock::time_point async_key_value_source<key_type, value_type>::get_deadline()
+        const {
+	if(m_request_queue.empty()) {
 		return std::chrono::steady_clock::time_point::max();
 	}
 
 	auto next_request = m_request_queue.top();
-	if (next_request.first <= std::chrono::steady_clock::now())
-	{
+	if(next_request.first <= std::chrono::steady_clock::now()) {
 		return std::chrono::steady_clock::time_point::min();
 	}
 
 	return next_request.first;
 }
 
-} // end namespace libsinsp
-
+}  // end namespace libsinsp
