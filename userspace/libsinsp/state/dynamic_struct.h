@@ -61,17 +61,6 @@ public:
 		        m_name(n),
 		        m_info(i),
 		        m_defs_id(defsptr) {}
-		inline field_info():
-		        m_readonly(true),
-		        m_index((size_t)-1),
-		        m_name(""),
-		        m_info(typeinfo::of<uint8_t>()),
-		        m_defs_id((uintptr_t)NULL) {}
-		inline ~field_info() = default;
-		inline field_info(field_info&&) = default;
-		inline field_info& operator=(field_info&&) = default;
-		inline field_info(const field_info& s) = default;
-		inline field_info& operator=(const field_info& s) = default;
 
 		friend inline bool operator==(const field_info& a, const field_info& b) {
 			return a.info() == b.info() && a.name() == b.name() && a.m_index == b.m_index &&
