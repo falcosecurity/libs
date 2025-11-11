@@ -1163,7 +1163,17 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 */
 	int64_t lookup_tid;
 
+	bool is_actually_new_process = (child_tinfo->m_pid == child_tinfo->m_tid);
 	bool is_thread_leader = !(child_tinfo->m_flags & PPM_CL_CLONE_THREAD);
+
+	if(is_thread_leader && !is_actually_new_process) {
+		/* we detected a thread with PPM_CL_CONE_THREAD not set
+		   Force the flag
+		**/
+		is_thread_leader = false;
+		child_tinfo->m_flags |= PPM_CL_CLONE_THREAD;
+	}
+
 	if(is_thread_leader) {
 		/* We need to copy data from the parent */
 		lookup_tid = child_tinfo->m_ptid;
