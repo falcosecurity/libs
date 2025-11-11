@@ -132,6 +132,62 @@ plugin_handle_t* plugin_load(const char* path, char* err) {
 	return ret;
 }
 
+static bool plugin_copy_versioned_api(plugin_api* dst, const plugin_api* src, char* err) {
+	// first, check the ABI version
+	if(src->static_plugin_abi_version != PLUGIN_ABI_VERSION) {
+		snprintf(err,
+		         PLUGIN_MAX_ERRLEN,
+		         "unsupported plugin ABI version: %zu",
+		         src->static_plugin_abi_version);
+		return false;
+	}
+
+	// then, copy the whole struct to the right place
+	size_t size = sizeof(plugin_api);
+	if(size > src->static_plugin_api_size) {
+		size = src->static_plugin_api_size;
+	}
+	memcpy(dst, src, size);
+	return true;
+}
+
+static bool plugin_copy_legacy_api(plugin_api* dst, const plugin_api* src, char* err) {
+	// first, copy the whole struct to the right place
+	memcpy(&dst->get_required_api_version,
+	       &src->get_required_api_version,
+	       sizeof(plugin_api) - offsetof(plugin_api, get_required_api_version));
+
+	// then, check the API version (3.10 changed the plugin_api layout)
+	// todo: remove this if/when we drop API < 3.10 compatibility
+	uint32_t major, minor, patch;
+	if(dst->get_required_api_version == NULL) {
+		strlcpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN);
+		return false;
+	}
+
+	const char* ver = dst->get_required_api_version();
+	if(sscanf(ver, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &major, &minor, &patch) != 3) {
+		snprintf(err,
+		         PLUGIN_MAX_ERRLEN,
+		         "plugin provided an invalid required API version: '%s'",
+		         ver);
+		return false;
+	}
+
+	// API 3.10 introduced dump_state in the middle of the plugin_api struct.
+	// Fix up older 3.x plugins by shifting the fields by one
+	if(major == 3 && minor < 10) {
+		size_t from_offset = offsetof(plugin_api, dump_state);
+		size_t to_offset = offsetof(plugin_api, set_config);
+		size_t size = sizeof(plugin_api) - to_offset;
+		char* api_ptr = (char*)dst;
+		memmove(api_ptr + to_offset, api_ptr + from_offset, size);
+		dst->dump_state = NULL;
+	}
+
+	return true;
+}
+
 plugin_handle_t* plugin_load_api(const plugin_api* api, char* err) {
 	// alloc and init memory
 	err[0] = '\0';
@@ -145,34 +201,21 @@ plugin_handle_t* plugin_load_api(const plugin_api* api, char* err) {
 		strlcpy(err, "error allocating plugin handle", PLUGIN_MAX_ERRLEN);
 		return NULL;
 	}
-	ret->api = *api;
 
-	// todo: remove this if/when we get to API version 4
-	uint32_t major, minor, patch;
-	const char* ver;
-	if(api->get_required_api_version == NULL) {
-		strlcpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN);
-		return NULL;
+	// we're *very* conservative here with potentially valid pointer values, but anything below
+	// 4096 just cannot be a valid address on any architecture we support
+	bool plugin_api_copied;
+	if(api->static_plugin_abi_version > 4096) {
+		// the first member is a function pointer, so the whole struct is unversioned
+		plugin_api_copied = plugin_copy_legacy_api(&ret->api, api, err);
+	} else {
+		// the first member cannot be a function pointer, so it's a version number
+		plugin_api_copied = plugin_copy_versioned_api(&ret->api, api, err);
 	}
 
-	ver = api->get_required_api_version();
-	if(sscanf(ver, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &major, &minor, &patch) != 3) {
-		snprintf(err,
-		         PLUGIN_MAX_ERRLEN,
-		         "plugin provided an invalid required API version: '%s'",
-		         ver);
+	if(!plugin_api_copied) {
+		free(ret);
 		return NULL;
-	}
-
-	// API 3.10 introduced dump_state in the middle of the plugin_api struct.
-	// Fix up older 3.x plugins by shifting the fields by one
-	if(major == 3 && minor < 10) {
-		size_t from_offset = offsetof(plugin_api, dump_state);
-		size_t to_offset = offsetof(plugin_api, set_config);
-		size_t size = sizeof(plugin_api) - to_offset;
-		char* api_ptr = (char*)&ret->api;
-		memmove(api_ptr + to_offset, api_ptr + from_offset, size);
-		ret->api.dump_state = NULL;
 	}
 
 	return ret;
