@@ -1167,9 +1167,9 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	bool is_thread_leader = !(child_tinfo->m_flags & PPM_CL_CLONE_THREAD);
 
 	if(is_thread_leader && !is_actually_new_process) {
-		/* we detected a thread with PPM_CL_CONE_THREAD not set
-		   Force the flag
-		**/
+		/* When a thread is detected but missing the CLONE_FILES flag,
+		 * force the flag to ensure proper FD table sharing between threads.
+		 */
 		is_thread_leader = false;
 		child_tinfo->m_flags |= PPM_CL_CLONE_THREAD;
 	}
