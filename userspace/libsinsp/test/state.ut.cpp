@@ -24,11 +24,7 @@ limitations under the License.
 
 TEST(static_struct, defs_and_access) {
 	struct err_multidef_struct : public libsinsp::state::static_struct {
-#if defined(__clang__)
-		__attribute__((no_sanitize("undefined")))
-#endif
-		static libsinsp::state::static_struct::field_infos
-		get_static_fields() {
+		static libsinsp::state::static_struct::field_infos get_static_fields() {
 			libsinsp::state::static_struct::field_infos ret;
 			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
 			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
@@ -40,11 +36,7 @@ TEST(static_struct, defs_and_access) {
 
 	class sample_struct : public libsinsp::state::static_struct {
 	public:
-#if defined(__clang__)
-		__attribute__((no_sanitize("undefined")))
-#endif
-		static libsinsp::state::static_struct::field_infos
-		get_static_fields() {
+		static libsinsp::state::static_struct::field_infos get_static_fields() {
 			libsinsp::state::static_struct::field_infos ret;
 			DEFINE_STATIC_FIELD(ret, sample_struct, m_num, "num");
 			DEFINE_STATIC_FIELD_READONLY(ret, sample_struct, m_str, "str");
@@ -63,11 +55,7 @@ TEST(static_struct, defs_and_access) {
 
 	struct sample_struct2 : public libsinsp::state::static_struct {
 	public:
-#if defined(__clang__)
-		__attribute__((no_sanitize("undefined")))
-#endif
-		static libsinsp::state::static_struct::field_infos
-		get_static_fields() {
+		static libsinsp::state::static_struct::field_infos get_static_fields() {
 			libsinsp::state::static_struct::field_infos ret;
 			DEFINE_STATIC_FIELD(ret, sample_struct2, m_num, "num");
 			return ret;
