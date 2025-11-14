@@ -465,7 +465,6 @@ TEST(thread_manager, fdtable_access) {
 	auto field = table->static_fields()->find("file_descriptors");
 	ASSERT_NE(field, table->static_fields()->end());
 	ASSERT_EQ(field->second.readonly(), true);
-	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "file_descriptors");
 	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
@@ -500,7 +499,6 @@ TEST(thread_manager, fdtable_access) {
 	auto sfield = subtable->static_fields()->find("pid");
 	ASSERT_NE(sfield, subtable->static_fields()->end());
 	ASSERT_EQ(sfield->second.readonly(), false);
-	ASSERT_EQ(sfield->second.valid(), true);
 	ASSERT_EQ(sfield->second.name(), "pid");
 	ASSERT_EQ(sfield->second.type_id(), SS_PLUGIN_ST_INT64);
 
@@ -611,7 +609,6 @@ TEST(thread_manager, env_vars_access) {
 	auto field = table->static_fields()->find("env");
 	ASSERT_NE(field, table->static_fields()->end());
 	EXPECT_EQ(field->second.readonly(), true);
-	EXPECT_EQ(field->second.valid(), true);
 	EXPECT_EQ(field->second.name(), "env");
 	EXPECT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 

@@ -195,18 +195,6 @@ public:
 	 */
 	inline const base_table* const& table_ptr() const { return m_this_ptr; }
 
-	/**
-	 * @brief Returns the offset of m_this_ptr. Here for convenience as required in other code
-	 * parts.
-	 */
-#if defined(__clang__)
-	__attribute__((no_sanitize("undefined")))
-#endif
-	static size_t
-	table_ptr_offset() {
-		return OFFSETOF_STATIC_FIELD(built_in_table<KeyType>, m_this_ptr);
-	}
-
 	const char* name() const override { return m_name.c_str(); }
 
 	/**
