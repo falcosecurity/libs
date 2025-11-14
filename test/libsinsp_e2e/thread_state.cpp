@@ -36,7 +36,7 @@ protected:
 		// Each entry in the vector has a parent of the previous
 		// entry. The first entry has a parent of 1.
 		for(int64_t pid = 100, i = 0; i < m_max; pid++, i++) {
-			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid);
+			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid.load());
 			std::unique_ptr<sinsp_threadinfo> thr = threadinfo_factory.create();
 			thr->init();
 			thr->m_tid = pid;
@@ -54,7 +54,7 @@ protected:
 	void reset() {
 		// Reset the state
 		for(uint32_t i = 0; i < m_max; i++) {
-			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid);
+			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid.load());
 			sinsp_threadinfo* tinfo = m_threads[i];
 			tinfo->m_lastevent_fd = 0;
 			tinfo->set_parent_loop_detected(false);
