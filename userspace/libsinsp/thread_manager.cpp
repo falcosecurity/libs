@@ -249,7 +249,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 				libsinsp_logger()->format(
 				        sinsp_logger::SEV_INFO,
 				        "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
-				        threadinfo->m_tid,
+				        threadinfo->m_tid.load(),
 				        threadinfo->m_pid,
 				        threadinfo->m_comm.c_str());
 			}

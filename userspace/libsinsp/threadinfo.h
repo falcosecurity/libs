@@ -351,7 +351,7 @@ public:
 	//
 	// Core state
 	//
-	int64_t m_tid;   ///< The id of this thread
+	std::atomic<int64_t> m_tid;  ///< The id of this thread
 	int64_t m_pid;   ///< The id of the process containing this thread. In single thread threads,
 	                 ///< this is equal to tid.
 	int64_t m_ptid;  ///< The id of the process that started this thread.
