@@ -194,14 +194,12 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  *
  * @tparam T Type of the field.
  * @param fields Fields group to which to add the new field.
- * @param offset Field's memory offset in instances of the class/struct.
  * @param name Display name of the field.
  * @param reader Function to read the field's value from an instance of the class/struct.
  * @param readonly Read-only field annotation.
  */
 template<typename T>
 constexpr static const static_field_info& define_static_field(static_field_infos& fields,
-                                                              const size_t offset,
                                                               const std::string& name,
                                                               accessor::reader_fn reader,
                                                               accessor::writer_fn writer,
@@ -211,9 +209,7 @@ constexpr static const static_field_info& define_static_field(static_field_infos
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
 	}
 
-	// todo(jasondellaluce): add extra safety boundary checks here
-	fields.insert(
-	        {name, static_field_info(name, offset, type_id_of<T>(), readonly, reader, writer)});
+	fields.insert({name, static_field_info(name, type_id_of<T>(), readonly, reader, writer)});
 	return fields.at(name);
 }
 
