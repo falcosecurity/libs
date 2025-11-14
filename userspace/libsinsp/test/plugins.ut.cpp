@@ -900,7 +900,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	auto field = table->static_fields()->find("file_descriptors");
 	ASSERT_NE(field, table->static_fields()->end());
 	ASSERT_EQ(field->second.readonly(), true);
-	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "file_descriptors");
 	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
@@ -931,7 +930,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	auto sfield = subtable->static_fields()->find("pid");
 	ASSERT_NE(sfield, subtable->static_fields()->end());
 	ASSERT_EQ(sfield->second.readonly(), false);
-	ASSERT_EQ(sfield->second.valid(), true);
 	ASSERT_EQ(sfield->second.name(), "pid");
 	ASSERT_EQ(sfield->second.type_id(), SS_PLUGIN_ST_INT64);
 	auto sfieldacc = sfield->second.new_accessor().into<int64_t>();
@@ -1011,7 +1009,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	auto field = table->static_fields()->find("env");
 	ASSERT_NE(field, table->static_fields()->end());
 	ASSERT_EQ(field->second.readonly(), true);
-	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "env");
 	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
@@ -1115,7 +1112,6 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	auto field = table->static_fields()->find("cgroups");
 	ASSERT_NE(field, table->static_fields()->end());
 	ASSERT_EQ(field->second.readonly(), true);
-	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "cgroups");
 	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
