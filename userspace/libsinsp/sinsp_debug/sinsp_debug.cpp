@@ -55,7 +55,7 @@ void display_thread_lineage(sinsp_thread_manager& thread_manager, sinsp_threadin
 		return true;
 	};
 
-	printf("📜 Task Lineage for tid: %" PRId64 "\n", tinfo->m_tid);
+	printf("📜 Task Lineage for tid: %" PRId64 "\n", tinfo->m_tid.load());
 	printf("⬇️ %s\n", thread_info_to_string(tinfo).c_str());
 
 	/* If the thread is invalid it has no parent */
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
 					auto child_shr = child.lock().get();
 					printf("- move child, tid: %" PRId64 ", ptid: %" PRId64
 					       " (dead) to a new reaper.\n",
-					       child_shr->m_tid,
+					       child_shr->m_tid.load(),
 					       child_shr->m_ptid);
 				}
 			}
