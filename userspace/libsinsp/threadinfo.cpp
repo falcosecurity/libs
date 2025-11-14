@@ -63,10 +63,8 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields(
 	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
-	const auto table_ptr_offset = libsinsp::state::built_in_table<uint64_t>::table_ptr_offset();
 	define_static_field<libsinsp::state::base_table*>(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_args_table_adapter) + table_ptr_offset,
 	        "args",
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
@@ -79,7 +77,6 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields(
 	        true);
 	define_static_field<libsinsp::state::base_table*>(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_env_table_adapter) + table_ptr_offset,
 	        "env",
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
@@ -92,7 +89,6 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields(
 	        true);
 	define_static_field<libsinsp::state::base_table*>(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_cgroups_table_adapter) + table_ptr_offset,
 	        "cgroups",
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
