@@ -119,6 +119,7 @@ const struct ppm_name_value clone_flags[] = {
         {"CLONE_STOPPED", PPM_CL_CLONE_STOPPED},
         {"CLONE_VFORK", PPM_CL_CLONE_VFORK},
         {"CLONE_NEWCGROUP", PPM_CL_CLONE_NEWCGROUP},
+        {"CLONE_CHILD_IN_PIDNS", PPM_CL_CHILD_IN_PIDNS},
         {0, 0},
 };
 
