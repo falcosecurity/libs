@@ -1,5 +1,7 @@
 message(STATUS "Drivers tests build enabled")
 
+find_package(GTest CONFIG REQUIRED)
+
 # Configure ia32 action test
 option(ENABLE_IA32_TESTS "Enable ia32 tests. Require ia32 glibc and gcc." ON)
 if(ENABLE_IA32_TESTS)
@@ -43,11 +45,7 @@ set(DRIVERS_TEST_SOURCES
 	"${ACTIONS_TEST_SUITE}"
 )
 
-set(DRIVERS_TEST_INCLUDE PRIVATE "${GTEST_INCLUDE}" "${LIBS_DIR}/driver/" "${LIBSCAP_INCLUDE_DIRS}")
-
-set(DRIVERS_TEST_LINK_LIBRARIES scap "${GTEST_LIB}" "${GTEST_MAIN_LIB}")
-
-set(DRIVERS_TEST_DEPENDECIES scap gtest)
+set(DRIVERS_TEST_INCLUDE PRIVATE "${LIBS_DIR}/driver/" "${LIBSCAP_INCLUDE_DIRS}")
 
 # IA32 tests are only available on x86_64
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64" AND ENABLE_IA32_TESTS)
@@ -61,5 +59,5 @@ add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
 add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
 target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})
-target_link_libraries(drivers_test ${DRIVERS_TEST_LINK_LIBRARIES})
-add_dependencies(drivers_test ${DRIVERS_TEST_DEPENDECIES})
+target_link_libraries(drivers_test ${DRIVERS_TEST_DEPENDECIES} GTest::gtest GTest::gtest_main)
+add_dependencies(drivers_test scap)
