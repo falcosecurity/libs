@@ -164,6 +164,87 @@ jobs:
           cd build
           sudo ./test/drivers/drivers_test -k
 
+  test-oracle-runner:
+    name: test-oracle-runner
+    runs-on: oracle-24cpu-384gb-x86-64
+    steps:
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Firecracker 1.13.1
+        run: |
+          curl -LO https://github.com/firecracker-microvm/firecracker/releases/download/v1.13.1/firecracker-v1.13.1-x86_64.tgz
+          tar -xzf firecracker-v1.13.1-x86_64.tgz
+          sudo mv release-v1.13.1-x86_64/firecracker-v1.13.1-x86_64 /usr/local/bin/firecracker
+          sudo chmod +x /usr/local/bin/firecracker
+
+      - name: Download "hello world" kernel and rootfs
+        run: |
+          curl -LO https://s3.amazonaws.com/spec.ccfc.min/img/hello/kernel/hello-vmlinux.bin
+          curl -LO https://s3.amazonaws.com/spec.ccfc.min/img/hello/fsfiles/hello-rootfs.ext4
+
+      - name: Write VM config
+        run: |
+          cat > vmconfig.json <<'EOF'
+          {
+            "boot-source": {
+              "kernel_image_path": "./hello-vmlinux.bin",
+              "boot_args": "console=ttyS0 reboot=k panic=1 pci=off"
+            },
+            "drives": [
+              {
+                "drive_id": "rootfs",
+                "path_on_host": "./hello-rootfs.ext4",
+                "is_root_device": true,
+                "is_read_only": false
+              }
+            ],
+            "machine-config": {
+              "vcpu_count": 1,
+              "mem_size_mib": 128,
+              "smt": false
+            }
+          }
+          EOF
+          
+      - name: Start Firecracker with JSON config
+        run: |
+          firecracker --config-file ./vmconfig.json --no-api > firecracker.log 2>&1 || true
+          cat firecracker.log
+          # Wait for the VM to start.
+          sleep 5
+          
+          if grep -q "Welcome to Alpine Linux 3.8" firecracker.log; then
+            echo "Firecracker boot successfully"
+          else
+            echo "Firecracker boot failed"
+            exit 1
+          fi
+
+#      - name: Step 1
+#        run: |
+#          set -x
+#          echo "Runner works!"
+#          sudo apt update -y && sudo apt install -y iproute2
+#
+#          echo "Inspect network interfaces and addresses"
+#          sudo ip addr
+#
+#          echo "Trying to configure a tuntap device"
+#          sudo mkdir -p /dev/net
+#          sudo mknod /dev/net/tun c 10 200
+#          sudo chmod 666 /dev/net/tun
+#          sudo ip tuntap add tap0 mode tap
+#          sudo ip addr add 172.16.0.1/24 dev tap0
+#          sudo ip link set tap0 up
+#
+#          echo "Inspect network interfaces and addresses"
+#          sudo ip addr
+
+
   test-drivers-ppc64le:
     name: test-drivers-ppc64le 😁 (system_deps,custom node)
     runs-on: ubuntu-22.04
