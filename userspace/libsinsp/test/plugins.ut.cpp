@@ -748,7 +748,7 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	auto table = &table_wrapper;
 	ASSERT_EQ(table->name(), std::string("plugin_sample"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_UINT64);
 	ASSERT_EQ(table->fields().size(), 1);
 
 	// get an already existing field form the plugin table
@@ -867,7 +867,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->static_fields()->find("file_descriptors");
@@ -875,7 +875,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "file_descriptors");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -906,7 +906,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(sfield->second.readonly(), false);
 	ASSERT_EQ(sfield->second.valid(), true);
 	ASSERT_EQ(sfield->second.name(), "pid");
-	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(sfield->second.type_id(), SS_PLUGIN_ST_INT64);
 	auto sfieldacc = sfield->second.new_accessor().into<int64_t>();
 
 	// get an accessor to a dynamic field declared by the plugin
@@ -978,7 +978,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->static_fields()->find("env");
@@ -986,7 +986,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "env");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -1014,7 +1014,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(subtable->entries_count(), 0);
 
 	// get an accessor to a dynamic field representing the array's values
-	auto dfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());
+	auto dfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
 	// ASSERT_EQ(dfield->second.readonly(), false);
 	// ASSERT_EQ(dfield->second.valid(), true);
 	// ASSERT_EQ(dfield->second.name(), "value");
@@ -1081,7 +1081,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	// Test "cgroups" field
@@ -1090,7 +1090,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "cgroups");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -1119,14 +1119,13 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(subtable->entries_count(), 0);
 	// get an accessor to a dynamic field representing the array's values
 
-	auto dfield_first = subtable->get_field("first", libsinsp::state::typeinfo::of<std::string>());
+	auto dfield_first = subtable->get_field("first", SS_PLUGIN_ST_STRING);
 	// ASSERT_EQ(dfield_first->second.readonly(), false);
 	// ASSERT_EQ(dfield_first->second.valid(), true);
 	// ASSERT_EQ(dfield_first->second.name(), "first");
 	auto dfield_first_acc = dfield_first.into<std::string>();
 
-	auto dfield_second =
-	        subtable->get_field("second", libsinsp::state::typeinfo::of<std::string>());
+	auto dfield_second = subtable->get_field("second", SS_PLUGIN_ST_STRING);
 	// ASSERT_EQ(dfield_second->second.readonly(), false);
 	// ASSERT_EQ(dfield_second->second.valid(), true);
 	// ASSERT_EQ(dfield_second->second.name(), "second");

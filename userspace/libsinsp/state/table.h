@@ -98,7 +98,7 @@ struct table_accessor {
  */
 class base_table {
 public:
-	inline base_table(const typeinfo& key_info): m_key_info(key_info) {}
+	inline base_table(ss_plugin_state_type key_type): m_key_type_id(key_type) {}
 
 	virtual ~base_table() = default;
 	inline base_table(base_table&&) = default;
@@ -114,7 +114,7 @@ public:
 	/**
 	 * @brief Returns the non-null type info about the table's key.
 	 */
-	inline const typeinfo& key_info() const { return m_key_info; }
+	inline ss_plugin_state_type key_type() const { return m_key_type_id; }
 
 	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
 	                                                     uint32_t* nfields) = 0;
@@ -161,7 +161,7 @@ public:
 	                                       const ss_plugin_state_data* in) = 0;
 
 protected:
-	typeinfo m_key_info;
+	ss_plugin_state_type m_key_type_id;
 };
 
 /**
@@ -173,7 +173,7 @@ class table : public base_table {
 	              "table key types must have a default constructor");
 
 public:
-	inline table(): base_table(typeinfo::of<KeyType>()) {}
+	inline table(): base_table(type_id_of<KeyType>()) {}
 	virtual ~table() = default;
 	inline table(table&&) = default;
 	inline table& operator=(table&&) = default;
@@ -222,19 +222,19 @@ public:
 	 * @brief Returns an accessor for the field with the given name and type.
 	 *
 	 * @param name Name of the field to be retrieved.
-	 * @param data_type Type of the field to be retrieved.
+	 * @param type_id Type of the field to be retrieved.
 	 * @return The accessor for * the requested field.
 	 */
-	virtual accessor::ptr get_field(const char* name, const typeinfo& data_type) = 0;
+	virtual accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) = 0;
 
 	/**
 	 * @brief Adds a new field to the table with the given name and type.
 	 *
 	 * @param name Name of the field to be added.
-	 * @param data_type Type of the field to be added.
+	 * @param type_id Type of the field to be added.
 	 * @return The accessor for the newly-added field.
 	 */
-	virtual accessor::ptr add_field(const char* name, const typeinfo& data_type) = 0;
+	virtual accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) = 0;
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -404,10 +404,10 @@ public:
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override;
 
 	using built_in_table<KeyType>::get_field;
-	accessor::ptr get_field(const char* name, const typeinfo& data_type) override;
+	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override;
 
 	using built_in_table<KeyType>::add_field;
-	accessor::ptr add_field(const char* name, const typeinfo& data_type) override;
+	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override;
 
 private:
 	const static_field_infos* m_static_fields = nullptr;

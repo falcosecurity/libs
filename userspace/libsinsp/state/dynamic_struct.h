@@ -39,17 +39,17 @@ class dynamic_field_info {
 public:
 	inline dynamic_field_info(const std::string& n,
 	                          size_t in,
-	                          const typeinfo& i,
+	                          ss_plugin_state_type t,
 	                          uintptr_t defsptr,
 	                          bool r):
 	        m_readonly(r),
 	        m_index(in),
 	        m_name(n),
-	        m_info(i),
+	        m_type_id(t),
 	        m_defs_id(defsptr) {}
 
 	friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
-		return a.info() == b.info() && a.name() == b.name() && a.m_index == b.m_index &&
+		return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index &&
 		       a.m_defs_id == b.m_defs_id;
 	};
 
@@ -73,7 +73,7 @@ public:
 	inline bool valid() const {
 		// note(jasondellaluce): for now dynamic fields of type table are
 		// not supported, so we consider them to be invalid
-		return m_index != (size_t)-1 && m_info.type_id() != SS_PLUGIN_ST_TABLE;
+		return m_index != (size_t)-1 && m_type_id != SS_PLUGIN_ST_TABLE;
 	}
 
 	/**
@@ -89,7 +89,7 @@ public:
 	/**
 	 * @brief Returns the type info of the field.
 	 */
-	inline const libsinsp::state::typeinfo& info() const { return m_info; }
+	inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
@@ -102,7 +102,7 @@ private:
 	bool m_readonly;
 	size_t m_index;
 	std::string m_name;
-	libsinsp::state::typeinfo m_info;
+	ss_plugin_state_type m_type_id;
 	uintptr_t m_defs_id;
 
 	friend class extensible_struct;
@@ -132,10 +132,11 @@ public:
 	 * incompatible types, otherwise the previous definition is returned.
 	 *
 	 * @param name Display name of the field.
-	 * @param type Type of the field.
+	 * @param type_id Type of the field.
 	 */
-	inline const dynamic_field_info& add_field(const std::string& name, const typeinfo& type) {
-		auto field = dynamic_field_info(name, m_definitions.size(), type, id(), false);
+	inline const dynamic_field_info& add_field(const std::string& name,
+	                                           ss_plugin_state_type type_id) {
+		auto field = dynamic_field_info(name, m_definitions.size(), type_id, id(), false);
 		return add_field_info(field);
 	}
 
@@ -145,19 +146,20 @@ public:
 
 protected:
 	virtual const dynamic_field_info& add_field_info(const dynamic_field_info& field) {
-		if(field.info().type_id() == SS_PLUGIN_ST_TABLE) {
+		if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 			throw sinsp_exception("dynamic fields of type table are not supported");
 		}
 
 		const auto& it = m_definitions.find(field.name());
 		if(it != m_definitions.end()) {
-			const auto& t = field.info();
-			if(it->second.info() != t) {
+			const auto& t = field.type_id();
+			if(it->second.type_id() != t) {
+				auto prevtype = type_name(it->second.type_id());
+				auto newtype = type_name(t);
 				throw sinsp_exception(
 				        "multiple definitions of dynamic field with different types in "
 				        "struct: " +
-				        field.name() + ", prevtype=" + it->second.info().name() +
-				        ", newtype=" + t.name());
+				        field.name() + ", prevtype=" + prevtype + ", newtype=" + newtype);
 			}
 			return it->second;
 		}
@@ -184,7 +186,7 @@ public:
 	inline const dynamic_field_info& info() const { return m_info; }
 
 	inline explicit dynamic_field_accessor(const dynamic_field_info& info):
-	        accessor(info.info()),
+	        accessor(info.type_id()),
 	        m_info(info) {};
 
 private:

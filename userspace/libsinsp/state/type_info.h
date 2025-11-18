@@ -41,7 +41,7 @@ public:
 	template<typename T>
 	static typeinfo of();
 
-	static typeinfo from(ss_plugin_state_type state_type);
+	static constexpr typeinfo from(ss_plugin_state_type state_type);
 
 	inline typeinfo() = delete;
 	inline ~typeinfo() = default;
@@ -59,14 +59,9 @@ public:
 	};
 
 	/**
-	 * @brief Returns the name of the type.
-	 */
-	inline const char* name() const { return m_name; }
-
-	/**
 	 * @brief Returns the numeric representation of the type.
 	 */
-	inline ss_plugin_state_type type_id() const { return m_type_id; }
+	inline constexpr ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
 	 * @brief Returns the byte size of variables of the given type.
@@ -129,6 +124,58 @@ private:
 
 class base_table;
 
+template<typename T>
+static constexpr ss_plugin_state_type type_id_of();
+
+template<>
+inline constexpr ss_plugin_state_type type_id_of<bool>() {
+	return SS_PLUGIN_ST_BOOL;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<int8_t>() {
+	return SS_PLUGIN_ST_INT8;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<int16_t>() {
+	return SS_PLUGIN_ST_INT16;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<int32_t>() {
+	return SS_PLUGIN_ST_INT32;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<int64_t>() {
+	return SS_PLUGIN_ST_INT64;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<uint8_t>() {
+	return SS_PLUGIN_ST_UINT8;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<uint16_t>() {
+	return SS_PLUGIN_ST_UINT16;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<uint32_t>() {
+	return SS_PLUGIN_ST_UINT32;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<uint64_t>() {
+	return SS_PLUGIN_ST_UINT64;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<std::string>() {
+	return SS_PLUGIN_ST_STRING;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<base_table*>() {
+	return SS_PLUGIN_ST_TABLE;
+}
+template<>
+inline constexpr ss_plugin_state_type type_id_of<const base_table*>() {
+	return SS_PLUGIN_ST_TABLE;
+}
+
 // below is the manually-controlled list of all the supported types
 template<>
 inline typeinfo typeinfo::of<bool>() {
@@ -179,7 +226,7 @@ inline typeinfo typeinfo::of<const libsinsp::state::base_table*>() {
 	return _build<const libsinsp::state::base_table*>("table", SS_PLUGIN_ST_TABLE);
 }
 
-inline typeinfo typeinfo::from(ss_plugin_state_type state_type) {
+inline constexpr typeinfo typeinfo::from(ss_plugin_state_type state_type) {
 	switch(state_type) {
 	case SS_PLUGIN_ST_INT8:
 		return typeinfo::of<int8_t>();
@@ -207,6 +254,44 @@ inline typeinfo typeinfo::from(ss_plugin_state_type state_type) {
 		throw sinsp_exception("state::typeinfo::of invoked for unsupported state_type: " +
 		                      std::to_string(state_type));
 	}
+}
+
+/**
+ * @brief Returns the name of the type.
+ */
+static inline const char* type_name(ss_plugin_state_type type_id) {
+	switch(type_id) {
+	case SS_PLUGIN_ST_INT8:
+		return "int8";
+	case SS_PLUGIN_ST_INT16:
+		return "int16";
+	case SS_PLUGIN_ST_INT32:
+		return "int32";
+	case SS_PLUGIN_ST_INT64:
+		return "int64";
+	case SS_PLUGIN_ST_UINT8:
+		return "uint8";
+	case SS_PLUGIN_ST_UINT16:
+		return "uint16";
+	case SS_PLUGIN_ST_UINT32:
+		return "uint32";
+	case SS_PLUGIN_ST_UINT64:
+		return "uint64";
+	case SS_PLUGIN_ST_STRING:
+		return "string";
+	case SS_PLUGIN_ST_TABLE:
+		return "table";
+	case SS_PLUGIN_ST_BOOL:
+		return "bool";
+	default:
+		throw sinsp_exception("state::type_name invoked for unsupported type_id: " +
+		                      std::to_string(type_id));
+	}
+}
+
+template<typename T>
+const char* type_name() {
+	return type_name(type_id_of<T>());
 }
 
 };  // namespace state
