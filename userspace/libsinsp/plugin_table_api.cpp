@@ -222,10 +222,11 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	        libsinsp::state::table<KeyType>(),
 	        m_owner(o),
 	        m_input(copy_and_check_table_input(o, i)) {
-		auto t = libsinsp::state::typeinfo::of<KeyType>();
-		if(m_input->key_type != t.type_id()) {
-			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-			                      "invalid key type: " + std::string(t.name()));
+		auto t = libsinsp::state::type_id_of<KeyType>();
+		if(m_input->key_type != t) {
+			throw sinsp_exception(
+			        table_input_error_prefix(m_owner, m_input.get()) +
+			        "invalid key type: " + std::string(libsinsp::state::type_name(t)));
 		}
 	}
 
@@ -580,7 +581,7 @@ ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, 
 		for(const auto& d : p->m_table_registry->tables()) {
 			ss_plugin_table_info info;
 			info.name = d.second->name();
-			info.key_type = d.second->key_info().type_id();
+			info.key_type = d.second->key_type();
 			p->m_table_infos.push_back(info);
 		}
 		*ntables = p->m_table_infos.size();
