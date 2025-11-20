@@ -146,24 +146,25 @@ using static_field_infos = std::unordered_map<std::string, accessor>;
  * @brief Defines the information about a field defined in the class or struct.
  * An exception is thrown if two fields are defined with the same name.
  *
- * @tparam T Type of the field.
  * @param fields Fields group to which to add the new field.
  * @param name Display name of the field.
+ * @param type_id Type of the field.
  * @param reader Function to read the field's value from an instance of the class/struct.
+ * @param writer Function to write a value to the field in an instance of the class/struct.
  * @param readonly Read-only field annotation.
  */
-template<typename T>
-constexpr static const accessor& define_static_field(static_field_infos& fields,
-                                                     const std::string& name,
-                                                     accessor::reader_fn reader,
-                                                     accessor::writer_fn writer,
-                                                     const bool readonly = false) {
+static inline const accessor& define_static_field(static_field_infos& fields,
+                                                  const std::string& name,
+                                                  ss_plugin_state_type type_id,
+                                                  accessor::reader_fn reader,
+                                                  accessor::writer_fn writer,
+                                                  const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
 	}
 
-	fields.insert({name, accessor(name, type_id_of<T>(), reader, writer, 0, readonly)});
+	fields.insert({name, accessor(name, type_id, reader, writer, 0, readonly)});
 	return fields.at(name);
 }
 
