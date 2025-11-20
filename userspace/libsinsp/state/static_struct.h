@@ -69,23 +69,36 @@ public:
 	inline size_t offset() const { return m_offset; }
 
 	/**
+	 * @brief Returns the reader function for this field.
+	 */
+	inline borrowed_state_data read(const void* obj, size_t index) const {
+		return m_reader(obj, index);
+	}
+
+	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
 	 * that can be used to reading and writing the field's value in
 	 * all instances of structs where it is defined.
 	 */
 	inline accessor::ptr new_accessor() const;
 
-	inline static_field_info(const std::string& n, size_t o, ss_plugin_state_type t, bool r):
+	inline static_field_info(const std::string& n,
+	                         size_t o,
+	                         ss_plugin_state_type t,
+	                         bool r,
+	                         accessor::reader_fn reader):
 	        m_readonly(r),
 	        m_offset(o),
 	        m_name(n),
-	        m_type_id(t) {}
+	        m_type_id(t),
+	        m_reader(reader) {}
 
 private:
 	bool m_readonly;
 	size_t m_offset;
 	std::string m_name;
 	ss_plugin_state_type m_type_id;
+	accessor::reader_fn m_reader;
 };
 
 /**
@@ -133,6 +146,14 @@ inline accessor::ptr static_field_info::new_accessor() const {
 // conditionally-supported)`.
 #define OFFSETOF_STATIC_FIELD(type, member) reinterpret_cast<size_t>(&static_cast<type*>(0)->member)
 
+#define READER_LAMBDA(container_type, container_field, state_type)                             \
+	[](const void* in, size_t) -> libsinsp::state::borrowed_state_data {                       \
+		auto* c = static_cast<const container_type*>(in);                                      \
+		return libsinsp::state::borrowed_state_data::                                          \
+		        from<libsinsp::state::type_id_of<state_type>(), decltype(c->container_field)>( \
+		                c->container_field);                                                   \
+	}
+
 // DEFINE_STATIC_FIELD macro is a wrapper around static_struct::define_static_field helping to
 // extract the field type and field offset.
 #define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name) \
@@ -140,15 +161,17 @@ inline accessor::ptr static_field_info::new_accessor() const {
 	        decltype(static_cast<container_type*>(0)->container_field)>(        \
 	        field_infos,                                                        \
 	        OFFSETOF_STATIC_FIELD(container_type, container_field),             \
-	        name);
+	        name,                                                               \
+	        READER_LAMBDA(container_type, container_field, decltype(c->container_field)));
 
 // DEFINE_STATIC_FIELD_READONLY macro is a wrapper around static_struct::define_static_field helping
 // to extract the field type and field offset. The defined field is set to guarantee read-only
 // access.
-#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name) \
-	libsinsp::state::define_static_field<                                                \
-	        decltype(static_cast<container_type*>(0)->container_field)>(                 \
-	        field_infos,                                                                 \
-	        OFFSETOF_STATIC_FIELD(container_type, container_field),                      \
-	        name,                                                                        \
+#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name)  \
+	libsinsp::state::define_static_field<                                                 \
+	        decltype(static_cast<container_type*>(0)->container_field)>(                  \
+	        field_infos,                                                                  \
+	        OFFSETOF_STATIC_FIELD(container_type, container_field),                       \
+	        name,                                                                         \
+	        READER_LAMBDA(container_type, container_field, decltype(c->container_field)), \
 	        true);

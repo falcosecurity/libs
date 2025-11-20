@@ -141,25 +141,9 @@ private:
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 	// end of dynamic_struct interface
 
-	struct reader {
-		const extensible_struct* self;
-		const static_field_accessor* acc;
-
-		template<typename T>
-		borrowed_state_data operator()() const {
-			const T* ptr = reinterpret_cast<const T*>(reinterpret_cast<const char*>(self) +
-			                                          acc->info().offset());
-
-			return borrowed_state_data::from<type_id_of<T>(), T>(*ptr);
-		}
-	};
-
 	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			if(!static_acc->info().valid()) {
-				throw sinsp_exception("can't get invalid field in static struct");
-			}
-			return dispatch_lambda(a.type_id(), reader{this, static_acc});
+			return static_acc->info().read(this, 0);
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
@@ -232,12 +216,14 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  * @param fields Fields group to which to add the new field.
  * @param offset Field's memory offset in instances of the class/struct.
  * @param name Display name of the field.
+ * @param reader Function to read the field's value from an instance of the class/struct.
  * @param readonly Read-only field annotation.
  */
 template<typename T>
 constexpr static const static_field_info& define_static_field(static_field_infos& fields,
                                                               const size_t offset,
                                                               const std::string& name,
+                                                              accessor::reader_fn reader,
                                                               const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
@@ -245,7 +231,7 @@ constexpr static const static_field_info& define_static_field(static_field_infos
 	}
 
 	// todo(jasondellaluce): add extra safety boundary checks here
-	fields.insert({name, static_field_info(name, offset, type_id_of<T>(), readonly)});
+	fields.insert({name, static_field_info(name, offset, type_id_of<T>(), readonly, reader)});
 	return fields.at(name);
 }
 
