@@ -27,6 +27,7 @@ namespace libsinsp::state {
 class accessor {
 public:
 	using reader_fn = borrowed_state_data (*)(const void*, size_t);
+	using writer_fn = void (*)(void*, size_t, const borrowed_state_data&);
 
 	template<typename T>
 	class typed_ref {
