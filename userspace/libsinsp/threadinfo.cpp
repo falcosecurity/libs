@@ -73,6 +73,9 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields(
 		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_TABLE>(
 		                c->m_args_table_adapter.table_ptr());
 	        },
+	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
+		        throw sinsp_exception("attempt to write to read-only static struct field: args");
+	        },
 	        true);
 	define_static_field<libsinsp::state::base_table*>(
 	        ret,
@@ -83,6 +86,9 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields(
 		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_TABLE>(
 		                c->m_env_table_adapter.table_ptr());
 	        },
+	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
+		        throw sinsp_exception("attempt to write to read-only static struct field: env");
+	        },
 	        true);
 	define_static_field<libsinsp::state::base_table*>(
 	        ret,
@@ -92,6 +98,9 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::get_static_fields(
 		        auto c = static_cast<const self*>(in);
 		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_TABLE>(
 		                c->m_cgroups_table_adapter.table_ptr());
+	        },
+	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
+		        throw sinsp_exception("attempt to write to read-only static struct field: cgroups");
 	        },
 	        true);
 	DEFINE_STATIC_FIELD(ret, self, m_flags, "flags");
