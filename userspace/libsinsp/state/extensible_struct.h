@@ -162,30 +162,10 @@ private:
 	}
 
 protected:
-	struct writer {
-		extensible_struct* self;
-		const static_field_accessor* acc;
-		const borrowed_state_data& in;
-
-		template<typename T>
-		void operator()() const {
-			T val{};
-			in.copy_to<type_id_of<T>()>(val);
-			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().offset()) =
-			        std::move(val);
-		}
-	};
-
 	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			if(!static_acc->info().valid()) {
-				throw sinsp_exception("can't set invalid field in static struct");
-			}
-			if(static_acc->info().readonly()) {
-				throw sinsp_exception("can't set a read-only static struct field: " +
-				                      static_acc->info().name());
-			}
-			return dispatch_lambda(a.type_id(), writer{this, static_acc, in});
+			static_acc->info().write(this, 0, in);
+			return;
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
@@ -224,6 +204,7 @@ constexpr static const static_field_info& define_static_field(static_field_infos
                                                               const size_t offset,
                                                               const std::string& name,
                                                               accessor::reader_fn reader,
+                                                              accessor::writer_fn writer,
                                                               const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
@@ -231,7 +212,8 @@ constexpr static const static_field_info& define_static_field(static_field_infos
 	}
 
 	// todo(jasondellaluce): add extra safety boundary checks here
-	fields.insert({name, static_field_info(name, offset, type_id_of<T>(), readonly, reader)});
+	fields.insert(
+	        {name, static_field_info(name, offset, type_id_of<T>(), readonly, reader, writer)});
 	return fields.at(name);
 }
 
