@@ -63,9 +63,10 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
-	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
+	libsinsp::state::define_static_field(
 	        ret,
 	        "args",
+	        SS_PLUGIN_ST_TABLE,
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
 		        return libsinsp::state::borrowed_state_data::
@@ -76,9 +77,10 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 		        throw sinsp_exception("attempt to write to read-only static struct field: args");
 	        },
 	        true);
-	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
+	libsinsp::state::define_static_field(
 	        ret,
 	        "env",
+	        SS_PLUGIN_ST_TABLE,
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
 		        return libsinsp::state::borrowed_state_data::
@@ -89,9 +91,10 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 		        throw sinsp_exception("attempt to write to read-only static struct field: env");
 	        },
 	        true);
-	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
+	libsinsp::state::define_static_field(
 	        ret,
 	        "cgroups",
+	        SS_PLUGIN_ST_TABLE,
 	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
 		        auto c = static_cast<const self*>(in);
 		        return libsinsp::state::borrowed_state_data::
