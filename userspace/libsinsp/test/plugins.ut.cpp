@@ -748,7 +748,7 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	auto table = &table_wrapper;
 	ASSERT_EQ(table->name(), std::string("plugin_sample"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_UINT64);
 	ASSERT_EQ(table->fields().size(), 1);
 
 	// get an already existing field form the plugin table
@@ -867,7 +867,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 
 	auto field = table->field<libsinsp::state::base_table*>("file_descriptors");
 	ASSERT_NE(field, nullptr);
@@ -971,7 +971,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 
 	auto field = table->field<libsinsp::state::base_table*>("env");
 	ASSERT_NE(field, nullptr);
@@ -1070,7 +1070,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 
 	// Test "cgroups" field
 	auto field = table->field<libsinsp::state::base_table*>("cgroups");
