@@ -54,7 +54,7 @@ public:
 		        m_defs_id(defsptr) {}
 
 		friend inline bool operator==(const field_info& a, const field_info& b) {
-			return a.info() == b.info() && a.name() == b.name() && a.m_index == b.m_index &&
+			return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index &&
 			       a.m_defs_id == b.m_defs_id;
 		};
 
@@ -94,7 +94,7 @@ public:
 		/**
 		 * @brief Returns the type info of the field.
 		 */
-		inline ss_plugin_state_type info() const { return m_type_id; }
+		inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 		/**
 		 * @brief Returns a strongly-typed accessor for the given field,
@@ -149,15 +149,15 @@ public:
 
 	protected:
 		virtual const field_info& add_field_info(const field_info& field) {
-			if(field.info() == SS_PLUGIN_ST_TABLE) {
+			if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 				throw sinsp_exception("dynamic fields of type table are not supported");
 			}
 
 			const auto& it = m_definitions.find(field.name());
 			if(it != m_definitions.end()) {
-				const auto t = field.info();
-				if(it->second.info() != t) {
-					std::string prevtype = typeinfo::from(it->second.info()).name();
+				const auto t = field.type_id();
+				if(it->second.type_id() != t) {
+					std::string prevtype = typeinfo::from(it->second.type_id()).name();
 					std::string newtype = typeinfo::from(t).name();
 					throw sinsp_exception(
 					        "multiple definitions of dynamic field with different types in "
@@ -259,7 +259,7 @@ protected:
 			return;
 		}
 		for(size_t i = 0; i < m_fields.size(); i++) {
-			auto ti = typeinfo::from(m_dynamic_fields->m_definitions_ordered[i]->info());
+			auto ti = typeinfo::from(m_dynamic_fields->m_definitions_ordered[i]->type_id());
 			ti.destroy(m_fields[i]);
 			free(m_fields[i]);
 		}
@@ -318,7 +318,7 @@ private:
 		}
 		while(m_fields.size() <= index) {
 			auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
-			auto ti = typeinfo::from(def->info());
+			auto ti = typeinfo::from(def->type_id());
 			void* fieldbuf = malloc(ti.size());
 			ti.construct(fieldbuf);
 			m_fields.push_back(fieldbuf);
@@ -384,7 +384,7 @@ public:
 		for(auto& info : this->dynamic_fields()->fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
-			i.field_type = info.second.info();
+			i.field_type = info.second.type_id();
 			i.read_only = false;
 			out.push_back(i);
 		}
@@ -394,7 +394,7 @@ public:
 		auto dyn_it = this->dynamic_fields()->fields().find(name);
 
 		if(dyn_it != this->dynamic_fields()->fields().end()) {
-			if(type_id != dyn_it->second.info()) {
+			if(type_id != dyn_it->second.type_id()) {
 				throw sinsp_exception("incompatible data types for dynamic field: " +
 				                      std::string(name));
 			}
