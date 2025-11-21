@@ -300,7 +300,7 @@ private:
 
 public:
 	explicit table_input_adapter(ss_plugin_table_input* input):
-	        libsinsp::state::base_table(libsinsp::state::typeinfo::from(input->key_type)),
+	        libsinsp::state::base_table(input->key_type),
 	        m_input(input),
 	        m_name(input->name ? input->name : "unknown") {}
 

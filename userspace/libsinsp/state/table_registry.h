@@ -60,11 +60,13 @@ public:
 	table<KeyType>* get_table(const std::string& name) const {
 		const auto& it = m_tables.find(name);
 		if(it != m_tables.end()) {
-			auto t = libsinsp::state::typeinfo::of<KeyType>();
-			if(it->second->key_info() != t) {
+			auto t = type_id_of<KeyType>();
+			if(it->second->key_type() != t) {
+				std::string req_type = typeinfo::from(t).name();
+				std::string actual_type = typeinfo::from(it->second->key_type()).name();
 				throw sinsp_exception("table in registry accessed with wrong key type: table='" +
-				                      name + "', requested='" + t.name() + "', actual='" +
-				                      it->second->key_info().name() + "'");
+				                      name + "', requested='" + req_type + "', actual='" +
+				                      actual_type + "'");
 			}
 			return static_cast<table<KeyType>*>(it->second);
 		}

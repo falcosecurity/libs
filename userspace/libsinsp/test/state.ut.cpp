@@ -364,7 +364,7 @@ TEST(thread_manager, table_access) {
 
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo::get_static_fields());
 	ASSERT_NE(table->dynamic_fields(), nullptr);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
@@ -460,7 +460,7 @@ TEST(thread_manager, fdtable_access) {
 	        reg->get_table<int64_t>("threads"));
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
-	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->static_fields()->find("file_descriptors");
@@ -493,7 +493,7 @@ TEST(thread_manager, fdtable_access) {
 
 	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
-	ASSERT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(subtable->key_type(), SS_PLUGIN_ST_INT64);
 	ASSERT_EQ(subtable->static_fields()->size(), s_fdinfo_static_fields_count);
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 0);
 
@@ -608,7 +608,7 @@ TEST(thread_manager, env_vars_access) {
 	        reg->get_table<int64_t>("threads"));
 	EXPECT_EQ(table->name(), std::string("threads"));
 	EXPECT_EQ(table->entries_count(), 0);
-	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	EXPECT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
 	EXPECT_EQ(table->dynamic_fields()->fields().size(), 0);
 
 	auto field = table->static_fields()->find("env");
@@ -634,7 +634,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_NE(subtable, nullptr);
 	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);
-	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
+	EXPECT_EQ(subtable->key_type(), SS_PLUGIN_ST_UINT64);
 
 	// getting an existing field
 	auto sfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());
@@ -714,7 +714,7 @@ TEST(thread_manager, env_vars_access) {
 		libsinsp::state::table_input_adapter tia{field_data.table};
 		EXPECT_EQ(std::string_view(tia.name()), "env");
 
-		EXPECT_EQ(tia.key_info().type_id(), SS_PLUGIN_ST_UINT64);
+		EXPECT_EQ(tia.key_type(), SS_PLUGIN_ST_UINT64);
 		ss_plugin_state_data key;
 		key.u64 = 0;
 		auto* subtable_entry = tia.get_entry(&owner, &key);
