@@ -29,11 +29,11 @@ else()
 	message(STATUS "Kernel version: ${UNAME_RESULT}")
 
 	# Check minimum kernel version
-	set(kmod_min_kver_map_x86_64 2.6)
+	set(kmod_min_kver_map_x86_64 3.10)
 	set(kmod_min_kver_map_aarch64 3.16)
-	set(kmod_min_kver_map_s390x 2.6)
+	set(kmod_min_kver_map_s390x 3.10)
 	set(kmod_min_kver_map_riscv64 5.0)
-	set(kmod_min_kver_map_ppc64le 2.6)
+	set(kmod_min_kver_map_ppc64le 3.10)
 	set(kmod_min_kver_map_loongarch64 5.10)
 
 	if(LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})

@@ -56,7 +56,7 @@ or GPL2.txt for full copies of the license.
  * https://github.com/torvalds/linux/commit/c4f6699dfcb8558d138fe838f741b2c10f416cf9
  *
  * If you run old kernels, you can use the kernel module which requires
- * kernel versions greater or equal than `2.6`, since this tracepoint has
+ * kernel versions greater or equal than `3.10`, since this tracepoint has
  * been introduced in the following kernel release:
  * https://github.com/torvalds/linux/commit/0a16b6075843325dc402edf80c1662838b929aff
  */
@@ -121,9 +121,7 @@ or GPL2.txt for full copies of the license.
 // CAPTURE_SIGNAL_DELIVERIES
 ///////////////////////////////
 
-#if(LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 32))
 #define CAPTURE_SIGNAL_DELIVERIES
-#endif
 
 ///////////////////////////////
 // CAPTURE_PAGE_FAULTS
