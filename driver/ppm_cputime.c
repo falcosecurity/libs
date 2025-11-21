@@ -13,11 +13,7 @@ or GPL2.txt for full copies of the license.
 // on versions that don't export task_cputime_adjusted()
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
-#include <asm/atomic.h>
-#else
 #include <linux/atomic.h>
-#endif
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/kdev_t.h>
@@ -37,7 +33,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm.h"
 #include "ppm_version.h"
 
-#if(defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30))
+#if(defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE)
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st) {
 	*ut = p->utime;
 	*st = p->stime;
@@ -120,13 +116,6 @@ void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime) {
 	if(stime)
 		*stime += sdelta;
 }
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
-static inline void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime) {
-	if(utime)
-		*utime = t->utime;
-	if(stime)
-		*stime = t->stime;
-}
 #endif /* CONFIG_VIRT_CPU_ACCOUNTING_GEN */
 
 uint64_t nsecs_to_jiffies64(uint64_t n) {
@@ -157,7 +146,6 @@ unsigned long nsecs_to_jiffies(uint64_t n) {
 #endif
 #endif
 
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 /*
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
@@ -288,48 +276,7 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 	cputime_adjust(&cputime, &p->prev_cputime, ut, st);
 }
 
-#else /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) */
-
-static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total) {
-	uint64_t temp = (__force uint64_t)rtime;
-
-	temp *= (__force uint64_t)utime;
-
-	if(sizeof(cputime_t) == 4)
-		temp = div_u64(temp, (__force uint32_t)total);
-	else
-		temp = div64_u64(temp, (__force uint64_t)total);
-
-	return (__force cputime_t)temp;
-}
-
-// Taken from task_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
-void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st) {
-	cputime_t rtime, utime = p->utime, total = utime + p->stime;
-
-	/*
-	 * Use CFS's precise accounting:
-	 */
-	rtime = nsecs_to_cputime(p->se.sum_exec_runtime);
-
-	if(total)
-		utime = scale_utime(utime, rtime, total);
-	else
-		utime = rtime;
-
-	/*
-	 * Compare with previous values, to keep monotonicity:
-	 */
-	p->prev_utime = max(p->prev_utime, utime);
-	p->prev_stime = max(p->prev_stime, rtime - p->prev_utime);
-
-	*ut = p->prev_utime;
-	*st = p->prev_stime;
-}
-
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) */
-#endif /* (defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, \
-          6, 30)) */
+#endif /* (defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE) */
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)) */
 
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))

@@ -494,83 +494,19 @@ static struct file *ppm_get_mm_exe_file(struct mm_struct *mm) {
 	return exe_file;
 }
 
-/*
- * get_mm_counter was not inline and exported between 3.0 and 3.4
- * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
- * Hence the crap in these two functions
- */
 static unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member) {
-	long val = 0;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
-	val = get_mm_counter(mm, member);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	val = atomic_long_read(&mm->rss_stat.count[member]);
-
-	if(val < 0)
-		val = 0;
-#endif
-
-	return val;
+	return get_mm_counter(mm, member);
 }
 
 static unsigned long ppm_get_mm_swap(struct mm_struct *mm) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	return ppm_get_mm_counter(mm, MM_SWAPENTS);
-#endif
-	return 0;
 }
 
 static unsigned long ppm_get_mm_rss(struct mm_struct *mm) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 	return get_mm_rss(mm);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	return ppm_get_mm_counter(mm, MM_FILEPAGES) + ppm_get_mm_counter(mm, MM_ANONPAGES);
-#else
-	return get_mm_rss(mm);
-#endif
-	return 0;
 }
 
 #ifdef CONFIG_CGROUPS
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen) {
-	char *start;
-	struct dentry *dentry = rcu_dereference(cgrp->dentry);
-
-	if(!dentry) {
-		/*
-		 * Inactive subsystems have no dentry for their root
-		 * cgroup
-		 */
-		strcpy(buf, "/");
-		return 0;
-	}
-
-	start = buf + buflen;
-
-	*--start = '\0';
-	for(;;) {
-		int len = dentry->d_name.len;
-
-		start -= len;
-		if(start < buf)
-			return -ENAMETOOLONG;
-		memcpy(start, cgrp->dentry->d_name.name, len);
-		cgrp = cgrp->parent;
-		if(!cgrp)
-			break;
-		dentry = rcu_dereference(cgrp->dentry);
-		if(!cgrp->parent)
-			continue;
-		if(--start < buf)
-			return -ENAMETOOLONG;
-		*start = '/';
-	}
-	memmove(buf, start, buf + buflen - start);
-	return 0;
-}
-#endif
 
 static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int *available) {
 	int pathlen;
@@ -614,16 +550,8 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		ASSERT(false);
 		path = "NA";
 	}
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	res = cgroup_path(css->cgroup, buf, *available);
-	if(res < 0) {
-		ASSERT(false);
-		path = "NA";
-	} else {
-		path = buf;
-	}
 #else
-	res = ppm_cgroup_path(css->cgroup, buf, *available);
+	res = cgroup_path(css->cgroup, buf, *available);
 	if(res < 0) {
 		ASSERT(false);
 		path = "NA";
@@ -654,23 +582,8 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	                 args->str_storage + STR_STORAGE_SIZE - available, \
 	                 &available))                                      \
 		goto cgroups_error;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-#define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
-#define SUBSYS(_x)                                                     \
-	if(append_cgroup(#_x,                                              \
-	                 _x##_subsys_id,                                   \
-	                 args->str_storage + STR_STORAGE_SIZE - available, \
-	                 &available))                                      \
-		goto cgroups_error;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
-#define IS_SUBSYS_ENABLED(option) IS_ENABLED(option)
-#define SUBSYS(_x)                                                     \
-	if(append_cgroup(#_x,                                              \
-	                 _x##_subsys_id,                                   \
-	                 args->str_storage + STR_STORAGE_SIZE - available, \
-	                 &available))                                      \
-		goto cgroups_error;
 #else
+#define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
 #define SUBSYS(_x)                                                     \
 	if(append_cgroup(#_x,                                              \
 	                 _x##_subsys_id,                                   \
@@ -887,15 +800,7 @@ static enum ppm_overlay ppm_get_overlay_layer(struct file *file) {
 }
 
 static inline int push_pgid(struct event_filler_arguments *args) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-	// task_pgrp_nr_ns has been introduced in 2.6.24
-	// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
 	return val_to_ring(args, task_pgrp_nr_ns(current, &init_pid_ns), 0, false, 0);
-#else
-	// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
-	// we don't have the concept of pid namespace in this kernel version
-	return val_to_ring(args, process_group(current), 0, false, 0);
-#endif
 }
 
 int f_proc_startupdate(struct event_filler_arguments *args) {
@@ -1032,13 +937,8 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 
 	/* Parameter 6: ptid (type: PT_PID) */
 	/* this is called `ptid` but it is the `pgid`. */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if(current->real_parent)
 		ptid = current->real_parent->pid;
-#else
-	if(current->parent)
-		ptid = current->parent->pid;
-#endif
 	else
 		ptid = 0;
 
@@ -1051,11 +951,7 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 8: fdlimit (type: PT_UINT64) */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
-#else
-	res = val_to_ring(args, (int64_t)0, 0, false, 0);
-#endif
 	CHECK_RES(res);
 
 	/* Parameter 9: pgft_maj (type: PT_UINT64) */
@@ -1109,20 +1005,10 @@ cgroups_error:
 		/*
 		 * clone-only parameters
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		uint32_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint32_t egid = from_kgid_munged(current_user_ns(), current_egid());
-#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		uint32_t euid = current_euid();
-		uint32_t egid = current_egid();
-#else
-		uint32_t euid = current->euid;
-		uint32_t egid = current->egid;
-#endif
 		int64_t in_pidns = 0;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		struct pid_namespace *pidns = task_active_pid_ns(current);
-#endif
 
 		/*
 		 * flags
@@ -1155,10 +1041,9 @@ cgroups_error:
 			break;
 		}
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		if(pidns != &init_pid_ns || pid_ns_for_children(current) != pidns)
 			in_pidns = PPM_CL_CHILD_IN_PIDNS;
-#endif
+
 		res = val_to_ring(args, (uint64_t)clone_flags_to_scap((int)val) | in_pidns, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1177,23 +1062,13 @@ cgroups_error:
 		/*
 		 * vtid
 		 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
-#else
-		/* Not relevant in old kernels */
-		res = val_to_ring(args, 0, 0, false, 0);
-#endif
 		CHECK_RES(res);
 
 		/*
 		 * vpid
 		 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
-#else
-		/* Not relevant in old kernels */
-		res = val_to_ring(args, 0, 0, false, 0);
-#endif
 		CHECK_RES(res);
 
 		/*
@@ -1292,25 +1167,15 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 18: vpgid (type: PT_PID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		res = val_to_ring(args,
 		                  (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)),
 		                  0,
 		                  false,
 		                  0);
-#else
-		res = val_to_ring(args, (int64_t)process_group(current), 0, false, 0);
-#endif
 		CHECK_RES(res);
 
 		/* Parameter 19: loginuid (type: PT_UID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		loginuid = audit_get_loginuid(current);
-#else
-		loginuid = audit_get_loginuid(current->audit_context);
-#endif
 		res = val_to_ring(args, loginuid, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1321,7 +1186,6 @@ cgroups_error:
 		exe_file = ppm_get_mm_exe_file(mm);
 
 		if(exe_file != NULL) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 			if(file_inode(exe_file) != NULL) {
 				/* Support exe_writable */
 #ifdef HAS_FS_MNT_IDMAP
@@ -1333,7 +1197,7 @@ cgroups_error:
 				                                  file_inode(exe_file),
 				                                  MAY_WRITE | MAY_NOT_BLOCK) == 0);
 				exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0)
+#else
 				exe_writable |=
 				        (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
 				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
@@ -1386,7 +1250,6 @@ cgroups_error:
 				        file_inode(exe_file)->i_mtime.tv_nsec;
 #endif
 			}
-#endif
 			/* Before freeing the exefile we catch the resolved path for symlink resolution */
 			trusted_exepath = d_path(&exe_file->f_path, buf, PAGE_SIZE);
 			fput(exe_file);
@@ -1455,13 +1318,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 27: euid (type: PT_UID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		euid = from_kuid_munged(current_user_ns(), current_euid());
-#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		euid = current_euid();
-#else
-		euid = current->euid;
-#endif
 		res = val_to_ring(args, euid, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1474,13 +1331,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 30: egid (type: PT_GID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		egid = from_kgid_munged(current_user_ns(), current_egid());
-#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		egid = current_egid();
-#else
-		egid = current->egid;
-#endif
 		res = val_to_ring(args, egid, 0, false, 0);
 		CHECK_RES(res);
 	}
@@ -6247,13 +6098,6 @@ int f_sys_dup3_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-/* Before kernel version 3.4.0 we dont' have the concept of
- * "sub_reaper", `prctl` wasn't defined so we can simply send -1
- * to userspace. It should be able through its logic to find the correct
- * reaper!
- */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
-
 static pid_t find_alive_thread(struct task_struct *father) {
 	struct task_struct *t = father;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
@@ -6333,13 +6177,6 @@ static pid_t find_new_reaper_pid(struct task_struct *father) {
 
 	return child_ns_reaper->pid;
 }
-#else
-
-static pid_t find_new_reaper_pid(struct task_struct *father) {
-	return -1;
-}
-
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0) */
 
 int f_sys_procexit_e(struct event_filler_arguments *args) {
 	int res;
@@ -7863,11 +7700,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
-#else
-	loginuid = audit_get_loginuid(current);
-#endif
 	res = val_to_ring(args, loginuid, 0, false, 0);
 	CHECK_RES(res);
 
@@ -7884,7 +7717,7 @@ cgroups_error:
 			                                  file_inode(exe_file),
 			                                  MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0)
+#else
 			exe_writable |=
 			        (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(file_inode(exe_file));
@@ -8006,13 +7839,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 27: euid (type: PT_UID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	euid = from_kuid_munged(current_user_ns(), current_euid());
-#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	euid = current_euid();
-#else
-	euid = current->euid;
-#endif
 	res = val_to_ring(args, euid, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8025,13 +7852,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 30: egid (type: PT_GID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	egid = from_kgid_munged(current_user_ns(), current_egid());
-#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	egid = current_egid();
-#else
-	egid = current->egid;
-#endif
 	res = val_to_ring(args, egid, 0, false, 0);
 	CHECK_RES(res);
 

@@ -324,16 +324,9 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args,
 		struct sockaddr_in sockaddr_in = {};
 		struct sockaddr_in6 sockaddr_in6 = {};
 
-// Kernel 2.6.33 renamed `inet->sport` into `inet->inet_sport`
-// https://elixir.bootlin.com/linux/v2.6.33/source/include/net/inet_sock.h#L126
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 		port_local = ntohs(inet->inet_sport);
 		// In recent kernels `inet_dport` is just an alias for `sk.__sk_common.skc_dport`
 		port_remote = ntohs(inet->inet_dport);
-#else
-		// Unsupported kernel versions.
-		goto done;
-#endif
 
 		switch(args->event_type) {
 		case PPME_SOCKET_SENDTO_X:

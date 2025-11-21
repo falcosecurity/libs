@@ -11,14 +11,15 @@ or GPL2.txt for full copies of the license.
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/version.h>
+
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0))
+#error The kernel module requires kernel versions greater or equal than '3.10'.
+#endif
+
 #include <trace/syscall.h>
 #include <asm/syscall.h>
 
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
-#include <asm/atomic.h>
-#else
 #include <linux/atomic.h>
-#endif
 #include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -36,11 +37,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26))
-#include <linux/file.h>
-#else
 #include <linux/fdtable.h>
-#endif
 #include <net/sock.h>
 #include <asm/unistd.h>
 
@@ -59,23 +56,9 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("the Falco authors");
 
-#if defined(CAPTURE_SCHED_PROC_EXEC) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-#error The kernel module CAPTURE_SCHED_PROC_EXEC support requires kernel versions greater or equal than '3.4'.
-#endif
-
-#if defined(CAPTURE_SCHED_PROC_FORK) && (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0))
-#error The kernel module CAPTURE_SCHED_PROC_FORK support requires kernel versions greater or equal than '2.6'.
-#endif
-
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
-#define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
-#define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2)
-#define TRACEPOINT_PROBE(probe, args...) static void probe(args)
-#else
 #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
 #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
 #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
-#endif
 
 // Allow build even on arch where PAGE_ENC is not implemented
 #ifndef _PAGE_ENC
@@ -172,19 +155,14 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id);
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret);
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p);
 #ifdef CAPTURE_CONTEXT_SWITCHES
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
-TRACEPOINT_PROBE(sched_switch_probe,
-                 struct rq *rq,
-                 struct task_struct *prev,
-                 struct task_struct *next);
-#elif(LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next);
 #else
 TRACEPOINT_PROBE(sched_switch_probe,
                  bool preempt,
                  struct task_struct *prev,
                  struct task_struct *next);
-#endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
+#endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
@@ -241,10 +219,8 @@ static uint32_t
 static uint32_t g_tracepoints_refs[KMOD_PROG_ATTACHED_MAX];
 static unsigned long g_buffer_bytes_dim =
         DEFAULT_BUFFER_BYTES_DIM;  // dimension of a single per-CPU buffer in bytes.
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
-#endif
 
 static struct tracepoint *tp_sched_process_exit;
 #ifdef CAPTURE_CONTEXT_SWITCHES
@@ -394,11 +370,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 static int ppm_open(struct inode *inode, struct file *filp) {
 	int ret;
 	int in_list = false;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
-#else
-	int ring_no = iminor(filp->f_dentry->d_inode);
-#endif
 	struct task_struct *consumer_id = current;
 	struct ppm_consumer_t *consumer = NULL;
 	struct ppm_ring_buffer_context *ring = NULL;
@@ -555,11 +527,7 @@ cleanup_open:
 static int ppm_release(struct inode *inode, struct file *filp) {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
-#else
-	int ring_no = iminor(filp->f_dentry->d_inode);
-#endif
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -675,34 +643,18 @@ static int force_tp_set(struct ppm_consumer_t *consumer, uint32_t new_tp_set) {
 		switch(idx) {
 		case KMOD_PROG_SYS_ENTER:
 			if(new_val) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 				ret = compat_register_trace(syscall_enter_probe,
 				                            kmod_prog_names[idx],
 				                            tp_sys_enter);
-#else
-				ret = register_trace_syscall_enter(syscall_enter_probe);
-#endif
 			} else {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 				compat_unregister_trace(syscall_enter_probe, kmod_prog_names[idx], tp_sys_enter);
-#else
-				unregister_trace_syscall_enter(syscall_enter_probe);
-#endif
 			}
 			break;
 		case KMOD_PROG_SYS_EXIT:
 			if(new_val) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 				ret = compat_register_trace(syscall_exit_probe, kmod_prog_names[idx], tp_sys_exit);
-#else
-				ret = register_trace_syscall_exit(syscall_exit_probe);
-#endif
 			} else {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 				compat_unregister_trace(syscall_exit_probe, kmod_prog_names[idx], tp_sys_exit);
-#else
-				unregister_trace_syscall_exit(syscall_exit_probe);
-#endif
 			}
 			break;
 		case KMOD_PROG_SCHED_PROC_EXIT:
@@ -777,9 +729,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, uint32_t new_tp_set) {
 	}
 
 	if(g_tracepoints_attached == 0) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		tracepoint_synchronize_unregister();
-#endif
 
 		/*
 		 * Reset tracepoint counter
@@ -1072,7 +1022,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case PPM_IOCTL_GET_VTID:
 	case PPM_IOCTL_GET_VPID: {
 		pid_t vid;
@@ -1111,15 +1060,12 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 		ret = vid;
 		goto cleanup_ioctl;
 	}
-#endif
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case PPM_IOCTL_GET_CURRENT_TID:
 		ret = task_pid_nr(current);
 		goto cleanup_ioctl;
 	case PPM_IOCTL_GET_CURRENT_PID:
 		ret = task_tgid_nr(current);
 		goto cleanup_ioctl;
-#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 	case PPM_IOCTL_ENABLE_TP: {
 		uint32_t new_tp_set;
 		if((uint32_t)arg >= KMOD_PROG_ATTACHED_MAX) {
@@ -1189,11 +1135,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma) {
 		unsigned long pfn;
 		char *vmalloc_area_ptr;
 		char *orig_vmalloc_area_ptr;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
-#else
-		int ring_no = iminor(filp->f_dentry->d_inode);
-#endif
 		struct ppm_ring_buffer_context *ring;
 
 		vpr_info("mmap for consumer %p, CPU %d, start=%lu len=%ld page_size=%lu\n",
@@ -2020,18 +1962,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 }
 
 static inline void g_n_tracepoint_hit_inc(void) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	this_cpu_inc(g_n_tracepoint_hit);
-#elif defined(this_cpu_inc)
-	/* this_cpu_inc has been added with 2.6.33 but backported by RHEL/CentOS to 2.6.32
-	 * so just checking the existence of the symbol rather than matching the kernel version
-	 * https://github.com/torvalds/linux/commit/7340a0b15280c9d902c7dd0608b8e751b5a7c403
-	 *
-	 * per_cpu_var removed with:
-	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
-	 */
-	this_cpu_inc(per_cpu_var(g_n_tracepoint_hit));
-#endif
 }
 
 static inline bool kmod_in_ia32_syscall(void) {
@@ -2294,11 +2225,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p) {
 
 	g_n_tracepoint_hit_inc();
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if(unlikely(current->flags & PF_KTHREAD)) {
-#else
-	if(unlikely(current->flags & PF_BORROWED_MM)) {
-#endif
 		/*
 		 * We are not interested in kernel threads
 		 */
@@ -2320,19 +2247,14 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p) {
 #include <linux/udp.h>
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
-TRACEPOINT_PROBE(sched_switch_probe,
-                 struct rq *rq,
-                 struct task_struct *prev,
-                 struct task_struct *next)
-#elif(LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #else
 TRACEPOINT_PROBE(sched_switch_probe,
                  bool preempt,
                  struct task_struct *prev,
                  struct task_struct *next)
-#endif
+#endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)) */
 {
 	struct event_data_t event_data;
 
@@ -2663,16 +2585,11 @@ static int get_tracepoint_handles(void) {
 }
 #endif
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 #ifdef HAS_DEVNODE_ARG1_CONST
 static char *ppm_devnode(const struct device *dev, umode_t *mode)
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
 static char *ppm_devnode(struct device *dev, umode_t *mode)
-#else
-static char *ppm_devnode(struct device *dev, mode_t *mode)
-#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(3, 3, 0) */
-#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
+#endif /* HAS_DEVNODE_ARG1_CONST */
 {
 	if(mode) {
 		*mode = 0400;
@@ -2684,7 +2601,6 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 
 	return NULL;
 }
-#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
 static int scap_init(void) {
 	dev_t dev;
@@ -2694,11 +2610,7 @@ static int scap_init(void) {
 	int acrret = 0;
 	int j;
 	int n_created_devices = 0;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	struct device *device = NULL;
-#else
-	struct class_device *device = NULL;
-#endif
 	pr_info("driver loading, " DRIVER_NAME " " DRIVER_VERSION "\n");
 
 	ret = get_tracepoint_handles();
@@ -2731,17 +2643,10 @@ static int scap_init(void) {
 		goto init_module_err;
 	}
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	g_ppm_class->devnode = ppm_devnode;
-#endif
-
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
-	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
-#else
 	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
-#endif
 	if(!g_ppm_devs) {
 		pr_err("can't allocate devices\n");
 		ret = -ENOMEM;
@@ -2761,17 +2666,12 @@ static int scap_init(void) {
 			goto init_module_err;
 		}
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		device = device_create(
-#else
-		device = class_device_create(
-#endif
-		        g_ppm_class,
-		        NULL, /* no parent device */
-		        g_ppm_devs[j].dev,
-		        NULL, /* no additional data */
-		        DRIVER_DEVICE_NAME "%d",
-		        j);
+		device = device_create(g_ppm_class,
+		                       NULL, /* no parent device */
+		                       g_ppm_devs[j].dev,
+		                       NULL, /* no additional data */
+		                       DRIVER_DEVICE_NAME "%d",
+		                       j);
 
 		if(IS_ERR(device)) {
 			pr_err("error creating the device for  %s\n", DRIVER_DEVICE_NAME);
@@ -2805,13 +2705,7 @@ static int scap_init(void) {
 
 init_module_err:
 	for(j = 0; j < n_created_devices; ++j) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		device_destroy(
-#else
-		class_device_destroy(
-#endif
-		        g_ppm_class,
-		        g_ppm_devs[j].dev);
+		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
 
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
@@ -2833,13 +2727,7 @@ static void scap_exit(void) {
 	pr_info("driver unloading\n");
 
 	for(j = 0; j < g_ppm_numdevs; ++j) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		device_destroy(
-#else
-		class_device_destroy(
-#endif
-		        g_ppm_class,
-		        g_ppm_devs[j].dev);
+		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
@@ -2850,9 +2738,7 @@ static void scap_exit(void) {
 
 	kfree(g_ppm_devs);
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	tracepoint_synchronize_unregister();
-#endif
 }
 
 module_init(scap_init);
@@ -2862,31 +2748,15 @@ MODULE_INFO(build_commit, DRIVER_COMMIT);
 MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
 MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 
-/* the `const` qualifier will be discarded on old kernel versions (<`2.6.36`) */
 static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp) {
 	unsigned long dim = 0;
 
-	/* `kstrtoul` is defined only on these kernels.
-	 * https://elixir.bootlin.com/linux/v2.6.39/source/include/linux/kernel.h#L197
-	 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 	int ret = 0;
 	ret = kstrtoul(val, 10, &dim);
 	if(ret != 0) {
 		pr_err("parsing of 'g_buffer_bytes_dim' failed!\n");
 		return -EINVAL;
 	}
-#else
-	/* You can find more info about the simple_strtoull behavior here!
-	 * https://elixir.bootlin.com/linux/latest/source/arch/x86/boot/string.c#L120
-	 */
-	char *endp = NULL;
-	dim = simple_strtoull(val, &endp, 10);
-	if(!endp || (*endp != '\0')) {
-		pr_err("parsing of 'g_buffer_bytes_dim' failed!\n");
-		return -EINVAL;
-	}
-#endif
 
 	if(!validate_buffer_bytes_dim(dim, PAGE_SIZE)) {
 		pr_err("the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a "
@@ -2898,20 +2768,11 @@ static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp
 	return param_set_ulong(val, kp);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
-/* `struct kernel_param_ops` and `module_param_cb` are defined only on kernels >= `2.6.36` */
 static const struct kernel_param_ops g_buffer_bytes_dim_ops = {
         .set = set_g_buffer_bytes_dim,
         .get = param_get_ulong,
 };
 module_param_cb(g_buffer_bytes_dim, &g_buffer_bytes_dim_ops, &g_buffer_bytes_dim, 0644);
-#else
-module_param_call(g_buffer_bytes_dim,
-                  set_g_buffer_bytes_dim,
-                  param_get_ulong,
-                  &g_buffer_bytes_dim,
-                  0644);
-#endif
 MODULE_PARM_DESC(
         g_buffer_bytes_dim,
         "This is the dimension of a single per-CPU buffer in bytes. Please note: this buffer will "
@@ -2919,7 +2780,5 @@ MODULE_PARM_DESC(
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers,
                  "Maximum number of consumers that can simultaneously open the devices");
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 module_param(verbose, bool, 0444);
-#endif
 MODULE_PARM_DESC(verbose, "Enable verbose logging");
