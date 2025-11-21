@@ -113,7 +113,7 @@ void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state:
 
 	input.name = m_table->name();
 	input.table = this;
-	input.key_type = m_table->key_info().type_id();
+	input.key_type = m_table->key_type();
 }
 
 template void libsinsp::state::table_accessor::set<int8_t>(sinsp_table_owner* p,
@@ -577,7 +577,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 			return SS_PLUGIN_FAILURE;
 		}
 		__CATCH_ERR_MSG(owner->m_last_owner_err,
-		                { __PLUGIN_STATETYPE_SWITCH(subtable_ptr->key_info().type_id()); });
+		                { __PLUGIN_STATETYPE_SWITCH(subtable_ptr->key_type()); });
 	}
 #undef _X
 
