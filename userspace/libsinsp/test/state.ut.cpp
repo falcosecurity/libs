@@ -172,7 +172,7 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_EQ(fields->fields().size(), 1);
 	ASSERT_EQ(field_num, fields->fields().find("num")->second);
 	ASSERT_EQ(field_num.name(), "num");
-	ASSERT_EQ(field_num.info(), SS_PLUGIN_ST_UINT64);
+	ASSERT_EQ(field_num.type_id(), SS_PLUGIN_ST_UINT64);
 	ASSERT_EQ(field_num, fields->add_field("num", SS_PLUGIN_ST_UINT64));
 	ASSERT_ANY_THROW(fields->add_field("num", SS_PLUGIN_ST_UINT32));
 
@@ -180,7 +180,7 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_EQ(fields->fields().size(), 2);
 	ASSERT_EQ(field_str, fields->fields().find("str")->second);
 	ASSERT_EQ(field_str.name(), "str");
-	ASSERT_EQ(field_str.info(), SS_PLUGIN_ST_STRING);
+	ASSERT_EQ(field_str.type_id(), SS_PLUGIN_ST_STRING);
 	ASSERT_EQ(field_str, fields->add_field("str", SS_PLUGIN_ST_STRING));
 	ASSERT_ANY_THROW(fields->add_field("str", SS_PLUGIN_ST_UINT32));
 
