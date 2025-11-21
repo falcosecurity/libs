@@ -59,11 +59,6 @@ public:
 	};
 
 	/**
-	 * @brief Returns the name of the type.
-	 */
-	inline const char* name() const { return m_name; }
-
-	/**
 	 * @brief Returns the numeric representation of the type.
 	 */
 	inline constexpr ss_plugin_state_type type_id() const { return m_type_id; }
@@ -259,6 +254,44 @@ inline constexpr typeinfo typeinfo::from(ss_plugin_state_type state_type) {
 		throw sinsp_exception("state::typeinfo::of invoked for unsupported state_type: " +
 		                      std::to_string(state_type));
 	}
+}
+
+/**
+ * @brief Returns the name of the type.
+ */
+static inline const char* type_name(ss_plugin_state_type type_id) {
+	switch(type_id) {
+	case SS_PLUGIN_ST_INT8:
+		return "int8";
+	case SS_PLUGIN_ST_INT16:
+		return "int16";
+	case SS_PLUGIN_ST_INT32:
+		return "int32";
+	case SS_PLUGIN_ST_INT64:
+		return "int64";
+	case SS_PLUGIN_ST_UINT8:
+		return "uint8";
+	case SS_PLUGIN_ST_UINT16:
+		return "uint16";
+	case SS_PLUGIN_ST_UINT32:
+		return "uint32";
+	case SS_PLUGIN_ST_UINT64:
+		return "uint64";
+	case SS_PLUGIN_ST_STRING:
+		return "string";
+	case SS_PLUGIN_ST_TABLE:
+		return "table";
+	case SS_PLUGIN_ST_BOOL:
+		return "bool";
+	default:
+		throw sinsp_exception("state::type_name invoked for unsupported type_id: " +
+		                      std::to_string(type_id));
+	}
+}
+
+template<typename T>
+const char* type_name() {
+	return type_name(type_id_of<T>());
 }
 
 };  // namespace state
