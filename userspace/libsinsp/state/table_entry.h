@@ -90,8 +90,8 @@ public:
 	template<typename T>
 	void assert_type() const {
 		if(type_id_of<T>() != m_type_id) {
-			const auto expected = typeinfo::of<T>().name();
-			const auto got = typeinfo::from(m_type_id).name();
+			const auto expected = type_name<T>();
+			const auto got = type_name(m_type_id);
 			throw sinsp_exception(std::string("type mismatch in accessor: expected ") + expected +
 			                      ", got " + got);
 		}
