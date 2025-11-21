@@ -508,8 +508,8 @@ public:
 	        m_owner_plugin(p),
 	        m_table(t) {
 		if(m_table->key_type() != libsinsp::state::type_id_of<KeyType>()) {
-			std::string req_type = libsinsp::state::typeinfo::of<KeyType>().name();
-			std::string key_type = libsinsp::state::typeinfo::from(m_table->key_type()).name();
+			std::string req_type = libsinsp::state::type_name<KeyType>();
+			std::string key_type = libsinsp::state::type_name(m_table->key_type());
 			throw sinsp_exception("table key type mismatch, requested='" + req_type +
 			                      "', actual='" + key_type + "'");
 		}

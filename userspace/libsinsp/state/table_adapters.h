@@ -87,7 +87,7 @@ protected:
 			}
 		}
 		throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-		                      std::string(typeinfo::from(a.type_info()).name()));
+		                      std::string(type_name(a.type_info())));
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
