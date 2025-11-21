@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libsinsp/state/type_info.h>
 #include <plugin/plugin_types.h>
+#include <atomic>
 
 namespace libsinsp::state {
 class borrowed_state_data {
@@ -82,8 +83,18 @@ private:
 		m_data._MEMBER = value;                                                                    \
 	}                                                                                              \
 	template<>                                                                                     \
+	inline void borrowed_state_data::borrow_from<type_id_of<_TYPE>(), std::atomic<_TYPE>>(         \
+	        const std::atomic<_TYPE>& value) {                                                     \
+		m_data._MEMBER = value.load();                                                             \
+	}                                                                                              \
+	template<>                                                                                     \
 	inline void borrowed_state_data::borrow_to<type_id_of<_TYPE>(), _TYPE>(_TYPE & out) const {    \
 		out = m_data._MEMBER;                                                                      \
+	}                                                                                              \
+	template<>                                                                                     \
+	inline void borrowed_state_data::borrow_to<type_id_of<_TYPE>(), std::atomic<_TYPE>>(           \
+	        std::atomic<_TYPE> & out) const {                                                      \
+		out.store(m_data._MEMBER);                                                                 \
 	}
 
 STATE_DATA_IMPL(bool, b);
