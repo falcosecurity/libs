@@ -157,8 +157,8 @@ public:
 			if(it != m_definitions.end()) {
 				const auto t = field.type_id();
 				if(it->second.type_id() != t) {
-					std::string prevtype = typeinfo::from(it->second.type_id()).name();
-					std::string newtype = typeinfo::from(t).name();
+					std::string prevtype = type_name(it->second.type_id());
+					std::string newtype = type_name(t);
 					throw sinsp_exception(
 					        "multiple definitions of dynamic field with different types in "
 					        "struct: " +

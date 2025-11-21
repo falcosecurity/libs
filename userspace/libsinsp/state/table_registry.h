@@ -62,8 +62,8 @@ public:
 		if(it != m_tables.end()) {
 			auto t = type_id_of<KeyType>();
 			if(it->second->key_type() != t) {
-				std::string req_type = typeinfo::from(t).name();
-				std::string actual_type = typeinfo::from(it->second->key_type()).name();
+				std::string req_type = type_name(t);
+				std::string actual_type = type_name(it->second->key_type());
 				throw sinsp_exception("table in registry accessed with wrong key type: table='" +
 				                      name + "', requested='" + req_type + "', actual='" +
 				                      actual_type + "'");
