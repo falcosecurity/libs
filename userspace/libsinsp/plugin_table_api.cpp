@@ -226,7 +226,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		if(m_input->key_type != t) {
 			throw sinsp_exception(
 			        table_input_error_prefix(m_owner, m_input.get()) +
-			        "invalid key type: " + std::string(libsinsp::state::typeinfo::from(t).name()));
+			        "invalid key type: " + std::string(libsinsp::state::type_name(t)));
 		}
 	}
 
