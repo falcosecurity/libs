@@ -67,7 +67,7 @@ public:
 		/**
 		 * @brief Returns the type info of the field.
 		 */
-		inline const libsinsp::state::typeinfo& info() const { return m_info; }
+		inline ss_plugin_state_type info() const { return m_type_id; }
 
 		/**
 		 * @brief Returns a strongly-typed accessor for the given field,
@@ -83,16 +83,16 @@ public:
 		}
 
 	private:
-		inline field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
+		inline field_info(const std::string& n, size_t o, ss_plugin_state_type t, bool r):
 		        m_readonly(r),
 		        m_offset(o),
 		        m_name(n),
-		        m_info(i) {}
+		        m_type_id(t) {}
 
 		bool m_readonly;
 		size_t m_offset;
 		std::string m_name;
-		libsinsp::state::typeinfo m_info;
+		ss_plugin_state_type m_type_id;
 
 		friend class static_struct;
 	};
@@ -108,7 +108,9 @@ public:
 		 */
 		[[nodiscard]] const field_info& info() const { return m_info; }
 
-		explicit field_accessor(field_info info): accessor(info.m_info), m_info(std::move(info)) {};
+		explicit field_accessor(field_info info):
+		        accessor(info.m_type_id),
+		        m_info(std::move(info)) {};
 
 	private:
 		field_info m_info;
@@ -144,7 +146,7 @@ protected:
 		}
 
 		// todo(jasondellaluce): add extra safety boundary checks here
-		fields.insert({name, field_info(name, offset, typeinfo::of<T>(), readonly)});
+		fields.insert({name, field_info(name, offset, type_id_of<T>(), readonly)});
 		return fields.at(name);
 	}
 
@@ -169,7 +171,7 @@ protected:
 			auto val = static_cast<const T*>(in);
 			*reinterpret_cast<T*>(reinterpret_cast<char*>(this) + acc->info().m_offset) = *val;
 		};
-		return dispatch_lambda(a.type_info().type_id(), writer);
+		return dispatch_lambda(a.type_info(), writer);
 	}
 };
 
@@ -182,10 +184,10 @@ public:
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
 
 	using table_fields::get_field;
-	accessor::ptr get_field(const char* name, const typeinfo& type_info) override;
+	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override;
 
 	using table_fields::add_field;
-	accessor::ptr add_field(const char* name, const typeinfo& type_info) override;
+	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override;
 
 private:
 	const static_struct::field_infos* const m_static_fields;

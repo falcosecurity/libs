@@ -86,12 +86,12 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_NE(field_num, fields.end());
 	ASSERT_EQ(field_num->second.name(), "num");
 	ASSERT_EQ(field_num->second.readonly(), false);
-	ASSERT_EQ(field_num->second.info(), libsinsp::state::typeinfo::of<uint32_t>());
+	ASSERT_EQ(field_num->second.info(), SS_PLUGIN_ST_UINT32);
 
 	ASSERT_NE(field_str, fields.end());
 	ASSERT_EQ(field_str->second.name(), "str");
 	ASSERT_EQ(field_str->second.readonly(), true);
-	ASSERT_EQ(field_str->second.info(), libsinsp::state::typeinfo::of<std::string>());
+	ASSERT_EQ(field_str->second.info(), SS_PLUGIN_ST_STRING);
 
 	// check field access
 	auto acc_num = field_num->second.new_accessor().template into<uint32_t>();
@@ -168,21 +168,21 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_EQ(fields, s.dynamic_fields());
 
 	// adding new fields
-	auto field_num = fields->add_field("num", libsinsp::state::typeinfo::of<uint64_t>());
+	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
 	ASSERT_EQ(fields->fields().size(), 1);
 	ASSERT_EQ(field_num, fields->fields().find("num")->second);
 	ASSERT_EQ(field_num.name(), "num");
-	ASSERT_EQ(field_num.info(), libsinsp::state::typeinfo::of<uint64_t>());
-	ASSERT_EQ(field_num, fields->add_field("num", libsinsp::state::typeinfo::of<uint64_t>()));
-	ASSERT_ANY_THROW(fields->add_field("num", libsinsp::state::typeinfo::of<uint32_t>()));
+	ASSERT_EQ(field_num.info(), SS_PLUGIN_ST_UINT64);
+	ASSERT_EQ(field_num, fields->add_field("num", SS_PLUGIN_ST_UINT64));
+	ASSERT_ANY_THROW(fields->add_field("num", SS_PLUGIN_ST_UINT32));
 
-	auto field_str = fields->add_field("str", libsinsp::state::typeinfo::of<std::string>());
+	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	ASSERT_EQ(fields->fields().size(), 2);
 	ASSERT_EQ(field_str, fields->fields().find("str")->second);
 	ASSERT_EQ(field_str.name(), "str");
-	ASSERT_EQ(field_str.info(), libsinsp::state::typeinfo::of<std::string>());
-	ASSERT_EQ(field_str, fields->add_field("str", libsinsp::state::typeinfo::of<std::string>()));
-	ASSERT_ANY_THROW(fields->add_field("str", libsinsp::state::typeinfo::of<uint32_t>()));
+	ASSERT_EQ(field_str.info(), SS_PLUGIN_ST_STRING);
+	ASSERT_EQ(field_str, fields->add_field("str", SS_PLUGIN_ST_STRING));
+	ASSERT_ANY_THROW(fields->add_field("str", SS_PLUGIN_ST_UINT32));
 
 	// check field access
 	auto acc_num = field_num.new_accessor().template into<uint64_t>();
@@ -216,7 +216,7 @@ TEST(dynamic_struct, defs_and_access) {
 
 	// illegal access from an accessor created from different definition list
 	auto fields2 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
-	auto field_num2 = fields2->add_field("num", libsinsp::state::typeinfo::of<uint64_t>());
+	auto field_num2 = fields2->add_field("num", SS_PLUGIN_ST_UINT64);
 	auto acc_num2 = field_num2.new_accessor().template into<uint64_t>();
 	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
@@ -240,7 +240,7 @@ TEST(dynamic_struct, mem_ownership) {
 	        std::make_shared<libsinsp::state::dynamic_struct::field_infos>()));
 
 	// define a string dynamic field
-	auto field_str = defs1->add_field("str", libsinsp::state::typeinfo::of<std::string>());
+	auto field_str = defs1->add_field("str", SS_PLUGIN_ST_STRING);
 	auto field_str_acc = field_str.new_accessor().template into<std::string>();
 
 	// write same value in both structs, ensure they have two distinct copies

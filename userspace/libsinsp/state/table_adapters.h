@@ -21,8 +21,8 @@ namespace state {
 
 class stl_table_entry_accessor : public libsinsp::state::accessor {
 public:
-	stl_table_entry_accessor(const typeinfo& m_type_info, int m_index):
-	        accessor(m_type_info),
+	stl_table_entry_accessor(ss_plugin_state_type type_id, int m_index):
+	        accessor(type_id),
 	        m_index(m_index) {}
 
 	[[nodiscard]] int index() const { return m_index; }
@@ -49,23 +49,23 @@ public:
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
 
 	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
-		ss_plugin_table_fieldinfo first = {"first", typeinfo::of<Tfirst>().type_id(), false};
+		ss_plugin_table_fieldinfo first = {"first", type_id_of<Tfirst>(), false};
 		out.emplace_back(first);
-		ss_plugin_table_fieldinfo second = {"second", typeinfo::of<Tsecond>().type_id(), false};
+		ss_plugin_table_fieldinfo second = {"second", type_id_of<Tsecond>(), false};
 		out.emplace_back(second);
 	}
 
-	static accessor::ptr get_field(const char* name, const typeinfo& type_info) {
+	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "first") == 0) {
-			auto tinfo = typeinfo::of<Tfirst>();
-			if(type_info.type_id() != tinfo.type_id()) {
+			auto tinfo = type_id_of<Tfirst>();
+			if(type_id != tinfo) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
 			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 0));
 		} else if(strcmp(name, "second") == 0) {
-			auto tinfo = typeinfo::of<Tsecond>();
-			if(type_info.type_id() != tinfo.type_id()) {
+			auto tinfo = type_id_of<Tsecond>();
+			if(type_id != tinfo) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
@@ -117,14 +117,14 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
-		ss_plugin_table_fieldinfo value = {"value", typeinfo::of<T>().type_id(), false};
+		ss_plugin_table_fieldinfo value = {"value", type_id_of<T>(), false};
 		out.emplace_back(value);
 	}
 
-	static accessor::ptr get_field(const char* name, const typeinfo& type_info) {
+	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "value") == 0) {
-			auto tinfo = typeinfo::of<T>();
-			if(type_info.type_id() != tinfo.type_id()) {
+			auto tinfo = type_id_of<T>();
+			if(type_id != tinfo) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
@@ -181,12 +181,14 @@ public:
 	}
 
 	using libsinsp::state::built_in_table<uint64_t>::get_field;
-	libsinsp::state::accessor::ptr get_field(const char* name, const typeinfo& type_info) override {
-		return TWrap::get_field(name, type_info);
+	libsinsp::state::accessor::ptr get_field(const char* name,
+	                                         ss_plugin_state_type type_id) override {
+		return TWrap::get_field(name, type_id);
 	}
 
 	using libsinsp::state::built_in_table<uint64_t>::add_field;
-	libsinsp::state::accessor::ptr add_field(const char* name, const typeinfo& type_info) override {
+	libsinsp::state::accessor::ptr add_field(const char* name,
+	                                         ss_plugin_state_type type_id) override {
 		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " +
 		                      std::string(name));
 	}

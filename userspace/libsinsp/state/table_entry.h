@@ -81,16 +81,17 @@ public:
 		std::unique_ptr<const accessor> m_ptr;
 	};
 
-	explicit accessor(const typeinfo& m_type_info): m_type_info(m_type_info) {}
+	explicit accessor(ss_plugin_state_type type_id): m_type_id(type_id) {}
 	virtual ~accessor() = default;
 
-	[[nodiscard]] typeinfo type_info() const { return m_type_info; }
+	[[nodiscard]] ss_plugin_state_type type_info() const { return m_type_id; }
 
 	template<typename T>
 	void assert_type() const {
-		if(typeinfo::of<T>() != m_type_info) {
+		if(type_id_of<T>() != m_type_id) {
+			std::string name = typeinfo::from(m_type_id).name();
 			throw sinsp_exception(std::string("type mismatch in accessor: expected ") +
-			                      typeinfo::of<T>().name() + ", got " + m_type_info.name());
+			                      typeinfo::of<T>().name() + ", got " + name);
 		}
 	}
 
@@ -103,7 +104,7 @@ public:
 	static ptr null() { return ptr(std::unique_ptr<const accessor>(nullptr)); }
 
 protected:
-	typeinfo m_type_info;
+	ss_plugin_state_type m_type_id;
 };
 
 /**
@@ -175,17 +176,17 @@ public:
 
 	template<typename T>
 	accessor::typed_ptr<T> get_field(const char* name) {
-		return get_field(name, typeinfo::of<T>()).template into<T>();
+		return get_field(name, type_id_of<T>()).template into<T>();
 	}
 
-	virtual accessor::ptr get_field(const char* name, const typeinfo& type_info) = 0;
+	virtual accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) = 0;
 
 	template<typename T>
 	accessor::typed_ptr<T> add_field(const char* name) {
-		return add_field(name, typeinfo::of<T>()).template into<T>();
+		return add_field(name, type_id_of<T>()).template into<T>();
 	}
 
-	virtual accessor::ptr add_field(const char* name, const typeinfo& type_info) = 0;
+	virtual accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) = 0;
 };
 
 template<typename F, typename... Args>
