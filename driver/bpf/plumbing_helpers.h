@@ -356,20 +356,14 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 }
 
 static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, int idx) {
-	unsigned long arg = 0;
-	unsigned long args_pointer = 0;
-
-	args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
+	unsigned long args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
 	if(bpf_in_ia32_syscall()) {
-		bpf_probe_read_user(&arg,
-		                    sizeof(uint32_t),
-		                    (void *)(args_pointer + (idx * sizeof(uint32_t))));
+		uint32_t *ptr = (uint32_t *)args_pointer;
+		return _READ_USER(ptr[idx]);
 	} else {
-		bpf_probe_read_user(&arg,
-		                    sizeof(unsigned long),
-		                    (void *)(args_pointer + (idx * sizeof(unsigned long))));
+		unsigned long *ptr = (unsigned long *)args_pointer;
+		return _READ_USER(ptr[idx]);
 	}
-	return arg;
 }
 
 static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data *data, int idx) {
