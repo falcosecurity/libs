@@ -290,7 +290,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 			return cast(it->second);
 		}
 
-		auto acc = this->field(name, typeinfo::from(data_type));
+		auto acc = this->field(name, data_type);
 		if(acc == nullptr) {
 			throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
 			                      std::string(this->name()) + "'");
@@ -308,7 +308,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { this->new_field(name, typeinfo::from(data_type)); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { this->new_field(name, data_type); });
 	return get_field(owner, name, data_type);
 }
 
@@ -444,8 +444,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		res = SS_PLUGIN_SUCCESS;               \
 		break;                                 \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(a->type_info().type_id()); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->type_info()); });
 #undef _X
 
 #define _X(_type, _dtype)                                                    \
@@ -455,7 +454,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		slot.set<_type>(owner, st);                                          \
 		out->table = &slot.input;                                            \
 	};
-	if(a->type_info().type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+	if(a->type_info() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		auto* subtable_ptr = static_cast<libsinsp::state::base_table*>(out->table);
 		if(!subtable_ptr) {
 			owner->m_last_owner_err.clear();
@@ -479,7 +478,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 
 	// todo(jasondellaluce): drop this check once we start supporting this
-	if(a->type_info().type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+	if(a->type_info() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		owner->m_last_owner_err = "writing to table fields is currently not supported";
 		return SS_PLUGIN_FAILURE;
 	}
@@ -492,8 +491,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 		e->write_field<_type>(aa, val); \
 		return SS_PLUGIN_SUCCESS;       \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(a->type_info().type_id()); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->type_info()); });
 #undef _X
 	return SS_PLUGIN_FAILURE;
 }

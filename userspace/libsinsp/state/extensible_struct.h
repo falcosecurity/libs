@@ -60,9 +60,9 @@ public:
 		dynamic_table_fields::fields(out);
 	}
 
-	accessor::ptr field(const char* name, const typeinfo& type_info) override {
-		auto fixed_field = static_table_fields::field(name, type_info);
-		auto dynamic_field = dynamic_table_fields::field(name, type_info);
+	accessor::ptr field(const char* name, ss_plugin_state_type type_id) override {
+		auto fixed_field = static_table_fields::field(name, type_id);
+		auto dynamic_field = dynamic_table_fields::field(name, type_id);
 
 		if(fixed_field != nullptr && dynamic_field != nullptr) {
 			// todo(jasondellaluce): plugins are not aware of the difference
@@ -79,13 +79,13 @@ public:
 		return dynamic_field;
 	}
 
-	accessor::ptr new_field(const char* name, const typeinfo& type_info) override {
-		if(static_table_fields::field(name, type_info) != nullptr) {
+	accessor::ptr new_field(const char* name, ss_plugin_state_type type_id) override {
+		if(static_table_fields::field(name, type_id) != nullptr) {
 			throw sinsp_exception("can't add dynamic field already defined as static: " +
 			                      std::string(name));
 		}
 
-		return dynamic_table_fields::new_field(name, type_info);
+		return dynamic_table_fields::new_field(name, type_id);
 	}
 };
 
