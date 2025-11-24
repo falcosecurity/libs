@@ -539,14 +539,12 @@ public:
 
 	template<typename FieldType>
 	ss_plugin_table_field_t* get_field(const char* name) {
-		auto typeinfo = libsinsp::state::typeinfo::of<FieldType>();
-		return m_table->get_field(m_owner_plugin, name, typeinfo.type_id());
+		return m_table->get_field(m_owner_plugin, name, libsinsp::state::type_id_of<FieldType>());
 	}
 
 	template<typename FieldType>
 	ss_plugin_table_field_t* add_field(const char* name) {
-		auto typeinfo = libsinsp::state::typeinfo::of<FieldType>();
-		return m_table->add_field(m_owner_plugin, name, typeinfo.type_id());
+		return m_table->add_field(m_owner_plugin, name, libsinsp::state::type_id_of<FieldType>());
 	}
 
 	sinsp_table_entry get_entry(const KeyType& key) {
