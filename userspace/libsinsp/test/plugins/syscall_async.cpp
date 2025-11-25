@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <cinttypes>
 #include <sstream>
 #include <thread>
 #include <atomic>
@@ -87,7 +88,7 @@ ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc) {
 
 	ret->async_evt = (ss_plugin_event*)&ret->async_evt_buf;
 	ret->async_thread_run = false;
-	if(2 != sscanf(in->config, "%ld:%ld", &ret->async_maxevts, &ret->async_period)) {
+	if(2 != sscanf(in->config, "%" PRIu64 ":%" PRIu64, &ret->async_maxevts, &ret->async_period)) {
 		ret->async_period = 1000000;
 		ret->async_maxevts = 100;
 	}

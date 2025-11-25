@@ -19,6 +19,7 @@ limitations under the License.
 #include "test_utils.h"
 
 #include <cstring>
+#include <cinttypes>
 
 #if !defined(_WIN32)
 #include <arpa/inet.h>
@@ -85,7 +86,7 @@ template std::set<std::string> unordered_set_to_ordered(
 void print_bytes(uint8_t *buf, size_t size) {
 	for(size_t i = 0; i < size; i++) {
 		if(i % 16 == 0) {
-			printf("%03lx | ", i);
+			printf("%03" PRIx64 " | ", i);
 		}
 		printf("%02x ", buf[i]);
 		if(i % 16 == 0xf) {

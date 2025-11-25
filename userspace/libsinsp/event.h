@@ -175,7 +175,9 @@ public:
 	// Throws a sinsp_exception detailing why the requested_len is incorrect.
 	// This is only meant to be called by get_event_param_as. This way, this function will not be
 	// inlined while get_event_param_as will be inlined.
+#if defined(__GNUC__) || defined(__clang__)
 	[[gnu::cold]]
+#endif
 	void throw_invalid_len_error(size_t requested_len) const;
 };
 
@@ -616,7 +618,10 @@ public:
 		uint32_t nparams = scap_event_decode_params(m_pevt, params);
 
 		for(uint32_t i = 0; i < nparams; i++) {
-			m_params.emplace_back(this, i, static_cast<const char*>(params[i].buf), params[i].size);
+			m_params.emplace_back(this,
+			                      i,
+			                      static_cast<const char*>(params[i].buf),
+			                      static_cast<uint32_t>(params[i].size));
 		}
 	}
 

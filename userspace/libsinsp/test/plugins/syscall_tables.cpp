@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <cinttypes>
 #include <sstream>
 
 #include <driver/ppm_events_public.h>
@@ -184,7 +185,7 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t* s,
 		auto size = in->table_reader_ext->get_table_size(ps->thread_table);
 		if(size != 1) {
 			fprintf(stderr,
-			        "table_reader.get_table_size (%d) failure: (%lu) %s\n",
+			        "table_reader.get_table_size (%d) failure: (%" PRIu64 ") %s\n",
 			        step,
 			        size,
 			        in->get_owner_last_error(in->owner));
