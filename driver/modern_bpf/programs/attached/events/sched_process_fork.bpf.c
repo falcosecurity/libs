@@ -258,4 +258,4 @@ int BPF_PROG(t2_sched_p_fork, struct task_struct *parent, struct task_struct *ch
 	auxmap__submit_event(auxmap);
 	return 0;
 }
-#endif /* CAPTURE_SCHED_PROC_EXEC */
+#endif /* CAPTURE_SCHED_PROC_FORK */

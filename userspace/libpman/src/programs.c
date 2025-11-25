@@ -69,7 +69,6 @@ int pman_attach_sched_switch() {
 }
 
 int pman_attach_sched_proc_exec() {
-#ifdef CAPTURE_SCHED_PROC_EXEC
 	/* The program is already attached. */
 	if(g_state.skel->links.sched_p_exec != NULL) {
 		return 0;
@@ -80,7 +79,6 @@ int pman_attach_sched_proc_exec() {
 		pman_print_error("failed to attach the 'sched_proc_exec' program");
 		return errno;
 	}
-#endif
 	return 0;
 }
 
@@ -274,13 +272,11 @@ int pman_detach_sched_switch() {
 }
 
 int pman_detach_sched_proc_exec() {
-#ifdef CAPTURE_SCHED_PROC_EXEC
 	if(g_state.skel->links.sched_p_exec && bpf_link__destroy(g_state.skel->links.sched_p_exec)) {
 		pman_print_error("failed to detach the 'sched_proc_exec' program");
 		return errno;
 	}
 	g_state.skel->links.sched_p_exec = NULL;
-#endif
 	return 0;
 }
 
