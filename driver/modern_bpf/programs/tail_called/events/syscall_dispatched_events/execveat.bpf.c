@@ -10,24 +10,18 @@
 
 /*=============================== EXIT EVENT ===========================*/
 
-/* Note: On aarch64 and x86 architectures this BPF program is called only when
- * `execveat` fails, in case of success the `execve_x` bpf program is called.
- * The exception is `s390x` where this program (`execveat_x`) is called also when
- * the call is successful.
- */
 SEC("tp_btf/sys_exit")
 int BPF_PROG(execveat_x, struct pt_regs *regs, long ret) {
-/* On some recent kernels the execve/execveat issue is solved:
- * https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?h=linux-5.15.y&id=42eede3ae05bbf32cb0d87940b466ec5a76aca3f
- * BTW we already catch the event with our `sched_process_exec` tracepoint, for this reason we don't
- * need also this instrumentation. Please note that we still need to catch the syscall failure for
- * this reason we check the `ret==0`.
- */
-#ifdef CAPTURE_SCHED_PROC_EXEC
+	/*
+	 * The only purpose of this program is to catch `execveat` events in case of system call
+	 * failure. In case of system call success, `execveat` events are caught by our tracepoint
+	 * program on `sched/sched_process_exec` (see comment on `sched_p_exec` in
+	 * `driver/modern_bpf/programs/attached/events/sched_process_exec.bpf.c`). A successful
+	 * `execveat` call is identified by `ret == 0`.
+	 */
 	if(ret == 0) {
 		return 0;
 	}
-#endif
 
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {

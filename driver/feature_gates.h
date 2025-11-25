@@ -66,37 +66,6 @@ or GPL2.txt for full copies of the license.
 #endif
 
 ///////////////////////////////
-// CAPTURE_SCHED_PROC_EXEC
-///////////////////////////////
-
-/* In some architectures we are not able to catch the `execve exit event`
- * from the `sys_exit` tracepoint. This is because there is no
- * default behavior among different architectures... you can find more
- * info here:
- * https://www.spinics.net/lists/linux-trace/msg01001.html
- *
- * Anyway, to not lose this event, we need to instrument a new kernel tracepoint:
- *
- * - `sched_process_exec`: allows us to catch every process that correctly performs
- *                         an `execve` call.
- *
- * In this way we can send to userspace a `PPME_SYSCALL_EXECVE_X` event
- * as we do with the `sys_exit` tracepoint.
- *
- * All the architectures that need this patch can use our BPF probe with all
- * supported kernel versions (so >= `4.14`), since `BPF_PROG_TYPE_RAW_TRACEPOINT` are
- * not required in this case.
- *
- * If you run old kernels, you can use the kernel module which requires
- * kernel versions greater or equal than `3.4`, since this tracepoint has
- * been introduced in the following kernel release:
- * https://github.com/torvalds/linux/commit/4ff16c25e2cc48cbe6956e356c38a25ac063a64d
- */
-#if defined(CONFIG_ARM64)
-#define CAPTURE_SCHED_PROC_EXEC
-#endif
-
-///////////////////////////////
 // CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 ///////////////////////////////
 
@@ -141,14 +110,6 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #elif defined(__USE_VMLINUX__) /* modern BPF probe */
-
-///////////////////////////////
-// CAPTURE_SCHED_PROC_EXEC
-///////////////////////////////
-
-#if defined(__TARGET_ARCH_arm64)
-#define CAPTURE_SCHED_PROC_EXEC
-#endif
 
 ///////////////////////////////
 // CAPTURE_SCHED_PROC_FORK
@@ -207,14 +168,6 @@ or GPL2.txt for full copies of the license.
 
 #if defined(__aarch64__) || defined(__s390x__) || defined(__riscv) || defined(__loongarch64)
 #define CAPTURE_SCHED_PROC_FORK
-#endif
-
-///////////////////////////////
-// CAPTURE_SCHED_PROC_EXEC
-///////////////////////////////
-
-#if defined(__aarch64__)
-#define CAPTURE_SCHED_PROC_EXEC
 #endif
 
 #endif /* __KERNEL__ */

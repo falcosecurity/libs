@@ -140,8 +140,6 @@ struct sys_stash_args {
 };
 #endif
 
-#ifdef CAPTURE_SCHED_PROC_EXEC
-
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct sched_process_exec_args {
 	unsigned short common_type;
@@ -162,8 +160,6 @@ struct sched_process_exec_args {
 	struct linux_binprm *bprm;
 };
 #endif /* BPF_SUPPORTS_RAW_TRACEPOINTS */
-
-#endif /* CAPTURE_SCHED_PROC_EXEC */
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 /* TP_PROTO(struct task_struct *parent, struct task_struct *child)
