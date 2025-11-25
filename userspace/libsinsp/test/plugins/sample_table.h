@@ -21,6 +21,7 @@ limitations under the License.
 #include <libscap/engine/source_plugin/source_plugin_public.h>
 
 #include <cstring>
+#include <cinttypes>
 #include <string>
 #include <vector>
 #include <memory>
@@ -37,7 +38,7 @@ public:
 			// note: makes sure that release_table_entry is invoked consistently
 			if(refcount > 0) {
 				fprintf(stderr,
-				        "sample_table: table entry deleted with non-zero refcount %ld\n",
+				        "sample_table: table entry deleted with non-zero refcount %" PRIu64 "\n",
 				        refcount);
 				exit(1);
 			}
