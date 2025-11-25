@@ -822,11 +822,21 @@ int f_proc_startupdate(struct event_filler_arguments *args) {
 	struct clone_args cl_args;
 #endif
 
-	/*
-	 * Make sure the operation was successful
-	 */
-	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
+
+	/*
+	 * For `execve` and `execveat`, the only purpose of this filler is to catch events in case of
+	 * system call failure. In case of system call success, `execve` and `execveat` events are
+	 * caught by our tracepoint on `sched/sched_process_exec` (see comment on
+	 * `sched_proc_exec_probe` in `driver/main.c`). A successful `execve`/`execveat` call is
+	 * identified by `retval == 0`.
+	 */
+	if(retval == 0 && (args->event_type == PPME_SYSCALL_EXECVE_19_X ||
+	                   args->event_type == PPME_SYSCALL_EXECVEAT_X)) {
+		return PPM_SKIP_EVENT;
+	}
+
+	/* Parameter 1: res (type: PT_ERRNO) */
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -7506,7 +7516,6 @@ int f_sys_getdents64_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-#ifdef CAPTURE_SCHED_PROC_EXEC
 int f_sched_prog_exec(struct event_filler_arguments *args) {
 	int res = 0;
 	struct mm_struct *mm = current->mm;
@@ -7858,7 +7867,6 @@ cgroups_error:
 
 	return add_sentinel(args);
 }
-#endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 int f_sched_prog_fork(struct event_filler_arguments *args) {

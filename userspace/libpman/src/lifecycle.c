@@ -178,9 +178,7 @@ static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[0] = bpf_program__fd(g_state.skel->progs.sys_exit);
 	g_state.attached_progs_fds[1] = bpf_program__fd(g_state.skel->progs.sched_proc_exit);
 	g_state.attached_progs_fds[2] = bpf_program__fd(g_state.skel->progs.sched_switch);
-#ifdef CAPTURE_SCHED_PROC_EXEC
 	g_state.attached_progs_fds[3] = bpf_program__fd(g_state.skel->progs.sched_p_exec);
-#endif
 #ifdef CAPTURE_SCHED_PROC_FORK
 	g_state.attached_progs_fds[4] = bpf_program__fd(g_state.skel->progs.sched_p_fork);
 #endif
