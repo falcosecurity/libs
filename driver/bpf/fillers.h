@@ -1954,7 +1954,7 @@ static __always_inline int bpf_append_cgroup(struct task_struct *task, char *buf
 
 static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
                                                       char **argv,
-                                                      long *args_len) {
+                                                      volatile long *args_len) {
 	char *arg;
 	int off;
 	int len;
@@ -2616,7 +2616,7 @@ FILLER(proc_startupdate_3, true) {
 		/*
 		 * execve family parameters.
 		 */
-		long env_len = 0;
+		volatile long env_len = 0;
 		kuid_t loginuid;
 		uint32_t tty;
 		struct file *exe_file;
