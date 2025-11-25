@@ -206,7 +206,7 @@ static __always_inline long bpf_syscall_get_nr(void *ctx) {
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 static __always_inline unsigned long bpf_syscall_get_argument_from_args(unsigned long *args,
-                                                                        int idx) {
+                                                                        unsigned int idx) {
 	unsigned long arg = 0;
 
 	if(idx <= 5) {
@@ -217,7 +217,8 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_args(unsigned
 }
 #endif
 
-static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx, int idx) {
+static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx,
+                                                                       unsigned int idx) {
 	unsigned long arg = 0;
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -355,7 +356,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	return arg;
 }
 
-static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, int idx) {
+static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, unsigned int idx) {
 	unsigned long args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
 	if(bpf_in_ia32_syscall()) {
 		uint32_t *ptr = (uint32_t *)args_pointer;
@@ -366,7 +367,8 @@ static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, i
 	}
 }
 
-static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data *data, int idx) {
+static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data *data,
+                                                              unsigned int idx) {
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	// We define it here because we support socket calls only on kernels with
 	// BPF_SUPPORTS_RAW_TRACEPOINTS `data->state->tail_ctx.socketcall_syscall_id != -1` just to
