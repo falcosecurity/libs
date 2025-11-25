@@ -411,11 +411,22 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data, bool ent
 	unsigned long off;
 	int j;
 
+	/* Get the source address at the very beginning and away from the
+	 * read_size arithmetics so we can spill it if needed
+	 * (which is not the case for read_size which we need to keep bounded)
+	 */
+	val = bpf_syscall_get_argument(data, 0);
 	nfds = bpf_syscall_get_argument(data, 1);
 	fds = (struct pollfd *)data->tmp_scratch;
 	read_size = nfds * sizeof(struct pollfd);
 
-	val = bpf_syscall_get_argument(data, 0);
+	/* Check the size one first time for functional sanity */
+	if(read_size > SCRATCH_SIZE_MAX) {
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+
+	/* Now appease the verifier by enforcing and checking what we already know. */
+	read_size &= SCRATCH_SIZE_MAX;
 	if(read_size > SCRATCH_SIZE_MAX) {
 		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
 	}
