@@ -10,6 +10,8 @@ or GPL2.txt for full copies of the license.
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+/* Add comment to trigger CI */
+
 #include <linux/version.h>
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0))

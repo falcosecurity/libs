@@ -110,12 +110,12 @@ jobs:
             --config=$GITHUB_WORKSPACE/driver/modern_bpf/bpfvalidator_config.yaml --cmd="$GITHUB_WORKSPACE/build/libscap/examples/01-open/scap-open --modern_bpf --num_events 10"
 
   test-drivers:
-    name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
+    name: test-drivers-${{ matrix.config.arch }} 😇 (bundled_deps)
+    runs-on: ${{ matrix.config.runner }}
     needs: paths-filter
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        config: [{arch: 'amd64', runner: 'ubuntu-22.04'}, {arch: 'arm64', runner: 'ubuntu-22.04-arm'}, {arch: 'ppc64le', runner: 'ubuntu-22.04-ppc64le'}]
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
@@ -128,14 +128,14 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool linux-headers-generic
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
           cd bpftool
           git submodule update --init
           cd src && sudo make install
 
       - name: Install multilib compilers for ia32 tests
-        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.config.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
 
@@ -143,7 +143,15 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On \
+            -DUSE_BUNDLED_DEPS=ON \
+            -DENABLE_DRIVERS_TESTS=ON \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DMODERN_BPF_DEBUG_MODE=ON \
+            -DBUILD_BPF=True \
+            -DBUILD_LIBSCAP_GVISOR=OFF \
+            -DUSE_BUNDLED_LIBELF=$( [ ${{ matrix.config.arch }} == 'ppc64le' ] && echo 'OFF' || echo 'ON' }} ) \
+            ../
           make drivers_test driver bpf -j6
 
       - name: Run drivers_test with modern bpf 🏎️
@@ -163,44 +171,6 @@ jobs:
         run: |
           cd build
           sudo ./test/drivers/drivers_test -k
-
-  test-drivers-ppc64le:
-    name: test-drivers-ppc64le 😁 (system_deps,custom node)
-    runs-on: ubuntu-22.04
-    # Avoid running on forks since this job uses a private secret
-    # not available on forks, leading to failures.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == 'falcosecurity/libs'
-    needs: paths-filter
-    steps:
-      - name: Extract branch name
-        run: echo "GIT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
-
-      - name: Build and test drivers on ppc64le node via ssh
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: appleboy/ssh-action@91f3272fc5907f4699dcf59761eb622a07342f5a # v1.2.3
-        with:
-          host: ${{ secrets.PPC64LE_HOST }}
-          username: ${{ secrets.PPC64LE_USERNAME }}
-          key: ${{ secrets.PPC64LE_KEY }}
-          port: ${{ secrets.PPC64LE_PORT }}
-          envs: GIT_BRANCH,GITHUB_REPOSITORY,GITHUB_SERVER_URL
-          command_timeout: 60m
-          script: |
-            sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
-            # Remove, if present, any libs clone created by a previous job run.
-            rm -rf libs
-            git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
-            cd libs
-            mkdir -p build
-            cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF -DUSE_BUNDLED_LIBELF=OFF ../
-            make drivers_test driver bpf -j6
-            sudo ./test/drivers/drivers_test -m
-            rc_modern=$?
-            sudo ./test/drivers/drivers_test -b
-            rc_bpf=$?
-            sudo ./test/drivers/drivers_test -k
-            rc_kmod=$?
-            exit $(($rc_modern + $rc_bpf +$rc_kmod))
 
   build-drivers-s390x:
     name: build-drivers-s390x 😁 (bundle_deps)
