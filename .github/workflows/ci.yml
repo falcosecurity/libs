@@ -26,11 +26,11 @@ jobs:
           - name: system_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
+            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
-            cmake_opts: -DUSE_BUNDLED_DEPS=True
+            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
     container:
       image: debian:buster
     steps:
@@ -38,7 +38,7 @@ jobs:
         run: |
           # Use 20250630T203427Z debian apt snapshot as it still contains support for buster.
           printf "deb http://snapshot.debian.org/archive/debian/20250630T203427Z buster main\ndeb http://snapshot.debian.org/archive/debian-security/20250630T203427Z buster/updates main\ndeb http://snapshot.debian.org/archive/debian/20250630T203427Z buster-updates main" > /etc/apt/sources.list
-          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
+          apt update && apt install -y --no-install-recommends curl zip unzip tar ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
 
       - name: Install a recent version of CMake ⛓️
         run: |
@@ -52,6 +52,11 @@ jobs:
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           fetch-depth: 0
+
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
+        with:
+          vcpkg_version: 2025-08-27
 
       - name: Install deps ⛓️
         run: |
@@ -69,16 +74,14 @@ jobs:
         env:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
-          mkdir -p build
-          cd build && cmake ${{ matrix.cmake_opts }} -DENABLE_THREAD_POOL=ON ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-          make run-unit-tests
+          cmake -S . -B build ${{ matrix.cmake_opts }} -DENABLE_THREAD_POOL=ON
+          cmake --build build --parallel $(nproc) --target run-unit-tests
 
       - name: Test sinsp-example and .scap files
         run: |
-          cd build && make sinsp-example
-          libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google.txt
-          libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google_comments.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_comments.txt
+          cmake --build build --target sinsp-example
+          build/libsinsp/examples/sinsp-example -s test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google.txt
+          build/libsinsp/examples/sinsp-example -s test/libsinsp_e2e/resources/captures/curl_google_comments.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_comments.txt
           diff -u /tmp/curl_google.txt /tmp/curl_google_comments.txt
 
       # On zig, build also sinsp-example and check the glibc linked versions
@@ -102,7 +105,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm
+          apk add build-base cmake ninja zip unzip curl git tar g++ gcc make bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
           cd bpftool
           git submodule update --init
@@ -113,15 +116,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
+
       - name: Git safe directory
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Build and test 🏗️🧪
         run: |
-          mkdir -p build
-          cd build && cmake -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DUSE_SHARED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On -DENABLE_THREAD_POOL=ON ../
-          make run-unit-tests -j4
+          cmake -S . -B build -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DUSE_SHARED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On -DENABLE_THREAD_POOL=ON  && /
+          cmake --build build --parallel $(nproc) --target run-unit-tests
 
   build-shared-libs-linux-amd64:
     name: build-shared-libs-linux-amd64 🧐
@@ -135,30 +140,30 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends curl zip unzip tar ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
           sudo .github/install-deps.sh
+
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
 
       - name: Build and test 🏗️🧪
         run: |
-          mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_THREAD_POOL=ON ../
-          make -j4
-          make run-unit-tests
+          cmake -S . -B build -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_THREAD_POOL=ON ../
+          cmake --build build --parallel $(nproc) --target run-unit-tests
 
       - name: Install
         run: |
-          cd build
-          make install
+          cmake --build build --target install
 
       - name: Test sinsp-example build with pkg-config
         run: |
-          cd userspace/libsinsp/examples
+          cd build/userspace/libsinsp/examples
           export PKG_CONFIG_PATH=/tmp/libs-test/lib/pkgconfig
           g++ -o sinsp-example *.cpp $(pkg-config --cflags --libs libsinsp)
 
       - name: Test sinsp-example runtime linker
         run: |
-          cd userspace/libsinsp/examples
+          cd build/userspace/libsinsp/examples
           export LD_LIBRARY_PATH=/tmp/libs-test/lib
           ./sinsp-example -h
 
@@ -180,9 +185,8 @@ jobs:
 
       - name: Build and test 🏗️🧪
         run: |
-          mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DENABLE_THREAD_POOL=ON ..
-          cmake --build . --config Release --parallel 4 && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
+          cmake -S . -B build -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DENABLE_THREAD_POOL=ON ..
+          cmake --build build --config Release --parallel $(nproc) --target run-unit-tests
 
   build-shared-libs-macos-amd64:
     name: build-shared-libs-macos-amd64 😨
@@ -195,28 +199,29 @@ jobs:
 
       - name: Install deps ⛓️
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares re2 tbb jq jsoncpp openssl uthash
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares jq openssl
+      
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
 
       - name: Build 🏗️
         run: |
-          mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_BS_THREADPOOL=ON -DENABLE_THREAD_POOL=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
-          cmake --build . --config Release --parallel $(getconf _NPROCESSORS_ONLN)
+          cmake -S . -B build -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DENABLE_THREAD_POOL=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
+          cmake --build build --config Release --parallel $(getconf _NPROCESSORS_ONLN)
 
       - name: Install
         run: |
-          cd build
-          make install
+          cmake --build build --target install
 
       - name: Test sinsp-example build with pkg-config 🧪
         run: |
-          cd userspace/libsinsp/examples
+          cd build/userspace/libsinsp/examples
           export PKG_CONFIG_PATH=/tmp/libs-test/lib/pkgconfig
           c++ --std=c++17 -o sinsp-example test.cpp util.cpp $(pkg-config --cflags --libs libsinsp)
 
       - name: Test sinsp-example runtime linker 🧪
         run: |
-          cd userspace/libsinsp/examples
+          cd build/userspace/libsinsp/examples
           export DYLD_LIBRARY_PATH=/tmp/libs-test/lib
           ./sinsp-example -h
 
@@ -233,20 +238,22 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends curl zip unzip tar ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
           sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+      
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
 
       - name: Build sinsp-example
         run: |
-          mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=On -DCREATE_TEST_TARGETS=Off -DENABLE_LIBSCAP_TESTS=Off ../
-          make -j$(nproc) sinsp-example
+          cmake -S . -B build -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=On -DCREATE_TEST_TARGETS=Off -DENABLE_LIBSCAP_TESTS=Off ../
+          cmake --build build --parallel $(nproc) --target sinsp-example
 
       - name: Ensure that sinsp-example with bundled deps is as static as possible
         run: |
-          ldd "build/libsinsp/examples/sinsp-example" | cut --fields=2 | cut --delimiter=' ' --fields=1 | rev | cut --delimiter='/' --fields=1 | rev | sort --unique --version-sort > ldd_out.txt
+          ldd "build/userspace/libsinsp/examples/sinsp-example" | cut --fields=2 | cut --delimiter=' ' --fields=1 | rev | cut --delimiter='/' --fields=1 | rev | sort --unique --version-sort > ldd_out.txt
           cat > expected_ldd_out.txt <<EOF
           ld-linux-x86-64.so.2
           libc.so.6
@@ -271,7 +278,10 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r) emscripten
+          sudo apt install -y --no-install-recommends curl zip unzip tar ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r) emscripten
+
+      - name: Install vcpkg
+        uses: ./.github/actions/install-vcpkg
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -280,7 +290,5 @@ jobs:
 
       - name: Build and test 🏗️🧪
         run: |
-          mkdir -p build
-          cd build && emcmake cmake -DUSE_BUNDLED_DEPS=True ../
-          emmake make -j4
-          emmake make run-unit-tests -j4
+          emcmake cmake -S . -B build -DUSE_BUNDLED_DEPS=True ../
+          emmake cmake --build build --parallel $(nproc) --target run-unit-tests

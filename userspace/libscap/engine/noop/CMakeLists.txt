@@ -14,12 +14,13 @@
 #
 add_library(scap_engine_noop STATIC noop.c)
 
+find_package(Uthash REQUIRED)
 target_include_directories(
 	scap_engine_noop
 	PUBLIC $<BUILD_INTERFACE:${LIBS_DIR}> $<BUILD_INTERFACE:${LIBS_DIR}/userspace>
 		   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 	INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+	PRIVATE ${UTHASH_INCLUDE_DIRS}
 )
 
-add_dependencies(scap_engine_noop uthash)
 target_link_libraries(scap_engine_noop PRIVATE scap_error)

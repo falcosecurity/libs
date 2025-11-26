@@ -15,7 +15,7 @@
 
 message(STATUS "Benchmarks enabled")
 
-include(googleBenchmark)
+find_package(benchmark CONFIG REQUIRED)
 
 set(BENCHMARK_SOURCES ./main.cpp)
 set(BENCHMARK_DEPENDENCIES sinsp)
@@ -28,6 +28,4 @@ list(APPEND BENCHMARK_SOURCES ${SINSP_SUITE})
 add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
 add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 add_executable(bench ${BENCHMARK_SOURCES})
-target_link_libraries(bench ${BENCHMARK_LIBRARIES})
-target_include_directories(bench ${BENCHMARK_INCLUDE})
-add_dependencies(bench ${BENCHMARK_DEPENDENCIES})
+target_link_libraries(bench PRIVATE benchmark::benchmark benchmark::benchmark_main)

@@ -26,8 +26,6 @@ if(NOT HAVE_LIBSCAP)
 
 	include(ExternalProject)
 
-	include(uthash)
-
 	include(CheckSymbolExists)
 	check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
 	check_symbol_exists(strlcat "string.h" HAVE_STRLCAT)
@@ -122,12 +120,6 @@ if(NOT HAVE_LIBSCAP)
 		FILES_MATCHING
 		PATTERN "*.h"
 	)
-
-	if(USE_BUNDLED_UTHASH)
-		install(FILES ${UTHASH_INCLUDE}/uthash.h
-				DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libscap
-		)
-	endif()
 
 	install(FILES ${PROJECT_BINARY_DIR}/libscap/scap_config.h
 			DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libscap

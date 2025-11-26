@@ -31,8 +31,19 @@ include(ExternalProject)
 
 include(BuildPkgConfigDependencies)
 include(jsoncpp)
-include(zlib)
-include(tbb)
+find_package(re2 CONFIG REQUIRED)
+if(NOT EMSCRIPTEN)
+	# TBB is not supported on Emscripten
+	find_package(TBB CONFIG)
+	if(NOT TBB_FOUND)
+		find_package(TBB REQUIRED)
+	endif()
+endif()
+find_package(ZLIB REQUIRED)
+find_package(valijson REQUIRED)
+if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
+	find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "BS_thread_pool.hpp")
+endif()
 
 add_library(
 	sinsp
@@ -114,6 +125,7 @@ target_include_directories(
 	sinsp
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${LIBS_DIR}/userspace>
 		   $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}>
+	PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIRS} valijson
 )
 
 if(EMSCRIPTEN)
@@ -124,36 +136,16 @@ set_sinsp_target_properties(sinsp)
 
 target_link_libraries(
 	sinsp
-	PUBLIC scap
-	PRIVATE "${JSONCPP_LIB}" "${RE2_LIB}"
+	PUBLIC scap JsonCpp::JsonCpp
+	PRIVATE re2::re2
 )
 
 set(SINSP_PKGCONFIG_REQUIRES jsoncpp)
 set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 
 if(NOT EMSCRIPTEN)
-	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
+	target_link_libraries(sinsp PRIVATE TBB::tbb)
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
-endif()
-
-if(USE_BUNDLED_VALIJSON)
-	add_dependencies(sinsp valijson)
-endif()
-
-if(USE_BUNDLED_RE2)
-	add_dependencies(sinsp re2)
-endif()
-
-if(USE_BUNDLED_JSONCPP)
-	add_dependencies(sinsp jsoncpp)
-endif()
-
-if(ENABLE_THREAD_POOL AND USE_BUNDLED_BS_THREADPOOL)
-	add_dependencies(sinsp bs_threadpool)
-endif()
-
-if(NOT EMSCRIPTEN)
-	add_dependencies(sinsp tbb)
 endif()
 
 if(NOT WIN32)
