@@ -118,6 +118,18 @@ public:
 		friend class static_struct;
 	};
 
+	struct writer {
+		static_struct* self;
+		const field_accessor* acc;
+		const void* in;
+
+		template<typename T>
+		void operator()() const {
+			auto val = static_cast<const T*>(in);
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().m_offset) = *val;
+		}
+	};
+
 	/**
 	 * @brief A group of field infos, describing all the ones available
 	 * in a static struct.
@@ -150,25 +162,26 @@ protected:
 		return fields.at(name);
 	}
 
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+	struct reader {
+		const static_struct* self;
+		const field_accessor* acc;
+
+		template<typename T>
+		borrowed_state_data operator()() const {
+			const T* ptr = reinterpret_cast<const T*>(reinterpret_cast<const char*>(self) +
+			                                          acc->info().m_offset);
+
+			return borrowed_state_data::from<type_id_of<T>(), T>(*ptr);
+		}
+	};
+
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		if(!acc->info().valid()) {
 			throw sinsp_exception("can't get invalid field in static struct");
 		}
-		return reinterpret_cast<const char*>(this) + acc->info().m_offset;
+		return dispatch_lambda(a.type_info(), reader{this, acc});
 	}
-
-	struct writer {
-		static_struct* self;
-		const field_accessor* acc;
-		const void* in;
-
-		template<typename T>
-		void operator()() const {
-			auto val = static_cast<const T*>(in);
-			*reinterpret_cast<T*>(reinterpret_cast<char*>(self) + acc->info().m_offset) = *val;
-		}
-	};
 
 	void raw_write_field(const accessor& a, const void* in) override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);

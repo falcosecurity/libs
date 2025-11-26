@@ -260,6 +260,32 @@ public:
 		friend class dynamic_struct::field_info;
 	};
 
+	struct writer {
+		dynamic_struct* self;
+		const field_accessor* acc;
+		const void* in;
+
+		template<typename T>
+		void operator()() const {
+			auto val = static_cast<const T*>(in);
+			auto ptr = self->_access_dynamic_field_for_write(acc->info().index());
+			ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
+		}
+	};
+
+	struct cloner {
+		dynamic_struct* self;
+		const dynamic_struct* src;
+		const field_info& fi;
+
+		template<typename T>
+		void operator()() const {
+			auto src_ptr = src->_access_dynamic_field_for_read(fi.index());
+			auto dst_ptr = self->_access_dynamic_field_for_write(fi.index());
+			*dst_ptr = *src_ptr;
+		}
+	};
+
 	/**
 	 * @brief Dynamic fields metadata of a given struct or class
 	 * that are discoverable and accessible dynamically at runtime.
@@ -316,35 +342,14 @@ protected:
 	 */
 	virtual void destroy_dynamic_fields() { m_fields.clear(); }
 
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		thread_local std::string str;
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		_check_defsptr(acc->info(), false);
-		auto ptr = _access_dynamic_field_for_read(acc->info().index());
-		if(ptr) {
-			if(a.type_info() == SS_PLUGIN_ST_STRING) {
-				str = ptr->m_data.str;
-				return &str;
-			}
-#define _X(ty, field) return &ptr->m_data.field;
-			__PLUGIN_STATETYPE_SWITCH(a.type_info());
-#undef _X
+		if(auto ptr = _access_dynamic_field_for_read(acc->info().index())) {
+			return borrowed_state_data(ptr->m_data);
 		}
-		return nullptr;
+		return {};
 	}
-
-	struct writer {
-		dynamic_struct* self;
-		const field_accessor* acc;
-		const void* in;
-
-		template<typename T>
-		void operator()() const {
-			auto val = static_cast<const T*>(in);
-			auto ptr = self->_access_dynamic_field_for_write(acc->info().index());
-			ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
-		}
-	};
 
 	void raw_write_field(const accessor& a, const void* in) override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
@@ -396,19 +401,6 @@ private:
 		}
 		return &m_fields[index];
 	}
-
-	struct cloner {
-		dynamic_struct* self;
-		const dynamic_struct* src;
-		const field_info& fi;
-
-		template<typename T>
-		void operator()() const {
-			auto src_ptr = src->_access_dynamic_field_for_read(fi.index());
-			auto dst_ptr = self->_access_dynamic_field_for_write(fi.index());
-			*dst_ptr = *src_ptr;
-		}
-	};
 
 	inline void deep_fields_copy(const dynamic_struct& other_const) {
 		// note: const cast should be safe here as we're not going to resize

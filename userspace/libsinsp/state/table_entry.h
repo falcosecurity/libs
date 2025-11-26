@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #pragma once
-
+#include <libsinsp/state/borrowed_state_data.h>
 #include <libsinsp/state/type_info.h>
 
 #include <memory>
@@ -116,11 +116,9 @@ public:
 
 	template<typename T>
 	T read_field(const accessor::typed_ref<T>& a) const {
-		auto out = static_cast<const T*>(this->raw_read_field(a));
-		if(out == nullptr) {
-			return {};
-		}
-		return *out;
+		T val{};
+		this->raw_read_field(a).template borrow_to<libsinsp::state::type_id_of<T>(), T>(val);
+		return val;
 	}
 
 	template<typename T, typename Val = T>
@@ -138,6 +136,15 @@ public:
 		this->read_field(a.as_ref(), out);
 	}
 
+	void read_field(const accessor::typed_ref<std::string>& a, const char*& out) const {
+		const auto val = this->raw_read_field(a);
+		if(val.data().str == nullptr) {
+			out = "";
+		} else {
+			out = val.data().str;
+		}
+	}
+
 	template<typename T, typename Val = T>
 	void write_field(const accessor::typed_ref<T>& a, const Val& in) {
 		// TODO: we could use a direct assignment of const char* to strings
@@ -152,21 +159,11 @@ public:
 		write_field(a.as_ref(), in);
 	}
 
+	[[nodiscard]] virtual borrowed_state_data raw_read_field(const accessor& a) const = 0;
+
 protected:
-	[[nodiscard]] virtual const void* raw_read_field(const accessor& a) const = 0;
 	virtual void raw_write_field(const accessor& a, const void* in) = 0;
 };
-
-template<>
-inline void table_entry::read_field(const accessor::typed_ref<std::string>& a,
-                                    const char*& out) const {
-	auto out_ptr = static_cast<const std::string*>(this->raw_read_field(a));
-	if(out_ptr) {
-		out = out_ptr->c_str();
-	} else {
-		out = "";
-	}
-}
 
 class table_fields {
 public:
