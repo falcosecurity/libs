@@ -219,6 +219,9 @@ FILLER_RAW(terminate_filler) {
 		}
 		break;
 	case PPM_SKIP_EVENT:
+		bpf_printk("PPM_SKIP_EVENT event=%d curarg=%d\n",
+		           state->tail_ctx.evt_type,
+		           state->tail_ctx.curarg);
 		break;
 	case PPM_FAILURE_FRAME_SCRATCH_MAP_FULL:
 		bpf_printk("PPM_FAILURE_FRAME_SCRATCH_MAP_FULL event=%d curarg=%d\n",
@@ -2267,11 +2270,21 @@ FILLER(proc_startupdate, true) {
 	pid_t pid;
 	int res;
 
-	/*
-	 * Make sure the operation was successful
-	 */
-	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = bpf_syscall_get_retval(data->ctx);
+
+	/*
+	 * For `execve` and `execveat`, the only purpose of this filler is to catch events in case of
+	 * system call failure. In case of system call success, `execve` and `execveat` events are
+	 * caught by our tracepoint on `sched/sched_process_exec` (see comment on
+	 * `sched_proc_exec_probe` in `driver/bpf/probe.c`). A successful `execve`/`execveat` call is
+	 * identified by `retval == 0`.
+	 */
+	if(retval == 0 && (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
+	                   data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X)) {
+		return PPM_SKIP_EVENT;
+	}
+
+	/* Parameter 1: res (type: PT_ERRNO) */
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
@@ -6715,7 +6728,6 @@ FILLER(sys_getdents64_x, true) {
 	return bpf_push_s64_to_ring(data, fd);
 }
 
-#ifdef CAPTURE_SCHED_PROC_EXEC
 /* We set `is_syscall` flag to `false` since this is not
  * a real syscall, we only send the same event from another
  * tracepoint.
@@ -7110,8 +7122,6 @@ FILLER(sched_prog_exec_5, false) {
 	kgid_t egid = _READ(cred->egid);
 	return bpf_push_u32_to_ring(data, egid.val);
 }
-
-#endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 /* These `sched_proc_fork` fillers will generate a
