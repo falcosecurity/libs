@@ -141,54 +141,33 @@ private:
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 	// end of dynamic_struct interface
 
-protected:
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+	struct reader {
+		const extensible_struct* self;
+		const static_field_accessor* acc;
+
+		template<typename T>
+		borrowed_state_data operator()() const {
+			const T* ptr = reinterpret_cast<const T*>(reinterpret_cast<const char*>(self) +
+			                                          acc->info().offset());
+
+			return borrowed_state_data::from<type_id_of<T>(), T>(*ptr);
+		}
+	};
+
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
 			if(!static_acc->info().valid()) {
 				throw sinsp_exception("can't get invalid field in static struct");
 			}
-			return reinterpret_cast<const char*>(this) + static_acc->info().offset();
+			return dispatch_lambda(a.type_id(), reader{this, static_acc});
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			thread_local std::string str;
 			_check_defsptr(dynamic_acc->info(), false);
-			auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index());
-			if(ptr) {
-				if(a.type_id() == SS_PLUGIN_ST_STRING) {
-					str = ptr->m_data.str;
-					return &str;
-				}
-
-				switch(a.type_id()) {
-				case SS_PLUGIN_ST_INT8:
-					return &ptr->m_data.s8;
-				case SS_PLUGIN_ST_INT16:
-					return &ptr->m_data.s16;
-				case SS_PLUGIN_ST_INT32:
-					return &ptr->m_data.s32;
-				case SS_PLUGIN_ST_INT64:
-					return &ptr->m_data.s64;
-				case SS_PLUGIN_ST_UINT8:
-					return &ptr->m_data.u8;
-				case SS_PLUGIN_ST_UINT16:
-					return &ptr->m_data.u16;
-				case SS_PLUGIN_ST_UINT32:
-					return &ptr->m_data.u32;
-				case SS_PLUGIN_ST_UINT64:
-					return &ptr->m_data.u64;
-				case SS_PLUGIN_ST_STRING:
-					return &ptr->m_data.str;
-				case SS_PLUGIN_ST_TABLE:
-					return &ptr->m_data.table;
-				case SS_PLUGIN_ST_BOOL:
-					return &ptr->m_data.b;
-				default:
-					throw sinsp_exception("can't convert plugin state type to typeinfo: " +
-					                      std::to_string(a.type_id()));
-				}
+			if(auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index())) {
+				return borrowed_state_data(ptr->m_data);
 			}
-			return nullptr;
+			return {};
 		}
 
 #ifdef _MSC_VER
@@ -198,6 +177,7 @@ protected:
 #endif
 	}
 
+protected:
 	struct writer {
 		extensible_struct* self;
 		const accessor* acc;
