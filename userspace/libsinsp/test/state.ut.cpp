@@ -120,7 +120,6 @@ TEST(static_struct, defs_and_access) {
 	s.set_str("hello");
 	s.read_field(acc_str, cstr);
 	ASSERT_EQ(strcmp(cstr, "hello"), 0);
-	ASSERT_EQ(cstr, s.get_str().c_str());
 	ASSERT_ANY_THROW(s.write_field(acc_str, cstr));  // readonly
 
 	// illegal access from an accessor created from different definition list

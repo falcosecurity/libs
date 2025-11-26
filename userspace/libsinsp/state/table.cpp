@@ -437,15 +437,15 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
-#define _X(_type, _dtype)                      \
-	{                                          \
-		auto aa = a->as<_type>();              \
-		e->read_field<_type>(aa, out->_dtype); \
-		res = SS_PLUGIN_SUCCESS;               \
-		break;                                 \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->type_info()); });
-#undef _X
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		const borrowed_state_data val = e->raw_read_field(*a);
+		if(a->type_info() == SS_PLUGIN_ST_STRING && val.data().str == nullptr) {
+			out->str = "";
+		} else {
+			*out = val.data();
+		}
+		res = SS_PLUGIN_SUCCESS;
+	});
 
 #define _X(_type, _dtype)                                                    \
 	{                                                                        \

@@ -150,12 +150,18 @@ protected:
 		return fields.at(name);
 	}
 
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		if(!acc->info().valid()) {
 			throw sinsp_exception("can't get invalid field in static struct");
 		}
-		return reinterpret_cast<const char*>(this) + acc->info().m_offset;
+		auto reader = [&]<typename T>() {
+			const T* ptr = reinterpret_cast<const T*>(reinterpret_cast<const char*>(this) +
+			                                          acc->info().m_offset);
+
+			return borrowed_state_data::from<type_id_of<T>(), T>(*ptr);
+		};
+		return dispatch_lambda(a.type_info(), reader);
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {

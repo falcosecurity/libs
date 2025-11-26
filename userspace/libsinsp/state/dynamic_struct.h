@@ -316,21 +316,13 @@ protected:
 	 */
 	virtual void destroy_dynamic_fields() { m_fields.clear(); }
 
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
-		thread_local std::string str;
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);
 		_check_defsptr(acc->info(), false);
-		auto ptr = _access_dynamic_field_for_read(acc->info().index());
-		if(ptr) {
-			if(a.type_info() == SS_PLUGIN_ST_STRING) {
-				str = ptr->m_data.str;
-				return &str;
-			}
-#define _X(ty, field) return &ptr->m_data.field;
-			__PLUGIN_STATETYPE_SWITCH(a.type_info());
-#undef _X
+		if(auto ptr = _access_dynamic_field_for_read(acc->info().index())) {
+			return borrowed_state_data(ptr->m_data);
 		}
-		return nullptr;
+		return {};
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
