@@ -38,6 +38,8 @@ static __always_inline void fixup_evt_arg_len(char *p, unsigned int argnum, unsi
 }
 
 static __always_inline int push_evt_frame(void *ctx, struct filler_data *data) {
+	/* Appease the verifier by bounding length to begin with */
+	unsigned long len = (data->state->tail_ctx.len) & SCRATCH_SIZE_MAX;
 	if(data->state->tail_ctx.curarg != data->evt->nparams) {
 		bpf_printk("corrupted filler for event type %d (added %u args, should have added %u)\n",
 		           data->state->tail_ctx.evt_type,
@@ -46,24 +48,24 @@ static __always_inline int push_evt_frame(void *ctx, struct filler_data *data) {
 		return PPM_FAILURE_BUG;
 	}
 
-	if(data->state->tail_ctx.len > PERF_EVENT_MAX_SIZE) {
+	if(len > PERF_EVENT_MAX_SIZE) {
 		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
 	}
 
-	fixup_evt_len(data->buf, data->state->tail_ctx.len);
+	fixup_evt_len(data->buf, len);
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 	int res = bpf_perf_event_output(ctx,
 	                                &perf_map,
 	                                BPF_F_CURRENT_CPU,
 	                                data->buf,
-	                                ((data->state->tail_ctx.len - 1) & SCRATCH_SIZE_MAX) + 1);
+	                                ((len - 1) & SCRATCH_SIZE_MAX) + 1);
 #else
 	int res = bpf_perf_event_output(ctx,
 	                                &perf_map,
 	                                BPF_F_CURRENT_CPU,
 	                                data->buf,
-	                                data->state->tail_ctx.len & SCRATCH_SIZE_MAX);
+	                                len & SCRATCH_SIZE_MAX);
 #endif
 	if(res == -ENOENT || res == -EOPNOTSUPP) {
 		/*
