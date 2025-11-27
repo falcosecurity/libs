@@ -19,18 +19,6 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
-class stl_table_entry_accessor : public libsinsp::state::accessor {
-public:
-	stl_table_entry_accessor(ss_plugin_state_type type_id, int m_index):
-	        accessor(type_id),
-	        m_index(m_index) {}
-
-	[[nodiscard]] int index() const { return m_index; }
-
-private:
-	const int m_index;
-};
-
 /**
  * @brief An adapter for the libsinsp::state::table_entry interface
  * that wraps a non-owning pointer of arbitrary pair of type T. The underlying pointer
@@ -62,27 +50,26 @@ public:
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 0));
+			return accessor::ptr(std::make_unique<accessor>(tinfo, nullptr, nullptr, 0));
 		} else if(strcmp(name, "second") == 0) {
 			auto tinfo = type_id_of<Tsecond>();
 			if(type_id != tinfo) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 1));
+			return accessor::ptr(std::make_unique<accessor>(tinfo, nullptr, nullptr, 1));
 		}
 		return accessor::null();  // field not found
 	}
 
 protected:
 	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
-		if(acc->index() == 0) {
-			if(acc->type_info() == type_id_of<Tfirst>()) {
+		if(a.index() == 0) {
+			if(a.type_info() == type_id_of<Tfirst>()) {
 				return borrowed_state_data::from<type_id_of<Tfirst>()>(m_value->first);
 			}
 		} else {
-			if(acc->type_info() == type_id_of<Tsecond>()) {
+			if(a.type_info() == type_id_of<Tsecond>()) {
 				return borrowed_state_data::from<type_id_of<Tsecond>()>(m_value->second);
 			}
 		}
@@ -91,8 +78,7 @@ protected:
 	}
 
 	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
-		if(acc->index() == 0) {
+		if(a.index() == 0) {
 			in.copy_to<type_id_of<Tfirst>(), Tfirst>(m_value->first);
 		} else {
 			in.copy_to<type_id_of<Tsecond>(), Tsecond>(m_value->second);
@@ -134,15 +120,14 @@ public:
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 0));
+			return accessor::ptr(std::make_unique<accessor>(tinfo, nullptr, nullptr, 0));
 		}
 		return accessor::null();  // field not found
 	}
 
 protected:
 	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
-		if(acc->index() != 0) {
+		if(a.index() != 0) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::read_field");
 		}
@@ -150,8 +135,7 @@ protected:
 	}
 
 	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
-		if(acc->index() != 0) {
+		if(a.index() != 0) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::write_field");
 		}
