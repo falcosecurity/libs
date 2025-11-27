@@ -185,34 +185,4 @@ public:
 	virtual accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) = 0;
 };
 
-template<typename F, typename... Args>
-auto dispatch_lambda(ss_plugin_state_type st, F&& f, Args&&... args) {
-	switch(st) {
-	case SS_PLUGIN_ST_INT8:
-		return std::forward<F>(f).template operator()<int8_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_INT16:
-		return std::forward<F>(f).template operator()<int16_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_INT32:
-		return std::forward<F>(f).template operator()<int32_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_INT64:
-		return std::forward<F>(f).template operator()<int64_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_UINT8:
-		return std::forward<F>(f).template operator()<uint8_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_UINT16:
-		return std::forward<F>(f).template operator()<uint16_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_UINT32:
-		return std::forward<F>(f).template operator()<uint32_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_UINT64:
-		return std::forward<F>(f).template operator()<uint64_t>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_STRING:
-		return std::forward<F>(f).template operator()<std::string>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_TABLE:
-		return std::forward<F>(f).template operator()<base_table*>(std::forward<Args>(args)...);
-	case SS_PLUGIN_ST_BOOL:
-		return std::forward<F>(f).template operator()<bool>(std::forward<Args>(args)...);
-	default:
-		__builtin_unreachable();
-	}
-}
-
 }  // namespace libsinsp::state
