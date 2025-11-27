@@ -250,7 +250,7 @@ public:
 		inline const field_info& info() const { return m_info; }
 
 		inline explicit field_accessor(const field_info& info):
-		        accessor(info.m_type_id),
+		        accessor(info.m_type_id, nullptr, nullptr, info.index()),
 		        m_info(info) {};
 
 	private:
