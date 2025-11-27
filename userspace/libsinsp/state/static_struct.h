@@ -107,7 +107,7 @@ public:
 		[[nodiscard]] const field_info& info() const { return m_info; }
 
 		explicit field_accessor(field_info info):
-		        accessor(info.m_type_id),
+		        accessor(info.m_type_id, info.m_reader, info.m_writer, 0),
 		        m_info(std::move(info)) {};
 
 	private:
@@ -144,16 +144,6 @@ protected:
 
 		fields.insert({name, field_info(name, type_id_of<T>(), readonly, reader, writer)});
 		return fields.at(name);
-	}
-
-	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		auto acc = dynamic_cast<const field_accessor*>(&a);
-		return acc->m_info.m_reader(this, 0);
-	}
-
-	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		auto acc = dynamic_cast<const field_accessor*>(&a);
-		acc->m_info.m_writer(this, 0, in);
 	}
 };
 
