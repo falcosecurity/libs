@@ -180,9 +180,7 @@ public:
 		return a.read(this);
 	}
 
-	virtual void raw_write_field(const accessor& a, const borrowed_state_data& in) {
-		a.write(this, in);
-	}
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) { a.write(this, in); }
 };
 
 template<>
