@@ -461,22 +461,7 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 			tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
 			evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
 		}
-
-		tinfo->m_latency = 0;
-		tinfo->m_last_latency_entertime = evt.get_ts();
 		return true;
-	}
-
-	//
-	// Handling section for exit events.
-	//
-
-	//
-	// event latency
-	//
-	if(tinfo->m_last_latency_entertime != 0) {
-		tinfo->m_latency = evt.get_ts() - tinfo->m_last_latency_entertime;
-		ASSERT(static_cast<int64_t>(tinfo->m_latency) >= 0);
 	}
 
 	// note: if an "execveat" call is successful, we receive an "execveat" enter event followed by
