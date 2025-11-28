@@ -86,7 +86,6 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	ASSERT_NE(tinfo, nullptr);
 	ASSERT_EQ(tinfo->m_lastevent_fd, sinsp_test_input::socket_params::default_fd);
 	ASSERT_EQ(tinfo->m_lastevent_ts, evt_ts);
-	ASSERT_EQ(tinfo->m_latency, 0);
 
 	/* Here we should recover the fdinfo from the thread info since the socket call has already
 	 * added the fdinfo into the thread. See `reset` logic, the fdinfo is recovered from the

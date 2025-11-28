@@ -148,8 +148,6 @@ void sinsp_threadinfo::init() {
 	m_vpid = -1;
 	m_pidns_init_start_ts = 0;
 	m_lastevent_fd = 0;
-	m_last_latency_entertime = 0;
-	m_latency = 0;
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
