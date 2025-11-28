@@ -251,7 +251,7 @@ public:
 		inline const field_info& info() const { return m_info; }
 
 		inline explicit field_accessor(const field_info& info):
-		        accessor(info.m_type_id, read_dynamic_field, nullptr, info.index()),
+		        accessor(info.m_type_id, read_dynamic_field, write_dynamic_field, info.index()),
 		        m_info(info) {};
 
 	private:
@@ -319,37 +319,19 @@ public:
 		return {};
 	}
 
+	static void write_dynamic_field(void* ds, size_t index, const borrowed_state_data& in) {
+		auto dstruct = static_cast<TDerived*>(ds);
+		auto ptr = dstruct->_access_dynamic_field_for_write(index);
+		ptr->update(in);
+	}
+
 protected:
 	/**
 	 * @brief Destroys all the dynamic field values currently allocated
 	 */
 	virtual void destroy_dynamic_fields() { m_fields.clear(); }
 
-	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		auto acc = dynamic_cast<const field_accessor*>(&a);
-		_check_defsptr(acc->info(), true);
-		if(acc->info().readonly()) {
-			throw sinsp_exception("can't set a read-only dynamic struct field: " +
-			                      acc->info().name());
-		}
-		auto ptr = _access_dynamic_field_for_write(acc->info().index());
-		ptr->update(in);
-	}
-
 private:
-	inline void _check_defsptr(const field_info& i, bool write) const {
-		if(!i.valid()) {
-			throw sinsp_exception("can't set invalid field in dynamic struct");
-		}
-		if(m_dynamic_fields->id() != i.m_defs_id) {
-			throw sinsp_exception(
-			        "using dynamic field accessor on struct it was not created from: " + i.name());
-		}
-		if(write && i.readonly()) {
-			throw sinsp_exception("can't set a read-only dynamic struct field: " + i.name());
-		}
-	}
-
 	inline dynamic_field_value* _access_dynamic_field_for_write(size_t index) {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
