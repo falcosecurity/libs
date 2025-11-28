@@ -29,15 +29,6 @@ public:
 	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynamic_fields):
 	        static_struct(),
 	        dynamic_struct<TDerived>(dynamic_fields) {}
-
-protected:
-	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
-			static_struct::raw_write_field(a, in);
-		} else {
-			dynamic_struct<TDerived>::raw_write_field(a, in);
-		}
-	}
 };
 
 template<typename TDerived>
