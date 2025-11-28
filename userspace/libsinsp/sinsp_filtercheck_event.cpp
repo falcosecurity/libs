@@ -59,31 +59,31 @@ static inline bool str_match_start(std::string_view val, size_t len, const char*
 
 const filtercheck_field_info sinsp_filter_check_event_fields[] = {
         {PT_RELTIME,
-         EPF_NONE,
+         EPF_NONE | EPF_DEPRECATED,
          PF_DEC,
          "evt.latency",
          "Latency",
          "delta between an exit event and the correspondent enter event, in nanoseconds."},
         {PT_RELTIME,
-         EPF_NONE,
+         EPF_NONE | EPF_DEPRECATED,
          PF_DEC,
          "evt.latency.s",
          "Latency (s)",
          "integer part of the event latency delta."},
         {PT_RELTIME,
-         EPF_NONE,
+         EPF_NONE | EPF_DEPRECATED,
          PF_10_PADDED_DEC,
          "evt.latency.ns",
          "Latency (ns)",
          "fractional part of the event latency delta."},
         {PT_UINT64,
-         EPF_TABLE_ONLY,
+         EPF_TABLE_ONLY | EPF_DEPRECATED,
          PF_DEC,
          "evt.latency.quantized",
          "Quantized Latency",
          "10-base log of the delta between an exit event and the correspondent enter event."},
         {PT_CHARBUF,
-         EPF_NONE,
+         EPF_NONE | EPF_DEPRECATED,
          PF_NA,
          "evt.latency.human",
          "Human-Readable Latency",
@@ -240,7 +240,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "Is Wait",
          "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
         {PT_RELTIME,
-         EPF_NONE,
+         EPF_NONE | EPF_DEPRECATED,
          PF_DEC,
          "evt.wait_latency",
          "Wait Latency",
@@ -856,85 +856,21 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
                                                   bool sanitize_strings) {
 	*len = 0;
 	switch(m_field_id) {
-	case TYPE_LATENCY: {
+	case TYPE_LATENCY:
+	case TYPE_LATENCY_S:
+	case TYPE_LATENCY_NS:
+	case TYPE_LATENCY_QUANTIZED:
+	case TYPE_WAIT_LATENCY: {
+		// Hardcoded value to 0 for now to avoid breaking changes.
+		// TODO(irozzo): get rid of this once the deprecated fields are removed.
 		m_val.u64 = 0;
-
-		if(evt->get_tinfo() != NULL) {
-			ppm_event_category ecat = evt->get_category();
-			if(ecat & EC_INTERNAL) {
-				return NULL;
-			}
-
-			m_val.u64 = evt->get_tinfo()->m_latency;
-		}
-
 		RETURN_EXTRACT_VAR(m_val.u64);
 	}
 	case TYPE_LATENCY_HUMAN: {
-		m_val.u64 = 0;
-
-		if(evt->get_tinfo() != NULL) {
-			ppm_event_category ecat = evt->get_category();
-			if(ecat & EC_INTERNAL) {
-				return NULL;
-			}
-
-			m_converter->set_val(PT_RELTIME,
-			                     EPF_NONE,
-			                     (uint8_t*)&evt->get_tinfo()->m_latency,
-			                     8,
-			                     0,
-			                     ppm_print_format::PF_DEC);
-
-			m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
-		}
-
+		// Hardcoded value to "0ns" for now to avoid breaking changes.
+		// TODO(irozzo): get rid of this once the deprecated fields are removed.
+		m_strstorage = "0ns";
 		RETURN_EXTRACT_STRING(m_strstorage);
-	}
-	case TYPE_LATENCY_S:
-	case TYPE_LATENCY_NS: {
-		m_val.u64 = 0;
-
-		if(evt->get_tinfo() != NULL) {
-			ppm_event_category ecat = evt->get_category();
-			if(ecat & EC_INTERNAL) {
-				return NULL;
-			}
-
-			uint64_t lat = evt->get_tinfo()->m_latency;
-
-			if(m_field_id == TYPE_LATENCY_S) {
-				m_val.u64 = lat / 1000000000;
-			} else {
-				m_val.u64 = lat % 1000000000;
-			}
-		}
-
-		RETURN_EXTRACT_VAR(m_val.u64);
-	}
-	case TYPE_LATENCY_QUANTIZED: {
-		if(evt->get_tinfo() != NULL) {
-			ppm_event_category ecat = evt->get_category();
-			if(ecat & EC_INTERNAL) {
-				return NULL;
-			}
-
-			uint64_t lat = evt->get_tinfo()->m_latency;
-			if(lat != 0) {
-				double llatency = log10((double)lat);
-
-				if(llatency > 11) {
-					llatency = 11;
-				}
-
-				m_val.u64 =
-				        (uint64_t)(llatency * m_inspector->get_quantization_interval() / 11) + 1;
-
-				RETURN_EXTRACT_VAR(m_val.u64);
-			}
-		}
-
-		return NULL;
 	}
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
@@ -984,17 +920,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			RETURN_EXTRACT_STRING(m_strstorage);
 
 		case 'd': {
-			if(evt->get_tinfo() != NULL) {
-				long long unsigned lat = evt->get_tinfo()->m_latency;
-
-				m_strstorage += to_string(lat / 1000000000);
-				m_strstorage += ".";
-				snprintf(timebuffer, sizeof(timebuffer), "%09llu", lat % 1000000000);
-				m_strstorage += string(timebuffer);
-			} else {
-				m_strstorage = "0.000000000";
-			}
-
+			m_strstorage = "0.000000000";
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 
@@ -1363,22 +1289,6 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 	}
 
 		RETURN_EXTRACT_VAR(m_val.u32);
-	case TYPE_WAIT_LATENCY: {
-		ppm_event_flags eflags = evt->get_info_flags();
-		uint16_t etype = evt->get_scap_evt()->type;
-
-		if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype)) {
-			if(evt->get_tinfo() != NULL) {
-				m_val.u64 = evt->get_tinfo()->m_latency;
-			} else {
-				m_val.u64 = 0;
-			}
-
-			RETURN_EXTRACT_VAR(m_val.u64);
-		} else {
-			return NULL;
-		}
-	}
 	case TYPE_ISSYSLOG: {
 		m_val.u32 = 0;
 

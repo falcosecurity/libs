@@ -431,12 +431,6 @@ public:
 	                      std::string& rem,
 	                      const cgroups_t& cgroups) const;
 
-	//
-	// State for filtering
-	//
-	uint64_t m_last_latency_entertime;
-	uint64_t m_latency;
-
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
