@@ -174,11 +174,11 @@ public:
 		write_field(a.as_ref(), in);
 	}
 
-	[[nodiscard]] virtual borrowed_state_data raw_read_field(const accessor& a) const {
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const {
 		return a.reader()(this, a.index());
 	}
 
-	virtual void raw_write_field(const accessor& a, const borrowed_state_data& in) {
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) {
 		a.writer()(this, a.index(), in);
 	}
 };
