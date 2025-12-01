@@ -177,7 +177,7 @@ jobs:
 
       - name: Build and test drivers on ppc64le node via ssh
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: appleboy/ssh-action@91f3272fc5907f4699dcf59761eb622a07342f5a # v1.2.3
+        uses: appleboy/ssh-action@823bd89e131d8d508129f9443cad5855e9ba96f0 # v1.2.4
         with:
           host: ${{ secrets.PPC64LE_HOST }}
           username: ${{ secrets.PPC64LE_USERNAME }}
