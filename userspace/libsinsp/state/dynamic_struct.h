@@ -251,7 +251,7 @@ public:
 		inline const field_info& info() const { return m_info; }
 
 		inline explicit field_accessor(const field_info& info):
-		        accessor(info.m_type_id, nullptr, nullptr, info.index()),
+		        accessor(info.m_type_id, read_dynamic_field, nullptr, info.index()),
 		        m_info(info) {};
 
 	private:
@@ -311,20 +311,19 @@ public:
 		m_dynamic_fields = defs;
 	}
 
+	static borrowed_state_data read_dynamic_field(const void* ds, size_t index) {
+		auto dstruct = static_cast<const TDerived*>(ds);
+		if(auto ptr = dstruct->_access_dynamic_field_for_read(index)) {
+			return borrowed_state_data(ptr->m_data);
+		}
+		return {};
+	}
+
 protected:
 	/**
 	 * @brief Destroys all the dynamic field values currently allocated
 	 */
 	virtual void destroy_dynamic_fields() { m_fields.clear(); }
-
-	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		auto acc = dynamic_cast<const field_accessor*>(&a);
-		_check_defsptr(acc->info(), false);
-		if(auto ptr = _access_dynamic_field_for_read(acc->info().index())) {
-			return borrowed_state_data(ptr->m_data);
-		}
-		return {};
-	}
 
 	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		auto acc = dynamic_cast<const field_accessor*>(&a);

@@ -207,12 +207,6 @@ TEST(dynamic_struct, defs_and_access) {
 	ctmpstr = "";
 	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
-
-	// illegal access from an accessor created from different definition list
-	auto fields2 = std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>();
-	auto field_num2 = fields2->add_field("num", SS_PLUGIN_ST_UINT64);
-	auto acc_num2 = field_num2.new_accessor().template into<uint64_t>();
-	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
 TEST(dynamic_struct, mem_ownership) {

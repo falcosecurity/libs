@@ -31,14 +31,6 @@ public:
 	        dynamic_struct<TDerived>(dynamic_fields) {}
 
 protected:
-	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
-			return static_struct::raw_read_field(a);
-		} else {
-			return dynamic_struct<TDerived>::raw_read_field(a);
-		}
-	}
-
 	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
 		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
 			static_struct::raw_write_field(a, in);
