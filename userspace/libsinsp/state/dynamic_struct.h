@@ -93,6 +93,7 @@ private:
  * @brief A base class for classes and structs that allow dynamic programming
  * by being extensible and allowing adding and accessing new data fields at runtime.
  */
+template<typename TDerived>
 class dynamic_struct : virtual public table_entry {
 public:
 	class field_accessor;
@@ -398,13 +399,16 @@ private:
 	std::shared_ptr<field_infos> m_dynamic_fields;
 };
 
+template<typename TDerived>
 class dynamic_table_fields : virtual public table_fields {
 public:
 	explicit dynamic_table_fields(
-	        const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields = nullptr):
-	        m_dynamic_fields(dynamic_fields != nullptr
-	                                 ? dynamic_fields
-	                                 : std::make_shared<dynamic_struct::field_infos>()) {}
+	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynamic_fields =
+	                nullptr):
+	        m_dynamic_fields(
+	                dynamic_fields != nullptr
+	                        ? dynamic_fields
+	                        : std::make_shared<typename dynamic_struct<TDerived>::field_infos>()) {}
 
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
 		for(auto& info : this->dynamic_fields()->fields()) {
@@ -436,7 +440,8 @@ public:
 		return get_field(name, type_id);
 	}
 
-	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
+	virtual void set_dynamic_fields(
+	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynf) {
 		if(m_dynamic_fields.get() == dynf.get()) {
 			return;
 		}
@@ -458,12 +463,13 @@ protected:
 	 * be allocated and accessible for all the present and future entries
 	 * present in the table.
 	 */
-	[[nodiscard]] const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
+	[[nodiscard]] const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>&
+	dynamic_fields() const {
 		return m_dynamic_fields;
 	}
 
 private:
-	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
+	std::shared_ptr<typename dynamic_struct<TDerived>::field_infos> m_dynamic_fields;
 };
 
 };  // namespace libsinsp::state

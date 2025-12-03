@@ -40,9 +40,10 @@ class sinsp_usergroup_manager;
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
-class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
-                                          public libsinsp::state::extensible_table_fields,
-                                          public libsinsp::state::sinsp_table_owner {
+class SINSP_PUBLIC sinsp_thread_manager
+        : public libsinsp::state::built_in_table<int64_t>,
+          public libsinsp::state::extensible_table_fields<sinsp_threadinfo>,
+          public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(
 	        const sinsp_mode& sinsp_mode,
@@ -57,9 +58,10 @@ public:
 	        const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
 	        scap_platform* const& scap_platform,
 	        scap_t* const& scap_handle,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
+	        const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_threadinfo>::field_infos>&
 	                thread_manager_dyn_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::field_infos>&
+	                fdtable_dyn_fields,
 	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager);
 	void clear();
 
@@ -171,8 +173,8 @@ public:
 
 	size_t entries_count() const override { return m_threadtable.size(); }
 
-	using libsinsp::state::extensible_table_fields::add_field;
-	using libsinsp::state::extensible_table_fields::get_field;
+	using libsinsp::state::extensible_table_fields<sinsp_threadinfo>::add_field;
+	using libsinsp::state::extensible_table_fields<sinsp_threadinfo>::get_field;
 	using libsinsp::state::built_in_table<int64_t>::add_field;
 	using libsinsp::state::built_in_table<int64_t>::get_field;
 
@@ -316,7 +318,8 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_platform* const& m_scap_platform;
 	scap_t* const& m_scap_handle;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::field_infos>
+	        m_fdtable_dyn_fields;
 
 	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info
 	 */
