@@ -22,18 +22,20 @@ limitations under the License.
 #include <libsinsp/state/static_struct.h>
 
 namespace libsinsp::state {
-class extensible_struct : public static_struct, public dynamic_struct {
+template<typename TDerived>
+class extensible_struct : public static_struct, public dynamic_struct<TDerived> {
 public:
-	explicit extensible_struct(const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields):
+	explicit extensible_struct(
+	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynamic_fields):
 	        static_struct(),
-	        dynamic_struct(dynamic_fields) {}
+	        dynamic_struct<TDerived>(dynamic_fields) {}
 
 protected:
 	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
 			return static_struct::raw_read_field(a);
 		} else {
-			return dynamic_struct::raw_read_field(a);
+			return dynamic_struct<TDerived>::raw_read_field(a);
 		}
 	}
 
@@ -41,28 +43,30 @@ protected:
 		if(dynamic_cast<const static_struct::field_accessor*>(&a)) {
 			static_struct::raw_write_field(a, in);
 		} else {
-			dynamic_struct::raw_write_field(a, in);
+			dynamic_struct<TDerived>::raw_write_field(a, in);
 		}
 	}
 };
 
+template<typename TDerived>
 class extensible_table_fields : public libsinsp::state::static_table_fields,
-                                public libsinsp::state::dynamic_table_fields {
+                                public libsinsp::state::dynamic_table_fields<TDerived> {
 public:
 	explicit extensible_table_fields(
 	        const static_struct::field_infos* const m_static_fields,
-	        const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields = nullptr):
+	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynamic_fields =
+	                nullptr):
 	        static_table_fields(m_static_fields),
-	        dynamic_table_fields(dynamic_fields) {}
+	        dynamic_table_fields<TDerived>(dynamic_fields) {}
 
 	void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
 		static_table_fields::fields(out);
-		dynamic_table_fields::fields(out);
+		dynamic_table_fields<TDerived>::fields(out);
 	}
 
 	accessor::ptr field(const char* name, ss_plugin_state_type type_id) override {
 		auto fixed_field = static_table_fields::field(name, type_id);
-		auto dynamic_field = dynamic_table_fields::field(name, type_id);
+		auto dynamic_field = dynamic_table_fields<TDerived>::field(name, type_id);
 
 		if(fixed_field != nullptr && dynamic_field != nullptr) {
 			// todo(jasondellaluce): plugins are not aware of the difference
@@ -85,7 +89,7 @@ public:
 			                      std::string(name));
 		}
 
-		return dynamic_table_fields::new_field(name, type_id);
+		return dynamic_table_fields<TDerived>::new_field(name, type_id);
 	}
 };
 

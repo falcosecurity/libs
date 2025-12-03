@@ -16,6 +16,8 @@ limitations under the License.
 
 */
 
+#include "plugins/sample_table.h"
+
 #include <gtest/gtest.h>
 #include <libsinsp/state/static_struct.h>
 #include <libsinsp/state/dynamic_struct.h>
@@ -133,23 +135,23 @@ TEST(static_struct, defs_and_access) {
 }
 
 TEST(dynamic_struct, defs_and_access) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
-
-	struct sample_struct : public libsinsp::state::dynamic_struct {
+	struct sample_struct : public libsinsp::state::dynamic_struct<sample_struct> {
 	public:
 		sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) {}
 	};
 
+	auto fields = std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>();
+
 	// struct construction and setting fields definition
 	sample_struct s(fields);
 	ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
-	ASSERT_ANY_THROW(
-	        s.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>()));
+	ASSERT_ANY_THROW(s.set_dynamic_fields(
+	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>()));
 	// The double paranthesis fixes
 	// Error C2063 'std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>' : not a function
 	// C on the Windows compiler. This should be quirk of the Windows compiler.
-	ASSERT_NO_THROW(
-	        (sample_struct(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>())));
+	ASSERT_NO_THROW((sample_struct(
+	        std::shared_ptr<libsinsp::state::dynamic_struct<sample_struct>::field_infos>())));
 	ASSERT_NO_THROW(sample_struct(nullptr));
 	auto s2 = sample_struct(nullptr);
 	s2.set_dynamic_fields(fields);
@@ -207,19 +209,19 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
 
 	// illegal access from an accessor created from different definition list
-	auto fields2 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
+	auto fields2 = std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>();
 	auto field_num2 = fields2->add_field("num", SS_PLUGIN_ST_UINT64);
 	auto acc_num2 = field_num2.new_accessor().template into<uint64_t>();
 	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
 TEST(dynamic_struct, mem_ownership) {
-	struct sample_struct : public libsinsp::state::dynamic_struct {
+	struct sample_struct : public libsinsp::state::dynamic_struct<sample_struct> {
 		sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) {}
 	};
 
 	std::string tmpstr1, tmpstr2;
-	auto defs1 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
+	auto defs1 = std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>();
 
 	// construct two entries, test safety checks
 	sample_struct s1(nullptr);
@@ -229,7 +231,7 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_ANY_THROW(s1.set_dynamic_fields(nullptr));
 	ASSERT_NO_THROW(s1.set_dynamic_fields(defs1));
 	ASSERT_ANY_THROW(s1.set_dynamic_fields(
-	        std::make_shared<libsinsp::state::dynamic_struct::field_infos>()));
+	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>()));
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field("str", SS_PLUGIN_ST_STRING);
@@ -259,7 +261,8 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_NE(tmpstr1, tmpstr2);
 
 	// deep copy and memory ownership (assignment)
-	sample_struct s4(std::make_shared<libsinsp::state::dynamic_struct::field_infos>());
+	sample_struct s4(
+	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>());
 	s4 = s1;
 	ASSERT_EQ(s1.dynamic_fields().get(), s4.dynamic_fields().get());
 	s1.read_field(field_str_acc, tmpstr1);
@@ -284,8 +287,14 @@ TEST(dynamic_struct, mem_ownership) {
 }
 
 TEST(table_registry, defs_and_access) {
+	class sample_struct : public libsinsp::state::dynamic_struct<sample_struct> {
+	public:
+		explicit sample_struct(const std::shared_ptr<field_infos>& dynamic_fields):
+		        dynamic_struct(dynamic_fields) {}
+	};
+
 	class sample_table : public libsinsp::state::built_in_table<uint64_t>,
-	                     public libsinsp::state::dynamic_table_fields {
+	                     public libsinsp::state::dynamic_table_fields<sample_struct> {
 	public:
 		sample_table(): built_in_table("sample") {}
 
@@ -295,7 +304,7 @@ TEST(table_registry, defs_and_access) {
 
 		std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
 			return std::unique_ptr<libsinsp::state::table_entry>(
-			        new libsinsp::state::dynamic_struct(dynamic_fields()));
+			        new libsinsp::state::dynamic_struct<sample_struct>(dynamic_fields()));
 		}
 
 		bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
