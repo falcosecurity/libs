@@ -74,7 +74,7 @@ union sinsp_sockinfo {
    you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */
-class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::extensible_struct {
+class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::extensible_struct<sinsp_fdinfo> {
 public:
 	/*!
 	  \brief FD flags.
@@ -102,8 +102,8 @@ public:
 		FLAGS_OVERLAY_LOWER = (1 << 18),
 	};
 
-	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields =
-	                     nullptr);
+	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::field_infos>&
+	                     dyn_fields = nullptr);
 	sinsp_fdinfo(sinsp_fdinfo&& o) = default;
 	sinsp_fdinfo& operator=(sinsp_fdinfo&& o) = default;
 	sinsp_fdinfo(const sinsp_fdinfo& o) = default;

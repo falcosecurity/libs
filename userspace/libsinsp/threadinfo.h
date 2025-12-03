@@ -62,7 +62,8 @@ struct sinsp_threadinfo_ctor_params {
 	const sinsp_network_interfaces& network_interfaces;
 	const sinsp_fdinfo_factory& fdinfo_factory;
 	const sinsp_fdtable_factory& fdtable_factory;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& thread_manager_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_threadinfo>::field_infos>&
+	        thread_manager_dyn_fields;
 };
 
 /*!
@@ -76,7 +77,7 @@ struct sinsp_threadinfo_ctor_params {
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct {
+class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct<sinsp_threadinfo> {
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
 
