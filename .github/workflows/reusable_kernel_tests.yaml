@@ -35,17 +35,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        architecture: [X64, ARM64]
-    runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}" ]
+        architecture: [ X64, ARM64 ]
+    runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}", "kernel-testing-matrix" ]
     steps:
-      # We need to use v0.3.2 instead of the hash because the tagname is 
-      # used by the action to download release tagged images.
-      - uses: falcosecurity/kernel-testing@v0.3.2
+      - uses: falcosecurity/kernel-testing@9d4262d3bfc963ea9a5127364f2a3a646ab59281
         id: kernel_tests
         with:
           libsversion: ${{ inputs.libsversion }}
           libsrepo: ${{ inputs.libsrepo }}
           build_matrix: 'true'
+          images_tag: 'v0.3.2'
 
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
