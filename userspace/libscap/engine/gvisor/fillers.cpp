@@ -262,23 +262,23 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_EXECVE_19_X,
-	                                30,
-	                                res,
-	                                exe,
-	                                args,
-	                                tid,
-	                                pid,
-	                                -1,     // ptid -- INVALID
-	                                cwd,    // cwd
-	                                75000,  // fdlimit -- INVALID
-	                                0,      // pgft_maj -- INVALID
-	                                0,      // pgft_min -- INVALID
-	                                0,      // vm_size -- INVALID
-	                                0,      // vm_rss -- INVALID
-	                                0,      // vm_swap -- INVALID
-	                                comm,
-	                                cgroups,
-	                                env,
+	                                31,
+	                                res,         // res
+	                                exe,         // exe
+	                                args,        // args
+	                                tid,         // tid
+	                                pid,         // pid
+	                                -1,          // ptid -- INVALID
+	                                cwd,         // cwd
+	                                75000,       // fdlimit -- INVALID
+	                                0,           // pgft_maj -- INVALID
+	                                0,           // pgft_min -- INVALID
+	                                0,           // vm_size -- INVALID
+	                                0,           // vm_rss -- INVALID
+	                                0,           // vm_swap -- INVALID
+	                                comm,        // comm
+	                                cgroups,     // cgroups
+	                                env,         // env
 	                                0,           // tty -- INVALID
 	                                0,           // vpgid -- INVALID
 	                                UINT32_MAX,  // loginuid -- INVALID
@@ -292,7 +292,8 @@ int32_t fill_event_execve_19_x(scap_sized_buffer scap_buf,
 	                                uid,         // uid
 	                                exe,         // trusted_exepath
 	                                0,           // pgid -- INVALID
-	                                gid          // gid
+	                                gid,         // gid
+	                                exe          // filename
 	);
 }
 

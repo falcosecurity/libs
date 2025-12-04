@@ -1344,6 +1344,14 @@ cgroups_error:
 		egid = from_kgid_munged(current_user_ns(), current_egid());
 		res = val_to_ring(args, egid, 0, false, 0);
 		CHECK_RES(res);
+
+		if(args->event_type == PPME_SYSCALL_EXECVE_19_X) {
+			/* Parameter 31: filename (type: PT_FSPATH) */
+			unsigned long filename_pointer;
+			syscall_get_arguments_deprecated(args, 0, 1, &filename_pointer);
+			res = val_to_ring(args, filename_pointer, 0, true, 0);
+			CHECK_RES(res);
+		}
 	}
 	return add_sentinel(args);
 }
@@ -7545,6 +7553,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args) {
 	uint32_t egid = UINT32_MAX;
 	char *buf = (char *)args->str_storage;
 	char *trusted_exepath = NULL;
+	unsigned long filename_pointer = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: if this filler is called the execve is correctly
@@ -7863,6 +7872,18 @@ cgroups_error:
 	/* Parameter 30: egid (type: PT_GID) */
 	egid = from_kgid_munged(current_user_ns(), current_egid());
 	res = val_to_ring(args, egid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	/* note: in the current implementation, this filler is called for both execve and execveat, and
+	 * always generates an execve event. We use `bprm->filename` to populate the `filename`
+	 * parameter. `bprm->filename` contains a different thing, depending on the original system call
+	 * type and arguments provided by the user (see
+	 * https://elixir.bootlin.com/linux/v6.17.8/source/fs/exec.c#L1422-L1448).
+	 * At least for execve, it contains the system call's first argument, as provided by the user.
+	 */
+	filename_pointer = (unsigned long)args->sched_proc_exec_bprm->filename;
+	res = val_to_ring(args, filename_pointer, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

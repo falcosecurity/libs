@@ -365,7 +365,7 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 	return add_event_advance_ts(increasing_ts(),
 	                            new_tid,
 	                            PPME_SYSCALL_EXECVE_19_X,
-	                            30,
+	                            31,
 	                            retval,
 	                            pathname.c_str(),
 	                            empty_bytebuf,
@@ -395,7 +395,8 @@ sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
 	                            not_relevant_32,
 	                            resolved_kernel_path.c_str(),
 	                            pgid,
-	                            not_relevant_32);
+	                            not_relevant_32,
+	                            pathname.c_str());
 }
 
 sinsp_evt* sinsp_with_test_input::generate_execveat_enter_and_exit_event(
@@ -474,7 +475,7 @@ sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_default_params
 	return add_event_advance_ts(increasing_ts(),
 	                            pid,
 	                            PPME_SYSCALL_EXECVE_19_X,
-	                            30,
+	                            31,
 	                            (int64_t)0,                          /* res */
 	                            file_to_run.c_str(),                 /* exe */
 	                            scap_const_sized_buffer{nullptr, 0}, /* args */
@@ -504,7 +505,8 @@ sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_default_params
 	                            (uint32_t)0,                         /* uid */
 	                            "",                                  /* trusted_exepath */
 	                            (uint64_t)0,                         /* pgid */
-	                            (uint32_t)0                          /* gid */
+	                            (uint32_t)0,                         /* gid */
+	                            file_to_run.c_str()                  /* filename */
 	);
 }
 
@@ -518,7 +520,7 @@ sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_empty_params(
 	        1,
 	        PPME_SYSCALL_EXECVE_19_X,
 	        &empty_params_set,
-	        30,
+	        31,
 	        (int64_t)0,                             /* res */
 	        file_to_run.c_str(),                    /* exe */
 	        scap_const_sized_buffer{nullptr, 0},    /* args */
@@ -546,9 +548,11 @@ sinsp_evt* sinsp_with_test_input::generate_execve_exit_event_with_empty_params(
 	        empty_value<uint64_t>(),                /* exe_ino_ctime */
 	        empty_value<uint64_t>(),                /* exe_ino_mtime */
 	        empty_value<uint32_t>(),                /* uid */
-	        empty_value<scap_const_sized_buffer>(), /* trusted_exepath */
+	        empty_value<char*>(),                   /* trusted_exepath */
 	        empty_value<int64_t>(),                 /* pgid */
-	        empty_value<uint32_t>());               /* gid */
+	        empty_value<uint32_t>(),                /* gid */
+	        file_to_run.c_str()                     /* filename */
+	);
 }
 
 void sinsp_with_test_input::remove_thread(int64_t tid_to_remove, int64_t reaper_tid) {
