@@ -264,9 +264,12 @@ TEST(GenericTracepoints, sched_proc_exec_execve) {
 	/* Parameter 30: egid (type: PT_GID) */
 	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
@@ -378,9 +381,14 @@ TEST(GenericTracepoints, sched_proc_exec_execve_memfd) {
 		evt_test->assert_charbuf_param(28, "memfd:malware");
 	}
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	char pathname[200];
+	snprintf(pathname, sizeof(pathname), "/proc/%d/fd/%d", ret_pid, mem_fd);
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 #endif
 
@@ -510,9 +518,12 @@ TEST(GenericTracepoints, sched_proc_exec_execve_not_upperlayer) {
 	/* Parameter 30: egid (type: PT_GID) */
 	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, merged_exe_path);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 TEST(GenericTracepoints, sched_proc_exec_execve_upperlayer) {
@@ -640,9 +651,12 @@ TEST(GenericTracepoints, sched_proc_exec_execve_upperlayer) {
 	/* Parameter 30: egid (type: PT_GID) */
 	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 #if defined(__NR_symlinkat) && defined(__NR_unlinkat)
@@ -731,14 +745,96 @@ TEST(GenericTracepoints, sched_proc_exec_execve_symlink) {
 	/* Parameter 14: comm (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(14, comm);
 
-	/* Parameter 28: resolve_path (type: PT_CHARBUF) */
+	/* Parameter 28: trusted_exepath (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(28, pathname);
+
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, linkpath);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 #endif
+
+TEST(GenericTracepoints, sched_proc_exec_execve_unresolved_filename) {
+	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* Prepare the execve args */
+	const char *pathname = "/usr/../usr/./bin/true";
+	const char *resolved_pathname = "/usr/bin/true";
+	const char *comm = "true";
+	const char *argv[] = {pathname, "", nullptr};
+
+	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
+	 * when the child terminates.
+	 */
+	clone_args cl_args = {};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0) {
+		syscall(__NR_execve, pathname, argv, nullptr);
+		exit(EXIT_FAILURE);
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
+		FAIL() << "The child execve failed." << std::endl;
+	}
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	/* We search for a child event. */
+	evt_test->assert_event_presence(ret_pid);
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Please note here we cannot assert all the params, we check only the possible ones. */
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, static_cast<int64_t>(0));
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(2, pathname);
+
+	/* Parameter 14: comm (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(14, comm);
+
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(28, resolved_pathname);
+
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(31);
+}
 
 #ifdef __NR_execveat
 
@@ -820,7 +916,7 @@ TEST(GenericTracepoints, sched_proc_exec_execveat) {
 
 	/* Please note here we cannot assert all the params, we check only the possible ones. */
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
@@ -899,9 +995,12 @@ TEST(GenericTracepoints, sched_proc_exec_execveat) {
 	/* Parameter 30: egid (type: PT_GID) */
 	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
@@ -1013,14 +1112,19 @@ TEST(GenericTracepoints, sched_proc_exec_execveat_memfd) {
 		evt_test->assert_charbuf_param(28, "memfd:malware");
 	}
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	char pathname[200];
+	snprintf(pathname, sizeof(pathname), "/proc/%d/fd/%d", ret_pid, mem_fd);
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 #endif  // defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) &&
         // defined(__NR_write)
 
-TEST(GenericTracepoints, sched_proc_exec_execveat_comm_equal_to_fd) {
+TEST(GenericTracepoints, sched_proc_exec_execveat_comm_equal_to_fd_in_old_kernel_versions) {
 	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -1036,9 +1140,11 @@ TEST(GenericTracepoints, sched_proc_exec_execveat_comm_equal_to_fd) {
 
 	// We will use the `AT_EMPTY_PATH` strategy
 	const char *pathname = "";
-	const char *argv[] = {pathname,
-	                      "[OUTPUT] GenericTracepoints.sched_proc_exec_execveat_comm_equal_to_fd",
-	                      NULL};
+	const char *argv[] = {
+	        pathname,
+	        "[OUTPUT] "
+	        "GenericTracepoints.sched_proc_exec_execveat_comm_equal_to_fd_in_old_kernel_versions",
+	        NULL};
 	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
 	int flags = AT_EMPTY_PATH;
 
@@ -1114,9 +1220,13 @@ TEST(GenericTracepoints, sched_proc_exec_execveat_comm_equal_to_fd) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(28, exe_path.c_str());
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	const std::string dirfd_path{"/dev/fd/" + dirfd_str};
+	evt_test->assert_charbuf_param(31, dirfd_path.c_str());
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 #endif  // __NR_execveat

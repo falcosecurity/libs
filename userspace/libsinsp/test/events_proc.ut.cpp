@@ -749,7 +749,7 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,
 	                           PPME_SYSCALL_EXECVE_19_X,
-	                           30,
+	                           31,
 	                           (int64_t)0,
 	                           "/bin/test-exe",
 	                           scap_const_sized_buffer{argsv.data(), argsv.size()},
@@ -779,7 +779,8 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	                           euid,
 	                           "/bin/test-exe",
 	                           parent_tid,
-	                           egid);
+	                           egid,
+	                           "/bin/test-exe");
 
 	// check that the cwd is inherited from the parent (default process has /root/)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
@@ -1012,7 +1013,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,
 	                           PPME_SYSCALL_EXECVE_19_X,
-	                           30,
+	                           31,
 	                           (int64_t)0,
 	                           "/bin/test-exe",
 	                           scap_const_sized_buffer{argsv.data(), argsv.size()},
@@ -1042,7 +1043,8 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                           (uint32_t)0,
 	                           "/bin/test-exe",
 	                           (int64_t)0,
-	                           (uint32_t)0);
+	                           (uint32_t)0,
+	                           "/bin/test-exe");
 
 	ASSERT_FALSE(field_has_value(evt, "proc.pid"));
 	ASSERT_FALSE(field_has_value(evt, "thread.tid"));
@@ -1112,7 +1114,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child2_tid,
 	                           PPME_SYSCALL_EXECVE_19_X,
-	                           30,
+	                           31,
 	                           (int64_t)0,
 	                           "/bin/test-exe2",
 	                           scap_const_sized_buffer{argsv.data(), argsv.size()},
@@ -1142,7 +1144,8 @@ TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	                           (uint32_t)0,
 	                           "/bin/test-exe2",
 	                           (int64_t)0,
-	                           (uint32_t)0);
+	                           (uint32_t)0,
+	                           "/bin/test-exe2");
 
 	ASSERT_FALSE(field_has_value(evt, "proc.pid"));
 	ASSERT_FALSE(field_has_value(evt, "thread.tid"));
@@ -1251,7 +1254,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           child_tid,
 	                           PPME_SYSCALL_EXECVE_19_X,
-	                           30,
+	                           31,
 	                           (int64_t)0,
 	                           "/bin/test-exe",
 	                           scap_const_sized_buffer{argsv.data(), argsv.size()},
@@ -1281,7 +1284,8 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	                           (uint32_t)0,
 	                           "/bin/test-exe",
 	                           (int64_t)0,
-	                           (uint32_t)0);
+	                           (uint32_t)0,
+	                           "/bin/test-exe");
 
 	// Check last exec was recorded
 	ASSERT_GT(evt->get_thread_info()->m_lastexec_ts, 0);

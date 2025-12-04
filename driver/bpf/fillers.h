@@ -2856,7 +2856,18 @@ FILLER(execve_extra_tail_2, true) {
 	/* Parameter 30: egid (type: PT_GID) */
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	kgid_t egid = _READ(cred->egid);
-	return bpf_push_u32_to_ring(data, egid.val);
+	res = bpf_push_u32_to_ring(data, egid.val);
+	CHECK_RES(res);
+
+	if(data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X) {
+		return res;
+	}
+
+	/* The following is valid only for PPME_SYSCALL_EXECVE_19_X */
+
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	unsigned long filename_pointer = bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring_mem(data, filename_pointer, USER);
 }
 
 FILLER(sys_accept4_x, true) {
@@ -7120,7 +7131,26 @@ FILLER(sched_prog_exec_5, false) {
 	/* Parameter 30: egid (type: PT_GID) */
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	kgid_t egid = _READ(cred->egid);
-	return bpf_push_u32_to_ring(data, egid.val);
+	res = bpf_push_u32_to_ring(data, egid.val);
+	CHECK_RES(res);
+
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	/* note: in the current implementation, this filler is called for both successful execve and
+	 * execveat, and always generates an execve event. We use `bprm->filename` to populate the
+	 * `filename` parameter. `bprm->filename` contains a different thing, depending on the original
+	 * system call type and arguments provided by the user (see
+	 * https://elixir.bootlin.com/linux/v6.17.8/source/fs/exec.c#L1422-L1448).
+	 * At least for execve, it contains the system call's first argument, as provided by the user.
+	 */
+	struct sched_process_exec_args *original_ctx = (struct sched_process_exec_args *)data->ctx;
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	struct linux_binprm *bprm = original_ctx->bprm;
+	unsigned long filename_pointer = (unsigned long)_READ(bprm->filename);
+#else
+	unsigned long filename_offset = (unsigned long)original_ctx->filename & 0xFFFF;
+	unsigned long filename_pointer = (unsigned long)original_ctx + filename_offset;
+#endif
+	return bpf_val_to_ring_mem(data, filename_pointer, KERNEL);
 }
 
 #ifdef CAPTURE_SCHED_PROC_FORK
