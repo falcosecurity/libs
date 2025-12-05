@@ -68,6 +68,14 @@ static void store_evt(std::unordered_map<uint64_t, safe_scap_evt_t> &evt_storage
 	// corresponding exit event, but if the same thread is doing another enter event it means the
 	// previous syscall is already completed.
 
+	PRINT_MESSAGE(
+	        "Store event in event storage - (evt_tid: %lu, evt_type: %d, evt_len: %d, evt_nparams: "
+	        "%d)\n",
+	        tid,
+	        evt->type,
+	        evt->len,
+	        evt->nparams);
+
 	clear_evt(evt_storage, tid);
 
 	scap_evt *tmp_evt = (scap_evt *)malloc(evt->len);
@@ -326,13 +334,14 @@ static void push_default_parameter(scap_evt *evt, size_t *params_offset, const u
 	const auto len_size = get_param_len_size(evt);
 
 	PRINT_MESSAGE(
-	        "push default param (%d, type: %d) with len (%d) at {params_offest (%d), "
-	        "lens_offset (%d)}\n",
+	        "Push default parameter - (evt_type: %d, param_num: %d, param_type: %d, param_len: %d, "
+	        "evt_lens_offset: %lu, evt_params_offset: %lu)\n",
+	        evt->type,
 	        param_num,
 	        param_type,
 	        len,
-	        *params_offset,
-	        sizeof(scap_evt) + param_num * len_size);
+	        sizeof(scap_evt) + param_num * len_size,
+	        *params_offset);
 
 	const uint64_t val = get_default_value_from_type(param_type);
 	memcpy(reinterpret_cast<char *>(evt) + *params_offset, &val, len);
@@ -346,10 +355,13 @@ static void push_default_parameter(scap_evt *evt, size_t *params_offset, const u
 static void push_empty_parameter(scap_evt *evt, const uint8_t param_num) {
 	const auto len_size = get_param_len_size(evt);
 
-	PRINT_MESSAGE("push empty param (num: %d, type: %d), lens_offset (%d)}\n",
-	              param_num,
-	              get_param_type(evt, param_num),
-	              sizeof(scap_evt) + param_num * len_size);
+	PRINT_MESSAGE(
+	        "Push empty parameter - (evt_type: %d, param_num: %d, param_type: %d, param_len: 0, "
+	        "evt_lens_offset: %lu, evt_params_offset: NULL)\n",
+	        evt->type,
+	        param_num,
+	        get_param_type(evt, param_num),
+	        sizeof(scap_evt) + param_num * len_size);
 
 	// Just set the parameter length to 0.
 	set_param_len_unchecked(evt, param_num, 0, len_size);
@@ -384,17 +396,23 @@ static void push_parameter(scap_evt *new_evt,
 	auto *const new_evt_param_ptr = reinterpret_cast<char *>(new_evt) + *new_evt_params_offset;
 
 	PRINT_MESSAGE(
-	        "push param (%d, type: %d) with len (%d) at {params_offset: %d, "
-	        "lens_offset: %d} from event type '%d', param (%d, type: %d) with len (%d)\n",
+	        "Push parameter from event - (evt_type: %d, param_num: %d, param_type: %d, param_len: "
+	        "%d, evt_lens_offset: %lu, evt_params_offset: %lu, old_evt_type: %d, old_param_num: "
+	        "%d, old_param_type: %d, old_param_len: %d, old_evt_lens_offset: %lu, "
+	        "old_evt_params_offset: %lu)\n",
+	        new_evt->type,
 	        new_evt_param_num,
 	        get_param_type(new_evt, new_evt_param_num),
 	        new_evt_param_len,
-	        *new_evt_params_offset,
 	        sizeof(scap_evt) + new_evt_param_num * new_evt_len_size,
+	        *new_evt_params_offset,
 	        tmp_evt->type,
 	        tmp_evt_param_num,
 	        get_param_type(tmp_evt, tmp_evt_param_num),
-	        tmp_evt_param_len);
+	        tmp_evt_param_len,
+	        sizeof(scap_evt) + tmp_evt_param_num * tmp_evt_len_size,
+	        reinterpret_cast<const char *>(tmp_evt_param_ptr) -
+	                reinterpret_cast<const char *>(tmp_evt));
 
 	memcpy(new_evt_param_ptr, tmp_evt_param_ptr, new_evt_param_len);
 	*new_evt_params_offset += new_evt_param_len;
@@ -425,11 +443,13 @@ static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert)
 	}
 
 	PRINT_MESSAGE(
-	        "Copy lengths array (size %d) from old event offset '%d' to new event "
-	        "offset '%d'\n",
-	        evt_to_convert->nparams * old_evt_len_size,
+	        "Copy lengths array from event - (evt_type: %d, evt_lens_offset: %lu, old_evt_type: "
+	        "%d, old_evt_lens_offset: %lu, lengths_len: %lu)\n",
+	        new_evt->type,
+	        new_evt_offset,
+	        evt_to_convert->type,
 	        old_evt_offset,
-	        new_evt_offset);
+	        evt_to_convert->nparams * old_evt_len_size);
 
 	// Copy the parameters (we left some space for the missing lengths)
 	new_evt_offset += new_evt->nparams * new_evt_len_size;
@@ -439,11 +459,14 @@ static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert)
 	memcpy(new_evt_ptr + new_evt_offset, old_evt_ptr + old_evt_offset, params_len);
 
 	PRINT_MESSAGE(
-	        "Copy parameters (size %d) from old event offset '%d' to new event "
-	        "offset '%d'\n",
-	        params_len,
+	        "Copy parameters list from event - (evt_type: %d, evt_params_offset: %lu, "
+	        "old_evt_type: "
+	        "%d, old_evt_params_offset: %lu, params_len: %d)\n",
+	        new_evt->type,
+	        new_evt_offset,
+	        evt_to_convert->type,
 	        old_evt_offset,
-	        new_evt_offset);
+	        params_len);
 
 	return new_evt_offset + params_len;
 }
@@ -595,17 +618,18 @@ int push_parameter_from_callback(scap_evt *new_evt,
 	}
 
 	PRINT_MESSAGE(
-	        "push param (%d, type: %d) with allowed len in interval '[%d; %d]' at {params_offset: "
-	        "%d, lens_offset: %d} from callback-generated buffer with len '%d', leveraging event "
-	        "'%d'\n",
+	        "Push parameter from callback - (evt_type: %d, param_num: %d, param_type: %d, "
+	        "param_len: %lu, param_min_len: %d, param_max_len: %d, evt_lens_offset: %lu, "
+	        "evt_params_offset: %lu, old_evt_type: %d\n",
+	        new_evt->type,
 	        new_evt_param_num,
 	        param_type,
+	        buffer_len,
 	        min_param_len,
 	        max_param_len,
+	        sizeof(scap_evt) + new_evt_param_num * len_size,
 	        *new_evt_params_offset,
-	        sizeof(scap_evt) + new_evt_param_num * new_evt_len_size,
-	        buffer_len,
-	        tmp_evt->type);
+	        old_evt->type);
 
 	memcpy(reinterpret_cast<char *>(new_evt) + *new_evt_params_offset, buffer_ptr, buffer_len);
 	*new_evt_params_offset += buffer_len;
@@ -677,9 +701,19 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 	// We iterate over the instructions
 	for(size_t i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
-		PRINT_MESSAGE("Instruction n° %d. Param to populate: %d\n", i, param_to_populate);
-
 		auto &instr = ci.m_instrs[i];
+
+		PRINT_MESSAGE(
+		        "Process new instruction for populating event parameter - (evt_type: %d, "
+		        "param_num: %d, action_type: %d, instr_num: %lu, instr_code: %d, instr_param_num: "
+		        "%d, instr_flags: %d)\n",
+		        new_evt->type,
+		        param_to_populate,
+		        ci.m_action,
+		        i,
+		        instr.code,
+		        instr.param_num,
+		        instr.flags);
 
 		switch(instr.code) {
 		case C_INSTR_FROM_EMPTY:
