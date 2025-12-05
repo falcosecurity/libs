@@ -52,8 +52,10 @@ jobs:
 
       - name: Diff from master - gbench
         run: |
-          pip3 install -r google-benchmark/tools/requirements.txt
-          python3 google-benchmark/tools/compare.py --no-color benchmarks gbench_data.json ${{ steps.perf.outputs.gbench_json }} &> gbench_diff.txt
+          python3 -m venv .venv
+          ./.venv/bin/python -m pip install setuptools # Needed because Python 3.12 doesn't ship distutils anymore.
+          ./.venv/bin/python -m pip install -r google-benchmark/tools/requirements.txt
+          ./.venv/bin/python google-benchmark/tools/compare.py --no-color benchmarks gbench_data.json "${{ steps.perf.outputs.gbench_json }}" &> gbench_diff.txt
 
       - name: Archive perf diff
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
