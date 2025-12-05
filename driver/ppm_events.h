@@ -13,11 +13,11 @@ or GPL2.txt for full copies of the license.
 
 /* To know about __NR_socketcall */
 #include <asm/unistd.h>
-#include "ppm_consumer.h"
+#include <linux/binfmts.h>  // `struct linux_binprm` definition.
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
 #endif
-
+#include "ppm_consumer.h"
 #include "ppm_events_public.h"
 
 /*
@@ -56,6 +56,7 @@ struct event_filler_arguments {
 #ifdef CAPTURE_SCHED_PROC_FORK
 	struct task_struct *child; /* for sched_process_fork events, this is the child task */
 #endif
+	struct linux_binprm *sched_proc_exec_bprm; /* Only meaningful for sched_process_exec events. */
 
 	char *str_storage; /* String storage. Size is one page. */
 	unsigned long args[6];

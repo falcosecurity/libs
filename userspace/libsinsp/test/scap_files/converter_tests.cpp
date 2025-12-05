@@ -657,13 +657,14 @@ TEST_F(scap_file_test, execve_x_check_final_converted_event) {
 	constexpr auto trusted_exepath = empty_value<char *>();
 	constexpr auto pgid = empty_value<int64_t>();
 	constexpr auto gid = empty_value<uint32_t>();
+	constexpr char filename[] = "/usr/bin/cat";
 
 	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 27, 28, 29);
 	assert_event_presence(create_safe_scap_event_with_empty_params(ts,
 	                                                               tid_hdr,
 	                                                               PPME_SYSCALL_EXECVE_19_X,
 	                                                               &empty_params_set,
-	                                                               30,
+	                                                               31,
 	                                                               res,
 	                                                               exe,
 	                                                               args,
@@ -693,7 +694,8 @@ TEST_F(scap_file_test, execve_x_check_final_converted_event) {
 	                                                               uid,
 	                                                               trusted_exepath,
 	                                                               pgid,
-	                                                               gid));
+	                                                               gid,
+	                                                               filename));
 }
 
 ////////////////////////////

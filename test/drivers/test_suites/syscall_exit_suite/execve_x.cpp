@@ -213,9 +213,50 @@ TEST(SyscallExit, execveX_failure) {
 	/* Parameter 30: egid (type: PT_GID) */
 	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
+}
+
+TEST(SyscallExit, execveX_failure_unresolved_filename) {
+	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	char pathname[] = "/non/existent/../path";
+	assert_syscall_state(SYSCALL_FAILURE, "execve", syscall(__NR_execve, pathname, NULL, NULL));
+	int64_t errno_value = -errno;
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(31);
 }
 
 TEST(SyscallExit, execveX_failure_args_env_NULL) {
@@ -258,9 +299,12 @@ TEST(SyscallExit, execveX_failure_args_env_NULL) {
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	evt_test->assert_empty_param(16);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 TEST(SyscallExit, execveX_failure_path_NULL_but_not_args) {
@@ -306,9 +350,12 @@ TEST(SyscallExit, execveX_failure_path_NULL_but_not_args) {
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	evt_test->assert_charbuf_array_param(16, &newenviron[0]);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 TEST(SyscallExit, execveX_failure_empty_arg) {
@@ -474,9 +521,12 @@ TEST(SyscallExit, execveX_failure_empty_arg) {
 	/* Parameter 30: egid (type: PT_GID) */
 	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(31, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(30);
+	evt_test->assert_num_params_pushed(31);
 }
 
 #endif

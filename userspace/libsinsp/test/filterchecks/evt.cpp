@@ -143,6 +143,27 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "res=0 uid=5(<NA>)");
 }
 
+TEST_F(sinsp_with_test_input, EVT_FILTER_execve_evt_arg_filename_comm_trusted_exepath) {
+	add_default_init_thread();
+	open_inspector();
+
+	const std::string filename{"/usr/../usr/./bin/python3"};
+	const std::string comm{"python3"};
+	const std::string trusted_exepath{"/usr/bin/python3"};
+	const auto evt = generate_execve_enter_and_exit_event(0,
+	                                                      INIT_TID,
+	                                                      INIT_TID,
+	                                                      INIT_PID,
+	                                                      INIT_PTID,
+	                                                      filename,
+	                                                      comm,
+	                                                      trusted_exepath);
+
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.filename"), filename.c_str());
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.comm"), comm.c_str());
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.trusted_exepath"), trusted_exepath.c_str());
+}
+
 TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {
 	DEFAULT_TREE
 

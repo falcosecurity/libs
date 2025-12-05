@@ -2018,7 +2018,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_18_X_17_to_19_X_18_params_no_ente
 	                                                 vpgid));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_E_1_pass) {
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_E_1_store_and_pass) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -2026,9 +2026,10 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_E_1_pass) {
 
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_EXECVE_19_E, 1, filename);
 	assert_single_conversion_pass(evt);
+	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_31_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid_hdr = 25;
 
@@ -2067,8 +2068,9 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 	constexpr auto trusted_exepath = empty_value<char *>();
 	constexpr auto pgid = empty_value<int64_t>();
 	constexpr auto gid = empty_value<uint32_t>();
+	constexpr auto filename = empty_value<char *>();
 
-	SCAP_EMPTY_PARAMS_SET(empty_params_set, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29);
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30);
 
 	assert_full_conversion(create_safe_scap_event(ts,
 	                                              tid_hdr,
@@ -2096,7 +2098,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 	                                                                tid_hdr,
 	                                                                PPME_SYSCALL_EXECVE_19_X,
 	                                                                &empty_params_set,
-	                                                                30,
+	                                                                31,
 	                                                                res,
 	                                                                exe,
 	                                                                args,
@@ -2126,7 +2128,116 @@ TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_30_params_no_enter) {
 	                                                                uid,
 	                                                                trusted_exepath,
 	                                                                pgid,
-	                                                                gid));
+	                                                                gid,
+	                                                                filename));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_EXECVE_19_X_18_to_31_params_with_enter) {
+	constexpr uint64_t ts = 12;
+	constexpr int64_t tid_hdr = 25;
+
+	constexpr int64_t res = 89;
+	constexpr char exe[] = "exe";
+	constexpr uint8_t args_data[]{1, 2, 3, 4};
+	const scap_const_sized_buffer args{args_data, sizeof(args_data)};
+	constexpr int64_t tid = 100;
+	constexpr int64_t pid = 101;
+	constexpr int64_t ptid = 102;
+	constexpr char cwd[] = "cwd";
+	constexpr uint64_t fdlimit = 103;
+	constexpr uint64_t pgft_maj = 104;
+	constexpr uint64_t pgft_min = 105;
+	constexpr uint32_t vm_size = 106;
+	constexpr uint32_t vm_rss = 107;
+	constexpr uint32_t vm_swap = 108;
+	constexpr char comm[] = "comm";
+	constexpr uint8_t cgroups_data[]{1, 2, 3, 4};
+	const scap_const_sized_buffer cgroups{cgroups_data, sizeof(cgroups_data)};
+	constexpr uint8_t env_data[]{1, 2, 3, 4};
+	const scap_const_sized_buffer env{env_data, sizeof(env_data)};
+	constexpr uint32_t tty = 80;
+	constexpr int64_t vpgid = 103;
+	constexpr char filename[] = "filename";
+
+	// Set to empty.
+	constexpr auto loginuid = empty_value<uint32_t>();
+	constexpr auto flags = empty_value<uint32_t>();
+	constexpr auto cap_inheritable = empty_value<uint64_t>();
+	constexpr auto cap_permitted = empty_value<uint64_t>();
+	constexpr auto cap_effective = empty_value<uint64_t>();
+	constexpr auto exe_ino = empty_value<uint64_t>();
+	constexpr auto exe_ino_ctime = empty_value<int64_t>();
+	constexpr auto exe_ino_mtime = empty_value<int64_t>();
+	constexpr auto uid = empty_value<uint32_t>();
+	constexpr auto trusted_exepath = empty_value<char *>();
+	constexpr auto pgid = empty_value<int64_t>();
+	constexpr auto gid = empty_value<uint32_t>();
+
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29);
+
+	// After the first conversion we should have the storage.
+	const auto evt = create_safe_scap_event(ts, tid_hdr, PPME_SYSCALL_EXECVE_19_E, 1, filename);
+	assert_single_conversion_pass(evt);
+	assert_event_storage_presence(evt);
+
+	assert_full_conversion(create_safe_scap_event(ts,
+	                                              tid_hdr,
+	                                              PPME_SYSCALL_EXECVE_19_X,
+	                                              18,
+	                                              res,
+	                                              exe,
+	                                              args,
+	                                              tid,
+	                                              pid,
+	                                              ptid,
+	                                              cwd,
+	                                              fdlimit,
+	                                              pgft_maj,
+	                                              pgft_min,
+	                                              vm_size,
+	                                              vm_rss,
+	                                              vm_swap,
+	                                              comm,
+	                                              cgroups,
+	                                              env,
+	                                              tty,
+	                                              vpgid),
+	                       create_safe_scap_event_with_empty_params(ts,
+	                                                                tid_hdr,
+	                                                                PPME_SYSCALL_EXECVE_19_X,
+	                                                                &empty_params_set,
+	                                                                31,
+	                                                                res,
+	                                                                exe,
+	                                                                args,
+	                                                                tid,
+	                                                                pid,
+	                                                                ptid,
+	                                                                cwd,
+	                                                                fdlimit,
+	                                                                pgft_maj,
+	                                                                pgft_min,
+	                                                                vm_size,
+	                                                                vm_rss,
+	                                                                vm_swap,
+	                                                                comm,
+	                                                                cgroups,
+	                                                                env,
+	                                                                tty,
+	                                                                vpgid,
+	                                                                loginuid,
+	                                                                flags,
+	                                                                cap_inheritable,
+	                                                                cap_permitted,
+	                                                                cap_effective,
+	                                                                exe_ino,
+	                                                                exe_ino_ctime,
+	                                                                exe_ino_mtime,
+	                                                                uid,
+	                                                                trusted_exepath,
+	                                                                pgid,
+	                                                                gid,
+	                                                                filename));
 }
 
 ////////////////////////////

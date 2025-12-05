@@ -977,8 +977,12 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_FSRELPATH: {
 		if(!data->curarg_already_on_frame) {
 			int res = -1;
-
-			if(val)
+			if(val) {
+				// If the pointed value is empty, `bpf_probe_read_user_str()` can return 0 (even if
+				// its doc says it cannot happen). In that case, put trailing `\0` on the empty
+				// buffer, to represent an empty string. Since the verifier complain if we put this
+				// statement under the below `else if (res == 0)` branch, I put it here.
+				data->buf[curoff_bounded] = 0;
 				/* Return `res<0` only in case of error. */
 				res = (mem == KERNEL) ? bpf_probe_read_kernel_str(&data->buf[curoff_bounded],
 				                                                  PPM_MAX_ARG_SIZE,
@@ -986,8 +990,12 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 				                      : bpf_probe_read_user_str(&data->buf[curoff_bounded],
 				                                                PPM_MAX_ARG_SIZE,
 				                                                (const void *)val);
-			if(res >= 0) {
+			}
+			if(res > 0) {
 				len = res;
+			} else if(res == 0) {
+				// See above comment about `bpf_probe_read_user_str()` unexpected behaviour.
+				len = 1;
 			} else {
 				/* This should be already `0`, but just to be future-proof. */
 				len = 0;

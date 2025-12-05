@@ -154,12 +154,13 @@ struct sched_process_exec_args {
 /* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
  * Taken from `/include/trace/events/sched.h`
  */
+#include <linux/binfmts.h>  // `struct linux_binprm` definition.
 struct sched_process_exec_args {
 	struct task_struct *p;
 	pid_t old_pid;
 	struct linux_binprm *bprm;
 };
-#endif /* BPF_SUPPORTS_RAW_TRACEPOINTS */
+#endif                      /* BPF_SUPPORTS_RAW_TRACEPOINTS */
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 /* TP_PROTO(struct task_struct *parent, struct task_struct *child)

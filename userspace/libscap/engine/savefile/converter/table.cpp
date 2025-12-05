@@ -412,7 +412,8 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({{C_INSTR_FROM_EMPTY, 0}})},  // loginuid
-        {conversion_key{PPME_SYSCALL_EXECVE_19_E, 1}, conversion_info().action(C_ACTION_PASS)},
+        {conversion_key{PPME_SYSCALL_EXECVE_19_E, 1},
+         conversion_info().action(C_ACTION_STORE_AND_PASS)},
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 19},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // flags
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 20},
@@ -441,6 +442,10 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // pgid
         {conversion_key{PPME_SYSCALL_EXECVE_19_X, 29},
          conversion_info().action(C_ACTION_ADD_PARAMS).instrs({{C_INSTR_FROM_EMPTY, 0}})},  // gid
+        {conversion_key{PPME_SYSCALL_EXECVE_19_X, 30},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0, CIF_FALLBACK_TO_EMPTY}})},  // filename
         /*====================== CLONE ======================*/
         {conversion_key{PPME_SYSCALL_CLONE_11_X, 11},
          conversion_info()

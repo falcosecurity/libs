@@ -288,6 +288,10 @@ int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret) {
 	extract__egid(task, &egid);
 	auxmap__store_u32_param(auxmap, egid);
 
+	/* Parameter 31: filename (type: PT_FSPATH) */
+	unsigned long filename_pointer = extract__syscall_argument(regs, 0);
+	auxmap__store_charbuf_param(auxmap, filename_pointer, MAX_PATH, USER);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

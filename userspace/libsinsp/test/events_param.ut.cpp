@@ -407,7 +407,7 @@ TEST_F(sinsp_with_test_input, execve_invalid_path_entry) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_EXECVE_19_X,
-	                           30,
+	                           31,
 	                           (int64_t)0,
 	                           filename.c_str(),
 	                           empty_bytebuf,
@@ -437,7 +437,8 @@ TEST_F(sinsp_with_test_input, execve_invalid_path_entry) {
 	                           (uint32_t)0,
 	                           filename.c_str(),
 	                           (int64_t)0,
-	                           (uint32_t)0);
+	                           (uint32_t)0,
+	                           filename.c_str());
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
 }
