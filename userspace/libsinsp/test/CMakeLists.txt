@@ -11,7 +11,7 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
-#
+find_package(GTest REQUIRED)
 
 include(jsoncpp)
 if(NOT EMSCRIPTEN)
@@ -29,6 +29,26 @@ configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/libsinsp_test_var.h.in"
 	"${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
 )
+
+file(GLOB_RECURSE TEST_HELPERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/helpers/*.cpp)
+
+# sinsp_test_support library to be used to run integration tests in other projects (e.g., plugins)
+add_library(sinsp_test_support STATIC sinsp_with_test_input.cpp test_utils.cpp "${TEST_HELPERS}")
+
+target_include_directories(
+	sinsp_test_support
+	PUBLIC ${LIBS_DIR} # needed for driver/event_stats.h
+		   ${CMAKE_CURRENT_BINARY_DIR} # needed for libsinsp_test_var.h
+		   ${CMAKE_CURRENT_SOURCE_DIR} ${UTHASH_INCLUDE} ${JSONCPP_INCLUDE}
+)
+
+target_link_libraries(sinsp_test_support PUBLIC sinsp GTest::gtest "${JSONCPP_LIB}")
+
+add_dependencies(sinsp_test_support uthash)
+
+if(NOT EMSCRIPTEN)
+	target_link_libraries(sinsp_test_support PUBLIC "${TBB_LIB}")
+endif()
 
 file(GLOB_RECURSE TEST_PLUGINS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.cpp)
 
@@ -48,8 +68,11 @@ endif()
 
 option(SCAP_FILES_SUITE_ENABLE "Enable scap-file tests in sinsp" "ON")
 # Scap-files on Big Endian systems are not supported
-if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x") AND ${SCAP_FILES_SUITE_ENABLE})
-	# Binary dir in which we will save all our Cmake files
+if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x")
+   AND ${SCAP_FILES_SUITE_ENABLE}
+   AND TARGET unit-test-libsinsp
+)
+	# Binary dir in which we will save all our scap files
 	file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/scap_files")
 	# Add here the name for new scap-files
 	set(SCAP_FILE_NAMES
@@ -66,21 +89,19 @@ if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x") AND ${SCAP_FILES_SUITE_
 	)
 	message(STATUS "Download all scap-files from: ${SCAP_FILE_DOWNLOAD_PREFIX}")
 	foreach(FILE_NAME ${SCAP_FILE_NAMES})
-		message(STATUS "Downloading scap-file: ${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}")
 		if(NOT EXISTS "${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}")
+			message(STATUS "Downloading scap-file: ${FILE_NAME}")
 			file(DOWNLOAD "${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}"
 				 "${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}" SHOW_PROGRESS
 			)
 		else()
-			message(STATUS "Skipping download, file already present")
+			message(STATUS "Skipping download, file already present: ${FILE_NAME}")
 		endif()
 	endforeach()
 	file(GLOB_RECURSE SCAP_FILES_SUITE CONFIGURE_DEPENDS
 		 ${CMAKE_CURRENT_SOURCE_DIR}/scap_files/*.cpp
 	)
 endif()
-
-file(GLOB_RECURSE TEST_HELPERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/helpers/*.cpp)
 
 set(LIBSINSP_UNIT_TESTS_SOURCES
 	ast_exprs.ut.cpp
@@ -196,9 +217,14 @@ target_include_directories(
 			${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(
-	unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${TBB_LIB}" "${JSONCPP_LIB}"
-)
+# Link against sinsp and gtest - using both old-style variables and new targets for compatibility
+if(NOT EMSCRIPTEN)
+	target_link_libraries(
+		unit-test-libsinsp sinsp GTest::gtest GTest::gtest_main "${TBB_LIB}" "${JSONCPP_LIB}"
+	)
+else()
+	target_link_libraries(unit-test-libsinsp sinsp GTest::gtest GTest::gtest_main "${JSONCPP_LIB}")
+endif()
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`
 # `ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS` is a list of include paths `;` separated

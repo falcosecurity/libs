@@ -39,7 +39,7 @@ set(LIBSCAP_TESTS_INCLUDE
 # Needed by gtest
 find_package(Threads)
 
-set(LIBSCAP_TESTS_LIBRARIES "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${CMAKE_THREAD_LIBS_INIT}" scap)
+set(LIBSCAP_TESTS_LIBRARIES GTest::gtest GTest::gtest_main scap)
 
 set(LIBSCAP_TESTS_DEPENDENCIES gtest scap)
 

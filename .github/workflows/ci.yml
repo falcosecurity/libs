@@ -42,11 +42,12 @@ jobs:
 
       - name: Install a recent version of CMake ⛓️
         run: |
-          curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-$(uname -m).tar.gz
+          CMAKE_VERSION=3.24.4
+          curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).tar.gz
           gzip -d /tmp/cmake.tar.gz
           tar -xpf /tmp/cmake.tar --directory=/tmp
-          cp -R /tmp/cmake-3.22.5-linux-$(uname -m)/* /usr
-          rm -rf /tmp/cmake-3.22.5-linux-$(uname -m)/
+          cp -R /tmp/cmake-${CMAKE_VERSION}-linux-$(uname -m)/* /usr
+          rm -rf /tmp/cmake-${CMAKE_VERSION}-linux-$(uname -m)/
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
