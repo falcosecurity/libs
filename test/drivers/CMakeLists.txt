@@ -1,5 +1,7 @@
 message(STATUS "Drivers tests build enabled")
 
+find_package(GTest REQUIRED)
+
 # Configure ia32 action test
 option(ENABLE_IA32_TESTS "Enable ia32 tests. Require ia32 glibc and gcc." ON)
 if(ENABLE_IA32_TESTS)
@@ -45,7 +47,7 @@ set(DRIVERS_TEST_SOURCES
 
 set(DRIVERS_TEST_INCLUDE PRIVATE "${GTEST_INCLUDE}" "${LIBS_DIR}/driver/" "${LIBSCAP_INCLUDE_DIRS}")
 
-set(DRIVERS_TEST_LINK_LIBRARIES scap "${GTEST_LIB}" "${GTEST_MAIN_LIB}")
+set(DRIVERS_TEST_LINK_LIBRARIES scap GTest::gtest GTest::gtest_main)
 
 set(DRIVERS_TEST_DEPENDECIES scap gtest)
 

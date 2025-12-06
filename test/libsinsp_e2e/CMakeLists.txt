@@ -15,6 +15,7 @@
 
 message(STATUS "Libsinsp unit e2e tests build enabled")
 
+find_package(GTest REQUIRED)
 if(NOT DEFINED DRIVER_NAME)
 	set(DRIVER_NAME "scap")
 endif()
@@ -57,7 +58,7 @@ else()
 	add_dependencies(libsinsp_e2e_tests driver)
 endif()
 
-target_link_libraries(libsinsp_e2e_tests sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" pthread)
+target_link_libraries(libsinsp_e2e_tests sinsp GTest::gtest GTest::gtest_main pthread)
 
 target_include_directories(
 	libsinsp_e2e_tests PRIVATE ${PROJECT_BINARY_DIR}/driver/src "${CMAKE_CURRENT_BINARY_DIR}"

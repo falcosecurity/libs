@@ -30,7 +30,7 @@ if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 	)
 endif()
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.24)
 
 # Enable MACOSX_RPATH (and keep CMake from complaining).
 if(POLICY CMP0042)
