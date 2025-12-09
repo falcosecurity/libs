@@ -28,7 +28,7 @@ jobs:
             - 'driver/API_VERSION'
 
   driver-api:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     needs: paths-filter

@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-libs-linux:
     name: build-libs-linux-${{ matrix.arch }} 😁 (${{ matrix.name }})
-    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-24.04-arm') || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -224,7 +224,7 @@ jobs:
   # This job checks that a bundled deps of libs is as static as possible
   test-libs-static:
     name: test-libs-static (bundled_deps)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
