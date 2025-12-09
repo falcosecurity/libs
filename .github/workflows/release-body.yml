@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   release-settings:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       is_latest_drivers: ${{ steps.get_settings.outputs.is_latest_drivers }}
       is_latest_libs: ${{ steps.get_settings.outputs.is_latest_libs }}
@@ -73,7 +73,7 @@ jobs:
     if: ${{ needs.release-settings.outputs.is_latest_libs == 'true' }} # Only for latest libs releases.
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone repo
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -135,7 +135,7 @@ jobs:
     if: ${{ needs.release-settings.outputs.is_latest_drivers == 'true' }} # Only for latest drivers releases.
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone libs repo
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
