@@ -13,7 +13,7 @@ concurrency:
 jobs:
   unit-test-libsinsp-coverage:
     name: unit-test-libsinsp-coverage 🧐
-    runs-on: 'ubuntu-22.04'
+    runs-on: 'ubuntu-24.04'
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -34,7 +34,8 @@ jobs:
 
       - name: Generate libsinsp coverage report
         run: |
-          gcovr --xml -o ./libsinsp.coverage.xml
+          # Exclude gVisor protobuf-generated headers since they generated unrecognizable blocks for gcovr.
+          gcovr --gcov-ignore-parse-errors=all --exclude 'gvisor/pkg/sentry/seccheck/points/.*' --xml -o ./libsinsp.coverage.xml
 
       - name: Upload to codecov
         uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1

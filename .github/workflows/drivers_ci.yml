@@ -111,7 +111,7 @@ jobs:
 
   test-drivers:
     name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-24.04-arm') || 'ubuntu-24.04' }}
     needs: paths-filter
     strategy:
       matrix:
@@ -166,7 +166,7 @@ jobs:
 
   test-drivers-ppc64le:
     name: test-drivers-ppc64le 😁 (system_deps,custom node)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # Avoid running on forks since this job uses a private secret
     # not available on forks, leading to failures.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == 'falcosecurity/libs'
@@ -204,7 +204,7 @@ jobs:
 
   build-drivers-s390x:
     name: build-drivers-s390x 😁 (bundle_deps)
-    runs-on: ubuntu-22.04-s390x
+    runs-on: ubuntu-24.04-s390x
     # Avoid running on forks since the s390x runner doesn't support unauthenticated usage.
     # See: https://github.com/IBM/actionspz/blob/main/docs/FAQ.md#what-about-forked-repos.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == 'falcosecurity/libs'

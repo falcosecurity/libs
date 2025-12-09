@@ -81,7 +81,7 @@ jobs:
     needs: 'compute-latest-version'
     outputs:
       build: ${{ steps.build.outcome }}
-    runs-on: 'ubuntu-22.04-arm'
+    runs-on: 'ubuntu-24.04-arm'
     steps:
       - name: Download driverkit config
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0

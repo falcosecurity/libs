@@ -750,7 +750,7 @@ TEST_F(sys_call_test, quotactl_ok) {
 	// Setup a tmpdisk to test quotas
 	char command[] =
 	        "dd if=/dev/zero of=/tmp/testquotactl bs=1M count=200 &&\n"
-	        "echo y | mkfs.ext4 -q /tmp/testquotactl &&\n"
+	        "echo y | mkfs.ext4 -O quota -q /tmp/testquotactl &&\n"
 	        "mkdir -p /tmp/testquotamnt &&\n"
 	        "mount -o usrquota,grpquota,loop=/dev/loop0 /tmp/testquotactl /tmp/testquotamnt &&\n"
 	        "quotacheck -cug /tmp/testquotamnt";
@@ -768,7 +768,7 @@ TEST_F(sys_call_test, quotactl_ok) {
 	struct dqinfo mydqinfo;
 	run_callback_t test = [&](sinsp* inspector) {
 		quotactl(QCMD(Q_QUOTAON, USRQUOTA),
-		         "/dev/loop0",
+		         "/dev/testquotamnt",
 		         2,
 		         (caddr_t) "/tmp/testquotamnt/aquota.user");  // 2 => QFMT_VFS_V0
 		quotactl(QCMD(Q_GETQUOTA, USRQUOTA), "/dev/loop0", 0, (caddr_t)&mydqblk);  // 0 => root user
@@ -782,7 +782,7 @@ TEST_F(sys_call_test, quotactl_ok) {
 		switch(callnum) {
 		case 1:
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
-			EXPECT_EQ("/dev/loop0", e->get_param_value_str("special"));
+			EXPECT_EQ("/dev/testquotamnt", e->get_param_value_str("special"));
 			EXPECT_EQ("/tmp/testquotamnt/aquota.user", e->get_param_value_str("quotafilepath"));
 			EXPECT_EQ("Q_QUOTAON", e->get_param_value_str("cmd"));
 			EXPECT_EQ("USRQUOTA", e->get_param_value_str("type"));
