@@ -26,7 +26,7 @@ jobs:
             kernelrelease: 6.2.arch1-1
             target: arch
             kernelurls: https://download.falco.org/fixtures/libs/linux-headers-6.2.arch1-1-x86_64.pkg.tar.zst
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: falcosecurity/driverkit:latest
     steps:

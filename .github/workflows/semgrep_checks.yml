@@ -9,7 +9,7 @@ on:
 jobs:
   insecure-api:
     name: check-insecure-api
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: docker.io/semgrep/semgrep:1.85.0@sha256:b4c2272e0a2e59ca551ff96d3bbae657bd2b7356e339af557b27a96d9e751544
     steps:
@@ -27,7 +27,7 @@ jobs:
 
   absolute-include-paths:
     name: check-absolute-include-paths
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: docker.io/semgrep/semgrep:1.85.0@sha256:b4c2272e0a2e59ca551ff96d3bbae657bd2b7356e339af557b27a96d9e751544
     steps:

@@ -15,7 +15,7 @@ on:
 
 jobs:
   paths-filter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       driver_schema_changed: ${{ steps.filter.outputs.driver_schema }}
     steps:

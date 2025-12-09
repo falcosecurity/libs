@@ -14,7 +14,7 @@ jobs:
   compute-latest-version:
     outputs:
       latest_vers: ${{ steps.latest-version.outputs.latest_vers }}
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-24.04'
     steps:
       - name: Checkout Archlinux mainline package ⤵️
         run: |
@@ -53,7 +53,7 @@ jobs:
     needs: 'compute-latest-version'
     outputs:
       build: ${{ steps.build.outcome }}
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-24.04'
     steps:
       - name: Download driverkit config
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
@@ -107,7 +107,7 @@ jobs:
 
   badge-latest-kernel:
     if: always() && github.event_name == 'schedule'
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-24.04'
     needs: [compute-latest-version,build-latest-kernel-amd64,build-latest-kernel-arm64]
     steps:
       - name: Update README badge

@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   paths-filter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       driver: ${{ steps.filter.outputs.driver }}
       libscap: ${{ steps.filter.outputs.libscap }}
@@ -235,7 +235,7 @@ jobs:
   build-modern-bpf-skeleton:
     needs: paths-filter
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-24.04'
     if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
     container: fedora:41
     steps:
@@ -264,7 +264,7 @@ jobs:
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     needs: [paths-filter,build-modern-bpf-skeleton]
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-24.04'
     if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
     steps:
       - name: Install build dependencies
@@ -318,7 +318,7 @@ jobs:
     # Avoid running on forks since this job uses a private secret
     # not available on forks, leading to failures.
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == 'falcosecurity/libs' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download X64 matrix
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
