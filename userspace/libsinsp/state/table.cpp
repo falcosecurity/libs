@@ -93,7 +93,7 @@ void extract_key<uint64_t>(const ss_plugin_state_data& key, uint64_t& out) {
 
 template<>
 void extract_key<int64_t>(const ss_plugin_state_data& key, int64_t& out) {
-	out = key.u64;
+	out = key.s64;
 }
 
 //
