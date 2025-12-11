@@ -408,6 +408,8 @@ public:
 protected:
 	std::list<std::shared_ptr<libsinsp::state::table_entry>>
 	        m_accessed_entries;  // using lists for ptr stability
+	std::list<std::unique_ptr<libsinsp::state::table_entry>>
+	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;  // note: lists have pointer stability
 	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
@@ -464,6 +466,23 @@ public:
 			}
 		}
 		return &m_accessed_entries.emplace_back();
+	}
+
+	inline libsinsp::state::table_entry* add_created_entry(
+	        std::unique_ptr<libsinsp::state::table_entry> entry) {
+		return m_created_entries.emplace_back(std::move(entry)).get();
+	}
+
+	inline std::unique_ptr<libsinsp::state::table_entry> extract_created_entry(
+	        libsinsp::state::table_entry* raw) {
+		for(auto it = m_created_entries.begin(); it != m_created_entries.end(); ++it) {
+			if(it->get() == raw) {
+				auto ptr = std::move(*it);
+				m_created_entries.erase(it);
+				return ptr;
+			}
+		}
+		return nullptr;
 	}
 
 	template<typename KeyType>

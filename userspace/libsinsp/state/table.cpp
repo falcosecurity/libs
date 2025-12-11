@@ -558,10 +558,8 @@ template<typename KeyType>
 ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::create_table_entry(
         sinsp_table_owner* owner) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		auto ret = this->new_entry().release();
-		auto owned_ptr = owner->find_unset_accessed_table_entry();
-		owned_ptr->reset(ret, [](libsinsp::state::table_entry* p) { /* do nothing */ });
-		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+		auto ret = owner->add_created_entry(this->new_entry());
+		return static_cast<ss_plugin_table_entry_t*>(ret);
 	});
 	return NULL;
 }
@@ -570,9 +568,13 @@ template<typename KeyType>
 void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_table_owner* owner,
                                                                    ss_plugin_table_entry_t* _e) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
-		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());
-		e->reset();
+		auto raw = static_cast<libsinsp::state::table_entry*>(_e);
+		// extract_created_entry returns unique_ptr which deletes entry when it goes out of scope
+		auto ptr = owner->extract_created_entry(raw);
+		if(!ptr) {
+			throw sinsp_exception(
+			        "destroy_table_entry called on entry not created by create_table_entry");
+		}
 	});
 }
 
@@ -584,9 +586,11 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::add_entry(
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		KeyType kk;
 		extract_key(*key, kk);
-		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
-		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());
-		e->reset();
+		auto raw = static_cast<libsinsp::state::table_entry*>(_e);
+		auto ptr = owner->extract_created_entry(raw);
+		if(!ptr) {
+			throw sinsp_exception("add_entry called on entry not created by create_table_entry");
+		}
 		auto owned_ptr = owner->find_unset_accessed_table_entry();
 		*owned_ptr = this->add_entry(kk, std::move(ptr));
 		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
