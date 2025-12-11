@@ -476,14 +476,25 @@ public:
 		return m_ephemeral_tables.emplace_back();
 	}
 
-	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry() {
+	inline std::shared_ptr<libsinsp::state::table_entry>* store_accessed_entry(
+	        std::shared_ptr<libsinsp::state::table_entry> entry) {
 		m_accessed_entries_clear = false;
 		for(auto& et : m_accessed_entries) {
 			if(et == nullptr) {
+				et = std::move(entry);
 				return &et;
 			}
 		}
-		return &m_accessed_entries.emplace_back();
+		return &m_accessed_entries.emplace_back(std::move(entry));
+	}
+
+	inline void release_accessed_entry(libsinsp::state::table_entry* raw) {
+		for(auto& et : m_accessed_entries) {
+			if(et.get() == raw) {
+				et.reset();
+				return;
+			}
+		}
 	}
 
 	inline libsinsp::state::table_entry* add_created_entry(
