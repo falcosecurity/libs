@@ -27,10 +27,9 @@ jobs:
 
       - name: Build and test 🏗️🧪
         run: |
-          mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=True -DENABLE_COVERAGE=True -DUSE_BUNDLED_DEPS=False ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-          make run-unit-tests
+          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=True -DENABLE_COVERAGE=True -DUSE_BUNDLED_DEPS=False
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
+          cmake --build build --target run-unit-tests --parallel $(nproc)
 
       - name: Generate libsinsp coverage report
         run: |
