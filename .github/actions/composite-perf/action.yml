@@ -30,11 +30,8 @@ runs:
     - name: Build
       shell: bash
       run: |
-        mkdir -p build
-        cd build && cmake -DUSE_BUNDLED_DEPS=False -DCMAKE_BUILD_TYPE=Debug -DENABLE_BENCHMARKS=True ../
-        make unit-test-libsinsp -j4
-        make bench -j4
-        make sinsp-example -j4
+        cmake -B build -S . -DUSE_BUNDLED_DEPS=False -DCMAKE_BUILD_TYPE=Debug -DENABLE_BENCHMARKS=True
+        cmake --build build --target unit-test-libsinsp bench sinsp-example --parallel $(nproc)
 
     - name: Download scap file
       shell: bash
