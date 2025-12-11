@@ -56,8 +56,6 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("the Falco authors");
 
-/* Trigger driver CI */
-
 #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
 #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
 #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
