@@ -72,9 +72,18 @@ jobs:
       - name: Build scap-open and drivers 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
-          mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On -DUSE_ASAN=On -DUSE_UBSAN=On ../
-          make scap-open driver bpf libscap_test -j6
+          cmake -B build -S . \
+            -DBUILD_WARNINGS_AS_ERRORS=On \
+            -DUSE_BUNDLED_DEPS=On \
+            -DBUILD_DRIVER=ON \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DBUILD_BPF=On \
+            -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} \
+            -DCREATE_TEST_TARGETS=On \
+            -DENABLE_LIBSCAP_TESTS=On \
+            -DUSE_ASAN=On \
+            -DUSE_UBSAN=On
+          cmake --build build --target scap-open driver bpf libscap_test --parallel $(nproc)
 
       - name: Run scap-open with modern bpf 🏎️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -142,9 +151,15 @@ jobs:
       - name: Build drivers tests 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
-          mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
-          make drivers_test driver bpf -j6
+          cmake -B build -S . \
+            -DBUILD_WARNINGS_AS_ERRORS=On \
+            -DUSE_BUNDLED_DEPS=ON \
+            -DENABLE_DRIVERS_TESTS=ON \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DMODERN_BPF_DEBUG_MODE=ON \
+            -DBUILD_BPF=True \
+            -DBUILD_LIBSCAP_GVISOR=OFF
+          cmake --build build --target drivers_test driver bpf --parallel $(nproc)
 
       - name: Run drivers_test with modern bpf 🏎️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -186,14 +201,22 @@ jobs:
           envs: GIT_BRANCH,GITHUB_REPOSITORY,GITHUB_SERVER_URL
           command_timeout: 60m
           script: |
-            sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
+            sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel
             # Remove, if present, any libs clone created by a previous job run.
             rm -rf libs
             git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
             cd libs
-            mkdir -p build
-            cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF -DUSE_BUNDLED_LIBELF=OFF ../
-            make drivers_test driver bpf -j6
+            mkdir -p build && cd build
+            cmake -B . -S .. \
+              -DBUILD_WARNINGS_AS_ERRORS=On \
+              -DUSE_BUNDLED_DEPS=ON \
+              -DENABLE_DRIVERS_TESTS=ON \
+              -DBUILD_LIBSCAP_MODERN_BPF=ON \
+              -DMODERN_BPF_DEBUG_MODE=ON \
+              -DBUILD_BPF=True \
+              -DBUILD_LIBSCAP_GVISOR=OFF \
+              -DUSE_BUNDLED_LIBELF=OFF
+            cmake --build . --target drivers_test driver bpf --parallel $(nproc)
             sudo ./test/drivers/drivers_test -m
             rc_modern=$?
             sudo ./test/drivers/drivers_test -b
@@ -229,7 +252,14 @@ jobs:
       - name: Build drivers tests 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
-          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF
+          cmake -B build -S . \
+            -DBUILD_WARNINGS_AS_ERRORS=On \
+            -DUSE_BUNDLED_DEPS=ON \
+            -DENABLE_DRIVERS_TESTS=ON \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DMODERN_BPF_DEBUG_MODE=ON \
+            -DBUILD_BPF=ON \
+            -DBUILD_LIBSCAP_GVISOR=OFF
           cmake --build build --target drivers_test driver bpf --parallel $(nproc)
 
   build-modern-bpf-skeleton:
@@ -242,16 +272,15 @@ jobs:
       # Always install deps before invoking checkout action, to properly perform a full clone.
       - name: Install build dependencies
         run: |
-          dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
+          dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel
 
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Build modern BPF skeleton
         run: |
-          mkdir skeleton-build && cd skeleton-build
-          cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DCREATE_TEST_TARGETS=Off ..
-          make ProbeSkeleton -j6
+          cmake -B skeleton-build -S . -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DCREATE_TEST_TARGETS=Off
+          cmake --build skeleton-build --target ProbeSkeleton --parallel $(nproc)
 
       - name: Upload skeleton
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
@@ -286,20 +315,17 @@ jobs:
 
       - name: Prepare project
         run: |
-          mkdir build && cd build
-          cmake \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DUSE_BUNDLED_DEPS=On \
-              -DBUILD_LIBSCAP_MODERN_BPF=ON \
-              -DMODERN_BPF_SKEL_DIR=/tmp \
-              -DBUILD_DRIVER=Off \
-              -DBUILD_BPF=Off \
-              ..
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_BUNDLED_DEPS=On \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DMODERN_BPF_SKEL_DIR=/tmp \
+            -DBUILD_DRIVER=Off \
+            -DBUILD_BPF=Off
 
       - name: Build project
         run: |
-          cd build
-          make scap-open -j6
+          cmake --build build --target scap-open --parallel $(nproc)
 
   # Only runs on pull request since on master branch it is already triggered by pages CI.
   kernel-tests-dev:
