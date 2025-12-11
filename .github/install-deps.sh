@@ -28,18 +28,12 @@ wget "https://github.com/tristanpenman/valijson/archive/refs/tags/v1.0.6.tar.gz"
 
 tar xzf v1.0.6.tar.gz
 pushd valijson-1.0.6
-
-mkdir -p build
-cd build
-
-cmake \
+cmake -B build -S . \
     -Dvalijson_INSTALL_HEADERS=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
-    -Dvalijson_BUILD_TESTS=OFF \
-    ../
-
-make install -j
+    -Dvalijson_BUILD_TESTS=OFF
+cmake --build build --target install --parallel $(nproc)
 popd
 
 
@@ -49,17 +43,12 @@ echo "=== Building and installing re2 (v2022-06-01) ==="
 wget "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
 tar xzf 2022-06-01.tar.gz
 pushd re2-2022-06-01
-
 # see: https://github.com/google/re2/wiki/Install
-mkdir -p build-re2
-cd build-re2
-cmake \
+cmake -B build-re2 -S . \
     -DCMAKE_BUILD_TYPE=Release \
     -DRE2_BUILD_TESTING=OFF \
-    -DBUILD_SHARED_LIBS=ON  \
-    ..
-make -j
-make install -j
+    -DBUILD_SHARED_LIBS=ON
+cmake --build build-re2 --target all install --parallel $(nproc)
 popd
 
 # === uthash ===
