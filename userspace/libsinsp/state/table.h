@@ -417,6 +417,7 @@ protected:
 
 	bool m_ephemeral_tables_clear = false;
 	bool m_accessed_entries_clear = false;
+	bool m_created_entries_clear = false;
 
 	inline void clear_ephemeral_tables() {
 		if(m_ephemeral_tables_clear) {
@@ -447,6 +448,23 @@ protected:
 		m_accessed_entries_clear = true;
 	}
 
+	inline void clear_created_entries() {
+		if(m_created_entries_clear) {
+			// quick break-out that prevents us from looping over the
+			// whole list in the critical path
+			return;
+		}
+		for(auto& et : m_created_entries) {
+			if(et != nullptr) {
+				// if we get here, it means that the plugin created entries
+				// but did not add or destroy them
+				ASSERT(false);
+				et.reset();
+			};
+		}
+		m_created_entries_clear = true;
+	}
+
 public:
 	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
 		m_ephemeral_tables_clear = false;
@@ -470,6 +488,7 @@ public:
 
 	inline libsinsp::state::table_entry* add_created_entry(
 	        std::unique_ptr<libsinsp::state::table_entry> entry) {
+		m_created_entries_clear = false;
 		return m_created_entries.emplace_back(std::move(entry)).get();
 	}
 

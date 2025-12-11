@@ -213,6 +213,7 @@ bool sinsp_plugin::init(const std::string& config, std::string& errstr) {
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
 	clear_accessed_entries();
+	clear_created_entries();
 
 	return true;
 }
@@ -1098,6 +1099,7 @@ bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
 	clear_accessed_entries();
+	clear_created_entries();
 
 	return res;
 }
@@ -1136,6 +1138,7 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) {
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
 	clear_accessed_entries();
+	clear_created_entries();
 
 	return res;
 }
