@@ -103,7 +103,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm sudo
+          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm sudo curl
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -112,6 +112,8 @@ jobs:
 
       - name: Install bpftool 🐝
         uses: ./.github/actions/install-bpftool
+        with:
+          arch: 'amd64'
 
       - name: Git safe directory
         run: |

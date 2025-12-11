@@ -1,16 +1,41 @@
-name: 'install-bpftool'
-description: 'Install bpftool'
+name: "install-bpftool"
+description: "Install bpftool"
 
 inputs:
   version:
     description: "Version of bpftool to install (format: 'vX.Y.Z')"
     required: false
     default: "v7.3.0"
+  arch:
+    description: "Machine architecture (e.g.: 'amd64')"
+    required: true # To make it difficult for a user to rely on the wrong default.
 
 runs:
   using: "composite"
   steps:
-    - name: Build and install bpftool from source
+    - name: Validate architecture input
+      shell: bash
+      run: |
+        ARCH="${{ inputs.arch }}"
+        ALLOWED_ARCHS=(amd64 arm64 s390x ppc64le)
+        if [[ ! " ${ALLOWED_ARCHS[*]} " =~ " $ARCH " ]]; then
+          echo "::error ::Unsupported architecture '$ARCH'. Please provide one of: ${ALLOWED_ARCHS[*]}"
+          exit 1
+        fi
+
+    - name: Install bpftool from released package 🐝
+      if: inputs.arch == 'amd64' || inputs.arch == 'arm64'
+      shell: bash
+      run: |
+        set -o pipefail
+        VERSION="${{ inputs.version }}"
+        ARCH="${{ inputs.arch }}"
+        curl -L https://github.com/libbpf/bpftool/releases/download/$VERSION/bpftool-$VERSION-$ARCH.tar.gz | \
+          sudo tar -C /usr/sbin --overwrite -xzvf - bpftool
+        chmod +x /usr/sbin/bpftool
+
+    - name: Build and install bpftool from source 🐝
+      if: inputs.arch == 's390x' || inputs.arch == 'ppc64le'
       shell: bash
       run: |
         git clone https://github.com/libbpf/bpftool.git --branch ${{ inputs.version }} --single-branch

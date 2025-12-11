@@ -56,6 +56,8 @@ jobs:
 
       - name: Install bpftool 🐝
         uses: ./.github/actions/install-bpftool
+        with:
+          arch: ${{ matrix.arch }}
 
       - name: Install multilib compilers for ia32 tests
         if: matrix.arch == 'amd64'
