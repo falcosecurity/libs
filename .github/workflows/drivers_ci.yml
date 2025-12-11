@@ -68,6 +68,8 @@ jobs:
       - name: Install bpftool 🐝
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: ./.github/actions/install-bpftool
+        with:
+          arch: ${{ matrix.arch }}
 
       - name: Build scap-open and drivers 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -142,6 +144,8 @@ jobs:
       - name: Install bpftool 🐝
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: ./.github/actions/install-bpftool
+        with:
+          arch: ${{ matrix.arch }}
 
       - name: Install multilib compilers for ia32 tests
         if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
@@ -248,6 +252,8 @@ jobs:
       - name: Install bpftool 🐝
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: ./.github/actions/install-bpftool
+        with:
+          arch: 's390x'
 
       - name: Build drivers tests 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -272,10 +278,15 @@ jobs:
       # Always install deps before invoking checkout action, to properly perform a full clone.
       - name: Install build dependencies
         run: |
-          dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel
+          dnf install -y ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel curl
 
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install bpftool 🐝
+        uses: ./.github/actions/install-bpftool
+        with:
+          arch: 'amd64'
 
       - name: Build modern BPF skeleton
         run: |
