@@ -91,16 +91,15 @@ jobs:
 
       - name: Build tests 🏗️
         run: |
-          mkdir -p build && cd build
-          cmake -DBUILD_BPF=ON \
-                -DBUILD_LIBSCAP_MODERN_BPF=ON \
-                -DBUILD_LIBSCAP_GVISOR=OFF \
-                -DENABLE_E2E_TESTS=ON \
-                ${{ matrix.cmake_opts }} \
-                -DUSE_BUNDLED_LIBBPF=ON \
-                ..
-          make -j$(nproc) sinsp-example driver bpf container_plugin
-          sudo -E make e2e-install-deps
+          cmake -B build -S . \
+            -DBUILD_BPF=ON \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DBUILD_LIBSCAP_GVISOR=OFF \
+            -DENABLE_E2E_TESTS=ON \
+            ${{ matrix.cmake_opts }} \
+            -DUSE_BUNDLED_LIBBPF=ON
+          cmake --build build --target sinsp-example driver bpf container_plugin --parallel $(nproc)
+          sudo -E cmake --build build --target e2e-install-deps
 
       - name: Download overriding custom container plugin
         if: inputs.container_plugin_artifact_name != ''
