@@ -408,6 +408,8 @@ public:
 protected:
 	std::list<std::shared_ptr<libsinsp::state::table_entry>>
 	        m_accessed_entries;  // using lists for ptr stability
+	std::list<std::unique_ptr<libsinsp::state::table_entry>>
+	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;  // note: lists have pointer stability
 	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
@@ -415,6 +417,7 @@ protected:
 
 	bool m_ephemeral_tables_clear = false;
 	bool m_accessed_entries_clear = false;
+	bool m_created_entries_clear = false;
 
 	inline void clear_ephemeral_tables() {
 		if(m_ephemeral_tables_clear) {
@@ -445,6 +448,23 @@ protected:
 		m_accessed_entries_clear = true;
 	}
 
+	inline void clear_created_entries() {
+		if(m_created_entries_clear) {
+			// quick break-out that prevents us from looping over the
+			// whole list in the critical path
+			return;
+		}
+		for(auto& et : m_created_entries) {
+			if(et != nullptr) {
+				// if we get here, it means that the plugin created entries
+				// but did not add or destroy them
+				ASSERT(false);
+				et.reset();
+			};
+		}
+		m_created_entries_clear = true;
+	}
+
 public:
 	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
 		m_ephemeral_tables_clear = false;
@@ -456,14 +476,48 @@ public:
 		return m_ephemeral_tables.emplace_back();
 	}
 
-	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry() {
+	inline std::shared_ptr<libsinsp::state::table_entry>* store_accessed_entry(
+	        std::shared_ptr<libsinsp::state::table_entry> entry) {
 		m_accessed_entries_clear = false;
 		for(auto& et : m_accessed_entries) {
 			if(et == nullptr) {
+				et = std::move(entry);
 				return &et;
 			}
 		}
-		return &m_accessed_entries.emplace_back();
+		return &m_accessed_entries.emplace_back(std::move(entry));
+	}
+
+	inline void release_accessed_entry(libsinsp::state::table_entry* raw) {
+		for(auto& et : m_accessed_entries) {
+			if(et.get() == raw) {
+				et.reset();
+				return;
+			}
+		}
+	}
+
+	inline libsinsp::state::table_entry* add_created_entry(
+	        std::unique_ptr<libsinsp::state::table_entry> entry) {
+		m_created_entries_clear = false;
+		// Reuse empty slots to avoid unbounded growth
+		for(auto& et : m_created_entries) {
+			if(et == nullptr) {
+				et = std::move(entry);
+				return et.get();
+			}
+		}
+		return m_created_entries.emplace_back(std::move(entry)).get();
+	}
+
+	inline std::unique_ptr<libsinsp::state::table_entry> extract_created_entry(
+	        libsinsp::state::table_entry* raw) {
+		for(auto& et : m_created_entries) {
+			if(et.get() == raw) {
+				return std::move(et);  // Move out, slot becomes nullptr (reusable)
+			}
+		}
+		return nullptr;
 	}
 
 	template<typename KeyType>

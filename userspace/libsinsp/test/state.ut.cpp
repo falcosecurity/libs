@@ -703,7 +703,7 @@ TEST(thread_manager, env_vars_access) {
 		libsinsp::state::sinsp_table_owner owner;
 		auto* field_accessor = table->get_field(&owner, "env", SS_PLUGIN_ST_TABLE);
 		ss_plugin_state_data field_data;
-		auto rc = table->read_entry_field(&owner, &entry, field_accessor, &field_data);
+		auto rc = table->read_entry_field(&owner, entry.get(), field_accessor, &field_data);
 		EXPECT_EQ(rc, 0);
 		EXPECT_NE(field_data.table, nullptr);
 		libsinsp::state::table_input_adapter tia{field_data.table};

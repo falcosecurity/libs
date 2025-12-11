@@ -487,19 +487,14 @@ template<typename KeyType>
 ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::get_entry(
         sinsp_table_owner* owner,
         const ss_plugin_state_data* key) {
-	// note: the C++ API returns a shared pointer, but in plugins we only
-	// use raw pointers without increasing/decreasing/owning the refcount.
-	// How can we do better than this?
-	// todo(jasondellaluce): should we actually make plugins own some memory,
-	// to guarantee that the shared_ptr returned is properly refcounted?
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		KeyType kk;
 		extract_key(*key, kk);
 		auto ret = this->get_entry(kk);
 		if(ret != nullptr) {
-			auto owned_ptr = owner->find_unset_accessed_table_entry();
-			*owned_ptr = ret;
-			return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+			// Store shared_ptr for lifetime management, return raw pointer
+			owner->store_accessed_entry(ret);
+			return static_cast<ss_plugin_table_entry_t*>(ret.get());
 		}
 		throw sinsp_exception("get_entry found no element at given key");
 		return NULL;
@@ -510,7 +505,8 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::get_entry(
 template<typename KeyType>
 void libsinsp::state::built_in_table<KeyType>::release_table_entry(sinsp_table_owner* owner,
                                                                    ss_plugin_table_entry_t* _e) {
-	static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e)->reset();
+	auto raw = static_cast<libsinsp::state::table_entry*>(_e);
+	owner->release_accessed_entry(raw);
 }
 
 template<typename KeyType>
@@ -518,10 +514,8 @@ ss_plugin_bool libsinsp::state::built_in_table<KeyType>::iterate_entries(
         sinsp_table_owner* owner,
         ss_plugin_table_iterator_func_t it,
         ss_plugin_table_iterator_state_t* s) {
-	std::shared_ptr<libsinsp::state::table_entry> owned_ptr;
-	std::function<bool(libsinsp::state::table_entry&)> iter = [&owned_ptr, &it, &s](auto& e) {
-		owned_ptr.reset(&e, [](libsinsp::state::table_entry* p) {});
-		return it(s, static_cast<ss_plugin_table_entry_t*>(&owned_ptr)) != 0;
+	std::function<bool(libsinsp::state::table_entry&)> iter = [&it, &s](auto& e) {
+		return it(s, static_cast<ss_plugin_table_entry_t*>(&e)) != 0;
 	};
 
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { return this->foreach_entry(iter); });
@@ -558,10 +552,8 @@ template<typename KeyType>
 ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::create_table_entry(
         sinsp_table_owner* owner) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		auto ret = this->new_entry().release();
-		auto owned_ptr = owner->find_unset_accessed_table_entry();
-		owned_ptr->reset(ret, [](libsinsp::state::table_entry* p) { /* do nothing */ });
-		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+		auto raw = owner->add_created_entry(this->new_entry());
+		return static_cast<ss_plugin_table_entry_t*>(raw);
 	});
 	return NULL;
 }
@@ -570,9 +562,13 @@ template<typename KeyType>
 void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_table_owner* owner,
                                                                    ss_plugin_table_entry_t* _e) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
-		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());
-		e->reset();
+		auto raw = static_cast<libsinsp::state::table_entry*>(_e);
+		// extract_created_entry returns unique_ptr which deletes entry when it goes out of scope
+		auto ptr = owner->extract_created_entry(raw);
+		if(!ptr) {
+			throw sinsp_exception(
+			        "destroy_table_entry called on entry not created by create_table_entry");
+		}
 	});
 }
 
@@ -584,12 +580,15 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::add_entry(
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		KeyType kk;
 		extract_key(*key, kk);
-		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
-		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());
-		e->reset();
-		auto owned_ptr = owner->find_unset_accessed_table_entry();
-		*owned_ptr = this->add_entry(kk, std::move(ptr));
-		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+		auto raw = static_cast<libsinsp::state::table_entry*>(_e);
+		auto ptr = owner->extract_created_entry(raw);
+		if(!ptr) {
+			throw sinsp_exception("add_entry called on entry not created by create_table_entry");
+		}
+		auto ret = this->add_entry(kk, std::move(ptr));
+		// Store shared_ptr for lifetime management, return raw pointer
+		owner->store_accessed_entry(ret);
+		return static_cast<ss_plugin_table_entry_t*>(ret.get());
 	});
 	return NULL;
 }
@@ -601,7 +600,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
         const ss_plugin_table_field_t* f,
         ss_plugin_state_data* out) {
 	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
-	auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
+	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
 #define _X(_type, _dtype)                                                                   \
@@ -609,11 +608,11 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		if(a->dynamic) {                                                                    \
 			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
 			        a->accessor);                                                           \
-			e->get()->get_dynamic_field<_type>(*aa, out->_dtype);                           \
+			e->get_dynamic_field<_type>(*aa, out->_dtype);                                  \
 		} else {                                                                            \
 			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
 			        a->accessor);                                                           \
-			e->get()->get_static_field<_type>(*aa, out->_dtype);                            \
+			e->get_static_field<_type>(*aa, out->_dtype);                                   \
 		}                                                                                   \
 		res = SS_PLUGIN_SUCCESS;                                                            \
 		break;                                                                              \
@@ -649,7 +648,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
         const ss_plugin_table_field_t* f,
         const ss_plugin_state_data* in) {
 	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
-	auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
+	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 
 	// todo(jasondellaluce): drop this check once we start supporting this
 	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
@@ -664,13 +663,13 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 			        a->accessor);                                                           \
 			_type val;                                                                      \
 			convert_types(in->_dtype, val);                                                 \
-			e->get()->set_dynamic_field<_type>(*aa, val);                                   \
+			e->set_dynamic_field<_type>(*aa, val);                                          \
 		} else {                                                                            \
 			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
 			        a->accessor);                                                           \
 			_type val;                                                                      \
 			convert_types(in->_dtype, val);                                                 \
-			e->get()->set_static_field<_type>(*aa, val);                                    \
+			e->set_static_field<_type>(*aa, val);                                           \
 		}                                                                                   \
 		return SS_PLUGIN_SUCCESS;                                                           \
 	}
