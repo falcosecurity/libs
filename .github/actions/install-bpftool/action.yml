@@ -1,0 +1,19 @@
+name: 'install-bpftool'
+description: 'Install bpftool'
+
+inputs:
+  version:
+    description: "Version of bpftool to install (format: 'vX.Y.Z')"
+    required: false
+    default: "v7.3.0"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build and install bpftool from source
+      shell: bash
+      run: |
+        git clone https://github.com/libbpf/bpftool.git --branch ${{ inputs.version }} --single-branch
+        cd bpftool
+        git submodule update --init
+        cd src && sudo make install
