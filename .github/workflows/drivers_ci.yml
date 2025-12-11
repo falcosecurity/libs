@@ -64,10 +64,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
-          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
-          cd bpftool
-          git submodule update --init
-          cd src && sudo make install
+
+      - name: Install bpftool 🐝
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: ./.github/actions/install-bpftool
 
       - name: Build scap-open and drivers 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -138,10 +138,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool linux-headers-$(uname -r)
-          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
-          cd bpftool
-          git submodule update --init
-          cd src && sudo make install
+
+      - name: Install bpftool 🐝
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: ./.github/actions/install-bpftool
 
       - name: Install multilib compilers for ia32 tests
         if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
@@ -244,10 +244,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool linux-headers-$(uname -r)
-          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
-          cd bpftool
-          git submodule update --init
-          cd src && sudo make install
+
+      - name: Install bpftool 🐝
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: ./.github/actions/install-bpftool
 
       - name: Build drivers tests 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
