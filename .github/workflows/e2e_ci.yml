@@ -70,24 +70,20 @@ jobs:
         env:
           SCCACHE_GHA_ENABLED: "true"
         run: |
-          mkdir -p build
-          cd build && \
-            cmake \
-                -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                -DBUILD_BPF=ON \
-                -DUSE_BUNDLED_DEPS=ON \
-                -DUSE_ASAN=ON \
-                -DUSE_UBSAN=ON \
-                -DENABLE_LIBSINSP_E2E_TESTS=ON \
-                -DBUILD_LIBSCAP_MODERN_BPF=ON \
-                -DBUILD_LIBSCAP_GVISOR=OFF \
-                -DUSE_BUNDLED_LIBBPF=ON \
-                -DUSE_BUNDLED_GTEST=ON \
-                ..
-          make -j6 libsinsp_e2e_tests
-          sudo rm -vfr test/libsinsp_e2e/resources/_proc
-          cd ..
+          cmake -B build -S . \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -DBUILD_BPF=ON \
+            -DUSE_BUNDLED_DEPS=ON \
+            -DUSE_ASAN=ON \
+            -DUSE_UBSAN=ON \
+            -DENABLE_LIBSINSP_E2E_TESTS=ON \
+            -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DBUILD_LIBSCAP_GVISOR=OFF \
+            -DUSE_BUNDLED_LIBBPF=ON \
+            -DUSE_BUNDLED_GTEST=ON
+          cmake --build build --target libsinsp_e2e_tests --parallel $(nproc)
+          sudo rm -vfr build/test/libsinsp_e2e/resources/_proc
 
       - name: Cache build
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -143,12 +139,9 @@ jobs:
         # different workers, so we rebuild the drivers.
       - name: Rebuild drivers
         run: |
-          pushd build
-          make -B driver bpf
-          pushd test/libsinsp_e2e/resources/
+          cmake --build build --target driver bpf --parallel $(nproc) -- -B # -B only works if make is the generator.
+          pushd build/test/libsinsp_e2e/resources/
           sudo tar xzf fake-proc.tar.gz
-          popd
-          popd
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'amd64'
