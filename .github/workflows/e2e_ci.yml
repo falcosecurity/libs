@@ -30,7 +30,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends \
             ca-certificates \
-            cmake \
             build-essential \
             clang \
             llvm \
@@ -53,6 +52,9 @@ jobs:
             protobuf-compiler \
             linux-headers-$(uname -r)
           sudo .github/install-deps.sh
+
+      - name: Install cmake 🌊
+        uses: ./.github/actions/install-cmake
 
       - name: Install bpftool 🐝
         uses: ./.github/actions/install-bpftool
@@ -134,7 +136,10 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake python3 quota linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends clang gcc llvm build-essential python3 quota linux-headers-$(uname -r)
+
+      - name: Install cmake 🌊
+        uses: ./.github/actions/install-cmake
 
         # We have no guarantees that the kernel version is the same for the
         # different workers, so we rebuild the drivers.
