@@ -63,7 +63,11 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
+
+      - name: Install cmake 🌊
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: ./.github/actions/install-cmake
 
       - name: Install bpftool 🐝
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -139,7 +143,11 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool linux-headers-$(uname -r)
+
+      - name: Install cmake 🌊
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: ./.github/actions/install-cmake
 
       - name: Install bpftool 🐝
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -278,10 +286,13 @@ jobs:
       # Always install deps before invoking checkout action, to properly perform a full clone.
       - name: Install build dependencies
         run: |
-          dnf install -y ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel curl
+          dnf install -y ca-certificates make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel curl
 
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install cmake 🌊
+        uses: ./.github/actions/install-cmake
 
       - name: Install bpftool 🐝
         uses: ./.github/actions/install-bpftool
@@ -310,13 +321,16 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
+          sudo apt install -y --no-install-recommends ca-certificates build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
           sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
 
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install cmake 🌊
+        uses: ./.github/actions/install-cmake
 
       - name: Download skeleton
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0

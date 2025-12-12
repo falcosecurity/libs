@@ -49,7 +49,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends \
             ca-certificates \
-            cmake \
             build-essential \
             git \
             clang \
@@ -76,6 +75,9 @@ jobs:
           fetch-depth: 0
           repository: ${{ inputs.libsrepo }}
           ref: ${{ inputs.libsversion }}
+
+      - name: Install cmake 🌊
+        uses: ./.github/actions/install-cmake
 
       - name: Install bpftool 🐝
         uses: ./.github/actions/install-bpftool

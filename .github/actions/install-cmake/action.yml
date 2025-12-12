@@ -1,0 +1,20 @@
+name: "install-cmake"
+description: "Install cmake"
+
+inputs:
+  version:
+    description: "Version of cmake to install (format: 'X.Y.Z')"
+    required: false
+    default: "3.24.4"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install cmake from released package 🌊
+      shell: bash
+      run: |
+        set -o pipefail
+        VERSION="${{ inputs.version }}"
+        RELEASE_NAME="cmake-$VERSION-linux-$(uname -m)"
+        curl -L "https://github.com/Kitware/CMake/releases/download/v$VERSION/$RELEASE_NAME.tar.gz" | \
+          sudo tar -C /usr --strip-components 1 "$RELEASE_NAME/bin" "$RELEASE_NAME/share" -xzpvf -
