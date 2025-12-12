@@ -39,12 +39,12 @@ target_include_directories(
 	sinsp_test_support
 	PUBLIC ${LIBS_DIR} # needed for driver/event_stats.h
 		   ${CMAKE_CURRENT_BINARY_DIR} # needed for libsinsp_test_var.h
-		   ${CMAKE_CURRENT_SOURCE_DIR} ${UTHASH_INCLUDE} ${JSONCPP_INCLUDE}
+		   ${CMAKE_CURRENT_SOURCE_DIR} ${UTHASH_INCLUDE} ${JSONCPP_INCLUDE} ${ZLIB_INCLUDE}
 )
 
 target_link_libraries(sinsp_test_support PUBLIC sinsp GTest::gtest "${JSONCPP_LIB}")
 
-add_dependencies(sinsp_test_support uthash)
+add_dependencies(sinsp_test_support uthash zlib jsoncpp)
 
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp_test_support PUBLIC "${TBB_LIB}")
