@@ -333,7 +333,7 @@ jobs:
         uses: ./.github/actions/install-cmake
 
       - name: Download skeleton
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: bpf_probe_x86_64.skel.h
           path: /tmp
@@ -372,13 +372,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download X64 matrix
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: matrix_X64
           path: matrix_X64
 
       - name: Download ARM64 matrix
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: matrix_ARM64
           path: matrix_ARM64
