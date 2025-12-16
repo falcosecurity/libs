@@ -2299,7 +2299,7 @@ struct ppm_proc_info {
 struct ppm_proclist_info {
 	int64_t n_entries;
 	int64_t max_entries;
-	struct ppm_proc_info entries[0];
+	struct ppm_proc_info entries[];
 };
 
 enum syscall_flags {
