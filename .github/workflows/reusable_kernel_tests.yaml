@@ -38,13 +38,13 @@ jobs:
         architecture: [ X64, ARM64 ]
     runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}", "kernel-testing-matrix" ]
     steps:
-      - uses: falcosecurity/kernel-testing@e711072a770ab1856f87bbbbcb2f95c7a82581ff
+      - uses: falcosecurity/kernel-testing@bff51208f221f61475c215c5b05ffd69656905a5
         id: kernel_tests
         with:
           libsversion: ${{ inputs.libsversion }}
           libsrepo: ${{ inputs.libsrepo }}
           build_matrix: 'true'
-          images_tag: 'v0.3.2'
+          images_tag: 'v0.4.0'
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
