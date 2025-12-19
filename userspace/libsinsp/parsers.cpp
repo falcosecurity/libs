@@ -3192,6 +3192,10 @@ static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
 	}
 
 	size_t const cmsg_aligned_len = PPM_CMSG_ALIGN(cmsg_len);
+	// Guard against infinite loop: ensure we advance by at least sizeof(ppm_cmsghdr)
+	if(cmsg_aligned_len < sizeof(ppm_cmsghdr)) {
+		return nullptr;
+	}
 	cmsg = reinterpret_cast<ppm_cmsghdr *>(reinterpret_cast<char *>(cmsg) + cmsg_aligned_len);
 	if(reinterpret_cast<char *>(cmsg + 1) > msg_control + msg_controllen ||
 	   reinterpret_cast<char *>(cmsg) + cmsg_aligned_len > msg_control + msg_controllen) {
