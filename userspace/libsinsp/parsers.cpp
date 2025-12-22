@@ -3180,6 +3180,11 @@ struct ppm_cmsghdr {
 
 #define PPM_CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t) ~(sizeof(size_t) - 1))
 
+// Given a length, return the additional padding necessary such that
+// `len + __PPM_CMSG_PADDING(len) == PPM_CMSG_ALIGN(len)`.
+#define __PPM_CMSG_PADDING(len) \
+	((sizeof(size_t) - ((len) & (sizeof(size_t) - 1))) & (sizeof(size_t) - 1))
+
 #define PPM_CMSG_NXTHDR(msg_control, msg_controllen, cmsg) \
 	ppm_cmsg_nxthdr(msg_control, msg_controllen, cmsg)
 static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
@@ -3191,17 +3196,18 @@ static ppm_cmsghdr *ppm_cmsg_nxthdr(char const *msg_control,
 		return nullptr;
 	}
 
-	size_t const cmsg_aligned_len = PPM_CMSG_ALIGN(cmsg_len);
-	// Guard against infinite loop: ensure we advance by at least sizeof(ppm_cmsghdr)
-	if(cmsg_aligned_len < sizeof(ppm_cmsghdr)) {
+	// Check that there is enough space between cmsg and the end of the buffer to hold the current
+	// cmsg *and* the next one.
+	const size_t size_needed = sizeof(ppm_cmsghdr) + __PPM_CMSG_PADDING(cmsg_len);
+	const size_t remaining_room =
+	        static_cast<size_t>(msg_control + msg_controllen - reinterpret_cast<char *>(cmsg));
+	if(remaining_room < size_needed || remaining_room - size_needed < cmsg_len) {
 		return nullptr;
 	}
-	cmsg = reinterpret_cast<ppm_cmsghdr *>(reinterpret_cast<char *>(cmsg) + cmsg_aligned_len);
-	if(reinterpret_cast<char *>(cmsg + 1) > msg_control + msg_controllen ||
-	   reinterpret_cast<char *>(cmsg) + cmsg_aligned_len > msg_control + msg_controllen) {
-		return nullptr;
-	}
-	return cmsg;
+
+	// Now, we trust cmsg_len and can use it to find the next header.
+	return reinterpret_cast<ppm_cmsghdr *>(reinterpret_cast<char *>(cmsg) +
+	                                       PPM_CMSG_ALIGN(cmsg_len));
 }
 
 #define PPM_CMSG_DATA(cmsg) ((char *)((ppm_cmsghdr *)(cmsg) + 1))
