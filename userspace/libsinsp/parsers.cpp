@@ -3450,7 +3450,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 			// Extract the data buffer
 			//
 			if(etype == PPME_SOCKET_SENDMMSG_X) {
-				parinfo = evt.get_param(2);
+				parinfo = evt.get_param(3);
 			} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X, PPME_SOCKET_SENDMSG_X
 				parinfo = evt.get_param(1);
 			}
