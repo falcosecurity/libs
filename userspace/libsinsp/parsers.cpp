@@ -2530,7 +2530,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
 		                             evt.get_fd_info()->m_type,
 		                             &evt.get_paramstr_storage()[0],
-		                             (uint32_t)evt.get_paramstr_storage().size(),
+		                             evt.get_paramstr_storage().size(),
 		                             can_resolve_hostname_and_port);
 
 		evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
@@ -3340,7 +3340,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 						sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
 						                             fdtype,
 						                             &evt.get_paramstr_storage()[0],
-						                             (uint32_t)evt.get_paramstr_storage().size(),
+						                             evt.get_paramstr_storage().size(),
 						                             m_hostname_and_port_resolution_enabled);
 
 						evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
@@ -3427,7 +3427,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 						sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
 						                             fdtype,
 						                             &evt.get_paramstr_storage()[0],
-						                             (uint32_t)evt.get_paramstr_storage().size(),
+						                             evt.get_paramstr_storage().size(),
 						                             m_hostname_and_port_resolution_enabled);
 
 						evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
