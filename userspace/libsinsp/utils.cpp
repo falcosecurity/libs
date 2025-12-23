@@ -468,7 +468,7 @@ const char* sinsp_utils::signal_to_str(uint8_t code) {
 bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo,
                                   scap_fd_type stype,
                                   char* targetbuf,
-                                  uint32_t targetbuf_size,
+                                  const size_t targetbuf_size,
                                   bool resolve) {
 	if(stype == SCAP_FD_IPV4_SOCK) {
 		uint8_t* sb = (uint8_t*)&sinfo->m_ipv4info.m_fields.m_sip;

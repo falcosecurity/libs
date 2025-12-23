@@ -78,7 +78,7 @@ public:
 	static bool sockinfo_to_str(sinsp_sockinfo* sinfo,
 	                            scap_fd_type stype,
 	                            char* targetbuf,
-	                            uint32_t targetbuf_size,
+	                            size_t targetbuf_size,
 	                            bool resolve = false);
 
 	//
