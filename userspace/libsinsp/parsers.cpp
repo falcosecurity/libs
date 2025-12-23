@@ -3266,11 +3266,7 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
 #endif  // _WIN32
 
 void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	const sinsp_evt_param *parinfo;
-	int64_t retval;
-	int64_t tid = evt.get_tid();
-	ppm_event_flags eflags = evt.get_info_flags();
-	uint16_t etype = evt.get_scap_evt()->type;
+	const auto etype = evt.get_scap_evt()->type;
 
 	// On old scap files, sendmmsg and recvmmsg don't have any parameter, and the scap converter
 	// just adds a series of empty parameters to match the latest event layouts. If one of the
@@ -3290,196 +3286,175 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
-	retval = evt.get_syscall_return_value();
+	// Fd info and type can change during event parsing.
+	auto &fdinfo = *evt.get_fd_info();
+	auto fd_type = evt.get_fd_info()->m_type;
 
-	//
-	// If the operation was successful, validate that the fd exists
-	//
-	if(retval >= 0) {
-		if(evt.get_fd_info()->m_type == SCAP_FD_IPV4_SOCK ||
-		   evt.get_fd_info()->m_type == SCAP_FD_IPV6_SOCK) {
-			evt.get_fd_info()->set_socket_connected();
+	if(evt.get_syscall_return_value() < 0) {
+		if(!m_track_connection_status) {
+			return;
+		}
+		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+			fdinfo.set_socket_failed();
+			// If there's a listener, add a callback to later invoke it.
+			if(!m_observer) {
+				return;
+			}
+			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
+				observer->on_socket_status_changed(evt);
+			});
+		}
+		return;
+	}
+
+	if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+		fdinfo.set_socket_connected();
+	}
+
+	if(evt.get_info_flags() & EF_READS_FROM_FD) {
+		int32_t tupleparam = -1;
+
+		if(etype == PPME_SOCKET_RECVFROM_X) {
+			tupleparam = 2;
+		} else if(etype == PPME_SOCKET_RECVMSG_X) {
+			tupleparam = 3;
+		} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
+			tupleparam = 4;
 		}
 
-		if(eflags & EF_READS_FROM_FD) {
-			int32_t tupleparam = -1;
-
-			if(etype == PPME_SOCKET_RECVFROM_X) {
-				tupleparam = 2;
-			} else if(etype == PPME_SOCKET_RECVMSG_X) {
-				tupleparam = 3;
-			} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
-				tupleparam = 4;
-			}
-
-			if(tupleparam != -1 &&
-			   (evt.get_fd_info()->m_name.length() == 0 || !evt.get_fd_info()->is_tcp_socket())) {
-				//
-				// recvfrom contains tuple info.
-				// If the fd still doesn't contain tuple info (because the socket is a
-				// datagram one or because some event was lost),
-				// add it here.
-				//
-				if(update_fd(evt, *evt.get_param(tupleparam))) {
-					const char *parstr;
-
-					scap_fd_type fdtype = evt.get_fd_info()->m_type;
-
-					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
-						if(evt.get_fd_info()->is_role_none()) {
-							evt.get_fd_info()->set_net_role_by_guessing(*evt.get_tinfo(), true);
-						}
-
-						if(evt.get_fd_info()->is_role_client()) {
-							swap_addresses(*evt.get_fd_info());
-						}
-
-						sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
-						                             fdtype,
-						                             &evt.get_paramstr_storage()[0],
-						                             evt.get_paramstr_storage().size(),
-						                             m_hostname_and_port_resolution_enabled);
-
-						evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
-					} else {
-						evt.get_fd_info()->m_name =
-						        evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+		if(tupleparam != -1 && (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+			// recvfrom contains tuple info. If the fd still doesn't contain tuple info (because the
+			// socket is a datagram one or because some event was lost), add it here.
+			if(update_fd(evt, *evt.get_param(tupleparam))) {
+				// update_fd() can change the event's fd type.
+				fd_type = evt.get_fd_info()->m_type;
+				if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+					if(fdinfo.is_role_none()) {
+						fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), true);
 					}
+
+					if(fdinfo.is_role_client()) {
+						swap_addresses(fdinfo);
+					}
+
+					auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
+					const auto str_storage_len = std::size(evt.get_paramstr_storage());
+					sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
+					                             fd_type,
+					                             str_storage_ptr,
+					                             str_storage_len,
+					                             m_hostname_and_port_resolution_enabled);
+					fdinfo.m_name = str_storage_ptr;
+				} else {
+					const char *parstr;
+					fdinfo.m_name = evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
 				}
 			}
+		}
 
-			//
-			// Extract the data buffer
-			//
+		// If there's a listener, add a callback to later invoke it.
+		if(m_observer) {
+			const sinsp_evt_param *data_param;
 			if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
 			   etype == PPME_SOCKET_RECVMSG_X) {
-				parinfo = evt.get_param(2);
+				data_param = evt.get_param(2);
 			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
-				parinfo = evt.get_param(3);
+				data_param = evt.get_param(3);
 			} else {  // PPME_SOCKET_RECVFROM_X, PPME_SOCKET_RECV_X
-				parinfo = evt.get_param(1);
+				data_param = evt.get_param(1);
 			}
+			auto *const data_ptr = data_param->data();
+			const auto data_len = data_param->len();
+			verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
+			                                                  sinsp_evt *evt) {
+				const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
+				observer->on_read(evt,
+				                  evt->get_tid(),
+				                  evt->get_tinfo()->m_lastevent_fd,
+				                  evt->get_fd_info(),
+				                  data_ptr,
+				                  original_len,
+				                  data_len);
+			});
+		}
 
-			const auto data = parinfo->data();
-			const auto data_len = parinfo->len();
-
-			//
-			// If there's a listener, add a callback to later invoke it.
-			//
-			if(m_observer) {
-				verdict.add_post_process_cbs(
-				        [tid, data, retval, data_len](sinsp_observer *observer, sinsp_evt *evt) {
-					        observer->on_read(evt,
-					                          tid,
-					                          evt->get_tinfo()->m_lastevent_fd,
-					                          evt->get_fd_info(),
-					                          data,
-					                          (uint32_t)retval,
-					                          data_len);
-				        });
-			}
-
-			//
-			// Check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS,
-			// which is used to pass FDs between processes, and update the sinsp state
-			// accordingly via procfs scan.
-			//
+		// Check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS, which is used
+		// to pass FDs between processes, and update the sinsp state accordingly via procfs scan.
 #ifndef _WIN32
-			if(evt.get_fd_info()->is_unix_socket()) {
-				int32_t cmparam = -1;
-				if(etype == PPME_SOCKET_RECVMSG_X && evt.get_num_params() >= 5) {
-					cmparam = 4;
-				} else if(etype == PPME_SOCKET_RECVMMSG_X && evt.get_num_params() >= 6) {
-					cmparam = 5;
-				}
-
-				if(cmparam != -1) {
-					parinfo = evt.get_param(cmparam);
-					process_recvmsg_ancillary_data(evt, *parinfo);
-				}
-			}
-#endif
-
-		} else {
-			if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
-			    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
-			   (evt.get_fd_info()->m_name.length() == 0 || !evt.get_fd_info()->is_tcp_socket())) {
-				// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event.
-				// If the fd still doesn't contain tuple info (because the socket is a datagram one
-				// or because some event was lost), add it here.
-				constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
-
-				if(update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
-					scap_fd_type fdtype = evt.get_fd_info()->m_type;
-
-					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
-						if(evt.get_fd_info()->is_role_none()) {
-							evt.get_fd_info()->set_net_role_by_guessing(*evt.get_tinfo(), false);
-						}
-
-						if(evt.get_fd_info()->is_role_server()) {
-							swap_addresses(*evt.get_fd_info());
-						}
-
-						sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
-						                             fdtype,
-						                             &evt.get_paramstr_storage()[0],
-						                             evt.get_paramstr_storage().size(),
-						                             m_hostname_and_port_resolution_enabled);
-
-						evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
-					} else {
-						const char *parstr;
-						evt.get_fd_info()->m_name = evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID,
-						                                                 &parstr,
-						                                                 sinsp_evt::PF_SIMPLE);
-					}
-				}
+		if(fdinfo.is_unix_socket()) {
+			int32_t msgctrl_param_id = -1;
+			if(etype == PPME_SOCKET_RECVMSG_X && evt.get_num_params() >= 5) {
+				msgctrl_param_id = 4;
+			} else if(etype == PPME_SOCKET_RECVMMSG_X && evt.get_num_params() >= 6) {
+				msgctrl_param_id = 5;
 			}
 
-			//
-			// Extract the data buffer
-			//
-			if(etype == PPME_SOCKET_SENDMMSG_X) {
-				parinfo = evt.get_param(3);
-			} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X, PPME_SOCKET_SENDMSG_X
-				parinfo = evt.get_param(1);
-			}
-
-			const auto data = parinfo->data();
-			const auto data_len = parinfo->len();
-
-			//
-			// If there's a listener, add a callback to later invoke it.
-			//
-			if(m_observer) {
-				verdict.add_post_process_cbs(
-				        [tid, data, retval, data_len](sinsp_observer *observer, sinsp_evt *evt) {
-					        observer->on_write(evt,
-					                           tid,
-					                           evt->get_tinfo()->m_lastevent_fd,
-					                           evt->get_fd_info(),
-					                           data,
-					                           (uint32_t)retval,
-					                           data_len);
-				        });
+			if(msgctrl_param_id != -1) {
+				const sinsp_evt_param &msgctrl_param = *evt.get_param(msgctrl_param_id);
+				process_recvmsg_ancillary_data(evt, msgctrl_param);
 			}
 		}
-	} else if(m_track_connection_status) {
-		if(evt.get_fd_info()->m_type == SCAP_FD_IPV4_SOCK ||
-		   evt.get_fd_info()->m_type == SCAP_FD_IPV6_SOCK) {
-			evt.get_fd_info()->set_socket_failed();
-			//
-			// If there's a listener, add a callback to later invoke it.
-			//
-			if(m_observer) {
-				verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
-					observer->on_socket_status_changed(evt);
-				});
+#endif
+
+	} else {
+		if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
+		    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
+		   (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+			// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event. If the fd
+			// still doesn't contain tuple info (because the socket is a datagram one or because
+			// some event was lost), add it here.
+			if(constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
+			   update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
+				// update_fd() can change the event's fd type.
+				fd_type = evt.get_fd_info()->m_type;
+				if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+					if(fdinfo.is_role_none()) {
+						fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), false);
+					}
+
+					if(fdinfo.is_role_server()) {
+						swap_addresses(*evt.get_fd_info());
+					}
+
+					auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
+					const auto str_storage_len = std::size(evt.get_paramstr_storage());
+					sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
+					                             fd_type,
+					                             str_storage_ptr,
+					                             str_storage_len,
+					                             m_hostname_and_port_resolution_enabled);
+
+					fdinfo.m_name = str_storage_ptr;
+				} else {
+					const char *parstr;
+					fdinfo.m_name = evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID,
+					                                     &parstr,
+					                                     sinsp_evt::PF_SIMPLE);
+				}
 			}
+		}
+
+		// If there's a listener, add a callback to later invoke it.
+		if(m_observer) {
+			const sinsp_evt_param *data_param;
+			if(etype == PPME_SOCKET_SENDMMSG_X) {
+				data_param = evt.get_param(3);
+			} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X, PPME_SOCKET_SENDMSG_X
+				data_param = evt.get_param(1);
+			}
+			auto *const data_ptr = data_param->data();
+			const auto data_len = data_param->len();
+			verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
+			                                                  sinsp_evt *evt) {
+				const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
+				observer->on_write(evt,
+				                   evt->get_tid(),
+				                   evt->get_tinfo()->m_lastevent_fd,
+				                   evt->get_fd_info(),
+				                   data_ptr,
+				                   original_len,
+				                   data_len);
+			});
 		}
 	}
 }
@@ -3489,7 +3464,8 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 		return;
 	}
 
-	// If the operation was successful and there's a listener, add a callback to later invoke it.
+	// If the operation was successful and there's a listener, add a callback to later
+	// invoke it.
 	const int64_t retval = evt.get_syscall_return_value();
 	if(retval < 0 || !m_observer) {
 		return;
@@ -3526,7 +3502,8 @@ void sinsp_parser::parse_eventfd_eventfd2_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_chdir_exit(sinsp_evt &evt) {
-	// In case of success, if the event has an associated thread, update its working directory.
+	// In case of success, if the event has an associated thread, update its working
+	// directory.
 	if(evt.get_tinfo() != nullptr && evt.get_syscall_return_value() >= 0) {
 		evt.get_tinfo()->update_cwd(evt.get_param(1)->as<std::string_view>());
 	}
@@ -3580,8 +3557,8 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt &evt) {
 			if(cwd + "/" != evt.get_tinfo()->get_cwd()) {
 				//
 				// This shouldn't happen, because we should be able to stay in synch by
-				// following chdir(). If it does, it's almost sure there was an event drop.
-				// In that case, we use this value to update the thread cwd.
+				// following chdir(). If it does, it's almost sure there was an event
+				// drop. In that case, we use this value to update the thread cwd.
 				//
 #if !defined(_WIN32)
 #ifdef _DEBUG
@@ -3656,10 +3633,14 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 		//
 		// If the old FD is in the table, remove it properly.
 		// The old FD is:
-		// 	- dup(): fd number of a previously closed fd that has not been removed from the fd_table
-		//		     and has been reassigned to the newly created fd by dup()(very rare condition);
-		//  - dup2(): fd number of an existing fd that we pass to the dup2() as the "newfd". dup2()
-		//			  will close the existing one. So we need to clean it up / overwrite;
+		// 	- dup(): fd number of a previously closed fd that has not been removed from
+		// the fd_table
+		//		     and has been reassigned to the newly created fd by dup()(very rare
+		// condition);
+		//  - dup2(): fd number of an existing fd that we pass to the dup2() as the
+		//  "newfd". dup2()
+		//			  will close the existing one. So we need to clean it up /
+		// overwrite;
 		//  - dup3(): same as dup2().
 		//
 		sinsp_fdinfo *oldfdinfo = evt.get_tinfo()->get_fd(retval);
@@ -3675,8 +3656,8 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 		}
 
 		//
-		// If we are handling the dup3() event exit then we add the flags to the new file
-		// descriptor.
+		// If we are handling the dup3() event exit then we add the flags to the new
+		// file descriptor.
 		//
 		if(evt.get_type() == PPME_SYSCALL_DUP3_X) {
 			uint32_t flags;
@@ -3687,8 +3668,9 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 			flags = evt.get_param(3)->as<uint32_t>();
 
 			//
-			// We keep the previously flags that has been set on the original file descriptor and
-			// just set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
+			// We keep the previously flags that has been set on the original file
+			// descriptor and just set/reset O_CLOEXEC flag base on the value received
+			// by dup3() syscall.
 			//
 			if(flags) {
 				//
@@ -3802,8 +3784,8 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 		}
 
 		sinsp_threadinfo *ptinfo = m_thread_manager->get_thread(tid, true).get();
-		/* If the thread info is invalid we cannot recover the main thread because we don't
-		 * even have the `pid` of the thread.
+		/* If the thread info is invalid we cannot recover the main thread because we
+		 * don't even have the `pid` of the thread.
 		 */
 		if(ptinfo == nullptr || ptinfo->is_invalid()) {
 			return;
@@ -3864,7 +3846,8 @@ void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
 		return;
 	}
 
-	// If this parameter is not present, so is for the other ones (see scap-converter table).
+	// If this parameter is not present, so is for the other ones (see scap-converter
+	// table).
 	const auto vm_swap_param = evt.get_param(5);
 	if(vm_swap_param->empty()) {
 		return;
@@ -3887,8 +3870,8 @@ void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
 	if(const auto vm_size_param = evt.get_param(1); !vm_size_param->empty()) {
 		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
 	}
-	// If one of these parameters is present, so is for the other ones, so just check the presence
-	// of one of them.
+	// If one of these parameters is present, so is for the other ones, so just check
+	// the presence of one of them.
 	const auto vm_rss_param = evt.get_param(2);
 	const auto vm_swap_param = evt.get_param(3);
 	if(!vm_swap_param->empty()) {
@@ -4186,8 +4169,8 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type ty
 
 	/* name */
 	/*
-	Suppose you create a memfd named libstest resulting in a fd.name libstest while on disk
-	(e.g. ls -l /proc/$PID/fd/$FD_NUM) it may look like /memfd:libstest (deleted)
+	Suppose you create a memfd named libstest resulting in a fd.name libstest while on
+	disk (e.g. ls -l /proc/$PID/fd/$FD_NUM) it may look like /memfd:libstest (deleted)
 	*/
 	auto name = evt.get_param(1)->as<std::string_view>();
 
