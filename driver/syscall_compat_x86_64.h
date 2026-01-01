@@ -986,6 +986,9 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_uretprobe
 #define __NR_uretprobe 335
 #endif
+#ifndef __NR_uprobe
+#define __NR_uprobe 336
+#endif
 #ifndef __NR_pidfd_send_signal
 #define __NR_pidfd_send_signal 424
 #endif
@@ -1123,4 +1126,7 @@ or GPL2.txt for full copies of the license.
 #endif
 #ifndef __NR_file_setattr
 #define __NR_file_setattr 469
+#endif
+#ifndef __NR_listns
+#define __NR_listns 470
 #endif

@@ -153,6 +153,7 @@
 | linkat                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | listen                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | listmount               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| listns                  | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | listxattr               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | listxattrat             | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | llistxattr              | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
@@ -403,6 +404,7 @@
 | unlink                  | 🟢        | ppc64le,s390x,x86_64                             |
 | unlinkat                | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | unshare                 | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| uprobe                  | 🟡        | x86_64                                           |
 | uretprobe               | 🟡        | x86_64                                           |
 | userfaultfd             | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | ustat                   | 🟡        | ppc64le,s390x,x86_64                             |
