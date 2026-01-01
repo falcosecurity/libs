@@ -1039,4 +1039,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_file_getattr
 	[__NR_file_getattr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FILE_GETATTR},
 #endif
+#ifdef __NR_uprobe
+	[__NR_uprobe - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_UPROBE},
+#endif
+#ifdef __NR_listns
+	[__NR_listns - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LISTNS},
+#endif
 };
