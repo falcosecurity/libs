@@ -3808,43 +3808,27 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 	main_thread->m_fdlimit = newcur;
 }
 
-void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
+void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) {
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	//
-	// Extract the command
-	//
-	const auto cmd = evt.get_param(2)->as<int8_t>();
-
-	//
-	// If not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore the event
-	//
-	if(!(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC)) {
+	// If not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore the event.
+	if(const auto cmd = evt.get_param(2)->as<int8_t>();
+	   !(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC)) {
 		return;
 	}
 
-	//
-	// Check if the syscall was successful
-	//
-	if(retval >= 0) {
-		if(evt.get_fd_info() == nullptr) {
-			return;
-		}
-
-		//
-		// Add the new fd to the table.
-		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
-		//       For us it's ok to just overwrite it.
-		//
-		evt.set_fd_info(evt.get_tinfo()->add_fd(retval, evt.get_fd_info()->clone()));
+	// Check if the syscall was successful and the fd info is present.
+	const int64_t retval = evt.get_syscall_return_value();
+	if(retval < 0 || evt.get_fd_info() == nullptr) {
+		return;
 	}
+
+	// Add the new fd to the table.
+	// note: dup2 and dup3 accept an existing FD and in that case they close it. For us, it's ok to
+	// just overwrite it.
+	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, evt.get_fd_info()->clone()));
 }
 
 void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
