@@ -2230,36 +2230,21 @@ void sinsp_parser::parse_socket_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	const sinsp_evt_param *parinfo;
-	int64_t retval;
-	const char *parstr;
-
-	if(evt.get_fd_info() == nullptr) {
+	if(evt.get_fd_info() == nullptr || evt.get_syscall_return_value() < 0) {
 		return;
 	}
 
-	retval = evt.get_syscall_return_value();
-
-	if(retval < 0) {
-		return;
-	}
-
-	parinfo = evt.get_param(1);
-	if(parinfo->empty()) {
-		//
+	const auto *addr_param = evt.get_param(1);
+	if(addr_param->empty()) {
 		// No address, there's nothing we can really do with this.
-		//
 		return;
 	}
 
-	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo->data());
-	const auto family = *packed_data;
+	const auto packed_data = reinterpret_cast<const uint8_t *>(addr_param->data());
 
-	//
-	// Update the FD info with this tuple, assume that if port > 0, means that
-	// the socket is used for listening
-	//
-	if(family == PPM_AF_INET) {
+	// Update the FD info with this tuple, assume that if port > 0, means that the socket is used
+	// for listening.
+	if(const auto family = *packed_data; family == PPM_AF_INET) {
 		uint32_t ip;
 		uint16_t port;
 		memcpy(&ip, packed::in_sockaddr::ip(packed_data), sizeof(ip));
@@ -2297,14 +2282,11 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 			evt.get_fd_info()->set_role_server();
 		}
 	}
-	//
-	// Update the name of this socket
-	//
+	// Update the name of this socket.
+	const char *parstr;
 	evt.get_fd_info()->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 
-	//
 	// If there's a listener, add a callback to later invoke it.
-	//
 	if(m_observer) {
 		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_bind(evt); });
