@@ -3677,21 +3677,17 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 
-void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt &evt) const {
+void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt &evt) {
 	if(evt.get_tinfo() == nullptr || evt.get_syscall_return_value() < 0) {
 		return;
 	}
 
-	// Extract the resource number.
-	const uint8_t resource = evt.get_param(3)->as<uint8_t>();
-	if(resource != PPM_RLIMIT_NOFILE) {
+	if(const auto resource = evt.get_param(3)->as<uint8_t>(); resource != PPM_RLIMIT_NOFILE) {
 		return;
 	}
 
-	// Extract the current value for the resource.
-	int64_t curval = evt.get_param(1)->as<uint64_t>();
-	if(curval != -1) {
-		auto main_thread = evt.get_tinfo()->get_main_thread();
+	if(const auto curval = evt.get_param(1)->as<int64_t>(); curval != -1) {
+		const auto main_thread = evt.get_tinfo()->get_main_thread();
 		if(main_thread == nullptr) {
 			return;
 		}

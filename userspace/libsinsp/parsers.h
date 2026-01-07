@@ -113,7 +113,7 @@ private:
 	void parse_shutdown_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_dup_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_single_param_fd_exit(sinsp_evt& evt, scap_fd_type type) const;
-	void parse_getrlimit_setrlimit_exit(sinsp_evt& evt) const;
+	static void parse_getrlimit_setrlimit_exit(sinsp_evt& evt);
 	void parse_prlimit_exit(sinsp_evt& evt) const;
 	static void parse_fcntl_exit(sinsp_evt& evt);
 	static void parse_prctl_exit(sinsp_evt& evt);
