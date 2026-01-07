@@ -156,8 +156,7 @@ private:
 	                                           const uint8_t* enter_addr_data,
 	                                           bool can_resolve_hostname_and_port);
 	static inline void fill_client_socket_info_from_addr(sinsp_evt& evt,
-	                                                     const uint8_t* packed_data,
-	                                                     bool can_resolve_hostname_and_port);
+	                                                     const uint8_t* packed_data);
 	// Set `dip` and `dport` to the addresses of an IPv6 address and port, by taking them from one
 	// of the provided source of data. The choice is made depending on the availability and on
 	// TOCTOU mitigation considerations.

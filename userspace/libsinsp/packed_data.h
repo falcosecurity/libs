@@ -23,6 +23,12 @@ limitations under the License.
 // This namespace contains simple helpers allowing to manipulate packed data.
 namespace packed {
 
+namespace generic_tuple {
+inline const uint8_t *family(const uint8_t *tuple) {
+	return tuple;
+}
+}  // namespace generic_tuple
+
 namespace in6_socktuple {
 inline const uint8_t *sip(const uint8_t *tuple) {
 	return tuple + 1;
@@ -70,6 +76,12 @@ inline const uint8_t *dpath(const uint8_t *tuple) {
 	return tuple + 17;
 }
 }  // namespace un_socktuple
+
+namespace generic_sockaddr {
+inline const uint8_t *family(const uint8_t *addr) {
+	return addr;
+}
+}  // namespace generic_sockaddr
 
 namespace in6_sockaddr {
 inline const uint8_t *ip(const uint8_t *addr) {
