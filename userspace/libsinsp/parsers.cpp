@@ -4015,19 +4015,16 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
 }
 
 void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
-	if(evt.get_tinfo() == nullptr) {
+	if(evt.get_tinfo() == nullptr || evt.get_syscall_return_value() != 0) {
 		return;
 	}
 
-	const int64_t retval = evt.get_syscall_return_value();
-	if(retval == 0) {
-		const char *resolved_path;
-		auto path = evt.get_param_as_str(1, &resolved_path);
-		if(resolved_path[0] == 0) {
-			evt.get_tinfo()->m_root = path;
-		} else {
-			evt.get_tinfo()->m_root = resolved_path;
-		}
+	const char *resolved_path;
+	const auto path = evt.get_param_as_str(1, &resolved_path);
+	if(resolved_path[0] == 0) {
+		evt.get_tinfo()->m_root = path;
+	} else {
+		evt.get_tinfo()->m_root = resolved_path;
 	}
 }
 
