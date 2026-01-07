@@ -522,44 +522,37 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	return true;
 }
 
-void sinsp_parser::store_event(sinsp_evt &evt) {
+void sinsp_parser::store_event(sinsp_evt &evt) const {
 	if(evt.get_tinfo() == nullptr) {
-		//
-		// No thread in the table. We won't store this event, which mean that
-		// we won't be able to parse the corresponding exit event and we'll have
-		// to drop the information it carries.
-		//
+		// No thread in the table. We won't store this event, which mean that we could not be able
+		// to parse the corresponding exit event, and we'll have to drop the information it carries.
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_store_evts_drops++;
 		}
 		return;
 	}
 
-	//
-	// Make sure the event data is going to fit
-	//
-	const uint32_t elen = scap_event_getlen(evt.get_scap_evt());
+	// Make sure the event data is going to fit.
+	const auto evt_len = scap_event_getlen(evt.get_scap_evt());
 
-	if(elen > SP_EVT_BUF_SIZE) {
+	if(evt_len > SP_EVT_BUF_SIZE) {
 		ASSERT(false);
 		return;
 	}
 
-	//
-	// Copy the data
-	//
-	auto tinfo = evt.get_tinfo();
-	uint8_t *last_event_data = tinfo->get_last_event_data();
+	// Copy the data.
+	auto *const tinfo = evt.get_tinfo();
+	auto *last_event_data = tinfo->get_last_event_data();
 	if(last_event_data != nullptr) {
 		free(last_event_data);
 	}
-	last_event_data = (uint8_t *)malloc(sizeof(uint8_t) * elen);
+	last_event_data = static_cast<uint8_t *>(malloc(sizeof(uint8_t) * evt_len));
 	tinfo->set_last_event_data(last_event_data);
 	if(tinfo->get_last_event_data() == nullptr) {
 		throw sinsp_exception("cannot reserve event buffer in sinsp_parser::store_event.");
 		return;
 	}
-	memcpy(tinfo->get_last_event_data(), evt.get_scap_evt(), elen);
+	memcpy(tinfo->get_last_event_data(), evt.get_scap_evt(), evt_len);
 	tinfo->set_lastevent_cpuid(evt.get_cpuid());
 
 	if(m_sinsp_stats_v2 != nullptr) {

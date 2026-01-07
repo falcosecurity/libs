@@ -79,7 +79,7 @@ private:
 	//
 	// Helpers
 	//
-	inline void store_event(sinsp_evt& evt);
+	inline void store_event(sinsp_evt& evt) const;
 	inline void set_event_source(sinsp_evt& evt) const;
 
 	//
