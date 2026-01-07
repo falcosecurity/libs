@@ -3766,62 +3766,46 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
-	int64_t newcur;
-	int64_t tid;
-
-	//
-	// Check if the syscall was successful
-	//
+	// Check if the syscall was successful.
 	if(evt.get_syscall_return_value() != 0) {
 		return;
 	}
 
-	//
-	// Extract the resource number
-	//
-	const sinsp_evt_param *resource = evt.get_param(6);
-	if(resource->empty()) {
+	// Extract the resource number.
+	if(const auto *resource_param = evt.get_param(6);
+	   resource_param->empty() || resource_param->as<uint8_t>() != PPM_RLIMIT_NOFILE) {
 		return;
 	}
 
-	if(resource->as<uint8_t>() == PPM_RLIMIT_NOFILE) {
-		//
-		// Extract the current value for the resource
-		//
-		newcur = evt.get_param(1)->as<uint64_t>();
-		if(newcur == -1) {
-			return;
-		}
-
-		//
-		// Extract the tid and look for its process info
-		//
-		const sinsp_evt_param *tid_evt = evt.get_param(5);
-		if(tid_evt->empty()) {
-			return;
-		}
-		tid = tid_evt->as<int64_t>();
-		if(tid == 0) {
-			tid = evt.get_tid();
-		}
-
-		sinsp_threadinfo *ptinfo = m_thread_manager->get_thread(tid, true).get();
-		/* If the thread info is invalid we cannot recover the main thread because we
-		 * don't even have the `pid` of the thread.
-		 */
-		if(ptinfo == nullptr || ptinfo->is_invalid()) {
-			return;
-		}
-
-		//
-		// update the process fdlimit
-		//
-		auto main_thread = ptinfo->get_main_thread();
-		if(main_thread == nullptr) {
-			return;
-		}
-		main_thread->m_fdlimit = newcur;
+	// Extract the current value for the resource.
+	const auto newcur = evt.get_param(1)->as<int64_t>();
+	if(newcur == -1) {
+		return;
 	}
+
+	// Extract the tid and look for its process info.
+	const auto *tid_evt_param = evt.get_param(5);
+	if(tid_evt_param->empty()) {
+		return;
+	}
+	auto tid = tid_evt_param->as<int64_t>();
+	if(tid == 0) {
+		tid = evt.get_tid();
+	}
+
+	auto *const ptinfo = m_thread_manager->get_thread(tid, true).get();
+	// If the thread info is invalid we cannot recover the main thread because we don't even have
+	// the `pid` of the thread.
+	if(ptinfo == nullptr || ptinfo->is_invalid()) {
+		return;
+	}
+
+	// Update the process fdlimit.
+	auto *const main_thread = ptinfo->get_main_thread();
+	if(main_thread == nullptr) {
+		return;
+	}
+	main_thread->m_fdlimit = newcur;
 }
 
 void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) const {
