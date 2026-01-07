@@ -4111,33 +4111,19 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
 }
 
 void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type type) const {
-	int64_t fd;
-	uint32_t flags;
-
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	/* ret (fd) */
-	fd = evt.get_syscall_return_value();
-
-	/* name */
-	/*
-	Suppose you create a memfd named libstest resulting in a fd.name libstest while on
-	disk (e.g. ls -l /proc/$PID/fd/$FD_NUM) it may look like /memfd:libstest (deleted)
-	*/
-	auto name = evt.get_param(1)->as<std::string_view>();
-
-	/* flags */
-	flags = evt.get_param(2)->as<uint32_t>();
-
+	const auto fd = evt.get_syscall_return_value();
 	auto fdi = m_fdinfo_factory.create();
 	if(fd >= 0) {
 		fdi->m_type = type;
+		const auto name = evt.get_param(1)->as<std::string_view>();
+		const auto flags = evt.get_param(2)->as<uint32_t>();
 		fdi->add_filename(name);
 		fdi->m_openflags = flags;
 	}
-
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
