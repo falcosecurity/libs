@@ -116,22 +116,24 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
-	case PPME_SYSCALL_WRITE_X:
+	case PPME_SYSCALL_READV_X:
+	case PPME_SYSCALL_PREAD_X:
+	case PPME_SYSCALL_PREADV_X:
 	case PPME_SOCKET_RECV_X:
-	case PPME_SOCKET_SEND_X:
 	case PPME_SOCKET_RECVFROM_X:
 	case PPME_SOCKET_RECVMSG_X:
 	case PPME_SOCKET_RECVMMSG_X:
+		parse_read_exit(evt, verdict);
+		break;
+	case PPME_SYSCALL_WRITE_X:
+	case PPME_SYSCALL_WRITEV_X:
+	case PPME_SYSCALL_PWRITE_X:
+	case PPME_SYSCALL_PWRITEV_X:
+	case PPME_SOCKET_SEND_X:
 	case PPME_SOCKET_SENDTO_X:
 	case PPME_SOCKET_SENDMSG_X:
 	case PPME_SOCKET_SENDMMSG_X:
-	case PPME_SYSCALL_READV_X:
-	case PPME_SYSCALL_WRITEV_X:
-	case PPME_SYSCALL_PREAD_X:
-	case PPME_SYSCALL_PWRITE_X:
-	case PPME_SYSCALL_PREADV_X:
-	case PPME_SYSCALL_PWRITEV_X:
-		parse_rw_exit(evt, verdict);
+		parse_write_exit(evt, verdict);
 		break;
 	case PPME_SYSCALL_SENDFILE_X:
 		parse_sendfile_exit(evt, verdict);
@@ -3271,14 +3273,143 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
 }
 #endif  // _WIN32
 
-void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
+void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
 	const auto etype = evt.get_scap_evt()->type;
 
-	// On old scap files, sendmmsg and recvmmsg don't have any parameter, and the scap converter
-	// just adds a series of empty parameters to match the latest event layouts. If one of the
-	// parameters is missing, so is for the other ones, so just check the first of them.
-	if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
-	   evt.get_param(0)->empty()) {
+	// On old scap files, recvmmsg events don't have any parameter, and the scap converter just adds
+	// a series of empty parameters to match the latest event layouts. If one of the parameters is
+	// missing, so is for the other ones, so just check the first of them.
+	if(etype == PPME_SOCKET_RECVMMSG_X && evt.get_param(0)->empty()) {
+		return;
+	}
+
+	if(evt.get_fd_info() == nullptr) {
+		return;
+	}
+
+	// Fd info and type can change during event parsing.
+	auto &fdinfo = *evt.get_fd_info();
+	auto fd_type = evt.get_fd_info()->m_type;
+
+	if(evt.get_syscall_return_value() < 0) {
+		if(!m_track_connection_status) {
+			return;
+		}
+		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+			fdinfo.set_socket_failed();
+			// If there's a listener, add a callback to later invoke it.
+			if(!m_observer) {
+				return;
+			}
+			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
+				observer->on_socket_status_changed(evt);
+			});
+		}
+		return;
+	}
+
+	if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+		fdinfo.set_socket_connected();
+	}
+
+	// This should never happen: if it happens, there is a bug in the code.
+	if((evt.get_info_flags() & EF_READS_FROM_FD) == 0) {
+		ASSERT(false);
+		return;
+	}
+
+	int32_t tupleparam = -1;
+	if(etype == PPME_SOCKET_RECVFROM_X) {
+		tupleparam = 2;
+	} else if(etype == PPME_SOCKET_RECVMSG_X) {
+		tupleparam = 3;
+	} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
+		tupleparam = 4;
+	}
+	if(tupleparam != -1 && (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+		// recvfrom contains tuple info. If the fd still doesn't contain tuple info (because the
+		// socket is a datagram one or because some event was lost), add it here.
+		if(update_fd(evt, *evt.get_param(tupleparam))) {
+			// update_fd() can change the event's fd type.
+			fd_type = evt.get_fd_info()->m_type;
+			if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+				if(fdinfo.is_role_none()) {
+					fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), true);
+				}
+
+				if(fdinfo.is_role_client()) {
+					swap_addresses(fdinfo);
+				}
+
+				auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
+				const auto str_storage_len = std::size(evt.get_paramstr_storage());
+				sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
+				                             fd_type,
+				                             str_storage_ptr,
+				                             str_storage_len,
+				                             m_hostname_and_port_resolution_enabled);
+				fdinfo.m_name = str_storage_ptr;
+			} else {
+				const char *parstr;
+				fdinfo.m_name = evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+			}
+		}
+	}
+
+	// If there's a listener, add a callback to later invoke it.
+	if(m_observer) {
+		const sinsp_evt_param *data_param;
+		if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
+		   etype == PPME_SOCKET_RECVMSG_X) {
+			data_param = evt.get_param(2);
+		} else if(etype == PPME_SOCKET_RECVMMSG_X) {
+			data_param = evt.get_param(3);
+		} else {  // PPME_SYSCALL_READ_X, PPME_SYSCALL_PREAD_X, PPME_SOCKET_RECV_X,
+			      // PPME_SOCKET_RECVFROM_X
+			data_param = evt.get_param(1);
+		}
+		auto *const data_ptr = data_param->data();
+		const auto data_len = data_param->len();
+		verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
+		                                                  sinsp_evt *evt) {
+			const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
+			observer->on_read(evt,
+			                  evt->get_tid(),
+			                  evt->get_tinfo()->m_lastevent_fd,
+			                  evt->get_fd_info(),
+			                  data_ptr,
+			                  original_len,
+			                  data_len);
+		});
+	}
+
+#ifndef _WIN32
+	// For unix sockets, check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS,
+	// which is used to pass FDs between processes, and update the sinsp state accordingly via
+	// procfs scan.
+	if(fdinfo.is_unix_socket()) {
+		int32_t msgctrl_param_id = -1;
+		if(etype == PPME_SOCKET_RECVMSG_X && evt.get_num_params() >= 5) {
+			msgctrl_param_id = 4;
+		} else if(etype == PPME_SOCKET_RECVMMSG_X && evt.get_num_params() >= 6) {
+			msgctrl_param_id = 5;
+		}
+
+		if(msgctrl_param_id != -1) {
+			const sinsp_evt_param &msgctrl_param = *evt.get_param(msgctrl_param_id);
+			process_recvmsg_ancillary_data(evt, msgctrl_param);
+		}
+	}
+#endif
+}
+
+void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
+	const auto etype = evt.get_scap_evt()->type;
+
+	// On old scap files, sendmmsg events don't have any parameter, and the scap converter just adds
+	// a series of empty parameters to match the latest event layouts. If one of the parameters is
+	// missing, so is for the other ones, so just check the first of them.
+	if(etype == PPME_SOCKET_SENDMMSG_X && evt.get_param(0)->empty()) {
 		return;
 	}
 
@@ -3317,151 +3448,71 @@ void sinsp_parser::parse_rw_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		fdinfo.set_socket_connected();
 	}
 
-	if(evt.get_info_flags() & EF_READS_FROM_FD) {
-		int32_t tupleparam = -1;
+	// This should never happen: if it happens, there is a bug in the code.
+	if((evt.get_info_flags() & EF_WRITES_TO_FD) == 0) {
+		ASSERT(false);
+		return;
+	}
 
-		if(etype == PPME_SOCKET_RECVFROM_X) {
-			tupleparam = 2;
-		} else if(etype == PPME_SOCKET_RECVMSG_X) {
-			tupleparam = 3;
-		} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
-			tupleparam = 4;
-		}
-
-		if(tupleparam != -1 && (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
-			// recvfrom contains tuple info. If the fd still doesn't contain tuple info (because the
-			// socket is a datagram one or because some event was lost), add it here.
-			if(update_fd(evt, *evt.get_param(tupleparam))) {
-				// update_fd() can change the event's fd type.
-				fd_type = evt.get_fd_info()->m_type;
-				if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-					if(fdinfo.is_role_none()) {
-						fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), true);
-					}
-
-					if(fdinfo.is_role_client()) {
-						swap_addresses(fdinfo);
-					}
-
-					auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
-					const auto str_storage_len = std::size(evt.get_paramstr_storage());
-					sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
-					                             fd_type,
-					                             str_storage_ptr,
-					                             str_storage_len,
-					                             m_hostname_and_port_resolution_enabled);
-					fdinfo.m_name = str_storage_ptr;
-				} else {
-					const char *parstr;
-					fdinfo.m_name = evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
+	    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
+	   (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+		// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event. If the fd
+		// still doesn't contain tuple info (because the socket is a datagram one or because
+		// some event was lost), add it here.
+		if(constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
+		   update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
+			// update_fd() can change the event's fd type.
+			fd_type = evt.get_fd_info()->m_type;
+			if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
+				if(fdinfo.is_role_none()) {
+					fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), false);
 				}
-			}
-		}
 
-		// If there's a listener, add a callback to later invoke it.
-		if(m_observer) {
-			const sinsp_evt_param *data_param;
-			if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
-			   etype == PPME_SOCKET_RECVMSG_X) {
-				data_param = evt.get_param(2);
-			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
-				data_param = evt.get_param(3);
-			} else {  // PPME_SOCKET_RECVFROM_X, PPME_SOCKET_RECV_X
-				data_param = evt.get_param(1);
-			}
-			auto *const data_ptr = data_param->data();
-			const auto data_len = data_param->len();
-			verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
-			                                                  sinsp_evt *evt) {
-				const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
-				observer->on_read(evt,
-				                  evt->get_tid(),
-				                  evt->get_tinfo()->m_lastevent_fd,
-				                  evt->get_fd_info(),
-				                  data_ptr,
-				                  original_len,
-				                  data_len);
-			});
-		}
-
-		// Check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS, which is used
-		// to pass FDs between processes, and update the sinsp state accordingly via procfs scan.
-#ifndef _WIN32
-		if(fdinfo.is_unix_socket()) {
-			int32_t msgctrl_param_id = -1;
-			if(etype == PPME_SOCKET_RECVMSG_X && evt.get_num_params() >= 5) {
-				msgctrl_param_id = 4;
-			} else if(etype == PPME_SOCKET_RECVMMSG_X && evt.get_num_params() >= 6) {
-				msgctrl_param_id = 5;
-			}
-
-			if(msgctrl_param_id != -1) {
-				const sinsp_evt_param &msgctrl_param = *evt.get_param(msgctrl_param_id);
-				process_recvmsg_ancillary_data(evt, msgctrl_param);
-			}
-		}
-#endif
-
-	} else {
-		if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
-		    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
-		   (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
-			// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event. If the fd
-			// still doesn't contain tuple info (because the socket is a datagram one or because
-			// some event was lost), add it here.
-			if(constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
-			   update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
-				// update_fd() can change the event's fd type.
-				fd_type = evt.get_fd_info()->m_type;
-				if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-					if(fdinfo.is_role_none()) {
-						fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), false);
-					}
-
-					if(fdinfo.is_role_server()) {
-						swap_addresses(*evt.get_fd_info());
-					}
-
-					auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
-					const auto str_storage_len = std::size(evt.get_paramstr_storage());
-					sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
-					                             fd_type,
-					                             str_storage_ptr,
-					                             str_storage_len,
-					                             m_hostname_and_port_resolution_enabled);
-
-					fdinfo.m_name = str_storage_ptr;
-				} else {
-					const char *parstr;
-					fdinfo.m_name = evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID,
-					                                     &parstr,
-					                                     sinsp_evt::PF_SIMPLE);
+				if(fdinfo.is_role_server()) {
+					swap_addresses(*evt.get_fd_info());
 				}
-			}
-		}
 
-		// If there's a listener, add a callback to later invoke it.
-		if(m_observer) {
-			const sinsp_evt_param *data_param;
-			if(etype == PPME_SOCKET_SENDMMSG_X) {
-				data_param = evt.get_param(3);
-			} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X, PPME_SOCKET_SENDMSG_X
-				data_param = evt.get_param(1);
+				auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
+				const auto str_storage_len = std::size(evt.get_paramstr_storage());
+				sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
+				                             fd_type,
+				                             str_storage_ptr,
+				                             str_storage_len,
+				                             m_hostname_and_port_resolution_enabled);
+
+				fdinfo.m_name = str_storage_ptr;
+			} else {
+				const char *parstr;
+				fdinfo.m_name =
+				        evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID, &parstr, sinsp_evt::PF_SIMPLE);
 			}
-			auto *const data_ptr = data_param->data();
-			const auto data_len = data_param->len();
-			verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
-			                                                  sinsp_evt *evt) {
-				const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
-				observer->on_write(evt,
-				                   evt->get_tid(),
-				                   evt->get_tinfo()->m_lastevent_fd,
-				                   evt->get_fd_info(),
-				                   data_ptr,
-				                   original_len,
-				                   data_len);
-			});
 		}
+	}
+
+	// If there's a listener, add a callback to later invoke it.
+	if(m_observer) {
+		const sinsp_evt_param *data_param;
+		if(etype == PPME_SOCKET_SENDMMSG_X) {
+			data_param = evt.get_param(3);
+		} else {  // PPME_SYSCALL_WRITE_X, PPME_SYSCALL_WRITEV_X, PPME_SYSCALL_PWRITE_X,
+			      // PPME_SYSCALL_PWRITEV_X, PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X,
+			      // PPME_SOCKET_SENDMSG_X.
+			data_param = evt.get_param(1);
+		}
+		auto *const data_ptr = data_param->data();
+		const auto data_len = data_param->len();
+		verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
+		                                                  sinsp_evt *evt) {
+			const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
+			observer->on_write(evt,
+			                   evt->get_tid(),
+			                   evt->get_tinfo()->m_lastevent_fd,
+			                   evt->get_fd_info(),
+			                   data_ptr,
+			                   original_len,
+			                   data_len);
+		});
 	}
 }
 
