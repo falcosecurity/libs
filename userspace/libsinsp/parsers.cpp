@@ -4029,15 +4029,9 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 }
 
 void sinsp_parser::parse_setsid_exit(sinsp_evt &evt) {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval >= 0) {
-		if(evt.get_thread_info()) {
-			evt.get_thread_info()->m_sid = retval;
-		}
+	if(const auto retval = evt.get_syscall_return_value();
+	   retval >= 0 && evt.get_thread_info() != nullptr) {
+		evt.get_thread_info()->m_sid = retval;
 	}
 }
 
