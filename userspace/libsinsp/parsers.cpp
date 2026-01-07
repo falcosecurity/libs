@@ -302,7 +302,7 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		parse_group_evt(evt);
 		break;
 	case PPME_SYSCALL_PRCTL_X:
-		parse_prctl_exit_event(evt);
+		parse_prctl_exit(evt);
 		break;
 	default:
 		break;
@@ -3989,46 +3989,29 @@ void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt &evt) const {
 	}
 }
 
-void sinsp_parser::parse_prctl_exit_event(sinsp_evt &evt) {
-	/* Parameter 1: res (type: PT_ERRNO) */
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval < 0) {
-		/* we are not interested in parsing something if the syscall fails */
+void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
+	if(evt.get_syscall_return_value() < 0) {
+		// We are not interested in parsing something if the syscall fails.
 		return;
 	}
 
-	/* prctl could be called by the main thread but also by a secondary thread */
-	auto caller_tinfo = evt.get_thread_info();
-	/* only invalid threads have `caller_tinfo->m_tginfo == nullptr` */
+	// prctl could be called by the main thread but also by a secondary thread.
+	const auto *caller_tinfo = evt.get_thread_info();
+	// Only invalid threads have `caller_tinfo->m_tginfo == nullptr`.
 	if(caller_tinfo == nullptr || caller_tinfo->is_invalid()) {
 		return;
 	}
 
-	bool child_subreaper = false;
-
-	/* Parameter 2: option (type: PT_ENUMFLAGS32) */
-	uint32_t option = evt.get_param(1)->as<uint32_t>();
-	switch(option) {
-	case PPM_PR_SET_CHILD_SUBREAPER:
-		/* Parameter 4: arg2_int (type: PT_INT64) */
-		/* If the user provided an arg2 != 0, we set the child_subreaper
-		 * attribute for the calling process. If arg2 is zero, unset the attribute
-		 */
-		child_subreaper = (evt.get_param(3)->as<int64_t>()) != 0 ? true : false;
-		caller_tinfo->m_tginfo->set_reaper(child_subreaper);
-		break;
-
-	case PPM_PR_GET_CHILD_SUBREAPER:
-		/* Parameter 4: arg2_int (type: PT_INT64) */
-		/* arg2 != 0 means the calling process is a child_subreaper */
-		child_subreaper = (evt.get_param(3)->as<int64_t>()) != 0 ? true : false;
-		caller_tinfo->m_tginfo->set_reaper(child_subreaper);
-		break;
-
-	default:
-		break;
+	if(const auto option = evt.get_param(1)->as<uint32_t>();
+	   option != PPM_PR_SET_CHILD_SUBREAPER && option != PPM_PR_GET_CHILD_SUBREAPER) {
+		return;
 	}
+
+	// If the user provided an arg2 != 0, we set the child_subreaper attribute for the calling
+	// process. If arg2 is zero, unset the attribute.
+	const auto arg2_int = evt.get_param(3)->as<int64_t>();
+	const auto child_subreaper = arg2_int != 0;
+	caller_tinfo->m_tginfo->set_reaper(child_subreaper);
 }
 
 void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {

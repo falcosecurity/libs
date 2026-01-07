@@ -116,7 +116,7 @@ private:
 	void parse_getrlimit_setrlimit_exit(sinsp_evt& evt) const;
 	void parse_prlimit_exit(sinsp_evt& evt) const;
 	static void parse_fcntl_exit(sinsp_evt& evt);
-	static void parse_prctl_exit_event(sinsp_evt& evt);
+	static void parse_prctl_exit(sinsp_evt& evt);
 	static void parse_context_switch(sinsp_evt& evt);
 	static void parse_brk_mmap_mmap2_munmap__exit(sinsp_evt& evt);
 	void parse_setresuid_exit(sinsp_evt& evt) const;
