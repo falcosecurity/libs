@@ -87,13 +87,9 @@ void sinsp_parser::set_track_connection_status(bool enabled) {
 ///////////////////////////////////////////////////////////////////////////////
 // PROCESSING ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) {
-	const uint16_t etype = evt.get_scap_evt()->type;
-
-	//
-	// Route the event to the proper function
-	//
-	switch(etype) {
+void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
+	// Route the event to the proper function.
+	switch(const uint16_t etype = evt.get_scap_evt()->type; etype) {
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
@@ -308,9 +304,8 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	}
 
-	// Check to see if the name changed as a side-effect of
-	// parsing this event. Try to avoid the overhead of a string
-	// compare for every event.
+	// Check to see if the name changed as a side effect of parsing this event. Try to avoid the
+	// overhead of a string compare for every event.
 	if(evt.get_fd_info()) {
 		evt.set_fdinfo_name_changed(evt.get_fd_info()->m_name != evt.get_fd_info()->m_oldname);
 	}

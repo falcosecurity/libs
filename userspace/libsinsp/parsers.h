@@ -57,7 +57,7 @@ public:
 	//
 	// Processing entry point
 	//
-	void process_event(sinsp_evt& evt, sinsp_parser_verdict& verdict);
+	void process_event(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void event_cleanup(sinsp_evt& evt);
 
 	bool reset(sinsp_evt& evt) const;
