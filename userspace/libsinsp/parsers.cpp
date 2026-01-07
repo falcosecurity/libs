@@ -2780,24 +2780,11 @@ void sinsp_parser::add_pipe(sinsp_evt &evt,
                             const int64_t fd,
                             const uint64_t ino,
                             const uint32_t openflags) const {
-	//
-	// lookup the thread info
-	//
-	if(!evt.get_tinfo()) {
-		return;
-	}
-
-	//
-	// Populate the new fdi
-	//
+	// Populate the new fd info and add it to the table.
 	auto fdi = m_fdinfo_factory.create();
 	fdi->m_type = SCAP_FD_FIFO;
 	fdi->m_ino = ino;
 	fdi->m_openflags = openflags;
-
-	//
-	// Add the fd to the table.
-	//
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
@@ -2829,12 +2816,8 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_pipe_exit(sinsp_evt &evt) const {
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval < 0) {
-		//
-		// pipe() failed. Nothing to add to the table.
-		//
+	if(evt.get_syscall_return_value() < 0 || evt.get_tinfo() == nullptr) {
+		// pipe() failed or thread info missing. Nothing we can do here.
 		return;
 	}
 
