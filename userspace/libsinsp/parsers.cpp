@@ -3597,93 +3597,58 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 }
 
 void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
-	if(evt.get_tinfo() == nullptr) {
+	auto *const tinfo = evt.get_tinfo();
+	if(tinfo == nullptr) {
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	//
-	// Check if the syscall was successful
-	//
-	if(retval >= 0) {
-		//
-		// Heuristic to determine if a thread is part of a shell pipe
-		//
-		if(retval == 0) {
-			evt.get_tinfo()->m_flags |= PPM_CL_PIPE_DST;
-		}
-		if(retval == 1) {
-			evt.get_tinfo()->m_flags |= PPM_CL_PIPE_SRC;
-		}
-
-		if(evt.get_fd_info() == nullptr) {
-			return;
-		}
-		//
-		// If the old FD is in the table, remove it properly.
-		// The old FD is:
-		// 	- dup(): fd number of a previously closed fd that has not been removed from
-		// the fd_table
-		//		     and has been reassigned to the newly created fd by dup()(very rare
-		// condition);
-		//  - dup2(): fd number of an existing fd that we pass to the dup2() as the
-		//  "newfd". dup2()
-		//			  will close the existing one. So we need to clean it up /
-		// overwrite;
-		//  - dup3(): same as dup2().
-		//
-		sinsp_fdinfo *oldfdinfo = evt.get_tinfo()->get_fd(retval);
-
-		if(oldfdinfo != nullptr) {
-			erase_fd_params eparams;
-
-			eparams.m_fd = retval;
-			eparams.m_fdinfo = oldfdinfo;
-			eparams.m_remove_from_table = false;
-			eparams.m_tinfo = evt.get_tinfo();
-			erase_fd(eparams, verdict);
-		}
-
-		//
-		// If we are handling the dup3() event exit then we add the flags to the new
-		// file descriptor.
-		//
-		if(evt.get_type() == PPME_SYSCALL_DUP3_X) {
-			uint32_t flags;
-
-			//
-			// Get the flags parameter.
-			//
-			flags = evt.get_param(3)->as<uint32_t>();
-
-			//
-			// We keep the previously flags that has been set on the original file
-			// descriptor and just set/reset O_CLOEXEC flag base on the value received
-			// by dup3() syscall.
-			//
-			if(flags) {
-				//
-				// set the O_CLOEXEC flag.
-				//
-				evt.get_fd_info()->m_openflags |= flags;
-			} else {
-				//
-				// reset the O_CLOEXEC flag.
-				//
-				evt.get_fd_info()->m_openflags &= ~PPM_O_CLOEXEC;
-			}
-		}
-
-		//
-		// Add the new fd to the table.
-		//
-		auto fdi = evt.get_fd_info()->clone();
-		evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
+	const auto retval = evt.get_syscall_return_value();
+	if(retval < 0 || evt.get_fd_info() == nullptr) {
+		// Nothing to do if the system call failed or the event doesn't have a fd info associated.
+		return;
 	}
+
+	// Heuristic to determine if a thread is part of a shell pipe.
+	if(retval == 0) {
+		tinfo->m_flags |= PPM_CL_PIPE_DST;
+	}
+	if(retval == 1) {
+		tinfo->m_flags |= PPM_CL_PIPE_SRC;
+	}
+
+	// If the old FD is in the table, remove it properly.
+	// The old FD is:
+	// 	- dup(): fd number of a previously closed fd that has not been removed from the fd_table and
+	//   has been reassigned to the newly created fd by dup()(very rare condition);
+	//  - dup2(): fd number of an existing fd that we pass to the dup2() as the "newfd". dup2() will
+	//    close the existing one. So we need to clean it up / overwrite;
+	//  - dup3(): same as dup2().
+	if(auto *old_fdinfo = tinfo->get_fd(retval); old_fdinfo != nullptr) {
+		erase_fd_params eparams;
+
+		eparams.m_fd = retval;
+		eparams.m_fdinfo = old_fdinfo;
+		eparams.m_remove_from_table = false;
+		eparams.m_tinfo = tinfo;
+		erase_fd(eparams, verdict);
+	}
+
+	// If we are handling the dup3() event exit then we add the flags to the new file descriptor.
+	if(evt.get_type() == PPME_SYSCALL_DUP3_X) {
+		// We keep the previously flags that has been set on the original file descriptor and just
+		// set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
+		if(const auto flags = evt.get_param(3)->as<uint32_t>()) {
+			// Set the O_CLOEXEC flag.
+			evt.get_fd_info()->m_openflags |= flags;
+		} else {
+			// Reset the O_CLOEXEC flag.
+			evt.get_fd_info()->m_openflags &= ~PPM_O_CLOEXEC;
+		}
+	}
+
+	// Add the new fd to the table.
+	auto fdi = evt.get_fd_info()->clone();
+	evt.set_fd_info(tinfo->add_fd(retval, std::move(fdi)));
 }
 
 void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type type) const {
