@@ -4069,24 +4069,14 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt &evt, sinsp_parser_verdict &v
 }
 
 void sinsp_parser::parse_capset_exit(sinsp_evt &evt) {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	if(retval < 0 || evt.get_tinfo() == nullptr) {
+	if(evt.get_syscall_return_value() < 0 || evt.get_tinfo() == nullptr) {
 		return;
 	}
 
+	// Extract and update thread capabilities.
 	const auto tinfo = evt.get_tinfo();
-
-	//
-	// Extract and update thread capabilities
-	//
 	tinfo->m_cap_inheritable = evt.get_param(1)->as<uint64_t>();
-
 	tinfo->m_cap_permitted = evt.get_param(2)->as<uint64_t>();
-
 	tinfo->m_cap_effective = evt.get_param(3)->as<uint64_t>();
 }
 
