@@ -2802,40 +2802,22 @@ void sinsp_parser::add_pipe(sinsp_evt &evt,
 }
 
 void sinsp_parser::parse_socketpair_exit(sinsp_evt &evt) const {
-	int64_t fd1, fd2;
-	int64_t retval;
-	uint64_t source_address;
-	uint64_t peer_address;
-
-	retval = evt.get_syscall_return_value();
-
-	if(retval < 0) {
-		//
-		// socketpair() failed. Nothing to add to the table.
-		//
+	if(evt.get_syscall_return_value() < 0 || evt.get_tinfo() == nullptr) {
+		// socketpair() failed or thread info missing. Nothing we can do here.
 		return;
 	}
 
-	if(evt.get_tinfo() == nullptr) {
-		// There is nothing we can do here if tinfo is missing
-		return;
-	}
+	const auto fd1 = evt.get_param(1)->as<int64_t>();
+	const auto fd2 = evt.get_param(2)->as<int64_t>();
 
-	fd1 = evt.get_param(1)->as<int64_t>();
-
-	fd2 = evt.get_param(2)->as<int64_t>();
-
-	/*
-	** In the case of 2 equal fds we ignore them (e.g. both equal to -1).
-	*/
+	// In the case of 2 equal fds we ignore them (e.g. both equal to -1).
 	if(fd1 == fd2) {
 		evt.set_fd_info(nullptr);
 		return;
 	}
 
-	source_address = evt.get_param(3)->as<uint64_t>();
-
-	peer_address = evt.get_param(4)->as<uint64_t>();
+	const auto source_address = evt.get_param(3)->as<uint64_t>();
+	const auto peer_address = evt.get_param(4)->as<uint64_t>();
 
 	auto fdi1 = m_fdinfo_factory.create();
 	fdi1->m_type = SCAP_FD_UNIX_SOCK;
