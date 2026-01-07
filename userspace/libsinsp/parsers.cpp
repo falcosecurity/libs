@@ -4142,35 +4142,23 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type ty
 }
 
 void sinsp_parser::parse_pidfd_open_exit(sinsp_evt &evt) const {
-	int64_t fd;
-	int64_t pid;
-	int64_t flags;
-
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	/* ret (fd) */
-	fd = evt.get_syscall_return_value();
-
-	/* pid (fd) */
-	ASSERT(evt.get_param_info(1)->type == PT_PID);
-	pid = evt.get_param(1)->as<int64_t>();
-
-	/* flags */
-	flags = evt.get_param(2)->as<uint32_t>();
-
+	const auto fd = evt.get_syscall_return_value();
 	auto fdi = m_fdinfo_factory.create();
 	if(fd >= 0) {
 		// note: approximating equivalent filename as in:
 		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
-		std::string fname = std::string(scap_get_host_root()) + "/proc/" + std::to_string(pid);
-		fdi->m_type = scap_fd_type::SCAP_FD_PIDFD;
+		const auto pid = evt.get_param(1)->as<int64_t>();
+		const auto flags = evt.get_param(2)->as<uint32_t>();
+		const auto fname = std::string(scap_get_host_root()) + "/proc/" + std::to_string(pid);
+		fdi->m_type = SCAP_FD_PIDFD;
 		fdi->add_filename(fname);
 		fdi->m_openflags = flags;
 		fdi->m_pid = pid;
 	}
-
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
