@@ -102,7 +102,8 @@ private:
 	void parse_memfd_create_exit(sinsp_evt& evt, scap_fd_type type) const;
 	void parse_pidfd_open_exit(sinsp_evt& evt) const;
 	void parse_pidfd_getfd_exit(sinsp_evt& evt) const;
-	inline void parse_rw_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
+	inline void parse_read_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
+	inline void parse_write_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_sendfile_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_eventfd_eventfd2_exit(sinsp_evt& evt) const;
 	void parse_bind_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
