@@ -4175,39 +4175,26 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
-	int64_t fd;
-	int64_t pidfd;
-	int64_t targetfd;
-
 	if(evt.get_tinfo() == nullptr) {
 		return;
 	}
 
-	/* ret (fd) */
-	fd = evt.get_syscall_return_value();
+	const auto fd = evt.get_syscall_return_value();
+	const auto pidfd = evt.get_param(1)->as<int64_t>();
+	const auto targetfd = evt.get_param(2)->as<int64_t>();
+	// Flags currently unused: https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
 
-	/* pidfd */
-	ASSERT(evt.get_param_info(1)->type == PT_FD);
-	pidfd = evt.get_param(1)->as<int64_t>();
-
-	/* targetfd */
-	ASSERT(evt.get_param_info(2)->type == PT_FD);
-	targetfd = evt.get_param(2)->as<int64_t>();
-
-	/* flags */
-	// currently unused: https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
-
-	auto pidfd_fdinfo = evt.get_tinfo()->get_fd(pidfd);
+	const auto pidfd_fdinfo = evt.get_tinfo()->get_fd(pidfd);
 	if(pidfd_fdinfo == nullptr || !pidfd_fdinfo->is_pidfd()) {
 		return;
 	}
 
-	auto pidfd_tinfo = m_thread_manager->find_thread(pidfd_fdinfo->m_pid, true);
+	const auto pidfd_tinfo = m_thread_manager->find_thread(pidfd_fdinfo->m_pid, true);
 	if(pidfd_tinfo == nullptr) {
 		return;
 	}
 
-	auto targetfd_fdinfo = pidfd_tinfo->get_fd(targetfd);
+	const auto targetfd_fdinfo = pidfd_tinfo->get_fd(targetfd);
 	if(targetfd_fdinfo == nullptr) {
 		return;
 	}
