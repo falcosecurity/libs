@@ -176,6 +176,8 @@ ss_plugin_rc plugin_set_config(ss_plugin_t* s, const ss_plugin_set_config_input*
 
 void get_plugin_api_sample_plugin_extract(plugin_api& out) {
 	memset(&out, 0, sizeof(plugin_api));
+	out.static_plugin_abi_version = PLUGIN_ABI_VERSION;
+	out.static_plugin_api_size = sizeof(plugin_api);
 	out.get_required_api_version = plugin_get_required_api_version;
 	out.get_version = plugin_get_version;
 	out.get_description = plugin_get_description;
