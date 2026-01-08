@@ -3521,56 +3521,34 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt &evt) {
 }
 
 void sinsp_parser::parse_getcwd_exit(sinsp_evt &evt) {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
+	if(evt.get_syscall_return_value() < 0 || evt.get_tinfo() == nullptr) {
+		return;
+	}
 
-	//
-	// Check if the syscall was successful
-	//
-	if(retval >= 0) {
-		if(evt.get_tinfo() == nullptr) {
-			//
-			// No thread in the table. We won't store this event, which mean that
-			// we won't be able to parse the corresponding exit event and we'll have
-			// to drop the information it carries.
-			//
-			return;
-		}
+	const auto cwd = evt.get_param(1)->as<std::string>();
 
-		std::string cwd = evt.get_param(1)->as<std::string>();
-
-#ifdef _DEBUG
-		if(cwd != "/") {
-			if(cwd + "/" != evt.get_tinfo()->get_cwd()) {
-				//
-				// This shouldn't happen, because we should be able to stay in synch by
-				// following chdir(). If it does, it's almost sure there was an event
-				// drop. In that case, we use this value to update the thread cwd.
-				//
-#if !defined(_WIN32)
-#ifdef _DEBUG
-				int target_res;
-				char target_name[1024];
-				target_res = readlink((cwd + "/").c_str(), target_name, sizeof(target_name) - 1);
-
-				if(target_res > 0) {
-					target_name[target_res] = '\0';
-					if(target_name != evt.get_tinfo()->get_cwd()) {
-						printf("%s != %s", target_name, evt.get_tinfo()->get_cwd().c_str());
-						ASSERT(false);
-					}
-				}
-
-#endif
-#endif
+#if defined(_DEBUG) && !defined(_WIN32)
+	if(cwd != "/" && cwd + "/" != evt.get_tinfo()->get_cwd()) {
+		// This shouldn't happen, because we should be able to stay in synch by following chdir().
+		// If it does, it's almost sure there was an event drop. In that case, we use this value to
+		// update the thread cwd.
+		char target_name[1024];
+		if(const auto target_res =
+		           readlink((cwd + "/").c_str(), target_name, sizeof(target_name) - 1);
+		   target_res > 0) {
+			target_name[target_res] = '\0';
+			if(target_name != evt.get_tinfo()->get_cwd()) {
+				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+				                          "parse_getcwd_exit: %s != %s",
+				                          target_name,
+				                          evt.get_tinfo()->get_cwd().c_str());
+				ASSERT(false);
 			}
 		}
+	}
 #endif
 
-		evt.get_tinfo()->update_cwd(cwd);
-	}
+	evt.get_tinfo()->update_cwd(cwd);
 }
 
 void sinsp_parser::parse_shutdown_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
