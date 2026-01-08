@@ -745,8 +745,8 @@ int main(int argc, char** argv) {
 		} else if(res == SCAP_EOF) {
 			break;
 		} else if(res != SCAP_SUCCESS) {
-			scap_close(g_h);
 			fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
+			scap_close(g_h);
 			return -1;
 		}
 
