@@ -3491,31 +3491,16 @@ void sinsp_parser::parse_eventfd_eventfd2_exit(sinsp_evt &evt) const {
 }
 
 void sinsp_parser::parse_chdir_exit(sinsp_evt &evt) {
-	// In case of success, if the event has an associated thread, update its working
-	// directory.
-	if(evt.get_tinfo() != nullptr && evt.get_syscall_return_value() >= 0) {
+	// In case of success, if the event has an associated thread, update its working directory.
+	if(evt.get_syscall_return_value() >= 0 && evt.get_tinfo() != nullptr) {
 		evt.get_tinfo()->update_cwd(evt.get_param(1)->as<std::string_view>());
 	}
 }
 
 void sinsp_parser::parse_fchdir_exit(sinsp_evt &evt) {
-	//
-	// Extract the return value
-	//
-	const int64_t retval = evt.get_syscall_return_value();
-
-	//
-	// In case of success, update the thread working dir
-	//
-	if(retval >= 0) {
-		//
-		// Find the fd name
-		//
-		if(evt.get_fd_info() == nullptr || evt.get_tinfo() == nullptr) {
-			return;
-		}
-
-		// Update the thread working directory
+	// In case of success, if the event has thread and fd info, update the thread working directory.
+	if(evt.get_syscall_return_value() >= 0 && evt.get_fd_info() != nullptr &&
+	   evt.get_tinfo() != nullptr) {
 		evt.get_tinfo()->update_cwd(evt.get_fd_info()->m_name);
 	}
 }
