@@ -484,6 +484,34 @@ int32_t scap_proc_fill_exe_writable(char* error,
 	return SCAP_SUCCESS;
 }
 
+// This is taken from kernel source tree:
+// https://elixir.bootlin.com/linux/v6.18.4/source/include/linux/sched.h#L3
+#define TASK_COMM_LEN 16
+
+// Read /proc/<pid>/comm into `buff`. `buff_len` must be greater than 0.
+// note: the comm file content can be up to `TASK_COMM_LEN` bytes long (15 valid characters + '\n').
+static int32_t read_procfs_proc_pid_comm(const char* const procfs_proc_dir,
+                                         char* const buff,
+                                         const size_t buff_len,
+                                         char* const error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%scomm", procfs_proc_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		return scap_errprintf(error, errno, "can't open comm file %s", filename);
+	}
+
+	ASSERT(buff_len >= TASK_COMM_LEN);
+	const ssize_t read_bytes = read(fd, buff, buff_len);
+	if(read_bytes > 0) {
+		buff[read_bytes - 1] = '\0';  // Replace trailing '\n', if present.
+	} else {
+		buff[0] = '\0';
+	}
+	close(fd);
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -560,24 +588,9 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// Gather the command name
 	//
-	snprintf(filename, sizeof(filename), "%scomm", dir_name);
-
-	f = fopen(filename, "r");
-	if(f == NULL) {
-		return scap_errprintf(error, errno, "can't open %s", filename);
-	} else {
-		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
-
-		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE, f);
-		if(filesize > 0) {
-			// In case `comm` is greater than `SCAP_MAX_ARGS_SIZE` it could be
-			// truncated so we put a `/0` at the end manually.
-			line[filesize - 1] = 0;
-			snprintf(tinfo.comm, SCAP_MAX_PATH_SIZE, "%s", line);
-		} else {
-			tinfo.comm[0] = 0;
-		}
-		fclose(f);
+	res = read_procfs_proc_pid_comm(dir_name, tinfo.comm, sizeof(tinfo.comm), error);
+	if(res == SCAP_FAILURE) {
+		return res;
 	}
 
 	//
