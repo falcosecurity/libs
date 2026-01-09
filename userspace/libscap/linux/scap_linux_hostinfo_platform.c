@@ -43,7 +43,6 @@ int32_t scap_linux_hostinfo_init_platform(struct scap_platform* platform,
 
 	rc = scap_linux_create_iflist(platform);
 	if(rc != SCAP_SUCCESS) {
-		scap_linux_hostinfo_free_platform(platform);
 		return rc;
 	}
 
