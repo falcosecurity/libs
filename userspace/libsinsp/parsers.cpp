@@ -3975,15 +3975,12 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
 		return;
 	}
 
-	const auto etype = evt.get_scap_evt()->type;
-
 	// Retrieve flags.
 	uint32_t flags = 0;
-	if(etype == PPME_SYSCALL_UNSHARE_X) {
+	if(const auto etype = evt.get_scap_evt()->type; etype == PPME_SYSCALL_UNSHARE_X) {
 		flags = evt.get_param(1)->as<uint32_t>();
 	} else if(etype == PPME_SYSCALL_SETNS_X) {
-		const auto flags_param = evt.get_param(2);
-		if(!flags_param->empty()) {
+		if(const auto flags_param = evt.get_param(2); !flags_param->empty()) {
 			flags = flags_param->as<uint32_t>();
 		}
 	}
