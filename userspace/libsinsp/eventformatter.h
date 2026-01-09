@@ -26,6 +26,19 @@ limitations under the License.
 #include <libsinsp/filter_check_list.h>
 #include <libsinsp/filter.h>
 
+struct resolution_token {
+	using token_t = std::shared_ptr<sinsp_filter_check>;
+
+	std::string name;
+	token_t token;
+	bool has_transformers = false;
+
+	resolution_token(const std::string &n, token_t t, bool h):
+	        name(n),
+	        token(std::move(t)),
+	        has_transformers(h) {}
+};
+
 /** @defgroup event Event manipulation
  *  @{
  */
@@ -108,24 +121,11 @@ public:
 	inline void set_resolve_transformed_fields(bool v) { m_resolve_transformed_fields = v; }
 
 private:
-	using token_t = std::shared_ptr<sinsp_filter_check>;
-
-	struct resolution_token {
-		std::string name;
-		token_t token;
-		bool has_transformers = false;
-
-		resolution_token(const std::string &n, token_t t, bool h):
-		        name(n),
-		        token(std::move(t)),
-		        has_transformers(h) {}
-	};
-
 	output_format m_output_format;
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
-	std::vector<token_t> m_output_tokens;
+	std::vector<resolution_token::token_t> m_output_tokens;
 	std::vector<uint32_t> m_output_tokenlens;
 	std::vector<resolution_token> m_resolution_tokens;
 	sinsp *m_inspector = nullptr;
@@ -153,4 +153,29 @@ protected:
 	sinsp *m_inspector;
 	filter_check_list &m_available_checks;
 	sinsp_evt_formatter::output_format m_output_format;
+};
+
+class formatter_visitor : private libsinsp::filter::ast::const_expr_visitor {
+public:
+	formatter_visitor(const std::shared_ptr<sinsp_filter_factory> &factory,
+	                  std::vector<resolution_token> &resolution_tokens);
+	void fill(const libsinsp::filter::ast::expr *ast);
+
+	virtual ~formatter_visitor() = default;
+	virtual void visit(const libsinsp::filter::ast::and_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::or_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::not_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::identifier_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::value_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::list_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::transformer_list_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::unary_check_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::binary_check_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::field_expr *) override;
+	virtual void visit(const libsinsp::filter::ast::field_transformer_expr *) override;
+
+	std::string m_last_field_name;
+	bool m_is_last_transformer;
+	std::shared_ptr<sinsp_filter_factory> m_factory;
+	std::vector<resolution_token> &m_resolution_tokens;
 };
