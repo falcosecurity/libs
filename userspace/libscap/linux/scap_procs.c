@@ -512,6 +512,33 @@ static int32_t read_procfs_proc_pid_comm(const char* const procfs_proc_dir,
 	return SCAP_SUCCESS;
 }
 
+// Read /proc/<pid>/environ into `buff`. `buff_len` must be greater than 0.
+// path. Return the amount of data read into `read_len`.
+static int32_t read_procfs_proc_pid_environ(const char* const procfs_proc_dir,
+                                            char* const buff,
+                                            const size_t buff_len,
+                                            uint16_t* read_len,
+                                            char* const error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%senviron", procfs_proc_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		return scap_errprintf(error, errno, "can't open environ file %s", filename);
+	}
+
+	ASSERT(buff_len >= SCAP_MAX_ENV_SIZE);
+	const ssize_t read_bytes = read(fd, buff, buff_len);
+	if(read_bytes > 0) {
+		buff[read_bytes - 1] = '\0';  // Replace trailing '\0'.
+		*read_len = (uint16_t)read_bytes;
+	} else {
+		buff[0] = '\0';
+		*read_len = 0;
+	}
+	close(fd);
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -637,29 +664,13 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// Gather the environment
 	//
-	snprintf(filename, sizeof(filename), "%senviron", dir_name);
-
-	f = fopen(filename, "r");
-	if(f == NULL) {
-		return scap_errprintf(error, errno, "can't open environ file %s", filename);
-	} else {
-		ASSERT(sizeof(line) >= SCAP_MAX_ENV_SIZE);
-
-		filesize = fread(line, 1, SCAP_MAX_ENV_SIZE, f);
-
-		if(filesize > 0) {
-			line[filesize - 1] = 0;
-
-			tinfo.env_len = filesize;
-
-			memcpy(tinfo.env, line, tinfo.env_len);
-			tinfo.env[SCAP_MAX_ENV_SIZE - 1] = 0;
-		} else {
-			tinfo.env[0] = 0;
-			tinfo.env_len = 0;
-		}
-
-		fclose(f);
+	res = read_procfs_proc_pid_environ(dir_name,
+	                                   tinfo.env,
+	                                   sizeof(tinfo.env),
+	                                   &tinfo.env_len,
+	                                   error);
+	if(res == SCAP_FAILURE) {
+		return res;
 	}
 
 	//
