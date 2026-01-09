@@ -131,5 +131,4 @@ void scap_platform_free(struct scap_platform* platform) {
 	}
 
 	platform->m_vtable->free_platform(platform);
-	platform = NULL;
 }
