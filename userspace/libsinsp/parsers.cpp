@@ -3847,16 +3847,16 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt &evt) const {
 
 void sinsp_parser::parse_user_evt(sinsp_evt &evt) const {
 	const auto uid = evt.get_param(0)->as<uint32_t>();
-	const auto gid = evt.get_param(1)->as<uint32_t>();
-	const auto name = evt.get_param(2)->as<std::string_view>();
-	const auto home = evt.get_param(3)->as<std::string_view>();
-	const auto shell = evt.get_param(4)->as<std::string_view>();
-	const auto container_id = evt.get_param(5)->as<std::string_view>();
+	const auto container_id = evt.get_param(5)->as<std::string>();
 
 	if(evt.get_scap_evt()->type == PPME_USER_ADDED_E) {
-		m_usergroup_manager->add_user(std::string(container_id), -1, uid, gid, name, home, shell);
+		const auto gid = evt.get_param(1)->as<uint32_t>();
+		const auto name = evt.get_param(2)->as<std::string_view>();
+		const auto home = evt.get_param(3)->as<std::string_view>();
+		const auto shell = evt.get_param(4)->as<std::string_view>();
+		m_usergroup_manager->add_user(container_id, -1, uid, gid, name, home, shell);
 	} else {
-		m_usergroup_manager->rm_user(std::string(container_id), uid);
+		m_usergroup_manager->rm_user(container_id, uid);
 	}
 }
 
