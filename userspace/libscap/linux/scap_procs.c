@@ -41,21 +41,6 @@ limitations under the License.
 #include <libscap/clock_helpers.h>
 #include <libscap/debug_log_helpers.h>
 
-int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo) {
-	int target_res;
-	char filename[SCAP_MAX_PATH_SIZE];
-
-	snprintf(filename, sizeof(filename), "%scwd", procdirname);
-
-	target_res = readlink(filename, tinfo->cwd, sizeof(tinfo->cwd) - 1);
-	if(target_res <= 0) {
-		return scap_errprintf(error, errno, "readlink %s failed", filename);
-	}
-
-	tinfo->cwd[target_res] = '\0';
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_proc_fill_info_from_stats(char* error,
                                        char* procdirname,
                                        struct scap_threadinfo* tinfo) {
@@ -595,6 +580,23 @@ static void set_tinfo_exe_and_args_from_cmdline(struct scap_threadinfo* tinfo,
 	}
 }
 
+// Read /proc/<pid>/cwd into `buff`. `buff_len` must be greater than 0.
+static int32_t read_procfs_proc_pid_cwd(const char* const procfs_proc_dir,
+                                        char* const buff,
+                                        const size_t buff_len,
+                                        char* const error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%scwd", procfs_proc_dir);
+	ASSERT(buff_len >= SCAP_MAX_PATH_SIZE);
+	ASSERT(buff_len - 1 > 0);
+	const ssize_t read_bytes = readlink(filename, buff, buff_len - 1);
+	if(read_bytes <= 0) {
+		return scap_errprintf(error, errno, "readlink failed on %s", filename);
+	}
+	buff[read_bytes] = '\0';
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -704,12 +706,9 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// set the current working directory of the process
 	//
-	if(SCAP_FAILURE == scap_proc_fill_cwd(linux_platform->m_lasterr, dir_name, &tinfo)) {
-		return scap_errprintf(error,
-		                      0,
-		                      "can't fill cwd for %s (%s)",
-		                      dir_name,
-		                      linux_platform->m_lasterr);
+	res = read_procfs_proc_pid_cwd(dir_name, tinfo.cwd, sizeof(tinfo.cwd), error);
+	if(res == SCAP_FAILURE) {
+		return res;
 	}
 
 	//
