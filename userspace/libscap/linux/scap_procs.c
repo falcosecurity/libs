@@ -539,6 +539,62 @@ static int32_t read_procfs_proc_pid_environ(const char* const procfs_proc_dir,
 	return SCAP_SUCCESS;
 }
 
+// Read /proc/<pid>/cmdline into `buff`. `buff_len` must be greater than 0.
+// path. Return the amount of data read into `read_len`.
+static int32_t read_procfs_proc_pid_cmdline(const char* const procfs_proc_dir,
+                                            char* const buff,
+                                            const size_t buff_len,
+                                            size_t* read_len,
+                                            char* const error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%scmdline", procfs_proc_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		return scap_errprintf(error, errno, "can't open cmdline file %s", filename);
+	}
+
+	ASSERT(buff_len >= SCAP_MAX_ARGS_SIZE);
+	const ssize_t read_bytes = read(fd, buff, buff_len);
+	if(read_bytes > 0) {
+		buff[read_bytes - 1] = '\0';  // Replace trailing '\0'.
+		*read_len = read_bytes;
+	} else {
+		buff[0] = '\0';
+		*read_len = 0;
+	}
+	close(fd);
+	return SCAP_SUCCESS;
+}
+
+// Set `tinfo->exe`, `tinfo->args` and `tinfo->args_len` fields by leveraging information extracted
+// from `cmdline_buff`. `cmdline_buff` must be NUL-terminated.
+static void set_tinfo_exe_and_args_from_cmdline(struct scap_threadinfo* tinfo,
+                                                const char* const cmdline_buff,
+                                                const uint16_t cmdline_buff_len) {
+	if(cmdline_buff_len == 0) {
+		tinfo->args_len = 0;
+		tinfo->args[0] = 0;
+		tinfo->exe[0] = 0;
+		return;
+	}
+
+	// We always count also the terminator so `+1`.
+	// note: this could be exactly `cmdline_buff_len`.
+	snprintf(tinfo->exe, sizeof(tinfo->exe), "%s", cmdline_buff);
+
+	// note: if `exe_len` is `cmdline_buff_len`, tinfo->args_len is set to 0.
+	const size_t exe_len = strlen(cmdline_buff) + 1;
+	tinfo->args_len = cmdline_buff_len - (uint16_t)exe_len;
+	ASSERT(tinfo->args_len <= sizeof(tinfo->args));
+	if(tinfo->args_len > 0) {
+		memcpy(tinfo->args, cmdline_buff + exe_len, tinfo->args_len);
+		tinfo->args[tinfo->args_len - 1] = 0;
+	} else {
+		tinfo->args_len = 0;
+		tinfo->args[0] = 0;
+	}
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -553,11 +609,8 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	char target_name[SCAP_MAX_PATH_SIZE];
 	int target_res;
 	char filename[252];
-	char line[SCAP_MAX_ENV_SIZE];
+	char line[SCAP_MAX_FIELD_SIZE];
 	struct scap_threadinfo tinfo = {};
-	FILE* f;
-	size_t filesize;
-	size_t exe_len;
 	int32_t res = SCAP_SUCCESS;
 	struct stat dirstat;
 
@@ -583,7 +636,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		//    we accept it.
 		//
 		snprintf(filename, sizeof(filename), "%scmdline", dir_name);
-		f = fopen(filename, "r");
+		FILE* f = fopen(filename, "r");
 		if(f == NULL) {
 			return scap_errprintf(error, errno, "can't find valid proc dir in %s", dir_name);
 		}
@@ -623,43 +676,18 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// Gather the command line
 	//
-	snprintf(filename, sizeof(filename), "%scmdline", dir_name);
-
-	f = fopen(filename, "r");
-	if(f == NULL) {
-		return scap_errprintf(error, errno, "can't open cmdline file %s", filename);
-	} else {
-		ASSERT(sizeof(line) >= SCAP_MAX_ARGS_SIZE);
-
-		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE, f);
-		if(filesize > 0) {
-			// In case `args` is greater than `SCAP_MAX_ARGS_SIZE` it could be
-			// truncated so we put a `/0` at the end manually.
-			line[filesize - 1] = 0;
-
-			// We always count also the terminator so `+1`
-			// Please note that this could be exactly `SCAP_MAX_ARGS_SIZE`
-			exe_len = strlen(line) + 1;
-
-			snprintf(tinfo.exe, SCAP_MAX_PATH_SIZE, "%s", line);
-
-			// Please note if `exe_len` is `SCAP_MAX_ARGS_SIZE` we will return an empty `args`.
-			tinfo.args_len = filesize - exe_len;
-			if(tinfo.args_len > 0) {
-				memcpy(tinfo.args, line + exe_len, tinfo.args_len);
-				tinfo.args[tinfo.args_len - 1] = 0;
-			} else {
-				tinfo.args_len = 0;
-				tinfo.args[0] = 0;
-			}
-		} else {
-			tinfo.args_len = 0;
-			tinfo.args[0] = 0;
-			tinfo.exe[0] = 0;
-		}
-
-		fclose(f);
+	char* const cmdline_buff = line;
+	size_t cmdline_len = 0;
+	res = read_procfs_proc_pid_cmdline(dir_name,
+	                                   cmdline_buff,
+	                                   SCAP_MAX_ARGS_SIZE,
+	                                   &cmdline_len,
+	                                   error);
+	if(res == SCAP_FAILURE) {
+		return res;
 	}
+	ASSERT(cmdline_len <= SCAP_MAX_ARGS_SIZE);
+	set_tinfo_exe_and_args_from_cmdline(&tinfo, cmdline_buff, (uint16_t)cmdline_len);
 
 	//
 	// Gather the environment
