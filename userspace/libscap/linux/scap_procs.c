@@ -16,6 +16,7 @@ limitations under the License.
 
 */
 
+#define _GNU_SOURCE
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -41,28 +42,378 @@ limitations under the License.
 #include <libscap/clock_helpers.h>
 #include <libscap/debug_log_helpers.h>
 
+// Check that the provided string literal prefixes the line.
+// note: use this only with a string literal.
+#define BEGIN_WITH_LITERAL(line_start, line_len, str_literal) \
+	(((line_len) >= sizeof(str_literal) - 1) &&               \
+	 (memcmp(line_start, str_literal, sizeof(str_literal) - 1) == 0))
+
+// Parse a single uint64_t value. Return a boolean indicating the number was successfully parsed.
+static bool parse_u64(const char* line,
+                      const size_t prefix_len,
+                      const int base,
+                      uint64_t* const out) {
+	const char* ptr = line + prefix_len;
+	char* endptr;
+	*out = strtoull(ptr, &endptr, base);
+	return endptr > ptr;
+}
+
+// Parse up to two uint64_t values. Return the number of parsed values.
+static int parse_two_u64(const char* line,
+                         const size_t prefix_len,
+                         const int base,
+                         uint64_t* const out1,
+                         uint64_t* const out2) {
+	const char* ptr = line + prefix_len;
+	char* endptr;
+
+	// Parse first number.
+	*out1 = strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return 0;
+	}
+
+	// Parse second number.
+	ptr = endptr;
+	*out2 = strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return 1;
+	}
+
+	return 2;
+}
+
+static void parse_procfs_proc_pid_status_tgid_line(const char* const line,
+                                                   struct scap_threadinfo* tinfo) {
+	uint64_t tgid;
+	if(parse_u64(line, sizeof("Tgid:") - 1, 10, &tgid)) {
+		tinfo->pid = tgid;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_uid_line(const char* const line,
+                                                  struct scap_threadinfo* tinfo) {
+	uint64_t ruid, euid;
+	if(parse_two_u64(line, sizeof("Uid:") - 1, 10, &ruid, &euid) == 2) {
+		tinfo->uid = (uint32_t)euid;  // Just save euid.
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_gid_line(const char* const line,
+                                                  struct scap_threadinfo* tinfo) {
+	uint64_t rgid, egid;
+	if(parse_two_u64(line, sizeof("Gid:") - 1, 10, &rgid, &egid) == 2) {
+		tinfo->gid = (uint32_t)egid;  // Just save egid.
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_cap_inh_line(const char* const line,
+                                                      struct scap_threadinfo* tinfo) {
+	uint64_t cap_inheritable;
+	if(parse_u64(line, sizeof("CapInh:") - 1, 16, &cap_inheritable)) {
+		tinfo->cap_inheritable = cap_inheritable;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_cap_prm_line(const char* const line,
+                                                      struct scap_threadinfo* tinfo) {
+	uint64_t cap_permitted;
+	if(parse_u64(line, sizeof("CapPrm:") - 1, 16, &cap_permitted)) {
+		tinfo->cap_permitted = cap_permitted;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_cap_eff_line(const char* const line,
+                                                      struct scap_threadinfo* tinfo) {
+	uint64_t cap_effective;
+	if(parse_u64(line, sizeof("CapEff:") - 1, 16, &cap_effective)) {
+		tinfo->cap_effective = cap_effective;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_ppid_line(const char* const line,
+                                                   struct scap_threadinfo* tinfo) {
+	uint64_t ptid;
+	if(parse_u64(line, sizeof("PPid:") - 1, 10, &ptid)) {
+		tinfo->ptid = (uint32_t)ptid;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_vmsize_line(const char* const line,
+                                                     struct scap_threadinfo* tinfo) {
+	uint64_t vmsize_kb;
+	if(parse_u64(line, sizeof("VmSize:") - 1, 10, &vmsize_kb)) {
+		tinfo->vmsize_kb = (uint32_t)vmsize_kb;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_vmrss_line(const char* const line,
+                                                    struct scap_threadinfo* tinfo) {
+	uint64_t vmrss_kb;
+	if(parse_u64(line, sizeof("VmRSS:") - 1, 10, &vmrss_kb)) {
+		tinfo->vmrss_kb = (uint32_t)vmrss_kb;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_vmswap_line(const char* const line,
+                                                     struct scap_threadinfo* tinfo) {
+	uint64_t vmswap_kb;
+	if(parse_u64(line, sizeof("VmSwap:") - 1, 10, &vmswap_kb)) {
+		tinfo->vmswap_kb = (uint32_t)vmswap_kb;
+	} else {
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_nspid_line(const char* const line,
+                                                    struct scap_threadinfo* tinfo) {
+	// note: this logic doesn't work with multiple nested PID namespaces, but I'm not sure if we
+	// support them.
+	uint64_t unused, vtid;
+	const int found = parse_two_u64(line, sizeof("NSpid:") - 1, 10, &unused, &vtid);
+	if(found == 2) {
+		tinfo->vtid = vtid;  // Found nested ID.
+	} else if(found == 1) {
+		tinfo->vtid = tinfo->tid;  // Host process case.
+	} else {
+		tinfo->vtid = tinfo->tid;  // Malformed.
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_nstgid_line(const char* const line,
+                                                     struct scap_threadinfo* tinfo) {
+	// note: this logic doesn't work with multiple nested PID namespaces, but I'm not sure if we
+	// support them.
+	uint64_t unused, vpid;
+	const int found = parse_two_u64(line, sizeof("NStgid:") - 1, 10, &unused, &vpid);
+	if(found == 2) {
+		tinfo->vpid = vpid;  // Found nested ID.
+	} else if(found == 1) {
+		tinfo->vpid = tinfo->pid;  // Host process case.
+	} else {
+		tinfo->vpid = tinfo->pid;  // Malformed.
+		ASSERT(false);
+	}
+}
+
+static void parse_procfs_proc_pid_status_nspgid_line(const char* const line,
+                                                     struct scap_threadinfo* tinfo) {
+	// note: this logic doesn't work with multiple nested PID namespaces, but I'm not sure if we
+	// support them.
+	uint64_t pgid, vpgid;
+	// note: do nothing if the process is in root PID namespace (i.e.: `found` is 1).
+	const int found = parse_two_u64(line, sizeof("NSpgid:") - 1, 10, &pgid, &vpgid);
+	if(found == 2) {
+		tinfo->pgid = pgid;
+		tinfo->vpgid = vpgid;
+	} else if(found == 0) {
+		ASSERT(false);
+	}
+}
+
+#define EXPECTED_PIDINFO_NFOUND 7
+#define EXPECTED_CAPS_NFOUND 3
+#define EXPECTED_VM_NFOUND 3
+
+struct parse_procfs_proc_pid_status_counters {
+	uint32_t pidinfo_nfound;
+	uint32_t caps_nfound;
+	uint32_t vm_nfound;
+};
+
+// Parse a single line in /proc/pid/status. Line must be a NUL-terminated (even empty) string (in
+// other words, line must contain at least 1 character).
+static void parse_procfs_proc_pid_status_line(
+        const char* const line,
+        const size_t line_len,
+        struct scap_threadinfo* tinfo,
+        struct parse_procfs_proc_pid_status_counters* counters) {
+	if(BEGIN_WITH_LITERAL(line, line_len, "Tgid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_tgid_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "Uid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_uid_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "Gid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_gid_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "CapInh:")) {
+		counters->caps_nfound++;
+		parse_procfs_proc_pid_status_cap_inh_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "CapPrm:")) {
+		counters->caps_nfound++;
+		parse_procfs_proc_pid_status_cap_prm_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "CapEff:")) {
+		counters->caps_nfound++;
+		parse_procfs_proc_pid_status_cap_eff_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "PPid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_ppid_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "VmSize:")) {
+		counters->vm_nfound++;
+		parse_procfs_proc_pid_status_vmsize_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "VmRSS:")) {
+		counters->vm_nfound++;
+		parse_procfs_proc_pid_status_vmrss_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "VmSwap:")) {
+		counters->vm_nfound++;
+		parse_procfs_proc_pid_status_vmswap_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "NSpid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_nspid_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "NSpgid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_nspgid_line(line, tinfo);
+	} else if(BEGIN_WITH_LITERAL(line, line_len, "NStgid:")) {
+		counters->pidinfo_nfound++;
+		parse_procfs_proc_pid_status_nstgid_line(line, tinfo);
+	}
+}
+
+static int32_t parse_procfs_proc_pid_status_impl(const int fd,
+                                                 const char* const filename,
+                                                 struct scap_threadinfo* tinfo,
+                                                 char* error) {
+	char buff[4096];
+	// `bytes_in_buff` accounts for the total amount of data currently present in `buff`.
+	size_t bytes_in_buff = 0;
+	struct parse_procfs_proc_pid_status_counters counters = {0, 0, 0};
+	while(1) {
+		const ssize_t read_bytes = read(fd, buff + bytes_in_buff, sizeof(buff) - bytes_in_buff);
+		if(read_bytes < 0) {
+			return scap_errprintf(error, errno, "can't read status file %s", filename);
+		}
+		if(read_bytes == 0) {  // EOF
+			// We must fetch all pidinfo information.
+			ASSERT(counters.pidinfo_nfound == EXPECTED_PIDINFO_NFOUND);
+			// Capability info may not be found, but it's all or nothing.
+			ASSERT(counters.caps_nfound == 0 || counters.caps_nfound == EXPECTED_CAPS_NFOUND);
+			// VM info may not be found, but it's all or nothing.
+			ASSERT(counters.vm_nfound == 0 || counters.vm_nfound == EXPECTED_VM_NFOUND);
+			return SCAP_SUCCESS;
+		}
+		bytes_in_buff += read_bytes;
+
+		// Calculate the buffer valid data range, consisting of all read data up to the last '\n'
+		// (i.e. excluding the trailing truncated new line, if present).
+		// note: if we cannot find any '\n', we set `buff_valid_len` to 0 and see later if we can
+		// recover a complete line with a shift logic and a subsequent read.
+		// optimization: search for '\n' only in the new read data, because we are sure any old data
+		// doesn't contain it.
+		const char* const new_data_start = buff + bytes_in_buff - read_bytes;
+		const char* const last_newline = memrchr(new_data_start, '\n', read_bytes);
+		const size_t buff_valid_len = last_newline ? last_newline - buff + 1 : 0;
+
+		const char* line_start = buff;
+		const char* buff_valid_end = buff + buff_valid_len;
+
+		// note: if `buff_valid_len` is 0, this loop doesn't run.
+		while(line_start < buff_valid_end) {
+			char* const line_end = memchr(line_start, '\n', buff_valid_end - line_start);
+			if(!line_end) {
+				// bug: if we enter the loop, the range [line_start, buff_valid_end] contains '\n',
+				// so it's impossible to end up here.
+				ASSERT(false);
+				return scap_errprintf(
+				        error,
+				        0,
+				        "bug found while parsing status file %s: unexpected line with no newline",
+				        filename);
+			}
+
+			const size_t line_len = line_end - line_start;
+
+			// Replace '\n' with '\0' to make string-related API work.
+			// note: the original '\n' is restored at the end of the iteration.
+			*line_end = '\0';
+
+			parse_procfs_proc_pid_status_line(line_start, line_len, tinfo, &counters);
+
+			// Restore the original '\n' character.
+			*line_end = '\n';
+
+			// Skip remaining logic if we gathered all needed information.
+			if(counters.pidinfo_nfound == EXPECTED_PIDINFO_NFOUND &&
+			   counters.caps_nfound == EXPECTED_CAPS_NFOUND &&
+			   counters.vm_nfound == EXPECTED_VM_NFOUND) {
+				return SCAP_SUCCESS;
+			}
+
+			line_start = line_end + 1;
+		}
+
+		// Apply shifting logic to move the truncated trailing line (if any) at the beginning of the
+		// buffer.
+		// note: this remove from the buffer any processed data, that is data in the range
+		// [buff, buff+buff_valid_len]).
+		// note: the shift is not applied if we haven't processed any data in this iteration.
+		const size_t buff_unprocessed_data_len = bytes_in_buff - buff_valid_len;
+		if(buff_unprocessed_data_len > 0 && buff_valid_len > 0) {
+			memmove(buff, buff + buff_valid_len, buff_unprocessed_data_len);
+		}
+		// Now the buffer contains only unprocessed data.
+		bytes_in_buff = buff_unprocessed_data_len;
+		if(bytes_in_buff == sizeof(buff)) {
+			// It is almost impossible we filled the entire buffer with something not containing any
+			// '\n' character. We don't have much to do here: just returning.
+			ASSERT(false);
+			return SCAP_SUCCESS;
+		}
+	}
+	// This is unreachable!
+	ASSERT(false);
+	return scap_errprintf(
+	        error,
+	        0,
+	        "bug found while parsing status file %s: control should never reach any statement "
+	        "after the outer while loop in parse_procfs_proc_pid_status_impl()!",
+	        filename);
+}
+
+static int32_t parse_procfs_proc_pid_status(const char* const procfs_proc_dir,
+                                            struct scap_threadinfo* tinfo,
+                                            char* error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%sstatus", procfs_proc_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		return scap_errprintf(error, errno, "can't open status file %s", filename);
+	}
+
+	const int32_t res = parse_procfs_proc_pid_status_impl(fd, filename, tinfo, error);
+	close(fd);
+	return res;
+}
+
 int32_t scap_proc_fill_info_from_stats(char* error,
                                        char* procdirname,
                                        struct scap_threadinfo* tinfo) {
 	char filename[SCAP_MAX_PATH_SIZE];
-	uint32_t pidinfo_nfound = 0;
-	uint32_t caps_nfound = 0;
-	uint32_t vm_nfound = 0;
 	int64_t tmp;
-	uint32_t uid;
-	uint64_t tgid;
-	uint64_t cap_permitted;
-	uint64_t cap_effective;
-	uint64_t cap_inheritable;
-	uint64_t ppid;
-	uint64_t vpid;
-	uint64_t vtid;
+
 	int64_t sid;
 	int64_t pgid;
-	int64_t vpgid;
-	uint32_t vmsize_kb;
-	uint32_t vmrss_kb;
-	uint32_t vmswap_kb;
+
 	uint64_t pfmajor;
 	uint64_t pfminor;
 	uint32_t tty;
@@ -83,142 +434,14 @@ int32_t scap_proc_fill_info_from_stats(char* error,
 	tinfo->filtered_out = 0;
 	tinfo->tty = 0;
 
-	snprintf(filename, sizeof(filename), "%sstatus", procdirname);
-
-	FILE* f = fopen(filename, "r");
-	if(f == NULL) {
-		ASSERT(false);
-		return scap_errprintf(error, errno, "open status file %s failed", filename);
+	const int32_t res = parse_procfs_proc_pid_status(procdirname, tinfo, error);
+	if(res != SCAP_SUCCESS) {
+		return res;
 	}
-
-	while(fgets(line, sizeof(line), f) != NULL) {
-		if(strstr(line, "Tgid") == line) {
-			pidinfo_nfound++;
-
-			if(sscanf(line, "Tgid: %" PRIu64, &tgid) == 1) {
-				tinfo->pid = tgid;
-			} else {
-				ASSERT(false);
-			}
-		}
-		if(strstr(line, "Uid") == line) {
-			pidinfo_nfound++;
-
-			if(sscanf(line, "Uid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2) {
-				tinfo->uid = uid;
-			} else {
-				ASSERT(false);
-			}
-		} else if(strstr(line, "Gid") == line) {
-			pidinfo_nfound++;
-
-			if(sscanf(line, "Gid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2) {
-				tinfo->gid = uid;
-			} else {
-				ASSERT(false);
-			}
-		}
-		if(strstr(line, "CapInh") == line) {
-			caps_nfound++;
-
-			if(sscanf(line, "CapInh: %" PRIx64, &cap_inheritable) == 1) {
-				tinfo->cap_inheritable = cap_inheritable;
-			} else {
-				ASSERT(false);
-			}
-		}
-		if(strstr(line, "CapPrm") == line) {
-			caps_nfound++;
-
-			if(sscanf(line, "CapPrm: %" PRIx64, &cap_permitted) == 1) {
-				tinfo->cap_permitted = cap_permitted;
-			} else {
-				ASSERT(false);
-			}
-		}
-		if(strstr(line, "CapEff") == line) {
-			caps_nfound++;
-
-			if(sscanf(line, "CapEff: %" PRIx64, &cap_effective) == 1) {
-				tinfo->cap_effective = cap_effective;
-			} else {
-				ASSERT(false);
-			}
-		} else if(strstr(line, "PPid") == line) {
-			pidinfo_nfound++;
-
-			if(sscanf(line, "PPid: %" PRIu64, &ppid) == 1) {
-				tinfo->ptid = ppid;
-			} else {
-				ASSERT(false);
-			}
-		} else if(strstr(line, "VmSize:") == line) {
-			vm_nfound++;
-
-			if(sscanf(line, "VmSize: %" PRIu32, &vmsize_kb) == 1) {
-				tinfo->vmsize_kb = vmsize_kb;
-			} else {
-				ASSERT(false);
-			}
-		} else if(strstr(line, "VmRSS:") == line) {
-			vm_nfound++;
-
-			if(sscanf(line, "VmRSS: %" PRIu32, &vmrss_kb) == 1) {
-				tinfo->vmrss_kb = vmrss_kb;
-			} else {
-				ASSERT(false);
-			}
-		} else if(strstr(line, "VmSwap:") == line) {
-			vm_nfound++;
-
-			if(sscanf(line, "VmSwap: %" PRIu32, &vmswap_kb) == 1) {
-				tinfo->vmswap_kb = vmswap_kb;
-			} else {
-				ASSERT(false);
-			}
-		} else if(strstr(line, "NSpid:") == line) {
-			pidinfo_nfound++;
-			if(sscanf(line, "NSpid: %*u %" PRIu64, &vtid) == 1) {
-				tinfo->vtid = vtid;
-			} else {
-				tinfo->vtid = tinfo->tid;
-			}
-		} else if(strstr(line, "NSpgid:") == line) {
-			pidinfo_nfound++;
-			// We are assuming that the second id in the line is the vpgid we are looking for.
-			// This is not true in case of nested pid namespaces, but i'm not sure we support them.
-			if(sscanf(line, "NSpgid: %" PRIu64 " %" PRIu64, &pgid, &vpgid) == 2) {
-				tinfo->vpgid = vpgid;
-				tinfo->pgid = pgid;
-			}
-		} else if(strstr(line, "NStgid:") == line) {
-			pidinfo_nfound++;
-			if(sscanf(line, "NStgid: %*u %" PRIu64, &vpid) == 1) {
-				tinfo->vpid = vpid;
-			} else {
-				tinfo->vpid = tinfo->pid;
-			}
-		}
-
-		if(pidinfo_nfound == 7 && caps_nfound == 3 && vm_nfound == 3) {
-			break;
-		}
-	}
-
-	// We must fetch all pidinfo information
-	ASSERT(pidinfo_nfound == 7);
-
-	// Capability info may not be found, but it's all or nothing
-	ASSERT(caps_nfound == 0 || caps_nfound == 3);
-
-	// VM info may not be found, but it's all or nothing
-	ASSERT(vm_nfound == 0 || vm_nfound == 3);
-
-	fclose(f);
 
 	snprintf(filename, sizeof(filename), "%sstat", procdirname);
 
-	f = fopen(filename, "r");
+	FILE* f = fopen(filename, "r");
 	if(f == NULL) {
 		ASSERT(false);
 		return scap_errprintf(error, errno, "read stat file %s failed", filename);
