@@ -248,45 +248,73 @@ static void parse_procfs_proc_pid_status_line(
         const size_t line_len,
         struct scap_threadinfo* tinfo,
         struct parse_procfs_proc_pid_status_counters* counters) {
-	if(BEGIN_WITH_LITERAL(line, line_len, "Tgid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_tgid_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "Uid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_uid_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "Gid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_gid_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "CapInh:")) {
-		counters->caps_nfound++;
-		parse_procfs_proc_pid_status_cap_inh_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "CapPrm:")) {
-		counters->caps_nfound++;
-		parse_procfs_proc_pid_status_cap_prm_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "CapEff:")) {
-		counters->caps_nfound++;
-		parse_procfs_proc_pid_status_cap_eff_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "PPid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_ppid_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "VmSize:")) {
-		counters->vm_nfound++;
-		parse_procfs_proc_pid_status_vmsize_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "VmRSS:")) {
-		counters->vm_nfound++;
-		parse_procfs_proc_pid_status_vmrss_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "VmSwap:")) {
-		counters->vm_nfound++;
-		parse_procfs_proc_pid_status_vmswap_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "NSpid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_nspid_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "NSpgid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_nspgid_line(line, tinfo);
-	} else if(BEGIN_WITH_LITERAL(line, line_len, "NStgid:")) {
-		counters->pidinfo_nfound++;
-		parse_procfs_proc_pid_status_nstgid_line(line, tinfo);
+	const char first_char = *line;
+	// note: the following switch case logic helps to avoid much of the comparisons in two ways:
+	// - if the first letter doesn't match any of the case, all other comparisons are skipped
+	// - if the first letter matches, only few comparisons are performed.
+	switch(first_char) {
+	case 'T':
+		if(BEGIN_WITH_LITERAL(line, line_len, "Tgid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_tgid_line(line, tinfo);
+		}
+		break;
+	case 'U':
+		if(BEGIN_WITH_LITERAL(line, line_len, "Uid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_uid_line(line, tinfo);
+		}
+		break;
+	case 'G':
+		if(BEGIN_WITH_LITERAL(line, line_len, "Gid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_gid_line(line, tinfo);
+		}
+		break;
+	case 'C':
+		if(BEGIN_WITH_LITERAL(line, line_len, "CapInh:")) {
+			counters->caps_nfound++;
+			parse_procfs_proc_pid_status_cap_inh_line(line, tinfo);
+		} else if(BEGIN_WITH_LITERAL(line, line_len, "CapPrm:")) {
+			counters->caps_nfound++;
+			parse_procfs_proc_pid_status_cap_prm_line(line, tinfo);
+		} else if(BEGIN_WITH_LITERAL(line, line_len, "CapEff:")) {
+			counters->caps_nfound++;
+			parse_procfs_proc_pid_status_cap_eff_line(line, tinfo);
+		}
+		break;
+	case 'P':
+		if(BEGIN_WITH_LITERAL(line, line_len, "PPid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_ppid_line(line, tinfo);
+		}
+		break;
+	case 'V':
+		if(BEGIN_WITH_LITERAL(line, line_len, "VmSize:")) {
+			counters->vm_nfound++;
+			parse_procfs_proc_pid_status_vmsize_line(line, tinfo);
+		} else if(BEGIN_WITH_LITERAL(line, line_len, "VmRSS:")) {
+			counters->vm_nfound++;
+			parse_procfs_proc_pid_status_vmrss_line(line, tinfo);
+		} else if(BEGIN_WITH_LITERAL(line, line_len, "VmSwap:")) {
+			counters->vm_nfound++;
+			parse_procfs_proc_pid_status_vmswap_line(line, tinfo);
+		}
+		break;
+	case 'N':
+		if(BEGIN_WITH_LITERAL(line, line_len, "NSpid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_nspid_line(line, tinfo);
+		} else if(BEGIN_WITH_LITERAL(line, line_len, "NSpgid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_nspgid_line(line, tinfo);
+		} else if(BEGIN_WITH_LITERAL(line, line_len, "NStgid:")) {
+			counters->pidinfo_nfound++;
+			parse_procfs_proc_pid_status_nstgid_line(line, tinfo);
+		}
+		break;
+	default:
+		break;
 	}
 }
 
