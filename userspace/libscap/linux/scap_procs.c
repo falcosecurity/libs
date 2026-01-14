@@ -1378,32 +1378,45 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 }
 
 int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t* pid, char* error) {
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+	const struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
 	if(linux_platform->m_linux_vtable && linux_platform->m_linux_vtable->getpid_global) {
 		return linux_platform->m_linux_vtable->getpid_global(linux_platform->m_engine, pid, error);
 	}
 
 	char filename[SCAP_MAX_PATH_SIZE];
-	char line[512];
-
 	snprintf(filename, sizeof(filename), "%s/proc/self/status", scap_get_host_root());
-
-	FILE* f = fopen(filename, "r");
-	if(f == NULL) {
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
 		ASSERT(false);
-		return scap_errprintf(error, errno, "can not open status file %s", filename);
+		return scap_errprintf(error, errno, "can't open status file %s", filename);
 	}
 
-	while(fgets(line, sizeof(line), f) != NULL) {
-		if(sscanf(line, "Tgid: %" PRId64, pid) == 1) {
-			fclose(f);
-			return SCAP_SUCCESS;
-		}
+	// note: the "Tgid:" field appears early in the file (typically in the first few lines), so
+	// reading only the first 512 bytes is sufficient to locate it reliably.
+	char buff[512];
+	const ssize_t read_bytes = read(fd, buff, sizeof(buff) - 1);
+	close(fd);
+	if(read_bytes <= 0) {
+		ASSERT(false);
+		return scap_errprintf(error, errno, "can't read status file %s", filename);
+	}
+	buff[read_bytes] = '\0';
+
+	const char* const line_start = strstr(buff, "Tgid:");
+	if(line_start == NULL) {
+		ASSERT(false);
+		return scap_errprintf(error, 0, "can't find tgid in status file %s", filename);
 	}
 
-	fclose(f);
-	return scap_errprintf(error, 0, "could not find tgid in status file %s", filename);
+	uint64_t tgid;
+	if(!parse_u64(line_start, sizeof("Tgid:") - 1, 10, &tgid)) {
+		ASSERT(false);
+		return scap_errprintf(error, 0, "can't parse tgid in status file %s", filename);
+	}
+
+	*pid = (int64_t)tgid;
+	return SCAP_SUCCESS;
 }
 
 int32_t scap_linux_proc_get(struct scap_platform* platform,
