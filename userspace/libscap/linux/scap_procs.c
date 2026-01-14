@@ -433,22 +433,75 @@ static int32_t parse_procfs_proc_pid_status(const char* const procfs_proc_dir,
 	return res;
 }
 
-int32_t scap_proc_fill_info_from_stats(char* error,
-                                       char* procdirname,
-                                       struct scap_threadinfo* tinfo) {
-	char filename[SCAP_MAX_PATH_SIZE];
-	int64_t tmp;
+static int32_t parse_procfs_proc_pid_stat_impl(const int fd,
+                                               const char* const filename,
+                                               struct scap_threadinfo* tinfo,
+                                               char* error) {
+	char buffer[4096];
+	const size_t read_bytes = read(fd, buffer, sizeof(buffer) - 1);
+	if(read_bytes <= 0) {
+		ASSERT(false);
+		return scap_errprintf(error, errno, "can't read stat file %s", filename);
+	}
+	buffer[read_bytes] = '\0';
 
-	int64_t sid;
+	// The process name is enclosed in parentheses, i.e: "(<proc_name>)". Parse only the content
+	// after the closing parenthesis. The "+= 2" skip the parenthesis and the space after it.
+	const char* content_to_parse = strrchr(buffer, ')');
+	if(content_to_parse == NULL) {
+		ASSERT(false);
+		return scap_errprintf(error, 0, "can't find closing parenthesis in stat file %s", filename);
+	}
+	content_to_parse += 2;
+
 	int64_t pgid;
-
-	uint64_t pfmajor;
-	uint64_t pfminor;
+	int64_t sid;
 	uint32_t tty;
-	char line[512];
-	char tmpc;
-	char* s;
+	uint64_t pfminor;
+	uint64_t pfmajor;
 
+	if(sscanf(content_to_parse,
+	          "%*s %*d %" PRId64 " %" PRId64 " %" PRIu32 " %*d %*d %" PRIu64 " %*d %" PRIu64,
+	          &pgid,     // 3. PGID
+	          &sid,      // 4. SID
+	          &tty,      // 5. TTY
+	          &pfminor,  // 8. MinFlt
+	          &pfmajor   // 10. MajFlt
+	          ) != 5) {
+		ASSERT(false);
+		return scap_errprintf(error, 0, "can't read expected fields from stat file %s", filename);
+	}
+
+	// Set pgid only if it is not already set (this typically happens because we couldn't extract it
+	// from /proc/[pid]/status.
+	if(tinfo->pgid == -1) {
+		tinfo->pgid = pgid;
+	}
+	tinfo->sid = (uint64_t)sid;
+	tinfo->tty = tty;
+	tinfo->pfminor = pfminor;
+	tinfo->pfmajor = pfmajor;
+	return SCAP_SUCCESS;
+}
+
+static int32_t parse_procfs_proc_pid_stat(const char* const procfs_proc_dir,
+                                          struct scap_threadinfo* tinfo,
+                                          char* error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%sstat", procfs_proc_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		return scap_errprintf(error, errno, "can't open stat file %s", filename);
+	}
+
+	const int32_t res = parse_procfs_proc_pid_stat_impl(fd, filename, tinfo, error);
+	close(fd);
+	return res;
+}
+
+int32_t scap_proc_fill_info_from_stats(char* error,
+                                       const char* procdirname,
+                                       struct scap_threadinfo* tinfo) {
 	tinfo->uid = (uint32_t)-1;
 	tinfo->ptid = (uint32_t)-1LL;
 	tinfo->sid = 0;
@@ -467,66 +520,7 @@ int32_t scap_proc_fill_info_from_stats(char* error,
 		return res;
 	}
 
-	snprintf(filename, sizeof(filename), "%sstat", procdirname);
-
-	FILE* f = fopen(filename, "r");
-	if(f == NULL) {
-		ASSERT(false);
-		return scap_errprintf(error, errno, "read stat file %s failed", filename);
-	}
-
-	size_t ssres = fread(line, 1, sizeof(line) - 1, f);
-	if(ssres == 0) {
-		ASSERT(false);
-		fclose(f);
-		return scap_errprintf(error, errno, "Could not read from stat file %s", filename);
-	}
-	line[ssres] = 0;
-
-	s = strrchr(line, ')');
-	if(s == NULL) {
-		ASSERT(false);
-		fclose(f);
-		return scap_errprintf(error, 0, "Could not find closing bracket in stat file %s", filename);
-	}
-
-	//
-	// Extract the line content
-	//
-	if(sscanf(s + 2,
-	          "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRIu32 " %" PRId64 " %" PRId64 " %" PRId64
-	          " %" PRId64 " %" PRId64,
-	          &tmpc,
-	          &tmp,
-	          &pgid,
-	          &sid,
-	          &tty,
-	          &tmp,
-	          &tmp,
-	          &pfminor,
-	          &tmp,
-	          &pfmajor) != 10) {
-		ASSERT(false);
-		fclose(f);
-		return scap_errprintf(error,
-		                      0,
-		                      "Could not read expected fields from stat file %s",
-		                      filename);
-	}
-
-	tinfo->pfmajor = pfmajor;
-	tinfo->pfminor = pfminor;
-	tinfo->sid = (uint64_t)sid;
-
-	// If we did not find pgid above in /proc/[pid]/status, we use the one from /proc/[pid]/stat
-	if(tinfo->pgid == -1) {
-		tinfo->pgid = pgid;
-	}
-
-	tinfo->tty = tty;
-
-	fclose(f);
-	return SCAP_SUCCESS;
+	return parse_procfs_proc_pid_stat(procdirname, tinfo, error);
 }
 
 //
