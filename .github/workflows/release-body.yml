@@ -61,8 +61,9 @@ jobs:
           print(f'tag name: {tag_name}')
           print(f'latest drivers release: {latest_drivers_release}')
           print(f'latest libs release: {latest_libs_release}')
+          print(f'is pre-release: {is_prerelease}')
           print(f'is latest drivers release: {is_latest_drivers}')
-          print(f'is latest libs release: {is_latest_drivers}')
+          print(f'is latest libs release: {is_latest_libs}')
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as ofp:
             print(f'is_latest_drivers={is_latest_drivers}'.lower(), file=ofp)
