@@ -599,36 +599,37 @@ int32_t scap_proc_fill_root(char* error, struct scap_threadinfo* tinfo, const ch
 	}
 }
 
-int32_t scap_proc_fill_loginuid(char* error,
-                                struct scap_threadinfo* tinfo,
-                                const char* procdirname) {
-	uint32_t loginuid;
-	char loginuid_path[SCAP_MAX_PATH_SIZE];
-	char line[512];
-	snprintf(loginuid_path, sizeof(loginuid_path), "%sloginuid", procdirname);
-	FILE* f = fopen(loginuid_path, "r");
-	if(f == NULL) {
-		// If Linux kernel is built with CONFIG_AUDIT=n, loginuid management
-		// (and associated /proc file) is not implemented.
-		// Record default loginuid value of invalid uid in this case.
-		tinfo->loginuid = (uint32_t)UINT32_MAX;
+int32_t parse_procfs_proc_pid_loginuid(const char* const procfs_proc_dir,
+                                       struct scap_threadinfo* tinfo,
+                                       char* error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%sloginuid", procfs_proc_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		// If Linux kernel is built with CONFIG_AUDIT=n, loginuid management (and associated /proc
+		// file) is not implemented. Record default loginuid value of invalid uid in this case.
+		tinfo->loginuid = UINT32_MAX;
 		return SCAP_SUCCESS;
 	}
-	if(fgets(line, sizeof(line), f) == NULL) {
+
+	// Use a 32-bytes buffer as loginuid is a 32-bit number (max 10 digits).
+	char buff[32];
+	const ssize_t read_bytes = read(fd, buff, sizeof(buff) - 1);
+	close(fd);
+	if(read_bytes <= 0) {
+		return scap_errprintf(error, errno, "can't read loginuid file %s", filename);
+	}
+	buff[read_bytes] = '\0';
+
+	uint64_t loginuid;
+	if(!parse_u64(buff, 0, 10, &loginuid)) {
 		ASSERT(false);
-		fclose(f);
-		return scap_errprintf(error, errno, "Could not read loginuid from %s", loginuid_path);
+		return scap_errprintf(error, 0, "can't parse loginuid in loginuid file %s", filename);
 	}
 
-	fclose(f);
-
-	if(sscanf(line, "%" PRIu32, &loginuid) == 1) {
-		tinfo->loginuid = loginuid;
-		return SCAP_SUCCESS;
-	} else {
-		ASSERT(false);
-		return scap_errprintf(error, 0, "Could not read loginuid from %s", loginuid_path);
-	}
+	// note: loginuid could be unset (-1), but this conversion still works in that case.
+	tinfo->loginuid = (uint32_t)loginuid;
+	return SCAP_SUCCESS;
 }
 
 int32_t scap_proc_fill_exe_ino_ctime_mtime(char* error,
@@ -1019,12 +1020,9 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// set the loginuid
 	//
-	if(SCAP_FAILURE == scap_proc_fill_loginuid(linux_platform->m_lasterr, &tinfo, dir_name)) {
-		return scap_errprintf(error,
-		                      0,
-		                      "can't fill loginuid for %s (%s)",
-		                      dir_name,
-		                      linux_platform->m_lasterr);
+	res = parse_procfs_proc_pid_loginuid(dir_name, &tinfo, error);
+	if(res == SCAP_FAILURE) {
+		return res;
 	}
 
 	// Container start time for host processes will be equal to when the
