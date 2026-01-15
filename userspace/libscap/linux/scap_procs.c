@@ -587,18 +587,6 @@ static int32_t scap_get_vpid(struct scap_linux_platform* platform, int64_t pid, 
 	return SCAP_FAILURE;
 }
 
-int32_t scap_proc_fill_root(char* error, struct scap_threadinfo* tinfo, const char* procdirname) {
-	char root_path[SCAP_MAX_PATH_SIZE];
-	snprintf(root_path, sizeof(root_path), "%sroot", procdirname);
-	ssize_t r = readlink(root_path, tinfo->root, sizeof(tinfo->root) - 1);
-	if(r > 0) {
-		tinfo->root[r] = '\0';
-		return SCAP_SUCCESS;
-	} else {
-		return scap_errprintf(error, errno, "readlink %s failed", root_path);
-	}
-}
-
 int32_t parse_procfs_proc_pid_loginuid(const char* const procfs_proc_dir,
                                        struct scap_threadinfo* tinfo,
                                        char* error) {
@@ -826,15 +814,28 @@ static void set_tinfo_exe_and_args_from_cmdline(struct scap_threadinfo* tinfo,
 	}
 }
 
-// Read /proc/<pid>/cwd into `buff`. `buff_len` must be greater than 0.
+// Read /proc/<pid>/cwd into `buff`. `buff_len` must be greater than 1.
 static int32_t read_procfs_proc_pid_cwd(const char* const procfs_proc_dir,
                                         char* const buff,
                                         const size_t buff_len,
                                         char* const error) {
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%scwd", procfs_proc_dir);
-	ASSERT(buff_len >= SCAP_MAX_PATH_SIZE);
-	ASSERT(buff_len - 1 > 0);
+	const ssize_t read_bytes = readlink(filename, buff, buff_len - 1);
+	if(read_bytes <= 0) {
+		return scap_errprintf(error, errno, "readlink failed on %s", filename);
+	}
+	buff[read_bytes] = '\0';
+	return SCAP_SUCCESS;
+}
+
+// Read /proc/<pid>/root into `buff`. `buff_len` must be greater than 1.
+static int32_t read_procfs_proc_pid_root(const char* const procfs_proc_dir,
+                                         char* const buff,
+                                         const size_t buff_len,
+                                         char* const error) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%sroot", procfs_proc_dir);
 	const ssize_t read_bytes = readlink(filename, buff, buff_len - 1);
 	if(read_bytes <= 0) {
 		return scap_errprintf(error, errno, "readlink failed on %s", filename);
@@ -1009,12 +1010,9 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// set the current root of the process
 	//
-	if(SCAP_FAILURE == scap_proc_fill_root(linux_platform->m_lasterr, &tinfo, dir_name)) {
-		return scap_errprintf(error,
-		                      0,
-		                      "can't fill root for %s (%s)",
-		                      dir_name,
-		                      linux_platform->m_lasterr);
+	res = read_procfs_proc_pid_root(dir_name, tinfo.root, sizeof(tinfo.root), error);
+	if(res == SCAP_FAILURE) {
+		return res;
 	}
 
 	//
@@ -1447,9 +1445,9 @@ bool scap_linux_is_thread_alive(struct scap_platform* platform,
 	         tid);
 	const int fd = open(filename, O_RDONLY, 0);
 	if(fd == -1) {
-		// If /proc/<pid>/task/<tid>/comm does not exist but /proc/<pid>/task/<tid>/exe does exist,
-		// we assume we're on an ancient OS like RHEL5 and we return true. This could generate some
-		// false positives on such old distros, and we're going to accept it.
+		// If `/proc/<pid>/task/<tid>/comm` does not exist but `/proc/<pid>/task/<tid>/exe` does
+		// exist, we assume we're on an ancient OS like RHEL5 and we return true. This could
+		// generate some false positives on such old distros, and we're going to accept it.
 		snprintf(filename,
 		         sizeof(filename),
 		         "%s/proc/%" PRId64 "/task/%" PRId64 "/exe",
@@ -1459,7 +1457,7 @@ bool scap_linux_is_thread_alive(struct scap_platform* platform,
 		return faccessat(AT_FDCWD, filename, F_OK, 0) == 0;
 	}
 
-	char buff[16];
+	char buff[TASK_COMM_LEN];
 	const ssize_t read_bytes = read(fd, buff, sizeof(buff));
 	close(fd);
 	if(read_bytes <= 0) {
