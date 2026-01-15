@@ -18,12 +18,9 @@ limitations under the License.
 
 #pragma once
 
-// IMPORTANT: if you plan to change of the following fields, remember to update SCAP_MAX_FIELD_SIZE
-// to always be the maximum of all the others.
 #define SCAP_MAX_PATH_SIZE 1024
 #define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
 #define SCAP_MAX_CGROUPS_SIZE 4096
-#define SCAP_MAX_FIELD_SIZE 4096
 
 #define SCAP_IPV6_ADDR_LEN 16
