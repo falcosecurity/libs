@@ -1438,47 +1438,35 @@ bool scap_linux_is_thread_alive(struct scap_platform* platform,
                                 int64_t pid,
                                 int64_t tid,
                                 const char* comm) {
-	char charbuf[SCAP_MAX_PATH_SIZE];
-	FILE* f;
-
-	snprintf(charbuf,
-	         sizeof(charbuf),
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename,
+	         sizeof(filename),
 	         "%s/proc/%" PRId64 "/task/%" PRId64 "/comm",
 	         scap_get_host_root(),
 	         pid,
 	         tid);
-
-	f = fopen(charbuf, "r");
-
-	if(f != NULL) {
-		if(fgets(charbuf, sizeof(charbuf), f) != NULL) {
-			if(strncmp(charbuf, comm, strlen(comm)) == 0) {
-				fclose(f);
-				return true;
-			}
-		}
-
-		fclose(f);
-	} else {
-		//
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
 		// If /proc/<pid>/task/<tid>/comm does not exist but /proc/<pid>/task/<tid>/exe does exist,
 		// we assume we're on an ancient OS like RHEL5 and we return true. This could generate some
 		// false positives on such old distros, and we're going to accept it.
-		//
-		snprintf(charbuf,
-		         sizeof(charbuf),
+		snprintf(filename,
+		         sizeof(filename),
 		         "%s/proc/%" PRId64 "/task/%" PRId64 "/exe",
 		         scap_get_host_root(),
 		         pid,
 		         tid);
-		f = fopen(charbuf, "r");
-		if(f != NULL) {
-			fclose(f);
-			return true;
-		}
+		return faccessat(AT_FDCWD, filename, F_OK, 0) == 0;
 	}
 
-	return false;
+	char buff[16];
+	const ssize_t read_bytes = read(fd, buff, sizeof(buff));
+	close(fd);
+	if(read_bytes <= 0) {
+		return false;
+	}
+	buff[read_bytes - 1] = '\0';  // Replace trailing '\n', if present.
+	return strncmp(buff, comm, strlen(comm)) == 0;
 }
 
 int32_t scap_linux_refresh_proc_table(struct scap_platform* platform,
