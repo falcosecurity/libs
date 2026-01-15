@@ -858,93 +858,67 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
                                        struct scap_ns_socket_list** sockets_by_ns,
                                        uint64_t* num_fds_ret,
                                        char* error) {
-	char dir_name[256];
-	char target_name[SCAP_MAX_PATH_SIZE];
-	int target_res;
-	char filename[252];
-	char line[SCAP_MAX_FIELD_SIZE];
-	struct scap_threadinfo tinfo = {};
-	int32_t res = SCAP_SUCCESS;
-	struct stat dirstat;
-
-	memset(&tinfo, 0, sizeof(scap_threadinfo));
-
+	char dir_name[SCAP_MAX_PATH_SIZE];
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
+
+	// Gather the command line.
+	char cmdline_buff[SCAP_MAX_ARGS_SIZE];
+	size_t cmdline_len = 0;
+	int32_t res = read_procfs_proc_pid_cmdline(dir_name,
+	                                           cmdline_buff,
+	                                           SCAP_MAX_ARGS_SIZE,
+	                                           &cmdline_len,
+	                                           error);
+	if(res == SCAP_FAILURE) {
+		return res;
+	}
+	ASSERT(cmdline_len <= SCAP_MAX_ARGS_SIZE);
+
+	// Gather the executable full path.
+	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
+	char target_name[SCAP_MAX_PATH_SIZE];
+	const ssize_t target_res = readlink(filename, target_name, sizeof(target_name) - 1);
 
-	//
-	// Gather the executable full name
-	//
-	target_res = readlink(
-	        filename,
-	        target_name,
-	        sizeof(target_name) -
-	                1);  // Getting the target of the exe, i.e. to which binary it points to
-
-	if(target_res <= 0) {
-		//
-		// No exe. This either
-		//  - a kernel thread (if there is no cmdline). In that case we skip it.
-		//  - a process that has been containerized or has some weird thing going on. In that case
-		//    we accept it.
-		//
-		snprintf(filename, sizeof(filename), "%scmdline", dir_name);
-		FILE* f = fopen(filename, "r");
-		if(f == NULL) {
-			return scap_errprintf(error, errno, "can't find valid proc dir in %s", dir_name);
+	// Here we have a logic determining if we accept the current process. It leverages information
+	// gathered while reading the command line and the executable full path.
+	if(cmdline_len == 0) {
+		// This could be a kernel thread, a zombie, or a weird user process. We want to accept weird
+		// user processes, and to disambiguate them from the other categories we also check the
+		// result of gathering the executable full path.
+		if(target_res <= 0) {
+			return scap_errprintf(error, 0, "skipped kernel/zombie thread (no cmdline, no exe)");
 		}
-
-		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
-
-		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL) {
-			fclose(f);
-			return scap_errprintf(error, errno, "can't read cmdline file %s", filename);
-		} else {
-			fclose(f);
-		}
-
-		target_name[0] = 0;
+		target_name[target_res] = '\0';
 	} else {
-		// null-terminate target_name (readlink() does not append a null byte)
-		target_name[target_res] = 0;
+		// This is a valid process, and we want to accept it even if we couldn't retrieve the
+		// executable full path.
+		if(target_res <= 0) {
+			target_name[0] = '\0';
+		} else {
+			target_name[target_res] = '\0';
+		}
 	}
 
-	tinfo.tid = tid;
+	struct scap_threadinfo tinfo = {};
+	memset(&tinfo, 0, sizeof(scap_threadinfo));
 
+	tinfo.tid = tid;
 	tinfo.fdlist = NULL;
 
-	//
-	// Gathers the exepath
-	//
+	// Set exepath.
 	snprintf(tinfo.exepath, sizeof(tinfo.exepath), "%s", target_name);
 
-	//
-	// Gather the command name
-	//
+	// Gather and set the command name.
 	res = read_procfs_proc_pid_comm(dir_name, tinfo.comm, sizeof(tinfo.comm), error);
 	if(res == SCAP_FAILURE) {
 		return res;
 	}
 
-	//
-	// Gather the command line
-	//
-	char* const cmdline_buff = line;
-	size_t cmdline_len = 0;
-	res = read_procfs_proc_pid_cmdline(dir_name,
-	                                   cmdline_buff,
-	                                   SCAP_MAX_ARGS_SIZE,
-	                                   &cmdline_len,
-	                                   error);
-	if(res == SCAP_FAILURE) {
-		return res;
-	}
-	ASSERT(cmdline_len <= SCAP_MAX_ARGS_SIZE);
+	// Set exe and args from command line.
 	set_tinfo_exe_and_args_from_cmdline(&tinfo, cmdline_buff, (uint16_t)cmdline_len);
 
-	//
-	// Gather the environment
-	//
+	// Gather and set the environment.
 	res = read_procfs_proc_pid_environ(dir_name,
 	                                   tinfo.env,
 	                                   sizeof(tinfo.env),
@@ -1029,6 +1003,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 
 	// Container start time for host processes will be equal to when the
 	// host init started
+	struct stat dirstat;
 	char proc_cmdline[SCAP_MAX_PATH_SIZE];
 	snprintf(proc_cmdline, sizeof(proc_cmdline), "%scmdline", dir_name);
 	if(stat(proc_cmdline, &dirstat) == 0) {
