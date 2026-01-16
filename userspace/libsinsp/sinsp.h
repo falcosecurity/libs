@@ -812,6 +812,14 @@ public:
 
 private:
 	void set_input_plugin(const std::string& name, const std::string& params);
+	// Wrapper around `open_common()` handling resource clean up upon failure (exceptions).
+	// Currently, its duty is to free the provided scap platform as well as the allocated scap
+	// handle if something bad happens.
+	void try_open_common(scap_open_args* oargs,
+	                     const scap_vtable* vtable,
+	                     scap_platform* platform,
+	                     sinsp_mode_t mode);
+	// note: don't call it directly; use `try_open_common()` instead.
 	void open_common(scap_open_args* oargs,
 	                 const struct scap_vtable* vtable,
 	                 struct scap_platform* platform,
