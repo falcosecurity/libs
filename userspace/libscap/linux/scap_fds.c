@@ -15,6 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -166,50 +169,170 @@ static inline uint32_t open_flags_to_scap(unsigned long flags) {
 	return res;
 }
 
+// Read device major and minor from `buff`. `buff` must be a NUL-terminated string  in the form
+// `<major>:<minor>`. Return 1 if both values are correctly read; 0 otherwise.
+static int read_device_major_and_minor(const char *buff, uint64_t *major, uint64_t *minor) {
+	char *next_token;
+	*major = strtoull(buff, &next_token, 10);
+	if(next_token == buff || *next_token != ':') {
+		return 0;
+	}
+
+	buff = next_token + 1;  // +1 for ':'
+	*minor = strtoull(buff, &next_token, 10);
+	if(next_token == buff) {
+		return 0;
+	}
+	return 1;
+}
+
+static uint32_t scap_linux_get_device_by_mount_id_impl(struct scap_linux_platform *linux_platform,
+                                                       unsigned long requested_mount_id,
+                                                       const int fd) {
+	char buff[4096];
+	// `bytes_in_buff` accounts for the total amount of data currently present in `buff`.
+	size_t bytes_in_buff = 0;
+	while(1) {
+		const ssize_t read_bytes = read(fd, buff + bytes_in_buff, sizeof(buff) - bytes_in_buff);
+		if(read_bytes < 0) {
+			if(errno == EINTR) {  // Re-attempt upon signal.
+				continue;
+			}
+			return 0;
+		}
+		if(read_bytes == 0) {
+			return 0;
+		}
+		bytes_in_buff += read_bytes;
+
+		// Calculate the buffer valid data range, consisting of all read data up to the last '\n'
+		// (i.e. excluding the trailing truncated new line, if present).
+		// note: if we cannot find any '\n', we set `buff_valid_len` to 0 and see later if we can
+		// recover a complete line with a shift logic and a subsequent read.
+		// optimization: search for '\n' only in the new read data, because we are sure any old data
+		// doesn't contain it.
+		const char *const new_data_start = buff + bytes_in_buff - read_bytes;
+		const char *const last_newline = memrchr(new_data_start, '\n', read_bytes);
+		const size_t buff_valid_len = last_newline ? last_newline - buff + 1 : 0;
+
+		const char *line_start = buff;
+		const char *buff_valid_end = buff + buff_valid_len;
+		// note: if `buff_valid_len` is 0, this loop doesn't run.
+		while(line_start < buff_valid_end) {
+			char *const line_end = memchr(line_start, '\n', buff_valid_end - line_start);
+			if(!line_end) {
+				// bug: if we enter the loop, the range [line_start, buff_valid_end] contains '\n',
+				// so it's impossible to end up here.
+				ASSERT(false);
+				return 0;
+			}
+
+			// Replace '\n' with '\0' to make string-related API work.
+			// note: the original '\n' is restored at the end of the iteration.
+			*line_end = '\0';
+
+			// Look for a line corresponding to the requested mount ID.
+			char *next_token;
+			const uint64_t mount_id = strtoull(line_start, &next_token, 10);
+			if(next_token == line_start) {
+				// Malformed line.
+				ASSERT(false);
+				return 0;
+			}
+
+			if(mount_id != requested_mount_id) {
+				*line_end = '\n';
+				line_start = line_end + 1;
+				continue;
+			}
+
+			// From now on, if an error occurs we must return, as there cannot be any further line
+			// matching the same mount ID, as it is unique.
+
+			// Skip the first space, the parent ID, and the second space.
+			char *ptr = next_token;
+			while(ptr < line_end && *ptr == ' ')
+				ptr++;
+			while(ptr < line_end && *ptr != ' ')
+				ptr++;
+			while(ptr < line_end && *ptr == ' ')
+				ptr++;
+
+			if(ptr == line_end) {
+				// Malformed line.
+				ASSERT(false);
+				return 0;
+			}
+
+			uint64_t major, minor;
+			if(!read_device_major_and_minor(ptr, &major, &minor)) {
+				// Malformed line.
+				ASSERT(false);
+				return 0;
+			}
+
+			scap_mountinfo *mountinfo = malloc(sizeof(*mountinfo));
+			if(mountinfo == NULL) {
+				return 0;
+			}
+
+			uint32_t dev = makedev(major, minor);
+			mountinfo->mount_id = mount_id;
+			mountinfo->dev = dev;
+			int32_t uth_status = SCAP_SUCCESS;
+			HASH_ADD_INT64(linux_platform->m_dev_list, mount_id, mountinfo);
+			if(uth_status != SCAP_SUCCESS) {
+				free(mountinfo);
+			}
+			return dev;
+		}
+
+		// Apply shifting logic to move the truncated trailing line (if any) at the beginning of the
+		// buffer.
+		// note: this remove from the buffer any processed data, that is data in the range
+		// [buff, buff+buff_valid_len]).
+		// note: the shift is not applied if we haven't processed any data in this iteration.
+		const size_t buff_unprocessed_data_len = bytes_in_buff - buff_valid_len;
+		if(buff_unprocessed_data_len > 0 && buff_valid_len > 0) {
+			memmove(buff, buff + buff_valid_len, buff_unprocessed_data_len);
+		}
+		// Now the buffer contains only unprocessed data.
+		bytes_in_buff = buff_unprocessed_data_len;
+		if(bytes_in_buff == sizeof(buff)) {
+			// It is almost impossible we filled the entire buffer with something not containing any
+			// '\n' character. We don't have much to do here: just returning.
+			ASSERT(false);
+			return 0;
+		}
+	}
+
+	// This is unreachable!
+	ASSERT(false);
+	return 0;
+}
+
 uint32_t scap_linux_get_device_by_mount_id(struct scap_platform *platform,
                                            const char *procdir,
                                            unsigned long requested_mount_id) {
-	char fd_dir_name[SCAP_MAX_PATH_SIZE];
-	char line[SCAP_MAX_PATH_SIZE];
-	FILE *finfo;
-	scap_mountinfo *mountinfo;
 	struct scap_linux_platform *linux_platform = (struct scap_linux_platform *)platform;
 
+	scap_mountinfo *mountinfo;
 	HASH_FIND_INT64(linux_platform->m_dev_list, &requested_mount_id, mountinfo);
 	if(mountinfo != NULL) {
 		return mountinfo->dev;
 	}
 
+	char fd_dir_name[SCAP_MAX_PATH_SIZE];
 	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%smountinfo", procdir);
-	finfo = fopen(fd_dir_name, "r");
-	if(finfo == NULL) {
+	const int fd = open(fd_dir_name, O_RDONLY, 0);
+	if(fd < 0) {
 		return 0;
 	}
 
-	while(fgets(line, sizeof(line), finfo) != NULL) {
-		uint32_t mount_id, major, minor;
-		if(sscanf(line, "%u %*u %u:%u", &mount_id, &major, &minor) != 3) {
-			continue;
-		}
-
-		if(mount_id == requested_mount_id) {
-			uint32_t dev = makedev(major, minor);
-			mountinfo = malloc(sizeof(*mountinfo));
-			if(mountinfo) {
-				int32_t uth_status = SCAP_SUCCESS;
-				mountinfo->mount_id = mount_id;
-				mountinfo->dev = dev;
-				HASH_ADD_INT64(linux_platform->m_dev_list, mount_id, mountinfo);
-				if(uth_status != SCAP_SUCCESS) {
-					free(mountinfo);
-				}
-			}
-			fclose(finfo);
-			return dev;
-		}
-	}
-	fclose(finfo);
-	return 0;
+	const uint32_t res =
+	        scap_linux_get_device_by_mount_id_impl(linux_platform, requested_mount_id, fd);
+	close(fd);
+	return res;
 }
 
 void scap_fd_flags_file(scap_fdinfo *fdi, const char *procdir) {
