@@ -10,4 +10,4 @@
 SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname ${SCRIPT})
 
-make CC="${CC}" -C ${SCRIPT_DIR} > ${SCRIPT_DIR}/build.log 2>&1
+make CC="${CC}" LD="${LD}" -C ${SCRIPT_DIR} > ${SCRIPT_DIR}/build.log 2>&1
