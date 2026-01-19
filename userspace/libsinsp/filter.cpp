@@ -206,41 +206,43 @@ std::unique_ptr<sinsp_filter_check> sinsp_extractor_compiler::compile() {
 	return std::move(m_last_node_field);
 }
 
+static void throw_unexpected_boolean_expr(const std::string& expr_name) {
+	throw sinsp_exception(std::string("sinsp_extractor_compiler: unexpected '") + expr_name +
+	                      "' expression in extractor AST; "
+	                      "extractor compilation only supports field/transformer expressions, "
+	                      "not boolean logic");
+}
+
 void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::and_expr* e) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: unexpected 'and' expression in extractor AST; "
-	        "extractor compilation only supports field/transformer expressions, not boolean logic");
+	throw_unexpected_boolean_expr("and");
 }
 
 void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::or_expr* e) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: unexpected 'or' expression in extractor AST; "
-	        "extractor compilation only supports field/transformer expressions, not boolean logic");
+	throw_unexpected_boolean_expr("or");
 }
 
 void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::not_expr* e) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: unexpected 'not' expression in extractor AST; "
-	        "extractor compilation only supports field/transformer expressions, not boolean logic");
+	throw_unexpected_boolean_expr("not");
 }
 
-void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: unexpected unary check expression in extractor AST; "
-	        "extractor compilation only supports field/transformer expressions, not filter checks");
+static void throw_unexpected_extractor_expr(const char* expr_desc, const char* unsupported_desc) {
+	throw sinsp_exception(std::string("sinsp_extractor_compiler: unexpected ") + expr_desc +
+	                      " in extractor AST; "
+	                      "extractor compilation only supports field/transformer expressions, "
+	                      "not " +
+	                      unsupported_desc);
 }
 
-void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::binary_check_expr* e) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: unexpected binary check expression in extractor AST; "
-	        "extractor compilation only supports field/transformer expressions, not filter checks");
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::unary_check_expr*) {
+	throw_unexpected_extractor_expr("unary check expression", "filter checks");
 }
 
-void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::identifier_expr* e) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: unexpected identifier expression in extractor AST; "
-	        "extractor compilation only supports field/transformer expressions, not macro "
-	        "identifiers");
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::binary_check_expr*) {
+	throw_unexpected_extractor_expr("binary check expression", "filter checks");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::identifier_expr*) {
+	throw_unexpected_extractor_expr("identifier expression", "macro identifiers");
 }
 
 void sinsp_extractor_compiler::check_warnings_regex_value(
@@ -251,31 +253,29 @@ void sinsp_extractor_compiler::check_warnings_regex_value(
 	        "extractor compilation does not emit warnings");
 }
 
-void sinsp_extractor_compiler::check_warnings_field_value(
-        const libsinsp::filter::ast::pos_info& pos,
-        const std::string& str,
-        const std::string& strippedstr) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: check_warnings_field_value should not be called; "
-	        "extractor compilation does not emit warnings");
+static void throw_unexpected_warning_check(const char* func_name) {
+	throw sinsp_exception(std::string("sinsp_extractor_compiler: ") + func_name +
+	                      " should not be called; "
+	                      "extractor compilation does not emit warnings");
+}
+
+void sinsp_extractor_compiler::check_warnings_field_value(const libsinsp::filter::ast::pos_info&,
+                                                          const std::string&,
+                                                          const std::string&) {
+	throw_unexpected_warning_check("check_warnings_field_value");
 }
 
 void sinsp_extractor_compiler::check_warnings_transformer_value(
-        const libsinsp::filter::ast::pos_info& pos,
-        const std::string& str,
-        const std::string& strippedstr) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: check_warnings_transformer_value should not be called; "
-	        "extractor compilation does not emit warnings");
+        const libsinsp::filter::ast::pos_info&,
+        const std::string&,
+        const std::string&) {
+	throw_unexpected_warning_check("check_warnings_transformer_value");
 }
 
-void sinsp_extractor_compiler::check_value_and_add_warnings(
-        cmpop op,
-        const libsinsp::filter::ast::pos_info& pos,
-        const std::string& v) {
-	throw sinsp_exception(
-	        "sinsp_extractor_compiler: check_value_and_add_warnings should not be called; "
-	        "extractor compilation does not emit warnings");
+void sinsp_extractor_compiler::check_value_and_add_warnings(cmpop,
+                                                            const libsinsp::filter::ast::pos_info&,
+                                                            const std::string&) {
+	throw_unexpected_warning_check("check_value_and_add_warnings");
 }
 
 void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::value_expr* e) {
@@ -300,7 +300,7 @@ void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::transformer_li
 			// we need to check for "concrete" string/list and add the filterchecks
 			// to enable multivalue transformers.
 			if(m_field_values.size() == 0) {
-				throw sinsp_exception("fix this");
+				throw sinsp_exception("filter error: unexpected empty transformer list element");
 			}
 			if(m_field_values.size() == 1) {
 				m_last_node_field = std::make_unique<rawstring_check>(m_field_values[0]);
