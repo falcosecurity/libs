@@ -438,7 +438,7 @@ static int32_t parse_procfs_proc_pid_stat_impl(const int fd,
                                                struct scap_threadinfo* tinfo,
                                                char* error) {
 	char buffer[4096];
-	const size_t read_bytes = read(fd, buffer, sizeof(buffer) - 1);
+	const ssize_t read_bytes = read(fd, buffer, sizeof(buffer) - 1);
 	if(read_bytes <= 0) {
 		ASSERT(false);
 		return scap_errprintf(error, errno, "can't read stat file %s", filename);
