@@ -450,6 +450,8 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_join) {
 	EXPECT_TRUE(eval_filter(evt, "join(\",\", (\"aaa\",\"bbb\")) = \"aaa,bbb\""));
 	EXPECT_FALSE(eval_filter(evt, "join(\",\", (\"aaa\",\"bbb\")) = \"aaa-bbb\""));
 	EXPECT_TRUE(eval_filter(evt, "join(\",\", (evt.num, evt.num)) = \"1,1\""));
+	EXPECT_TRUE(eval_filter(evt, "join(\",\", ()) = \"\""));
+	EXPECT_FALSE(eval_filter(evt, "join(\",\", ()) = \",\""));
 
 	// Validation error tests
 	// join() requires exactly 2 arguments
