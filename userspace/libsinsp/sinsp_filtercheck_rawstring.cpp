@@ -42,15 +42,13 @@ rawstring_check::rawstring_check(const string& text) {
 }
 
 std::unique_ptr<sinsp_filter_check> rawstring_check::allocate_new() {
-	ASSERT(false);
-	return nullptr;
+	throw sinsp_exception("rawstring_check: unexpected allocate_new call");
 }
 
 int32_t rawstring_check::parse_field_name(std::string_view,
                                           bool alloc_state,
                                           bool needed_for_filtering) {
-	ASSERT(false);
-	return -1;
+	throw sinsp_exception("rawstring_check: unexpected parse_field_name call");
 }
 
 uint8_t* rawstring_check::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings) {
@@ -82,15 +80,13 @@ rawnum_check::rawnum_check(std::unique_ptr<sinsp_filter_check> chk) {
 }
 
 std::unique_ptr<sinsp_filter_check> rawnum_check::allocate_new() {
-	ASSERT(false);
-	return nullptr;
+	throw sinsp_exception("rawnum_check: unexpected allocate_new call");
 }
 
 int32_t rawnum_check::parse_field_name(std::string_view,
                                        bool alloc_state,
                                        bool needed_for_filtering) {
-	ASSERT(false);
-	return -1;
+	throw sinsp_exception("rawnum_check: unexpected parse_field_name call");
 }
 
 uint8_t* rawnum_check::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings) {
@@ -151,15 +147,13 @@ list_check::list_check(std::vector<std::unique_ptr<sinsp_filter_check>>&& list) 
 }
 
 std::unique_ptr<sinsp_filter_check> list_check::allocate_new() {
-	ASSERT(false);
-	return nullptr;
+	throw sinsp_exception("list_check: unexpected allocate_new call");
 }
 
 int32_t list_check::parse_field_name(std::string_view,
                                      bool alloc_state,
                                      bool needed_for_filtering) {
-	ASSERT(false);
-	return -1;
+	throw sinsp_exception("list_check: unexpected parse_field_name call");
 }
 
 bool list_check::extract_nocache(sinsp_evt* evt,
