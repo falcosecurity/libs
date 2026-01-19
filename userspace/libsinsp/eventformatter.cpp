@@ -136,7 +136,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt) {
 				} catch(sinsp_exception& e) {
 					fsize--;
 					if(fsize == 0) {
-						throw sinsp_exception("unknown filter");
+						throw sinsp_exception(std::string("unknown filter: ") + e.what());
 					}
 				}
 			}
