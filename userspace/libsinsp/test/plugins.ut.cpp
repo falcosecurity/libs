@@ -855,6 +855,33 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	ASSERT_EQ(table->entries_count(), 0);
 }
 
+TEST_F(sinsp_with_test_input, plugin_table_strings) {
+	libsinsp::state::sinsp_table_owner owner;
+	auto& reg = m_inspector.get_table_registry();
+
+	auto table = sinsp_table<int64_t>(&owner, reg->get_table<int64_t>("threads"));
+	auto comm = table.get_field<std::string>("comm");
+	ASSERT_NE(comm, nullptr);
+	auto custom = table.add_field<std::string>("custom_str_field");
+	ASSERT_NE(custom, nullptr);
+
+	// Write a static string field and a dynamic string field twice, to make sure we don't leak
+	// memory on repeated writes (dynamic field values use raw C pointers).
+	//
+	// This test is mostly useful when ran under Valgrind (or some other leak detection tool).
+	auto entry = table.new_entry();
+	entry.write_field(comm, std::string("totally-not-init"));
+	entry.write_field(comm, std::string("totally-not-init2"));
+	entry.write_field(custom, std::string("custom value 1"));
+	entry.write_field(custom, std::string("custom value 2"));
+
+	std::string val;
+	entry.read_field(comm, val);
+	ASSERT_EQ(val, "totally-not-init2");
+	entry.read_field(custom, val);
+	ASSERT_EQ(val, "custom value 2");
+}
+
 TEST_F(sinsp_with_test_input, plugin_subtables) {
 	const constexpr auto num_entries_from_plugin = 1024;
 
