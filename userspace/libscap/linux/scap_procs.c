@@ -41,6 +41,7 @@ limitations under the License.
 #include <libscap/strerror.h>
 #include <libscap/clock_helpers.h>
 #include <libscap/debug_log_helpers.h>
+#include <libscap/linux/read_helpers.h>
 
 // Check that the provided string literal prefixes the line.
 // note: use this only with a string literal.
@@ -329,6 +330,9 @@ static int32_t parse_procfs_proc_pid_status_impl(const int fd,
 	while(1) {
 		const ssize_t read_bytes = read(fd, buff + bytes_in_buff, sizeof(buff) - bytes_in_buff);
 		if(read_bytes < 0) {
+			if(errno == EINTR) {  // Re-attempt upon signal.
+				continue;
+			}
 			return scap_errprintf(error, errno, "can't read status file %s", filename);
 		}
 		if(read_bytes == 0) {  // EOF
@@ -438,7 +442,7 @@ static int32_t parse_procfs_proc_pid_stat_impl(const int fd,
                                                struct scap_threadinfo* tinfo,
                                                char* error) {
 	char buffer[4096];
-	const ssize_t read_bytes = read(fd, buffer, sizeof(buffer) - 1);
+	const ssize_t read_bytes = read_exact(fd, buffer, sizeof(buffer) - 1);
 	if(read_bytes <= 0) {
 		ASSERT(false);
 		return scap_errprintf(error, errno, "can't read stat file %s", filename);
@@ -602,7 +606,7 @@ int32_t parse_procfs_proc_pid_loginuid(const char* const procfs_proc_dir,
 
 	// Use a 32-bytes buffer as loginuid is a 32-bit number (max 10 digits).
 	char buff[32];
-	const ssize_t read_bytes = read(fd, buff, sizeof(buff) - 1);
+	const ssize_t read_bytes = read_exact(fd, buff, sizeof(buff) - 1);
 	close(fd);
 	if(read_bytes <= 0) {
 		return scap_errprintf(error, errno, "can't read loginuid file %s", filename);
@@ -721,7 +725,7 @@ static int32_t read_procfs_proc_pid_comm(const char* const procfs_proc_dir,
 	}
 
 	ASSERT(buff_len >= TASK_COMM_LEN);
-	const ssize_t read_bytes = read(fd, buff, buff_len);
+	const ssize_t read_bytes = read_exact(fd, buff, buff_len);
 	if(read_bytes > 0) {
 		buff[read_bytes - 1] = '\0';  // Replace trailing '\n', if present.
 	} else {
@@ -746,7 +750,7 @@ static int32_t read_procfs_proc_pid_environ(const char* const procfs_proc_dir,
 	}
 
 	ASSERT(buff_len >= SCAP_MAX_ENV_SIZE);
-	const ssize_t read_bytes = read(fd, buff, buff_len);
+	const ssize_t read_bytes = read_exact(fd, buff, buff_len);
 	if(read_bytes > 0) {
 		buff[read_bytes - 1] = '\0';  // Replace trailing '\0'.
 		*read_len = (uint16_t)read_bytes;
@@ -773,7 +777,7 @@ static int32_t read_procfs_proc_pid_cmdline(const char* const procfs_proc_dir,
 	}
 
 	ASSERT(buff_len >= SCAP_MAX_ARGS_SIZE);
-	const ssize_t read_bytes = read(fd, buff, buff_len);
+	const ssize_t read_bytes = read_exact(fd, buff, buff_len);
 	if(read_bytes > 0) {
 		buff[read_bytes - 1] = '\0';  // Replace trailing '\0'.
 		*read_len = read_bytes;
@@ -1391,7 +1395,7 @@ int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t* pid, c
 	// note: the "Tgid:" field appears early in the file (typically in the first few lines), so
 	// reading only the first 512 bytes is sufficient to locate it reliably.
 	char buff[512];
-	const ssize_t read_bytes = read(fd, buff, sizeof(buff) - 1);
+	const ssize_t read_bytes = read_exact(fd, buff, sizeof(buff) - 1);
 	close(fd);
 	if(read_bytes <= 0) {
 		ASSERT(false);
@@ -1458,7 +1462,7 @@ bool scap_linux_is_thread_alive(struct scap_platform* platform,
 	}
 
 	char buff[TASK_COMM_LEN];
-	const ssize_t read_bytes = read(fd, buff, sizeof(buff));
+	const ssize_t read_bytes = read_exact(fd, buff, sizeof(buff));
 	close(fd);
 	if(read_bytes <= 0) {
 		return false;
