@@ -53,6 +53,8 @@ limitations under the License.
 #include <linux/rtnetlink.h>
 // #include <linux/sock_diag.h>
 // #include <linux/unix_diag.h>
+#include <libscap/linux/str_helpers.h>
+#include <libscap/linux/read_helpers.h>
 
 #define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
 
@@ -336,49 +338,80 @@ uint32_t scap_linux_get_device_by_mount_id(struct scap_platform *platform,
 }
 
 void scap_fd_flags_file(scap_fdinfo *fdi, const char *procdir) {
-	char fd_dir_name[SCAP_MAX_PATH_SIZE];
-	char line[SCAP_MAX_PATH_SIZE];
-	FILE *finfo;
-
-	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfdinfo/%" PRId64, procdir, fdi->fd);
-	finfo = fopen(fd_dir_name, "r");
-	if(finfo == NULL) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, SCAP_MAX_PATH_SIZE, "%sfdinfo/%" PRId64, procdir, fdi->fd);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd < 0) {
 		return;
 	}
+
 	fdi->info.regularinfo.mount_id = 0;
 	fdi->info.regularinfo.dev = 0;
 
-	while(fgets(line, sizeof(line), finfo) != NULL) {
-		// We are interested in the flags and the mnt_id.
-		//
-		// The format of the file is:
-		// pos:    XXXX
-		// flags:  YYYYYYYY
-		// mnt_id: ZZZ
+	// note: `flags` and `mnt_id` rows appears early in the file (first few lines), so reading only
+	// the first 512 bytes is sufficient to locate it reliably.
+	char buffer[512];
+	const ssize_t read_bytes = read_exact(fd, buffer, sizeof(buffer) - 1);
+	close(fd);
+	if(read_bytes <= 0) {
+		return;
+	}
+	buffer[read_bytes] = '\0';
 
-		if(!strncmp(line, "flags:\t", sizeof("flags:\t") - 1)) {
-			uint32_t open_flags;
-			errno = 0;
-			unsigned long flags = strtoul(line + sizeof("flags:\t") - 1, NULL, 8);
-
-			if(errno == ERANGE) {
-				open_flags = PPM_O_NONE;
-			} else {
-				open_flags = open_flags_to_scap(flags);
-			}
-
-			fdi->info.regularinfo.open_flags = open_flags;
-		} else if(!strncmp(line, "mnt_id:\t", sizeof("mnt_id:\t") - 1)) {
-			errno = 0;
-			unsigned long mount_id = strtoul(line + sizeof("mnt_id:\t") - 1, NULL, 10);
-
-			if(errno != ERANGE) {
-				fdi->info.regularinfo.mount_id = mount_id;
-			}
-		}
+	const char *line_start = buffer;
+	const char *const last_newline = memrchr(buffer, '\n', read_bytes);
+	if(last_newline == NULL) {
+		ASSERT(false);
+		return;
 	}
 
-	fclose(finfo);
+	const int VALUES_TO_ACQUIRE = 2;
+	int acquired_values = 0;
+
+	while(line_start < last_newline) {
+		char *const line_end = memchr(line_start, '\n', last_newline - line_start + 1);
+		if(!line_end) {
+			// bug: if we enter the loop, the range [line_start, buff_valid_end] contains '\n', so
+			// it's impossible to end up here.
+			ASSERT(false);
+			return;
+		}
+
+		const size_t line_len = line_end - line_start;
+
+		// Replace '\n' with '\0' to make string-related API work.
+		*line_end = '\0';
+		switch(*line_start) {
+		case 'f':
+			if(MEMCMP_LITERAL(line_start, line_len, "flags:")) {
+				uint64_t flags;
+				if(str_parse_u64(line_start, sizeof("flags:") - 1, 8, &flags)) {
+					fdi->info.regularinfo.open_flags = open_flags_to_scap(flags);
+				} else {
+					fdi->info.regularinfo.open_flags = PPM_O_NONE;
+				}
+				acquired_values++;
+			}
+			break;
+		case 'm':
+			if(MEMCMP_LITERAL(line_start, line_len, "mnt_id:")) {
+				uint64_t mount_id;
+				if(str_parse_u64(line_start, sizeof("mnt_id:") - 1, 10, &mount_id)) {
+					fdi->info.regularinfo.mount_id = mount_id;
+				}
+				acquired_values++;
+			}
+			break;
+		default:
+			break;
+		}
+
+		if(acquired_values == VALUES_TO_ACQUIRE) {
+			return;
+		}
+
+		line_start = line_end + 1;
+	}
 }
 
 int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
