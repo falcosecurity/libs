@@ -42,6 +42,7 @@ limitations under the License.
 #include <libscap/clock_helpers.h>
 #include <libscap/debug_log_helpers.h>
 #include <libscap/linux/read_helpers.h>
+#include <libscap/linux/str_helpers.h>
 
 // Check that the provided string literal prefixes the line.
 // note: use this only with a string literal.
@@ -49,46 +50,10 @@ limitations under the License.
 	(((line_len) >= sizeof(str_literal) - 1) &&               \
 	 (memcmp(line_start, str_literal, sizeof(str_literal) - 1) == 0))
 
-// Parse a single uint64_t value. Return a boolean indicating the number was successfully parsed.
-static bool parse_u64(const char* line,
-                      const size_t prefix_len,
-                      const int base,
-                      uint64_t* const out) {
-	const char* ptr = line + prefix_len;
-	char* endptr;
-	*out = strtoull(ptr, &endptr, base);
-	return endptr > ptr;
-}
-
-// Parse up to two uint64_t values. Return the number of parsed values.
-static int parse_two_u64(const char* line,
-                         const size_t prefix_len,
-                         const int base,
-                         uint64_t* const out1,
-                         uint64_t* const out2) {
-	const char* ptr = line + prefix_len;
-	char* endptr;
-
-	// Parse first number.
-	*out1 = strtoull(ptr, &endptr, base);
-	if(endptr == ptr) {
-		return 0;
-	}
-
-	// Parse second number.
-	ptr = endptr;
-	*out2 = strtoull(ptr, &endptr, base);
-	if(endptr == ptr) {
-		return 1;
-	}
-
-	return 2;
-}
-
 static void parse_procfs_proc_pid_status_tgid_line(const char* const line,
                                                    struct scap_threadinfo* tinfo) {
 	uint64_t tgid;
-	if(parse_u64(line, sizeof("Tgid:") - 1, 10, &tgid)) {
+	if(str_parse_u64(line, sizeof("Tgid:") - 1, 10, &tgid)) {
 		tinfo->pid = tgid;
 	} else {
 		ASSERT(false);
@@ -98,7 +63,7 @@ static void parse_procfs_proc_pid_status_tgid_line(const char* const line,
 static void parse_procfs_proc_pid_status_uid_line(const char* const line,
                                                   struct scap_threadinfo* tinfo) {
 	uint64_t ruid, euid;
-	if(parse_two_u64(line, sizeof("Uid:") - 1, 10, &ruid, &euid) == 2) {
+	if(str_parse_two_u64(line, sizeof("Uid:") - 1, 10, &ruid, &euid) == 2) {
 		tinfo->uid = (uint32_t)euid;  // Just save euid.
 	} else {
 		ASSERT(false);
@@ -108,7 +73,7 @@ static void parse_procfs_proc_pid_status_uid_line(const char* const line,
 static void parse_procfs_proc_pid_status_gid_line(const char* const line,
                                                   struct scap_threadinfo* tinfo) {
 	uint64_t rgid, egid;
-	if(parse_two_u64(line, sizeof("Gid:") - 1, 10, &rgid, &egid) == 2) {
+	if(str_parse_two_u64(line, sizeof("Gid:") - 1, 10, &rgid, &egid) == 2) {
 		tinfo->gid = (uint32_t)egid;  // Just save egid.
 	} else {
 		ASSERT(false);
@@ -118,7 +83,7 @@ static void parse_procfs_proc_pid_status_gid_line(const char* const line,
 static void parse_procfs_proc_pid_status_cap_inh_line(const char* const line,
                                                       struct scap_threadinfo* tinfo) {
 	uint64_t cap_inheritable;
-	if(parse_u64(line, sizeof("CapInh:") - 1, 16, &cap_inheritable)) {
+	if(str_parse_u64(line, sizeof("CapInh:") - 1, 16, &cap_inheritable)) {
 		tinfo->cap_inheritable = cap_inheritable;
 	} else {
 		ASSERT(false);
@@ -128,7 +93,7 @@ static void parse_procfs_proc_pid_status_cap_inh_line(const char* const line,
 static void parse_procfs_proc_pid_status_cap_prm_line(const char* const line,
                                                       struct scap_threadinfo* tinfo) {
 	uint64_t cap_permitted;
-	if(parse_u64(line, sizeof("CapPrm:") - 1, 16, &cap_permitted)) {
+	if(str_parse_u64(line, sizeof("CapPrm:") - 1, 16, &cap_permitted)) {
 		tinfo->cap_permitted = cap_permitted;
 	} else {
 		ASSERT(false);
@@ -138,7 +103,7 @@ static void parse_procfs_proc_pid_status_cap_prm_line(const char* const line,
 static void parse_procfs_proc_pid_status_cap_eff_line(const char* const line,
                                                       struct scap_threadinfo* tinfo) {
 	uint64_t cap_effective;
-	if(parse_u64(line, sizeof("CapEff:") - 1, 16, &cap_effective)) {
+	if(str_parse_u64(line, sizeof("CapEff:") - 1, 16, &cap_effective)) {
 		tinfo->cap_effective = cap_effective;
 	} else {
 		ASSERT(false);
@@ -148,7 +113,7 @@ static void parse_procfs_proc_pid_status_cap_eff_line(const char* const line,
 static void parse_procfs_proc_pid_status_ppid_line(const char* const line,
                                                    struct scap_threadinfo* tinfo) {
 	uint64_t ptid;
-	if(parse_u64(line, sizeof("PPid:") - 1, 10, &ptid)) {
+	if(str_parse_u64(line, sizeof("PPid:") - 1, 10, &ptid)) {
 		tinfo->ptid = (uint32_t)ptid;
 	} else {
 		ASSERT(false);
@@ -158,7 +123,7 @@ static void parse_procfs_proc_pid_status_ppid_line(const char* const line,
 static void parse_procfs_proc_pid_status_vmsize_line(const char* const line,
                                                      struct scap_threadinfo* tinfo) {
 	uint64_t vmsize_kb;
-	if(parse_u64(line, sizeof("VmSize:") - 1, 10, &vmsize_kb)) {
+	if(str_parse_u64(line, sizeof("VmSize:") - 1, 10, &vmsize_kb)) {
 		tinfo->vmsize_kb = (uint32_t)vmsize_kb;
 	} else {
 		ASSERT(false);
@@ -168,7 +133,7 @@ static void parse_procfs_proc_pid_status_vmsize_line(const char* const line,
 static void parse_procfs_proc_pid_status_vmrss_line(const char* const line,
                                                     struct scap_threadinfo* tinfo) {
 	uint64_t vmrss_kb;
-	if(parse_u64(line, sizeof("VmRSS:") - 1, 10, &vmrss_kb)) {
+	if(str_parse_u64(line, sizeof("VmRSS:") - 1, 10, &vmrss_kb)) {
 		tinfo->vmrss_kb = (uint32_t)vmrss_kb;
 	} else {
 		ASSERT(false);
@@ -178,7 +143,7 @@ static void parse_procfs_proc_pid_status_vmrss_line(const char* const line,
 static void parse_procfs_proc_pid_status_vmswap_line(const char* const line,
                                                      struct scap_threadinfo* tinfo) {
 	uint64_t vmswap_kb;
-	if(parse_u64(line, sizeof("VmSwap:") - 1, 10, &vmswap_kb)) {
+	if(str_parse_u64(line, sizeof("VmSwap:") - 1, 10, &vmswap_kb)) {
 		tinfo->vmswap_kb = (uint32_t)vmswap_kb;
 	} else {
 		ASSERT(false);
@@ -190,7 +155,7 @@ static void parse_procfs_proc_pid_status_nspid_line(const char* const line,
 	// note: this logic doesn't work with multiple nested PID namespaces, but I'm not sure if we
 	// support them.
 	uint64_t unused, vtid;
-	const int found = parse_two_u64(line, sizeof("NSpid:") - 1, 10, &unused, &vtid);
+	const int found = str_parse_two_u64(line, sizeof("NSpid:") - 1, 10, &unused, &vtid);
 	if(found == 2) {
 		tinfo->vtid = vtid;  // Found nested ID.
 	} else if(found == 1) {
@@ -206,7 +171,7 @@ static void parse_procfs_proc_pid_status_nstgid_line(const char* const line,
 	// note: this logic doesn't work with multiple nested PID namespaces, but I'm not sure if we
 	// support them.
 	uint64_t unused, vpid;
-	const int found = parse_two_u64(line, sizeof("NStgid:") - 1, 10, &unused, &vpid);
+	const int found = str_parse_two_u64(line, sizeof("NStgid:") - 1, 10, &unused, &vpid);
 	if(found == 2) {
 		tinfo->vpid = vpid;  // Found nested ID.
 	} else if(found == 1) {
@@ -223,7 +188,7 @@ static void parse_procfs_proc_pid_status_nspgid_line(const char* const line,
 	// support them.
 	uint64_t pgid, vpgid;
 	// note: do nothing if the process is in root PID namespace (i.e.: `found` is 1).
-	const int found = parse_two_u64(line, sizeof("NSpgid:") - 1, 10, &pgid, &vpgid);
+	const int found = str_parse_two_u64(line, sizeof("NSpgid:") - 1, 10, &pgid, &vpgid);
 	if(found == 2) {
 		tinfo->pgid = pgid;
 		tinfo->vpgid = vpgid;
@@ -255,61 +220,61 @@ static void parse_procfs_proc_pid_status_line(
 	// - if the first letter matches, only few comparisons are performed.
 	switch(first_char) {
 	case 'T':
-		if(BEGIN_WITH_LITERAL(line, line_len, "Tgid:")) {
+		if(MEMCMP_LITERAL(line, line_len, "Tgid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_tgid_line(line, tinfo);
 		}
 		break;
 	case 'U':
-		if(BEGIN_WITH_LITERAL(line, line_len, "Uid:")) {
+		if(MEMCMP_LITERAL(line, line_len, "Uid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_uid_line(line, tinfo);
 		}
 		break;
 	case 'G':
-		if(BEGIN_WITH_LITERAL(line, line_len, "Gid:")) {
+		if(MEMCMP_LITERAL(line, line_len, "Gid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_gid_line(line, tinfo);
 		}
 		break;
 	case 'C':
-		if(BEGIN_WITH_LITERAL(line, line_len, "CapInh:")) {
+		if(MEMCMP_LITERAL(line, line_len, "CapInh:")) {
 			counters->caps_nfound++;
 			parse_procfs_proc_pid_status_cap_inh_line(line, tinfo);
-		} else if(BEGIN_WITH_LITERAL(line, line_len, "CapPrm:")) {
+		} else if(MEMCMP_LITERAL(line, line_len, "CapPrm:")) {
 			counters->caps_nfound++;
 			parse_procfs_proc_pid_status_cap_prm_line(line, tinfo);
-		} else if(BEGIN_WITH_LITERAL(line, line_len, "CapEff:")) {
+		} else if(MEMCMP_LITERAL(line, line_len, "CapEff:")) {
 			counters->caps_nfound++;
 			parse_procfs_proc_pid_status_cap_eff_line(line, tinfo);
 		}
 		break;
 	case 'P':
-		if(BEGIN_WITH_LITERAL(line, line_len, "PPid:")) {
+		if(MEMCMP_LITERAL(line, line_len, "PPid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_ppid_line(line, tinfo);
 		}
 		break;
 	case 'V':
-		if(BEGIN_WITH_LITERAL(line, line_len, "VmSize:")) {
+		if(MEMCMP_LITERAL(line, line_len, "VmSize:")) {
 			counters->vm_nfound++;
 			parse_procfs_proc_pid_status_vmsize_line(line, tinfo);
-		} else if(BEGIN_WITH_LITERAL(line, line_len, "VmRSS:")) {
+		} else if(MEMCMP_LITERAL(line, line_len, "VmRSS:")) {
 			counters->vm_nfound++;
 			parse_procfs_proc_pid_status_vmrss_line(line, tinfo);
-		} else if(BEGIN_WITH_LITERAL(line, line_len, "VmSwap:")) {
+		} else if(MEMCMP_LITERAL(line, line_len, "VmSwap:")) {
 			counters->vm_nfound++;
 			parse_procfs_proc_pid_status_vmswap_line(line, tinfo);
 		}
 		break;
 	case 'N':
-		if(BEGIN_WITH_LITERAL(line, line_len, "NSpid:")) {
+		if(MEMCMP_LITERAL(line, line_len, "NSpid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_nspid_line(line, tinfo);
-		} else if(BEGIN_WITH_LITERAL(line, line_len, "NSpgid:")) {
+		} else if(MEMCMP_LITERAL(line, line_len, "NSpgid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_nspgid_line(line, tinfo);
-		} else if(BEGIN_WITH_LITERAL(line, line_len, "NStgid:")) {
+		} else if(MEMCMP_LITERAL(line, line_len, "NStgid:")) {
 			counters->pidinfo_nfound++;
 			parse_procfs_proc_pid_status_nstgid_line(line, tinfo);
 		}
@@ -614,7 +579,7 @@ int32_t parse_procfs_proc_pid_loginuid(const char* const procfs_proc_dir,
 	buff[read_bytes] = '\0';
 
 	uint64_t loginuid;
-	if(!parse_u64(buff, 0, 10, &loginuid)) {
+	if(!str_parse_u64(buff, 0, 10, &loginuid)) {
 		ASSERT(false);
 		return scap_errprintf(error, 0, "can't parse loginuid in loginuid file %s", filename);
 	}
@@ -1385,7 +1350,7 @@ int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t* pid, c
 	}
 
 	uint64_t tgid;
-	if(!parse_u64(line_start, sizeof("Tgid:") - 1, 10, &tgid)) {
+	if(!str_parse_u64(line_start, sizeof("Tgid:") - 1, 10, &tgid)) {
 		ASSERT(false);
 		return scap_errprintf(error, 0, "can't parse tgid in status file %s", filename);
 	}
