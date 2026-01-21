@@ -782,7 +782,6 @@ private:
 	uint64_t m_evtnum;
 	uint32_t m_flags;
 	uint32_t m_dump_flags;
-	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
 	std::vector<sinsp_evt_param> m_params;
 

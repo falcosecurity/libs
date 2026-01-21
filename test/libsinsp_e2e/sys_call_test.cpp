@@ -1716,7 +1716,6 @@ TEST_F(sys_call_test32, fs_preadv) {
 	int fd1 = 0;
 	bool pwritev64_succeeded;
 	bool pwritev64_succeeded2;
-	proc_started_filter test_started_filter;
 
 	//
 	// FILTER
