@@ -724,7 +724,7 @@ static void run_fd_name_changed_test(bool use_sendmsg,
 	// INIT FILTER
 	before_capture_t before_open = [&](sinsp* inspector) {
 		sinsp_filter_compiler compiler(inspector, "fd.name_changed=true");
-		fd_name_changed = std::move(compiler.compile());
+		fd_name_changed = compiler.compile();
 	};
 
 	//
@@ -799,7 +799,7 @@ TEST_F(sys_call_test, udp_client_server_multiple_connect_name_changed) {
 	// INIT FILTER
 	before_capture_t before_open = [&](sinsp* inspector) {
 		sinsp_filter_compiler compiler(inspector, "fd.name_changed=true");
-		fd_name_changed = std::move(compiler.compile());
+		fd_name_changed = compiler.compile();
 	};
 
 	//
