@@ -40,12 +40,18 @@ else()
 	endif()
 	include(zlib)
 
+	if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+		set(PROTOBUF_LIB_BASENAME "libprotobufd")
+	else()
+		set(PROTOBUF_LIB_BASENAME "libprotobuf")
+	endif()
+
 	set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
 	set(PROTOBUF_INSTALL_DIR "${PROTOBUF_SRC}")
 	set(PROTOC "${PROTOBUF_INSTALL_DIR}/bin/protoc")
 	set(PROTOBUF_INCLUDE "${PROTOBUF_INSTALL_DIR}/include/")
 	set(PROTOBUF_LIB
-		"${PROTOBUF_INSTALL_DIR}/lib/libprotobuf${PROTOBUF_LIB_SUFFIX}"
+		"${PROTOBUF_INSTALL_DIR}/lib/${PROTOBUF_LIB_BASENAME}${PROTOBUF_LIB_SUFFIX}"
 		CACHE PATH "Path to libprotobuf"
 	)
 	set(PROTOC_LIB "${PROTOBUF_INSTALL_DIR}/lib/libprotoc${PROTOBUF_LIB_SUFFIX}")
