@@ -108,7 +108,6 @@ using namespace std;
 // clang-format off
 sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector, const timestamper& timestamper)
 	: m_import_users(true)
-	, m_last_flush_time_ns(0)
 	, m_inspector(inspector)
 	, m_timestamper {timestamper}
 	, m_host_root(m_inspector->get_host_root())
