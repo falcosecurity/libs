@@ -68,7 +68,6 @@ sinsp_evt::sinsp_evt():
         m_cpuid(0),
         m_evtnum(0),
         m_flags(EF_NONE),
-        m_params_loaded(false),
         m_info(NULL),
         m_paramstr_storage(1024),
         m_resolved_paramstr_storage(1024),

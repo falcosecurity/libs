@@ -198,7 +198,6 @@ private:
 
 	std::unordered_map<std::string, userinfo_map> m_userlist;
 	std::unordered_map<std::string, groupinfo_map> m_grouplist;
-	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
 	const timestamper &m_timestamper;
 
