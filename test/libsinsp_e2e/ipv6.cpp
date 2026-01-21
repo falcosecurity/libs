@@ -178,28 +178,28 @@ protected:
 	void gen_ip_net_filters() {
 		auto inspector = file_reader.setup_read_file();
 		sinsp_filter_compiler ip_client(inspector.get(), "fd.ip=" + m_client_ip);
-		m_ip_client_filter = std::move(ip_client.compile());
+		m_ip_client_filter = ip_client.compile();
 
 		sinsp_filter_compiler ip_server(inspector.get(), "fd.ip=" + m_server_ip);
-		m_ip_server_filter = std::move(ip_server.compile());
+		m_ip_server_filter = ip_server.compile();
 
 		sinsp_filter_compiler net_client(inspector.get(), "fd.net=" + m_client_net);
-		m_net_client_filter = std::move(net_client.compile());
+		m_net_client_filter = net_client.compile();
 
 		sinsp_filter_compiler net_server(inspector.get(), "fd.net=" + m_server_net);
-		m_net_server_filter = std::move(net_server.compile());
+		m_net_server_filter = net_server.compile();
 
 		sinsp_filter_compiler cnet(inspector.get(), "fd.cnet=" + m_client_net);
-		m_cnet_filter = std::move(cnet.compile());
+		m_cnet_filter = cnet.compile();
 
 		sinsp_filter_compiler snet(inspector.get(), "fd.snet=" + m_server_net);
-		m_snet_filter = std::move(snet.compile());
+		m_snet_filter = snet.compile();
 
 		sinsp_filter_compiler lnet(inspector.get(), "fd.lnet=" + m_client_net);
-		m_lnet_filter = std::move(lnet.compile());
+		m_lnet_filter = lnet.compile();
 
 		sinsp_filter_compiler rnet(inspector.get(), "fd.rnet=" + m_server_net);
-		m_rnet_filter = std::move(rnet.compile());
+		m_rnet_filter = rnet.compile();
 	}
 
 	std::string m_client_ip;
