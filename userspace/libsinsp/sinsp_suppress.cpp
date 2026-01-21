@@ -76,7 +76,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 	case PPME_SYSCALL_CLONE3_X: {
 		uint32_t j;
 		const char *comm = nullptr;
-		uint64_t *ptid_ptr = nullptr;
+		char *ptid_ptr = nullptr;
 
 		auto *lens = (uint16_t *)((char *)e + sizeof(ppm_evt_hdr));
 		char *valptr = (char *)lens + e->nparams * sizeof(uint16_t);
@@ -93,7 +93,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 		// find the comm.
 		for(j = 0; j < 13; j++) {
 			if(j == 5) {
-				ptid_ptr = (uint64_t *)valptr;
+				ptid_ptr = valptr;
 			}
 
 			memcpy(&scratch, &lens[j], sizeof(uint16_t));
