@@ -2185,7 +2185,7 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 	}
 
 	// Write plugin ID and timestamp in the event and kick it in the queue.
-	auto plid = (uint32_t*)((uint8_t*)evt->get_scap_evt() + sizeof(scap_evt) + 4 + 4 + 4);
+	auto plid = ((uint8_t*)evt->get_scap_evt() + sizeof(scap_evt) + 4 + 4 + 4);
 	memcpy(plid, &cur_plugin_id, sizeof(cur_plugin_id));
 	handle_async_event(std::move(evt));
 }
