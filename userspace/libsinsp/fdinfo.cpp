@@ -17,12 +17,31 @@ limitations under the License.
 */
 
 #ifndef _WIN32
-#include <inttypes.h>
 #include <algorithm>
 #endif
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
-#include <libscap/scap-int.h>
+
+static libsinsp::state::borrowed_state_data get_ipv6_addr_low(const ipv6addr& a) {
+	uint64_t addr;
+	memcpy(&addr, &a.m_b[0], sizeof(uint64_t));
+	return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_UINT64>(addr);
+};
+
+static libsinsp::state::borrowed_state_data get_ipv6_addr_high(const ipv6addr& a) {
+	uint64_t addr;
+	memcpy(&addr, &a.m_b[2], sizeof(uint64_t));
+	return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_UINT64>(addr);
+};
+
+static void set_ipv6_addr_low(ipv6addr& a, const libsinsp::state::borrowed_state_data& state_data) {
+	memcpy(&a.m_b[0], &state_data.data().u64, sizeof(uint64_t));
+};
+
+static void set_ipv6_addr_high(ipv6addr& a,
+                               const libsinsp::state::borrowed_state_data& state_data) {
+	memcpy(&a.m_b[2], &state_data.data().u64, sizeof(uint64_t));
+};
 
 char sinsp_fdinfo::get_typechar() const {
 	switch(m_type) {
@@ -120,29 +139,31 @@ const char* sinsp_fdinfo::get_typestring() const {
 }
 
 sinsp_fdinfo::sinsp_fdinfo(
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
-        table_entry(dyn_fields) {}
-
-libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const {
-	return get_static_fields();
-}
+        const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::field_infos>&
+                dyn_fields):
+        extensible_struct(dyn_fields) {}
 
 libsinsp::state::static_struct::field_infos sinsp_fdinfo::get_static_fields() {
 	using self = sinsp_fdinfo;
 
 	libsinsp::state::static_struct::field_infos ret;
 
-	// the m_type is weird because it's a C-defined non-scoped enum, meaning that it
-	// should be represented by default as an integer of word-size (e.g. uint32_t in
-	// most cases). However, the state and plugin API only supports integers, and so
-	// we need to do some smart casting. Our enemy is the platform/compiler dependent
-	// integer size with which the enum could be represented, plus the endianess
-	// of the targeted architecture
-	auto is_big_endian = htonl(12) == 12;  // the chosen number does not matter
-	size_t type_byte_offset = is_big_endian ? (sizeof(scap_fd_type) - 1) : 0;
-	define_static_field<uint8_t>(ret,
-	                             OFFSETOF_STATIC_FIELD(self, m_type) + type_byte_offset,
-	                             "type");
+	define_static_field(
+	        ret,
+	        "type",
+	        SS_PLUGIN_ST_UINT8,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        auto type = static_cast<uint8_t>(c->m_type);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_UINT8, uint8_t>(
+		                type);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        uint8_t type;
+		        auto c = static_cast<self*>(in);
+		        in_data.copy_to<SS_PLUGIN_ST_UINT8, uint8_t>(type);
+		        c->m_type = static_cast<scap_fd_type>(type);
+	        });
 
 	// the rest fo the fields are more trivial to expose
 	DEFINE_STATIC_FIELD(ret, self, m_openflags, "open_flags");
@@ -166,20 +187,55 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::get_static_fields() {
 	                    self,
 	                    m_sockinfo.m_ipv4info.m_fields.m_l4proto,
 	                    "socket_ipv4_l4_proto");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_sip),
-	                              "socket_ipv6_src_ip_low");
-	define_static_field<uint64_t>(
+	define_static_field(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_sip) + 8,
-	        "socket_ipv6_src_ip_high");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_dip),
-	                              "socket_ipv6_dest_ip_low");
-	define_static_field<uint64_t>(
+	        "socket_ipv6_src_ip_low",
+	        SS_PLUGIN_ST_UINT64,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return get_ipv6_addr_low(c->m_sockinfo.m_ipv6info.m_fields.m_sip);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        set_ipv6_addr_low(c->m_sockinfo.m_ipv6info.m_fields.m_sip, in_data);
+	        });
+	define_static_field(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_dip) + 8,
-	        "socket_ipv6_dest_ip_high");
+	        "socket_ipv6_src_ip_high",
+	        SS_PLUGIN_ST_UINT64,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return get_ipv6_addr_high(c->m_sockinfo.m_ipv6info.m_fields.m_sip);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        set_ipv6_addr_high(c->m_sockinfo.m_ipv6info.m_fields.m_sip, in_data);
+	        });
+	define_static_field(
+	        ret,
+	        "socket_ipv6_dest_ip_low",
+	        SS_PLUGIN_ST_UINT64,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return get_ipv6_addr_low(c->m_sockinfo.m_ipv6info.m_fields.m_dip);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        set_ipv6_addr_low(c->m_sockinfo.m_ipv6info.m_fields.m_dip, in_data);
+	        });
+	define_static_field(
+	        ret,
+	        "socket_ipv6_dest_ip_high",
+	        SS_PLUGIN_ST_UINT64,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return get_ipv6_addr_high(c->m_sockinfo.m_ipv6info.m_fields.m_dip);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        set_ipv6_addr_high(c->m_sockinfo.m_ipv6info.m_fields.m_dip, in_data);
+	        });
+
 	DEFINE_STATIC_FIELD(ret, self, m_sockinfo.m_ipv6info.m_fields.m_sport, "socket_ipv6_src_port");
 	DEFINE_STATIC_FIELD(ret, self, m_sockinfo.m_ipv6info.m_fields.m_dport, "socket_ipv6_dst_port");
 	DEFINE_STATIC_FIELD(ret,
@@ -192,12 +248,30 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::get_static_fields() {
 	                    self,
 	                    m_sockinfo.m_ipv4serverinfo.m_l4proto,
 	                    "socket_ipv4_server_l4_proto");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6serverinfo.m_ip),
-	                              "socket_ipv6_server_ip_low");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6serverinfo.m_ip) + 8,
-	                              "socket_ipv6_server_ip_high");
+	define_static_field(
+	        ret,
+	        "socket_ipv6_server_ip_low",
+	        SS_PLUGIN_ST_UINT64,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return get_ipv6_addr_low(c->m_sockinfo.m_ipv6serverinfo.m_ip);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        set_ipv6_addr_low(c->m_sockinfo.m_ipv6serverinfo.m_ip, in_data);
+	        });
+	define_static_field(
+	        ret,
+	        "socket_ipv6_server_ip_high",
+	        SS_PLUGIN_ST_UINT64,
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return get_ipv6_addr_high(c->m_sockinfo.m_ipv6serverinfo.m_ip);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        set_ipv6_addr_high(c->m_sockinfo.m_ipv6serverinfo.m_ip, in_data);
+	        });
 	DEFINE_STATIC_FIELD(ret, self, m_sockinfo.m_ipv6serverinfo.m_port, "socket_ipv6_server_port");
 	DEFINE_STATIC_FIELD(ret,
 	                    self,

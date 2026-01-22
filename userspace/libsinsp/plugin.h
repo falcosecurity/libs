@@ -507,10 +507,11 @@ public:
 	sinsp_table(libsinsp::state::sinsp_table_owner* p, libsinsp::state::base_table* t):
 	        m_owner_plugin(p),
 	        m_table(t) {
-		if(m_table->key_info().type_id() != libsinsp::state::typeinfo::of<KeyType>().type_id()) {
-			throw sinsp_exception("table key type mismatch, requested='" +
-			                      std::string(libsinsp::state::typeinfo::of<KeyType>().name()) +
-			                      "', actual='" + std::string(m_table->key_info().name()) + "'");
+		if(m_table->key_type() != libsinsp::state::type_id_of<KeyType>()) {
+			std::string req_type = libsinsp::state::type_name<KeyType>();
+			std::string key_type = libsinsp::state::type_name(m_table->key_type());
+			throw sinsp_exception("table key type mismatch, requested='" + req_type +
+			                      "', actual='" + key_type + "'");
 		}
 	}
 
@@ -518,7 +519,7 @@ public:
 
 	size_t entries_count() const { return m_table->get_size(m_owner_plugin); }
 
-	const libsinsp::state::typeinfo& key_info() const { return m_table->key_info(); }
+	ss_plugin_state_type key_type() const { return m_table->key_type(); }
 
 	span<const ss_plugin_table_fieldinfo> fields() const {
 		uint32_t nfields;
@@ -538,14 +539,12 @@ public:
 
 	template<typename FieldType>
 	ss_plugin_table_field_t* get_field(const char* name) {
-		auto typeinfo = libsinsp::state::typeinfo::of<FieldType>();
-		return m_table->get_field(m_owner_plugin, name, typeinfo.type_id());
+		return m_table->get_field(m_owner_plugin, name, libsinsp::state::type_id_of<FieldType>());
 	}
 
 	template<typename FieldType>
 	ss_plugin_table_field_t* add_field(const char* name) {
-		auto typeinfo = libsinsp::state::typeinfo::of<FieldType>();
-		return m_table->add_field(m_owner_plugin, name, typeinfo.type_id());
+		return m_table->add_field(m_owner_plugin, name, libsinsp::state::type_id_of<FieldType>());
 	}
 
 	sinsp_table_entry get_entry(const KeyType& key) {
