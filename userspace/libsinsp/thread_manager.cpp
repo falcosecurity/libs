@@ -27,6 +27,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/sinsp_observer.h>
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libscap/scap-int.h>
 
 extern sinsp_evttables g_infotables;
@@ -1056,6 +1057,78 @@ sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& t
 
 void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
+}
+
+std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::get_field(
+        const char* name,
+        const libsinsp::state::typeinfo& type_info) {
+	auto fixed_it = this->static_fields()->find(name);
+	auto dyn_it = this->dynamic_fields()->fields().find(name);
+	if(fixed_it != this->static_fields()->end() &&
+	   dyn_it != this->dynamic_fields()->fields().end()) {
+		// todo(jasondellaluce): plugins are not aware of the difference
+		// between static and dynamic fields. Do we want to enforce
+		// this limitation in the sinsp tables implementation as well?
+		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
+	}
+
+#define _X(_type, _dtype) \
+	{ return fixed_it->second.new_accessor<_type>(); }
+	if(fixed_it != this->static_fields()->end()) {
+		if(type_info.type_id() != fixed_it->second.info().type_id()) {
+			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
+		}
+		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	}
+#undef _X
+
+#define _X(_type, _dtype) \
+	{ return dyn_it->second.new_accessor<_type>(); }
+	if(dyn_it != this->dynamic_fields()->fields().end()) {
+		if(type_info.type_id() != dyn_it->second.info().type_id()) {
+			throw sinsp_exception("incompatible data types for dynamic field: " +
+			                      std::string(name));
+		}
+		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	}
+	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
+	                      std::string(this->name()) + "'");
+#undef _X
+}
+
+void sinsp_thread_manager::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
+	for(auto& info : *this->static_fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = info.second.readonly();
+		out.push_back(i);
+	}
+	for(auto& info : this->dynamic_fields()->fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = false;
+		out.push_back(i);
+	}
+}
+
+std::unique_ptr<libsinsp::state::accessor> sinsp_thread_manager::add_field(
+        const char* name,
+        const libsinsp::state::typeinfo& type_info) {
+	if(this->static_fields()->find(name) != this->static_fields()->end()) {
+		throw sinsp_exception("can't add dynamic field already defined as static: " +
+		                      std::string(name));
+	}
+
+#define _X(_type, _dtype)                                        \
+	{                                                            \
+		this->dynamic_fields()->template add_field<_type>(name); \
+		break;                                                   \
+	}
+	__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	return get_field(name, type_info);
+#undef _X
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const {

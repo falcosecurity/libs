@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/state_struct.h>
 #include <libsinsp/state/type_info.h>
 
 #include <string>
@@ -32,7 +33,7 @@ namespace state {
  * The structure of the class is predetermined at compile-time and its fields
  * are placed at a given offset within the class memory area.
  */
-class static_struct {
+class static_struct : virtual public state_struct {
 public:
 	template<typename T>
 	class field_accessor;
@@ -77,7 +78,7 @@ public:
 		 * all instances of structs where it is defined.
 		 */
 		template<typename T>
-		inline field_accessor<T> new_accessor() const {
+		inline std::unique_ptr<field_accessor<T>> new_accessor() const {
 			if(!valid()) {
 				throw sinsp_exception(
 				        "can't create static struct field accessor for invalid field");
@@ -88,7 +89,7 @@ public:
 				        "incompatible type for static struct field accessor: field=" + m_name +
 				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 			}
-			return field_accessor<T>(*this);
+			return std::make_unique<field_accessor<T>>(*this);
 		}
 
 	private:
@@ -111,20 +112,19 @@ public:
 	 * @tparam T Type of the field.
 	 */
 	template<typename T>
-	class field_accessor {
+	class field_accessor : public typed_accessor<T> {
 	public:
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
 		 */
 		[[nodiscard]] const field_info& info() const { return m_info; }
 
-	private:
 		explicit field_accessor(field_info info): m_info(std::move(info)) {};
 
+	private:
 		field_info m_info;
 
 		friend class static_struct;
-		friend class static_struct::field_info;
 	};
 
 	/**
@@ -132,40 +132,6 @@ public:
 	 * in a static struct.
 	 */
 	using field_infos = std::unordered_map<std::string, field_info>;
-
-	/**
-	 * @brief Accesses a field with the given accessor and reads its value.
-	 */
-	template<typename T>
-	inline const T& get_static_field(const field_accessor<T>& a) const {
-		if(!a.info().valid()) {
-			throw sinsp_exception("can't get invalid field in static struct");
-		}
-		return *(reinterpret_cast<T*>((void*)(((uintptr_t)this) + a.info().m_offset)));
-	}
-
-	/**
-	 * @brief Accesses a field with the given accessor and reads its value.
-	 */
-	template<typename T, typename Val = T>
-	inline void get_static_field(const field_accessor<T>& a, Val& out) const {
-		out = get_static_field<T>(a);
-	}
-
-	/**
-	 * @brief Accesses a field with the given accessor and writes its value.
-	 * An exception is thrown if the field is read-only.
-	 */
-	template<typename T, typename Val = T>
-	inline void set_static_field(const field_accessor<T>& a, const Val& in) {
-		if(!a.info().valid()) {
-			throw sinsp_exception("can't set invalid field in static struct");
-		}
-		if(a.info().readonly()) {
-			throw sinsp_exception("can't set a read-only static struct field: " + a.info().name());
-		}
-		*(reinterpret_cast<T*>((void*)(((uintptr_t)this) + a.info().m_offset))) = in;
-	}
 
 	/**
 	 * @brief Returns information about all the static fields accessible in a struct.
@@ -197,6 +163,33 @@ protected:
 		fields.insert({name, field_info(name, offset, typeinfo::of<T>(), readonly)});
 		return fields.at(name);
 	}
+
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		auto reader = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			if(!acc->info().valid()) {
+				throw sinsp_exception("can't get invalid field in static struct");
+			}
+			return reinterpret_cast<const char*>(this) + acc->info().m_offset;
+		};
+		return dispatch_lambda(a.type_info().type_id(), reader);
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto writer = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			if(!acc->info().valid()) {
+				throw sinsp_exception("can't set invalid field in static struct");
+			}
+			if(acc->info().readonly()) {
+				throw sinsp_exception("can't set a read-only static struct field: " +
+				                      acc->info().name());
+			}
+			auto val = static_cast<const T*>(in);
+			*reinterpret_cast<T*>(reinterpret_cast<char*>(this) + acc->info().m_offset) = *val;
+		};
+		return dispatch_lambda(a.type_info().type_id(), writer);
+	}
 };
 
 };  // namespace state
@@ -224,11 +217,3 @@ protected:
 	        OFFSETOF_STATIC_FIELD(container_type, container_field),                      \
 	        name,                                                                        \
 	        true);
-
-// specializations for strings
-template<>
-inline void libsinsp::state::static_struct::get_static_field<std::string, const char*>(
-        const field_accessor<std::string>& a,
-        const char*& out) const {
-	out = get_static_field<std::string>(a).c_str();
-}

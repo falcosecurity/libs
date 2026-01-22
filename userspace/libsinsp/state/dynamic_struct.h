@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/state_struct.h>
 #include <libsinsp/state/type_info.h>
 
 #include <string>
@@ -26,14 +27,13 @@ limitations under the License.
 #include <cstring>
 #include <vector>
 
-namespace libsinsp {
-namespace state {
+namespace libsinsp::state {
 
 /**
  * @brief A base class for classes and structs that allow dynamic programming
  * by being extensible and allowing adding and accessing new data fields at runtime.
  */
-class dynamic_struct {
+class dynamic_struct : virtual public state_struct {
 public:
 	template<typename T>
 	class field_accessor;
@@ -111,7 +111,7 @@ public:
 		 * all instances of structs where it is defined.
 		 */
 		template<typename T>
-		inline field_accessor<T> new_accessor() const {
+		inline std::unique_ptr<field_accessor<T>> new_accessor() const {
 			if(!valid()) {
 				throw sinsp_exception(
 				        "can't create dynamic struct field accessor for invalid field");
@@ -122,7 +122,7 @@ public:
 				        "incompatible type for dynamic struct field accessor: field=" + m_name +
 				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 			}
-			return field_accessor<T>(*this);
+			return std::make_unique<field_accessor<T>>(*this);
 		}
 
 	private:
@@ -134,34 +134,6 @@ public:
 
 		friend class dynamic_struct;
 	};
-
-	/**
-	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
-	 * @tparam T Type of the field.
-	 */
-	template<typename T>
-	class field_accessor {
-	public:
-		/**
-		 * @brief Returns the info about the field to which this accessor is tied.
-		 */
-		inline const field_info& info() const { return m_info; }
-
-	private:
-		inline explicit field_accessor(const field_info& info): m_info(info) {};
-
-		field_info m_info;
-
-		friend class dynamic_struct;
-		friend class dynamic_struct::field_info;
-	};
-
-	/**
-	 * @brief Dynamic fields metadata of a given struct or class
-	 * that are discoverable and accessible dynamically at runtime.
-	 * All instances of the same struct or class must share the same
-	 * instance of field_infos.
-	 */
 	class field_infos {
 	public:
 		inline field_infos(): m_defs_id((uintptr_t)this) {};
@@ -222,15 +194,43 @@ public:
 		friend class dynamic_struct;
 	};
 
+	/**
+	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
+	 * @tparam T Type of the field.
+	 */
+	template<typename T>
+	class field_accessor : public typed_accessor<T> {
+	public:
+		/**
+		 * @brief Returns the info about the field to which this accessor is tied.
+		 */
+		inline const field_info& info() const { return m_info; }
+
+		inline explicit field_accessor(const field_info& info): m_info(info) {};
+
+	private:
+		field_info m_info;
+
+		friend class dynamic_struct;
+		friend class dynamic_struct::field_info;
+	};
+
+	/**
+	 * @brief Dynamic fields metadata of a given struct or class
+	 * that are discoverable and accessible dynamically at runtime.
+	 * All instances of the same struct or class must share the same
+	 * instance of field_infos.
+	 */
+
 	inline explicit dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields):
 	        m_fields(),
 	        m_dynamic_fields(dynamic_fields) {}
 
 	inline dynamic_struct(dynamic_struct&&) = default;
 
-	inline dynamic_struct& operator=(dynamic_struct&&) = default;
-
 	inline dynamic_struct(const dynamic_struct& s) { deep_fields_copy(s); }
+
+	inline dynamic_struct& operator=(dynamic_struct&&) = default;
 
 	inline dynamic_struct& operator=(const dynamic_struct& s) {
 		if(this == &s) {
@@ -239,34 +239,13 @@ public:
 		deep_fields_copy(s);
 		return *this;
 	}
+	inline const std::shared_ptr<field_infos>& dynamic_fields() const { return m_dynamic_fields; }
 
 	virtual ~dynamic_struct() { dynamic_struct::destroy_dynamic_fields(); }
 
 	/**
-	 * @brief Accesses a field with the given accessor and reads its value.
-	 */
-	template<typename T, typename Val = T>
-	inline void get_dynamic_field(const field_accessor<T>& a, Val& out) {
-		_check_defsptr(a.info(), false);
-		get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
-	}
-
-	/**
-	 * @brief Accesses a field with the given accessor and writes its value.
-	 */
-	template<typename T, typename Val = T>
-	inline void set_dynamic_field(const field_accessor<T>& a, const Val& in) {
-		_check_defsptr(a.info(), true);
-		if(a.info().readonly()) {
-			throw sinsp_exception("can't set a read-only dynamic struct field: " + a.info().name());
-		}
-		set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
-	}
-
-	/**
 	 * @brief Returns information about all the dynamic fields accessible in a struct.
 	 */
-	inline const std::shared_ptr<field_infos>& dynamic_fields() const { return m_dynamic_fields; }
 
 	/**
 	 * @brief Sets the shared definitions for the dynamic fields accessible in a struct.
@@ -288,45 +267,6 @@ public:
 
 protected:
 	/**
-	 * @brief Gets the value of a dynamic field and writes it into "out".
-	 * "out" points to a variable having the type of the field_info argument,
-	 * according to the type definitions supported in libsinsp::state::typeinfo.
-	 * For strings, "out" is considered of type const char**.
-	 */
-	virtual void get_dynamic_field(const field_info& i, void* out) {
-		const auto* buf = _access_dynamic_field_for_read(i.m_index);
-		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
-			if(buf == nullptr) {
-				*((const char**)out) = "";
-			} else {
-				*((const char**)out) = ((const std::string*)buf)->c_str();
-			}
-		} else {
-			if(buf == nullptr) {
-				// if the field is not set, we return a zeroed buffer
-				memset(out, 0, i.info().size());
-			} else {
-				memcpy(out, buf, i.info().size());
-			}
-		}
-	}
-
-	/**
-	 * @brief Sets the value of a dynamic field by reading it from "in".
-	 * "in" points to a variable having the type of the field_info argument,
-	 * according to the type definitions supported in libsinsp::state::typeinfo.
-	 * For strings, "in" is considered of type const char**.
-	 */
-	virtual void set_dynamic_field(const field_info& i, const void* in) {
-		auto* buf = _access_dynamic_field_for_write(i.m_index);
-		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
-			*((std::string*)buf) = *((const char**)in);
-		} else {
-			memcpy(buf, in, i.info().size());
-		}
-	}
-
-	/**
 	 * @brief Destroys all the dynamic field values currently allocated
 	 */
 	virtual void destroy_dynamic_fields() {
@@ -338,6 +278,30 @@ protected:
 			free(m_fields[i]);
 		}
 		m_fields.clear();
+	}
+
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		auto reader = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			_check_defsptr(acc->info(), false);
+			return _access_dynamic_field_for_read(acc->info().index());
+		};
+		return dispatch_lambda(a.type_info().type_id(), reader);
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto writer = [&]<typename T>() {
+			auto acc = dynamic_cast<const field_accessor<T>*>(&a);
+			_check_defsptr(acc->info(), true);
+			if(acc->info().readonly()) {
+				throw sinsp_exception("can't set a read-only dynamic struct field: " +
+				                      acc->info().name());
+			}
+			auto ptr = static_cast<T*>(_access_dynamic_field_for_write(acc->info().index()));
+			auto val = static_cast<const T*>(in);
+			*ptr = *val;
+		};
+		return dispatch_lambda(a.type_info().type_id(), writer);
 	}
 
 private:
@@ -391,16 +355,17 @@ private:
 		// copy the definitions
 		set_dynamic_fields(other.dynamic_fields());
 
+		auto clone_from = [&]<typename T>(const field_info& fi, const dynamic_struct& src) {
+			auto src_ptr = static_cast<const T*>(src._access_dynamic_field_for_read(fi.index()));
+			auto dst_ptr = static_cast<T*>(_access_dynamic_field_for_write(fi.index()));
+			*dst_ptr = *src_ptr;
+		};
+
 		// deep copy of all the fields
 		destroy_dynamic_fields();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
 			const auto info = m_dynamic_fields->m_definitions_ordered[i];
-			// note: we use uintptr_t as it fits all the data types supported for
-			// reading and writing dynamic fields (e.g. uint32_t, uint64_t, const char*,
-			// base_table*, ...)
-			uintptr_t val = 0;
-			other.get_dynamic_field(*info, reinterpret_cast<void*>(&val));
-			set_dynamic_field(*info, &val);
+			dispatch_lambda(info->m_info.type_id(), clone_from, *info, other_const);
 		}
 	}
 
@@ -408,43 +373,4 @@ private:
 	std::shared_ptr<field_infos> m_dynamic_fields;
 };
 
-};  // namespace state
-};  // namespace libsinsp
-
-// specializations for string types
-
-template<>
-inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, const char*>(
-        const field_accessor<std::string>& a,
-        const char*& out) {
-	_check_defsptr(a.info(), false);
-	get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
-}
-
-template<>
-inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, std::string>(
-        const field_accessor<std::string>& a,
-        std::string& out) {
-	const char* s = NULL;
-	get_dynamic_field(a, s);
-	if(!s) {
-		out.clear();
-	} else {
-		out = s;
-	}
-}
-
-template<>
-inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string, const char*>(
-        const field_accessor<std::string>& a,
-        const char* const& in) {
-	_check_defsptr(a.info(), true);
-	set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
-}
-
-template<>
-inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string, std::string>(
-        const field_accessor<std::string>& a,
-        const std::string& in) {
-	set_dynamic_field(a, in.c_str());
-}
+};  // namespace libsinsp::state

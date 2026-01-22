@@ -170,6 +170,16 @@ public:
 
 	size_t entries_count() const override { return m_threadtable.size(); }
 
+	std::unique_ptr<libsinsp::state::accessor> get_field(
+	        const char* name,
+	        const libsinsp::state::typeinfo& type_info) override;
+
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const override;
+
+	std::unique_ptr<libsinsp::state::accessor> add_field(
+	        const char* name,
+	        const libsinsp::state::typeinfo& type_info) override;
+
 	void clear_entries() override { m_threadtable.clear(); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;
@@ -213,7 +223,7 @@ public:
 	        const std::string& field) const {
 		if(auto it = m_foreign_fields_accessors.find(field);
 		   it != m_foreign_fields_accessors.end()) {
-			return &it->second;
+			return it->second.get();
 		}
 		return nullptr;
 	}
@@ -338,7 +348,8 @@ private:
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	// State table API field accessors to foreign keys written by plugins.
-	std::map<std::string, libsinsp::state::dynamic_struct::field_accessor<std::string>>
+	std::map<std::string,
+	         std::unique_ptr<libsinsp::state::dynamic_struct::field_accessor<std::string>>>
 	        m_foreign_fields_accessors;
 	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
