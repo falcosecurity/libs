@@ -310,3 +310,32 @@ jobs:
           emcmake cmake -B build -S . -DUSE_BUNDLED_DEPS=True
           emmake cmake --build build --target all --parallel $(nproc)
           emmake cmake --build build --target run-unit-tests --parallel $(nproc)
+
+
+  build-libs-clang:
+    name: build-libs-clang 🔔
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates build-essential git clang-20 llvm-20 pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
+          sudo .github/install-deps.sh
+
+      - name: Install cmake 🌊
+        uses: ./.github/actions/install-cmake
+
+      - name: Build and test 🏗️🧪
+        run: |
+          export CC=clang-20
+          export CXX=clang++-20
+          export AR=llvm-ar-20
+          export RANLIB=llvm-ranlib-20
+          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=On -DENABLE_THREAD_POOL=ON
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
+          cmake --build build --target run-unit-tests --parallel $(nproc)
