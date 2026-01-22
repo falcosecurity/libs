@@ -36,6 +36,51 @@ static inline bool str_parse_u64(const char* str,
 	return endptr > ptr;
 }
 
+static inline bool str_scan_u64(char** str,
+                                const size_t skip_len,
+                                const int base,
+                                uint64_t* const out) {
+	const char* ptr = *str + skip_len;
+	char* endptr;
+	const uint64_t val = (uint64_t)strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return false;
+	}
+	*out = val;
+	*str = endptr;
+	return true;
+}
+
+static inline bool str_scan_u32(char** str,
+                                const size_t skip_len,
+                                const int base,
+                                uint32_t* const out) {
+	const char* ptr = *str + skip_len;
+	char* endptr;
+	const uint32_t val = (uint32_t)strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return false;
+	}
+	*out = val;
+	*str = endptr;
+	return true;
+}
+
+static inline bool str_scan_u16(char** str,
+                                const size_t skip_len,
+                                const int base,
+                                uint16_t* const out) {
+	const char* ptr = *str + skip_len;
+	char* endptr;
+	const uint16_t val = (uint16_t)strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return false;
+	}
+	*out = val;
+	*str = endptr;
+	return true;
+}
+
 // Parse up to two `uint64_t` values from `str`, skipping `skip_len` bytes first. Return the number
 // of parsed values.
 static inline int str_parse_two_u64(const char* str,
