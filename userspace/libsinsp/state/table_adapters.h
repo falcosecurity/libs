@@ -19,6 +19,26 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
+class stl_table_raw_accessor {
+public:
+	stl_table_raw_accessor(const typeinfo& type_info, int m_index):
+	        m_type_info(type_info),
+	        m_index(m_index) {}
+
+	[[nodiscard]] int index() const { return m_index; }
+	[[nodiscard]] const typeinfo& type_info() const { return m_type_info; }
+
+private:
+	const typeinfo m_type_info;
+	const int m_index;
+};
+
+template<typename T>
+class stl_table_entry_accessor : public libsinsp::state::typed_accessor<T>,
+                                 public stl_table_raw_accessor {
+	using stl_table_raw_accessor::stl_table_raw_accessor;
+};
+
 /**
  * @brief A subclass of dynamic_field_infos that have a fixed,
  * and immutable, list of dynamic field definitions all declared at
@@ -79,6 +99,32 @@ public:
 	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
 
+	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
+		ss_plugin_table_fieldinfo first = {"first", typeinfo::of<Tfirst>().type_id(), false};
+		out.emplace_back(first);
+		ss_plugin_table_fieldinfo second = {"second", typeinfo::of<Tsecond>().type_id(), false};
+		out.emplace_back(second);
+	}
+
+	static std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) {
+		if(strcmp(name, "first") == 0) {
+			auto tinfo = typeinfo::of<Tfirst>();
+			if(type_info.type_id() != tinfo.type_id()) {
+				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
+				                      std::string(name));
+			}
+			return std::make_unique<stl_table_entry_accessor<Tfirst>>(tinfo, 0);
+		} else if(strcmp(name, "second") == 0) {
+			auto tinfo = typeinfo::of<Tsecond>();
+			if(type_info.type_id() != tinfo.type_id()) {
+				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
+				                      std::string(name));
+			}
+			return std::make_unique<stl_table_entry_accessor<Tsecond>>(tinfo, 1);
+		}
+		throw sinsp_exception(std::string("field ") + name + " not found");
+	}
+
 protected:
 	struct reader {
 		const pair_table_entry_adapter* self;
@@ -100,7 +146,7 @@ protected:
 		}
 	};
 
-	const void* raw_read_field(const accessor& a) const override {
+	const void* raw_read_field_old(const accessor& a) const {
 		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
 	}
 
@@ -126,12 +172,46 @@ protected:
 			}
 		}
 	};
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field_old(const accessor& a, const void* in) {
 		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
 	}
 
 	virtual void destroy_dynamic_fields() override final {
 		// nothing to do
+	}
+
+	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+		auto acc = dynamic_cast<const stl_table_raw_accessor*>(&a);
+		if(acc->index() == 0) {
+			if(acc->type_info().type_id() == typeinfo::of<Tfirst>().type_id()) {
+				return &m_value->first;
+			}
+		} else {
+			if(acc->type_info().type_id() == typeinfo::of<Tsecond>().type_id()) {
+				return &m_value->second;
+			}
+		}
+		throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
+		                      std::string(a.type_info().name()));
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		auto acc = dynamic_cast<const stl_table_raw_accessor*>(&a);
+		if(acc->index() == 0) {
+			if(a.type_info().type_id() != typeinfo::of<Tfirst>().type_id()) {
+				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
+				                      std::string(a.type_info().name()));
+			}
+			m_value->first = *static_cast<const Tfirst*>(in);
+			return;
+		} else {
+			if(a.type_info().type_id() != typeinfo::of<Tsecond>().type_id()) {
+				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
+				                      std::string(a.type_info().name()));
+			}
+			m_value->second = *static_cast<const Tsecond*>(in);
+			return;
+		}
 	}
 
 private:
@@ -173,6 +253,23 @@ public:
 
 	inline void set_value(T* v) { m_value = v; }
 
+	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
+		ss_plugin_table_fieldinfo value = {"value", typeinfo::of<T>().type_id(), false};
+		out.emplace_back(value);
+	}
+
+	static std::unique_ptr<accessor> get_field(const char* name, const typeinfo& type_info) {
+		if(strcmp(name, "value") == 0) {
+			auto tinfo = typeinfo::of<T>();
+			if(type_info.type_id() != tinfo.type_id()) {
+				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
+				                      std::string(name));
+			}
+			return std::make_unique<stl_table_entry_accessor<T>>(tinfo, 0);
+		}
+		throw sinsp_exception(std::string("field ") + name + " not found");
+	}
+
 protected:
 	struct reader {
 		const value_table_entry_adapter* self;
@@ -192,7 +289,7 @@ protected:
 		}
 	};
 
-	const void* raw_read_field(const accessor& a) const override {
+	const void* raw_read_field_old(const accessor& a) const {
 		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
 	}
 
@@ -215,12 +312,39 @@ protected:
 		}
 	};
 
-	void raw_write_field(const accessor& a, const void* in) override {
+	void raw_write_field_old(const accessor& a, const void* in) {
 		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
 	}
 
 	virtual void destroy_dynamic_fields() override final {
 		// nothing to do
+	}
+
+protected:
+	const void* raw_read_field(const accessor& a) const override {
+		if(a.type_info().type_id() != typeinfo::of<T>().type_id()) {
+			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
+			                      std::string(a.type_info().name()));
+		}
+		auto acc = dynamic_cast<const stl_table_entry_accessor<T>*>(&a);
+		if(acc->index() != 0) {
+			throw sinsp_exception(
+			        "invalid field info passed to value_table_entry_adapter::read_field");
+		}
+		return m_value;
+	}
+
+	void raw_write_field(const accessor& a, const void* in) override {
+		if(a.type_info().type_id() != typeinfo::of<T>().type_id()) {
+			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
+			                      std::string(a.type_info().name()));
+		}
+		auto acc = dynamic_cast<const stl_table_entry_accessor<T>*>(&a);
+		if(acc->index() != 0) {
+			throw sinsp_exception(
+			        "invalid field info passed to value_table_entry_adapter::write_field");
+		}
+		*m_value = *static_cast<const T*>(in);
 	}
 
 private:
@@ -237,15 +361,23 @@ private:
  * be extra careful when performing addition or deletion operations, as that
  * can lead to expensive sparse array operations or results.
  */
-template<typename T,
-         typename TWrap = value_table_entry_adapter<typename T::value_type>,
-         typename DynFields = typename TWrap::dynamic_fields_t>
-class stl_container_table_adapter : public libsinsp::state::extensible_table<uint64_t> {
+template<typename T, typename TWrap = value_table_entry_adapter<typename T::value_type>>
+class stl_container_table_adapter : public libsinsp::state::built_in_table<uint64_t> {
 public:
 	stl_container_table_adapter(const std::string& name, T& container):
-	        extensible_table(name, _static_fields()),
-	        m_container(container) {
-		set_dynamic_fields(std::make_shared<DynFields>());
+	        built_in_table(name),
+	        m_container(container) {}
+
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override {
+		TWrap::list_fields(out);
+	}
+
+	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type) override {
+		return TWrap::get_field(name, data_type);
+	}
+
+	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type) override {
+		throw sinsp_exception("can't add dynamic fields to stl_container_table_adapter");
 	}
 
 	size_t entries_count() const override { return m_container.size(); }
@@ -254,13 +386,11 @@ public:
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
 		auto ret = std::make_unique<TWrap>();
-		ret->set_dynamic_fields(this->dynamic_fields());
 		return ret;
 	}
 
 	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
 		TWrap w;
-		w.set_dynamic_fields(this->dynamic_fields());
 		for(auto& v : m_container) {
 			w.set_value(&v);
 			if(!pred(w)) {
@@ -283,10 +413,6 @@ public:
 		if(!entry) {
 			throw sinsp_exception(
 			        std::string("null entry added to table: " + std::string(this->name())));
-		}
-		if(entry->dynamic_fields() != this->dynamic_fields()) {
-			throw sinsp_exception("entry with mismatching dynamic fields added to table: " +
-			                      std::string(this->name()));
 		}
 
 		auto value = dynamic_cast<TWrap*>(entry.get());
@@ -334,7 +460,6 @@ private:
 		// no wrapper is free among the allocated ones so add an extra one
 		auto& w = m_wrappers.emplace_back();
 		w.set_value(v);
-		w.set_dynamic_fields(this->dynamic_fields());
 		return std::shared_ptr<libsinsp::state::table_entry>(&w, wrap_deleter);
 	}
 

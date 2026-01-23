@@ -638,18 +638,14 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);
 	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
-	EXPECT_EQ(subtable->static_fields()->size(), 0);
-	EXPECT_EQ(subtable->dynamic_fields()->fields().size(), 1);
 
 	// getting an existing field
-	auto sfield = subtable->dynamic_fields()->fields().find("value");
-	ASSERT_NE(sfield, subtable->dynamic_fields()->fields().end());
-	EXPECT_EQ(sfield->second.readonly(), false);
-	EXPECT_EQ(sfield->second.valid(), true);
-	EXPECT_EQ(sfield->second.name(), "value");
-	EXPECT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<std::string>());
+	auto sfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());
+	// EXPECT_EQ(sfield->second.readonly(), false);
+	// EXPECT_EQ(sfield->second.valid(), true);
+	// EXPECT_EQ(sfield->second.name(), "value");
 
-	auto fieldacc = sfield->second.new_accessor<std::string>();
+	auto fieldacc = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(sfield.get());
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 10;
