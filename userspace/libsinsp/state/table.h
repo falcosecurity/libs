@@ -237,7 +237,11 @@ public:
 	 * @brief Returns the offset of m_this_ptr. Here for convenience as required in other code
 	 * parts.
 	 */
-	static size_t table_ptr_offset() {
+#if defined(__clang__)
+	__attribute__((no_sanitize("undefined")))
+#endif
+	static size_t
+	table_ptr_offset() {
 		return OFFSETOF_STATIC_FIELD(built_in_table<KeyType>, m_this_ptr);
 	}
 
