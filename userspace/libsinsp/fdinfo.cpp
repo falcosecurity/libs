@@ -127,7 +127,11 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const 
 	return get_static_fields();
 }
 
-libsinsp::state::static_struct::field_infos sinsp_fdinfo::get_static_fields() {
+#if defined(__clang__)
+__attribute__((no_sanitize("undefined")))
+#endif
+libsinsp::state::static_struct::field_infos
+sinsp_fdinfo::get_static_fields() {
 	using self = sinsp_fdinfo;
 
 	libsinsp::state::static_struct::field_infos ret;
