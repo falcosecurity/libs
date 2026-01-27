@@ -25,7 +25,8 @@ limitations under the License.
 	 (memcmp(buff, str_literal, sizeof(str_literal) - 1) == 0))
 
 // Parse a single `uint64_t` value from `str`, skipping `skip_len` bytes first. Return a boolean
-// indicating the number was successfully parsed.
+// indicating the number was successfully parsed. The operation is greedy, meaning it reads as many
+// characters as possible.
 static inline bool str_parse_u64(const char* str,
                                  const size_t skip_len,
                                  const int base,
@@ -34,51 +35,6 @@ static inline bool str_parse_u64(const char* str,
 	char* endptr;
 	*out = strtoull(ptr, &endptr, base);
 	return endptr > ptr;
-}
-
-static inline bool str_scan_u64(char** str,
-                                const size_t skip_len,
-                                const int base,
-                                uint64_t* const out) {
-	const char* ptr = *str + skip_len;
-	char* endptr;
-	const uint64_t val = (uint64_t)strtoull(ptr, &endptr, base);
-	if(endptr == ptr) {
-		return false;
-	}
-	*out = val;
-	*str = endptr;
-	return true;
-}
-
-static inline bool str_scan_u32(char** str,
-                                const size_t skip_len,
-                                const int base,
-                                uint32_t* const out) {
-	const char* ptr = *str + skip_len;
-	char* endptr;
-	const uint32_t val = (uint32_t)strtoull(ptr, &endptr, base);
-	if(endptr == ptr) {
-		return false;
-	}
-	*out = val;
-	*str = endptr;
-	return true;
-}
-
-static inline bool str_scan_u16(char** str,
-                                const size_t skip_len,
-                                const int base,
-                                uint16_t* const out) {
-	const char* ptr = *str + skip_len;
-	char* endptr;
-	const uint16_t val = (uint16_t)strtoull(ptr, &endptr, base);
-	if(endptr == ptr) {
-		return false;
-	}
-	*out = val;
-	*str = endptr;
-	return true;
 }
 
 // Parse up to two `uint64_t` values from `str`, skipping `skip_len` bytes first. Return the number
@@ -105,4 +61,60 @@ static inline int str_parse_two_u64(const char* str,
 	}
 
 	return 2;
+}
+
+// Parse a single `uint64_t` value from `str`, skipping `skip_len` bytes first. Return a boolean
+// indicating the number was successfully parsed. On success, advance `*str` to the first non-parsed
+// character. The operation is greedy, meaning it reads as many characters as possible.
+static inline bool str_scan_u64(char** str,
+                                const size_t skip_len,
+                                const int base,
+                                uint64_t* const out) {
+	const char* ptr = *str + skip_len;
+	char* endptr;
+	const uint64_t val = (uint64_t)strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return false;
+	}
+	*out = val;
+	*str = endptr;
+	return true;
+}
+
+// Parse a single `uint32_t` value from `str`, skipping `skip_len` bytes first. Return a boolean
+// indicating the number was successfully parsed. On success, advance `*str` to the first non-parsed
+// character. The operation is greedy, meaning it reads as many characters as possible.
+// note: the parsed number is parsed as `uint64_t` and is then truncated to `uint32_t`.
+static inline bool str_scan_u32(char** str,
+                                const size_t skip_len,
+                                const int base,
+                                uint32_t* const out) {
+	const char* ptr = *str + skip_len;
+	char* endptr;
+	const uint32_t val = (uint32_t)strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return false;
+	}
+	*out = val;
+	*str = endptr;
+	return true;
+}
+
+// Parse a single `uint16_t` value from `str`, skipping `skip_len` bytes first. Return a boolean
+// indicating the number was successfully parsed. On success, advance `*str` to the first non-parsed
+// character. The operation is greedy, meaning it reads as many characters as possible.
+// note: the parsed number is parsed as `uint64_t` and is then truncated to `uint16_t`.
+static inline bool str_scan_u16(char** str,
+                                const size_t skip_len,
+                                const int base,
+                                uint16_t* const out) {
+	const char* ptr = *str + skip_len;
+	char* endptr;
+	const uint16_t val = (uint16_t)strtoull(ptr, &endptr, base);
+	if(endptr == ptr) {
+		return false;
+	}
+	*out = val;
+	*str = endptr;
+	return true;
 }
