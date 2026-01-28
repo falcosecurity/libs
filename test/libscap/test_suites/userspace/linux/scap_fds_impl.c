@@ -35,7 +35,11 @@ int32_t test_time_wait_socket_at_buffer_end(void) {
 
 	snprintf(filepath, sizeof(filepath), "%s/scap_test_sockets.txt", LIBSCAP_TEST_DATA_PATH);
 
-	int32_t result = parse_procfs_proc_pid_net_ipv4_file(filepath, SCAP_L4_TCP, &sockets, error);
+	const int32_t result = parse_procfs_proc_pid_socket_table_file(filepath,
+	                                                               AF_INET,
+	                                                               SCAP_L4_TCP,
+	                                                               &sockets,
+	                                                               error);
 
 	scap_fd_free_table(&sockets);
 
