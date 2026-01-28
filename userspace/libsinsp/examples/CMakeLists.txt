@@ -13,6 +13,7 @@
 # the License.
 #
 
+include(cxxopts)
 include(jsoncpp)
 
 set(sources util.cpp test.cpp)
@@ -23,6 +24,7 @@ endif()
 
 add_executable(sinsp-example ${sources})
 
+target_include_directories(sinsp-example PRIVATE "${CXXOPTS_INCLUDE_DIR}")
 target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}")
 
 if(EMSCRIPTEN)
