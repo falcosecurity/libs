@@ -921,118 +921,6 @@ static int32_t parse_ipv4_socket_table_line(const char *const line_start,
 	return SCAP_SUCCESS;
 }
 
-static int32_t parse_procfs_proc_pid_net_ipv4_file_impl(const int fd,
-                                                        const char *const filename,
-                                                        scap_fdinfo **sockets,
-                                                        const int l4proto,
-                                                        char *const error) {
-	// note: 32 kB is a good choice for the majority of the use cases. Each file line is
-	// approximately 150 bytes. The following table estimate how many read() system call are issued
-	// in the optimistic case (e.g.: no signals):
-	// - 100 sockets -> ~15 kB -> 1 read()
-	// - 1000 sockets -> ~150 kB -> ~5 read()
-	// - 10000 sockets -> ~1.5 MB -> ~50 read()
-	// Even in the worst scenario, the cost of issuing 50 system call should be overcome by the
-	// cache-friendly accesses using the stack-allocated buffer.
-	char buff[32 * 1024];
-	// `bytes_in_buff` accounts for the total amount of data currently present in `buff`.
-	size_t bytes_in_buff = 0;
-	while(1) {
-		const ssize_t read_bytes = read(fd, buff + bytes_in_buff, sizeof(buff) - bytes_in_buff);
-		if(read_bytes < 0) {
-			if(errno == EINTR) {  // Re-attempt upon signal.
-				continue;
-			}
-			return scap_errprintf(error, errno, "can't read socket table file %s", filename);
-		}
-		if(read_bytes == 0) {
-			return SCAP_SUCCESS;
-		}
-		bytes_in_buff += read_bytes;
-
-		// Calculate the buffer valid data range, consisting of all read data up to the last '\n'
-		// (i.e. excluding the trailing truncated new line, if present).
-		// note: if we cannot find any '\n', we set `buff_valid_len` to 0 and see later if we can
-		// recover a complete line with a shift logic and a subsequent read.
-		// optimization: search for '\n' only in the new read data, because we are sure any old data
-		// doesn't contain it.
-		const char *const new_data_start = buff + bytes_in_buff - read_bytes;
-		const char *const last_newline = memrchr(new_data_start, '\n', read_bytes);
-		const size_t buff_valid_len = last_newline ? last_newline - buff + 1 : 0;
-
-		const char *line_start = buff;
-		const char *buff_valid_end = buff + buff_valid_len;
-		// note: if `buff_valid_len` is 0, this loop doesn't run.
-		while(line_start < buff_valid_end) {
-			char *const line_end = memchr(line_start, '\n', buff_valid_end - line_start);
-			if(!line_end) {
-				// bug: if we enter the loop, the range [line_start, buff_valid_end] contains '\n',
-				// so it's impossible to end up here.
-				ASSERT(false);
-				return scap_errprintf(error,
-				                      0,
-				                      "bug found while parsing socket table file %s: unexpected "
-				                      "line with no newline",
-				                      filename);
-			}
-			// Replace '\n' with '\0' to make string-related API work.
-			// note: the original '\n' is restored at the end of the iteration.
-			*line_end = '\0';
-
-			const int32_t res =
-			        parse_ipv4_socket_table_line(line_start, line_end, sockets, l4proto, error);
-			if(res != SCAP_SUCCESS) {
-				return res;
-			}
-
-			*line_end = '\n';
-			line_start = line_end + 1;
-		}
-
-		// Apply shifting logic to move the truncated trailing line (if any) at the beginning of the
-		// buffer.
-		// note: this remove from the buffer any processed data, that is data in the range
-		// [buff, buff+buff_valid_len]).
-		// note: the shift is not applied if we haven't processed any data in this iteration.
-		const size_t buff_unprocessed_data_len = bytes_in_buff - buff_valid_len;
-		if(buff_unprocessed_data_len > 0 && buff_valid_len > 0) {
-			memmove(buff, buff + buff_valid_len, buff_unprocessed_data_len);
-		}
-		// Now the buffer contains only unprocessed data.
-		bytes_in_buff = buff_unprocessed_data_len;
-		if(bytes_in_buff == sizeof(buff)) {
-			// It is almost impossible we filled the entire buffer with something not containing any
-			// '\n' character. We don't have much to do here: just returning.
-			ASSERT(false);
-			return SCAP_SUCCESS;
-		}
-	}
-
-	// This is unreachable!
-	ASSERT(false);
-	return scap_errprintf(error,
-	                      0,
-	                      "bug found while parsing socket table file %s: control should never "
-	                      "reach any statement after the outer while loop in "
-	                      "parse_procfs_proc_pid_net_ipv4_file_impl()!",
-	                      filename);
-}
-
-static int32_t parse_procfs_proc_pid_net_ipv4_file(const char *filename,
-                                                   const int l4proto,
-                                                   scap_fdinfo **sockets,
-                                                   char *const error) {
-	const int fd = open(filename, O_RDONLY, 0);
-	if(fd == -1) {
-		return scap_errprintf(error, errno, "can't open socket table file %s", filename);
-	}
-
-	const int32_t res =
-	        parse_procfs_proc_pid_net_ipv4_file_impl(fd, filename, sockets, l4proto, error);
-	close(fd);
-	return res;
-}
-
 // Convert a single hex char to 0-15. `c` must be a valid hex char (i.e.: '0'-'9','a'-'f','A'-'F').
 static uint32_t hex_char_to_u32(const char c) {
 	return (c & 0xF) + 9 * (c >> 6);
@@ -1163,11 +1051,12 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 	return SCAP_SUCCESS;
 }
 
-static int32_t parse_procfs_proc_pid_net_ipv6_file_impl(const int fd,
-                                                        const char *const filename,
-                                                        scap_fdinfo **sockets,
-                                                        const int l4proto,
-                                                        char *const error) {
+static int32_t parse_procfs_proc_pid_socket_table_file_impl(const int fd,
+                                                            const char *const filename,
+                                                            const int socket_domain,
+                                                            scap_fdinfo **sockets,
+                                                            const int l4proto,
+                                                            char *const error) {
 	// note: 32 kB is a good choice for the majority of the use cases. Each file line is
 	// approximately 150 bytes. The following table estimate how many read() system call are issued
 	// in the optimistic case (e.g.: no signals):
@@ -1221,8 +1110,26 @@ static int32_t parse_procfs_proc_pid_net_ipv6_file_impl(const int fd,
 			// note: the original '\n' is restored at the end of the iteration.
 			*line_end = '\0';
 
-			const int32_t res =
-			        parse_ipv6_socket_table_line(line_start, line_end, sockets, l4proto, error);
+			int32_t res = SCAP_FAILURE;
+			switch(socket_domain) {
+			case AF_INET: {
+				res = parse_ipv4_socket_table_line(line_start, line_end, sockets, l4proto, error);
+				break;
+			}
+			case AF_INET6: {
+				res = parse_ipv6_socket_table_line(line_start, line_end, sockets, l4proto, error);
+				break;
+			}
+			default: {
+				ASSERT(false);
+				return scap_errprintf(
+				        error,
+				        0,
+				        "bug found while parsing socket table file %s: unknown socket domain %d",
+				        filename,
+				        socket_domain);
+			}
+			}
 			if(res != SCAP_SUCCESS) {
 				return res;
 			}
@@ -1256,21 +1163,26 @@ static int32_t parse_procfs_proc_pid_net_ipv6_file_impl(const int fd,
 	                      0,
 	                      "bug found while parsing socket table file %s: control should never "
 	                      "reach any statement after the outer while loop in "
-	                      "parse_procfs_proc_pid_net_ipv6_file_impl()!",
+	                      "parse_procfs_proc_pid_socket_table_file_impl()!",
 	                      filename);
 }
 
-static int32_t parse_procfs_proc_pid_net_ipv6_file(const char *filename,
-                                                   const int l4proto,
-                                                   scap_fdinfo **sockets,
-                                                   char *const error) {
+static int32_t parse_procfs_proc_pid_socket_table_file(const char *filename,
+                                                       const int socket_domain,
+                                                       const int l4proto,
+                                                       scap_fdinfo **sockets,
+                                                       char *const error) {
 	const int fd = open(filename, O_RDONLY, 0);
 	if(fd == -1) {
 		return scap_errprintf(error, errno, "can't open socket table file %s", filename);
 	}
 
-	const int32_t res =
-	        parse_procfs_proc_pid_net_ipv6_file_impl(fd, filename, sockets, l4proto, error);
+	const int32_t res = parse_procfs_proc_pid_socket_table_file_impl(fd,
+	                                                                 filename,
+	                                                                 socket_domain,
+	                                                                 sockets,
+	                                                                 l4proto,
+	                                                                 error);
 	close(fd);
 	return res;
 }
@@ -1293,22 +1205,31 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp", netroot);
-	if(parse_procfs_proc_pid_net_ipv4_file(filename, SCAP_L4_TCP, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET,
+	                                           SCAP_L4_TCP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read ipv4 tcp sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
-	if(parse_procfs_proc_pid_net_ipv4_file(filename, SCAP_L4_UDP, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET,
+	                                           SCAP_L4_UDP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read ipv4 udp sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
-	if(parse_procfs_proc_pid_net_ipv4_file(filename, SCAP_L4_RAW, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET,
+	                                           SCAP_L4_RAW,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read ipv4 raw sockets (%s)", err_buf);
 	}
@@ -1328,27 +1249,38 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp6", netroot);
-	/* We assume if there is /proc/net/tcp6 that ipv6 is available */
-	if(access(filename, R_OK) == 0) {
-		if(parse_procfs_proc_pid_net_ipv6_file(filename, SCAP_L4_TCP, &sockets->sockets, err_buf) ==
-		   SCAP_FAILURE) {
-			scap_fd_free_table(&sockets->sockets);
-			return scap_errprintf(error, 0, "Could not read ipv6 tcp sockets (%s)", err_buf);
-		}
+	// We assume IPv6 isn't available if /proc/net/tcp6 is not available.
+	if(access(filename, R_OK) != 0) {
+		return SCAP_SUCCESS;
+	}
 
-		snprintf(filename, sizeof(filename), "%sudp6", netroot);
-		if(parse_procfs_proc_pid_net_ipv6_file(filename, SCAP_L4_UDP, &sockets->sockets, err_buf) ==
-		   SCAP_FAILURE) {
-			scap_fd_free_table(&sockets->sockets);
-			return scap_errprintf(error, 0, "Could not read ipv6 udp sockets (%s)", err_buf);
-		}
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET6,
+	                                           SCAP_L4_TCP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
+		scap_fd_free_table(&sockets->sockets);
+		return scap_errprintf(error, 0, "Could not read ipv6 tcp sockets (%s)", err_buf);
+	}
 
-		snprintf(filename, sizeof(filename), "%sraw6", netroot);
-		if(parse_procfs_proc_pid_net_ipv6_file(filename, SCAP_L4_RAW, &sockets->sockets, err_buf) ==
-		   SCAP_FAILURE) {
-			scap_fd_free_table(&sockets->sockets);
-			return scap_errprintf(error, 0, "Could not read ipv6 raw sockets (%s)", err_buf);
-		}
+	snprintf(filename, sizeof(filename), "%sudp6", netroot);
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET6,
+	                                           SCAP_L4_UDP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
+		scap_fd_free_table(&sockets->sockets);
+		return scap_errprintf(error, 0, "Could not read ipv6 udp sockets (%s)", err_buf);
+	}
+
+	snprintf(filename, sizeof(filename), "%sraw6", netroot);
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET6,
+	                                           SCAP_L4_RAW,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
+		scap_fd_free_table(&sockets->sockets);
+		return scap_errprintf(error, 0, "Could not read ipv6 raw sockets (%s)", err_buf);
 	}
 
 	return SCAP_SUCCESS;
