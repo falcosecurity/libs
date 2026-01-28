@@ -23,6 +23,7 @@ limitations under the License.
 
 #include <libsinsp/fdtable.h>
 #include <libsinsp/sinsp_int.h>
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libscap/scap-int.h>
 
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
@@ -178,6 +179,92 @@ sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) {
 
 sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	return add_ref(fd, std::move(fdinfo)).get();
+}
+
+void sinsp_fdtable::list_fields(std::vector<ss_plugin_table_fieldinfo>& out) const {
+	for(auto& info : *this->static_fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = info.second.readonly();
+		out.push_back(i);
+	}
+	for(auto& info : this->dynamic_fields()->fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = false;
+		out.push_back(i);
+	}
+}
+
+libsinsp::state::sinsp_field_accessor_wrapper sinsp_fdtable::get_field(
+        const char* name,
+        const libsinsp::state::typeinfo& type_info) {
+	auto fixed_it = this->static_fields()->find(name);
+	auto dyn_it = this->dynamic_fields()->fields().find(name);
+	if(fixed_it != this->static_fields()->end() &&
+	   dyn_it != this->dynamic_fields()->fields().end()) {
+		// todo(jasondellaluce): plugins are not aware of the difference
+		// between static and dynamic fields. Do we want to enforce
+		// this limitation in the sinsp tables implementation as well?
+		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
+	}
+
+#define _X(_type, _dtype)                                                                   \
+	{                                                                                       \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
+		auto acc = fixed_it->second.new_accessor<_type>();                                  \
+		acc_wrap.dynamic = false;                                                           \
+		acc_wrap.data_type = type_info.type_id();                                           \
+		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
+		return acc_wrap;                                                                    \
+	}
+	if(fixed_it != this->static_fields()->end()) {
+		if(type_info.type_id() != fixed_it->second.info().type_id()) {
+			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
+		}
+		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	}
+#undef _X
+
+#define _X(_type, _dtype)                                                                    \
+	{                                                                                        \
+		auto acc = dyn_it->second.new_accessor<_type>();                                     \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
+		acc_wrap.dynamic = true;                                                             \
+		acc_wrap.data_type = type_info.type_id();                                            \
+		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
+		return acc_wrap;                                                                     \
+	}
+	if(dyn_it != this->dynamic_fields()->fields().end()) {
+		if(type_info.type_id() != dyn_it->second.info().type_id()) {
+			throw sinsp_exception("incompatible data types for dynamic field: " +
+			                      std::string(name));
+		}
+		__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	}
+	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
+	                      std::string(this->name()) + "'");
+#undef _X
+}
+
+libsinsp::state::sinsp_field_accessor_wrapper sinsp_fdtable::add_field(
+        const char* name,
+        const libsinsp::state::typeinfo& type_info) {
+	if(this->static_fields()->find(name) != this->static_fields()->end()) {
+		throw sinsp_exception("can't add dynamic field already defined as static: " +
+		                      std::string(name));
+	}
+
+#define _X(_type, _dtype)                                        \
+	{                                                            \
+		this->dynamic_fields()->template add_field<_type>(name); \
+		break;                                                   \
+	}
+	__PLUGIN_STATETYPE_SWITCH(type_info.type_id());
+	return get_field(name, type_info);
+#undef _X
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
