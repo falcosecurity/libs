@@ -810,7 +810,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(const char *filename,
 
 // Parse an IPv4 socket table address in the form <hex_ip>:<hex_port>, skipping any leading
 // whitespace. Return a boolean indicating if the operation is successful. If the operation is
-// successful, it updated `ip_out` and `port_out` with the read data, and `*str` to point to the
+// successful, `ip_out` and `port_out` will contain the read data, and `*str` will point to the
 // first character after the parsed content.
 static bool scan_ipv4_socket_table_address(char **str, uint32_t *ip_out, uint16_t *port_out) {
 	char *ptr = *str;
@@ -921,11 +921,142 @@ static int32_t parse_ipv4_socket_table_line(const char *const line_start,
 	return SCAP_SUCCESS;
 }
 
-static int32_t parse_procfs_proc_pid_net_ipv4_file_impl(const int fd,
-                                                        const char *const filename,
-                                                        scap_fdinfo **sockets,
-                                                        const int l4proto,
-                                                        char *const error) {
+// Convert a single hex char to 0-15. `c` must be a valid hex char (i.e.: '0'-'9','a'-'f','A'-'F').
+static uint32_t hex_char_to_u32(const char c) {
+	return (c & 0xF) + 9 * (c >> 6);
+}
+
+// Parse exactly 8 hex chars from `*str` and return the obtained 32 bits number. It moves `*str`
+// forward of 8 chars.
+static uint32_t scan_u32_hex_exact(char **str) {
+	uint32_t val = 0;
+	for(int i = 0; i < 8; i++) {
+		val <<= 4;
+		val |= hex_char_to_u32((*str)[i]);
+	}
+	*str += 8;
+	return val;
+}
+
+// Parse an IPv6 socket table address in the form <hex_ip>:<hex_port>, skipping any leading
+// whitespace. Return a boolean indicating if the operation is successful. If the operation is
+// successful, `ip_out` and `port_out` will contain the read data, and `*str` will point to the
+// first character after the parsed content.
+static bool scan_ipv6_socket_table_address(char **str, uint32_t *ip_out, uint16_t *port_out) {
+	char *ptr = *str;
+	for(int i = 0; i < 4; i++) {
+		*(ip_out + i) = scan_u32_hex_exact(&ptr);
+	}
+
+	// Skip ':'.
+	if(*ptr != ':') {
+		return false;
+	}
+
+	ptr++;
+
+	if(!str_scan_u16(str, 0, 16, port_out)) {
+		return false;
+	}
+
+	*str = ptr;
+	return true;
+}
+
+int32_t scap_fd_is_ipv6_server_socket(uint32_t ip6_addr[4]) {
+	return 0 == ip6_addr[0] && 0 == ip6_addr[1] && 0 == ip6_addr[2] && 0 == ip6_addr[3];
+}
+
+// Parse a single IPv6 socket table line and insert the obtained fdinfo into `sockets`. Return
+// `SCAP_SUCCESS` if it can correctly parse the line or encounters a recoverable error (e.g.: the
+// line could be simply skipped); return `SCAP_FAILURE` otherwise.
+static int32_t parse_ipv6_socket_table_line(const char *const line_start,
+                                            const char *const line_end,
+                                            scap_fdinfo **sockets,
+                                            const int l4proto,
+                                            char *error) {
+	// Skip the entire header and/or the `sl` field.
+	char *scan_pos = memchr(line_start, ':', line_end - line_start);
+	if(scan_pos == NULL) {
+		return SCAP_SUCCESS;
+	}
+
+	scan_pos += 2;
+	if(scan_pos + 80 >= line_end) {
+		return SCAP_SUCCESS;
+	}
+
+	// Parse `local_address` and `remote_address` fields.
+	uint32_t sip[4], dip[4];
+	uint16_t sport, dport;
+	if(!scan_ipv6_socket_table_address(&scan_pos, sip, &sport) ||
+	   !scan_ipv6_socket_table_address(&scan_pos, dip, &dport)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Skip `st`, `tx_queue`, `tr`, `retrnsmt`, `uid` and `timeout` fields to parse `inode` field.
+	for(int i = 0; i < 6; i++) {
+		scan_pos++;
+
+		scan_pos = memchr(scan_pos, ' ', line_end - scan_pos);
+		if(scan_pos == NULL) {
+			return SCAP_SUCCESS;
+		}
+
+		while(scan_pos < line_end && *scan_pos == ' ') {
+			scan_pos++;
+		}
+
+		if(scan_pos >= line_end) {
+			return SCAP_SUCCESS;
+		}
+	}
+
+	// Parse `inode` field.
+	uint64_t ino;
+	if(!str_scan_u64(&scan_pos, 0, 10, &ino)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Allocate fdinfo and populate its fields.
+	scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+	if(fdinfo == NULL) {
+		return scap_errprintf(error,
+		                      errno,
+		                      "memory allocation error in parse_ipv6_socket_table_line()");
+	}
+
+	memcpy(&fdinfo->info.ipv6info.sip, sip, sizeof(fdinfo->info.ipv6info.sip));
+	fdinfo->info.ipv6info.sport = sport;
+	memcpy(&fdinfo->info.ipv6info.dip, dip, sizeof(fdinfo->info.ipv6info.dip));
+	fdinfo->info.ipv6info.dport = dport;
+	fdinfo->ino = ino;
+	if(scap_fd_is_ipv6_server_socket(dip)) {
+		fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
+		fdinfo->info.ipv6serverinfo.l4proto = l4proto;
+		fdinfo->info.ipv6serverinfo.port = sport;
+		memcpy(fdinfo->info.ipv6serverinfo.ip, sip, sizeof(fdinfo->info.ipv6serverinfo.ip));
+	} else {
+		fdinfo->type = SCAP_FD_IPV6_SOCK;
+		fdinfo->info.ipv6info.l4proto = l4proto;
+	}
+
+	// Add to the table.
+	int32_t uth_status = SCAP_SUCCESS;
+	HASH_ADD_INT64((*sockets), ino, fdinfo);
+	if(uth_status != SCAP_SUCCESS) {
+		free(fdinfo);
+		return scap_errprintf(error, 0, "ipv6 socket allocation error");
+	}
+	return SCAP_SUCCESS;
+}
+
+static int32_t parse_procfs_proc_pid_socket_table_file_impl(const int fd,
+                                                            const char *const filename,
+                                                            const int socket_domain,
+                                                            scap_fdinfo **sockets,
+                                                            const int l4proto,
+                                                            char *const error) {
 	// note: 32 kB is a good choice for the majority of the use cases. Each file line is
 	// approximately 150 bytes. The following table estimate how many read() system call are issued
 	// in the optimistic case (e.g.: no signals):
@@ -979,8 +1110,26 @@ static int32_t parse_procfs_proc_pid_net_ipv4_file_impl(const int fd,
 			// note: the original '\n' is restored at the end of the iteration.
 			*line_end = '\0';
 
-			const int32_t res =
-			        parse_ipv4_socket_table_line(line_start, line_end, sockets, l4proto, error);
+			int32_t res = SCAP_FAILURE;
+			switch(socket_domain) {
+			case AF_INET: {
+				res = parse_ipv4_socket_table_line(line_start, line_end, sockets, l4proto, error);
+				break;
+			}
+			case AF_INET6: {
+				res = parse_ipv6_socket_table_line(line_start, line_end, sockets, l4proto, error);
+				break;
+			}
+			default: {
+				ASSERT(false);
+				return scap_errprintf(
+				        error,
+				        0,
+				        "bug found while parsing socket table file %s: unknown socket domain %d",
+				        filename,
+				        socket_domain);
+			}
+			}
 			if(res != SCAP_SUCCESS) {
 				return res;
 			}
@@ -1014,233 +1163,28 @@ static int32_t parse_procfs_proc_pid_net_ipv4_file_impl(const int fd,
 	                      0,
 	                      "bug found while parsing socket table file %s: control should never "
 	                      "reach any statement after the outer while loop in "
-	                      "parse_procfs_proc_pid_net_ipv4_file_impl()!",
+	                      "parse_procfs_proc_pid_socket_table_file_impl()!",
 	                      filename);
 }
 
-static int32_t parse_procfs_proc_pid_net_ipv4_file(const char *filename,
-                                                   const int l4proto,
-                                                   scap_fdinfo **sockets,
-                                                   char *const error) {
+static int32_t parse_procfs_proc_pid_socket_table_file(const char *filename,
+                                                       const int socket_domain,
+                                                       const int l4proto,
+                                                       scap_fdinfo **sockets,
+                                                       char *const error) {
 	const int fd = open(filename, O_RDONLY, 0);
 	if(fd == -1) {
 		return scap_errprintf(error, errno, "can't open socket table file %s", filename);
 	}
 
-	const int32_t res =
-	        parse_procfs_proc_pid_net_ipv4_file_impl(fd, filename, sockets, l4proto, error);
+	const int32_t res = parse_procfs_proc_pid_socket_table_file_impl(fd,
+	                                                                 filename,
+	                                                                 socket_domain,
+	                                                                 sockets,
+	                                                                 l4proto,
+	                                                                 error);
 	close(fd);
 	return res;
-}
-
-int32_t scap_fd_is_ipv6_server_socket(uint32_t ip6_addr[4]) {
-	return 0 == ip6_addr[0] && 0 == ip6_addr[1] && 0 == ip6_addr[2] && 0 == ip6_addr[3];
-}
-
-int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir,
-                                               int l4proto,
-                                               scap_fdinfo **sockets,
-                                               char *error) {
-	FILE *f;
-	int32_t uth_status = SCAP_SUCCESS;
-	char *scan_buf;
-	char *scan_pos;
-	char *tmp_pos;
-	uint32_t rsize;
-	char *end;
-	char tc;
-	uint32_t j;
-
-	scan_buf = (char *)malloc(SOCKET_SCAN_BUFFER_SIZE);
-	if(scan_buf == NULL) {
-		return scap_errprintf(error, 0, "scan_buf allocation error");
-	}
-
-	f = fopen(dir, "r");
-
-	if(NULL == f) {
-		free(scan_buf);
-		return scap_errprintf(error, errno, "Could not open ipv6 sockets dir %s", dir);
-	}
-
-	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f)) != 0) {
-		char *scan_end = scan_buf + rsize;
-		scan_pos = scan_buf;
-
-		while(scan_pos <= scan_end) {
-			scan_pos = memchr(scan_pos, '\n', scan_end - scan_pos);
-
-			if(scan_pos == NULL) {
-				break;
-			}
-
-			scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
-			if(fdinfo == NULL) {
-				fclose(f);
-				free(scan_buf);
-				return scap_errprintf(
-				        error,
-				        errno,
-				        "memory allocation error in scap_fd_read_ipv6_sockets_from_proc_fs");
-			}
-
-			//
-			// Skip the sl field
-			//
-			scan_pos = memchr(scan_pos, ':', scan_end - scan_pos);
-			if(scan_pos == NULL) {
-				free(fdinfo);
-				break;
-			}
-
-			scan_pos += 2;
-			if(scan_pos + 80 >= scan_end) {
-				free(fdinfo);
-				break;
-			}
-
-			//
-			// Scan the first address
-			//
-			tc = *(scan_pos + 8);
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.sip[0] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 8;
-			tc = *(scan_pos + 8);
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.sip[1] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 8;
-			tc = *(scan_pos + 8);
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.sip[2] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 8;
-			tc = *(scan_pos + 8);
-			ASSERT(tc == ':');
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.sip[3] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 9;
-			tc = *(scan_pos + 4);
-			ASSERT(tc == ' ');
-			*(scan_pos + 4) = 0;
-			fdinfo->info.ipv6info.sport = (uint16_t)strtoul(scan_pos, &end, 16);
-			*(scan_pos + 4) = tc;
-
-			//
-			// Scan the second address
-			//
-			scan_pos += 5;
-
-			tc = *(scan_pos + 8);
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.dip[0] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 8;
-			tc = *(scan_pos + 8);
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.dip[1] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 8;
-			tc = *(scan_pos + 8);
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.dip[2] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 8;
-			tc = *(scan_pos + 8);
-			ASSERT(tc == ':');
-			*(scan_pos + 8) = 0;
-			fdinfo->info.ipv6info.dip[3] = strtoul(scan_pos, &end, 16);
-			*(scan_pos + 8) = tc;
-
-			scan_pos += 9;
-			tc = *(scan_pos + 4);
-			ASSERT(tc == ' ');
-			*(scan_pos + 4) = 0;
-			fdinfo->info.ipv6info.dport = (uint16_t)strtoul(scan_pos, &end, 16);
-			*(scan_pos + 4) = tc;
-
-			//
-			// Skip to parsing the inode
-			//
-			scan_pos += 4;
-
-			for(j = 0; j < 6; j++) {
-				scan_pos++;
-
-				scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
-				if(scan_pos == NULL) {
-					break;
-				}
-
-				while(scan_pos < scan_end && *scan_pos == ' ') {
-					scan_pos++;
-				}
-
-				if(scan_pos >= scan_end) {
-					break;
-				}
-			}
-
-			if(j < 6) {
-				free(fdinfo);
-				break;
-			}
-
-			tmp_pos = scan_pos;
-			scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
-			if(scan_pos == NULL || scan_pos >= scan_end) {
-				free(fdinfo);
-				break;
-			}
-
-			tc = *(scan_pos);
-
-			fdinfo->ino = (uint64_t)strtoull(tmp_pos, &end, 10);
-
-			*(scan_pos) = tc;
-
-			//
-			// Add to the table
-			//
-			if(scap_fd_is_ipv6_server_socket(fdinfo->info.ipv6info.dip)) {
-				fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
-				fdinfo->info.ipv6serverinfo.l4proto = l4proto;
-				fdinfo->info.ipv6serverinfo.port = fdinfo->info.ipv6info.sport;
-				fdinfo->info.ipv6serverinfo.ip[0] = fdinfo->info.ipv6info.sip[0];
-				fdinfo->info.ipv6serverinfo.ip[1] = fdinfo->info.ipv6info.sip[1];
-				fdinfo->info.ipv6serverinfo.ip[2] = fdinfo->info.ipv6info.sip[2];
-				fdinfo->info.ipv6serverinfo.ip[3] = fdinfo->info.ipv6info.sip[3];
-			} else {
-				fdinfo->type = SCAP_FD_IPV6_SOCK;
-				fdinfo->info.ipv6info.l4proto = l4proto;
-			}
-
-			HASH_ADD_INT64((*sockets), ino, fdinfo);
-
-			if(uth_status != SCAP_SUCCESS) {
-				uth_status = SCAP_FAILURE;
-				return scap_errprintf(error, 0, "ipv6 socket allocation error");
-				break;
-			}
-
-			scan_pos++;
-		}
-	}
-
-	fclose(f);
-	free(scan_buf);
-
-	return uth_status;
 }
 
 int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets, char *error) {
@@ -1261,22 +1205,31 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp", netroot);
-	if(parse_procfs_proc_pid_net_ipv4_file(filename, SCAP_L4_TCP, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET,
+	                                           SCAP_L4_TCP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read ipv4 tcp sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
-	if(parse_procfs_proc_pid_net_ipv4_file(filename, SCAP_L4_UDP, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET,
+	                                           SCAP_L4_UDP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read ipv4 udp sockets (%s)", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
-	if(parse_procfs_proc_pid_net_ipv4_file(filename, SCAP_L4_RAW, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET,
+	                                           SCAP_L4_RAW,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read ipv4 raw sockets (%s)", err_buf);
 	}
@@ -1296,33 +1249,38 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp6", netroot);
-	/* We assume if there is /proc/net/tcp6 that ipv6 is available */
-	if(access(filename, R_OK) == 0) {
-		if(scap_fd_read_ipv6_sockets_from_proc_fs(filename,
-		                                          SCAP_L4_TCP,
-		                                          &sockets->sockets,
-		                                          err_buf) == SCAP_FAILURE) {
-			scap_fd_free_table(&sockets->sockets);
-			return scap_errprintf(error, 0, "Could not read ipv6 tcp sockets (%s)", err_buf);
-		}
+	// We assume IPv6 isn't available if /proc/net/tcp6 is not available.
+	if(access(filename, R_OK) != 0) {
+		return SCAP_SUCCESS;
+	}
 
-		snprintf(filename, sizeof(filename), "%sudp6", netroot);
-		if(scap_fd_read_ipv6_sockets_from_proc_fs(filename,
-		                                          SCAP_L4_UDP,
-		                                          &sockets->sockets,
-		                                          err_buf) == SCAP_FAILURE) {
-			scap_fd_free_table(&sockets->sockets);
-			return scap_errprintf(error, 0, "Could not read ipv6 udp sockets (%s)", err_buf);
-		}
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET6,
+	                                           SCAP_L4_TCP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
+		scap_fd_free_table(&sockets->sockets);
+		return scap_errprintf(error, 0, "Could not read ipv6 tcp sockets (%s)", err_buf);
+	}
 
-		snprintf(filename, sizeof(filename), "%sraw6", netroot);
-		if(scap_fd_read_ipv6_sockets_from_proc_fs(filename,
-		                                          SCAP_L4_RAW,
-		                                          &sockets->sockets,
-		                                          err_buf) == SCAP_FAILURE) {
-			scap_fd_free_table(&sockets->sockets);
-			return scap_errprintf(error, 0, "Could not read ipv6 raw sockets (%s)", err_buf);
-		}
+	snprintf(filename, sizeof(filename), "%sudp6", netroot);
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET6,
+	                                           SCAP_L4_UDP,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
+		scap_fd_free_table(&sockets->sockets);
+		return scap_errprintf(error, 0, "Could not read ipv6 udp sockets (%s)", err_buf);
+	}
+
+	snprintf(filename, sizeof(filename), "%sraw6", netroot);
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_INET6,
+	                                           SCAP_L4_RAW,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
+		scap_fd_free_table(&sockets->sockets);
+		return scap_errprintf(error, 0, "Could not read ipv6 raw sockets (%s)", err_buf);
 	}
 
 	return SCAP_SUCCESS;
