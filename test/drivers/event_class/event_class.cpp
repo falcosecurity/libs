@@ -3,6 +3,7 @@
 #include <time.h>
 #include <sys/vfs.h> /* or <sys/statfs.h> */
 #include <linux/magic.h>
+#include <filesystem>
 
 #define MAX_CHARBUF_NUM 16
 #define CGROUP_NUMBER 5
@@ -221,6 +222,8 @@ void event_test::clear_ring_buffers() {
 	 */
 	while(scap_next(s_scap_handle, (scap_evt**)&m_event_header, &cpu_id, &flags) != SCAP_TIMEOUT) {
 	}
+	/* Reset m_event_header after clearing to avoid using stale event data */
+	m_event_header = nullptr;
 }
 
 ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id) {
@@ -1155,6 +1158,39 @@ void event_test::assert_charbuf_param_any_of(const int param_num,
 		oss << "- \"" << std::string{value} << "\"\n";
 	}
 	FAIL() << oss.str();
+}
+
+std::string event_test::get_charbuf_param(int param_num) {
+	assert_param_boundaries(param_num);
+	const auto& [param_value, param_size] = m_event_params[m_current_param];
+
+	if(param_size == 0) {
+		return std::string();
+	}
+
+	// Handle null termination
+	size_t str_len =
+	        (param_size > 0 && param_value[param_size - 1] == '\0') ? param_size - 1 : param_size;
+
+	return std::string(param_value, str_len);
+}
+
+void event_test::assert_path_param_equal(int param_num, const char* expected_path) {
+	std::string captured_cwd = get_charbuf_param(param_num);
+	ASSERT_FALSE(captured_cwd.empty())
+	        << "path (parameter " << param_num << ") should contain the path, but it's empty";
+
+	/* Use std::filesystem::path for proper path normalization and comparison */
+	std::filesystem::path wanted_path(expected_path);
+	std::filesystem::path captured_path(captured_cwd);
+
+	/* Normalize paths (remove trailing slashes, resolve . and .., etc.) */
+	wanted_path = wanted_path.lexically_normal();
+	captured_path = captured_path.lexically_normal();
+
+	ASSERT_TRUE(captured_path == wanted_path)
+	        << "Captured path '" << captured_path.string() << "' should match expected path '"
+	        << wanted_path.string() << "'";
 }
 
 void event_test::assert_charbuf_array_param(int param_num, const char** param) {

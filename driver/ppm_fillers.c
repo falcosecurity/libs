@@ -3729,6 +3729,15 @@ int f_sys_openat_x(struct event_filler_arguments *args) {
 	res = val_to_ring(args, ino, 0, false, 0);
 	CHECK_RES(res);
 
+	/*
+	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * Kernel module doesn't support kernel-space path resolution yet,
+	 * so we push an empty parameter. Userspace will handle path
+	 * resolution via the thread's FD table.
+	 */
+	res = push_empty_param(args);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 
@@ -5293,6 +5302,15 @@ int f_sys_openat2_x(struct event_filler_arguments *args) {
 	 *  ino
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
+	CHECK_RES(res);
+
+	/*
+	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * Kernel module doesn't support kernel-space path resolution yet,
+	 * so we push an empty parameter. Userspace will handle path
+	 * resolution via the thread's FD table.
+	 */
+	res = push_empty_param(args);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
