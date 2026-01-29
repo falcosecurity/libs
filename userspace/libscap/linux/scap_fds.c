@@ -645,7 +645,7 @@ static int32_t parse_ipv4_socket_table_line(const char *const line_start,
 	HASH_ADD_INT64((*sockets), ino, fdinfo);
 	if(uth_status != SCAP_SUCCESS) {
 		free(fdinfo);
-		return scap_errprintf(error, 0, "ipv4 socket allocation error");
+		return scap_errprintf(error, 0, "IPv4 socket allocation error");
 	}
 	return SCAP_SUCCESS;
 }
@@ -762,7 +762,7 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 	HASH_ADD_INT64((*sockets), ino, fdinfo);
 	if(uth_status != SCAP_SUCCESS) {
 		free(fdinfo);
-		return scap_errprintf(error, 0, "ipv6 socket allocation error");
+		return scap_errprintf(error, 0, "IPv6 socket allocation error");
 	}
 	return SCAP_SUCCESS;
 }
@@ -1027,20 +1027,16 @@ static int32_t parse_procfs_proc_pid_socket_table_file(const char *filename,
 	return res;
 }
 
-int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets, char *error) {
+int32_t scap_fd_read_sockets_impl(char *procdir, struct scap_ns_socket_list *sockets, char *error) {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char netroot[SCAP_MAX_PATH_SIZE];
 	char err_buf[SCAP_LASTERR_SIZE];
 
 	if(sockets->net_ns) {
-		//
-		// Namespace support, look in /proc/PID/net/
-		//
+		// Namespace support, look in /proc/PID/net/.
 		snprintf(netroot, sizeof(netroot), "%snet/", procdir);
 	} else {
-		//
-		// No namespace support, look in the base /proc
-		//
+		// No namespace support, look in the base /proc/net/.
 		snprintf(netroot, sizeof(netroot), "%s/proc/net/", scap_get_host_root());
 	}
 
@@ -1050,8 +1046,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_TCP,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read ipv4 tcp sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read IPv4 TCP sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
@@ -1060,8 +1055,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_UDP,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read ipv4 udp sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read IPv4 UDP sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
@@ -1070,8 +1064,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_RAW,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read ipv4 raw sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read IPv4 raw sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sunix", netroot);
@@ -1080,8 +1073,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_NA,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read unix sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read unix sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%snetlink", netroot);
@@ -1090,8 +1082,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_NA,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read netlink sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read netlink sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp6", netroot);
@@ -1105,8 +1096,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_TCP,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read ipv6 tcp sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read IPv6 TCP sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp6", netroot);
@@ -1115,8 +1105,7 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_UDP,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read ipv6 udp sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read IPv6 UDP sockets: %s", err_buf);
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw6", netroot);
@@ -1125,11 +1114,18 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	                                           SCAP_L4_RAW,
 	                                           &sockets->sockets,
 	                                           err_buf) == SCAP_FAILURE) {
-		scap_fd_free_table(&sockets->sockets);
-		return scap_errprintf(error, 0, "Could not read ipv6 raw sockets (%s)", err_buf);
+		return scap_errprintf(error, 0, "can't read IPv6 raw sockets: %s", err_buf);
 	}
 
 	return SCAP_SUCCESS;
+}
+
+int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets, char *error) {
+	const int32_t res = scap_fd_read_sockets_impl(procdir, sockets, error);
+	if(res != SCAP_SUCCESS) {
+		scap_fd_free_table(&sockets->sockets);
+	}
+	return res;
 }
 
 char *decode_st_mode(struct stat *sb) {
