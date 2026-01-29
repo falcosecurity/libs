@@ -74,6 +74,49 @@ int BPF_PROG(openat2_x, struct pt_regs *regs, long ret) {
 	/* Parameter 8: ino (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, ino);
 
+	/* Parameter 9: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path */
+	if(dirfd == PPM_AT_FDCWD) {
+		/* For AT_FDCWD, capture the process's current working directory
+		 * in kernel space to prevent race conditions. This captures the
+		 * actual CWD path at syscall time, before the process may exec
+		 * or change directories.
+		 */
+		struct task_struct *task = get_current_task();
+		struct fs_struct *fs = NULL;
+		struct path cwd_path = {};
+
+		BPF_CORE_READ_INTO(&fs, task, fs);
+		if(fs != NULL) {
+			BPF_CORE_READ_INTO(&cwd_path, fs, pwd);
+			auxmap__store_d_path_approx(auxmap, &cwd_path);
+		} else {
+			/* If we cannot access fs_struct, store empty and fall back
+			 * to user space resolution.
+			 */
+			auxmap__store_empty_param(auxmap);
+		}
+	} else if(dirfd >= 0) {
+		/* Resolve the dirfd path in kernel space to prevent race conditions.
+		 * This captures the actual directory path at syscall time, before
+		 * the process may exec or the FD table may change.
+		 */
+		struct file *dir_file = extract__file_struct_from_fd(dirfd);
+		if(dir_file != NULL) {
+			struct path dir_path = {};
+			BPF_CORE_READ_INTO(&dir_path, dir_file, f_path);
+			auxmap__store_d_path_approx(auxmap, &dir_path);
+		} else {
+			/* If we cannot resolve the FD (e.g., it was closed between
+			 * syscall entry and exit), store empty and fall back to
+			 * user space resolution.
+			 */
+			auxmap__store_empty_param(auxmap);
+		}
+	} else {
+		/* Invalid FD, store empty */
+		auxmap__store_empty_param(auxmap);
+	}
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

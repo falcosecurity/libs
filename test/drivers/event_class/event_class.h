@@ -98,13 +98,16 @@ enum direction {
 /*
  * Macro that wraps internal _assert_syscall_state,
  * dealing with ENOSYS syscalls, ie: syscalls that are defined but unimplemented,
+ * and EOPNOTSUPP when the syscall exists but the operation is not supported,
  * skipping the test.
  */
-#define assert_syscall_state(syscall_state, syscall_name, ...)                             \
-	do {                                                                                   \
-		_assert_syscall_state(syscall_state, syscall_name, __VA_ARGS__);                   \
-		if(errno == ENOSYS)                                                                \
-			GTEST_SKIP() << "Syscall " << syscall_name << " not implemented" << std::endl; \
+#define assert_syscall_state(syscall_state, syscall_name, ...)                                     \
+	do {                                                                                           \
+		_assert_syscall_state(syscall_state, syscall_name, __VA_ARGS__);                           \
+		if(errno == ENOSYS)                                                                        \
+			GTEST_SKIP() << "Syscall " << syscall_name << " not implemented" << std::endl;         \
+		if(errno == EOPNOTSUPP || errno == 95)                                                     \
+			GTEST_SKIP() << "Syscall " << syscall_name << " operation not supported" << std::endl; \
 	} while(0)
 
 /////////////////////////////////
@@ -561,6 +564,22 @@ public:
 	void assert_charbuf_param(int param_num, const char* param);
 
 	void assert_charbuf_param_any_of(int param_num, const std::vector<const char*>& candidates);
+
+	/**
+	 * @brief Get the value of a charbuf parameter as a string
+	 *
+	 * @param param_num number of the parameter to get
+	 * @return std::string the parameter value
+	 */
+	std::string get_charbuf_param(int param_num);
+
+	/**
+	 * @brief Assert that a path parameter matches the expected path
+	 *
+	 * @param param_num number of the path parameter to verify
+	 * @param expected_path the expected path
+	 */
+	void assert_path_param_equal(int param_num, const char* expected_path);
 
 	/**
 	 * @brief Assert that the parameter is a `charbuf` array and
