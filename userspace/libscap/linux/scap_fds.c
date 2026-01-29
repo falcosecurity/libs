@@ -550,135 +550,6 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 	return SCAP_SUCCESS;
 }
 
-// sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode
-// ffff88011abfb000 0   0      00000000 0        0        0 2        0        13
-
-int32_t scap_fd_read_netlink_sockets_from_proc_fs(const char *filename,
-                                                  scap_fdinfo **sockets,
-                                                  char *error) {
-	FILE *f;
-	char line[SCAP_MAX_PATH_SIZE];
-	int first_line = false;
-	char *delimiters = " \t";
-	char *token;
-	int32_t uth_status = SCAP_SUCCESS;
-
-	f = fopen(filename, "r");
-	if(NULL == f) {
-		return scap_errprintf(error, errno, "Could not open netlink sockets file %s", filename);
-	}
-	while(NULL != fgets(line, sizeof(line), f)) {
-		char *scratch;
-
-		// skip the first line ... contains field names
-		if(!first_line) {
-			first_line = true;
-			continue;
-		}
-		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
-		if(fdinfo == NULL) {
-			fclose(f);
-			return scap_errprintf(error, 0, "fdinfo allocation error");
-		}
-		memset(fdinfo, 0, sizeof(scap_fdinfo));
-		fdinfo->type = SCAP_FD_UNIX_SOCK;
-
-		//
-		// parse the fields
-		//
-		// 1. Num
-		token = strtok_r(line, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 2. Eth
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 3. Pid
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 4. Groups
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 5. Rmem
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 6. Wmem
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 7. Dump
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 8. Locks
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 9. Drops
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 10. Inode
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		sscanf(token, "%" PRIu64, &(fdinfo->ino));
-
-		HASH_ADD_INT64((*sockets), ino, fdinfo);
-		if(uth_status != SCAP_SUCCESS) {
-			fclose(f);
-			free(fdinfo);
-			return scap_errprintf(error, 0, "netlink socket allocation error");
-		}
-	}
-	fclose(f);
-	return uth_status;
-}
-
 // Parse an IPv4 socket table address in the form <hex_ip>:<hex_port>, skipping any leading
 // whitespace. Return a boolean indicating if the operation is successful. If the operation is
 // successful, `ip_out` and `port_out` will contain the read data, and `*str` will point to the
@@ -902,11 +773,7 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 static int32_t parse_unix_socket_table_line(const char *const line_start,
                                             const char *const line_end,
                                             scap_fdinfo **sockets,
-                                            const int l4proto,
                                             char *error) {
-	// Suppress Clang-Tidy warning "Parameter 'l4proto' is never used"
-	(void)l4proto;
-
 	// Parse `Num` field.
 	// note: this will fail if this is the header line.
 	char *scan_pos = (char *)line_start;
@@ -960,6 +827,58 @@ static int32_t parse_unix_socket_table_line(const char *const line_start,
 	if(uth_status != SCAP_SUCCESS) {
 		free(fdinfo);
 		return scap_errprintf(error, 0, "unix socket allocation error");
+	}
+	return SCAP_SUCCESS;
+}
+
+// Parse a single netlink socket table line and insert the obtained fdinfo into `sockets`. Return
+// `SCAP_SUCCESS` if it can correctly parse the line or encounters a recoverable error (e.g.: the
+// line could be simply skipped); return `SCAP_FAILURE` otherwise.
+static int32_t parse_netlink_socket_table_line(const char *const line_start,
+                                               const char *const line_end,
+                                               scap_fdinfo **sockets,
+                                               char *error) {
+	// Skip the entire header (it begins with `sk`).
+	if(*line_start == 's') {
+		return SCAP_SUCCESS;
+	}
+
+	// Get the position of the first space after the `sk` field.
+	char *scan_pos = memchr(line_start, ' ', line_end - line_start);
+	if(scan_pos == NULL) {
+		return SCAP_SUCCESS;
+	}
+
+	// Skip `Eth`, `Pid`, `Groups`, `Rmem`, `Wmem`, `Dump`, `Locks`, `Drops` to parse `Inode` field.
+	if(!mem_skip_fields(&scan_pos, line_end - scan_pos, 8)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Parse `Inode` field.
+	uint64_t ino;
+	if(!str_scan_u64(&scan_pos, 0, 10, &ino)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Allocate fdinfo and populate its fields.
+	// note(ekoops): not sure why, but the original caller called memset on the fdinfo, so I'm gonna
+	// call `calloc()` instead of `malloc()` here.
+	scap_fdinfo *fdinfo = calloc(1, sizeof(scap_fdinfo));
+	if(fdinfo == NULL) {
+		return scap_errprintf(error,
+		                      errno,
+		                      "memory allocation error in parse_netlink_socket_table_line()");
+	}
+
+	fdinfo->type = SCAP_FD_NETLINK;
+	fdinfo->ino = ino;
+
+	// Add to the table.
+	int32_t uth_status = SCAP_SUCCESS;
+	HASH_ADD_INT64((*sockets), ino, fdinfo);
+	if(uth_status != SCAP_SUCCESS) {
+		free(fdinfo);
+		return scap_errprintf(error, 0, "netlink socket allocation error");
 	}
 	return SCAP_SUCCESS;
 }
@@ -1034,7 +953,11 @@ static int32_t parse_procfs_proc_pid_socket_table_file_impl(const int fd,
 				break;
 			}
 			case AF_UNIX: {
-				res = parse_unix_socket_table_line(line_start, line_end, sockets, l4proto, error);
+				res = parse_unix_socket_table_line(line_start, line_end, sockets, error);
+				break;
+			}
+			case AF_NETLINK: {
+				res = parse_netlink_socket_table_line(line_start, line_end, sockets, error);
 				break;
 			}
 			default: {
@@ -1162,8 +1085,11 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	}
 
 	snprintf(filename, sizeof(filename), "%snetlink", netroot);
-	if(scap_fd_read_netlink_sockets_from_proc_fs(filename, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_NETLINK,
+	                                           SCAP_L4_NA,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read netlink sockets (%s)", err_buf);
 	}
