@@ -118,3 +118,48 @@ static inline bool str_scan_u16(char** str,
 	*str = endptr;
 	return true;
 }
+
+// Skip any number of `ch` starting from `*buff` and update `*buff` to point to the first character
+// not equal to `ch`. If the end of `*buff` is encountered before reaching the first character not
+// equal to `ch`, `*buff` is not updated and the operation is considered failed. Return a boolean
+// indicating if the operation was successful.
+static inline bool mem_skip_chars(char** buff, const size_t buff_len, const char ch) {
+	char* scan_pos = *buff;
+	const char* buff_end = *buff + buff_len;
+	while(scan_pos < buff_end && *scan_pos == ch) {
+		scan_pos++;
+	}
+
+	if(scan_pos == buff_end) {
+		return false;
+	}
+
+	*buff = scan_pos;
+	return true;
+}
+
+// Skip `fields_to_skip` fields in `*buff`. Fields must be separated by spaces. Any number of spaces
+// between two fields is supported. `*buff` must point to any of the spaces ***before*** the first
+// field that should be skipped. On success, update `*buff` to point to the first whitespace after
+// the skipped fields. If `fields_to_skip` is 0, this is no-op. Return a boolean indicating if the
+// operation was successful.
+static inline bool mem_skip_fields(char** buff,
+                                   const size_t buff_len,
+                                   const size_t fields_to_skip) {
+	char* scan_pos = *buff;
+	const char* buff_end = *buff + buff_len;
+	for(size_t i = 0; i < fields_to_skip; i++) {
+		// Skip any leading whitespace.
+		if(!mem_skip_chars(&scan_pos, buff_end - scan_pos, ' ')) {
+			return false;
+		}
+
+		// Search for the first whitespace after the current field.
+		scan_pos = memchr(scan_pos, ' ', buff_end - scan_pos);
+		if(scan_pos == NULL) {
+			return false;
+		}
+	}
+	*buff = scan_pos;
+	return true;
+}

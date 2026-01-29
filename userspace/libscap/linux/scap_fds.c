@@ -564,121 +564,6 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_fd_read_unix_sockets_from_proc_fs(const char *filename,
-                                               scap_fdinfo **sockets,
-                                               char *error) {
-	FILE *f;
-	char line[SCAP_MAX_PATH_SIZE];
-	int first_line = false;
-	char *delimiters = " \t";
-	char *token;
-	int32_t uth_status = SCAP_SUCCESS;
-
-	f = fopen(filename, "r");
-	if(NULL == f) {
-		ASSERT(false);
-		return scap_errprintf(error, errno, "Could not open sockets file %s", filename);
-	}
-	while(NULL != fgets(line, sizeof(line), f)) {
-		char *scratch;
-
-		// skip the first line ... contains field names
-		if(!first_line) {
-			first_line = true;
-			continue;
-		}
-		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
-		if(fdinfo == NULL) {
-			fclose(f);
-			return scap_errprintf(error, 0, "fdinfo allocation error");
-		}
-		fdinfo->type = SCAP_FD_UNIX_SOCK;
-
-		//
-		// parse the fields
-		//
-		// 1. Num
-		token = strtok_r(line, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		fdinfo->info.unix_socket_info.source = strtoul(token, NULL, 16);
-		fdinfo->info.unix_socket_info.destination = 0;
-
-		// 2. RefCount
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 3. Protocol
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 4. Flags
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 5. Type
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 6. St
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		// 7. Inode
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL) {
-			ASSERT(false);
-			free(fdinfo);
-			continue;
-		}
-
-		sscanf(token, "%" PRIu64, &(fdinfo->ino));
-
-		// 8. Path
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(NULL != token) {
-			strlcpy(fdinfo->info.unix_socket_info.fname,
-			        token,
-			        sizeof(fdinfo->info.unix_socket_info.fname));
-		} else {
-			fdinfo->info.unix_socket_info.fname[0] = '\0';
-		}
-
-		HASH_ADD_INT64((*sockets), ino, fdinfo);
-		if(uth_status != SCAP_SUCCESS) {
-			fclose(f);
-			free(fdinfo);
-			return scap_errprintf(error, 0, "unix socket allocation error");
-		}
-	}
-	fclose(f);
-	return uth_status;
-}
-
 // sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode
 // ffff88011abfb000 0   0      00000000 0        0        0 2        0        13
 
@@ -865,21 +750,8 @@ static int32_t parse_ipv4_socket_table_line(const char *const line_start,
 	}
 
 	// Skip `st`, `tx_queue`, `tr`, `retrnsmt`, `uid` and `timeout` fields to parse `inode` field.
-	for(int i = 0; i < 6; i++) {
-		scan_pos++;
-
-		scan_pos = memchr(scan_pos, ' ', line_end - scan_pos);
-		if(scan_pos == NULL) {
-			return SCAP_SUCCESS;
-		}
-
-		while(scan_pos < line_end && *scan_pos == ' ') {
-			scan_pos++;
-		}
-
-		if(scan_pos >= line_end) {
-			return SCAP_SUCCESS;
-		}
+	if(!mem_skip_fields(&scan_pos, line_end - scan_pos, 6)) {
+		return SCAP_SUCCESS;
 	}
 
 	// Parse `inode` field.
@@ -995,21 +867,8 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 	}
 
 	// Skip `st`, `tx_queue`, `tr`, `retrnsmt`, `uid` and `timeout` fields to parse `inode` field.
-	for(int i = 0; i < 6; i++) {
-		scan_pos++;
-
-		scan_pos = memchr(scan_pos, ' ', line_end - scan_pos);
-		if(scan_pos == NULL) {
-			return SCAP_SUCCESS;
-		}
-
-		while(scan_pos < line_end && *scan_pos == ' ') {
-			scan_pos++;
-		}
-
-		if(scan_pos >= line_end) {
-			return SCAP_SUCCESS;
-		}
+	if(!mem_skip_fields(&scan_pos, line_end - scan_pos, 6)) {
+		return SCAP_SUCCESS;
 	}
 
 	// Parse `inode` field.
@@ -1047,6 +906,74 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 	if(uth_status != SCAP_SUCCESS) {
 		free(fdinfo);
 		return scap_errprintf(error, 0, "ipv6 socket allocation error");
+	}
+	return SCAP_SUCCESS;
+}
+
+// Parse a single unix socket table line and insert the obtained fdinfo into `sockets`. Return
+// `SCAP_SUCCESS` if it can correctly parse the line or encounters a recoverable error (e.g.: the
+// line could be simply skipped); return `SCAP_FAILURE` otherwise.
+static int32_t parse_unix_socket_table_line(const char *const line_start,
+                                            const char *const line_end,
+                                            scap_fdinfo **sockets,
+                                            const int l4proto,
+                                            char *error) {
+	// Suppress Clang-Tidy warning "Parameter 'l4proto' is never used"
+	(void)l4proto;
+
+	// Parse `Num` field.
+	// note: this will fail if this is the header line.
+	char *scan_pos = (char *)line_start;
+	uint64_t source;
+	if(!str_scan_u64(&scan_pos, 0, 16, &source)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Skip ':'.
+	if(*scan_pos != ':') {
+		return SCAP_SUCCESS;
+	}
+	scan_pos++;
+
+	// Skip `RefCount`, `Protocol`, `Flags`, `Type` and `St` fields to parse `Inode` field.
+	if(!mem_skip_fields(&scan_pos, line_end - scan_pos, 5)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Parse `Inode` field.
+	uint64_t ino;
+	if(!str_scan_u64(&scan_pos, 0, 10, &ino)) {
+		return SCAP_SUCCESS;
+	}
+
+	// Allocate fdinfo and populate its fields.
+	scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+	if(fdinfo == NULL) {
+		return scap_errprintf(error,
+		                      errno,
+		                      "memory allocation error in parse_unix_socket_table_line()");
+	}
+
+	fdinfo->type = SCAP_FD_UNIX_SOCK;
+	fdinfo->info.unix_socket_info.source = source;
+	fdinfo->info.unix_socket_info.destination = 0;
+	fdinfo->ino = ino;
+
+	// Parse `Path` field (if present).
+	if(mem_skip_chars(&scan_pos, line_end - scan_pos, ' ')) {
+		strlcpy(fdinfo->info.unix_socket_info.fname,
+		        scan_pos,
+		        sizeof(fdinfo->info.unix_socket_info.fname));
+	} else {
+		fdinfo->info.unix_socket_info.fname[0] = '\0';
+	}
+
+	// Add to the table.
+	int32_t uth_status = SCAP_SUCCESS;
+	HASH_ADD_INT64((*sockets), ino, fdinfo);
+	if(uth_status != SCAP_SUCCESS) {
+		free(fdinfo);
+		return scap_errprintf(error, 0, "unix socket allocation error");
 	}
 	return SCAP_SUCCESS;
 }
@@ -1118,6 +1045,10 @@ static int32_t parse_procfs_proc_pid_socket_table_file_impl(const int fd,
 			}
 			case AF_INET6: {
 				res = parse_ipv6_socket_table_line(line_start, line_end, sockets, l4proto, error);
+				break;
+			}
+			case AF_UNIX: {
+				res = parse_unix_socket_table_line(line_start, line_end, sockets, l4proto, error);
 				break;
 			}
 			default: {
@@ -1235,8 +1166,11 @@ int32_t scap_fd_read_sockets(char *procdir, struct scap_ns_socket_list *sockets,
 	}
 
 	snprintf(filename, sizeof(filename), "%sunix", netroot);
-	if(scap_fd_read_unix_sockets_from_proc_fs(filename, &sockets->sockets, err_buf) ==
-	   SCAP_FAILURE) {
+	if(parse_procfs_proc_pid_socket_table_file(filename,
+	                                           AF_UNIX,
+	                                           SCAP_L4_NA,
+	                                           &sockets->sockets,
+	                                           err_buf) == SCAP_FAILURE) {
 		scap_fd_free_table(&sockets->sockets);
 		return scap_errprintf(error, 0, "Could not read unix sockets (%s)", err_buf);
 	}
