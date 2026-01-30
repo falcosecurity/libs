@@ -96,8 +96,6 @@ private:
 template<typename TDerived>
 class dynamic_struct : virtual public table_entry {
 public:
-	class dynamic_field_accessor;
-
 	/**
 	 * @brief Info about a given field in a dynamic struct.
 	 */
@@ -167,7 +165,10 @@ public:
 				throw sinsp_exception(
 				        "can't create dynamic struct field accessor for invalid field");
 			}
-			return accessor::ptr(std::make_unique<dynamic_field_accessor>(*this));
+			return accessor::ptr(std::make_unique<accessor>(m_type_id,
+			                                                read_dynamic_field,
+			                                                write_dynamic_field,
+			                                                m_index));
 		}
 
 	private:
@@ -238,28 +239,6 @@ public:
 		std::unordered_map<std::string, dynamic_field_info> m_definitions;
 		std::vector<const dynamic_field_info*> m_definitions_ordered;
 		friend class dynamic_struct;
-	};
-
-	/**
-	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
-	 * @tparam T Type of the field.
-	 */
-	class dynamic_field_accessor : public accessor {
-	public:
-		/**
-		 * @brief Returns the info about the field to which this accessor is tied.
-		 */
-		inline const dynamic_field_info& info() const { return m_info; }
-
-		inline explicit dynamic_field_accessor(const dynamic_field_info& info):
-		        accessor(info.m_type_id, read_dynamic_field, write_dynamic_field, info.index()),
-		        m_info(info) {};
-
-	private:
-		dynamic_field_info m_info;
-
-		friend class dynamic_struct;
-		friend class dynamic_struct::dynamic_field_info;
 	};
 
 	/**
