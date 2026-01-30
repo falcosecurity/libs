@@ -137,21 +137,24 @@ TEST(static_struct, defs_and_access) {
 TEST(dynamic_struct, defs_and_access) {
 	struct sample_struct : public libsinsp::state::dynamic_struct<sample_struct> {
 	public:
-		sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) {}
+		sample_struct(const std::shared_ptr<dynamic_field_infos>& i): dynamic_struct(i) {}
 	};
 
-	auto fields = std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>();
+	auto fields =
+	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::dynamic_field_infos>();
 
 	// struct construction and setting fields definition
 	sample_struct s(fields);
 	ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
 	ASSERT_ANY_THROW(s.set_dynamic_fields(
-	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>()));
+	        std::make_shared<
+	                libsinsp::state::dynamic_struct<sample_struct>::dynamic_field_infos>()));
 	// The double paranthesis fixes
 	// Error C2063 'std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>' : not a function
 	// C on the Windows compiler. This should be quirk of the Windows compiler.
-	ASSERT_NO_THROW((sample_struct(
-	        std::shared_ptr<libsinsp::state::dynamic_struct<sample_struct>::field_infos>())));
+	ASSERT_NO_THROW((
+	        sample_struct(std::shared_ptr<
+	                      libsinsp::state::dynamic_struct<sample_struct>::dynamic_field_infos>())));
 	ASSERT_NO_THROW(sample_struct(nullptr));
 	auto s2 = sample_struct(nullptr);
 	s2.set_dynamic_fields(fields);
@@ -211,11 +214,12 @@ TEST(dynamic_struct, defs_and_access) {
 
 TEST(dynamic_struct, mem_ownership) {
 	struct sample_struct : public libsinsp::state::dynamic_struct<sample_struct> {
-		sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) {}
+		sample_struct(const std::shared_ptr<dynamic_field_infos>& i): dynamic_struct(i) {}
 	};
 
 	std::string tmpstr1, tmpstr2;
-	auto defs1 = std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>();
+	auto defs1 =
+	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::dynamic_field_infos>();
 
 	// construct two entries, test safety checks
 	sample_struct s1(nullptr);
@@ -225,7 +229,8 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_ANY_THROW(s1.set_dynamic_fields(nullptr));
 	ASSERT_NO_THROW(s1.set_dynamic_fields(defs1));
 	ASSERT_ANY_THROW(s1.set_dynamic_fields(
-	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>()));
+	        std::make_shared<
+	                libsinsp::state::dynamic_struct<sample_struct>::dynamic_field_infos>()));
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field("str", SS_PLUGIN_ST_STRING);
@@ -255,8 +260,8 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_NE(tmpstr1, tmpstr2);
 
 	// deep copy and memory ownership (assignment)
-	sample_struct s4(
-	        std::make_shared<libsinsp::state::dynamic_struct<sample_struct>::field_infos>());
+	sample_struct s4(std::make_shared<
+	                 libsinsp::state::dynamic_struct<sample_struct>::dynamic_field_infos>());
 	s4 = s1;
 	ASSERT_EQ(s1.dynamic_fields().get(), s4.dynamic_fields().get());
 	s1.read_field(field_str_acc, tmpstr1);
@@ -283,7 +288,7 @@ TEST(dynamic_struct, mem_ownership) {
 TEST(table_registry, defs_and_access) {
 	class sample_struct : public libsinsp::state::dynamic_struct<sample_struct> {
 	public:
-		explicit sample_struct(const std::shared_ptr<field_infos>& dynamic_fields):
+		explicit sample_struct(const std::shared_ptr<dynamic_field_infos>& dynamic_fields):
 		        dynamic_struct(dynamic_fields) {}
 	};
 

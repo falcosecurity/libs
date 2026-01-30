@@ -62,7 +62,7 @@ struct sinsp_threadinfo_ctor_params {
 	const sinsp_network_interfaces& network_interfaces;
 	const sinsp_fdinfo_factory& fdinfo_factory;
 	const sinsp_fdtable_factory& fdtable_factory;
-	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_threadinfo>::field_infos>&
+	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_threadinfo>::dynamic_field_infos>&
 	        thread_manager_dyn_fields;
 };
 
