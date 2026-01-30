@@ -58,11 +58,9 @@ public:
 	        const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
 	        scap_platform* const& scap_platform,
 	        scap_t* const& scap_handle,
-	                     const std::shared_ptr<libsinsp::state::dynamic_struct<
-	                             sinsp_threadinfo>::dynamic_field_infos>& thread_manager_dyn_fields,
-	                     const std::shared_ptr<libsinsp::state::dynamic_struct<
-	                             sinsp_fdinfo>::dynamic_field_infos>& fdtable_dyn_fields,
-	                     const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager);
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
+	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager);
 	void clear();
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
@@ -317,8 +315,7 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_platform* const& m_scap_platform;
 	scap_t* const& m_scap_handle;
-	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::dynamic_field_infos>
-	        m_fdtable_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos> m_fdtable_dyn_fields;
 
 	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info
 	 */
