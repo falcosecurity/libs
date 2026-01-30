@@ -25,9 +25,7 @@ namespace libsinsp::state {
 template<typename TDerived>
 class extensible_struct : public static_struct, public dynamic_struct<TDerived> {
 public:
-	explicit extensible_struct(
-	        const std::shared_ptr<typename dynamic_struct<TDerived>::dynamic_field_infos>&
-	                dynamic_fields):
+	explicit extensible_struct(const std::shared_ptr<dynamic_field_infos>& dynamic_fields):
 	        static_struct(),
 	        dynamic_struct<TDerived>(dynamic_fields) {}
 };
@@ -38,8 +36,7 @@ class extensible_table_fields : public libsinsp::state::static_table_fields,
 public:
 	explicit extensible_table_fields(
 	        const static_struct::field_infos* const m_static_fields,
-	        const std::shared_ptr<typename dynamic_struct<TDerived>::dynamic_field_infos>&
-	                dynamic_fields = nullptr):
+	        const std::shared_ptr<dynamic_field_infos>& dynamic_fields = nullptr):
 	        static_table_fields(m_static_fields),
 	        dynamic_table_fields<TDerived>(dynamic_fields) {}
 
