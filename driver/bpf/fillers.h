@@ -3221,7 +3221,15 @@ FILLER(sys_openat_x, true) {
 	/*
 	 * Ino
 	 */
-	return bpf_push_u64_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/*
+	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * Legacy BPF doesn't support kernel-space path resolution yet,
+	 * so we push an empty parameter.
+	 */
+	return bpf_push_empty_param(data);
 }
 
 FILLER(sys_openat2_e, true) {
@@ -3387,7 +3395,15 @@ FILLER(sys_openat2_x, true) {
 	/*
 	 * ino
 	 */
-	return bpf_push_u64_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/*
+	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * Legacy BPF doesn't support kernel-space path resolution yet,
+	 * so we push an empty parameter.
+	 */
+	return bpf_push_empty_param(data);
 }
 
 FILLER(sys_open_by_handle_at_x, true) {
