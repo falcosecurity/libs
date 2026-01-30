@@ -25,7 +25,7 @@ limitations under the License.
 class sinsp_fdinfo_factory {
 	sinsp* m_sinsp;
 	libsinsp::event_processor** m_external_event_processor;
-	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::field_infos>& m_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::dynamic_field_infos>& m_dyn_fields;
 
 	libsinsp::event_processor* get_external_event_processor() const {
 		return *m_external_event_processor;
@@ -52,7 +52,7 @@ public:
 	sinsp_fdinfo_factory(
 	        sinsp* sinsp,
 	        libsinsp::event_processor** external_event_processor,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::field_infos>&
+	        const std::shared_ptr<libsinsp::state::dynamic_struct<sinsp_fdinfo>::dynamic_field_infos>&
 	                dyn_fields):
 	        m_sinsp{sinsp},
 	        m_external_event_processor{external_event_processor},

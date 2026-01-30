@@ -96,30 +96,30 @@ private:
 template<typename TDerived>
 class dynamic_struct : virtual public table_entry {
 public:
-	class field_accessor;
+	class dynamic_field_accessor;
 
 	/**
 	 * @brief Info about a given field in a dynamic struct.
 	 */
-	class field_info {
+	class dynamic_field_info {
 	public:
-		inline field_info(const std::string& n,
-		                  size_t in,
-		                  ss_plugin_state_type t,
-		                  uintptr_t defsptr,
-		                  bool r = false):
+		inline dynamic_field_info(const std::string& n,
+		                          size_t in,
+		                          ss_plugin_state_type t,
+		                          uintptr_t defsptr,
+		                          bool r = false):
 		        m_readonly(r),
 		        m_index(in),
 		        m_name(n),
 		        m_type_id(t),
 		        m_defs_id(defsptr) {}
 
-		friend inline bool operator==(const field_info& a, const field_info& b) {
+		friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
 			return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index &&
 			       a.m_defs_id == b.m_defs_id;
 		};
 
-		friend inline bool operator!=(const field_info& a, const field_info& b) {
+		friend inline bool operator!=(const dynamic_field_info& a, const dynamic_field_info& b) {
 			return !(a == b);
 		};
 
@@ -167,7 +167,7 @@ public:
 				throw sinsp_exception(
 				        "can't create dynamic struct field accessor for invalid field");
 			}
-			return accessor::ptr(std::make_unique<field_accessor>(*this));
+			return accessor::ptr(std::make_unique<dynamic_field_accessor>(*this));
 		}
 
 	private:
@@ -179,15 +179,15 @@ public:
 
 		friend class dynamic_struct;
 	};
-	class field_infos {
+	class dynamic_field_infos {
 	public:
-		inline field_infos(): m_defs_id((uintptr_t)this) {};
-		inline explicit field_infos(uintptr_t defs_id): m_defs_id(defs_id) {};
-		virtual ~field_infos() = default;
-		inline field_infos(field_infos&&) = default;
-		inline field_infos& operator=(field_infos&&) = default;
-		inline field_infos(const field_infos& s) = delete;
-		inline field_infos& operator=(const field_infos& s) = delete;
+		inline dynamic_field_infos(): m_defs_id((uintptr_t)this) {};
+		inline explicit dynamic_field_infos(uintptr_t defs_id): m_defs_id(defs_id) {};
+		virtual ~dynamic_field_infos() = default;
+		inline dynamic_field_infos(dynamic_field_infos&&) = default;
+		inline dynamic_field_infos& operator=(dynamic_field_infos&&) = default;
+		inline dynamic_field_infos(const dynamic_field_infos& s) = delete;
+		inline dynamic_field_infos& operator=(const dynamic_field_infos& s) = delete;
 
 		inline uintptr_t id() const { return m_defs_id; }
 
@@ -199,17 +199,18 @@ public:
 		 * @param name Display name of the field.
 		 * @param type_id Type of the field.
 		 */
-		inline const field_info& add_field(const std::string& name, ss_plugin_state_type type_id) {
-			auto field = field_info(name, m_definitions.size(), type_id, id());
+		inline const dynamic_field_info& add_field(const std::string& name,
+		                                           ss_plugin_state_type type_id) {
+			auto field = dynamic_field_info(name, m_definitions.size(), type_id, id());
 			return add_field_info(field);
 		}
 
-		virtual const std::unordered_map<std::string, field_info>& fields() {
+		virtual const std::unordered_map<std::string, dynamic_field_info>& fields() {
 			return m_definitions;
 		}
 
 	protected:
-		virtual const field_info& add_field_info(const field_info& field) {
+		virtual const dynamic_field_info& add_field_info(const dynamic_field_info& field) {
 			if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 				throw sinsp_exception("dynamic fields of type table are not supported");
 			}
@@ -234,8 +235,8 @@ public:
 		}
 
 		uintptr_t m_defs_id;
-		std::unordered_map<std::string, field_info> m_definitions;
-		std::vector<const field_info*> m_definitions_ordered;
+		std::unordered_map<std::string, dynamic_field_info> m_definitions;
+		std::vector<const dynamic_field_info*> m_definitions_ordered;
 		friend class dynamic_struct;
 	};
 
@@ -243,22 +244,22 @@ public:
 	 * @brief An strongly-typed accessor for accessing a field of a dynamic struct.
 	 * @tparam T Type of the field.
 	 */
-	class field_accessor : public accessor {
+	class dynamic_field_accessor : public accessor {
 	public:
 		/**
 		 * @brief Returns the info about the field to which this accessor is tied.
 		 */
-		inline const field_info& info() const { return m_info; }
+		inline const dynamic_field_info& info() const { return m_info; }
 
-		inline explicit field_accessor(const field_info& info):
+		inline explicit dynamic_field_accessor(const dynamic_field_info& info):
 		        accessor(info.m_type_id, read_dynamic_field, write_dynamic_field, info.index()),
 		        m_info(info) {};
 
 	private:
-		field_info m_info;
+		dynamic_field_info m_info;
 
 		friend class dynamic_struct;
-		friend class dynamic_struct::field_info;
+		friend class dynamic_struct::dynamic_field_info;
 	};
 
 	/**
@@ -268,7 +269,7 @@ public:
 	 * instance of field_infos.
 	 */
 
-	inline explicit dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields):
+	inline explicit dynamic_struct(const std::shared_ptr<dynamic_field_infos>& dynamic_fields):
 	        m_fields(),
 	        m_dynamic_fields(dynamic_fields) {}
 
@@ -285,7 +286,9 @@ public:
 		deep_fields_copy(s);
 		return *this;
 	}
-	inline const std::shared_ptr<field_infos>& dynamic_fields() const { return m_dynamic_fields; }
+	inline const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
 
 	virtual ~dynamic_struct() { dynamic_struct::destroy_dynamic_fields(); }
 
@@ -298,7 +301,7 @@ public:
 	 * The definitions can be set to a non-null value only once, either at
 	 * construction time by invoking this method.
 	 */
-	virtual void set_dynamic_fields(const std::shared_ptr<field_infos>& defs) {
+	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& defs) {
 		if(m_dynamic_fields.get() == defs.get()) {
 			return;
 		}
@@ -377,19 +380,20 @@ private:
 	}
 
 	std::vector<dynamic_field_value> m_fields;
-	std::shared_ptr<field_infos> m_dynamic_fields;
+	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 };
 
 template<typename TDerived>
 class dynamic_table_fields : virtual public table_fields {
 public:
 	explicit dynamic_table_fields(
-	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynamic_fields =
-	                nullptr):
+	        const std::shared_ptr<typename dynamic_struct<TDerived>::dynamic_field_infos>&
+	                dynamic_fields = nullptr):
 	        m_dynamic_fields(
 	                dynamic_fields != nullptr
 	                        ? dynamic_fields
-	                        : std::make_shared<typename dynamic_struct<TDerived>::field_infos>()) {}
+	                        : std::make_shared<
+	                                  typename dynamic_struct<TDerived>::dynamic_field_infos>()) {}
 
 	void fields(std::vector<ss_plugin_table_fieldinfo>& out) const override {
 		for(auto& info : this->dynamic_fields()->fields()) {
@@ -420,7 +424,7 @@ public:
 	}
 
 	virtual void set_dynamic_fields(
-	        const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>& dynf) {
+	        const std::shared_ptr<typename dynamic_struct<TDerived>::dynamic_field_infos>& dynf) {
 		if(m_dynamic_fields.get() == dynf.get()) {
 			return;
 		}
@@ -442,13 +446,13 @@ protected:
 	 * be allocated and accessible for all the present and future entries
 	 * present in the table.
 	 */
-	[[nodiscard]] const std::shared_ptr<typename dynamic_struct<TDerived>::field_infos>&
+	[[nodiscard]] const std::shared_ptr<typename dynamic_struct<TDerived>::dynamic_field_infos>&
 	dynamic_fields() const {
 		return m_dynamic_fields;
 	}
 
 private:
-	std::shared_ptr<typename dynamic_struct<TDerived>::field_infos> m_dynamic_fields;
+	std::shared_ptr<typename dynamic_struct<TDerived>::dynamic_field_infos> m_dynamic_fields;
 };
 
 };  // namespace libsinsp::state
