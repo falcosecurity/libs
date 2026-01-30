@@ -19,9 +19,7 @@ limitations under the License.
 #include <cinttypes>
 #include <iostream>
 #include <chrono>
-#ifndef _WIN32
-#include <getopt.h>
-#endif  // _WIN32
+#include <cxxopts.hpp>
 #include <csignal>
 #include <libsinsp/sinsp.h>
 #include <libscap/scap_engines.h>
@@ -314,39 +312,6 @@ static void sigint_handler(int signum) {
 	g_interrupted = true;
 }
 
-static void usage() {
-	string usage = R"(Usage: sinsp-example [options]
-
-Overview: Goal of sinsp-example binary is to test and debug sinsp functionality and print events to STDOUT. All drivers are supported.
-
-Options:
-  -h, --help                                 Print this page.
-  -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
-  -j, --json                                 Use JSON as the output format.
-  -a, --all-threads                          Output information about all threads, not just the main one.
-  -b <path>, --bpf <path>                    eBPF probe.
-  -m, --modern_bpf                           Modern eBPF probe.
-  -k, --kmod                                 Kernel module
-  -G <config_path>, --gvisor <config_path>   Gvisor engine
-  -s <path>, --scap_file <path>              Scap file
-  -p <path>, --plugin <path>                 Plugin. Path can follow the pattern "filepath.so|init_cfg|open_params". Must come after the "-s" option when reading events from a file.
-  -d <dim>, --buffer_dim <dim>               Dimension in bytes that every buffer will have.
-  -c <num>, --cpus-for-each-buffer <num>     (modern eBPF probe only) Allocate a ring buffer every <num> CPU(s) (default: 1).
-  -A, --all-cpus                             (modern eBPF probe only) Allocate ring buffers for all available CPUs (default: allocate ring buffers for online CPU(s) only).
-  -o <fields>, --output-fields <fields>      Output fields string (see <filter> for supported display fields) that overwrites default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
-  -E, --exclude-users                        Don't create the user/group tables
-  -n, --num-events                           Number of events to be retrieved (no limit by default)
-  -z, --ppm-sc-modifies-state                Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_state_sc_set`, requires valid filter expression.
-  -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_repair_state_sc_set`, requires valid filter expression.
-  -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option, used for e2e testing of sinsp state.
-  -g, --enable-glogger                       Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust the test binary source and re-compile.
-  -r, --raw                                  raw event ouput
-  -t, --perftest                             Run in performance test mode
-  -T, --tables                               -T or -Tbrief print tables descriptions. -Tlist print table entries, if -n is specified, print only the first n entries.
-)";
-	cout << usage << endl;
-}
-
 static void select_engine(const char* select) {
 	if(!engine_string.empty()) {
 		std::cerr << "While selecting " << select
@@ -356,51 +321,95 @@ static void select_engine(const char* select) {
 	engine_string = select;
 }
 
-#ifndef _WIN32
 // Parse CLI options.
 void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
-	static struct option long_options[] = {
-	        {"help", no_argument, nullptr, 'h'},
-	        {"filter", required_argument, nullptr, 'f'},
-	        {"json", no_argument, nullptr, 'j'},
-	        {"all-threads", no_argument, nullptr, 'a'},
-	        {"bpf", required_argument, nullptr, 'b'},
-	        {"modern_bpf", no_argument, nullptr, 'm'},
-	        {"kmod", no_argument, nullptr, 'k'},
-	        {"scap_file", required_argument, nullptr, 's'},
-	        {"plugin", required_argument, nullptr, 'p'},
-	        {"buffer_dim", required_argument, nullptr, 'd'},
-	        {"cpus-for-each-buffer", required_argument, nullptr, 'c'},
-	        {"all-cpus", no_argument, nullptr, 'A'},
-	        {"output-fields", required_argument, nullptr, 'o'},
-	        {"exclude-users", no_argument, nullptr, 'E'},
-	        {"num-events", required_argument, nullptr, 'n'},
-	        {"ppm-sc-modifies-state", no_argument, nullptr, 'z'},
-	        {"ppm-sc-repair-state", no_argument, nullptr, 'x'},
-	        {"remove-io-sc-state", no_argument, nullptr, 'q'},
-	        {"enable-glogger", no_argument, nullptr, 'g'},
-	        {"raw", no_argument, nullptr, 'r'},
-	        {"gvisor", optional_argument, nullptr, 'G'},
-	        {"perftest", no_argument, nullptr, 't'},
-	        {"tables", optional_argument, nullptr, 'T'},
-	        {nullptr, 0, nullptr, 0}};
+	cxxopts::Options options(
+	        "sinsp-example",
+	        "Goal of sinsp-example binary is to test and debug sinsp functionality and print "
+	        "events to STDOUT. All drivers are supported.");
 
-	bool format_set = false;
-	int op;
-	int long_index = 0;
-	while((op = getopt_long(argc,
-	                        argv,
-	                        "hf:jab:mks:p:d:c:Ao:En:zxqgrtT::G::",
-	                        long_options,
-	                        &long_index)) != -1) {
-		switch(op) {
-		case 'h':
-			usage();
+	// clang-format off
+	options.add_options()
+		("h,help", "Print this page.")
+		("f,filter",
+			"Filter string for events (see "
+			"https://falco.org/docs/rules/supported-fields/ "
+			"for supported fields).",
+			cxxopts::value<std::string>())
+		("j,json", "Use JSON as the output format.")
+		("a,all-threads",
+			"Output information about all threads, not just the main one.")
+		("b,bpf",
+			"Classic eBPF probe.",
+			cxxopts::value<std::string>())
+		("m,modern_bpf", "Modern eBPF probe.")
+		("k,kmod", "Kernel module.")
+		("G,gvisor",
+			"Gvisor engine.",
+			cxxopts::value<std::string>()->implicit_value("/etc/docker/runsc_falco_config.json"))
+		("s,scap_file",
+			"Scap file",
+			cxxopts::value<std::string>())
+		("p,plugin",
+			"Plugin. Path can follow the pattern \"filepath.so|init_cfg|open_params\". "
+			"Must come after the \"-s\" option when reading events from a file.",
+			cxxopts::value<std::string>())
+		("d,buffer_dim",
+			"Dimension in bytes that every buffer will have.",
+			cxxopts::value<unsigned long>())
+		("c,cpus-for-each-buffer",
+			"(modern eBPF probe only) Allocate a ring buffer every <num> CPU(s) "
+			"(default: 1).",
+			cxxopts::value<uint16_t>())
+		("A,all-cpus",
+			"(modern eBPF probe only) Allocate ring buffers for all available CPUs "
+			"(default: allocate ring buffers for online CPU(s) only).")
+		("o,output-fields",
+			"Output fields string (see <filter> for supported display fields) that "
+			"overwrites default output fields for all events. * at the beginning "
+			"prints JSON keys with null values, else no null fields are printed.",
+			cxxopts::value<std::string>())
+		("E,exclude-users", "Don't create the user/group tables.")
+		("n,num-events",
+			"Number of events to be retrieved (no limit by default).",
+			cxxopts::value<uint64_t>())
+		("z,ppm-sc-modifies-state",
+			"Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes"
+			" via `sinsp_state_sc_set`, requires valid filter expression.")
+		("x,ppm-sc-repair-state",
+			"Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes "
+			"via `sinsp_repair_state_sc_set`, requires valid filter expression.")
+		("q,remove-io-sc-state",
+			"Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` "
+			"sinsp state enforcement, defaults to false and only applies when choosing "
+			"the `-z` option, used for e2e testing of sinsp state.")
+		("g,enable-glogger",
+			"Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust "
+			"the test binary source and re-compile.")
+		("r,raw", "Raw event output.")
+		("t,perftest", "Run in performance test mode.")
+		("T,tables",
+			"-T or -Tbrief print tables descriptions. -Tlist print table entries, if "
+			"-n is specified, print only the first n entries.",
+			cxxopts::value<std::string>()->implicit_value("brief")
+	);
+	// clang-format on
+
+	try {
+		auto result = options.parse(argc, argv);
+
+		if(result.count("help")) {
+			std::cout << options.help() << std::endl;
 			exit(EXIT_SUCCESS);
-		case 'f':
-			filter_string = optarg;
-			break;
-		case 'j':
+		}
+
+		bool format_set = false;
+
+		if(result.count("filter")) {
+			filter_string = result["filter"].as<std::string>();
+		}
+
+		if(result.count("json")) {
 			dump = formatted_dump;
 			if(!format_set) {
 				default_output = DEFAULT_OUTPUT_STR;
@@ -409,32 +418,37 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				plugin_output = PLUGIN_DEFAULTS;
 			}
 			inspector.set_buffer_format(sinsp_evt::PF_JSON);
-			break;
-		case 'a':
+		}
+
+		if(result.count("all-threads")) {
 			g_all_threads = true;
-			break;
-		case 'b':
+		}
+
+		if(result.count("bpf")) {
 			select_engine(BPF_ENGINE);
-			bpf_path = optarg;
-			break;
-		case 'G':
+			bpf_path = result["bpf"].as<std::string>();
+		}
+
+		if(result.count("gvisor")) {
 			engine_string = GVISOR_ENGINE;
-			if(optarg != nullptr) {
-				gvisor_config_path = optarg;
-			}
-			break;
-		case 'm':
+			gvisor_config_path = result["gvisor"].as<std::string>();
+		}
+
+		if(result.count("modern_bpf")) {
 			select_engine(MODERN_BPF_ENGINE);
-			break;
-		case 'k':
+		}
+
+		if(result.count("kmod")) {
 			select_engine(KMOD_ENGINE);
-			break;
-		case 's':
+		}
+
+		if(result.count("scap_file")) {
 			select_engine(SAVEFILE_ENGINE);
-			file_path = optarg;
-			break;
-		case 'p': {
-			std::string pluginpath = optarg;
+			file_path = result["scap_file"].as<std::string>();
+		}
+
+		if(result.count("plugin")) {
+			std::string pluginpath = result["plugin"].as<std::string>();
 			size_t cpos = pluginpath.find('|');
 			std::string init_config;
 			// Extract init config from string if present
@@ -461,69 +475,75 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			if(plugin->caps() & CAP_EXTRACTION) {
 				filter_list->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
 			}
-			break;
 		}
-		case 'd':
-			buffer_bytes_dim = strtoul(optarg, nullptr, 10);
-			break;
-		case 'c': {
-			const auto value = strtoul(optarg, nullptr, 10);
-			if(value > UINT16_MAX) {
-				std::cerr << "The number of CPUs for each ring buffer cannot be greater than "
-				          << UINT16_MAX << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			cpus_for_each_buffer = static_cast<uint16_t>(value);
-			break;
+
+		if(result.count("buffer_dim")) {
+			buffer_bytes_dim = result["buffer_dim"].as<unsigned long>();
 		}
-		case 'A':
+
+		if(result.count("cpus-for-each-buffer")) {
+			const auto value = result["cpus-for-each-buffer"].as<uint16_t>();
+			cpus_for_each_buffer = value;
+		}
+
+		if(result.count("all-cpus")) {
 			all_cpus = true;
-			break;
-		case 'o':
-			default_output = optarg;
-			process_output = optarg;
-			net_output = optarg;
-			plugin_output = optarg;
+		}
+
+		if(result.count("output-fields")) {
+			auto output_fields = result["output-fields"].as<std::string>();
+			default_output = output_fields;
+			process_output = output_fields;
+			net_output = output_fields;
+			plugin_output = output_fields;
 			format_set = true;
-			break;
-		case 'E':
+		}
+
+		if(result.count("exclude-users")) {
 			inspector.set_import_users(false);
-			break;
-		case 'n':
-			max_events = std::atol(optarg);
-			break;
-		case 'z':
+		}
+
+		if(result.count("num-events")) {
+			max_events = result["num-events"].as<uint64_t>();
+		}
+
+		if(result.count("ppm-sc-modifies-state")) {
 			ppm_sc_modifies_state = true;
-			break;
-		case 'x':
+		}
+
+		if(result.count("ppm-sc-repair-state")) {
 			ppm_sc_repair_state = true;
-			break;
-		case 'q':
+		}
+
+		if(result.count("remove-io-sc-state")) {
 			ppm_sc_state_remove_io_sc = true;
-			break;
-		case 'g':
+		}
+
+		if(result.count("enable-glogger")) {
 			enable_glogger = true;
-			break;
-		case 'r':
+		}
+
+		if(result.count("raw")) {
 			dump = raw_dump;
-			break;
-		case 't':
+		}
+
+		if(result.count("perftest")) {
 			perftest = true;
-			break;
-		case 'T':
-			table_mode = optarg ? optarg : "brief";
+		}
+
+		if(result.count("tables")) {
+			table_mode = result["tables"].as<std::string>();
 			if(table_mode != "brief" && table_mode != "list") {
 				std::cerr << "Invalid table mode: " << table_mode << ". Use 'brief' or 'list'."
 				          << std::endl;
 				exit(EXIT_FAILURE);
 			}
-			break;
-		default:
-			break;
 		}
+	} catch(const cxxopts::exceptions::exception& e) {
+		std::cerr << "Error parsing options: " << e.what() << std::endl;
+		exit(EXIT_FAILURE);
 	}
 }
-#endif  // _WIN32
 
 libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector) {
 	auto ast = inspector.get_filter_ast();
@@ -715,7 +735,6 @@ int main(int argc, char** argv) {
 	filter_list.reset(new sinsp_filter_check_list());
 	filter_factory.reset(new sinsp_filter_factory(&inspector, *filter_list.get()));
 
-#ifndef _WIN32
 	parse_CLI_options(inspector, argc, argv);
 	if(engine_string.empty()) {
 		// Default for backward compat
@@ -730,6 +749,7 @@ int main(int argc, char** argv) {
 	}
 #endif  // __linux__
 
+#ifndef _WIN32
 	signal(SIGPIPE, sigint_handler);
 #endif  // _WIN32
 

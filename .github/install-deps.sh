@@ -60,3 +60,11 @@ wget -P "/usr/include" "https://raw.githubusercontent.com/troydhanson/uthash/v1.
 echo "=== Downloading BS_thread_pool.h (4.1.0) ==="
 
 wget -P "/usr/include" "https://github.com/bshoshany/thread-pool/raw/v4.1.0/include/BS_thread_pool.hpp"
+
+# === cxxopts ===
+if [ ! -f "/usr/include/cxxopts.hpp" ]; then
+    echo "=== Downloading cxxopts.hpp (3.3.1) ==="
+    wget -P "/usr/include" "https://raw.githubusercontent.com/jarro2783/cxxopts/refs/tags/v3.3.1/include/cxxopts.hpp"
+else
+    echo "=== cxxopts.hpp already exists, skipping download ==="
+fi
