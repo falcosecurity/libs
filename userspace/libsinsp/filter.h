@@ -181,16 +181,6 @@ public:
 	};
 
 	sinsp_extractor_compiler(
-	        sinsp* inspector,
-	        const std::string& fltstr,
-	        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
-
-	sinsp_extractor_compiler(
-	        const std::shared_ptr<sinsp_filter_factory>& factory,
-	        libsinsp::filter::ast::expr* fltast,
-	        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
-
-	sinsp_extractor_compiler(
 	        const std::shared_ptr<sinsp_filter_factory>& factory,
 	        const libsinsp::filter::ast::expr* fltast,
 	        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
