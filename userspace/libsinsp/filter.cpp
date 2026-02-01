@@ -167,22 +167,6 @@ void sinsp_filter::add_check(std::unique_ptr<sinsp_filter_check> chk) {
 // sinsp_extractor_compiler implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_extractor_compiler::sinsp_extractor_compiler(
-        sinsp* inspector,
-        const std::string& fltstr,
-        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory):
-        m_flt_str(fltstr),
-        m_factory(std::make_shared<sinsp_filter_factory>(inspector, m_default_filterlist)),
-        m_cache_factory(cache_factory) {}
-
-sinsp_extractor_compiler::sinsp_extractor_compiler(
-        const std::shared_ptr<sinsp_filter_factory>& factory,
-        libsinsp::filter::ast::expr* fltast,
-        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory):
-        m_flt_ast(fltast),
-        m_factory(factory),
-        m_cache_factory(cache_factory) {}
-
-sinsp_extractor_compiler::sinsp_extractor_compiler(
         const std::shared_ptr<sinsp_filter_factory>& factory,
         const libsinsp::filter::ast::expr* fltast,
         const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory):
