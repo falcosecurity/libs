@@ -206,6 +206,12 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 		try_inversion(m_last_node_codes);
 	}
 
+	void visit(const libsinsp::filter::ast::transformer_list_expr* e) override {
+		for(auto& c : e->children) {
+			c->accept(this);
+		}
+	}
+
 	void visit(const libsinsp::filter::ast::field_expr* e) override {
 		m_last_node_has_codes = false;
 		m_last_node_is_field_or_transformer = true;
@@ -216,11 +222,12 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 	}
 
 	void visit(const libsinsp::filter::ast::field_transformer_expr* e) override {
-		e->value->accept(this);
-		if(m_last_node_is_evttype_field) {
-			throw sinsp_exception(
-			        "event code search does not support `evt.type`/`syscall.type` checks with "
-			        "transformers");
+		for(auto& c : e->values) {
+			c->accept(this);
+			if(m_last_node_is_evttype_field) {
+				throw sinsp_exception(
+				        "event code search does not support `evt.type` checks with transformers");
+			}
 		}
 		m_last_node_is_field_or_transformer = true;
 	}
