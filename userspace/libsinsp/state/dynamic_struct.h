@@ -33,7 +33,7 @@ namespace libsinsp::state {
  * @brief A base class for classes and structs that allow dynamic programming
  * by being extensible and allowing adding and accessing new data fields at runtime.
  */
-class dynamic_struct : virtual public state_struct {
+class dynamic_struct : public state_struct {
 public:
 	template<typename T>
 	class field_accessor;
