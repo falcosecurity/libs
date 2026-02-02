@@ -33,7 +33,7 @@ namespace state {
  * The structure of the class is predetermined at compile-time and its fields
  * are placed at a given offset within the class memory area.
  */
-class static_struct : virtual public state_struct {
+class static_struct : public state_struct {
 public:
 	template<typename T>
 	class field_accessor;
