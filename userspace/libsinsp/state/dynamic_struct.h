@@ -266,7 +266,7 @@ public:
 	 * The definitions can be set to a non-null value only once, either at
 	 * construction time by invoking this method.
 	 */
-	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& defs) {
+	void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& defs) {
 		if(m_dynamic_fields.get() == defs.get()) {
 			return;
 		}

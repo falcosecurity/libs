@@ -74,7 +74,7 @@ union sinsp_sockinfo {
    you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */
-class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::extensible_struct<sinsp_fdinfo> {
+class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::dynamic_struct<sinsp_fdinfo> {
 public:
 	/*!
 	  \brief FD flags.
@@ -336,7 +336,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static static_struct::field_infos get_static_fields();
+	static libsinsp::state::static_struct::field_infos get_static_fields();
 
 	scap_fd_type m_type =
 	        SCAP_FD_UNINITIALIZED;  ///< The fd type, e.g. file, directory, IPv4 socket...

@@ -74,7 +74,6 @@ public:
 			return accessor::ptr(std::make_unique<field_accessor>(*this));
 		}
 
-	private:
 		inline field_info(const std::string& n,
 		                  ss_plugin_state_type t,
 		                  bool r,
@@ -121,31 +120,31 @@ public:
 	 * in a static struct.
 	 */
 	using field_infos = std::unordered_map<std::string, field_info>;
-
-protected:
-	/**
-	 * @brief Defines the information about a field defined in the class or struct.
-	 * An exception is thrown if two fields are defined with the same name.
-	 *
-	 * @tparam T Type of the field.
-	 * @param fields Fields group to which to add the new field.
-	 * @param name Display name of the field.
-	 */
-	static const field_info& define_static_field(field_infos& fields,
-	                                             const std::string& name,
-	                                             ss_plugin_state_type type,
-	                                             accessor::reader_fn reader,
-	                                             accessor::writer_fn writer,
-	                                             const bool readonly = false) {
-		const auto& it = fields.find(name);
-		if(it != fields.end()) {
-			throw sinsp_exception("multiple definitions of static field in struct: " + name);
-		}
-
-		fields.insert({name, field_info(name, type, readonly, reader, writer)});
-		return fields.at(name);
-	}
 };
+
+/**
+ * @brief Defines the information about a field defined in the class or struct.
+ * An exception is thrown if two fields are defined with the same name.
+ *
+ * @tparam T Type of the field.
+ * @param fields Fields group to which to add the new field.
+ * @param name Display name of the field.
+ */
+static inline const static_struct::field_info& define_static_field(
+        static_struct::field_infos& fields,
+        const std::string& name,
+        ss_plugin_state_type type,
+        accessor::reader_fn reader,
+        accessor::writer_fn writer,
+        const bool readonly = false) {
+	const auto& it = fields.find(name);
+	if(it != fields.end()) {
+		throw sinsp_exception("multiple definitions of static field in struct: " + name);
+	}
+
+	fields.insert({name, static_struct::field_info(name, type, readonly, reader, writer)});
+	return fields.at(name);
+}
 
 class static_table_fields : virtual public table_fields {
 public:

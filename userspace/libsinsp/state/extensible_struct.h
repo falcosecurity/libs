@@ -23,14 +23,6 @@ limitations under the License.
 
 namespace libsinsp::state {
 template<typename TDerived>
-class extensible_struct : public static_struct, public dynamic_struct<TDerived> {
-public:
-	explicit extensible_struct(const std::shared_ptr<dynamic_field_infos>& dynamic_fields):
-	        static_struct(),
-	        dynamic_struct<TDerived>(dynamic_fields) {}
-};
-
-template<typename TDerived>
 class extensible_table_fields : public libsinsp::state::static_table_fields,
                                 public libsinsp::state::dynamic_table_fields<TDerived> {
 public:

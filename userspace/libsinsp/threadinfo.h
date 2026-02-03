@@ -76,7 +76,7 @@ struct sinsp_threadinfo_ctor_params {
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct<sinsp_threadinfo> {
+class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::dynamic_struct<sinsp_threadinfo> {
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
 
@@ -503,7 +503,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static static_struct::field_infos get_static_fields();
+	static libsinsp::state::static_struct::field_infos get_static_fields();
 
 protected:
 	// Parameters provided at thread info construction phase.
