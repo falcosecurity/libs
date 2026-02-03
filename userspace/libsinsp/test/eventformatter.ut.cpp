@@ -372,3 +372,56 @@ TEST_F(sinsp_formatter_test, join_transformer) {
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 	EXPECT_EQ(m_last_field_values["join(->,(proc.name,evt.arg.path))"], "init->/test/dir");
 }
+
+TEST_F(sinsp_formatter_test, concat_transformer) {
+	format("start %concat(proc.name, evt.arg.path) end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start init/test/dir end");
+	EXPECT_EQ(m_last_field_values.size(), 3) << pretty_print(m_last_field_values);
+	EXPECT_EQ(m_last_field_values["proc.name"], "init");
+	EXPECT_EQ(m_last_field_values["concat(proc.name,evt.arg.path)"], "init/test/dir");
+}
+
+TEST_F(sinsp_formatter_test, concat_with_outer_transformer) {
+	format("start %toupper(concat(proc.name, evt.arg.path)) end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start INIT/TEST/DIR end");
+	EXPECT_EQ(m_last_field_values.size(), 3) << pretty_print(m_last_field_values);
+	EXPECT_EQ(m_last_field_values["proc.name"], "init");
+	EXPECT_EQ(m_last_field_values["toupper(concat(proc.name,evt.arg.path))"], "INIT/TEST/DIR");
+}
+
+TEST_F(sinsp_formatter_test, concat_with_inner_transformer) {
+	format("start %concat(toupper(proc.name), evt.arg.path) end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start INIT/test/dir end");
+	EXPECT_EQ(m_last_field_values.size(), 4) << pretty_print(m_last_field_values);
+	EXPECT_EQ(m_last_field_values["proc.name"], "init");
+	EXPECT_EQ(m_last_field_values["evt.arg.path"], "/test/dir");
+	EXPECT_EQ(m_last_field_values["toupper(proc.name)"], "INIT");
+	EXPECT_EQ(m_last_field_values["concat(toupper(proc.name),evt.arg.path)"], "INIT/test/dir");
+}
+
+TEST_F(sinsp_formatter_test, join_with_inner_transformer) {
+	format("start %join(\"->\", (toupper(proc.name), tolower(evt.arg.path))) end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start INIT->/test/dir end");
+	EXPECT_EQ(m_last_field_values.size(), 4) << pretty_print(m_last_field_values);
+	EXPECT_EQ(m_last_field_values["proc.name"], "init");
+	EXPECT_EQ(m_last_field_values["evt.arg.path"], "/test/dir");
+	EXPECT_EQ(m_last_field_values["toupper(proc.name)"], "INIT");
+	EXPECT_EQ(m_last_field_values["join(->,(toupper(proc.name),tolower(evt.arg.path)))"],
+	          "INIT->/test/dir");
+}
+
+TEST_F(sinsp_formatter_test, nested_concat_and_join) {
+	format("start %toupper(join(\"->\", (concat(proc.name, evt.arg.path), proc.name))) end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start INIT/TEST/DIR->INIT end");
+	EXPECT_EQ(m_last_field_values.size(), 4) << pretty_print(m_last_field_values);
+	EXPECT_EQ(m_last_field_values["proc.name"], "init");
+	EXPECT_EQ(m_last_field_values["evt.arg.path"], "/test/dir");
+	EXPECT_EQ(m_last_field_values["concat(proc.name,evt.arg.path)"], "init/test/dir");
+	EXPECT_EQ(m_last_field_values["toupper(join(->,(concat(proc.name,evt.arg.path),proc.name)))"],
+	          "INIT/TEST/DIR->INIT");
+}
