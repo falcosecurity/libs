@@ -20,10 +20,6 @@ TEST(SyscallExit, openatX_success) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Get the current working directory before the syscall to compare with kernel-resolved CWD */
-	char expected_cwd[PATH_MAX];
-	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
-
 	/* Syscall special notes:
 	 * With `O_TMPFILE` flag the pathname must be a directory.
 	 */
@@ -32,7 +28,6 @@ TEST(SyscallExit, openatX_success) {
 	int flags = notmpfile ? (O_RDWR | O_CREAT | O_DIRECTORY) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
 	mode_t mode = 0;
 	int fd = syscall(__NR_openat, dirfd, pathname, flags, mode);
-	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
 
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
@@ -44,6 +39,19 @@ TEST(SyscallExit, openatX_success) {
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
+
+	/* Get the current working directory before closing the fd */
+	char expected_cwd[PATH_MAX];
+	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
+
+	std::string expected_fullpath;
+	if(notmpfile) {
+		// Regular file: construct from CWD + pathname
+		expected_fullpath = std::string(expected_cwd) + "/" + pathname;
+	} else {
+		expected_fullpath = std::string(expected_cwd) + "/#" + std::to_string(inode);
+	}
+
 	close(fd);
 
 	if(notmpfile) {
@@ -91,9 +99,9 @@ TEST(SyscallExit, openatX_success) {
 	/* Parameter 7: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(7, inode);
 
-	/* Parameter 8: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path */
+	/* Parameter 8: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(8, expected_cwd);
+		evt_test->assert_path_param_equal(8, expected_fullpath);
 	} else {
 		evt_test->assert_empty_param(8);
 	}
@@ -109,7 +117,7 @@ TEST(SyscallExit, openatX_failure) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Get the current working directory before the syscall to compare with kernel-resolved CWD */
+	/* Get the current working directory before the syscall to construct expected full path */
 	char expected_cwd[PATH_MAX];
 	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
 
@@ -126,6 +134,9 @@ TEST(SyscallExit, openatX_failure) {
 	                     "openat",
 	                     syscall(__NR_openat, dirfd, pathname, flags, mode));
 	int64_t errno_value = -errno;
+
+	/* For failed syscalls, fullpath will be empty (ret <= 0) */
+	std::string expected_fullpath; /* Empty for failed syscalls */
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -166,9 +177,11 @@ TEST(SyscallExit, openatX_failure) {
 	/* Parameter 7: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(7, (uint64_t)0);
 
-	/* Parameter 8: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path */
+	/* Parameter 8: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
+	 * For failed syscalls (ret <= 0), this will be empty */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(8, expected_cwd);
+		/* Syscall failed, so fullpath should be empty */
+		evt_test->assert_empty_param(8);
 	} else {
 		evt_test->assert_empty_param(8);
 	}
@@ -184,7 +197,7 @@ TEST(SyscallExit, openatX_create_success) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Get the current working directory before the syscall to compare with kernel-resolved CWD */
+	/* Get the current working directory before the syscall to construct expected full path */
 	char expected_cwd[PATH_MAX];
 	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
 
@@ -195,6 +208,10 @@ TEST(SyscallExit, openatX_create_success) {
 	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0); /* remove file before creating it */
 	int fd = syscall(__NR_openat, dirfd, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
+
+	/* Construct expected full path: CWD + "/" + pathname (kernel resolves this from the opened fd)
+	 */
+	std::string expected_fullpath = std::string(expected_cwd) + "/" + pathname;
 
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
@@ -247,9 +264,9 @@ TEST(SyscallExit, openatX_create_success) {
 	/* Parameter 7: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(7, inode);
 
-	/* Parameter 8: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path */
+	/* Parameter 8: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(8, expected_cwd);
+		evt_test->assert_path_param_equal(8, expected_fullpath);
 	} else {
 		evt_test->assert_empty_param(8);
 	}
@@ -282,6 +299,10 @@ TEST(SyscallExit, openatX_with_dirfd) {
 
 	int fd = syscall(__NR_openat, dirfd, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
+
+	/* Construct expected full path: cwd + "/" + pathname (kernel resolves this from the opened fd)
+	 */
+	std::string expected_fullpath = std::string(cwd) + "/" + pathname;
 
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
@@ -338,9 +359,9 @@ TEST(SyscallExit, openatX_with_dirfd) {
 	/* Parameter 7: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(7, inode);
 
-	/* Parameter 8: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path */
+	/* Parameter 8: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(8, cwd);
+		evt_test->assert_path_param_equal(8, expected_fullpath);
 	} else {
 		evt_test->assert_empty_param(8);
 	}

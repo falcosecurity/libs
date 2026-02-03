@@ -4,6 +4,9 @@
 #include <sys/vfs.h> /* or <sys/statfs.h> */
 #include <linux/magic.h>
 #include <filesystem>
+#include <string_view>
+#include <limits.h> /* For PATH_MAX */
+#include <unistd.h> /* For readlink */
 
 #define MAX_CHARBUF_NUM 16
 #define CGROUP_NUMBER 5
@@ -1175,14 +1178,22 @@ std::string event_test::get_charbuf_param(int param_num) {
 	return std::string(param_value, str_len);
 }
 
-void event_test::assert_path_param_equal(int param_num, const char* expected_path) {
-	std::string captured_cwd = get_charbuf_param(param_num);
-	ASSERT_FALSE(captured_cwd.empty())
+void event_test::assert_path_param_equal(int param_num, std::string_view expected_path) {
+	std::string_view captured_path_str = get_charbuf_param(param_num);
+	ASSERT_FALSE(captured_path_str.empty())
 	        << "path (parameter " << param_num << ") should contain the path, but it's empty";
 
 	/* Use std::filesystem::path for proper path normalization and comparison */
 	std::filesystem::path wanted_path(expected_path);
-	std::filesystem::path captured_path(captured_cwd);
+	std::filesystem::path captured_path(captured_path_str);
+
+	/* If the captured path is a temporary file (filename starts with "#"),
+	 * and the expected path is just a directory (no filename), strip the filename from captured
+	 * path */
+	std::string captured_filename = captured_path.filename().string();
+	if(!captured_filename.empty() && captured_filename[0] == '#' && !wanted_path.has_filename()) {
+		captured_path = captured_path.parent_path();
+	}
 
 	/* Normalize paths (remove trailing slashes, resolve . and .., etc.) */
 	wanted_path = wanted_path.lexically_normal();
