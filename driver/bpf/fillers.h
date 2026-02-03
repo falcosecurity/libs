@@ -3225,7 +3225,7 @@ FILLER(sys_openat_x, true) {
 	CHECK_RES(res);
 
 	/*
-	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
 	 * Legacy BPF doesn't support kernel-space path resolution yet,
 	 * so we push an empty parameter.
 	 */
@@ -3399,7 +3399,7 @@ FILLER(sys_openat2_x, true) {
 	CHECK_RES(res);
 
 	/*
-	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
 	 * Legacy BPF doesn't support kernel-space path resolution yet,
 	 * so we push an empty parameter.
 	 */
