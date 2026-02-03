@@ -99,3 +99,20 @@ public:
 private:
 	std::string m_res;
 };
+
+// concat
+class sinsp_filter_multivalue_transformer_concat : public sinsp_filter_multivalue_transformer {
+public:
+	sinsp_filter_multivalue_transformer_concat(
+	        std::vector<std::unique_ptr<sinsp_filter_check>> args);
+	virtual ~sinsp_filter_multivalue_transformer_concat();
+
+	std::string name() const;
+
+	virtual bool extract(sinsp_evt* evt,
+	                     std::vector<extract_value_t>& values,
+	                     bool sanitize_strings = true);
+
+private:
+	std::string m_res;
+};
