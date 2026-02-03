@@ -49,6 +49,8 @@ TEST(SyscallExit, openatX_success) {
 		// Regular file: construct from CWD + pathname
 		expected_fullpath = std::string(expected_cwd) + "/" + pathname;
 	} else {
+		/* The temporary file created by O_TMPFILE uses the inode as the filename prefixed with "#"
+		 */
 		expected_fullpath = std::string(expected_cwd) + "/#" + std::to_string(inode);
 	}
 
@@ -134,9 +136,6 @@ TEST(SyscallExit, openatX_failure) {
 	                     "openat",
 	                     syscall(__NR_openat, dirfd, pathname, flags, mode));
 	int64_t errno_value = -errno;
-
-	/* For failed syscalls, fullpath will be empty (ret <= 0) */
-	std::string expected_fullpath; /* Empty for failed syscalls */
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
