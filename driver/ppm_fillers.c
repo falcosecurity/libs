@@ -3730,7 +3730,7 @@ int f_sys_openat_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/*
-	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
 	 * Kernel module doesn't support kernel-space path resolution yet,
 	 * so we push an empty parameter. Userspace will handle path
 	 * resolution via the thread's FD table.
@@ -5305,7 +5305,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/*
-	 * dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
+	 * fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
 	 * Kernel module doesn't support kernel-space path resolution yet,
 	 * so we push an empty parameter. Userspace will handle path
 	 * resolution via the thread's FD table.

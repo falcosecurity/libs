@@ -801,7 +801,7 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({
-                         {C_INSTR_FROM_EMPTY, 0},  // dirfdpath
+                         {C_INSTR_FROM_EMPTY, 0},  // fullpath
                  })},
         /*====================== UNSHARE ======================*/
         {conversion_key{PPME_SYSCALL_UNSHARE_E, 1}, conversion_info().action(C_ACTION_STORE)},
@@ -1193,7 +1193,7 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
                  .instrs({
-                         {C_INSTR_FROM_EMPTY, 0},  // dirfdpath
+                         {C_INSTR_FROM_EMPTY, 0},  // fullpath
                  })},
         /*====================== MPROTECT ======================*/
         {conversion_key{PPME_SYSCALL_MPROTECT_E, 3}, conversion_info().action(C_ACTION_STORE)},

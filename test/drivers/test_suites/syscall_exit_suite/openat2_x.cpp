@@ -14,10 +14,6 @@ TEST(SyscallExit, openat2X_success) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Get the current working directory before the syscall to compare with kernel-resolved CWD */
-	char expected_cwd[PATH_MAX];
-	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
-
 	/* Syscall special notes:
 	 * With `O_TMPFILE` flag the pathname must be a directory.
 	 */
@@ -30,6 +26,11 @@ TEST(SyscallExit, openat2X_success) {
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
 
+	/* Get the current working directory before closing the fd */
+	char expected_cwd[PATH_MAX];
+	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
+	std::string expected_fullpath(expected_cwd);
+
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
@@ -41,7 +42,9 @@ TEST(SyscallExit, openat2X_success) {
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
+	expected_fullpath += "/#" + std::to_string(inode);
 #endif
+
 	close(fd);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -88,16 +91,11 @@ TEST(SyscallExit, openat2X_success) {
 	evt_test->assert_numeric_param(8, inode);
 #endif
 
-	/* Parameter 9: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
-	 * For AT_FDCWD, this should now contain the CWD path resolved in kernel space.
-	 * This prevents race conditions where the CWD might change between syscall
-	 * and processing time.
-	 * Note: This parameter is only available in modern-bpf, not in legacy BPF.
-	 */
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(9, expected_cwd);
+		evt_test->assert_path_param_equal(9, expected_fullpath);
 	} else {
-		/* Legacy BPF doesn't support dirfdpath parameter yet */
+		/* Legacy BPF doesn't support fullpath parameter yet */
 		evt_test->assert_empty_param(9);
 	}
 
@@ -113,7 +111,7 @@ TEST(SyscallExit, openat2X_failure) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Get the current working directory before the syscall to compare with kernel-resolved CWD */
+	/* Get the current working directory before the syscall to construct expected full path */
 	char expected_cwd[PATH_MAX];
 	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
 
@@ -132,6 +130,9 @@ TEST(SyscallExit, openat2X_failure) {
 	                     "openat2",
 	                     syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
 	int64_t errno_value = -errno;
+
+	/* For failed syscalls, fullpath will be empty (ret <= 0) */
+	std::string expected_fullpath; /* Empty for failed syscalls */
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -175,16 +176,12 @@ TEST(SyscallExit, openat2X_failure) {
 	/* Parameter 8: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(8, (uint64_t)0);
 
-	/* Parameter 9: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
-	 * For AT_FDCWD, this should now contain the CWD path resolved in kernel space.
-	 * This prevents race conditions where the CWD might change between syscall
-	 * and processing time.
-	 * Note: This parameter is only available in modern-bpf, not in legacy BPF.
-	 */
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
+	 * For failed syscalls (ret <= 0), this will be empty */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(9, expected_cwd);
+		/* Syscall failed, so fullpath should be empty */
+		evt_test->assert_empty_param(9);
 	} else {
-		/* Legacy BPF doesn't support dirfdpath parameter yet */
 		evt_test->assert_empty_param(9);
 	}
 
@@ -200,7 +197,7 @@ TEST(SyscallExit, openat2X_create_success) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Get the current working directory before the syscall to compare with kernel-resolved CWD */
+	/* Get the current working directory before the syscall to construct expected full path */
 	char expected_cwd[PATH_MAX];
 	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
 
@@ -213,6 +210,10 @@ TEST(SyscallExit, openat2X_create_success) {
 	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0); /* remove file before creating it */
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+
+	/* Construct expected full path: CWD + "/" + pathname (kernel resolves this from the opened fd)
+	 */
+	std::string expected_fullpath = std::string(expected_cwd) + "/" + pathname;
 
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
@@ -272,16 +273,11 @@ TEST(SyscallExit, openat2X_create_success) {
 	evt_test->assert_numeric_param(8, inode);
 #endif
 
-	/* Parameter 9: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
-	 * For AT_FDCWD, this should now contain the CWD path resolved in kernel space.
-	 * This prevents race conditions where the CWD might change between syscall
-	 * and processing time.
-	 * Note: This parameter is only available in modern-bpf, not in legacy BPF.
-	 */
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(9, expected_cwd);
+		evt_test->assert_path_param_equal(9, expected_fullpath);
 	} else {
-		/* Legacy BPF doesn't support dirfdpath parameter yet */
+		/* Legacy BPF doesn't support fullpath parameter yet */
 		evt_test->assert_empty_param(9);
 	}
 
@@ -316,6 +312,10 @@ TEST(SyscallExit, openat2X_with_dirfd) {
 
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+
+	/* Construct expected full path: cwd + "/" + pathname (kernel resolves this from the opened fd)
+	 */
+	std::string expected_fullpath = std::string(cwd) + "/" + pathname;
 
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
@@ -379,18 +379,11 @@ TEST(SyscallExit, openat2X_with_dirfd) {
 	evt_test->assert_numeric_param(8, inode);
 #endif
 
-	/* Parameter 9: dirfdpath (type: PT_FSPATH) - kernel-resolved dirfd path
-	 * This should contain the actual directory path resolved in kernel space.
-	 * The path should match the directory we opened (cwd).
-	 * Note: The kernel-resolved path might have minor differences (e.g.,
-	 * pseudo-fs prefixes, trailing slashes), so we use path normalization
-	 * to compare them.
-	 * Note: This parameter is only available in modern-bpf, not in legacy BPF.
-	 */
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
 	if(evt_test->is_modern_bpf_engine()) {
-		evt_test->assert_path_param_equal(9, cwd);
+		evt_test->assert_path_param_equal(9, expected_fullpath);
 	} else {
-		/* Legacy BPF doesn't support dirfdpath parameter yet */
+		/* Legacy BPF doesn't support fullpath parameter yet */
 		evt_test->assert_empty_param(9);
 	}
 

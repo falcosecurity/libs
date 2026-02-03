@@ -579,7 +579,7 @@ public:
 	 * @param param_num number of the path parameter to verify
 	 * @param expected_path the expected path
 	 */
-	void assert_path_param_equal(int param_num, const char* expected_path);
+	void assert_path_param_equal(int param_num, std::string_view expected_path);
 
 	/**
 	 * @brief Assert that the parameter is a `charbuf` array and
