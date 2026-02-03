@@ -42,6 +42,7 @@ TEST(SyscallExit, openat2X_success) {
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
+	/* The temporary file created by O_TMPFILE uses the inode as the filename prefixed with "#" */
 	expected_fullpath += "/#" + std::to_string(inode);
 #endif
 
@@ -130,9 +131,6 @@ TEST(SyscallExit, openat2X_failure) {
 	                     "openat2",
 	                     syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
 	int64_t errno_value = -errno;
-
-	/* For failed syscalls, fullpath will be empty (ret <= 0) */
-	std::string expected_fullpath; /* Empty for failed syscalls */
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
