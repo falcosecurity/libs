@@ -92,13 +92,13 @@ public:
 			return field_accessor<T>(*this);
 		}
 
-	private:
 		inline field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
 		        m_readonly(r),
 		        m_offset(o),
 		        m_name(n),
 		        m_info(i) {}
 
+	private:
 		bool m_readonly;
 		size_t m_offset;
 		std::string m_name;
@@ -174,31 +174,6 @@ public:
 	virtual field_infos static_fields() const { return {}; }
 
 protected:
-	/**
-	 * @brief Defines the information about a field defined in the class or struct.
-	 * An exception is thrown if two fields are defined with the same name.
-	 *
-	 * @tparam T Type of the field.
-	 * @param fields Fields group to which to add the new field.
-	 * @param offset Field's memory offset in instances of the class/struct.
-	 * @param name Display name of the field.
-	 * @param readonly Read-only field annotation.
-	 */
-	template<typename T>
-	constexpr static const field_info& define_static_field(field_infos& fields,
-	                                                       const size_t offset,
-	                                                       const std::string& name,
-	                                                       const bool readonly = false) {
-		const auto& it = fields.find(name);
-		if(it != fields.end()) {
-			throw sinsp_exception("multiple definitions of static field in struct: " + name);
-		}
-
-		// todo(jasondellaluce): add extra safety boundary checks here
-		fields.insert({name, field_info(name, offset, typeinfo::of<T>(), readonly)});
-		return fields.at(name);
-	}
-
 	struct reader {
 		const static_struct* self;
 		const accessor* acc;
@@ -244,6 +219,32 @@ protected:
 	}
 };
 
+/**
+ * @brief Defines the information about a field defined in the class or struct.
+ * An exception is thrown if two fields are defined with the same name.
+ *
+ * @tparam T Type of the field.
+ * @param fields Fields group to which to add the new field.
+ * @param offset Field's memory offset in instances of the class/struct.
+ * @param name Display name of the field.
+ * @param readonly Read-only field annotation.
+ */
+template<typename T>
+constexpr static const static_struct::field_info& define_static_field(
+        static_struct::field_infos& fields,
+        const size_t offset,
+        const std::string& name,
+        const bool readonly = false) {
+	const auto& it = fields.find(name);
+	if(it != fields.end()) {
+		throw sinsp_exception("multiple definitions of static field in struct: " + name);
+	}
+
+	// todo(jasondellaluce): add extra safety boundary checks here
+	fields.insert({name, static_struct::field_info(name, offset, typeinfo::of<T>(), readonly)});
+	return fields.at(name);
+}
+
 };  // namespace state
 };  // namespace libsinsp
 
@@ -254,17 +255,19 @@ protected:
 
 // DEFINE_STATIC_FIELD macro is a wrapper around static_struct::define_static_field helping to
 // extract the field type and field offset.
-#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name)      \
-	define_static_field<decltype(static_cast<container_type*>(0)->container_field)>( \
-	        field_infos,                                                             \
-	        OFFSETOF_STATIC_FIELD(container_type, container_field),                  \
+#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name) \
+	libsinsp::state::define_static_field<                                       \
+	        decltype(static_cast<container_type*>(0)->container_field)>(        \
+	        field_infos,                                                        \
+	        OFFSETOF_STATIC_FIELD(container_type, container_field),             \
 	        name);
 
 // DEFINE_STATIC_FIELD_READONLY macro is a wrapper around static_struct::define_static_field helping
 // to extract the field type and field offset. The defined field is set to guarantee read-only
 // access.
 #define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name) \
-	define_static_field<decltype(static_cast<container_type*>(0)->container_field)>(     \
+	libsinsp::state::define_static_field<                                                \
+	        decltype(static_cast<container_type*>(0)->container_field)>(                 \
 	        field_infos,                                                                 \
 	        OFFSETOF_STATIC_FIELD(container_type, container_field),                      \
 	        name,                                                                        \

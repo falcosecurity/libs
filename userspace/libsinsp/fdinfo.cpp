@@ -144,9 +144,10 @@ sinsp_fdinfo::get_static_fields() {
 	// of the targeted architecture
 	auto is_big_endian = htonl(12) == 12;  // the chosen number does not matter
 	size_t type_byte_offset = is_big_endian ? (sizeof(scap_fd_type) - 1) : 0;
-	define_static_field<uint8_t>(ret,
-	                             OFFSETOF_STATIC_FIELD(self, m_type) + type_byte_offset,
-	                             "type");
+	libsinsp::state::define_static_field<uint8_t>(
+	        ret,
+	        OFFSETOF_STATIC_FIELD(self, m_type) + type_byte_offset,
+	        "type");
 
 	// the rest fo the fields are more trivial to expose
 	DEFINE_STATIC_FIELD(ret, self, m_openflags, "open_flags");
@@ -170,17 +171,19 @@ sinsp_fdinfo::get_static_fields() {
 	                    self,
 	                    m_sockinfo.m_ipv4info.m_fields.m_l4proto,
 	                    "socket_ipv4_l4_proto");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_sip),
-	                              "socket_ipv6_src_ip_low");
-	define_static_field<uint64_t>(
+	libsinsp::state::define_static_field<uint64_t>(
+	        ret,
+	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_sip),
+	        "socket_ipv6_src_ip_low");
+	libsinsp::state::define_static_field<uint64_t>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_sip) + 8,
 	        "socket_ipv6_src_ip_high");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_dip),
-	                              "socket_ipv6_dest_ip_low");
-	define_static_field<uint64_t>(
+	libsinsp::state::define_static_field<uint64_t>(
+	        ret,
+	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_dip),
+	        "socket_ipv6_dest_ip_low");
+	libsinsp::state::define_static_field<uint64_t>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6info.m_fields.m_dip) + 8,
 	        "socket_ipv6_dest_ip_high");
@@ -196,12 +199,14 @@ sinsp_fdinfo::get_static_fields() {
 	                    self,
 	                    m_sockinfo.m_ipv4serverinfo.m_l4proto,
 	                    "socket_ipv4_server_l4_proto");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6serverinfo.m_ip),
-	                              "socket_ipv6_server_ip_low");
-	define_static_field<uint64_t>(ret,
-	                              OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6serverinfo.m_ip) + 8,
-	                              "socket_ipv6_server_ip_high");
+	libsinsp::state::define_static_field<uint64_t>(
+	        ret,
+	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6serverinfo.m_ip),
+	        "socket_ipv6_server_ip_low");
+	libsinsp::state::define_static_field<uint64_t>(
+	        ret,
+	        OFFSETOF_STATIC_FIELD(self, m_sockinfo.m_ipv6serverinfo.m_ip) + 8,
+	        "socket_ipv6_server_ip_high");
 	DEFINE_STATIC_FIELD(ret, self, m_sockinfo.m_ipv6serverinfo.m_port, "socket_ipv6_server_port");
 	DEFINE_STATIC_FIELD(ret,
 	                    self,
