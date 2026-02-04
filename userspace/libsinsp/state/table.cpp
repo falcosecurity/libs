@@ -384,7 +384,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-	libsinsp::state::static_struct::field_infos::const_iterator fixed_it;
+	libsinsp::state::static_field_infos::const_iterator fixed_it;
 	std::unordered_map<std::string, libsinsp::state::dynamic_struct::field_info>::const_iterator
 	        dyn_it;
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
