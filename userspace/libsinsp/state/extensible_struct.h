@@ -48,25 +48,6 @@ public:
 	using field_infos = std::unordered_map<std::string, static_field_info>;
 
 	/**
-	 * @brief Accesses a field with the given accessor and reads its value.
-	 */
-	template<typename T>
-	inline const T& get_static_field(const static_field_accessor<T>& a) const {
-		if(!a.info().valid()) {
-			throw sinsp_exception("can't get invalid field in static struct");
-		}
-		return *(reinterpret_cast<T*>((void*)(((uintptr_t)this) + a.info().offset())));
-	}
-
-	/**
-	 * @brief Accesses a field with the given accessor and reads its value.
-	 */
-	template<typename T, typename Val = T>
-	inline void get_static_field(const static_field_accessor<T>& a, Val& out) const {
-		out = get_static_field<T>(a);
-	}
-
-	/**
 	 * @brief Accesses a field with the given accessor and writes its value.
 	 * An exception is thrown if the field is read-only.
 	 */
@@ -361,13 +342,6 @@ constexpr static const static_field_info& define_static_field(
 }  // namespace libsinsp::state
 
 // specializations for strings
-template<>
-inline void libsinsp::state::extensible_struct::get_static_field<std::string, const char*>(
-        const static_field_accessor<std::string>& a,
-        const char*& out) const {
-	out = get_static_field<std::string>(a).c_str();
-}
-
 template<>
 inline void libsinsp::state::extensible_struct::get_dynamic_field<std::string, const char*>(
         const dynamic_field_accessor<std::string>& a,
