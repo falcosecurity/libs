@@ -36,8 +36,7 @@ struct sinsp_field_accessor_wrapper {
 	// depending on the value of `dynamic`, one of:
 	// - libsinsp::state::static_field_accessor
 	// - libsinsp::state::dynamic_field_accessor
-	void* accessor = nullptr;
-	bool dynamic = false;
+	libsinsp::state::accessor* accessor = nullptr;
 	ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 
 	inline sinsp_field_accessor_wrapper() = default;
