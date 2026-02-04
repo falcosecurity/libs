@@ -30,7 +30,7 @@ TEST(typeinfo, basic_tests) {
 }
 
 TEST(static_struct, defs_and_access) {
-	struct err_multidef_struct : public libsinsp::state::static_struct {
+	struct err_multidef_struct : public libsinsp::state::extensible_struct {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
@@ -45,7 +45,7 @@ TEST(static_struct, defs_and_access) {
 		uint32_t m_num{0};
 	};
 
-	class sample_struct : public libsinsp::state::static_struct {
+	class sample_struct : public libsinsp::state::extensible_struct {
 	public:
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
@@ -68,7 +68,7 @@ TEST(static_struct, defs_and_access) {
 		std::string m_str;
 	};
 
-	struct sample_struct2 : public libsinsp::state::static_struct {
+	struct sample_struct2 : public libsinsp::state::extensible_struct {
 	public:
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
