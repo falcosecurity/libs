@@ -75,15 +75,6 @@ public:
 	}
 
 	/**
-	 * @brief Accesses a field with the given accessor and reads its value.
-	 */
-	template<typename T, typename Val = T>
-	inline void get_dynamic_field(const dynamic_field_accessor<T>& a, Val& out) {
-		_check_defsptr(a.info(), false);
-		get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
-	}
-
-	/**
 	 * @brief Accesses a field with the given accessor and writes its value.
 	 */
 	template<typename T, typename Val = T>
@@ -118,30 +109,6 @@ public:
 	}
 
 protected:
-	/**
-	 * @brief Gets the value of a dynamic field and writes it into "out".
-	 * "out" points to a variable having the type of the field_info argument,
-	 * according to the type definitions supported in libsinsp::state::typeinfo.
-	 * For strings, "out" is considered of type const char**.
-	 */
-	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) {
-		const auto* buf = _access_dynamic_field_for_read(i.m_index);
-		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
-			if(buf == nullptr) {
-				*((const char**)out) = "";
-			} else {
-				*((const char**)out) = ((const std::string*)buf)->c_str();
-			}
-		} else {
-			if(buf == nullptr) {
-				// if the field is not set, we return a zeroed buffer
-				memset(out, 0, i.info().size());
-			} else {
-				memcpy(out, buf, i.info().size());
-			}
-		}
-	}
-
 	/**
 	 * @brief Sets the value of a dynamic field by reading it from "in".
 	 * "in" points to a variable having the type of the field_info argument,
@@ -214,6 +181,19 @@ private:
 		return m_fields[index];
 	}
 
+	struct cloner {
+		extensible_struct* self;
+		const extensible_struct* other;
+		size_t index;
+
+		template<typename T>
+		void operator()() const {
+			auto ptr = static_cast<T*>(self->_access_dynamic_field_for_write(index));
+			auto val = static_cast<const T*>(other->_access_dynamic_field_for_read(index));
+			*ptr = *val;
+		}
+	};
+
 	inline void deep_fields_copy(const extensible_struct& other_const) {
 		// note: const cast should be safe here as we're not going to resize
 		// nor edit the dynamic fields allocated in "other"
@@ -226,12 +206,7 @@ private:
 		destroy_dynamic_fields();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
 			const auto info = m_dynamic_fields->m_definitions_ordered[i];
-			// note: we use uintptr_t as it fits all the data types supported for
-			// reading and writing dynamic fields (e.g. uint32_t, uint64_t, const char*,
-			// base_table*, ...)
-			uintptr_t val = 0;
-			other.get_dynamic_field(*info, reinterpret_cast<void*>(&val));
-			set_dynamic_field(*info, &val);
+			dispatch_lambda(info->info().type_id(), cloner{this, &other, i});
 		}
 	}
 
@@ -342,27 +317,6 @@ constexpr static const static_field_info& define_static_field(
 }  // namespace libsinsp::state
 
 // specializations for strings
-template<>
-inline void libsinsp::state::extensible_struct::get_dynamic_field<std::string, const char*>(
-        const dynamic_field_accessor<std::string>& a,
-        const char*& out) {
-	_check_defsptr(a.info(), false);
-	get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
-}
-
-template<>
-inline void libsinsp::state::extensible_struct::get_dynamic_field<std::string, std::string>(
-        const dynamic_field_accessor<std::string>& a,
-        std::string& out) {
-	const char* s = NULL;
-	get_dynamic_field(a, s);
-	if(!s) {
-		out.clear();
-	} else {
-		out = s;
-	}
-}
-
 template<>
 inline void libsinsp::state::extensible_struct::set_dynamic_field<std::string, const char*>(
         const dynamic_field_accessor<std::string>& a,

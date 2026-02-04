@@ -130,17 +130,6 @@ protected:
 		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
 	}
 
-	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) override final {
-		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
-			throw sinsp_exception(
-			        "invalid field info passed to pair_table_entry_adapter::get_dynamic_field");
-		}
-		if(i.index() == 0) {
-			return get_dynamic_field(i, &m_value->first, out);
-		}
-		return get_dynamic_field(i, &m_value->second, out);
-	}
-
 	virtual void set_dynamic_field(const dynamic_field_info& i, const void* in) override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
@@ -159,15 +148,6 @@ protected:
 
 private:
 	std::pair<Tfirst, Tsecond>* m_value;
-
-	template<typename T>
-	inline void get_dynamic_field(const dynamic_field_info& i, const T* value, void* out) {
-		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
-			*((const char**)out) = ((const std::string*)value)->c_str();
-		} else {
-			memcpy(out, (const void*)value, i.info().size());
-		}
-	}
 
 	template<typename T>
 	inline void set_dynamic_field(const dynamic_field_info& i, T* value, const void* in) {
@@ -258,19 +238,6 @@ protected:
 
 	void raw_write_field(const accessor& a, const void* in) override {
 		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
-	}
-
-	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) override final {
-		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
-			throw sinsp_exception(
-			        "invalid field info passed to value_table_entry_adapter::get_dynamic_field");
-		}
-
-		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
-			*((const char**)out) = ((const std::string*)m_value)->c_str();
-		} else {
-			memcpy(out, (const void*)m_value, i.info().size());
-		}
 	}
 
 	virtual void set_dynamic_field(const dynamic_field_info& i, const void* in) override final {

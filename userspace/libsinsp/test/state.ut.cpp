@@ -202,34 +202,34 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_ANY_THROW(field_str.new_accessor<uint32_t>());
 
 	uint64_t tmp;
-	s.get_dynamic_field(acc_num, tmp);
+	s.read_field(acc_num, tmp);
 	ASSERT_EQ(tmp, 0);
 	s.set_dynamic_field(acc_num, (uint64_t)6);
-	s.get_dynamic_field(acc_num, tmp);
+	s.read_field(acc_num, tmp);
 	ASSERT_EQ(tmp, 6);
 
 	std::string tmpstr;
-	s.get_dynamic_field(acc_str, tmpstr);
+	s.read_field(acc_str, tmpstr);
 	ASSERT_EQ(tmpstr, std::string(""));
 	s.set_dynamic_field(acc_str, std::string("hello"));
-	s.get_dynamic_field(acc_str, tmpstr);
+	s.read_field(acc_str, tmpstr);
 	ASSERT_EQ(tmpstr, std::string("hello"));
 
 	s.set_dynamic_field(acc_str, std::string(""));
 	const char* ctmpstr = "sample";
-	s.get_dynamic_field(acc_str, ctmpstr);
+	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, ""), 0);
 	ctmpstr = "hello";
 	s.set_dynamic_field(acc_str, ctmpstr);
 	ctmpstr = "";
-	s.get_dynamic_field(acc_str, ctmpstr);
+	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
 
 	// illegal access from an accessor created from different definition list
 	auto fields2 = std::make_shared<libsinsp::state::dynamic_field_infos>();
 	auto field_num2 = fields2->add_field<uint64_t>("num");
 	auto acc_num2 = field_num2.new_accessor<uint64_t>();
-	ASSERT_ANY_THROW(s.get_dynamic_field(acc_num2, tmp));
+	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
 TEST(dynamic_struct, mem_ownership) {
@@ -257,49 +257,49 @@ TEST(dynamic_struct, mem_ownership) {
 
 	// write same value in both structs, ensure they have two distinct copies
 	s1.set_dynamic_field(field_str_acc, std::string("hello"));
-	s1.get_dynamic_field(field_str_acc, tmpstr1);
+	s1.read_field(field_str_acc, tmpstr1);
 	ASSERT_EQ(tmpstr1, std::string("hello"));
-	s2.get_dynamic_field(field_str_acc, tmpstr2);
+	s2.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr2, std::string(""));  // s2 should not be influenced
 	s2.set_dynamic_field(field_str_acc, std::string("hello2"));
-	s2.get_dynamic_field(field_str_acc, tmpstr2);
+	s2.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr2, tmpstr1 + "2");
-	s1.get_dynamic_field(field_str_acc, tmpstr1);  // s1 should not be influenced
+	s1.read_field(field_str_acc, tmpstr1);  // s1 should not be influenced
 	ASSERT_EQ(tmpstr2, tmpstr1 + "2");
 
 	// deep copy and memory ownership (constructor)
 	sample_struct s3(s1);
 	ASSERT_EQ(s1.dynamic_fields().get(), s3.dynamic_fields().get());
-	s1.get_dynamic_field(field_str_acc, tmpstr1);
-	s3.get_dynamic_field(field_str_acc, tmpstr2);
+	s1.read_field(field_str_acc, tmpstr1);
+	s3.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
 	s3.set_dynamic_field(field_str_acc, std::string("hello3"));
-	s1.get_dynamic_field(field_str_acc, tmpstr1);  // should still be "hello" as before
-	s3.get_dynamic_field(field_str_acc, tmpstr2);
+	s1.read_field(field_str_acc, tmpstr1);  // should still be "hello" as before
+	s3.read_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
 
 	// deep copy and memory ownership (assignment)
 	sample_struct s4(std::make_shared<libsinsp::state::dynamic_field_infos>());
 	s4 = s1;
 	ASSERT_EQ(s1.dynamic_fields().get(), s4.dynamic_fields().get());
-	s1.get_dynamic_field(field_str_acc, tmpstr1);
-	s4.get_dynamic_field(field_str_acc, tmpstr2);
+	s1.read_field(field_str_acc, tmpstr1);
+	s4.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
 	s4.set_dynamic_field(field_str_acc, std::string("hello4"));
-	s1.get_dynamic_field(field_str_acc, tmpstr1);  // should still be "hello" as before
-	s4.get_dynamic_field(field_str_acc, tmpstr2);
+	s1.read_field(field_str_acc, tmpstr1);  // should still be "hello" as before
+	s4.read_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
 
 	// deep copy and memory ownership (assignment, null initial definitions)
 	sample_struct s5(nullptr);
 	s5 = s1;
 	ASSERT_EQ(s1.dynamic_fields().get(), s5.dynamic_fields().get());
-	s1.get_dynamic_field(field_str_acc, tmpstr1);
-	s5.get_dynamic_field(field_str_acc, tmpstr2);
+	s1.read_field(field_str_acc, tmpstr1);
+	s5.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
 	s5.set_dynamic_field(field_str_acc, std::string("hello4"));
-	s1.get_dynamic_field(field_str_acc, tmpstr1);  // should still be "hello" as before
-	s5.get_dynamic_field(field_str_acc, tmpstr2);
+	s1.read_field(field_str_acc, tmpstr1);  // should still be "hello" as before
+	s5.read_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
 }
 
@@ -414,10 +414,10 @@ TEST(thread_manager, table_access) {
 	                        .new_accessor<std::string>();
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
 	ASSERT_EQ(addedt->dynamic_fields()->fields().size(), 1);
-	addedt->get_dynamic_field(dynf_acc, tmpstr);
+	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
 	addedt->set_dynamic_field(dynf_acc, std::string("hello"));
-	addedt->get_dynamic_field(dynf_acc, tmpstr);
+	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "hello");
 
 	// add another thread
@@ -426,10 +426,10 @@ TEST(thread_manager, table_access) {
 	ASSERT_NO_THROW(table->add_entry(1000, std::move(newt)));
 	addedt = table->get_entry(1000);
 	ASSERT_EQ(addedt->read_field(tid_acc), (int64_t)1000);
-	addedt->get_dynamic_field(dynf_acc, tmpstr);
+	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
 	addedt->set_dynamic_field(dynf_acc, std::string("world"));
-	addedt->get_dynamic_field(dynf_acc, tmpstr);
+	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "world");
 
 	// loop over entries
@@ -558,12 +558,12 @@ TEST(thread_manager, fdtable_access) {
 
 		// read and write from newly-created fd (added field)
 		std::string tmpstr = "test";
-		t->get_dynamic_field(dfieldacc, tmpstr);
+		t->read_field(dfieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
 		t->set_dynamic_field(dfieldacc, tmpstr);
 		tmpstr = "";
-		t->get_dynamic_field(dfieldacc, tmpstr);
+		t->read_field(dfieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
 	}
 
@@ -573,7 +573,7 @@ TEST(thread_manager, fdtable_access) {
 		std::string tmpstr;
 		e.read_field(sfieldacc, tmp);
 		EXPECT_EQ(tmp, 5);
-		e.get_dynamic_field(dfieldacc, tmpstr);
+		e.read_field(dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
@@ -667,19 +667,19 @@ TEST(thread_manager, env_vars_access) {
 
 		// read and write from newly-created entry
 		std::string tmpstr = "test";
-		t->get_dynamic_field(fieldacc, tmpstr);
+		t->read_field(fieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
 		t->set_dynamic_field(fieldacc, tmpstr);
 		tmpstr = "";
-		t->get_dynamic_field(fieldacc, tmpstr);
+		t->read_field(fieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
 	}
 
 	// full iteration
 	auto it = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string tmpstr = "test";
-		e.get_dynamic_field(fieldacc, tmpstr);
+		e.read_field(fieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
