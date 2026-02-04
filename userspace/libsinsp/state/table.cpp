@@ -659,7 +659,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 			auto aa = static_cast<libsinsp::state::dynamic_field_accessor<_type>*>(a->accessor); \
 			_type val;                                                                           \
 			convert_types(in->_dtype, val);                                                      \
-			e->set_dynamic_field<_type>(*aa, val);                                               \
+			e->write_field<_type>(*aa, val);                                                     \
 		} else {                                                                                 \
 			auto aa = static_cast<libsinsp::state::static_field_accessor<_type>*>(a->accessor);  \
 			_type val;                                                                           \

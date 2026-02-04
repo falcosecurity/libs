@@ -204,23 +204,23 @@ TEST(dynamic_struct, defs_and_access) {
 	uint64_t tmp;
 	s.read_field(acc_num, tmp);
 	ASSERT_EQ(tmp, 0);
-	s.set_dynamic_field(acc_num, (uint64_t)6);
+	s.write_field(acc_num, (uint64_t)6);
 	s.read_field(acc_num, tmp);
 	ASSERT_EQ(tmp, 6);
 
 	std::string tmpstr;
 	s.read_field(acc_str, tmpstr);
 	ASSERT_EQ(tmpstr, std::string(""));
-	s.set_dynamic_field(acc_str, std::string("hello"));
+	s.write_field(acc_str, std::string("hello"));
 	s.read_field(acc_str, tmpstr);
 	ASSERT_EQ(tmpstr, std::string("hello"));
 
-	s.set_dynamic_field(acc_str, std::string(""));
+	s.write_field(acc_str, std::string(""));
 	const char* ctmpstr = "sample";
 	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, ""), 0);
 	ctmpstr = "hello";
-	s.set_dynamic_field(acc_str, ctmpstr);
+	s.write_field(acc_str, ctmpstr);
 	ctmpstr = "";
 	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
@@ -256,12 +256,12 @@ TEST(dynamic_struct, mem_ownership) {
 	auto field_str_acc = field_str.new_accessor<std::string>();
 
 	// write same value in both structs, ensure they have two distinct copies
-	s1.set_dynamic_field(field_str_acc, std::string("hello"));
+	s1.write_field(field_str_acc, std::string("hello"));
 	s1.read_field(field_str_acc, tmpstr1);
 	ASSERT_EQ(tmpstr1, std::string("hello"));
 	s2.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr2, std::string(""));  // s2 should not be influenced
-	s2.set_dynamic_field(field_str_acc, std::string("hello2"));
+	s2.write_field(field_str_acc, std::string("hello2"));
 	s2.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr2, tmpstr1 + "2");
 	s1.read_field(field_str_acc, tmpstr1);  // s1 should not be influenced
@@ -273,7 +273,7 @@ TEST(dynamic_struct, mem_ownership) {
 	s1.read_field(field_str_acc, tmpstr1);
 	s3.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
-	s3.set_dynamic_field(field_str_acc, std::string("hello3"));
+	s3.write_field(field_str_acc, std::string("hello3"));
 	s1.read_field(field_str_acc, tmpstr1);  // should still be "hello" as before
 	s3.read_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
@@ -285,7 +285,7 @@ TEST(dynamic_struct, mem_ownership) {
 	s1.read_field(field_str_acc, tmpstr1);
 	s4.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
-	s4.set_dynamic_field(field_str_acc, std::string("hello4"));
+	s4.write_field(field_str_acc, std::string("hello4"));
 	s1.read_field(field_str_acc, tmpstr1);  // should still be "hello" as before
 	s4.read_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
@@ -297,7 +297,7 @@ TEST(dynamic_struct, mem_ownership) {
 	s1.read_field(field_str_acc, tmpstr1);
 	s5.read_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
-	s5.set_dynamic_field(field_str_acc, std::string("hello4"));
+	s5.write_field(field_str_acc, std::string("hello4"));
 	s1.read_field(field_str_acc, tmpstr1);  // should still be "hello" as before
 	s5.read_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
@@ -416,7 +416,7 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(addedt->dynamic_fields()->fields().size(), 1);
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
-	addedt->set_dynamic_field(dynf_acc, std::string("hello"));
+	addedt->write_field(dynf_acc, std::string("hello"));
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "hello");
 
@@ -428,7 +428,7 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(addedt->read_field(tid_acc), (int64_t)1000);
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
-	addedt->set_dynamic_field(dynf_acc, std::string("world"));
+	addedt->write_field(dynf_acc, std::string("world"));
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "world");
 
@@ -561,7 +561,7 @@ TEST(thread_manager, fdtable_access) {
 		t->read_field(dfieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
-		t->set_dynamic_field(dfieldacc, tmpstr);
+		t->write_field(dfieldacc, tmpstr);
 		tmpstr = "";
 		t->read_field(dfieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
@@ -670,7 +670,7 @@ TEST(thread_manager, env_vars_access) {
 		t->read_field(fieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
-		t->set_dynamic_field(fieldacc, tmpstr);
+		t->write_field(fieldacc, tmpstr);
 		tmpstr = "";
 		t->read_field(fieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
