@@ -606,7 +606,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	{                                                                                            \
 		if(a->dynamic) {                                                                         \
 			auto aa = static_cast<libsinsp::state::dynamic_field_accessor<_type>*>(a->accessor); \
-			e->get_dynamic_field<_type>(*aa, out->_dtype);                                       \
+			e->read_field<_type>(*aa, out->_dtype);                                              \
 		} else {                                                                                 \
 			auto aa = static_cast<libsinsp::state::static_field_accessor<_type>*>(a->accessor);  \
 			e->read_field<_type>(*aa, out->_dtype);                                              \
