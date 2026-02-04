@@ -27,6 +27,98 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
+template<typename T>
+class static_field_accessor;
+
+/**
+ * @brief Info about a given field in a static struct.
+ */
+class static_field_info {
+public:
+	friend inline bool operator==(const static_field_info& a, const static_field_info& b) {
+		return a.info() == b.info() && a.name() == b.name() && a.readonly() == b.readonly() &&
+		       a.m_offset == b.m_offset;
+	};
+
+	friend inline bool operator!=(const static_field_info& a, const static_field_info& b) {
+		return !(a == b);
+	};
+
+	/**
+	 * @brief Returns true if the field info is valid.
+	 */
+	inline bool valid() const { return m_offset != (size_t)-1; }
+
+	/**
+	 * @brief Returns true if the field is read only.
+	 */
+	inline bool readonly() const { return m_readonly; }
+
+	/**
+	 * @brief Returns the name of the field.
+	 */
+	inline const std::string& name() const { return m_name; }
+
+	/**
+	 * @brief Returns the type info of the field.
+	 */
+	inline const libsinsp::state::typeinfo& info() const { return m_info; }
+
+	/**
+	 * @brief Returns a strongly-typed accessor for the given field,
+	 * that can be used to reading and writing the field's value in
+	 * all instances of structs where it is defined.
+	 */
+	template<typename T>
+	inline static_field_accessor<T> new_accessor() const {
+		if(!valid()) {
+			throw sinsp_exception("can't create static struct field accessor for invalid field");
+		}
+		auto t = libsinsp::state::typeinfo::of<T>();
+		if(m_info != t) {
+			throw sinsp_exception(
+			        "incompatible type for static struct field accessor: field=" + m_name +
+			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
+		}
+		return static_field_accessor<T>(*this);
+	}
+
+	inline static_field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
+	        m_readonly(r),
+	        m_offset(o),
+	        m_name(n),
+	        m_info(i) {}
+
+private:
+	bool m_readonly;
+	size_t m_offset;
+	std::string m_name;
+	libsinsp::state::typeinfo m_info;
+
+	friend class static_struct;
+};
+
+/**
+ * @brief An strongly-typed accessor for accessing a field of a static struct.
+ * @tparam T Type of the field.
+ */
+template<typename T>
+class static_field_accessor : public typed_accessor<T> {
+public:
+	/**
+	 * @brief Returns the info about the field to which this accessor is tied.
+	 */
+	[[nodiscard]] const static_field_info& info() const { return m_info; }
+
+private:
+	explicit static_field_accessor(static_field_info info): m_info(std::move(info)) {};
+
+	static_field_info m_info;
+
+	friend class static_struct;
+	friend class static_field_info;
+};
+
 /**
  * @brief A base class for classes and structs that allow dynamic programming
  * by making part (or all) of their fields discoverable and accessible at runtime.
@@ -35,110 +127,17 @@ namespace state {
  */
 class static_struct : public state_struct {
 public:
-	template<typename T>
-	class field_accessor;
-
-	/**
-	 * @brief Info about a given field in a static struct.
-	 */
-	class field_info {
-	public:
-		friend inline bool operator==(const field_info& a, const field_info& b) {
-			return a.info() == b.info() && a.name() == b.name() && a.readonly() == b.readonly() &&
-			       a.m_offset == b.m_offset;
-		};
-
-		friend inline bool operator!=(const field_info& a, const field_info& b) {
-			return !(a == b);
-		};
-
-		/**
-		 * @brief Returns true if the field info is valid.
-		 */
-		inline bool valid() const { return m_offset != (size_t)-1; }
-
-		/**
-		 * @brief Returns true if the field is read only.
-		 */
-		inline bool readonly() const { return m_readonly; }
-
-		/**
-		 * @brief Returns the name of the field.
-		 */
-		inline const std::string& name() const { return m_name; }
-
-		/**
-		 * @brief Returns the type info of the field.
-		 */
-		inline const libsinsp::state::typeinfo& info() const { return m_info; }
-
-		/**
-		 * @brief Returns a strongly-typed accessor for the given field,
-		 * that can be used to reading and writing the field's value in
-		 * all instances of structs where it is defined.
-		 */
-		template<typename T>
-		inline field_accessor<T> new_accessor() const {
-			if(!valid()) {
-				throw sinsp_exception(
-				        "can't create static struct field accessor for invalid field");
-			}
-			auto t = libsinsp::state::typeinfo::of<T>();
-			if(m_info != t) {
-				throw sinsp_exception(
-				        "incompatible type for static struct field accessor: field=" + m_name +
-				        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
-			}
-			return field_accessor<T>(*this);
-		}
-
-		inline field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
-		        m_readonly(r),
-		        m_offset(o),
-		        m_name(n),
-		        m_info(i) {}
-
-	private:
-		bool m_readonly;
-		size_t m_offset;
-		std::string m_name;
-		libsinsp::state::typeinfo m_info;
-
-		friend class static_struct;
-	};
-
-	/**
-	 * @brief An strongly-typed accessor for accessing a field of a static struct.
-	 * @tparam T Type of the field.
-	 */
-	template<typename T>
-	class field_accessor : public typed_accessor<T> {
-	public:
-		/**
-		 * @brief Returns the info about the field to which this accessor is tied.
-		 */
-		[[nodiscard]] const field_info& info() const { return m_info; }
-
-	private:
-		explicit field_accessor(field_info info): m_info(std::move(info)) {};
-
-		field_info m_info;
-
-		friend class static_struct;
-		friend class static_struct::field_info;
-	};
-
 	/**
 	 * @brief A group of field infos, describing all the ones available
 	 * in a static struct.
 	 */
-	using field_infos = std::unordered_map<std::string, field_info>;
+	using field_infos = std::unordered_map<std::string, static_field_info>;
 
 	/**
 	 * @brief Accesses a field with the given accessor and reads its value.
 	 */
 	template<typename T>
-	inline const T& get_static_field(const field_accessor<T>& a) const {
+	inline const T& get_static_field(const static_field_accessor<T>& a) const {
 		if(!a.info().valid()) {
 			throw sinsp_exception("can't get invalid field in static struct");
 		}
@@ -149,7 +148,7 @@ public:
 	 * @brief Accesses a field with the given accessor and reads its value.
 	 */
 	template<typename T, typename Val = T>
-	inline void get_static_field(const field_accessor<T>& a, Val& out) const {
+	inline void get_static_field(const static_field_accessor<T>& a, Val& out) const {
 		out = get_static_field<T>(a);
 	}
 
@@ -158,7 +157,7 @@ public:
 	 * An exception is thrown if the field is read-only.
 	 */
 	template<typename T, typename Val = T>
-	inline void set_static_field(const field_accessor<T>& a, const Val& in) {
+	inline void set_static_field(const static_field_accessor<T>& a, const Val& in) {
 		if(!a.info().valid()) {
 			throw sinsp_exception("can't set invalid field in static struct");
 		}
@@ -180,7 +179,7 @@ protected:
 
 		template<typename T>
 		const void* operator()() const {
-			auto field_acc = dynamic_cast<const field_accessor<T>*>(acc);
+			auto field_acc = dynamic_cast<const static_field_accessor<T>*>(acc);
 			if(!field_acc->info().valid()) {
 				throw sinsp_exception("can't get invalid field in static struct");
 			}
@@ -199,7 +198,7 @@ protected:
 
 		template<typename T>
 		void operator()() const {
-			auto field_acc = dynamic_cast<const field_accessor<T>*>(acc);
+			auto field_acc = dynamic_cast<const static_field_accessor<T>*>(acc);
 			if(!field_acc->info().valid()) {
 				throw sinsp_exception("can't set invalid field in static struct");
 			}
@@ -230,18 +229,17 @@ protected:
  * @param readonly Read-only field annotation.
  */
 template<typename T>
-constexpr static const static_struct::field_info& define_static_field(
-        static_struct::field_infos& fields,
-        const size_t offset,
-        const std::string& name,
-        const bool readonly = false) {
+constexpr static const static_field_info& define_static_field(static_struct::field_infos& fields,
+                                                              const size_t offset,
+                                                              const std::string& name,
+                                                              const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
 	}
 
 	// todo(jasondellaluce): add extra safety boundary checks here
-	fields.insert({name, static_struct::field_info(name, offset, typeinfo::of<T>(), readonly)});
+	fields.insert({name, static_field_info(name, offset, typeinfo::of<T>(), readonly)});
 	return fields.at(name);
 }
 
@@ -276,7 +274,7 @@ constexpr static const static_struct::field_info& define_static_field(
 // specializations for strings
 template<>
 inline void libsinsp::state::static_struct::get_static_field<std::string, const char*>(
-        const field_accessor<std::string>& a,
+        const static_field_accessor<std::string>& a,
         const char*& out) const {
 	out = get_static_field<std::string>(a).c_str();
 }
