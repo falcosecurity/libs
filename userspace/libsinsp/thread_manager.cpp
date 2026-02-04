@@ -119,9 +119,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
         scap_platform* const& scap_platform,
         scap_t* const& scap_handle,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-                thread_manager_dyn_fields,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
+        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
         const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
         m_sinsp_mode{sinsp_mode},

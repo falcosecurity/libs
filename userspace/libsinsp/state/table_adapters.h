@@ -20,29 +20,28 @@ namespace libsinsp {
 namespace state {
 
 /**
- * @brief A subclass of dynamic_struct::field_infos that have a fixed,
+ * @brief A subclass of dynamic_field_infos that have a fixed,
  * and immutable, list of dynamic field definitions all declared at
  * construction-time
  */
-class fixed_dynamic_fields_infos : public dynamic_struct::field_infos {
+class fixed_dynamic_fields_infos : public dynamic_field_infos {
 public:
 	virtual ~fixed_dynamic_fields_infos() = default;
 
-	inline fixed_dynamic_fields_infos(std::initializer_list<dynamic_struct::field_info> infos):
-	        field_infos(infos.begin()->defs_id()) {
+	inline fixed_dynamic_fields_infos(std::initializer_list<dynamic_field_info> infos):
+	        dynamic_field_infos(infos.begin()->defs_id()) {
 		auto defs_id = infos.begin()->defs_id();
 		for(const auto& f : infos) {
 			if(f.defs_id() != defs_id) {
 				throw sinsp_exception(
 				        "inconsistent definition ID passed to fixed_dynamic_fields_infos");
 			}
-			field_infos::add_field_info(f);
+			dynamic_field_infos::add_field_info(f);
 		}
 	}
 
 protected:
-	const dynamic_struct::field_info& add_field_info(
-	        const dynamic_struct::field_info& field) override final {
+	const dynamic_field_info& add_field_info(const dynamic_field_info& field) override final {
 		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " + field.name());
 	}
 };
@@ -64,7 +63,7 @@ public:
 	static const constexpr uintptr_t s_dynamic_fields_id = 4321;
 
 	struct dynamic_fields_t : public fixed_dynamic_fields_infos {
-		using _dfi = dynamic_struct::field_info;
+		using _dfi = dynamic_field_info;
 
 		inline dynamic_fields_t():
 		        fixed_dynamic_fields_infos(
@@ -81,7 +80,7 @@ public:
 	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
 
 protected:
-	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
+	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to pair_table_entry_adapter::get_dynamic_field");
@@ -92,8 +91,7 @@ protected:
 		return get_dynamic_field(i, &m_value->second, out);
 	}
 
-	virtual void set_dynamic_field(const dynamic_struct::field_info& i,
-	                               const void* in) override final {
+	virtual void set_dynamic_field(const dynamic_field_info& i, const void* in) override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to pair_table_entry_adapter::set_dynamic_field");
@@ -113,7 +111,7 @@ private:
 	std::pair<Tfirst, Tsecond>* m_value;
 
 	template<typename T>
-	inline void get_dynamic_field(const dynamic_struct::field_info& i, const T* value, void* out) {
+	inline void get_dynamic_field(const dynamic_field_info& i, const T* value, void* out) {
 		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)value)->c_str();
 		} else {
@@ -122,7 +120,7 @@ private:
 	}
 
 	template<typename T>
-	inline void set_dynamic_field(const dynamic_struct::field_info& i, T* value, const void* in) {
+	inline void set_dynamic_field(const dynamic_field_info& i, T* value, const void* in) {
 		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)value) = *((const char**)in);
 		} else {
@@ -148,7 +146,7 @@ public:
 	static const constexpr uintptr_t s_dynamic_fields_id = 1234;
 
 	struct dynamic_fields_t : public fixed_dynamic_fields_infos {
-		using _dfi = dynamic_struct::field_info;
+		using _dfi = dynamic_field_info;
 
 		inline dynamic_fields_t():
 		        fixed_dynamic_fields_infos({_dfi::build<T>("value", 0, s_dynamic_fields_id)}) {}
@@ -167,7 +165,7 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 protected:
-	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
+	virtual void get_dynamic_field(const dynamic_field_info& i, void* out) override final {
 		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::get_dynamic_field");
@@ -180,8 +178,7 @@ protected:
 		}
 	}
 
-	virtual void set_dynamic_field(const dynamic_struct::field_info& i,
-	                               const void* in) override final {
+	virtual void set_dynamic_field(const dynamic_field_info& i, const void* in) override final {
 		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::set_dynamic_field");
