@@ -30,8 +30,6 @@ namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
 
-using sinsp_field_accessor_wrapper = std::unique_ptr<accessor>;
-
 /**
  * @brief Base class for entries of a state table.
  */
@@ -394,7 +392,7 @@ protected:
 	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;  // note: lists have pointer stability
-	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
+	std::list<std::unique_ptr<accessor>>
 	        m_accessed_table_fields;  // note: lists have pointer stability
 
 	bool m_ephemeral_tables_clear = false;
