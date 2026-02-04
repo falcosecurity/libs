@@ -22,11 +22,57 @@ limitations under the License.
 #include <libsinsp/state/static_struct.h>
 
 namespace libsinsp::state {
-class extensible_struct : public static_struct, public dynamic_struct {
+class extensible_struct : public state_struct, public dynamic_struct {
 public:
 	explicit extensible_struct(const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields):
-	        static_struct(),
 	        dynamic_struct(dynamic_fields) {}
+
+	// static_struct interface
+	/**
+	 * @brief A group of field infos, describing all the ones available
+	 * in a static struct.
+	 */
+	using field_infos = std::unordered_map<std::string, static_field_info>;
+
+	/**
+	 * @brief Accesses a field with the given accessor and reads its value.
+	 */
+	template<typename T>
+	inline const T& get_static_field(const static_field_accessor<T>& a) const {
+		if(!a.info().valid()) {
+			throw sinsp_exception("can't get invalid field in static struct");
+		}
+		return *(reinterpret_cast<T*>((void*)(((uintptr_t)this) + a.info().offset())));
+	}
+
+	/**
+	 * @brief Accesses a field with the given accessor and reads its value.
+	 */
+	template<typename T, typename Val = T>
+	inline void get_static_field(const static_field_accessor<T>& a, Val& out) const {
+		out = get_static_field<T>(a);
+	}
+
+	/**
+	 * @brief Accesses a field with the given accessor and writes its value.
+	 * An exception is thrown if the field is read-only.
+	 */
+	template<typename T, typename Val = T>
+	inline void set_static_field(const static_field_accessor<T>& a, const Val& in) {
+		if(!a.info().valid()) {
+			throw sinsp_exception("can't set invalid field in static struct");
+		}
+		if(a.info().readonly()) {
+			throw sinsp_exception("can't set a read-only static struct field: " + a.info().name());
+		}
+		*(reinterpret_cast<T*>((void*)(((uintptr_t)this) + a.info().offset()))) = in;
+	}
+
+	/**
+	 * @brief Returns information about all the static fields accessible in a struct.
+	 */
+	virtual field_infos static_fields() const { return {}; }
+	// end of static_struct interface
 
 protected:
 	struct reader {
@@ -36,7 +82,10 @@ protected:
 		template<typename T>
 		const void* operator()() const {
 			if(auto static_acc = dynamic_cast<const static_field_accessor<T>*>(acc)) {
-				return self->static_struct::raw_read_field(*static_acc);
+				if(!static_acc->info().valid()) {
+					throw sinsp_exception("can't get invalid field in static struct");
+				}
+				return reinterpret_cast<const char*>(self) + static_acc->info().offset();
 			}
 
 			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(acc)) {
@@ -63,7 +112,17 @@ protected:
 		template<typename T>
 		void operator()() const {
 			if(auto static_acc = dynamic_cast<const static_field_accessor<T>*>(acc)) {
-				self->static_struct::raw_write_field(*static_acc, in);
+				if(!static_acc->info().valid()) {
+					throw sinsp_exception("can't set invalid field in static struct");
+				}
+				if(static_acc->info().readonly()) {
+					throw sinsp_exception("can't set a read-only static struct field: " +
+					                      static_acc->info().name());
+				}
+				auto ptr = reinterpret_cast<T*>(reinterpret_cast<char*>(self) +
+				                                static_acc->info().offset());
+				auto val = static_cast<const T*>(in);
+				*ptr = *val;
 				return;
 			}
 
@@ -89,3 +148,11 @@ protected:
 	}
 };
 }  // namespace libsinsp::state
+
+// specializations for strings
+template<>
+inline void libsinsp::state::extensible_struct::get_static_field<std::string, const char*>(
+        const static_field_accessor<std::string>& a,
+        const char*& out) const {
+	out = get_static_field<std::string>(a).c_str();
+}

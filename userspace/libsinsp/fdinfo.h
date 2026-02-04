@@ -339,7 +339,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static static_struct::field_infos get_static_fields();
+	static extensible_struct::field_infos get_static_fields();
 
 	scap_fd_type m_type =
 	        SCAP_FD_UNINITIALIZED;  ///< The fd type, e.g. file, directory, IPv4 socket...
