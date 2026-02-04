@@ -112,32 +112,32 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_ANY_THROW(field_str->second.new_accessor<uint64_t>());
 
 	ASSERT_EQ(s.get_num(), 0);
-	ASSERT_EQ(s.get_static_field(acc_num), 0);
+	ASSERT_EQ(s.read_field(acc_num), 0);
 	s.set_num(5);
 	ASSERT_EQ(s.get_num(), 5);
 	uint32_t u32tmp = 0;
-	s.get_static_field(acc_num, u32tmp);
+	s.read_field(acc_num, u32tmp);
 	ASSERT_EQ(u32tmp, 5);
 	s.set_static_field(acc_num, (uint32_t)6);
 	ASSERT_EQ(s.get_num(), 6);
-	ASSERT_EQ(s.get_static_field(acc_num), 6);
+	ASSERT_EQ(s.read_field(acc_num), 6);
 
 	std::string str = "";
 	ASSERT_EQ(s.get_str(), str);
-	ASSERT_EQ(s.get_static_field(acc_str), str);
+	ASSERT_EQ(s.read_field(acc_str), str);
 	str = "hello";
 	s.set_str("hello");
 	ASSERT_EQ(s.get_str(), str);
-	s.get_static_field(acc_str, str);
+	s.read_field(acc_str, str);
 	ASSERT_EQ(str, "hello");
 	ASSERT_ANY_THROW(s.set_static_field(acc_str, "hello"));  // readonly
 
 	const char* cstr = "sample";
 	s.set_str("");
-	s.get_static_field(acc_str, cstr);
+	s.read_field(acc_str, cstr);
 	ASSERT_EQ(strcmp(cstr, ""), 0);
 	s.set_str("hello");
-	s.get_static_field(acc_str, cstr);
+	s.read_field(acc_str, cstr);
 	ASSERT_EQ(strcmp(cstr, "hello"), 0);
 	ASSERT_EQ(cstr, s.get_str().c_str());
 	ASSERT_ANY_THROW(s.set_static_field(acc_str, cstr));  // readonly
@@ -148,7 +148,7 @@ TEST(static_struct, defs_and_access) {
 	// todo(jasondellaluce): find a good way to check for this
 	sample_struct2 s2;
 	auto acc_num2 = s2.static_fields().find("num")->second.new_accessor<uint32_t>();
-	ASSERT_NO_THROW(s.get_static_field(acc_num2));
+	ASSERT_NO_THROW(s.read_field(acc_num2));
 }
 
 TEST(dynamic_struct, defs_and_access) {
@@ -394,18 +394,18 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(newt->static_fields().size(), s_threadinfo_static_fields_count);
 	newtinfo->m_tid = 999;
 	newtinfo->m_comm = "test";
-	ASSERT_EQ(newt->get_static_field(tid_acc), (int64_t)999);
-	ASSERT_EQ(newt->get_static_field(comm_acc), "test");
-	ASSERT_NE(newt->get_static_field(fdtable_acc), nullptr);
-	ASSERT_EQ(newt->get_static_field(fdtable_acc)->name(), std::string("file_descriptors"));
+	ASSERT_EQ(newt->read_field(tid_acc), (int64_t)999);
+	ASSERT_EQ(newt->read_field(comm_acc), "test");
+	ASSERT_NE(newt->read_field(fdtable_acc), nullptr);
+	ASSERT_EQ(newt->read_field(fdtable_acc)->name(), std::string("file_descriptors"));
 	ASSERT_NO_THROW(table->add_entry(999, std::move(newt)));
 	ASSERT_EQ(table->entries_count(), 1);
 	auto addedt = table->get_entry(999);
 	ASSERT_NE(addedt, nullptr);
-	ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t)999);
-	ASSERT_EQ(addedt->get_static_field(comm_acc), "test");
-	ASSERT_NE(addedt->get_static_field(fdtable_acc), nullptr);
-	ASSERT_EQ(addedt->get_static_field(fdtable_acc)->name(), std::string("file_descriptors"));
+	ASSERT_EQ(addedt->read_field(tid_acc), (int64_t)999);
+	ASSERT_EQ(addedt->read_field(comm_acc), "test");
+	ASSERT_NE(addedt->read_field(fdtable_acc), nullptr);
+	ASSERT_EQ(addedt->read_field(fdtable_acc)->name(), std::string("file_descriptors"));
 
 	// add a dynamic field to table
 	std::string tmpstr;
@@ -425,7 +425,7 @@ TEST(thread_manager, table_access) {
 	newt->set_static_field(tid_acc, (int64_t)1000);
 	ASSERT_NO_THROW(table->add_entry(1000, std::move(newt)));
 	addedt = table->get_entry(1000);
-	ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t)1000);
+	ASSERT_EQ(addedt->read_field(tid_acc), (int64_t)1000);
 	addedt->get_dynamic_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
 	addedt->set_dynamic_field(dynf_acc, std::string("world"));
@@ -435,7 +435,7 @@ TEST(thread_manager, table_access) {
 	// loop over entries
 	int count = 0;
 	table->foreach_entry([&count, tid_acc](libsinsp::state::table_entry& e) {
-		auto tid = e.get_static_field(tid_acc);
+		auto tid = e.read_field(tid_acc);
 		if(tid == 999 || tid == 1000) {
 			count++;
 		}
@@ -490,8 +490,8 @@ TEST(thread_manager, fdtable_access) {
 
 	// getting the fd tables from the newly created threads
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
-	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->get_static_field(subtable_acc));
-	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->get_static_field(subtable_acc));
+	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(subtable_acc));
+	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->read_field(subtable_acc));
 
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_NE(subtable2, nullptr);
@@ -548,12 +548,12 @@ TEST(thread_manager, fdtable_access) {
 
 		// read and write from newly-created fd (existing field)
 		int64_t tmp = -1;
-		t->get_static_field(sfieldacc, tmp);
+		t->read_field(sfieldacc, tmp);
 		ASSERT_EQ(tmp, 0);
 		tmp = 5;
 		t->set_static_field(sfieldacc, tmp);
 		tmp = 0;
-		t->get_static_field(sfieldacc, tmp);
+		t->read_field(sfieldacc, tmp);
 		ASSERT_EQ(tmp, 5);
 
 		// read and write from newly-created fd (added field)
@@ -571,7 +571,7 @@ TEST(thread_manager, fdtable_access) {
 	auto it = [&](libsinsp::state::table_entry& e) -> bool {
 		int64_t tmp;
 		std::string tmpstr;
-		e.get_static_field(sfieldacc, tmp);
+		e.read_field(sfieldacc, tmp);
 		EXPECT_EQ(tmp, 5);
 		e.get_dynamic_field(dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
@@ -633,7 +633,7 @@ TEST(thread_manager, env_vars_access) {
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
-	                entry->get_static_field(subtable_acc));
+	                entry->read_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);

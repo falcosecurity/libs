@@ -895,7 +895,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 
 	// obtain a pointer to the subtable (check typing too)
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
-	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->get_static_field(subtable_acc));
+	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
@@ -931,7 +931,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		int64_t tmp;
 		std::string tmpstr;
-		e.get_static_field(sfieldacc, tmp);
+		e.read_field(sfieldacc, tmp);
 		EXPECT_EQ(tmp, 123);
 		e.get_dynamic_field(dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "world");
@@ -1008,7 +1008,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
-	                entry->get_static_field(subtable_acc));
+	                entry->read_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("env"));
 	ASSERT_EQ(subtable->entries_count(), 0);
@@ -1115,7 +1115,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<
 	        std::vector<std::pair<std::string, std::string>>,
 	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>*>(
-	        entry->get_static_field(subtable_acc));
+	        entry->read_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("cgroups"));
 	ASSERT_EQ(subtable->entries_count(), 0);
