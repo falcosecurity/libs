@@ -106,7 +106,6 @@ libsinsp::state::sinsp_field_accessor_wrapper::~sinsp_field_accessor_wrapper() {
 libsinsp::state::sinsp_field_accessor_wrapper::sinsp_field_accessor_wrapper(
         libsinsp::state::sinsp_field_accessor_wrapper&& s) {
 	this->accessor = s.accessor;
-	this->data_type = s.data_type;
 	s.accessor = nullptr;
 }
 
@@ -114,7 +113,6 @@ libsinsp::state::sinsp_field_accessor_wrapper&
 libsinsp::state::sinsp_field_accessor_wrapper::operator=(
         libsinsp::state::sinsp_field_accessor_wrapper&& s) {
 	this->accessor = s.accessor;
-	this->data_type = s.data_type;
 	s.accessor = nullptr;
 	return *this;
 }
@@ -392,7 +390,6 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	{                                                                               \
 		auto acc = fixed_it->second.new_accessor<_type>();                          \
 		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                     \
-		acc_wrap.data_type = data_type;                                             \
 		acc_wrap.accessor = new libsinsp::state::static_field_accessor<_type>(acc); \
 		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));              \
 		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();     \
@@ -413,7 +410,6 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	{                                                                                \
 		auto acc = dyn_it->second.new_accessor<_type>();                             \
 		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                      \
-		acc_wrap.data_type = data_type;                                              \
 		acc_wrap.accessor = new libsinsp::state::dynamic_field_accessor<_type>(acc); \
 		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));               \
 		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();      \
@@ -591,7 +587,8 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		res = SS_PLUGIN_SUCCESS;                                                     \
 		break;                                                                       \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err,
+	                { __PLUGIN_STATETYPE_SWITCH(a->accessor->type_info().type_id()); });
 #undef _X
 
 #define _X(_type, _dtype)                                                    \
@@ -601,7 +598,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 		slot.set<_type>(owner, st);                                          \
 		out->table = &slot.input;                                            \
 	};
-	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+	if(a->accessor->type_info().type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		auto* subtable_ptr = static_cast<libsinsp::state::base_table*>(out->table);
 		if(!subtable_ptr) {
 			owner->m_last_owner_err.clear();
@@ -625,7 +622,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 
 	// todo(jasondellaluce): drop this check once we start supporting this
-	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+	if(a->accessor->type_info().type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		owner->m_last_owner_err = "writing to table fields is currently not supported";
 		return SS_PLUGIN_FAILURE;
 	}
@@ -638,7 +635,8 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 		e->write_field<_type>(*aa, val);                                             \
 		return SS_PLUGIN_SUCCESS;                                                    \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
+	__CATCH_ERR_MSG(owner->m_last_owner_err,
+	                { __PLUGIN_STATETYPE_SWITCH(a->accessor->type_info().type_id()); });
 #undef _X
 	return SS_PLUGIN_FAILURE;
 }
