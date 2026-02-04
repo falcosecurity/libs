@@ -118,7 +118,7 @@ TEST(static_struct, defs_and_access) {
 	uint32_t u32tmp = 0;
 	s.read_field(acc_num, u32tmp);
 	ASSERT_EQ(u32tmp, 5);
-	s.set_static_field(acc_num, (uint32_t)6);
+	s.write_field(acc_num, (uint32_t)6);
 	ASSERT_EQ(s.get_num(), 6);
 	ASSERT_EQ(s.read_field(acc_num), 6);
 
@@ -130,7 +130,7 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_EQ(s.get_str(), str);
 	s.read_field(acc_str, str);
 	ASSERT_EQ(str, "hello");
-	ASSERT_ANY_THROW(s.set_static_field(acc_str, "hello"));  // readonly
+	ASSERT_ANY_THROW(s.write_field(acc_str, "hello"));  // readonly
 
 	const char* cstr = "sample";
 	s.set_str("");
@@ -140,7 +140,7 @@ TEST(static_struct, defs_and_access) {
 	s.read_field(acc_str, cstr);
 	ASSERT_EQ(strcmp(cstr, "hello"), 0);
 	ASSERT_EQ(cstr, s.get_str().c_str());
-	ASSERT_ANY_THROW(s.set_static_field(acc_str, cstr));  // readonly
+	ASSERT_ANY_THROW(s.write_field(acc_str, cstr));  // readonly
 
 	// illegal access from an accessor created from different definition list
 	// note: this should supposedly be checked for and throw an exception,
@@ -422,7 +422,7 @@ TEST(thread_manager, table_access) {
 
 	// add another thread
 	newt = table->new_entry();
-	newt->set_static_field(tid_acc, (int64_t)1000);
+	newt->write_field(tid_acc, (int64_t)1000);
 	ASSERT_NO_THROW(table->add_entry(1000, std::move(newt)));
 	addedt = table->get_entry(1000);
 	ASSERT_EQ(addedt->read_field(tid_acc), (int64_t)1000);
@@ -551,7 +551,7 @@ TEST(thread_manager, fdtable_access) {
 		t->read_field(sfieldacc, tmp);
 		ASSERT_EQ(tmp, 0);
 		tmp = 5;
-		t->set_static_field(sfieldacc, tmp);
+		t->write_field(sfieldacc, tmp);
 		tmp = 0;
 		t->read_field(sfieldacc, tmp);
 		ASSERT_EQ(tmp, 5);
