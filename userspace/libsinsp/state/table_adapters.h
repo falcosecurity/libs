@@ -287,7 +287,8 @@ public:
 	}
 
 private:
-	static inline const static_struct::field_infos* _static_fields() {
+	using field_infos = std::unordered_map<std::string, static_field_info>;
+	static inline const field_infos* _static_fields() {
 		static const auto s_fields = TWrap{}.static_fields();
 		return &s_fields;
 	}
