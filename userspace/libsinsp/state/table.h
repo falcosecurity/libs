@@ -30,21 +30,7 @@ namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
 
-// wraps instances of libsinsp::state::XXX_struct::field_accessor and
-// help making them comply to the plugin API state tables definitions
-struct sinsp_field_accessor_wrapper {
-	// depending on the value of `dynamic`, one of:
-	// - libsinsp::state::static_struct::field_accessor
-	// - libsinsp::state::dynamic_struct::field_accessor
-	libsinsp::state::accessor* accessor = nullptr;
-
-	inline sinsp_field_accessor_wrapper() = default;
-	~sinsp_field_accessor_wrapper();
-	inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
-	inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) = delete;
-	sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
-	sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
-};
+using sinsp_field_accessor_wrapper = std::unique_ptr<accessor>;
 
 /**
  * @brief Base class for entries of a state table.
@@ -390,7 +376,7 @@ private:
 	std::string m_name;
 	const extensible_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
-	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
+	std::unordered_map<std::string, accessor*> m_field_accessors;
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 };
 
