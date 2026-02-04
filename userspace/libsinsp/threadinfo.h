@@ -84,7 +84,7 @@ public:
 	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
 	~sinsp_threadinfo() override;
 
-	libsinsp::state::static_struct::field_infos static_fields() const override;
+	libsinsp::state::extensible_struct::field_infos static_fields() const override;
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".

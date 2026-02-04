@@ -211,7 +211,7 @@ template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
 	inline built_in_table(const std::string& name,
-	                      const static_struct::field_infos* static_fields,
+	                      const extensible_struct::field_infos* static_fields,
 	                      const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
 	                              dynamic_fields = nullptr):
 	        table<KeyType>::table(),
@@ -252,7 +252,7 @@ public:
 	 * for the value data type of this table. This fields will be accessible
 	 * for all the entries of this table.
 	 */
-	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
+	virtual const extensible_struct::field_infos* static_fields() const { return m_static_fields; }
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -391,7 +391,7 @@ public:
 private:
 	const base_table* m_this_ptr;
 	std::string m_name;
-	const static_struct::field_infos* m_static_fields;
+	const extensible_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
