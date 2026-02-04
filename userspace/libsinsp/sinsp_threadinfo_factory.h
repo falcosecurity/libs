@@ -26,13 +26,13 @@ limitations under the License.
 class sinsp_threadinfo_factory {
 	const std::shared_ptr<sinsp_threadinfo::ctor_params>& m_params;
 	libsinsp::event_processor* const& m_external_event_processor;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& m_fdtable_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& m_fdtable_dyn_fields;
 
 public:
-	sinsp_threadinfo_factory(const std::shared_ptr<sinsp_threadinfo::ctor_params>& params,
-	                         libsinsp::event_processor* const& external_event_processor,
-	                         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                                 fdtable_dyn_fields):
+	sinsp_threadinfo_factory(
+	        const std::shared_ptr<sinsp_threadinfo::ctor_params>& params,
+	        libsinsp::event_processor* const& external_event_processor,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields):
 	        m_params{params},
 	        m_external_event_processor{external_event_processor},
 	        m_fdtable_dyn_fields{fdtable_dyn_fields} {}

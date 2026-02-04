@@ -102,8 +102,7 @@ public:
 		FLAGS_OVERLAY_LOWER = (1 << 18),
 	};
 
-	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields =
-	                     nullptr);
+	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields = nullptr);
 	sinsp_fdinfo(sinsp_fdinfo&& o) = default;
 	sinsp_fdinfo& operator=(sinsp_fdinfo&& o) = default;
 	sinsp_fdinfo(const sinsp_fdinfo& o) = default;
