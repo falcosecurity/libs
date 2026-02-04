@@ -3,7 +3,7 @@ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
 includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
 
 Name: libpman
-Description: Utility library for BPF probes
+Description: Utility library for BPF probe
 Version: @FALCOSECURITY_LIBS_VERSION@
 License: Apache-2.0
 

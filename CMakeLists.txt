@@ -58,7 +58,7 @@ option(USE_BUNDLED_DRIVER
 	   "Use the driver/ subdirectory in the build process (only available in Linux)" ON
 )
 option(ENABLE_E2E_TESTS "Enable e2e tests" OFF)
-option(ENABLE_DRIVERS_TESTS "Enable driver tests (bpf, kernel module, modern bpf)" OFF)
+option(ENABLE_DRIVERS_TESTS "Enable driver tests (kernel module, modern bpf)" OFF)
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
 option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)

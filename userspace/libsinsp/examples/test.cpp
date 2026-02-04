@@ -68,7 +68,6 @@ static string table_mode = "";
 static string engine_string;
 static string filter_string = "";
 static string file_path = "";
-static string bpf_path = "";
 static string gvisor_config_path = "/etc/docker/runsc_falco_config.json";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
@@ -339,9 +338,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		("j,json", "Use JSON as the output format.")
 		("a,all-threads",
 			"Output information about all threads, not just the main one.")
-		("b,bpf",
-			"Classic eBPF probe.",
-			cxxopts::value<std::string>())
 		("m,modern_bpf", "Modern eBPF probe.")
 		("k,kmod", "Kernel module.")
 		("G,gvisor",
@@ -422,11 +418,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 
 		if(result.count("all-threads")) {
 			g_all_threads = true;
-		}
-
-		if(result.count("bpf")) {
-			select_engine(BPF_ENGINE);
-			bpf_path = result["bpf"].as<std::string>();
 		}
 
 		if(result.count("gvisor")) {
@@ -599,18 +590,6 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 #ifdef HAS_ENGINE_KMOD
 	else if(!engine_string.compare(KMOD_ENGINE)) {
 		inspector.open_kmod(buffer_bytes_dim, ppm_sc);
-	}
-#endif
-#ifdef HAS_ENGINE_BPF
-	else if(!engine_string.compare(BPF_ENGINE)) {
-		if(bpf_path.empty()) {
-			std::cerr << "You must specify the path to the bpf probe if you use the 'bpf' engine"
-			          << std::endl;
-			exit(EXIT_FAILURE);
-		} else {
-			std::cerr << bpf_path << std::endl;
-		}
-		inspector.open_bpf(bpf_path.c_str(), buffer_bytes_dim, ppm_sc);
 	}
 #endif
 #ifdef HAS_ENGINE_SAVEFILE

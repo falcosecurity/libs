@@ -10,7 +10,6 @@ RUN apt-get update && \
     libtbb2
 
 COPY /sinsp-example /usr/local/bin/sinsp-example
-COPY /probe.o /driver/probe.o
 COPY /scap.ko /driver/scap.ko
 COPY /libcontainer.so /plugins/libcontainer.so
 

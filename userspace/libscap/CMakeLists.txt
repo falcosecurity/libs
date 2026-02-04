@@ -175,13 +175,6 @@ if(HAS_ENGINE_KMOD)
 	target_include_directories(scap_engine_kmod PRIVATE ${PROJECT_BINARY_DIR}/driver/src)
 endif()
 
-if(HAS_ENGINE_BPF)
-	add_subdirectory(engine/bpf)
-	target_link_libraries(scap PUBLIC scap_engine_bpf)
-	target_include_directories(scap_engine_bpf PRIVATE ${PROJECT_BINARY_DIR}/driver/src)
-	list(APPEND SCAP_PKGCONFIG_REQUIRES libelf)
-endif()
-
 if(HAS_ENGINE_MODERN_BPF)
 	add_subdirectory(engine/modern_bpf)
 	target_link_libraries(scap PUBLIC scap_engine_modern_bpf)

@@ -616,10 +616,6 @@ TEST(SyscallExit, sendmmsgX_null_mmsghdr) {
 TEST(SyscallExit, sendmmsg_multiple_messages_ipv4) {
 	auto evt_test = get_syscall_event_test(__NR_sendmmsg, EXIT_EVENT);
 
-	if(evt_test->is_bpf_engine()) {
-		GTEST_SKIP() << "eBPF doesn't support multiple events";
-	}
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -715,10 +711,6 @@ TEST(SyscallExit, sendmmsg_multiple_messages_ipv4) {
 
 TEST(SyscallExit, sendmmsg_multiple_messages_ipv6) {
 	auto evt_test = get_syscall_event_test(__NR_sendmmsg, EXIT_EVENT);
-
-	if(evt_test->is_bpf_engine()) {
-		GTEST_SKIP() << "eBPF doesn't support multiple events";
-	}
 
 	evt_test->enable_capture();
 

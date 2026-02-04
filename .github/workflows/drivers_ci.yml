@@ -83,25 +83,18 @@ jobs:
             -DUSE_BUNDLED_DEPS=On \
             -DBUILD_DRIVER=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DBUILD_BPF=On \
             -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} \
             -DCREATE_TEST_TARGETS=On \
             -DENABLE_LIBSCAP_TESTS=On \
             -DUSE_ASAN=On \
             -DUSE_UBSAN=On
-          cmake --build build --target scap-open driver bpf libscap_test --parallel $(nproc)
+          cmake --build build --target scap-open driver libscap_test --parallel $(nproc)
 
       - name: Run scap-open with modern bpf 🏎️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 10
-
-      - name: Run scap-open with bpf 🏎️
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        run: |
-          cd build
-          sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 10
 
       - name: Run scap-open with kmod 🏎️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -169,21 +162,14 @@ jobs:
             -DENABLE_DRIVERS_TESTS=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
             -DMODERN_BPF_DEBUG_MODE=ON \
-            -DBUILD_BPF=True \
             -DBUILD_LIBSCAP_GVISOR=OFF
-          cmake --build build --target drivers_test driver bpf --parallel $(nproc)
+          cmake --build build --target drivers_test driver --parallel $(nproc)
 
       - name: Run drivers_test with modern bpf 🏎️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -m
-
-      - name: Run drivers_test with bpf 🏎️
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        run: |
-          cd build
-          sudo ./test/drivers/drivers_test -b
 
       - name: Run drivers_test with kmod 🏎️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -225,17 +211,14 @@ jobs:
               -DENABLE_DRIVERS_TESTS=ON \
               -DBUILD_LIBSCAP_MODERN_BPF=ON \
               -DMODERN_BPF_DEBUG_MODE=ON \
-              -DBUILD_BPF=True \
               -DBUILD_LIBSCAP_GVISOR=OFF \
               -DUSE_BUNDLED_LIBELF=OFF
-            cmake --build . --target drivers_test driver bpf --parallel $(nproc)
+            cmake --build . --target drivers_test driver --parallel $(nproc)
             sudo ./test/drivers/drivers_test -m
             rc_modern=$?
-            sudo ./test/drivers/drivers_test -b
-            rc_bpf=$?
             sudo ./test/drivers/drivers_test -k
             rc_kmod=$?
-            exit $(($rc_modern + $rc_bpf +$rc_kmod))
+            exit $(($rc_modern + $rc_kmod))
 
   build-drivers-s390x:
     name: build-drivers-s390x 😁 (bundle_deps)
@@ -272,9 +255,8 @@ jobs:
             -DENABLE_DRIVERS_TESTS=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
             -DMODERN_BPF_DEBUG_MODE=ON \
-            -DBUILD_BPF=ON \
             -DBUILD_LIBSCAP_GVISOR=OFF
-          cmake --build build --target drivers_test driver bpf --parallel $(nproc)
+          cmake --build build --target drivers_test driver --parallel $(nproc)
 
   build-modern-bpf-skeleton:
     needs: paths-filter
@@ -346,7 +328,6 @@ jobs:
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
             -DMODERN_BPF_SKEL_DIR=/tmp \
             -DBUILD_DRIVER=Off \
-            -DBUILD_BPF=Off
 
       - name: Build project
         run: |

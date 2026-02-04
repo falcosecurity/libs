@@ -24,9 +24,6 @@ limitations under the License.
 // Kernel module name
 #define LIBSINSP_TEST_KERNEL_MODULE_NAME "${DRIVER_NAME}"
 
-// Absolute path to the bpf probe .o file
-#define LIBSINSP_TEST_BPF_PROBE_PATH "${CMAKE_BINARY_DIR}/driver/bpf/probe.o"
-
 #define LIBSINSP_TEST_CAPTURES_PATH "${CMAKE_BINARY_DIR}/test/libsinsp_e2e/resources/captures/"
 
 #define LIBSINSP_TEST_RESOURCES_PATH "${CMAKE_BINARY_DIR}/test/libsinsp_e2e/resources/"

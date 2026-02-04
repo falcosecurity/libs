@@ -2,28 +2,28 @@
 
 ## Rationale
 
-This test suite should allow you to check the behavior of our 3 drivers: `modern_bpf`, `bpf`, `kernel module`. To assert against the output of our drivers we use the so-called `scap-engines`.
+This test suite should allow you to check the behavior of our 2 drivers: `modern_bpf`, `kernel module`. To assert against the output of our drivers we use the so-called `scap-engines`.
 You don't have to build all the engines if you want to assert only some of the drivers, for example, the minimal build command is:
 
 ```bash
 cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DCREATE_TEST_TARGETS=On ..
 ```
 
-In this case, only the `kmod` engine will be built and you can assert only the behavior of the kernel module. If you want to assert also the bpf probe you have to add `-DBUILD_BPF=True`, while if you want to add the modern bpf probe engine you have to use `-DBUILD_LIBSCAP_MODERN_BPF=On`.
+In this case, only the `kmod` engine will be built and you can assert only the behavior of the kernel module. If you want to assert also the modern bpf probe engine you have to use `-DBUILD_LIBSCAP_MODERN_BPF=On`.
 
 ## Usage Example
 
-Let's build all the 3 engines:
+Let's build all the 2 engines:
 
 ```bash
-cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On -DMODERN_BPF_DEBUG_MODE=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On -DMODERN_BPF_DEBUG_MODE=On ..
 make drivers_test
 ```
 
-Now all the engines should be built, but if you want to assert against the kmod or the bpf probe you have to build them:
+Now all the engines should be built, but if you want to assert against the kmod you have to build them:
 
 ```bash
-make driver bpf
+make driver
 ```
 
 > __NOTE__: the modern bpf probe is bundled inside its engine so every time you type `make drivers_test` it will be automatically compiled without any additional command.
@@ -38,12 +38,11 @@ The `-k` option stands for kmod, so you are running all the tests against the km
 
 - `-k` to run tests against the kernel module.
 - `-m` to run tests against the modern bpf probe.
-- `-b` to run tests against the bpf probe.
 - `-d` to change the dimension of shared buffers between userspace and kernel. (advanced use case)
 
 > __NOTE__: you can assert only one driver at time so you cannot run tests with more than one engine option `sudo ./test/drivers/drivers_test -k -m` ⚠️
 
-Another important thing to know is that by default when you provide the `-k` option, tests will search under `./driver/scap.ko` for a valid kernel module (this is the default location when you type `make driver`) same for the bpf probe (`.driver/bpf/probe.o`) so if you run tests in the build directory you shouldn't have issues. If you run tests outside the build directory you should provide also the path with the option (`sudo ./test/drivers/drivers_test -k <path_to_the_kmod>`, same for bpf). The modern bpf probe is bundled so no need for explicit paths!
+Another important thing to know is that by default when you provide the `-k` option, tests will search under `./driver/scap.ko` for a valid kernel module (this is the default location when you type `make driver`), so if you run tests in the build directory you shouldn't have issues. If you run tests outside the build directory you should provide also the path with the option (`sudo ./test/drivers/drivers_test -k <path_to_the_kmod>`). The modern bpf probe is bundled so no need for explicit paths!
 
 This is the suggested flow to run tests 👇
 
@@ -52,9 +51,8 @@ From repo root `/libs` type:
 ```bash
 rm -rf build
 mkdir build && cd build
-cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=True -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
-make drivers_test
-make driver bpf
+cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
+make drivers_test driver
 sudo ./test/drivers/drivers_test <option>
 ```
 

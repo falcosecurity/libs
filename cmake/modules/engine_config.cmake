@@ -11,10 +11,8 @@ set(HAS_ENGINE_SOURCE_PLUGIN On)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	option(ENABLE_ENGINE_KMOD "Enable kernel module engine" ON)
-	option(ENABLE_ENGINE_BPF "Enable bpf engine" ON)
 
 	set(HAS_ENGINE_KMOD ${ENABLE_ENGINE_KMOD})
-	set(HAS_ENGINE_BPF ${ENABLE_ENGINE_BPF})
 
 	option(BUILD_LIBSCAP_MODERN_BPF "Enable modern bpf probe" OFF)
 	if(BUILD_LIBSCAP_MODERN_BPF)

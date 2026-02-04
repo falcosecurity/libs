@@ -7,7 +7,7 @@
 [![Drivers](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/FedeDP/1cbc5d42edf8e3a02fb75e76625f1072/raw/kernel.json)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
 [![Github Pages](https://github.com/falcosecurity/libs/actions/workflows/pages.yml/badge.svg)](https://falcosecurity.github.io/libs/)
 
-This repository contains **libsinsp**, **libscap**, the **kernel module** and the **eBPF probes** sources.
+This repository contains **libsinsp**, **libscap**, the **kernel module** and the **modern eBPF probe** sources.
 
 These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
 
@@ -20,7 +20,7 @@ An image is worth a thousand words, they say:
 
 ## Project Layout
 
-* [_driver/_](./driver) contains kernel module and eBPF probe source code,
+* [_driver/_](./driver) contains kernel module and modern eBPF probe source code,
 so-called **drivers**.       
 * [_userspace/_](./userspace) contains libscap and libsinsp libraries code.
   * **libscap** (aka lib for *System CAPture*) is the userspace library
@@ -41,13 +41,13 @@ external dependencies, plus the libscap and libsinsp ones; consumers
 
 Our drivers officially support the following architectures:
 
-|             | Kernel module                                                                                | eBPF probe                                                                                  | Modern eBPF probe | Status |
-| ----------- |----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------| ----------------- | ------ |
-| **x86_64**  | >= 3.10                                                                                        | >= 4.14                                                                                     | >= 5.8            | _STABLE_ |
-| **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 4.17                                                                                     | >= 5.8            | _STABLE_ |
-| **s390x**   | >= 3.10                                                                                        | >= [5.5](https://github.com/torvalds/linux/commit/6ae08ae3dea)                              | >= 5.8            | _EXPERIMENTAL_ |
-| **riscv64** | >= [5.0](https://github.com/torvalds/linux/commit/5aeb1b36cedd3a1dfdbfe368629fed52dee34103)  | N/A                                                                                         | N/A               | _EXPERIMENTAL_ |
-| **ppc64le** | >= 3.10                                                                                        | >= [5.1](https://github.com/torvalds/linux/commit/ed1cd6deb013a11959d17a94e35ce159197632da) | >= 5.8               | _STABLE_ |
+|             | Kernel module                                                                                | Modern eBPF probe | Status |
+| ----------- |----------------------------------------------------------------------------------------------| ----------------- | ------ |
+| **x86_64**  | >= 3.10                                                                                        | >= 5.8            | _STABLE_ |
+| **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 5.8            | _STABLE_ |
+| **s390x**   | >= 3.10                                                                                        | >= 5.8            | _EXPERIMENTAL_ |
+| **riscv64** | >= [5.0](https://github.com/torvalds/linux/commit/5aeb1b36cedd3a1dfdbfe368629fed52dee34103)  |N/A               | _EXPERIMENTAL_ |
+| **ppc64le** | >= 3.10                                                                                        | >= 5.8               | _STABLE_ |
 
 
 To access up-to-date status reports on Falco drivers kernel testing, please visit this [page](https://falcosecurity.github.io/libs/). It provides a list of supported syscalls as well as the [report](https://falcosecurity.github.io/libs/report/).
@@ -109,7 +109,6 @@ For your convenience, we have included the instructions for building the `libs` 
 The project utilizes the `cmake` build system, and the key `make` targets are as follows: 
 
 * `driver` -> build the kmod
-* `bpf` -> build the legacy `ebpf` probe
 * `scap` -> build libscap (`modern_ebpf` driver will be bundled into `scap` if enabled)
 * `sinsp` -> build libsinsp (depends upon `scap` target)
 * `scap-open` -> build a small example binary for `libscap` to test the drivers (dependent on `scap`)
@@ -154,19 +153,6 @@ make driver
 ls -l driver/src/scap.ko;
 ```
 
-### Build driver - eBPF probe
-
-To build the eBPF probe, you need `clang` and `llvm` packages and you also need your kernel headers installed. Check out Falco's [official documentation](https://falco.org/docs/install-operate/source/).
-
-```bash
-cmake -DBUILD_BPF=ON ../;
-make bpf
-# Verify the eBPF bytecode file was created, uses `.o` extension.
-ls -l driver/bpf/probe.o;
-```
-
->__WARNING__: **clang-7** is the oldest supported version to build our BPF probe.
-
 ### Build driver - modern eBPF probe
 
 To build the modern eBPF probe, further prerequisites are necessary:
@@ -191,9 +177,7 @@ To build the modern eBPF probe, further prerequisites are necessary:
 
 > __NOTE:__ These are not the requirements to use the modern BPF probe, but rather for building it from source.
 
-Regarding the previously discussed legacy eBPF driver, it generates kernel-specific bytecode (`driver/bpf/probe.o`) tailored to your machine's kernel release (`uname -r`). The location of the bytecode file can then be passed as an argument for testing with the `scap-open` and `sinsp-example` binaries.
-
-However, the modern eBPF driver build process doesn't require kernel headers, and it isn't tied to your kernel release. This is enabled by the CO-RE (Compile Once - Run Everywhere) feature of the modern eBPF driver.
+The modern eBPF driver build process doesn't require kernel headers, and it isn't tied to your kernel release. This is enabled by the CO-RE (Compile Once - Run Everywhere) feature of the modern eBPF driver.
 
 CO-RE allows the driver to work on kernels with backported BTF (BPF Type Format) support or kernel versions >= 5.8. The way the driver interprets kernel data structures without direct knowledge of the running kernel is not magic — it leverages predefined type information and BTF-based relocations. We maintain a [vmlinux.h](driver/modern_bpf/definitions/vmlinux.h) file containing essential kernel data structure definitions, allowing the eBPF program to reference fields dynamically. Additionally, for cases where macros or functions from system headers are required, we redefine them in [struct_flavors.h](driver/modern_bpf/definitions/struct_flavors.h). Combined with CO-RE (Compile Once, Run Everywhere), this enables the driver to remain portable across different kernel versions.
  
@@ -243,7 +227,7 @@ This repository includes convenient test example binaries for both `scap` and `s
 
 When developing new features, you would run either one depending on what you're working on, in order to test and validate your changes.
 
-> __NOTE:__ When you're working on driver development, it can be quite useful to make use of the kernel's built-in `printk` functionality. However, for the traditional bpf driver, you'll need to uncomment a line in the [bpf Makefile](driver/bpf/Makefile) first and use a dedicated build flag `BPF_DEBUG`. For modern eBPF, use the build flag `MODERN_BPF_DEBUG_MODE`. Any logs generated by `bpf_printk()` will be written to `/sys/kernel/debug/tracing/trace_pipe`. Just make sure you have the right permissions set up for this.
+> __NOTE:__ When you're working on driver development, it can be quite useful to make use of the kernel's built-in `printk` functionality. For modern eBPF, use the build flag `MODERN_BPF_DEBUG_MODE`. Any logs generated by `bpf_printk()` will be written to `/sys/kernel/debug/tracing/trace_pipe`. Just make sure you have the right permissions set up for this.
 
 Here's an example of a `cmake` command that will enable everything you need for all tests and components. By default, the following flags are disabled, with the exception of `USE_BUNDLED_DEPS` and `CREATE_TEST_TARGETS` (they are enabled by default).
 
@@ -252,10 +236,8 @@ cmake \
 -DUSE_BUNDLED_DEPS=ON \
 -DBUILD_LIBSCAP_MODERN_BPF=ON \
 -DBUILD_LIBSCAP_GVISOR=ON \
--DBUILD_BPF=ON \
 -DBUILD_DRIVER=ON \
 -DMODERN_BPF_DEBUG_MODE=ON \
--DBPF_DEBUG=ON \
 -DCREATE_TEST_TARGETS=ON \
 -DENABLE_LIBSCAP_TESTS=ON \
 -DENABLE_DRIVERS_TESTS=ON \
@@ -268,7 +250,6 @@ cmake \
 
 ```bash
 nproc=$(grep processor /proc/cpuinfo | tail -n 1 | awk '{print $3}');
-rm -f driver/bpf/probe.o; make bpf;
 rm -f driver/src/scap.ko; make driver;
 # scap-open binary
 rm -f libscap/examples/01-open/scap-open; make -j$(($nproc-1)) scap-open;

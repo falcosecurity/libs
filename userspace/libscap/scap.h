@@ -78,7 +78,6 @@ struct scap_vtable;
 #include <libscap/scap_cgroup_set.h>
 
 /* Include engine-specific params. */
-#include <libscap/engine/bpf/bpf_public.h>
 #include <libscap/engine/gvisor/gvisor_public.h>
 #include <libscap/engine/kmod/kmod_public.h>
 #include <libscap/engine/modern_bpf/modern_bpf_public.h>
@@ -94,14 +93,14 @@ struct scap_vtable;
 // cannot or does not want to work around.
 //
 // Note: adding new events or event fields should not need a version bump
-// here, since libscap has to suport old event formats anyway (for capture
+// here, since libscap has to support old event formats anyway (for capture
 // files).
 //
 // If a consumer relies on events or APIs added in a new version, it should
 // call `scap_get_driver_api_version()` and/or `scap_get_driver_schema_version()`
 // and handle the result
 //
-#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(8, 0, 0)
+#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(9, 0, 0)
 #define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(4, 1, 0)
 
 //

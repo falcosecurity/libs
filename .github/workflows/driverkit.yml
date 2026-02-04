@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Test drivers build on ${{ matrix.name }}
         run: |
-          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --output-probe /tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }}
+          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }}
 
   build-drivers-arm64:
     strategy:
@@ -57,4 +57,4 @@ jobs:
     steps:
       - name: Test drivers build on ${{ matrix.name }}
         run: |
-          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --output-probe /tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }} --architecture arm64 --timeout 600
+          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }} --architecture arm64 --timeout 600

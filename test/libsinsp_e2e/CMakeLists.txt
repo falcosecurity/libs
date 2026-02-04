@@ -23,8 +23,7 @@ endif()
 add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
 add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 
-# Create a libsinsp_test_var.h file with some variables used by our tests for example the kmod path
-# or the bpf path.
+# Create a libsinsp_test_var.h file with some variables used by our tests (e.g.: the kmod path).
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/libsinsp_test_var.h.in"
 	"${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
@@ -52,11 +51,7 @@ add_executable(
 	unix_udp_client_server.cpp
 )
 
-if(BUILD_BPF)
-	add_dependencies(libsinsp_e2e_tests driver bpf)
-else()
-	add_dependencies(libsinsp_e2e_tests driver)
-endif()
+add_dependencies(libsinsp_e2e_tests driver)
 
 target_link_libraries(libsinsp_e2e_tests sinsp GTest::gtest GTest::gtest_main pthread)
 

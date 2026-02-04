@@ -19,8 +19,7 @@ if(NOT DEFINED DRIVER_NAME)
 	set(DRIVER_NAME "scap")
 endif()
 
-# Create a libscap_test_var.h file with some variables used by our tests for example the kmod path
-# or the bpf path.
+# Create a libscap_test_var.h file with some variables used by our tests (e.g.: the kmod path).
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/libscap_test_var.h.in"
 	"${CMAKE_CURRENT_BINARY_DIR}/libscap_test_var.h"
@@ -79,15 +78,6 @@ if(BUILD_DRIVER)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${KMOD_TEST_SUITE})
 	# Set `driver` target as a dependency
 	list(APPEND LIBSCAP_TESTS_DEPENDENCIES driver)
-endif()
-
-if(BUILD_BPF)
-	file(GLOB_RECURSE BPF_TEST_SUITE CONFIGURE_DEPENDS
-		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/bpf/*.cpp"
-	)
-	list(APPEND LIBSCAP_TESTS_SOURCES ${BPF_TEST_SUITE})
-	# Set `bpf` target as a dependency
-	list(APPEND LIBSCAP_TESTS_DEPENDENCIES bpf)
 endif()
 
 if(BUILD_LIBSCAP_MODERN_BPF)

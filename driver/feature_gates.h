@@ -15,17 +15,16 @@ or GPL2.txt for full copies of the license.
  *
  * These feature gates are used by:
  * - kernel module
- * - BPF probe
  * - userspace
- * - modern BPF probe
+ * - modern eBPF probe
  * to compile out some features. The userspace is in charge of
- * filling the BPF maps that's why it also needs these macros.
+ * filling the eBPF maps that's why it also needs these macros.
  *
  * This file is included by the 2 drivers and the userspace so
  * it could be the right place to define these feature gates.
  */
 
-#ifdef __KERNEL__ /* Kernel module - BPF probe */
+#ifdef __KERNEL__ /* Kernel module */
 
 #include "ppm_version.h"
 
@@ -45,15 +44,6 @@ or GPL2.txt for full copies of the license.
  *
  * In this way we can detect when a child is spawned and we can send to userspace
  * a `PPME_SYSCALL_CLONE_X` event as we do with the `sys_exit` tracepoint.
- *
- * Please note: in BPF we need to use raw_tracepoint programs to access
- * the raw tracepoint arguments! This is essential for `sched_process_fork`
- * tracepoint since the only way we have to access the child task struct
- * is through its raw arguments. All the architectures that need this
- * patch can use our BPF probe only with kernel versions greater or equal
- * than `4.17`, since `BPF_PROG_TYPE_RAW_TRACEPOINT` programs have been
- * introduced in this kernel release:
- * https://github.com/torvalds/linux/commit/c4f6699dfcb8558d138fe838f741b2c10f416cf9
  *
  * If you run old kernels, you can use the kernel module which requires
  * kernel versions greater or equal than `3.10`, since this tracepoint has
@@ -100,16 +90,7 @@ or GPL2.txt for full copies of the license.
 #define CAPTURE_PAGE_FAULTS
 #endif
 
-///////////////////////////////
-// USE_BPF_PROBE_KERNEL_USER_VARIANTS
-///////////////////////////////
-
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)) || \
-        ((PPM_RHEL_RELEASE_CODE > 0) && (PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 5)))
-#define USE_BPF_PROBE_KERNEL_USER_VARIANTS
-#endif
-
-#elif defined(__USE_VMLINUX__) /* modern BPF probe */
+#elif defined(__USE_VMLINUX__) /* modern eBPF probe */
 
 ///////////////////////////////
 // CAPTURE_SCHED_PROC_FORK
@@ -131,7 +112,7 @@ or GPL2.txt for full copies of the license.
 #else /* Userspace */
 
 /* Please note: the userspace loads the filler table for the bpf probe
- * so it must define these macro according to what BPF supports
+ * so it must define these macro according to what eBPF supports
  */
 
 ///////////////////////////////
