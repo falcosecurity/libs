@@ -108,7 +108,7 @@ libsinsp::state::sinsp_field_accessor_wrapper::~sinsp_field_accessor_wrapper() {
 		if(dynamic) {                                                                              \
 			delete static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(accessor); \
 		} else {                                                                                   \
-			delete static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(accessor);  \
+			delete static_cast<libsinsp::state::static_field_accessor<_type>*>(accessor);          \
 		}                                                                                          \
 		break;                                                                                     \
 	}
@@ -405,16 +405,16 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 		}
 	});
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
-		acc_wrap.dynamic = false;                                                           \
-		acc_wrap.data_type = data_type;                                                     \
-		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
-		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                      \
-		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();             \
-		return this->m_field_accessors[name];                                               \
+#define _X(_type, _dtype)                                                           \
+	{                                                                               \
+		auto acc = fixed_it->second.new_accessor<_type>();                          \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                     \
+		acc_wrap.dynamic = false;                                                   \
+		acc_wrap.data_type = data_type;                                             \
+		acc_wrap.accessor = new libsinsp::state::static_field_accessor<_type>(acc); \
+		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));              \
+		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();     \
+		return this->m_field_accessors[name];                                       \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		if(fixed_it != this->static_fields()->end()) {
@@ -603,19 +603,18 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	auto e = static_cast<libsinsp::state::table_entry*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		if(a->dynamic) {                                                                    \
-			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
-			        a->accessor);                                                           \
-			e->get_dynamic_field<_type>(*aa, out->_dtype);                                  \
-		} else {                                                                            \
-			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
-			        a->accessor);                                                           \
-			e->get_static_field<_type>(*aa, out->_dtype);                                   \
-		}                                                                                   \
-		res = SS_PLUGIN_SUCCESS;                                                            \
-		break;                                                                              \
+#define _X(_type, _dtype)                                                                       \
+	{                                                                                           \
+		if(a->dynamic) {                                                                        \
+			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(     \
+			        a->accessor);                                                               \
+			e->get_dynamic_field<_type>(*aa, out->_dtype);                                      \
+		} else {                                                                                \
+			auto aa = static_cast<libsinsp::state::static_field_accessor<_type>*>(a->accessor); \
+			e->get_static_field<_type>(*aa, out->_dtype);                                       \
+		}                                                                                       \
+		res = SS_PLUGIN_SUCCESS;                                                                \
+		break;                                                                                  \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
 #undef _X
@@ -656,22 +655,21 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 		return SS_PLUGIN_FAILURE;
 	}
 
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		if(a->dynamic) {                                                                    \
-			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
-			        a->accessor);                                                           \
-			_type val;                                                                      \
-			convert_types(in->_dtype, val);                                                 \
-			e->set_dynamic_field<_type>(*aa, val);                                          \
-		} else {                                                                            \
-			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
-			        a->accessor);                                                           \
-			_type val;                                                                      \
-			convert_types(in->_dtype, val);                                                 \
-			e->set_static_field<_type>(*aa, val);                                           \
-		}                                                                                   \
-		return SS_PLUGIN_SUCCESS;                                                           \
+#define _X(_type, _dtype)                                                                       \
+	{                                                                                           \
+		if(a->dynamic) {                                                                        \
+			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(     \
+			        a->accessor);                                                               \
+			_type val;                                                                          \
+			convert_types(in->_dtype, val);                                                     \
+			e->set_dynamic_field<_type>(*aa, val);                                              \
+		} else {                                                                                \
+			auto aa = static_cast<libsinsp::state::static_field_accessor<_type>*>(a->accessor); \
+			_type val;                                                                          \
+			convert_types(in->_dtype, val);                                                     \
+			e->set_static_field<_type>(*aa, val);                                               \
+		}                                                                                       \
+		return SS_PLUGIN_SUCCESS;                                                               \
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
 #undef _X

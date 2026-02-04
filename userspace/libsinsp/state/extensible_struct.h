@@ -35,7 +35,7 @@ protected:
 
 		template<typename T>
 		const void* operator()() const {
-			if(auto static_acc = dynamic_cast<const static_struct::field_accessor<T>*>(acc)) {
+			if(auto static_acc = dynamic_cast<const static_field_accessor<T>*>(acc)) {
 				return self->static_struct::raw_read_field(*static_acc);
 			}
 
@@ -62,7 +62,7 @@ protected:
 
 		template<typename T>
 		void operator()() const {
-			if(auto static_acc = dynamic_cast<const static_struct::field_accessor<T>*>(acc)) {
+			if(auto static_acc = dynamic_cast<const static_field_accessor<T>*>(acc)) {
 				self->static_struct::raw_write_field(*static_acc, in);
 				return;
 			}
