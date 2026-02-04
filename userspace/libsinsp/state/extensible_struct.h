@@ -25,7 +25,7 @@ namespace libsinsp::state {
 class extensible_struct : public state_struct, public dynamic_struct {
 public:
 	explicit extensible_struct(
-	        const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields = nullptr):
+	        const std::shared_ptr<dynamic_field_infos>& dynamic_fields = nullptr):
 	        dynamic_struct(dynamic_fields) {}
 
 	// static_struct interface
@@ -89,7 +89,7 @@ protected:
 				return reinterpret_cast<const char*>(self) + static_acc->info().offset();
 			}
 
-			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(acc)) {
+			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor<T>*>(acc)) {
 				self->_check_defsptr(dynamic_acc->info(), false);
 				return self->_access_dynamic_field_for_read(dynamic_acc->info().index());
 			}
@@ -127,7 +127,7 @@ protected:
 				return;
 			}
 
-			if(auto dynamic_acc = dynamic_cast<const dynamic_struct::field_accessor<T>*>(acc)) {
+			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor<T>*>(acc)) {
 				self->_check_defsptr(dynamic_acc->info(), true);
 				auto ptr = static_cast<T*>(
 				        self->_access_dynamic_field_for_write(dynamic_acc->info().index()));

@@ -52,7 +52,7 @@ struct sinsp_field_accessor_wrapper {
  * @brief Base class for entries of a state table.
  */
 struct table_entry : public extensible_struct {
-	explicit table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
+	explicit table_entry(const std::shared_ptr<dynamic_field_infos>& dyn_fields):
 	        extensible_struct(dyn_fields) {}
 };
 
@@ -210,22 +210,21 @@ public:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
-	inline built_in_table(const std::string& name,
-	                      const extensible_struct::field_infos* static_fields,
-	                      const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                              dynamic_fields = nullptr):
+	inline built_in_table(
+	        const std::string& name,
+	        const extensible_struct::field_infos* static_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
 	        table<KeyType>::table(),
 	        m_this_ptr(this),
 	        m_name(name),
 	        m_static_fields(static_fields),
-	        m_dynamic_fields(dynamic_fields != nullptr
-	                                 ? dynamic_fields
-	                                 : std::make_shared<dynamic_struct::field_infos>()) {}
+	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
+	                                                   : std::make_shared<dynamic_field_infos>()) {}
 	inline built_in_table(const std::string& name):
 	        table<KeyType>::table(),
 	        m_this_ptr(this),
 	        m_name(name),
-	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
+	        m_dynamic_fields(std::make_shared<dynamic_field_infos>()) {}
 
 	/**
 	 * @brief Returns a pointer to the area of memory in which this table
@@ -327,11 +326,11 @@ public:
 	 * be allocated and accessible for all the present and future entries
 	 * present in the table.
 	 */
-	virtual const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
+	virtual const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
 		return m_dynamic_fields;
 	}
 
-	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
+	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& dynf) {
 		if(m_dynamic_fields.get() == dynf.get()) {
 			return;
 		}
@@ -394,7 +393,7 @@ private:
 	const extensible_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
-	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
+	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 };
 
 class sinsp_table_owner {
