@@ -2332,11 +2332,10 @@ struct syscall_evt_pair {
 
 /*
  * Max size of a parameter in the kernel module is uint16_t, so no point
- * in going beyond 0xffff. However, in BPF the limit is more stringent
- * because the entire perf event must fit in uint16_t, so make this
- * a more conservative 65k so we have some room for the other
- * parameters in the event. It shouldn't cause issues since typically
- * snaplen is much lower than this.
+ * in going beyond 0xffff. Notice: this is less than 2^16 - 1 for historical reasons, linked to the
+ * fact that this value was also used in the legacy BPF probe: the limit there was more stringent,
+ * because the entire perf event had to fit in uint16_t. Keep it as is for the moment, as this
+ * shouldn't cause any issues since typically snaplen is much lower than this.
  */
 #define PPM_MAX_ARG_SIZE 65000
 

@@ -1198,7 +1198,7 @@ void event_test::assert_cgroup_param(int param_num) {
 		        << VALUE_NOT_CORRECT << m_current_param;
 	}
 
-	/* With the kmod we send more cgroups than the 5 we send in bpf and modern bpf */
+	/* With the kmod we send more cgroups than the 5 we send in the modern bpf */
 	if(is_kmod_engine()) {
 		assert_param_len_ge(total_len);
 	} else {

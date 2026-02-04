@@ -18,7 +18,7 @@ needed for the e2e tests:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_DRIVER=ON ..
 make e2e-install-deps
 ```
 
@@ -33,7 +33,7 @@ and run the e2e tests with the `e2e-tests` make target.
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_DRIVER=ON ..
 make e2e-tests
 ```
 
@@ -46,8 +46,8 @@ entire repo as root, you can use the following commands instead:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
-make sinsp-example driver bpf
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver
 mkdir -p report/
 sudo ../test/e2e/scripts/run_tests.sh
 ```
@@ -59,8 +59,8 @@ passing the path to those tests:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
-make sinsp-example driver bpf
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver
 mkdir -p report/
 sudo ../test/e2e/scripts/run_tests.sh ../test/e2e/tests/test_network/
 ```
@@ -69,8 +69,8 @@ Another common option could be to stop at the first failure:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
-make sinsp-example driver bpf
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver
 mkdir -p report/
 sudo ../test/e2e/scripts/run_tests.sh -x ../test/e2e/tests/
 ```
@@ -81,8 +81,8 @@ run the tests skipping the kernel module you can use the following commands:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
-make sinsp-example driver bpf
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver
 mkdir -p report/
 sudo ../test/e2e/scripts/run_tests.sh --no-kmod ../test/e2e/tests/
 ```
@@ -91,7 +91,6 @@ These are the three accepted parameters for skipping drivers:
 
 ```
 --no-kmod: Skip tests using the kernel module as driver
---no-ebpf: Skip tests using the eBPF probe as driver
 --no-modern: Skip tests using the modern probe as driver
 ```
 
@@ -104,8 +103,8 @@ The build for this container is based off of `containers/sinsp.Dockerfile`
 ### Drivers
 The drivers used by `sinsp-example` to capture events on the system need to be
 built as part of the tests. The drivers are embedded in the `sinsp-example`
-container. The same container can be used with other drivers by mounting them
-in and setting either the `KERNEL_MODULE` or `BPF_PROBE` environment variables.
+container. The same container can be used with other kernel module drivers by
+mounting them in and setting the `KERNEL_MODULE` environment variable.
 
 ### Tester container
 This container is in charge of running any tests that are created under the
@@ -117,8 +116,7 @@ to house any functions/classes that might be useful across multiple tests. The
 dockerfile for this image can be found under `containers/tests.Dockerfile`.
 
 ### Running the tests
-An `e2e-tests-container` target has been added. It requires the `BUILD_BPF`
-option to be set.
+An `e2e-tests-container` target has been added.
 
 ## Contributing new e2e tests
 In order to add new tests, the simplest approach is to run `sinsp-example` with

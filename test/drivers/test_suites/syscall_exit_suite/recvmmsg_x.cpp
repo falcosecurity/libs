@@ -839,10 +839,6 @@ TEST(SyscallExit, recvmmsgX_ipv4_udp_connection_null_buffer) {
 TEST(SyscallExit, recvmmsgX_ipv4_tcp_multiple_messages) {
 	auto evt_test = get_syscall_event_test(__NR_recvmmsg, EXIT_EVENT);
 
-	if(evt_test->is_bpf_engine()) {
-		GTEST_SKIP() << "eBPF doesn't support multiple events";
-	}
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -961,13 +957,6 @@ TEST(SyscallExit, recvmmsgX_ipv4_tcp_multiple_messages) {
 			/// to change this behavior!
 			evt_test->assert_empty_param(5);
 			evt_test->assert_num_params_pushed(6);
-			if(evt_test->is_bpf_engine()) {
-				GTEST_SKIP() << "[RECVMMSG_X]: we receive an empty tuple but we have all the data "
-				                "in the "
-				                "kernel to "
-				                "obtain the correct tuple"
-				             << std::endl;
-			}
 		}
 
 		/* Parameter 6: msg_control (type: PT_BYTEBUF) */

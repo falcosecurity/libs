@@ -11,24 +11,20 @@ from sinspqa.sinsp import SinspStreamerBuilder
 def pytest_addoption(parser):
     parser.addoption('--no-kmod', action='store_true',
                      default=False, help='Skip tests with kernel module')
-    parser.addoption('--no-ebpf', action='store_true',
-                     default=False, help='Skip tests with eBPF')
     parser.addoption('--no-modern', action='store_true',
                      default=False, help='Skip tests with modern eBPF')
 
 
 def pytest_collection_modifyitems(config, items):
     no_kmod = config.getoption('--no-kmod')
-    no_ebpf = config.getoption('--no-ebpf')
     no_modern = config.getoption('--no-modern')
 
-    if not no_kmod and not no_ebpf and not no_modern:
+    if not no_kmod and not no_modern:
         # We are not skipping any tests
         return
 
     skip_kmod = pytest.mark.skip(
         reason='Skipping tests with kernel module driver')
-    skip_ebpf = pytest.mark.skip(reason='Skipping tests with eBPF driver')
     skip_modern = pytest.mark.skip(
         reason='Skipping tests with modern eBPF driver')
 
@@ -37,11 +33,6 @@ def pytest_collection_modifyitems(config, items):
             for kw in item.keywords:
                 if 'kmod' in kw:
                     item.add_marker(skip_kmod)
-                    break
-        if no_ebpf:
-            for kw in item.keywords:
-                if 'ebpf' in kw:
-                    item.add_marker(skip_ebpf)
                     break
         if no_modern:
             for kw in item.keywords:

@@ -6,10 +6,9 @@
 
 ### Sources
 
-Right now there are 4 `scap` sources:
+Right now there are 3 `scap` sources:
 
 1. KERNEL_MODULE
-2. BPF_PROBE
 3. MODERN_BPF_PROBE
 4. SCAP_FILE
 
@@ -17,7 +16,6 @@ You can enable them with the following options:
 
 ```
 '--kmod': enable the kernel module.
-'--bpf <probe_path>': enable the BPF probe.
 '--modern_bpf': enable modern BPF probe.
 '--scap_file <file.scap>': read events from scap file.
 ```
@@ -54,7 +52,6 @@ make scap-open
 
 Optional Cmake options:
 
-* `-DBUILD_BPF=ON`: if you want to test the BPF probe.
 * `-DBUILD_LIBSCAP_MODERN_BPF=ON`: if you want to test the modern BPF probe.
 * `-DMODERN_BPF_DEBUG_MODE=ON`: if you want to test the modern BPF probe in debug mode. (if you use it you need also the previous one `-DBUILD_LIBSCAP_MODERN_BPF=ON`).
 
@@ -80,10 +77,10 @@ make ProbeSkeleton
 
 ## Run 🏎️
 
-To execute it, you have to pass at least one [source](#Sources). For example in this case we use the `bpf` source.
+To execute it, you have to pass at least one [source](#Sources). For example in this case we use the `modern_bpf` source.
 
 ```bash
-sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o
+sudo ./libscap/examples/01-open/scap-open --modern_bpf
 ```
 
 >__Please note__: to use the BPF probe you have also to pass the path to the `.o` file.
@@ -210,7 +207,7 @@ sudo ./libscap/examples/01-open/scap-open --tp | grep sys_enter
 3. Run the command with the obtained configuration:
 
 ```bash
-sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o --ppm_sc 27 --tp 0
+sudo ./libscap/examples/01-open/scap-open --modern_bpf --ppm_sc 27 --tp 0
 ```
 
 ## Build a docker image for scap-open
@@ -234,7 +231,7 @@ docker tag ubuntu:22.04 runner-image
 
 ```bash
 mkdir build && cd build
-cmake -DUSE_BUNDLED_DEPS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=Off -DMODERN_BPF_DEBUG_MODE=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=Off -DMODERN_BPF_DEBUG_MODE=On ..
 make scap-open driver bpf
 ```
 

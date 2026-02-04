@@ -82,9 +82,8 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "Process Executable Path",
          "The full executable path of a process, resolving to the canonical path for symlinks. "
          "This is primarily obtained from the kernel, or as a fallback, by reading /proc/PID/exe "
-         "(in the latter case, the path is truncated after 1024 bytes). For eBPF drivers, due to "
-         "verifier limits, path components may be truncated to 24 for legacy eBPF on kernel <5.2, "
-         "48 for legacy eBPF on kernel >=5.2, or 96 for modern eBPF."},
+         "(in the latter case, the path is truncated after 1024 bytes). For the modern eBPF driver,"
+         "due to verifier limits, path components may be truncated to 96."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,

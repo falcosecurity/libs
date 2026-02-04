@@ -270,13 +270,6 @@ public:
 	/**
 	 * @brief Check the current engine type
 	 *
-	 * @return true if the current engine is bpf
-	 */
-	bool is_bpf_engine() { return scap_check_current_engine(s_scap_handle, BPF_ENGINE); }
-
-	/**
-	 * @brief Check the current engine type
-	 *
 	 * @return true if the current engine is modern-bpf
 	 */
 	bool is_modern_bpf_engine() {

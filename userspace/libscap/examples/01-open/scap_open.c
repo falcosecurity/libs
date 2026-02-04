@@ -30,7 +30,6 @@ limitations under the License.
 
 /* SCAP SOURCES */
 #define KMOD_OPTION "--kmod"
-#define BPF_OPTION "--bpf"
 #define MODERN_BPF_OPTION "--modern_bpf"
 #define SCAP_FILE_OPTION "--scap_file"
 
@@ -53,7 +52,6 @@ extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 /* Engine params */
-static struct scap_bpf_engine_params bpf_params = {};
 static struct scap_kmod_engine_params kmod_params = {};
 static struct scap_modern_bpf_engine_params modern_bpf_params = {};
 static struct scap_savefile_engine_params savefile_params = {};
@@ -269,7 +267,6 @@ void print_help() {
 	printf("\n------------------------------ MENU ------------------------------\n");
 	printf("------> SCAP SOURCES\n");
 	printf("'%s': enable the kernel module.\n", KMOD_OPTION);
-	printf("'%s <probe_path>': enable the BPF probe.\n", BPF_OPTION);
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
@@ -309,12 +306,6 @@ void print_scap_source() {
 		printf("* Kernel module.\n");
 	}
 #endif
-#ifdef HAS_ENGINE_BPF
-	else if(vtable == &scap_bpf_engine) {
-		struct scap_bpf_engine_params* params = oargs.engine_params;
-		printf("* BPF probe: '%s'\n", params->bpf_probe);
-	}
-#endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(vtable == &scap_modern_bpf_engine) {
 		struct scap_modern_bpf_engine_params* params = oargs.engine_params;
@@ -350,11 +341,6 @@ void print_start_capture() {
 		printf("* OK! Kernel module correctly loaded.\n");
 	}
 #endif
-#ifdef HAS_ENGINE_BPF
-	else if(vtable == &scap_bpf_engine) {
-		printf("* OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
-	}
-#endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(vtable == &scap_modern_bpf_engine) {
 		printf("* OK! modern BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
@@ -384,18 +370,6 @@ void parse_CLI_options(int argc, char** argv) {
 			vtable = &scap_kmod_engine;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &kmod_params;
-		}
-#endif
-#ifdef HAS_ENGINE_BPF
-		if(!strcmp(argv[i], BPF_OPTION)) {
-			if(!(i + 1 < argc)) {
-				printf("\nYou need to specify also the BPF probe path! Bye!\n");
-				exit(EXIT_FAILURE);
-			}
-			vtable = &scap_bpf_engine;
-			bpf_params.bpf_probe = argv[++i];
-			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
-			oargs.engine_params = &bpf_params;
 		}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
@@ -430,7 +404,6 @@ void parse_CLI_options(int argc, char** argv) {
 			}
 			buffer_bytes_dim = strtoul(argv[++i], NULL, 10);
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
-			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 		}
 		if(!strcmp(argv[i], PPM_SC_OPTION)) {
@@ -511,11 +484,6 @@ void parse_CLI_options(int argc, char** argv) {
 }
 
 static inline bool engine_uses_bpf() {
-#ifdef HAS_ENGINE_BPF
-	if(vtable == &scap_bpf_engine) {
-		return true;
-	}
-#endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	if(vtable == &scap_modern_bpf_engine) {
 		return true;

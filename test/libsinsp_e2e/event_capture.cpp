@@ -209,16 +209,6 @@ void event_capture::open_engine(const std::string& engine_string,
 		m_inspector->open_kmod(s_buffer_dim, events_sc_codes);
 	}
 #endif
-#ifdef HAS_ENGINE_BPF
-	else if(!engine_string.compare(BPF_ENGINE)) {
-		if(event_capture::get_engine().empty()) {
-			std::cerr << "You must specify the path to the bpf probe if you use the 'bpf' engine"
-			          << '\n';
-			exit(EXIT_FAILURE);
-		}
-		m_inspector->open_bpf(event_capture::get_engine_path(), s_buffer_dim, events_sc_codes);
-	}
-#endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
 		m_inspector->open_modern_bpf(s_buffer_dim,

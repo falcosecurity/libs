@@ -593,38 +593,6 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim,
 #endif
 }
 
-void sinsp::open_bpf(const std::string& bpf_path,
-                     unsigned long driver_buffer_bytes_dim,
-                     const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest) {
-#ifdef HAS_ENGINE_BPF
-	/* Validate the BPF path. */
-	if(bpf_path.empty()) {
-		throw sinsp_exception(
-		        "When you use the 'BPF' engine you need to provide a path to the bpf object "
-		        "file.");
-	}
-
-	scap_open_args oargs{};
-
-	/* Set interesting syscalls and tracepoints. */
-	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
-
-	/* Engine-specific args. */
-	scap_bpf_engine_params params;
-	params.buffer_bytes_dim = driver_buffer_bytes_dim;
-	params.bpf_probe = bpf_path.data();
-	oargs.engine_params = &params;
-
-	scap_platform* platform = scap_linux_alloc_platform({::on_proc_table_refresh_start,
-	                                                     ::on_proc_table_refresh_end,
-	                                                     ::on_new_entry_from_proc,
-	                                                     this});
-	try_open_common(&oargs, &scap_bpf_engine, platform, SINSP_MODE_LIVE);
-#else
-	throw sinsp_exception("BPF engine is not supported in this build");
-#endif
-}
-
 void sinsp::open_nodriver(bool full_proc_scan) {
 #ifdef HAS_ENGINE_NODRIVER
 	scap_open_args oargs{};

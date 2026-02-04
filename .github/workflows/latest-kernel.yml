@@ -31,7 +31,6 @@ jobs:
           echo "driverversion: ${{ github.sha }}" >> dk.yaml
           echo "output:" >> dk.yaml
           echo "  module: mod.ko" >> dk.yaml
-          echo "  probe: probe.o" >> dk.yaml
           if [ "${{ inputs.linux-version }}" = "" ]; then
             krel=$(grep "_tag" PKGBUILD | head -n1 | awk -F"=" '{print $2}')
             echo "kernelrelease: ${krel:1}" >> dk.yaml

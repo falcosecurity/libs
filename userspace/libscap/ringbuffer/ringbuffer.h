@@ -27,8 +27,8 @@ limitations under the License.
 #include <libscap/strerror.h>
 
 /* Check buffer dimension in bytes.
- * Our 2 eBPF probes require that this number is a power of 2! Right now we force this
- * constraint to all our drivers (also the kernel module and udig) just for conformity.
+ * Our eBPF probe require that this number is a power of 2! Right now we force this constraint to
+ * all our drivers (also the kernel module and udig) just for conformity.
  */
 int32_t check_buffer_bytes_dim(char* error, unsigned long buf_bytes_dim);
 

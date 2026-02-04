@@ -12,10 +12,8 @@
 #define HELP_OPTION "help"
 #define VERBOSE_OPTION "verbose"
 #define KMOD_OPTION "kmod"
-#define BPF_OPTION "bpf"
 #define MODERN_BPF_OPTION "modern-bpf"
 #define BUFFER_OPTION "buffer-dim"
-#define BPF_PROBE_DEFAULT_PATH "/driver/bpf/probe.o"
 #define KMOD_DEFAULT_PATH "/driver/scap.ko"
 #define KMOD_NAME "scap"
 
@@ -110,7 +108,6 @@ Overview: The goal of this binary is to run tests against one of our drivers.
 Options:
   -k, --kmod <path>       Run tests against the kernel module. Default path is `./driver/scap.ko`.
   -m, --modern-bpf        Run tests against the modern bpf probe.
-  -b, --bpf <path>        Run tests against the bpf probe. Default path is `./driver/bpf/probe.o`.
   -d, --buffer-dim <dim>  Change the dimension of shared buffers between userspace and kernel. You must specify the dimension in bytes.
   -v, --verbose <level>   Print all available logs. Default level is WARNING (4).
   -h, --help              This page.
@@ -120,8 +117,7 @@ Options:
 }
 
 int open_engine(int argc, char** argv) {
-	static struct option long_options[] = {{BPF_OPTION, optional_argument, 0, 'b'},
-	                                       {MODERN_BPF_OPTION, no_argument, 0, 'm'},
+	static struct option long_options[] = {{MODERN_BPF_OPTION, no_argument, 0, 'm'},
 	                                       {KMOD_OPTION, optional_argument, 0, 'k'},
 	                                       {BUFFER_OPTION, required_argument, 0, 'd'},
 	                                       {HELP_OPTION, no_argument, 0, 'h'},
@@ -130,7 +126,6 @@ int open_engine(int argc, char** argv) {
 
 	// They should live until we call 'scap_open'
 	scap_modern_bpf_engine_params modern_bpf_params = {};
-	scap_bpf_engine_params bpf_params = {};
 	scap_kmod_engine_params kmod_params = {};
 	int ret = 0;
 	const scap_vtable* vtable = nullptr;
@@ -156,37 +151,8 @@ int open_engine(int argc, char** argv) {
 	/* Parse CLI options */
 	int op = 0;
 	int long_index = 0;
-	while((op = getopt_long(argc, argv, "b::mk::d:hv:", long_options, &long_index)) != -1) {
+	while((op = getopt_long(argc, argv, "mk::d:hv:", long_options, &long_index)) != -1) {
 		switch(op) {
-		case 'b':
-#ifdef HAS_ENGINE_BPF
-		{
-			abort_if_already_configured(vtable);
-			vtable = &scap_bpf_engine;
-			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
-			/* This should handle cases where we pass arguments with the space:
-			 * `-b ./path/to/probe`. Without this `if` case we can accept arguments
-			 * only in this format `-b./path/to/probe`
-			 */
-			if(optarg == NULL && optind < argc && argv[optind][0] != '-') {
-				bpf_params.bpf_probe = argv[optind++];
-			} else if(optarg == NULL) {
-				strlcat(driver_path, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX);
-				bpf_params.bpf_probe = driver_path;
-			} else {
-				bpf_params.bpf_probe = optarg;
-			}
-			oargs.engine_params = &bpf_params;
-
-			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe
-			          << std::endl;
-		}
-#else
-			std::cerr << "BPF engine is not supported in this build" << std::endl;
-			return EXIT_FAILURE;
-#endif
-		break;
-
 		case 'm':
 #ifdef HAS_ENGINE_MODERN_BPF
 		{

@@ -24,9 +24,9 @@ jobs:
         name: [system_deps, bundled_deps, sanitizers, zig]
         include:
           - name: system_deps
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
+            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
+            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=True
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
@@ -116,7 +116,6 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           cmake -B build -S . \
-            -DBUILD_BPF=On \
             -DBUILD_DRIVER=Off \
             -DUSE_BUNDLED_DEPS=On \
             -DUSE_BUNDLED_LIBELF=Off \
@@ -262,7 +261,6 @@ jobs:
             -DUSE_BUNDLED_DEPS=On \
             -DBUILD_DRIVER=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DBUILD_BPF=On \
             -DBUILD_LIBSCAP_GVISOR=On \
             -DCREATE_TEST_TARGETS=Off \
             -DENABLE_LIBSCAP_TESTS=Off

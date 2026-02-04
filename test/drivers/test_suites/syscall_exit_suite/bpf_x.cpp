@@ -88,8 +88,8 @@ TEST(SyscallExit, bpfX_MAP_CREATE) {
 	int32_t cmd = BPF_MAP_CREATE;
 	union bpf_attr *attr = NULL;
 
-	/* Here we need to call the `bpf` from a child because the main process throws lots of
-	 * `bpf` syscalls to manage the bpf drivers.
+	/* Here we need to call the `bpf` from a child because the main process throws lots of `bpf`
+	 * syscalls to manage the bpf driver.
 	 */
 	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;

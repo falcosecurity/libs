@@ -1262,9 +1262,6 @@ TEST_F(sys_call_test, large_open) {
 			if(event_capture::s_engine_string == KMOD_ENGINE) {
 				EXPECT_EQ(p->len(), PPM_MAX_ARG_SIZE);
 				EXPECT_EQ(buf.substr(0, PPM_MAX_ARG_SIZE - 1), std::string(p->data()));
-			} else if(event_capture::s_engine_string == BPF_ENGINE) {
-				EXPECT_EQ(p->len(), SNAPLEN_MAX);
-				EXPECT_EQ(buf.substr(0, SNAPLEN_MAX - 1), std::string(p->data()));
 			} else if(event_capture::s_engine_string == MODERN_BPF_ENGINE) {
 				EXPECT_EQ(p->len(), PATH_MAX);
 				EXPECT_EQ(buf.substr(0, PATH_MAX - 1), std::string(p->data()));

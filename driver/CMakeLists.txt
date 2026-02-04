@@ -216,5 +216,3 @@ if(ENABLE_DKMS)
 		COMPONENT ${DRIVER_KMOD_COMPONENT_NAME}
 	)
 endif()
-
-add_subdirectory(bpf)

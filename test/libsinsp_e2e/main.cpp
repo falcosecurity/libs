@@ -28,7 +28,6 @@ limitations under the License.
 #define HELP_OPTION "help"
 #define VERBOSE_OPTION "verbose"
 #define KMOD_OPTION "kmod"
-#define BPF_OPTION "bpf"
 #define MODERN_BPF_OPTION "modern-bpf"
 #define BUFFER_OPTION "buffer-dim"
 
@@ -118,7 +117,6 @@ Overview: The goal of this binary is to run tests against libsinsp.
 Options:
   -k, --kmod <path>       Run tests against the kernel module. Default path is `./driver/scap.ko`.
   -m, --modern-bpf        Run tests against the modern bpf probe.
-  -b, --bpf <path>        Run tests against the bpf probe. Default path is `./driver/bpf/probe.o`.
   -d, --buffer-dim <dim>  Change the dimension of shared buffers between userspace and kernel. You must specify the dimension in bytes.
   -v, --verbose <level>   Print all available logs. Default level is WARNING (4).
   -h, --help              This page.
@@ -128,8 +126,7 @@ Options:
 }
 
 int open_engine(int argc, char** argv) {
-	static struct option long_options[] = {{BPF_OPTION, optional_argument, 0, 'b'},
-	                                       {MODERN_BPF_OPTION, no_argument, 0, 'm'},
+	static struct option long_options[] = {{MODERN_BPF_OPTION, no_argument, 0, 'm'},
 	                                       {KMOD_OPTION, optional_argument, 0, 'k'},
 	                                       {BUFFER_OPTION, required_argument, 0, 'd'},
 	                                       {HELP_OPTION, no_argument, 0, 'h'},
@@ -153,17 +150,8 @@ int open_engine(int argc, char** argv) {
 	/* Parse CLI options */
 	int op = 0;
 	int long_index = 0;
-	while((op = getopt_long(argc, argv, "b::mk::d:hv:", long_options, &long_index)) != -1) {
+	while((op = getopt_long(argc, argv, "mk::d:hv:", long_options, &long_index)) != -1) {
 		switch(op) {
-		case 'b':
-#ifdef HAS_ENGINE_BPF
-			event_capture::set_engine(BPF_ENGINE, LIBSINSP_TEST_BPF_PROBE_PATH);
-#else
-			std::cerr << "BPF engine is not supported in this build" << std::endl;
-			return EXIT_FAILURE;
-#endif
-			break;
-
 		case 'm':
 #ifdef HAS_ENGINE_MODERN_BPF
 			event_capture::set_engine(MODERN_BPF_ENGINE, "");

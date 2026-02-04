@@ -82,7 +82,7 @@ TEST(Actions, ia32)
 	else
 	{
 		/*
-		 * Kmod and old bpf jump table is events-indexed.
+		 * Kmod jump table is events-indexed.
 		 * We are able to fallback at sending the events.
 		 */
 		evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_X);

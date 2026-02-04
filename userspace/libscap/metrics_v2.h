@@ -35,7 +35,7 @@ extern "C" {
 #define N_EVENTS_PREFIX "n_evts"
 
 //
-// Prefix names for per-CPU metrics (Used by legacy ebpf and modern ebpf)
+// Prefix names for per-CPU metrics (Used by modern ebpf)
 //
 #define N_EVENTS_PER_CPU_PREFIX "n_evts_cpu_"
 #define N_DROPS_PER_CPU_PREFIX "n_drops_cpu_"
