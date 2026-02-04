@@ -214,8 +214,6 @@ static inline std::string table_input_error_prefix(const libsinsp::state::sinsp_
 	}
 }
 
-static const libsinsp::state::static_struct::field_infos s_empty_static_infos;
-
 // wraps instances of ss_plugin_table_input and makes them comply
 // to the libsinsp::state::table state tables definition.
 template<typename KeyType>
