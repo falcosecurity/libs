@@ -154,10 +154,10 @@ TEST(static_struct, defs_and_access) {
 TEST(dynamic_struct, defs_and_access) {
 	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
 
-	struct sample_struct : public libsinsp::state::dynamic_struct {
+	struct sample_struct : public libsinsp::state::extensible_struct {
 	public:
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
-		        dynamic_struct(i) {}
+		        extensible_struct(i) {}
 	};
 
 	// struct construction and setting fields definition
@@ -233,9 +233,9 @@ TEST(dynamic_struct, defs_and_access) {
 }
 
 TEST(dynamic_struct, mem_ownership) {
-	struct sample_struct : public libsinsp::state::dynamic_struct {
+	struct sample_struct : public libsinsp::state::extensible_struct {
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
-		        dynamic_struct(i) {}
+		        extensible_struct(i) {}
 	};
 
 	std::string tmpstr1, tmpstr2;
