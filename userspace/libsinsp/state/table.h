@@ -37,7 +37,6 @@ struct sinsp_field_accessor_wrapper {
 	// - libsinsp::state::static_struct::field_accessor
 	// - libsinsp::state::dynamic_struct::field_accessor
 	libsinsp::state::accessor* accessor = nullptr;
-	ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 
 	inline sinsp_field_accessor_wrapper() = default;
 	~sinsp_field_accessor_wrapper();
