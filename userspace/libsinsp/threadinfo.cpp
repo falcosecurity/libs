@@ -72,17 +72,17 @@ sinsp_threadinfo::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
 	const auto table_ptr_offset = libsinsp::state::built_in_table<uint64_t>::table_ptr_offset();
-	define_static_field<libsinsp::state::base_table*>(
+	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_args_table_adapter) + table_ptr_offset,
 	        "args",
 	        true);
-	define_static_field<libsinsp::state::base_table*>(
+	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_env_table_adapter) + table_ptr_offset,
 	        "env",
 	        true);
-	define_static_field<libsinsp::state::base_table*>(
+	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_cgroups_table_adapter) + table_ptr_offset,
 	        "cgroups",
