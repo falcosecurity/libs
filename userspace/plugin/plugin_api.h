@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <plugin/plugin_types.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -552,6 +553,10 @@ typedef ss_plugin_rc (*ss_plugin_async_event_handler_t)(ss_plugin_owner_t* o,
 // Plugins API vtable
 //
 typedef struct {
+	size_t static_plugin_abi_version;
+
+	size_t static_plugin_api_size;
+
 	//
 	// Return the version of the plugin API used by this plugin.
 	// Required: yes
@@ -1158,6 +1163,8 @@ typedef struct {
 	//
 	const char* (*get_required_event_schema_version)(ss_plugin_t* s);
 } plugin_api;
+
+#include <plugin/plugin_abi.h>
 
 #ifdef __cplusplus
 }
