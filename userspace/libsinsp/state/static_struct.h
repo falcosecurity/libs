@@ -65,6 +65,11 @@ public:
 	inline const libsinsp::state::typeinfo& info() const { return m_info; }
 
 	/**
+	 * @brief Returns the offset of the field within the struct.
+	 */
+	inline size_t offset() const { return m_offset; }
+
+	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
 	 * that can be used to reading and writing the field's value in
 	 * all instances of structs where it is defined.
