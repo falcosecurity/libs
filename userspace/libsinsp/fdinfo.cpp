@@ -125,11 +125,11 @@ sinsp_fdinfo::sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_field_
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
-libsinsp::state::extensible_struct::field_infos
+libsinsp::state::static_field_infos
 sinsp_fdinfo::get_static_fields() {
 	using self = sinsp_fdinfo;
 
-	libsinsp::state::extensible_struct::field_infos ret;
+	libsinsp::state::static_field_infos ret;
 
 	// the m_type is weird because it's a C-defined non-scoped enum, meaning that it
 	// should be represented by default as an integer of word-size (e.g. uint32_t in
