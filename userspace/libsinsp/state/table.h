@@ -357,7 +357,7 @@ class extensible_table : public built_in_table<KeyType> {
 public:
 	inline extensible_table(
 	        const std::string& name,
-	        const extensible_struct::field_infos* static_fields,
+	        const static_field_infos* static_fields,
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
 	        built_in_table<KeyType>(name),
 	        m_static_fields(static_fields),
@@ -373,7 +373,7 @@ public:
 	 * for the value data type of this table. This fields will be accessible
 	 * for all the entries of this table.
 	 */
-	virtual const extensible_struct::field_infos* static_fields() const { return m_static_fields; }
+	virtual const static_field_infos* static_fields() const { return m_static_fields; }
 
 	/**
 	 * @brief Returns the fields metadata list for the dynamic fields defined
@@ -410,7 +410,7 @@ public:
 	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type) override;
 
 private:
-	const extensible_struct::field_infos* m_static_fields;
+	const static_field_infos* m_static_fields;
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 };
 

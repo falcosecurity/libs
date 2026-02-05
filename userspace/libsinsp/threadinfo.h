@@ -504,7 +504,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static extensible_struct::field_infos get_static_fields();
+	static libsinsp::state::static_field_infos get_static_fields();
 
 protected:
 	// Parameters provided at thread info construction phase.
