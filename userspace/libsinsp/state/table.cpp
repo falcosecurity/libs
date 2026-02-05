@@ -385,8 +385,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 
 #define _X(_type, _dtype)                                                            \
 	{                                                                                \
-		auto acc = std::make_unique<libsinsp::state::dynamic_field_accessor<_type>>( \
-		        dyn_it->second.new_accessor<_type>());                               \
+		auto acc = dyn_it->second.new_accessor<_type>();                             \
 		owner->m_accessed_table_fields.push_back(std::move(acc));                    \
 		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get(); \
 		return this->m_field_accessors[name];                                        \
