@@ -40,15 +40,6 @@ public:
 	}
 	~extensible_struct() override { extensible_struct::destroy_dynamic_fields(); }
 
-	// static_struct interface
-	/**
-	 * @brief A group of field infos, describing all the ones available
-	 * in a static struct.
-	 */
-	using field_infos = std::unordered_map<std::string, static_field_info>;
-
-	// end of static_struct interface
-
 	// dynamic_struct interface
 
 	inline const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
@@ -243,6 +234,12 @@ protected:
 };
 
 /**
+ * @brief A group of field infos, describing all the ones available
+ * in a static struct.
+ */
+using static_field_infos = std::unordered_map<std::string, static_field_info>;
+
+/**
  * @brief Defines the information about a field defined in the class or struct.
  * An exception is thrown if two fields are defined with the same name.
  *
@@ -253,11 +250,10 @@ protected:
  * @param readonly Read-only field annotation.
  */
 template<typename T>
-constexpr static const static_field_info& define_static_field(
-        extensible_struct::field_infos& fields,
-        const size_t offset,
-        const std::string& name,
-        const bool readonly = false) {
+constexpr static const static_field_info& define_static_field(static_field_infos& fields,
+                                                              const size_t offset,
+                                                              const std::string& name,
+                                                              const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
