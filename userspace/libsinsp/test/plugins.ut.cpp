@@ -933,7 +933,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 		std::string tmpstr;
 		e.read_field(*sfieldacc, tmp);
 		EXPECT_EQ(tmp, 123);
-		e.read_field(dfieldacc, tmpstr);
+		e.read_field(*dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "world");
 		return true;
 	};
@@ -1038,7 +1038,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string tmpstr;
-		e.read_field(dfieldacc, tmpstr);
+		e.read_field(*dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
@@ -1153,8 +1153,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string first, second;
-		e.read_field(dfield_first_acc, first);
-		e.read_field(dfield_second_acc, second);
+		e.read_field(*dfield_first_acc, first);
+		e.read_field(*dfield_second_acc, second);
 		EXPECT_EQ(first, "hello");
 		EXPECT_EQ(second, "world");
 		return true;
