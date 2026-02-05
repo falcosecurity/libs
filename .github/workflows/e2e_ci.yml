@@ -76,7 +76,7 @@ jobs:
           cmake -B build -S . \
             -DCMAKE_C_COMPILER_LAUNCHER=sccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -DBUILD_BPF=ON \
+            -DBUILD_BPF=OFF \
             -DUSE_BUNDLED_DEPS=ON \
             -DUSE_ASAN=ON \
             -DUSE_UBSAN=ON \
@@ -103,7 +103,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-        driver: [ {name: kmod, option: -k}, {name: bpf, option: -b}, {name: modern-bpf, option: -m} ]
+        driver: [ {name: kmod, option: -k}, {name: modern-bpf, option: -m} ]
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
@@ -145,7 +145,7 @@ jobs:
         # different workers, so we rebuild the drivers.
       - name: Rebuild drivers
         run: |
-          cmake --build build --target driver bpf --parallel $(nproc) -- -B # -B only works if make is the generator.
+          cmake --build build --target driver --parallel $(nproc) -- -B # -B only works if make is the generator.
           pushd build/test/libsinsp_e2e/resources/
           sudo tar xzf fake-proc.tar.gz
 
