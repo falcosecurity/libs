@@ -49,11 +49,11 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
-libsinsp::state::extensible_struct::field_infos
+libsinsp::state::static_field_infos
 sinsp_threadinfo::get_static_fields() {
 	using self = sinsp_threadinfo;
 
-	libsinsp::state::extensible_struct::field_infos ret;
+	libsinsp::state::static_field_infos ret;
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
 	DEFINE_STATIC_FIELD(ret, self, m_tid, "tid");
 	DEFINE_STATIC_FIELD(ret, self, m_pid, "pid");
