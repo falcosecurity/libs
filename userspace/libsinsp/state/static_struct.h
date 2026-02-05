@@ -75,7 +75,7 @@ public:
 	 * all instances of structs where it is defined.
 	 */
 	template<typename T>
-	inline static_field_accessor<T> new_accessor() const {
+	inline std::unique_ptr<static_field_accessor<T>> new_accessor() const {
 		if(!valid()) {
 			throw sinsp_exception("can't create static struct field accessor for invalid field");
 		}
@@ -85,7 +85,7 @@ public:
 			        "incompatible type for static struct field accessor: field=" + m_name +
 			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
 		}
-		return static_field_accessor<T>(*this);
+		return std::make_unique<static_field_accessor<T>>(*this);
 	}
 
 	inline static_field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
@@ -115,9 +115,9 @@ public:
 	 */
 	[[nodiscard]] const static_field_info& info() const { return m_info; }
 
-private:
 	explicit static_field_accessor(static_field_info info): m_info(std::move(info)) {};
 
+private:
 	static_field_info m_info;
 
 	friend class static_struct;
