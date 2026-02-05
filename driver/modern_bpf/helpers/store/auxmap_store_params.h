@@ -1810,6 +1810,9 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 #define MAX_TMP_SCRATCH_LEN (AUXILIARY_MAP_SIZE - 8192)
 #define SAFE_TMP_SCRATCH_ACCESS(x) (x) & (MAX_TMP_SCRATCH_LEN - 1)
 
+/* namespace filesystem (nsfs) superblock magic number - used for /proc/self/ns/* entries */
+#define NSFS_SUPER_MAGIC 0x6e736673 /* "nsfs" in ASCII */
+
 /**
  * @brief Store in the auxamp the file path extracted from
  * the `struct path *`.
@@ -1843,6 +1846,14 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 	struct mount *mnt_parent_p = BPF_CORE_READ(mnt_p, mnt_parent);
 	struct dentry *mnt_root_p = BPF_CORE_READ(vfsmnt, mnt_root);
 
+	/* Check if this is an nsfs entry (namespace filesystem) by examining the superblock magic.
+	 * Note: /proc/self/ns/* entries are symlinks in procfs that resolve to nsfs entries.
+	 * When the symlink is resolved, the dentry points to nsfs, not procfs.
+	 */
+	struct super_block *sb = BPF_CORE_READ(dentry, d_sb);
+	unsigned long sb_magic = BPF_CORE_READ(sb, s_magic);
+	bool is_nsfs = (sb_magic == NSFS_SUPER_MAGIC);
+
 	/* This is the max length of the buffer in which we will write the full path. */
 	uint32_t max_buf_len = MAX_TMP_SCRATCH_LEN;
 
@@ -1858,16 +1869,6 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 		BPF_CORE_READ_INTO(&d_parent, dentry, d_parent);
 		if(dentry == mnt_root_p || dentry == d_parent) {
 			if(dentry != mnt_root_p) {
-				/* We reached the root (dentry == d_parent)
-				 * but not the mount root...this is an escaped mount point case. e.g. nsfs nodes
-				 * /proc/self/ns/net If we're on the first iteration (i == 0), no components were
-				 * processed, so path reconstruction failed. Store empty to allow userspace
-				 * fallback.
-				 */
-				if(i == 0) {
-					auxmap__store_empty_param(auxmap);
-					return;
-				}
 				/* We've processed some components, but hit a weird case.
 				 * This shouldn't normally happen, but break to avoid infinite loop.
 				 */
@@ -1923,14 +1924,22 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 	if(max_buf_len == MAX_TMP_SCRATCH_LEN) {
 		/* max_buf_len wasn't decremented - this is the memfd case.
 		 * memfd files have no path in the filesystem so we never decremented the `max_buf_len`.
-		 * Use dentry name directly.
 		 */
+
+		/* For nsfs entries, dentry name is "/" (len=1), so we store empty to allow userspace
+		 * fallback to the name parameter from syscall arguments.
+		 */
+		if(is_nsfs) {
+			auxmap__store_empty_param(auxmap);
+			return;
+		}
+
+		/* This is the general case for memfd files - use dentry name directly. */
 		bpf_core_read(&d_name, sizeof(struct qstr), &(dentry->d_name));
 		auxmap__store_charbuf_param(auxmap, (unsigned long)d_name.name, MAX_COMPONENT_LEN, KERNEL);
 		return;
 	}
 
-	/* Add leading slash */
 	max_buf_len -= 1;
 	auxmap->data[SAFE_TMP_SCRATCH_ACCESS(max_buf_len)] = '/';
 
