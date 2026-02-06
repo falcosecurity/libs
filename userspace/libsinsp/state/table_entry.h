@@ -85,7 +85,7 @@ public:
 	explicit accessor(ss_plugin_state_type type_id): m_type_id(type_id) {}
 	virtual ~accessor() = default;
 
-	[[nodiscard]] typeinfo type_info() const { return typeinfo::from(m_type_id); }
+	[[nodiscard]] ss_plugin_state_type type_id() const { return m_type_id; }
 
 	template<typename T>
 	void assert_type() const {

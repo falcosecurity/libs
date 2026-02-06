@@ -78,31 +78,31 @@ protected:
 	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
 		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() == 0) {
-			if(acc->type_info().type_id() == typeinfo::of<Tfirst>().type_id()) {
+			if(acc->type_id() == type_id_of<Tfirst>()) {
 				return &m_value->first;
 			}
 		} else {
-			if(acc->type_info().type_id() == typeinfo::of<Tsecond>().type_id()) {
+			if(acc->type_id() == type_id_of<Tsecond>()) {
 				return &m_value->second;
 			}
 		}
 		throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-		                      std::string(a.type_info().name()));
+		                      std::string(typeinfo::from(a.type_id()).name()));
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
 		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() == 0) {
-			if(a.type_info().type_id() != typeinfo::of<Tfirst>().type_id()) {
+			if(a.type_id() != type_id_of<Tfirst>()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-				                      std::string(a.type_info().name()));
+				                      std::string(typeinfo::from(a.type_id()).name()));
 			}
 			m_value->first = *static_cast<const Tfirst*>(in);
 			return;
 		} else {
-			if(a.type_info().type_id() != typeinfo::of<Tsecond>().type_id()) {
+			if(a.type_id() != type_id_of<Tsecond>()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-				                      std::string(a.type_info().name()));
+				                      std::string(typeinfo::from(a.type_id()).name()));
 			}
 			m_value->second = *static_cast<const Tsecond*>(in);
 			return;
@@ -135,7 +135,7 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
-		ss_plugin_table_fieldinfo value = {"value", typeinfo::of<T>().type_id(), false};
+		ss_plugin_table_fieldinfo value = {"value", type_id_of<T>(), false};
 		out.emplace_back(value);
 	}
 
@@ -153,9 +153,9 @@ public:
 
 protected:
 	const void* raw_read_field(const accessor& a) const override {
-		if(a.type_info().type_id() != type_id_of<T>()) {
+		if(a.type_id() != type_id_of<T>()) {
 			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
-			                      std::string(a.type_info().name()));
+			                      std::string(typeinfo::from(a.type_id()).name()));
 		}
 		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() != 0) {
@@ -166,9 +166,9 @@ protected:
 	}
 
 	void raw_write_field(const accessor& a, const void* in) override {
-		if(a.type_info().type_id() != typeinfo::of<T>().type_id()) {
+		if(a.type_id() != type_id_of<T>()) {
 			throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
-			                      std::string(a.type_info().name()));
+			                      std::string(typeinfo::from(a.type_id()).name()));
 		}
 		auto acc = dynamic_cast<const stl_table_entry_accessor*>(&a);
 		if(acc->index() != 0) {
