@@ -35,7 +35,7 @@ class static_field_accessor;
 class static_field_info {
 public:
 	friend inline bool operator==(const static_field_info& a, const static_field_info& b) {
-		return a.info() == b.info() && a.name() == b.name() && a.readonly() == b.readonly() &&
+		return a.type_id() == b.type_id() && a.name() == b.name() && a.readonly() == b.readonly() &&
 		       a.m_offset == b.m_offset;
 	};
 
@@ -61,7 +61,7 @@ public:
 	/**
 	 * @brief Returns the type info of the field.
 	 */
-	inline const libsinsp::state::typeinfo info() const { return typeinfo::from(m_type_id); }
+	inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
 	 * @brief Returns the offset of the field within the struct.
@@ -100,7 +100,7 @@ public:
 	[[nodiscard]] const static_field_info& info() const { return m_info; }
 
 	explicit static_field_accessor(static_field_info info):
-	        accessor(info.info().type_id()),
+	        accessor(info.type_id()),
 	        m_info(std::move(info)) {};
 
 private:

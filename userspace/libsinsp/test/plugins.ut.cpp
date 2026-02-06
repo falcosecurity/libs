@@ -875,7 +875,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "file_descriptors");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -906,7 +906,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(sfield->second.readonly(), false);
 	ASSERT_EQ(sfield->second.valid(), true);
 	ASSERT_EQ(sfield->second.name(), "pid");
-	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(sfield->second.type_id(), SS_PLUGIN_ST_INT64);
 	auto sfieldacc = sfield->second.new_accessor().into<int64_t>();
 
 	// get an accessor to a dynamic field declared by the plugin
@@ -986,7 +986,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "env");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
 	ASSERT_EQ(table->entries_count(), 0);
 
@@ -1090,7 +1090,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "cgroups");
-	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
 	ASSERT_EQ(table->entries_count(), 0);
 
