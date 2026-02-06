@@ -45,7 +45,7 @@ public:
 	        m_readonly(r),
 	        m_index(in),
 	        m_name(n),
-	        m_info(typeinfo::from(t)),
+	        m_type_id(t),
 	        m_defs_id(defsptr) {}
 
 	friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
@@ -73,7 +73,7 @@ public:
 	inline bool valid() const {
 		// note(jasondellaluce): for now dynamic fields of type table are
 		// not supported, so we consider them to be invalid
-		return m_index != (size_t)-1 && m_info.type_id() != SS_PLUGIN_ST_TABLE;
+		return m_index != (size_t)-1 && m_type_id != SS_PLUGIN_ST_TABLE;
 	}
 
 	/**
@@ -89,7 +89,7 @@ public:
 	/**
 	 * @brief Returns the type info of the field.
 	 */
-	inline const libsinsp::state::typeinfo& info() const { return m_info; }
+	inline const libsinsp::state::typeinfo info() const { return typeinfo::from(m_type_id); }
 
 	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
@@ -102,7 +102,7 @@ private:
 	bool m_readonly;
 	size_t m_index;
 	std::string m_name;
-	libsinsp::state::typeinfo m_info;
+	ss_plugin_state_type m_type_id;
 	uintptr_t m_defs_id;
 
 	friend class extensible_struct;
