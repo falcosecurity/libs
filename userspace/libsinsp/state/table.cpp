@@ -334,7 +334,7 @@ void libsinsp::state::extensible_table<KeyType>::list_fields(
 	for(auto& info : *this->static_fields()) {
 		ss_plugin_table_fieldinfo i;
 		i.name = info.second.name().c_str();
-		i.field_type = info.second.info().type_id();
+		i.field_type = info.second.type_id();
 		i.read_only = info.second.readonly();
 		out.push_back(i);
 	}
@@ -386,7 +386,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 	}
 
 	if(fixed_it != this->static_fields()->end()) {
-		if(type_id != fixed_it->second.info().type_id()) {
+		if(type_id != fixed_it->second.type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 		}
 		return fixed_it->second.new_accessor();
