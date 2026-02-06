@@ -1065,9 +1065,10 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt* evt,
 	return NULL;
 }
 
-// Some syscall sources, such as the gVisor integration, cannot match events to host PIDs and TIDs.
-// The event will retain the PID field which is consistent with the rest of sinsp logic, but it
-// won't represent a real PID and so it should not be displayed to the user.
+// todo(ekoops): not sure if this is still the case after gVisor engine removal. I'm gonna keep it.
+// Some syscall sources, cannot match events to host PIDs and TIDs. The event will retain the PID
+// field which is consistent with the rest of sinsp logic, but it won't represent a real PID and so
+// it should not be displayed to the user.
 inline bool should_extract_xid(int64_t xid) {
 	return xid >= -1 && xid <= UINT32_MAX;
 }

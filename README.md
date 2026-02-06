@@ -206,15 +206,6 @@ cmake \
 -DMODERN_BPF_SKEL_DIR="/tmp/skel-dir" ../;
 ```
 
-### gVisor support
-
-Libscap contains additional library functions to allow integration with system call events coming from [gVisor](https://gvisor.dev).
-Compilation of this functionality can be disabled with `-DBUILD_LIBSCAP_GVISOR=OFF`.
-
-</details>
-
-</br>
-
 ## Testing
 
 <details>
@@ -235,7 +226,6 @@ Here's an example of a `cmake` command that will enable everything you need for 
 cmake \
 -DUSE_BUNDLED_DEPS=ON \
 -DBUILD_LIBSCAP_MODERN_BPF=ON \
--DBUILD_LIBSCAP_GVISOR=ON \
 -DBUILD_DRIVER=ON \
 -DMODERN_BPF_DEBUG_MODE=ON \
 -DCREATE_TEST_TARGETS=ON \

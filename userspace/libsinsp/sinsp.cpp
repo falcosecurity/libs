@@ -706,41 +706,6 @@ void sinsp::open_plugin(const std::string& plugin_name,
 #endif
 }
 
-void sinsp::open_gvisor(const std::string& config_path,
-                        const std::string& root_path,
-                        bool no_events,
-                        int epoll_timeout) {
-#ifdef HAS_ENGINE_GVISOR
-	if(config_path.empty()) {
-		throw sinsp_exception(
-		        "When you use the 'gvisor' engine you need to provide a path to the config "
-		        "file.");
-	}
-
-	scap_open_args oargs{};
-	scap_gvisor_engine_params params;
-	params.gvisor_root_path = root_path.c_str();
-	params.gvisor_config_path = config_path.c_str();
-	params.no_events = no_events;
-	params.gvisor_epoll_timeout = epoll_timeout;
-
-	scap_platform* platform = scap_gvisor_alloc_platform({::on_proc_table_refresh_start,
-	                                                      ::on_proc_table_refresh_end,
-	                                                      ::on_new_entry_from_proc,
-	                                                      this});
-	;
-	params.gvisor_platform = reinterpret_cast<scap_gvisor_platform*>(platform);
-
-	oargs.engine_params = &params;
-
-	try_open_common(&oargs, &scap_gvisor_engine, platform, SINSP_MODE_LIVE);
-
-	set_get_procs_cpu_from_driver(false);
-#else
-	throw sinsp_exception("GVISOR engine is not supported in this build");
-#endif
-}
-
 void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
                             uint16_t cpus_for_each_buffer,
                             bool online_only,
@@ -809,10 +774,6 @@ bool sinsp::check_current_engine(const std::string& engine_name) const {
 }
 
 /*=============================== Engine related ===============================*/
-
-std::string sinsp::generate_gvisor_config(const std::string& socket_path) {
-	return gvisor_config::generate(socket_path);
-}
 
 int64_t sinsp::get_file_size(const std::string& fname, char* error) {
 	std::filesystem::path p(fname);

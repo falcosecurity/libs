@@ -55,7 +55,6 @@ limitations under the License.
 #include <libsinsp/filter/escaping.h>
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/filter/ppm_codes.h>
-#include <libsinsp/gvisor_config.h>
 #include <libsinsp/logger.h>
 #include <libsinsp/mpsc_priority_queue.h>
 #include <libsinsp/plugin.h>
@@ -148,10 +147,6 @@ public:
 	virtual void open_plugin(const std::string& plugin_name,
 	                         const std::string& plugin_open_params,
 	                         sinsp_plugin_platform platform_type);
-	virtual void open_gvisor(const std::string& config_path,
-	                         const std::string& root_path,
-	                         bool no_events = false,
-	                         int epoll_timeout = -1);
 	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right
 	 * configuration to deploy the modern bpf probe: `cpus_for_each_buffer` and `online_only` are
 	 * the 2 experimental params. The first one allows associating more than one CPU to a single
@@ -166,8 +161,6 @@ public:
 	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);
 
 	void fseek(uint64_t filepos) { scap_fseek(m_h, filepos); }
-
-	std::string generate_gvisor_config(const std::string& socket_path);
 
 	/*!
 	  \brief Ends a capture and release all resources.

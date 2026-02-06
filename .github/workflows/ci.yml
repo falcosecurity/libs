@@ -38,7 +38,7 @@ jobs:
         run: |
           # Use 20250630T203427Z debian apt snapshot as it still contains support for buster.
           printf "deb http://snapshot.debian.org/archive/debian/20250630T203427Z buster main\ndeb http://snapshot.debian.org/archive/debian-security/20250630T203427Z buster/updates main\ndeb http://snapshot.debian.org/archive/debian/20250630T203427Z buster-updates main" > /etc/apt/sources.list
-          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }} sudo
+          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev libgtest-dev linux-headers-${{ matrix.arch }} sudo
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -137,7 +137,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgtest-dev linux-headers-$(uname -r)
           sudo .github/install-deps.sh
 
       - name: Install cmake 🌊
@@ -261,7 +261,6 @@ jobs:
             -DUSE_BUNDLED_DEPS=On \
             -DBUILD_DRIVER=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DBUILD_LIBSCAP_GVISOR=On \
             -DCREATE_TEST_TARGETS=Off \
             -DENABLE_LIBSCAP_TESTS=Off
           cmake --build build --target sinsp-example --parallel $(nproc)
@@ -322,7 +321,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates build-essential git clang-20 llvm-20 pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates build-essential git clang-20 llvm-20 pkg-config autoconf automake libtool libelf-dev wget libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgtest-dev linux-headers-$(uname -r)
           sudo .github/install-deps.sh
 
       - name: Install cmake 🌊

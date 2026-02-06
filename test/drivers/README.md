@@ -6,7 +6,7 @@ This test suite should allow you to check the behavior of our 2 drivers: `modern
 You don't have to build all the engines if you want to assert only some of the drivers, for example, the minimal build command is:
 
 ```bash
-cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DCREATE_TEST_TARGETS=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On ..
 ```
 
 In this case, only the `kmod` engine will be built and you can assert only the behavior of the kernel module. If you want to assert also the modern bpf probe engine you have to use `-DBUILD_LIBSCAP_MODERN_BPF=On`.
@@ -16,7 +16,7 @@ In this case, only the `kmod` engine will be built and you can assert only the b
 Let's build all the 2 engines:
 
 ```bash
-cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On -DMODERN_BPF_DEBUG_MODE=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On -DMODERN_BPF_DEBUG_MODE=On ..
 make drivers_test
 ```
 
@@ -51,7 +51,7 @@ From repo root `/libs` type:
 ```bash
 rm -rf build
 mkdir build && cd build
-cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
 make drivers_test driver
 sudo ./test/drivers/drivers_test <option>
 ```

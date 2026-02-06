@@ -917,9 +917,8 @@ TEST_F(sinsp_with_test_input, chdir_fchdir) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory-fd/");
 }
 
-// Falco libs allow pid over 32bit, those are used to hold extra values in the high bits.
-// For example, this is used in gVisor to save the sandbox ID.
-// These PIDs are not meaningful to the user and should not be displayed
+// Falco libs allowed pid over 32bit, those were used in the past to hold extra values in the high
+// bits. These PIDs are not meaningful to the user and should not be displayed
 TEST_F(sinsp_with_test_input, pid_over_32bit) {
 	add_default_init_thread();
 
