@@ -2055,13 +2055,27 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 		   kernel_fullpath.has_value()) {
 			/* Use the kernel-resolved full path directly - no concatenation needed */
 			fullpath = kernel_fullpath.value();
+			libsinsp_logger()->format(
+			        sinsp_logger::SEV_DEBUG,
+			        "openat/openat2: kernel-resolved fullpath: %s (for event %" PRIu64 ")",
+			        fullpath.c_str(),
+			        evt.get_num());
 		} else {
 			/* Fall back to userspace resolution: concatenate dirfd path + name */
 			if(!dirfd_param->empty()) {
 				sdir = parse_dirfd(evt, name, dirfd_param->as<int64_t>());
 				fullpath = sinsp_utils::concatenate_paths(sdir, name);
+				libsinsp_logger()->format(
+				        sinsp_logger::SEV_DEBUG,
+				        "openat/openat2: userspace resolution: %s (for event %" PRIu64 ")",
+				        fullpath.c_str(),
+				        evt.get_num());
 			} else {
 				fullpath = sinsp_utils::concatenate_paths("", name);
+				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+				                          "openat/openat2: empty dirfd: %s (for event %" PRIu64 ")",
+				                          fullpath.c_str(),
+				                          evt.get_num());
 			}
 		}
 	} else if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
