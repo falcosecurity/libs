@@ -132,10 +132,11 @@ public:
 	 * incompatible types, otherwise the previous definition is returned.
 	 *
 	 * @param name Display name of the field.
-	 * @param type Type of the field.
+	 * @param type_id Type of the field.
 	 */
-	inline const dynamic_field_info& add_field(const std::string& name, const typeinfo& type) {
-		auto field = dynamic_field_info(name, m_definitions.size(), type.type_id(), id(), false);
+	inline const dynamic_field_info& add_field(const std::string& name,
+	                                           ss_plugin_state_type type_id) {
+		auto field = dynamic_field_info(name, m_definitions.size(), type_id, id(), false);
 		return add_field_info(field);
 	}
 
