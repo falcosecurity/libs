@@ -424,7 +424,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::add_f
 		                      std::string(name));
 	}
 
-	this->dynamic_fields()->add_field(name, data_type);
+	this->dynamic_fields()->add_field(name, data_type.type_id());
 	return get_field(name, data_type);
 }
 
