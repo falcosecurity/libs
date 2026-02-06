@@ -105,7 +105,6 @@ private:
 	libsinsp::state::typeinfo m_info;
 	uintptr_t m_defs_id;
 
-	friend class dynamic_struct;
 	friend class extensible_struct;
 };
 
@@ -171,7 +170,6 @@ protected:
 	uintptr_t m_defs_id;
 	std::unordered_map<std::string, dynamic_field_info> m_definitions;
 	std::vector<const dynamic_field_info*> m_definitions_ordered;
-	friend class dynamic_struct;
 	friend class extensible_struct;
 };
 
@@ -191,10 +189,6 @@ public:
 
 private:
 	dynamic_field_info m_info;
-
-	friend class dynamic_struct;
-	friend class dynamic_field_info;
-	friend class extensible_struct;
 };
 
 /**
