@@ -245,6 +245,15 @@ public:
 	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out);
 
 	/**
+	 * @brief Returns an accessor for the field with the given name and type.
+	 *
+	 * @param name Name of the field to be retrieved.
+	 * @param data_type Type of the field to be retrieved.
+	 * @return The accessor for * the requested field.
+	 */
+	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type);
+
+	/**
 	 * @brief Returns the number of entries present in the table.
 	 */
 	virtual size_t entries_count() const = 0;
