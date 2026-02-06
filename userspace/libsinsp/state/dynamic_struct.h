@@ -39,13 +39,13 @@ class dynamic_field_info {
 public:
 	inline dynamic_field_info(const std::string& n,
 	                          size_t in,
-	                          const typeinfo& i,
+	                          ss_plugin_state_type t,
 	                          uintptr_t defsptr,
 	                          bool r):
 	        m_readonly(r),
 	        m_index(in),
 	        m_name(n),
-	        m_info(i),
+	        m_info(typeinfo::from(t)),
 	        m_defs_id(defsptr) {}
 
 	friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
@@ -135,7 +135,7 @@ public:
 	 * @param type Type of the field.
 	 */
 	inline const dynamic_field_info& add_field(const std::string& name, const typeinfo& type) {
-		auto field = dynamic_field_info(name, m_definitions.size(), type, id(), false);
+		auto field = dynamic_field_info(name, m_definitions.size(), type.type_id(), id(), false);
 		return add_field_info(field);
 	}
 
