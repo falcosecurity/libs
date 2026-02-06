@@ -1810,7 +1810,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 #define MAX_TMP_SCRATCH_LEN (AUXILIARY_MAP_SIZE - 8192)
 #define SAFE_TMP_SCRATCH_ACCESS(x) (x) & (MAX_TMP_SCRATCH_LEN - 1)
 
-/* namespace filesystem (nsfs) superblock magic number - used for /proc/self/ns/* entries */
+/* namespace filesystem (nsfs) superblock magic number - used for /proc/self/ns/ entries */
 #define NSFS_SUPER_MAGIC 0x6e736673 /* "nsfs" in ASCII */
 
 /**
@@ -1847,7 +1847,7 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 	struct dentry *mnt_root_p = BPF_CORE_READ(vfsmnt, mnt_root);
 
 	/* Check if this is an nsfs entry (namespace filesystem) by examining the superblock magic.
-	 * Note: /proc/self/ns/* entries are symlinks in procfs that resolve to nsfs entries.
+	 * Note: /proc/self/ns/ entries are symlinks in procfs that resolve to nsfs entries.
 	 * When the symlink is resolved, the dentry points to nsfs, not procfs.
 	 */
 	struct super_block *sb = BPF_CORE_READ(dentry, d_sb);
