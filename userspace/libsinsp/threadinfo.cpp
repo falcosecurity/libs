@@ -71,7 +71,7 @@ sinsp_threadinfo::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
-	const auto table_ptr_offset = libsinsp::state::built_in_table<uint64_t>::table_ptr_offset();
+	const auto table_ptr_offset = libsinsp::state::extensible_table<uint64_t>::table_ptr_offset();
 	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_args_table_adapter) + table_ptr_offset,
