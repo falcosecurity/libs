@@ -362,7 +362,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 			return cast(it->second);
 		}
 
-		auto acc = this->get_field(name, typeinfo::from(data_type));
+		auto acc = this->get_field(name, data_type);
 		owner->m_accessed_table_fields.push_back(std::move(acc));
 		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().raw_ptr();
 		return cast(this->m_field_accessors[name]);
@@ -374,7 +374,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 template<typename KeyType>
 libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_field(
         const char* name,
-        const typeinfo& data_type) {
+        ss_plugin_state_type type_id) {
 	auto fixed_it = this->static_fields()->find(name);
 	auto dyn_it = this->dynamic_fields()->fields().find(name);
 	if(fixed_it != this->static_fields()->end() &&
@@ -386,14 +386,14 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 	}
 
 	if(fixed_it != this->static_fields()->end()) {
-		if(data_type.type_id() != fixed_it->second.info().type_id()) {
+		if(type_id != fixed_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 		}
 		return fixed_it->second.new_accessor();
 	}
 
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
-		if(data_type.type_id() != dyn_it->second.info().type_id()) {
+		if(type_id != dyn_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for dynamic field: " +
 			                      std::string(name));
 		}
@@ -409,7 +409,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         const char* name,
         ss_plugin_state_type data_type) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		this->add_field(name, typeinfo::from(data_type));
+		this->add_field(name, data_type);
 		return get_field(owner, name, data_type);
 	});
 	return NULL;
@@ -418,14 +418,14 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 template<typename KeyType>
 libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::add_field(
         const char* name,
-        const typeinfo& data_type) {
+        ss_plugin_state_type type_id) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
 		throw sinsp_exception("can't add dynamic field already defined as static: " +
 		                      std::string(name));
 	}
 
-	this->dynamic_fields()->add_field(name, data_type.type_id());
-	return get_field(name, data_type);
+	this->dynamic_fields()->add_field(name, type_id);
+	return get_field(name, type_id);
 }
 
 template<typename KeyType>
