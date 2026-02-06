@@ -341,7 +341,7 @@ void libsinsp::state::extensible_table<KeyType>::list_fields(
 	for(auto& info : this->dynamic_fields()->fields()) {
 		ss_plugin_table_fieldinfo i;
 		i.name = info.second.name().c_str();
-		i.field_type = info.second.info().type_id();
+		i.field_type = info.second.type_id();
 		i.read_only = false;
 		out.push_back(i);
 	}
@@ -393,7 +393,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 	}
 
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
-		if(type_id != dyn_it->second.info().type_id()) {
+		if(type_id != dyn_it->second.type_id()) {
 			throw sinsp_exception("incompatible data types for dynamic field: " +
 			                      std::string(name));
 		}

@@ -76,7 +76,8 @@ protected:
 			return;
 		}
 		for(size_t i = 0; i < m_fields.size(); i++) {
-			m_dynamic_fields->m_definitions_ordered[i]->info().destroy(m_fields[i]);
+			auto type_info = typeinfo::from(m_dynamic_fields->m_definitions_ordered[i]->type_id());
+			type_info.destroy(m_fields[i]);
 			free(m_fields[i]);
 		}
 		m_fields.clear();
@@ -105,8 +106,9 @@ private:
 		}
 		while(m_fields.size() <= index) {
 			auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
-			void* fieldbuf = malloc(def->info().size());
-			def->info().construct(fieldbuf);
+			auto type_info = typeinfo::from(def->type_id());
+			void* fieldbuf = malloc(type_info.size());
+			type_info.construct(fieldbuf);
 			m_fields.push_back(fieldbuf);
 		}
 		return m_fields[index];
@@ -150,7 +152,7 @@ private:
 		destroy_dynamic_fields();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
 			const auto info = m_dynamic_fields->m_definitions_ordered[i];
-			dispatch_lambda(info->info().type_id(), cloner{this, &other, i});
+			dispatch_lambda(info->type_id(), cloner{this, &other, i});
 		}
 	}
 
