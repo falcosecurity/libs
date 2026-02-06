@@ -49,7 +49,7 @@ public:
 	        m_defs_id(defsptr) {}
 
 	friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
-		return a.info() == b.info() && a.name() == b.name() && a.m_index == b.m_index &&
+		return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index &&
 		       a.m_defs_id == b.m_defs_id;
 	};
 
@@ -89,7 +89,7 @@ public:
 	/**
 	 * @brief Returns the type info of the field.
 	 */
-	inline const libsinsp::state::typeinfo info() const { return typeinfo::from(m_type_id); }
+	inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
@@ -146,19 +146,20 @@ public:
 
 protected:
 	virtual const dynamic_field_info& add_field_info(const dynamic_field_info& field) {
-		if(field.info().type_id() == SS_PLUGIN_ST_TABLE) {
+		if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 			throw sinsp_exception("dynamic fields of type table are not supported");
 		}
 
 		const auto& it = m_definitions.find(field.name());
 		if(it != m_definitions.end()) {
-			const auto& t = field.info();
-			if(it->second.info() != t) {
+			const auto& t = field.type_id();
+			if(it->second.type_id() != t) {
+				auto prevtype = typeinfo::from(it->second.type_id()).name();
+				auto newtype = typeinfo::from(t).name();
 				throw sinsp_exception(
 				        "multiple definitions of dynamic field with different types in "
 				        "struct: " +
-				        field.name() + ", prevtype=" + it->second.info().name() +
-				        ", newtype=" + t.name());
+				        field.name() + ", prevtype=" + prevtype + ", newtype=" + newtype);
 			}
 			return it->second;
 		}
@@ -185,7 +186,7 @@ public:
 	inline const dynamic_field_info& info() const { return m_info; }
 
 	inline explicit dynamic_field_accessor(const dynamic_field_info& info):
-	        accessor(info.info()),
+	        accessor(typeinfo::from(info.type_id())),
 	        m_info(info) {};
 
 private:
