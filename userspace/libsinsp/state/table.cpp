@@ -385,28 +385,22 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
 	}
 
-#define _X(_type, _dtype) \
-	return libsinsp::state::accessor::ptr(fixed_it->second.template new_accessor<_type>());
 	if(fixed_it != this->static_fields()->end()) {
 		if(data_type.type_id() != fixed_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 		}
-		__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+		return fixed_it->second.new_accessor();
 	}
-#undef _X
 
-#define _X(_type, _dtype) \
-	return libsinsp::state::accessor::ptr(dyn_it->second.template new_accessor<_type>());
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
 		if(data_type.type_id() != dyn_it->second.info().type_id()) {
 			throw sinsp_exception("incompatible data types for dynamic field: " +
 			                      std::string(name));
 		}
-		__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+		return libsinsp::state::accessor::ptr(dyn_it->second.new_accessor());
 	}
 	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
 	                      std::string(this->name()) + "'");
-#undef _X
 }
 
 template<typename KeyType>
