@@ -221,7 +221,7 @@ protected:
 	};
 
 	void raw_write_field(const accessor& a, const void* in) override {
-		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
+		return dispatch_lambda(a.type_id(), writer{this, &a, in});
 	}
 };
 
