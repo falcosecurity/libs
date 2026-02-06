@@ -465,6 +465,51 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_join) {
 	EXPECT_THROW(eval_filter(evt, "join(\"a\", \"b\") = foo"), sinsp_exception);
 }
 
+TEST_F(sinsp_with_test_input, multivalue_transformer_concat) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_evt* evt;
+
+	int64_t dirfd = 3;
+	const char* file_to_run = "/tmp/file_to_run";
+
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
+
+	EXPECT_TRUE(eval_filter(evt, "concat(fd.name, fd.directory) = /tmp/file_to_run/tmp"));
+	EXPECT_TRUE(eval_filter(evt, "concat(\"aaa\", \"bbb\") = aaabbb"));
+	EXPECT_TRUE(eval_filter(evt, "concat(\"aaa\", \"bbb\", \"ccc\") = aaabbbccc"));
+	EXPECT_TRUE(eval_filter(evt, "concat(fd.name, \"aaa\") = /tmp/file_to_runaaa"));
+	EXPECT_TRUE(
+	        eval_filter(evt, "concat(fd.name, \"aaa\", fd.directory) = /tmp/file_to_runaaa/tmp"));
+	EXPECT_TRUE(eval_filter(evt, "concat(toupper(fd.name), \"aaa\") = /TMP/FILE_TO_RUNaaa"));
+	EXPECT_TRUE(eval_filter(evt, "concat(\"aaa\", toupper(fd.name)) = aaa/TMP/FILE_TO_RUN"));
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        "concat(fd.directory, concat(\"aaa\", toupper(fd.name))) = /tmpaaa/TMP/FILE_TO_RUN"));
+	EXPECT_TRUE(eval_filter(evt, "concat(\"aaa\", \"bbb\") = \"aaabbb\""));
+	EXPECT_FALSE(eval_filter(evt, "concat(\"aaa\", \"bbb\") = \"aaa-bbb\""));
+
+	// Validation error tests
+	// concat() requires at least 2 arguments
+	EXPECT_THROW(eval_filter(evt, "concat() = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "concat(\"aaa\") = foo"), sinsp_exception);
+	// concat() arguments must be strings (not lists)
+	EXPECT_THROW(eval_filter(evt, "concat(fd.types, \"a\") = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "concat((\"a\", \"b\"), \"a\") = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "concat(\"a\", (\"a\", \"b\")) = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "concat((\"a\", \"b\"), (\"a\", \"b\")) = foo"), sinsp_exception);
+}
+
 TEST_F(sinsp_with_test_input, multivalue_transformer_with_outer_transformer) {
 	add_default_init_thread();
 	open_inspector();
@@ -519,6 +564,37 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_with_outer_transformer) {
 	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) > 20"));
 	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) >= 21"));
 	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) < 22"));
+
+	// Apply toupper to concat result
+	EXPECT_TRUE(eval_filter(evt, "toupper(concat(fd.name, fd.directory)) = /TMP/FILE_TO_RUN/TMP"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(concat(\"aaa\", \"bbb\")) = AAABBB"));
+
+	// Apply tolower to concat result
+	EXPECT_TRUE(eval_filter(evt, "tolower(concat(fd.name, fd.directory)) = /tmp/file_to_run/tmp"));
+	EXPECT_TRUE(eval_filter(evt, "tolower(concat(\"AAA\", \"BBB\")) = aaabbb"));
+
+	// Apply len to concat result
+	// fd.name = /tmp/file_to_run (16 chars), fd.directory = /tmp (4 chars)
+	// Total = 16 + 4 = 20
+	EXPECT_TRUE(eval_filter(evt, "len(concat(fd.name, fd.directory)) = 20"));
+	EXPECT_TRUE(eval_filter(evt, "len(concat(\"aaa\", \"bbb\")) = 6"));
+
+	// Apply b64 to concat result
+	// "aaabbb" in base64 is "YWFhYmJi"
+	EXPECT_TRUE(eval_filter(evt, "concat(\"aaa\", \"bbb\") = \"aaabbb\""));
+	EXPECT_TRUE(eval_filter(evt, "b64(concat(\"YWFh\", \"YmJi\")) = \"aaabbb\""));
+
+	// Chain multiple transformers on concat result
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    "toupper(tolower(concat(fd.name, fd.directory))) = /TMP/FILE_TO_RUN/TMP"));
+
+	// Combine with comparison operators
+	EXPECT_TRUE(eval_filter(evt, "toupper(concat(fd.name, fd.directory)) contains /TMP"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(concat(fd.name, fd.directory)) startswith /TMP"));
+	EXPECT_TRUE(eval_filter(evt, "len(concat(fd.name, fd.directory)) > 19"));
+	EXPECT_TRUE(eval_filter(evt, "len(concat(fd.name, fd.directory)) >= 20"));
+	EXPECT_TRUE(eval_filter(evt, "len(concat(fd.name, fd.directory)) < 21"));
 }
 
 TEST(multivalue_transformer, argument_types) {
@@ -581,6 +657,47 @@ TEST(multivalue_transformer, result_type) {
 
 	// join should return PT_CHARBUF and not a list
 	auto result = join_transformer.result_type();
+	EXPECT_EQ(result.type, PT_CHARBUF);
+	EXPECT_FALSE(result.is_list);
+}
+
+TEST(multivalue_transformer_concat, argument_types) {
+	// Create arguments for concat: multiple strings
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+
+	// First argument: a string
+	args.push_back(std::make_unique<rawstring_check>("aaa"));
+
+	// Second argument: another string
+	args.push_back(std::make_unique<rawstring_check>("bbb"));
+
+	// Third argument: another string
+	args.push_back(std::make_unique<rawstring_check>("ccc"));
+
+	// Create the concat transformer
+	sinsp_filter_multivalue_transformer_concat concat_transformer(std::move(args));
+
+	// Test argument_types()
+	const auto& arg_types = concat_transformer.argument_types();
+
+	ASSERT_EQ(arg_types.size(), 3);
+
+	// All arguments should be PT_CHARBUF and not lists
+	for(size_t i = 0; i < arg_types.size(); i++) {
+		EXPECT_EQ(arg_types[i].type, PT_CHARBUF);
+		EXPECT_FALSE(arg_types[i].is_list);
+	}
+}
+
+TEST(multivalue_transformer_concat, result_type) {
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+	args.push_back(std::make_unique<rawstring_check>("aaa"));
+	args.push_back(std::make_unique<rawstring_check>("bbb"));
+
+	sinsp_filter_multivalue_transformer_concat concat_transformer(std::move(args));
+
+	// concat should return PT_CHARBUF and not a list
+	auto result = concat_transformer.result_type();
 	EXPECT_EQ(result.type, PT_CHARBUF);
 	EXPECT_FALSE(result.is_list);
 }

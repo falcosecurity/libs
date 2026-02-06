@@ -91,7 +91,7 @@ static const std::vector<std::string> s_binary_list_ops = {
 static constexpr const char* s_field_transformer_val = "val(";
 
 static const std::vector<std::string> s_field_transformers =
-        {"tolower(", "toupper(", "b64(", "basename(", "len(", "join("};
+        {"tolower(", "toupper(", "b64(", "basename(", "len(", "join(", "concat("};
 
 static inline void update_pos(const char c, ast::pos_info& pos) {
 	pos.col++;

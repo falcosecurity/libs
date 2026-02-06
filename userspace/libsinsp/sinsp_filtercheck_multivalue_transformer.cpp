@@ -179,12 +179,61 @@ bool sinsp_filter_multivalue_transformer_join::extract(sinsp_evt* evt,
 
 sinsp_filter_multivalue_transformer_join::~sinsp_filter_multivalue_transformer_join() = default;
 
+// concat
+
+sinsp_filter_multivalue_transformer_concat::sinsp_filter_multivalue_transformer_concat(
+        std::vector<std::unique_ptr<sinsp_filter_check>> args):
+        sinsp_filter_multivalue_transformer({PT_CHARBUF, false}, std::move(args)) {
+	// Validate using argument_types()
+	const auto& arg_types = argument_types();
+
+	// concat requires at least 2 arguments
+	if(arg_types.size() < 2) {
+		throw sinsp_exception("concat() requires at least 2 arguments");
+	}
+
+	for(const auto& arg_t : arg_types) {
+		if(arg_t.type != PT_CHARBUF || arg_t.is_list) {
+			throw sinsp_exception("concat() arguments must be strings");
+		}
+	}
+}
+
+std::string
+sinsp_filter_multivalue_transformer_concat::sinsp_filter_multivalue_transformer_concat::name()
+        const {
+	return "concat";
+}
+
+bool sinsp_filter_multivalue_transformer_concat::extract(sinsp_evt* evt,
+                                                         std::vector<extract_value_t>& values,
+                                                         bool sanitize_strings) {
+	m_res.clear();
+	for(const auto& arg : m_arguments) {
+		values.clear();
+		if(!arg->extract(evt, values, sanitize_strings)) {
+			return false;
+		}
+		m_res.append((char*)values[0].ptr);
+	}
+
+	extract_value_t val{(uint8_t*)m_res.c_str(), (uint32_t)m_res.length()};
+	values.clear();
+	values.push_back(val);
+	return true;
+}
+
+sinsp_filter_multivalue_transformer_concat::~sinsp_filter_multivalue_transformer_concat() = default;
+
 std::unique_ptr<sinsp_filter_check> sinsp_filter_multivalue_transformer::create_transformer(
         const std::string& name,
         std::vector<std::unique_ptr<sinsp_filter_check>> args) {
 	if(name == "join") {
 		return std::make_unique<multivalue_transformer_filter_check>(
 		        std::make_unique<sinsp_filter_multivalue_transformer_join>(std::move(args)));
+	} else if(name == "concat") {
+		return std::make_unique<multivalue_transformer_filter_check>(
+		        std::make_unique<sinsp_filter_multivalue_transformer_concat>(std::move(args)));
 	} else {
 		throw std::runtime_error("unknown multivalue transformer");
 	}
