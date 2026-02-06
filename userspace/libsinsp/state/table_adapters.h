@@ -22,7 +22,7 @@ namespace state {
 class stl_table_entry_accessor : public accessor {
 public:
 	stl_table_entry_accessor(const typeinfo& type_info, int m_index):
-	        accessor(type_info),
+	        accessor(type_info.type_id()),
 	        m_index(m_index) {}
 
 	[[nodiscard]] int index() const { return m_index; }
