@@ -108,19 +108,7 @@ public:
 	 * that can be used to reading and writing the field's value in
 	 * all instances of structs where it is defined.
 	 */
-	template<typename T>
-	inline accessor::typed_ptr<T> new_accessor() const {
-		if(!valid()) {
-			throw sinsp_exception("can't create dynamic struct field accessor for invalid field");
-		}
-		auto t = libsinsp::state::typeinfo::of<T>();
-		if(m_info != t) {
-			throw sinsp_exception(
-			        "incompatible type for dynamic struct field accessor: field=" + m_name +
-			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
-		}
-		return accessor::typed_ptr<T>(std::make_unique<dynamic_field_accessor>(*this));
-	}
+	inline accessor::ptr new_accessor() const;
 
 private:
 	bool m_readonly;
@@ -221,4 +209,17 @@ private:
 	friend class dynamic_field_info;
 	friend class extensible_struct;
 };
+
+/**
+ * @brief Returns a strongly-typed accessor for the given field,
+ * that can be used to reading and writing the field's value in
+ * all instances of structs where it is defined.
+ */
+inline accessor::ptr dynamic_field_info::new_accessor() const {
+	if(!valid()) {
+		throw sinsp_exception("can't create dynamic struct field accessor for invalid field");
+	}
+	return accessor::ptr(std::make_unique<dynamic_field_accessor>(*this));
+}
+
 };  // namespace libsinsp::state

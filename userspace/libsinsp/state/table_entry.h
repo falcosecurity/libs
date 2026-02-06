@@ -47,7 +47,6 @@ public:
 		bool operator!=(std::nullptr_t) const { return m_ptr != nullptr; }
 
 		typed_ref<T> as_ref() const { return m_ptr->as<T>(); }
-		std::unique_ptr<const accessor> release() { return std::move(m_ptr); }
 
 	private:
 		std::unique_ptr<const accessor> m_ptr;
@@ -57,8 +56,9 @@ public:
 	public:
 		explicit ptr(std::unique_ptr<const accessor> m_ptr): m_ptr(std::move(m_ptr)) {}
 		template<typename T>
-		explicit ptr(typed_ptr<T> typed): m_ptr(typed.release()) {}
-		bool operator==(const ptr& other) const { return m_ptr == other.m_ptr; }
+		bool operator==(const ptr& other) const {
+			return m_ptr == other.m_ptr;
+		}
 		bool operator==(std::nullptr_t) const { return m_ptr == nullptr; }
 		bool operator!=(const ptr& other) const { return m_ptr != other.m_ptr; }
 		bool operator!=(std::nullptr_t) const { return m_ptr != nullptr; }
