@@ -329,85 +329,92 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 			return nullptr;
 		}
 
-		if(!std::filesystem::path(m_tstr).is_absolute()) {
-			std::string sdir;  // init
-			// Compare to `sinsp_filter_check_fd::extract_fdname_from_event` logic
-			// note: no implementation for old / legacy event definitions
-			switch(evt->get_type()) {
-			// For openat, event fdinfo is already correctly expanded by parsers;
-			// See sinsp_parser::parse_open_openat_creat_exit().
-			case PPME_SYSCALL_OPENAT_2_X:
-			case PPME_SYSCALL_OPENAT2_X: {
-				sdir = "";
-				auto fdinfo = evt->get_fd_info();
-				if(fdinfo != nullptr) {
-					m_tstr = evt->get_fd_info()->m_name;
-				} else {
-					m_tstr = "<UNKNOWN>";
-				}
-				break;
+		// For openat/openat2 events, always use the fd_info name which contains the
+		// kernel-resolved fullpath (if available) or the parser-resolved path.
+		// See sinsp_parser::parse_open_openat_creat_exit().
+		switch(evt->get_type()) {
+		case PPME_SYSCALL_OPENAT_2_X:
+		case PPME_SYSCALL_OPENAT2_X: {
+			auto fdinfo = evt->get_fd_info();
+			if(fdinfo != nullptr) {
+				m_tstr = fdinfo->m_name;
+			} else {
+				m_tstr = "<UNKNOWN>";
 			}
-			// For the following syscalls, the event fdinfo is set to their dirfd.
-			// Set `sdir` to the dirfd info path.
-			case PPME_SYSCALL_NEWFSTATAT_X:
-			case PPME_SYSCALL_FCHOWNAT_X:
-			case PPME_SYSCALL_FCHMODAT_X:
-			case PPME_SYSCALL_MKDIRAT_X:
-			case PPME_SYSCALL_UNLINKAT_2_X:
-			case PPME_SYSCALL_MKNODAT_X:
-				sdir = format_dirfd(evt);
-				break;
-			case PPME_SYSCALL_SYMLINKAT_X:  // linkdirfd
-			{
-				if(m_field_id == TYPE_SOURCE) {
+			// Skip the relative path resolution logic below for openat/openat2
+			break;
+		}
+		default:
+			// For other events, check if path is absolute and resolve if needed
+			if(!std::filesystem::path(m_tstr).is_absolute()) {
+				std::string sdir;  // init
+				// Compare to `sinsp_filter_check_fd::extract_fdname_from_event` logic
+				// note: no implementation for old / legacy event definitions
+				switch(evt->get_type()) {
+				// For the following syscalls, the event fdinfo is set to their dirfd.
+				// Set `sdir` to the dirfd info path.
+				case PPME_SYSCALL_NEWFSTATAT_X:
+				case PPME_SYSCALL_FCHOWNAT_X:
+				case PPME_SYSCALL_FCHMODAT_X:
+				case PPME_SYSCALL_MKDIRAT_X:
+				case PPME_SYSCALL_UNLINKAT_2_X:
+				case PPME_SYSCALL_MKNODAT_X:
 					sdir = format_dirfd(evt);
-				} else {
-					sdir = "<UNKNOWN>";
+					break;
+				case PPME_SYSCALL_SYMLINKAT_X:  // linkdirfd
+				{
+					if(m_field_id == TYPE_SOURCE) {
+						sdir = format_dirfd(evt);
+					} else {
+						sdir = "<UNKNOWN>";
+					}
+					break;
 				}
-				break;
-			}
-			case PPME_SYSCALL_RENAMEAT2_X: {
-				// newdirfd or olddirfd, we need to extract the dirfd on the fly here
-				int64_t dirfd;
-				if(m_field_id == TYPE_TARGET) {
-					// newdirfd
-					dirfd = evt->get_param(3)->as<int64_t>();
-					sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
-				} else if(m_field_id == TYPE_SOURCE) {
-					// olddirfd
-					dirfd = evt->get_param(1)->as<int64_t>();
-					sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
-				} else {
-					sdir = "<UNKNOWN>";
+				case PPME_SYSCALL_RENAMEAT2_X: {
+					// newdirfd or olddirfd, we need to extract the dirfd on the fly here
+					int64_t dirfd;
+					if(m_field_id == TYPE_TARGET) {
+						// newdirfd
+						dirfd = evt->get_param(3)->as<int64_t>();
+						sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
+					} else if(m_field_id == TYPE_SOURCE) {
+						// olddirfd
+						dirfd = evt->get_param(1)->as<int64_t>();
+						sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
+					} else {
+						sdir = "<UNKNOWN>";
+					}
+					break;
 				}
-				break;
-			}
-			default:  // assign cwd as sdir
-				sdir = tinfo->get_cwd();
-				break;
-			}
+				default:  // assign cwd as sdir
+					sdir = tinfo->get_cwd();
+					break;
+				}
 
-			/* Note on what `sdir` is:
-			 * - the pathname is absolute:
-			 *	 sdir = "." after running `parse_dirfd_stateless`
-			 *    or sdir = ""
-			 * - the pathname is relative:
-			 *   - if `dirfd` is `PPM_AT_FDCWD` -> sdir = cwd.
-			 *   - if no `dirfd` is applicable for the syscall at hand -> sdir = cwd
-			 *   - if `dirfd` is applicable, but we have no information about `dirfd` -> sdir =
-			 *"<UNKNOWN>".
-			 *   - if `dirfd` is applicable and if `dirfd` has a valid value for us -> sdir = path +
-			 *"/" at the end.
-			 */
+				/* Note on what `sdir` is:
+				 * - the pathname is absolute:
+				 *	 sdir = "." after running `parse_dirfd_stateless`
+				 *    or sdir = ""
+				 * - the pathname is relative:
+				 *   - if `dirfd` is `PPM_AT_FDCWD` -> sdir = cwd.
+				 *   - if no `dirfd` is applicable for the syscall at hand -> sdir = cwd
+				 *   - if `dirfd` is applicable, but we have no information about `dirfd` -> sdir =
+				 *"<UNKNOWN>".
+				 *   - if `dirfd` is applicable and if `dirfd` has a valid value for us -> sdir =
+				 *path +
+				 *"/" at the end.
+				 */
 
-			m_tstr = sinsp_utils::concatenate_paths(sdir, m_tstr);
-		} else {
-			/* Note about `concatenate_paths`
-			 * It takes care of resolving the path and as such needed even if sdir is empty
-			 * or if the path is absolute in order to for example resolve paths similar to
-			 * /tmp/dir1/dir2/dir3/../../../..///file.txt
-			 */
-			m_tstr = sinsp_utils::concatenate_paths("", m_tstr);
+				m_tstr = sinsp_utils::concatenate_paths(sdir, m_tstr);
+			} else {
+				/* Note about `concatenate_paths`
+				 * It takes care of resolving the path and as such needed even if sdir is empty
+				 * or if the path is absolute in order to for example resolve paths similar to
+				 * /tmp/dir1/dir2/dir3/../../../..///file.txt
+				 */
+				m_tstr = sinsp_utils::concatenate_paths("", m_tstr);
+			}
+			break;
 		}
 	}
 

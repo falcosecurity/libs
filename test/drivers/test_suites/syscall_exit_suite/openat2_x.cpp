@@ -3,6 +3,9 @@
 #ifdef __NR_openat2
 
 #include <linux/openat2.h> /* Definition of RESOLVE_* constants */
+#include <limits.h>        /* For PATH_MAX */
+#include <unistd.h>        /* For usleep */
+#include <string>
 
 TEST(SyscallExit, openat2X_success) {
 	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
@@ -23,6 +26,11 @@ TEST(SyscallExit, openat2X_success) {
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
 
+	/* Get the current working directory before closing the fd */
+	char expected_cwd[PATH_MAX];
+	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
+	std::string expected_fullpath(expected_cwd);
+
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
@@ -34,7 +42,10 @@ TEST(SyscallExit, openat2X_success) {
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
+	/* The temporary file created by O_TMPFILE uses the inode as the filename prefixed with "#" */
+	expected_fullpath += "/#" + std::to_string(inode);
 #endif
+
 	close(fd);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -81,9 +92,17 @@ TEST(SyscallExit, openat2X_success) {
 	evt_test->assert_numeric_param(8, inode);
 #endif
 
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
+	if(evt_test->is_modern_bpf_engine()) {
+		evt_test->assert_path_param_equal(9, expected_fullpath);
+	} else {
+		/* Legacy BPF doesn't support fullpath parameter yet */
+		evt_test->assert_empty_param(9);
+	}
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
 }
 
 TEST(SyscallExit, openat2X_failure) {
@@ -92,6 +111,10 @@ TEST(SyscallExit, openat2X_failure) {
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* Get the current working directory before the syscall to construct expected full path */
+	char expected_cwd[PATH_MAX];
+	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
 
 	/* Syscall special notes:
 	 * With `O_TMPFILE` flag the pathname must be a directory
@@ -151,9 +174,18 @@ TEST(SyscallExit, openat2X_failure) {
 	/* Parameter 8: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(8, (uint64_t)0);
 
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file
+	 * For failed syscalls (ret <= 0), this will be empty */
+	if(evt_test->is_modern_bpf_engine()) {
+		/* Syscall failed, so fullpath should be empty */
+		evt_test->assert_empty_param(9);
+	} else {
+		evt_test->assert_empty_param(9);
+	}
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
 }
 
 TEST(SyscallExit, openat2X_create_success) {
@@ -162,6 +194,10 @@ TEST(SyscallExit, openat2X_create_success) {
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* Get the current working directory before the syscall to construct expected full path */
+	char expected_cwd[PATH_MAX];
+	ASSERT_NE(getcwd(expected_cwd, sizeof(expected_cwd)), nullptr);
 
 	int dirfd = AT_FDCWD;
 	const char* pathname = "created_file";
@@ -172,6 +208,10 @@ TEST(SyscallExit, openat2X_create_success) {
 	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0); /* remove file before creating it */
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+
+	/* Construct expected full path: CWD + "/" + pathname (kernel resolves this from the opened fd)
+	 */
+	std::string expected_fullpath = std::string(expected_cwd) + "/" + pathname;
 
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
@@ -231,8 +271,122 @@ TEST(SyscallExit, openat2X_create_success) {
 	evt_test->assert_numeric_param(8, inode);
 #endif
 
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
+	if(evt_test->is_modern_bpf_engine()) {
+		evt_test->assert_path_param_equal(9, expected_fullpath);
+	} else {
+		/* Legacy BPF doesn't support fullpath parameter yet */
+		evt_test->assert_empty_param(9);
+	}
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(8);
+	evt_test->assert_num_params_pushed(9);
+}
+
+TEST(SyscallExit, openat2X_with_dirfd) {
+	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* Open a directory to use as dirfd */
+	char cwd[PATH_MAX];
+	ASSERT_NE(getcwd(cwd, sizeof(cwd)), nullptr);
+
+	int dirfd = open(".", O_RDONLY | O_DIRECTORY);
+	assert_syscall_state(SYSCALL_SUCCESS, "open", dirfd, NOT_EQUAL, -1);
+
+	evt_test->enable_capture();
+
+	/* Use the dirfd to open a file */
+	const char* pathname = "test_file_dirfd2";
+	struct open_how how;
+	how.flags = O_RDWR | O_CREAT;
+	how.mode = S_IRWXU;
+	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
+
+	/* Remove file if it exists */
+	syscall(__NR_unlinkat, dirfd, pathname, 0);
+
+	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
+	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+
+	/* Construct expected full path: cwd + "/" + pathname (kernel resolves this from the opened fd)
+	 */
+	std::string expected_fullpath = std::string(cwd) + "/" + pathname;
+
+#ifdef __NR_fstat
+	/* Call `fstat` to retrieve the `dev` and `ino`. */
+	struct stat file_stat;
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "fstat",
+	                     syscall(__NR_fstat, fd, &file_stat),
+	                     NOT_EQUAL,
+	                     -1);
+	uint32_t dev = (uint32_t)file_stat.st_dev;
+	uint64_t inode = file_stat.st_ino;
+	const bool is_ext4 = event_test::is_ext4_fs(fd);
+#endif
+	close(fd);
+	close(dirfd);
+
+	/* Clean up */
+	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0);
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(1, (int64_t)fd);
+
+	/* Parameter 2: dirfd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)dirfd);
+
+	/* Parameter 3: name (type: PT_FSRELPATH) */
+	evt_test->assert_charbuf_param(3, pathname);
+
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(4, (uint32_t)PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
+
+	/* Parameter 5: mode (type: PT_UINT32) */
+	evt_test->assert_numeric_param(5, (uint32_t)how.mode);
+
+	/* Parameter 6: resolve (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
+
+#ifdef __NR_fstat
+	/* Parameter 7: dev (type: PT_UINT32) */
+	if(is_ext4) {
+		evt_test->assert_numeric_param(7, (uint32_t)dev);
+	}
+
+	/* Parameter 8: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(8, inode);
+#endif
+
+	/* Parameter 9: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
+	if(evt_test->is_modern_bpf_engine()) {
+		evt_test->assert_path_param_equal(9, expected_fullpath);
+	} else {
+		/* Legacy BPF doesn't support fullpath parameter yet */
+		evt_test->assert_empty_param(9);
+	}
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(9);
 }
 #endif
