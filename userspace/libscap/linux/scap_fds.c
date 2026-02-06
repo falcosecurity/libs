@@ -171,21 +171,15 @@ static inline uint32_t open_flags_to_scap(unsigned long flags) {
 	return res;
 }
 
-// Read device major and minor from `buff`. `buff` must be a NUL-terminated string  in the form
-// `<major>:<minor>`. Return 1 if both values are correctly read; 0 otherwise.
-static int read_device_major_and_minor(const char *buff, uint64_t *major, uint64_t *minor) {
-	char *next_token;
-	*major = strtoull(buff, &next_token, 10);
-	if(next_token == buff || *next_token != ':') {
-		return 0;
+// Parse device major and minor from `buff`. `buff` must be a NUL-terminated string  in the form
+// `<major>:<minor>`. Return true if both values are correctly read; false otherwise.
+static bool parse_device_major_and_minor(char *buff, uint64_t *major, uint64_t *minor) {
+	if(!str_scan_u64(&buff, 0, 10, major) || *buff != ':') {
+		return false;
 	}
 
-	buff = next_token + 1;  // +1 for ':'
-	*minor = strtoull(buff, &next_token, 10);
-	if(next_token == buff) {
-		return 0;
-	}
-	return 1;
+	buff++;  // +1 for ':'
+	return str_parse_u64(buff, 0, 10, minor);
 }
 
 static uint32_t scap_linux_get_device_by_mount_id_impl(struct scap_linux_platform *linux_platform,
@@ -234,9 +228,9 @@ static uint32_t scap_linux_get_device_by_mount_id_impl(struct scap_linux_platfor
 			*line_end = '\0';
 
 			// Look for a line corresponding to the requested mount ID.
-			char *next_token;
-			const uint64_t mount_id = strtoull(line_start, &next_token, 10);
-			if(next_token == line_start) {
+			char *scan_pos = (char *)line_start;
+			uint64_t mount_id;
+			if(!str_scan_u64(&scan_pos, 0, 10, &mount_id)) {
 				// Malformed line.
 				ASSERT(false);
 				return 0;
@@ -251,23 +245,15 @@ static uint32_t scap_linux_get_device_by_mount_id_impl(struct scap_linux_platfor
 			// From now on, if an error occurs we must return, as there cannot be any further line
 			// matching the same mount ID, as it is unique.
 
-			// Skip the first space, the parent ID, and the second space.
-			char *ptr = next_token;
-			while(ptr < line_end && *ptr == ' ')
-				ptr++;
-			while(ptr < line_end && *ptr != ' ')
-				ptr++;
-			while(ptr < line_end && *ptr == ' ')
-				ptr++;
-
-			if(ptr == line_end) {
+			// Skip the parent ID field.
+			if(!mem_skip_fields(&scan_pos, line_end - scan_pos, 1)) {
 				// Malformed line.
 				ASSERT(false);
 				return 0;
 			}
 
 			uint64_t major, minor;
-			if(!read_device_major_and_minor(ptr, &major, &minor)) {
+			if(!parse_device_major_and_minor(scan_pos, &major, &minor)) {
 				// Malformed line.
 				ASSERT(false);
 				return 0;
@@ -278,7 +264,7 @@ static uint32_t scap_linux_get_device_by_mount_id_impl(struct scap_linux_platfor
 				return 0;
 			}
 
-			uint32_t dev = makedev(major, minor);
+			const uint32_t dev = makedev(major, minor);
 			mountinfo->mount_id = mount_id;
 			mountinfo->dev = dev;
 			int32_t uth_status = SCAP_SUCCESS;
