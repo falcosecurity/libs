@@ -100,7 +100,7 @@ public:
 	[[nodiscard]] const static_field_info& info() const { return m_info; }
 
 	explicit static_field_accessor(static_field_info info):
-	        accessor(info.info()),
+	        accessor(info.info().type_id()),
 	        m_info(std::move(info)) {};
 
 private:
