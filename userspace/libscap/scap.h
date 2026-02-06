@@ -78,7 +78,6 @@ struct scap_vtable;
 #include <libscap/scap_cgroup_set.h>
 
 /* Include engine-specific params. */
-#include <libscap/engine/gvisor/gvisor_public.h>
 #include <libscap/engine/kmod/kmod_public.h>
 #include <libscap/engine/modern_bpf/modern_bpf_public.h>
 #include <libscap/engine/nodriver/nodriver_public.h>

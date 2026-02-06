@@ -23,7 +23,6 @@
 				"ENABLE_DRIVERS_TESTS": "ON",
 				"MODERN_BPF_DEBUG_MODE": "ON",
 				"BUILD_LIBSCAP_MODERN_BPF": "ON",
-				"BUILD_LIBSCAP_GVISOR": "OFF",
 				"CREATE_TEST_TARGETS": "ON",
 				"ENABLE_LIBSCAP_TESTS": "ON",
 				"SCAP_FILES_SUITE_ENABLE": "OFF"
@@ -33,11 +32,10 @@
 			"name": "sinsp-minimal",
 			"inherits": "base",
 			"displayName": "Build minimal sinsp",
-			"description": "Build sinsp without gvisor and protobuf deps",
+			"description": "Build minimal sinsp",
 			"binaryDir": "${sourceDir}/build-sinsp-minimal",
 			"cacheVariables": {
 				"USE_BUNDLED_DEPS": "ON",
-				"BUILD_LIBSCAP_GVISOR": "OFF",
 				"CREATE_TEST_TARGETS": "ON",
 				"SCAP_FILES_SUITE_ENABLE": "OFF"
 			}

@@ -182,12 +182,6 @@ if(HAS_ENGINE_MODERN_BPF)
 	list(APPEND SCAP_PKGCONFIG_REQUIRES libpman)
 endif()
 
-if(HAS_ENGINE_GVISOR)
-	add_subdirectory(engine/gvisor)
-	target_link_libraries(scap PUBLIC scap_engine_gvisor)
-	list(APPEND SCAP_PKGCONFIG_REQUIRES protobuf jsoncpp)
-endif()
-
 # ##################################################################################################
 
 if(BUILD_LIBSCAP_EXAMPLES)

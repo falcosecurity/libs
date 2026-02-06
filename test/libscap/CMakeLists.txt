@@ -87,16 +87,6 @@ if(BUILD_LIBSCAP_MODERN_BPF)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${MODERN_BPF_TEST_SUITE})
 endif()
 
-if(BUILD_LIBSCAP_GVISOR)
-	include(protobuf)
-	file(GLOB_RECURSE GVISOR_TEST_SUITE CONFIGURE_DEPENDS
-		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/gvisor/*.cpp"
-	)
-	list(APPEND LIBSCAP_TESTS_SOURCES ${GVISOR_TEST_SUITE})
-	list(APPEND LIBSCAP_TESTS_INCLUDE "${CMAKE_BINARY_DIR}/libscap/engine/gvisor"
-	)# Used for <pkg/sentry/...> includes
-endif()
-
 file(GLOB_RECURSE SAVEFILE_TEST_SUITE CONFIGURE_DEPENDS
 	 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/savefile/*.cpp"
 )

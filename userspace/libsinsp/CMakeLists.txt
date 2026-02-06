@@ -89,7 +89,6 @@ add_library(
 	utils.cpp
 	value_parser.cpp
 	user.cpp
-	gvisor_config.cpp
 	sinsp_suppress.cpp
 	events/sinsp_events.cpp
 	events/sinsp_events_ppm_sc.cpp

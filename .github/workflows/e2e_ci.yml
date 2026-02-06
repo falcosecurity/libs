@@ -48,8 +48,6 @@ jobs:
             libjq-dev \
             libjsoncpp-dev \
             libgtest-dev \
-            libprotobuf-dev \
-            protobuf-compiler \
             linux-headers-$(uname -r)
           sudo .github/install-deps.sh
 
@@ -81,7 +79,6 @@ jobs:
             -DUSE_UBSAN=ON \
             -DENABLE_LIBSINSP_E2E_TESTS=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DBUILD_LIBSCAP_GVISOR=OFF \
             -DUSE_BUNDLED_LIBBPF=ON \
             -DUSE_BUNDLED_GTEST=ON
           cmake --build build --target libsinsp_e2e_tests --parallel $(nproc)

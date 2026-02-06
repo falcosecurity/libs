@@ -46,7 +46,7 @@ From the repository root (`/libs`) type:
 
 ```bash
 mkdir build && cd build
-cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ..
+cmake -DUSE_BUNDLED_DEPS=ON -DCREATE_TEST_TARGETS=OFF ..
 make scap-open
 ```
 
@@ -231,7 +231,7 @@ docker tag ubuntu:22.04 runner-image
 
 ```bash
 mkdir build && cd build
-cmake -DUSE_BUNDLED_DEPS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=Off -DMODERN_BPF_DEBUG_MODE=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=Off -DMODERN_BPF_DEBUG_MODE=On ..
 make scap-open driver bpf
 ```
 

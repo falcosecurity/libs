@@ -19,11 +19,3 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		set(HAS_ENGINE_MODERN_BPF On)
 	endif()
 endif()
-
-# gVisor is currently only supported on Linux x86_64
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
-	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
-	if(BUILD_LIBSCAP_GVISOR)
-		set(HAS_ENGINE_GVISOR On)
-	endif()
-endif()

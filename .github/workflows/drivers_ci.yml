@@ -44,11 +44,6 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-        include:
-          - arch: amd64
-            enable_gvisor: True
-          - arch: amd64
-            enable_gvisor: False
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
@@ -83,7 +78,6 @@ jobs:
             -DUSE_BUNDLED_DEPS=On \
             -DBUILD_DRIVER=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} \
             -DCREATE_TEST_TARGETS=On \
             -DENABLE_LIBSCAP_TESTS=On \
             -DUSE_ASAN=On \
@@ -161,8 +155,7 @@ jobs:
             -DUSE_BUNDLED_DEPS=ON \
             -DENABLE_DRIVERS_TESTS=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DMODERN_BPF_DEBUG_MODE=ON \
-            -DBUILD_LIBSCAP_GVISOR=OFF
+            -DMODERN_BPF_DEBUG_MODE=ON
           cmake --build build --target drivers_test driver --parallel $(nproc)
 
       - name: Run drivers_test with modern bpf 🏎️
@@ -211,7 +204,6 @@ jobs:
               -DENABLE_DRIVERS_TESTS=ON \
               -DBUILD_LIBSCAP_MODERN_BPF=ON \
               -DMODERN_BPF_DEBUG_MODE=ON \
-              -DBUILD_LIBSCAP_GVISOR=OFF \
               -DUSE_BUNDLED_LIBELF=OFF
             cmake --build . --target drivers_test driver --parallel $(nproc)
             sudo ./test/drivers/drivers_test -m
@@ -254,8 +246,7 @@ jobs:
             -DUSE_BUNDLED_DEPS=ON \
             -DENABLE_DRIVERS_TESTS=ON \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
-            -DMODERN_BPF_DEBUG_MODE=ON \
-            -DBUILD_LIBSCAP_GVISOR=OFF
+            -DMODERN_BPF_DEBUG_MODE=ON
           cmake --build build --target drivers_test driver --parallel $(nproc)
 
   build-modern-bpf-skeleton:

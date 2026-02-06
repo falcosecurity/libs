@@ -68,7 +68,6 @@ static string table_mode = "";
 static string engine_string;
 static string filter_string = "";
 static string file_path = "";
-static string gvisor_config_path = "/etc/docker/runsc_falco_config.json";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 static bool all_cpus = false;
@@ -340,9 +339,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			"Output information about all threads, not just the main one.")
 		("m,modern_bpf", "Modern eBPF probe.")
 		("k,kmod", "Kernel module.")
-		("G,gvisor",
-			"Gvisor engine.",
-			cxxopts::value<std::string>()->implicit_value("/etc/docker/runsc_falco_config.json"))
 		("s,scap_file",
 			"Scap file",
 			cxxopts::value<std::string>())
@@ -418,11 +414,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 
 		if(result.count("all-threads")) {
 			g_all_threads = true;
-		}
-
-		if(result.count("gvisor")) {
-			engine_string = GVISOR_ENGINE;
-			gvisor_config_path = result["gvisor"].as<std::string>();
 		}
 
 		if(result.count("modern_bpf")) {
@@ -613,11 +604,6 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		                      "",
 		                      plugin->id() == 0 ? sinsp_plugin_platform::SINSP_PLATFORM_FULL
 		                                        : sinsp_plugin_platform::SINSP_PLATFORM_HOSTINFO);
-	}
-#endif
-#ifdef HAS_ENGINE_GVISOR
-	else if(!engine_string.compare(GVISOR_ENGINE)) {
-		inspector.open_gvisor(gvisor_config_path, "", false, -1);
 	}
 #endif
 	else {

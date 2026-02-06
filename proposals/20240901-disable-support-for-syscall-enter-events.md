@@ -323,7 +323,7 @@ This activity involves several steps at different levels:
 
 The idea is to work without forks, using incremental steps. Each PR will contain the following:
 
-1. Add enter parameters to the exit event without touching anything else. This would be a minor change in the event schema since we are just adding new parameters to the exit one. This must be done for all drivers (kmod, ebpf, modern ebpf, gvisor). To give you an example
+1. Add enter parameters to the exit event without touching anything else. This would be a minor change in the event schema since we are just adding new parameters to the exit one. This must be done for all drivers (kmod, modern ebpf). To give you an example
 
  ```c
  /////////////////////////// TODAY
