@@ -55,17 +55,17 @@ public:
 		out.emplace_back(second);
 	}
 
-	static accessor::ptr get_field(const char* name, const typeinfo& type_info) {
+	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "first") == 0) {
 			auto tinfo = typeinfo::of<Tfirst>();
-			if(type_info.type_id() != tinfo.type_id()) {
+			if(type_id != tinfo.type_id()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
 			return accessor::ptr(std::make_unique<stl_table_entry_accessor>(tinfo, 0));
 		} else if(strcmp(name, "second") == 0) {
 			auto tinfo = typeinfo::of<Tsecond>();
-			if(type_info.type_id() != tinfo.type_id()) {
+			if(type_id != tinfo.type_id()) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
@@ -139,10 +139,10 @@ public:
 		out.emplace_back(value);
 	}
 
-	static accessor::ptr get_field(const char* name, const typeinfo& type_info) {
+	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "value") == 0) {
 			auto tinfo = typeinfo::of<T>();
-			if(type_info.type_id() != tinfo.type_id()) {
+			if(type_id != tinfo.type_id()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
@@ -203,11 +203,11 @@ public:
 		TWrap::list_fields(out);
 	}
 
-	accessor::ptr get_field(const char* name, const typeinfo& data_type) override {
-		return TWrap::get_field(name, data_type);
+	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override {
+		return TWrap::get_field(name, type_id);
 	}
 
-	accessor::ptr add_field(const char* name, const typeinfo& data_type) override {
+	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override {
 		throw sinsp_exception("can't add dynamic fields to stl_container_table_adapter");
 	}
 

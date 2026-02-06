@@ -376,14 +376,10 @@ TEST(thread_manager, table_access) {
 	auto newt = table->new_entry();
 	auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
 
-	auto tid_acc =
-	        table->get_field("tid", libsinsp::state::typeinfo::of<int64_t>()).into<int64_t>();
-	auto comm_acc = table->get_field("comm", libsinsp::state::typeinfo::of<std::string>())
-	                        .into<std::string>();
-	auto fdtable_acc =
-	        table->get_field("file_descriptors",
-	                         libsinsp::state::typeinfo::of<libsinsp::state::base_table*>())
-	                .into<libsinsp::state::base_table*>();
+	auto tid_acc = table->get_field("tid", SS_PLUGIN_ST_INT64).into<int64_t>();
+	auto comm_acc = table->get_field("comm", SS_PLUGIN_ST_STRING).into<std::string>();
+	auto fdtable_acc = table->get_field("file_descriptors", SS_PLUGIN_ST_TABLE)
+	                           .into<libsinsp::state::base_table*>();
 
 	ASSERT_NE(newtinfo, nullptr);
 	newtinfo->m_tid = 999;
@@ -634,7 +630,7 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->key_type(), SS_PLUGIN_ST_UINT64);
 
 	// getting an existing field
-	auto sfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());
+	auto sfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
 	// EXPECT_EQ(sfield->second.readonly(), false);
 	// EXPECT_EQ(sfield->second.valid(), true);
 	// EXPECT_EQ(sfield->second.name(), "value");
