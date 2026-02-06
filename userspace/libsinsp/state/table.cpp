@@ -328,7 +328,7 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
 }
 
 template<typename KeyType>
-void libsinsp::state::built_in_table<KeyType>::list_fields(
+void libsinsp::state::extensible_table<KeyType>::list_fields(
         std::vector<ss_plugin_table_fieldinfo>& out) {
 	out.clear();
 	for(auto& info : *this->static_fields()) {
@@ -368,7 +368,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 }
 
 template<typename KeyType>
-std::unique_ptr<libsinsp::state::accessor> libsinsp::state::built_in_table<KeyType>::get_field(
+std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<KeyType>::get_field(
         const char* name,
         const typeinfo& data_type) {
 	auto fixed_it = this->static_fields()->find(name);
@@ -416,7 +416,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 }
 
 template<typename KeyType>
-std::unique_ptr<libsinsp::state::accessor> libsinsp::state::built_in_table<KeyType>::add_field(
+std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<KeyType>::add_field(
         const char* name,
         const typeinfo& data_type) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
@@ -624,3 +624,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
 template class libsinsp::state::built_in_table<std::string>;
+
+template class libsinsp::state::extensible_table<int64_t>;
+template class libsinsp::state::extensible_table<uint64_t>;
+template class libsinsp::state::extensible_table<std::string>;
