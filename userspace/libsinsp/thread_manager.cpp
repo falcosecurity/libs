@@ -27,6 +27,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/sinsp_observer.h>
+#include <libsinsp/state/plugin_statetype_switch.h>
 #include <libscap/scap-int.h>
 
 extern sinsp_evttables g_infotables;
@@ -119,11 +120,11 @@ sinsp_thread_manager::sinsp_thread_manager(
         const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
         scap_platform* const& scap_platform,
         scap_t* const& scap_handle,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-                thread_manager_dyn_fields,
-        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
+        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
         const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
-        built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
+        built_in_table{s_thread_table_name},
+        extensible_table_fields{&s_threadinfo_static_fields, thread_manager_dyn_fields},
         m_sinsp_mode{sinsp_mode},
         m_threadinfo_factory{threadinfo_factory},
         m_observer{observer},
@@ -247,7 +248,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 				libsinsp_logger()->format(
 				        sinsp_logger::SEV_INFO,
 				        "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
-				        threadinfo->m_tid,
+				        threadinfo->m_tid.load(),
 				        threadinfo->m_pid,
 				        threadinfo->m_comm.c_str());
 			}
@@ -265,11 +266,6 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 
 	if(tinfo_shared_ptr->dynamic_fields() != dynamic_fields()) {
 		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
-	}
-
-	if(tinfo_shared_ptr->get_fdtable().dynamic_fields() != m_fdtable_dyn_fields) {
-		throw sinsp_exception(
-		        "adding entry with incompatible dynamic defs to of file descriptor sub-table");
 	}
 
 	if(m_sinsp_stats_v2 != nullptr) {
