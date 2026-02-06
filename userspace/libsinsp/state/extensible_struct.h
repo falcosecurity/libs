@@ -252,7 +252,7 @@ constexpr static const static_field_info& define_static_field(static_field_infos
 	}
 
 	// todo(jasondellaluce): add extra safety boundary checks here
-	fields.insert({name, static_field_info(name, offset, typeinfo::of<T>(), readonly)});
+	fields.insert({name, static_field_info(name, offset, type_id_of<T>(), readonly)});
 	return fields.at(name);
 }
 

@@ -61,7 +61,7 @@ public:
 	/**
 	 * @brief Returns the type info of the field.
 	 */
-	inline const libsinsp::state::typeinfo& info() const { return m_info; }
+	inline const libsinsp::state::typeinfo info() const { return typeinfo::from(m_type_id); }
 
 	/**
 	 * @brief Returns the offset of the field within the struct.
@@ -75,17 +75,17 @@ public:
 	 */
 	inline accessor::ptr new_accessor() const;
 
-	inline static_field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
+	inline static_field_info(const std::string& n, size_t o, ss_plugin_state_type t, bool r):
 	        m_readonly(r),
 	        m_offset(o),
 	        m_name(n),
-	        m_info(i) {}
+	        m_type_id(t) {}
 
 private:
 	bool m_readonly;
 	size_t m_offset;
 	std::string m_name;
-	libsinsp::state::typeinfo m_info;
+	ss_plugin_state_type m_type_id;
 };
 
 /**
