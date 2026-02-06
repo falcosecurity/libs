@@ -408,10 +408,20 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		this->add_field(name, typeinfo::from(data_type));
+		return get_field(owner, name, data_type);
+	});
+	return NULL;
+}
+
+template<typename KeyType>
+std::unique_ptr<libsinsp::state::accessor> libsinsp::state::built_in_table<KeyType>::add_field(
+        const char* name,
+        const typeinfo& data_type) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
-		owner->m_last_owner_err =
-		        "can't add dynamic field already defined as static: " + std::string(name);
-		return NULL;
+		throw sinsp_exception("can't add dynamic field already defined as static: " +
+		                      std::string(name));
 	}
 
 #define _X(_type, _dtype)                                        \
@@ -419,10 +429,8 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 		this->dynamic_fields()->template add_field<_type>(name); \
 		break;                                                   \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		__PLUGIN_STATETYPE_SWITCH(data_type);
-		return get_field(owner, name, data_type);
-	});
+	__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+	return get_field(name, data_type);
 #undef _X
 	return NULL;
 }
