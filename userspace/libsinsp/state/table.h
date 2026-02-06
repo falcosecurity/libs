@@ -236,6 +236,15 @@ public:
 	virtual const extensible_struct::field_infos* static_fields() const { return m_static_fields; }
 
 	/**
+	 * @brief Returns a list of the fields present in the table, with their
+	 * name and type.
+	 *
+	 * @param out Output vector to be filled with the field info of all the
+	 * fields present in the table.
+	 */
+	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out);
+
+	/**
 	 * @brief Returns the number of entries present in the table.
 	 */
 	virtual size_t entries_count() const = 0;
