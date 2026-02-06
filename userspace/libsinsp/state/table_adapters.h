@@ -40,33 +40,6 @@ class stl_table_entry_accessor : public libsinsp::state::typed_accessor<T>,
 };
 
 /**
- * @brief A subclass of dynamic_field_infos that have a fixed,
- * and immutable, list of dynamic field definitions all declared at
- * construction-time
- */
-class fixed_dynamic_fields_infos : public dynamic_field_infos {
-public:
-	virtual ~fixed_dynamic_fields_infos() = default;
-
-	inline fixed_dynamic_fields_infos(std::initializer_list<dynamic_field_info> infos):
-	        dynamic_field_infos(infos.begin()->defs_id()) {
-		auto defs_id = infos.begin()->defs_id();
-		for(const auto& f : infos) {
-			if(f.defs_id() != defs_id) {
-				throw sinsp_exception(
-				        "inconsistent definition ID passed to fixed_dynamic_fields_infos");
-			}
-			dynamic_field_infos::add_field_info(f);
-		}
-	}
-
-protected:
-	const dynamic_field_info& add_field_info(const dynamic_field_info& field) override final {
-		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " + field.name());
-	}
-};
-
-/**
  * @brief An adapter for the libsinsp::state::table_entry interface
  * that wraps a non-owning pointer of arbitrary pair of type T. The underlying pointer
  * can be set and unset arbitrarily, making this wrapper suitable for optimized
@@ -77,22 +50,6 @@ protected:
 template<typename Tfirst, typename Tsecond>
 class pair_table_entry_adapter : public libsinsp::state::table_entry {
 public:
-	// note: this dynamic definitions are fixed in size and structure,
-	// so there's no need of worrying about specific identifier checks
-	// as they should be safely interchangeable
-	static const constexpr uintptr_t s_dynamic_fields_id = 4321;
-
-	struct dynamic_fields_t : public fixed_dynamic_fields_infos {
-		using _dfi = dynamic_field_info;
-
-		inline dynamic_fields_t():
-		        fixed_dynamic_fields_infos(
-		                {_dfi::build<Tfirst>("first", 0, s_dynamic_fields_id),
-		                 _dfi::build<Tsecond>("second", 1, s_dynamic_fields_id)}) {}
-
-		virtual ~dynamic_fields_t() = default;
-	};
-
 	inline explicit pair_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
 
 	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
@@ -126,56 +83,6 @@ public:
 	}
 
 protected:
-	struct reader {
-		const pair_table_entry_adapter* self;
-		const accessor* acc;
-
-		template<typename U>
-		const void* operator()() const {
-			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
-			const auto& i = field_acc->info();
-
-			if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
-				throw sinsp_exception(
-				        "invalid field info passed to pair_table_entry_adapter::read_field");
-			}
-			if(i.index() == 0) {
-				return &self->m_value->first;
-			}
-			return &self->m_value->second;
-		}
-	};
-
-	const void* raw_read_field_old(const accessor& a) const {
-		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
-	}
-
-	struct writer {
-		pair_table_entry_adapter* self;
-		const accessor* acc;
-		const void* in;
-
-		template<typename U>
-		void operator()() const {
-			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
-			const auto& i = field_acc->info();
-
-			if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
-				throw sinsp_exception(
-				        "invalid field info passed to pair_table_entry_adapter::write_field");
-			}
-
-			if(i.index() == 0) {
-				self->m_value->first = *static_cast<const Tfirst*>(in);
-			} else {
-				self->m_value->second = *static_cast<const Tsecond*>(in);
-			}
-		}
-	};
-	void raw_write_field_old(const accessor& a, const void* in) {
-		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
-	}
-
 	virtual void destroy_dynamic_fields() override final {
 		// nothing to do
 	}
@@ -229,20 +136,6 @@ private:
 template<typename T>
 class value_table_entry_adapter : public libsinsp::state::table_entry {
 public:
-	// note: this dynamic definitions are fixed in size and structure,
-	// so there's no need of worrying about specific identifier checks
-	// as they should be safely interchangeable
-	static const constexpr uintptr_t s_dynamic_fields_id = 1234;
-
-	struct dynamic_fields_t : public fixed_dynamic_fields_infos {
-		using _dfi = dynamic_field_info;
-
-		inline dynamic_fields_t():
-		        fixed_dynamic_fields_infos({_dfi::build<T>("value", 0, s_dynamic_fields_id)}) {}
-
-		virtual ~dynamic_fields_t() = default;
-	};
-
 	inline explicit value_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
 
 	virtual ~value_table_entry_adapter() = default;
@@ -271,51 +164,6 @@ public:
 	}
 
 protected:
-	struct reader {
-		const value_table_entry_adapter* self;
-		const accessor* acc;
-
-		template<typename U>
-		const void* operator()() const {
-			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
-			const auto& i = field_acc->info();
-
-			if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
-				throw sinsp_exception(
-				        "invalid field info passed to value_table_entry_adapter::read_field");
-			}
-
-			return self->m_value;
-		}
-	};
-
-	const void* raw_read_field_old(const accessor& a) const {
-		return dispatch_lambda(a.type_info().type_id(), reader{this, &a});
-	}
-
-	struct writer {
-		value_table_entry_adapter* self;
-		const accessor* acc;
-		const void* in;
-
-		template<typename U>
-		void operator()() const {
-			auto field_acc = dynamic_cast<const dynamic_field_accessor<U>*>(acc);
-			const auto& i = field_acc->info();
-
-			if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
-				throw sinsp_exception(
-				        "invalid field info passed to value_table_entry_adapter::write_field");
-			}
-
-			*self->m_value = *static_cast<const T*>(in);
-		}
-	};
-
-	void raw_write_field_old(const accessor& a, const void* in) {
-		return dispatch_lambda(a.type_info().type_id(), writer{this, &a, in});
-	}
-
 	virtual void destroy_dynamic_fields() override final {
 		// nothing to do
 	}
@@ -438,12 +286,6 @@ public:
 	}
 
 private:
-	using field_infos = std::unordered_map<std::string, static_field_info>;
-	static inline const field_infos* _static_fields() {
-		static const auto s_fields = TWrap{}.static_fields();
-		return &s_fields;
-	}
-
 	static inline void wrap_deleter(TWrap* v) { v->set_value(nullptr); }
 
 	// helps us dynamically allocate a batch of wrappers, creating new ones
