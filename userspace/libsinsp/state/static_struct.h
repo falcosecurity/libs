@@ -73,19 +73,7 @@ public:
 	 * that can be used to reading and writing the field's value in
 	 * all instances of structs where it is defined.
 	 */
-	template<typename T>
-	inline accessor::typed_ptr<T> new_accessor() const {
-		if(!valid()) {
-			throw sinsp_exception("can't create static struct field accessor for invalid field");
-		}
-		auto t = libsinsp::state::typeinfo::of<T>();
-		if(m_info != t) {
-			throw sinsp_exception(
-			        "incompatible type for static struct field accessor: field=" + m_name +
-			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
-		}
-		return accessor::typed_ptr<T>(std::make_unique<static_field_accessor>(*this));
-	}
+	inline accessor::ptr new_accessor() const;
 
 	inline static_field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
 	        m_readonly(r),
@@ -129,6 +117,18 @@ private:
  * in a static struct.
  */
 using static_field_infos = std::unordered_map<std::string, static_field_info>;
+
+/**
+ * @brief Returns a strongly-typed accessor for the given field,
+ * that can be used to reading and writing the field's value in
+ * all instances of structs where it is defined.
+ */
+inline accessor::ptr static_field_info::new_accessor() const {
+	if(!valid()) {
+		throw sinsp_exception("can't create static struct field accessor for invalid field");
+	}
+	return accessor::ptr(std::make_unique<static_field_accessor>(*this));
+}
 
 };  // namespace state
 };  // namespace libsinsp
