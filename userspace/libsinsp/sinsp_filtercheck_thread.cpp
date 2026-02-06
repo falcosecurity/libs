@@ -963,7 +963,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		if(alloc_state) {
 			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>(
 			        "_tmp_sinsp_filter_thread_totexectime");
-			m_thread_dyn_field_accessor = acc.new_accessor<uint64_t>();
+			m_thread_dyn_field_accessor = acc.new_accessor().into<uint64_t>();
 		}
 
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
@@ -976,7 +976,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		if(alloc_state) {
 			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>(
 			        "_tmp_sinsp_filter_thread_cpu");
-			m_thread_dyn_field_accessor = acc.new_accessor<uint64_t>();
+			m_thread_dyn_field_accessor = acc.new_accessor().into<uint64_t>();
 		}
 
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);

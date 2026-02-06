@@ -894,7 +894,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// obtain a pointer to the subtable (check typing too)
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
@@ -907,13 +907,13 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(sfield->second.valid(), true);
 	ASSERT_EQ(sfield->second.name(), "pid");
 	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<int64_t>());
-	auto sfieldacc = sfield->second.new_accessor<int64_t>();
+	auto sfieldacc = sfield->second.new_accessor().into<int64_t>();
 
 	// get an accessor to a dynamic field declared by the plugin
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
 	auto dfield = subtable->dynamic_fields()->fields().find("custom");
 	ASSERT_NE(dfield, subtable->dynamic_fields()->fields().end());
-	auto dfieldacc = dfield->second.new_accessor<std::string>();
+	auto dfieldacc = dfield->second.new_accessor().into<std::string>();
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),
@@ -1005,7 +1005,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// obtain a pointer to the subtable (check typing too)
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
 	                entry->read_field(subtable_acc));
@@ -1109,7 +1109,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// obtain a pointer to the subtable (check typing too)
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<
 	        std::vector<std::pair<std::string, std::string>>,
 	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>*>(
