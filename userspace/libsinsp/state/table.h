@@ -254,6 +254,15 @@ public:
 	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type);
 
 	/**
+	 * @brief Adds a new field to the table with the given name and type.
+	 *
+	 * @param name Name of the field to be added.
+	 * @param data_type Type of the field to be added.
+	 * @return The accessor for the newly-added field.
+	 */
+	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type);
+
+	/**
 	 * @brief Returns the number of entries present in the table.
 	 */
 	virtual size_t entries_count() const = 0;
