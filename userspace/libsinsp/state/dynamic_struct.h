@@ -186,7 +186,7 @@ public:
 	inline const dynamic_field_info& info() const { return m_info; }
 
 	inline explicit dynamic_field_accessor(const dynamic_field_info& info):
-	        accessor(typeinfo::from(info.type_id())),
+	        accessor(info.type_id()),
 	        m_info(info) {};
 
 private:

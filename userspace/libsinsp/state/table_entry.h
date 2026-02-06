@@ -82,16 +82,18 @@ public:
 		std::unique_ptr<const accessor> m_ptr;
 	};
 
-	explicit accessor(const typeinfo& type_info): m_type_info(type_info) {}
+	explicit accessor(ss_plugin_state_type type_id): m_type_id(type_id) {}
 	virtual ~accessor() = default;
 
-	[[nodiscard]] typeinfo type_info() const { return m_type_info; }
+	[[nodiscard]] typeinfo type_info() const { return typeinfo::from(m_type_id); }
 
 	template<typename T>
 	void assert_type() const {
-		if(typeinfo::of<T>() != m_type_info) {
-			throw sinsp_exception(std::string("type mismatch in accessor: expected ") +
-			                      typeinfo::of<T>().name() + ", got " + m_type_info.name());
+		if(type_id_of<T>() != m_type_id) {
+			const auto expected = typeinfo::of<T>().name();
+			const auto got = typeinfo::from(m_type_id).name();
+			throw sinsp_exception(std::string("type mismatch in accessor: expected ") + expected +
+			                      ", got " + got);
 		}
 	}
 
@@ -104,7 +106,7 @@ public:
 	static ptr null() { return ptr(std::unique_ptr<const accessor>(nullptr)); }
 
 protected:
-	typeinfo m_type_info;
+	ss_plugin_state_type m_type_id;
 };
 
 /**
