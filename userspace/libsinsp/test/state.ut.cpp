@@ -304,9 +304,9 @@ TEST(dynamic_struct, mem_ownership) {
 }
 
 TEST(table_registry, defs_and_access) {
-	class sample_table : public libsinsp::state::built_in_table<uint64_t> {
+	class sample_table : public libsinsp::state::extensible_table<uint64_t> {
 	public:
-		sample_table(): built_in_table("sample") {}
+		sample_table(): extensible_table("sample") {}
 
 		size_t entries_count() const override { return m_entries.size(); }
 
@@ -367,7 +367,7 @@ TEST(thread_manager, table_access) {
 	static const int s_threadinfo_static_fields_count = 32;
 
 	sinsp inspector;
-	auto table = static_cast<libsinsp::state::built_in_table<int64_t>*>(
+	auto table = static_cast<libsinsp::state::extensible_table<int64_t>*>(
 	        inspector.m_thread_manager.get());
 
 	// empty table state and info
@@ -461,7 +461,7 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(reg->tables().size(), 1);
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
-	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	auto table = dynamic_cast<libsinsp::state::extensible_table<int64_t>*>(
 	        reg->get_table<int64_t>("threads"));
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
@@ -607,7 +607,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(reg->tables().size(), 1);
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
-	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	auto table = dynamic_cast<libsinsp::state::extensible_table<int64_t>*>(
 	        reg->get_table<int64_t>("threads"));
 	EXPECT_EQ(table->name(), std::string("threads"));
 	EXPECT_EQ(table->entries_count(), 0);
