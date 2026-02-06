@@ -106,10 +106,10 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_EQ(field_str->second.info(), libsinsp::state::typeinfo::of<std::string>());
 
 	// check field access
-	auto acc_num = field_num->second.new_accessor<uint32_t>();
-	auto acc_str = field_str->second.new_accessor<std::string>();
-	ASSERT_ANY_THROW(field_num->second.new_accessor<uint64_t>());
-	ASSERT_ANY_THROW(field_str->second.new_accessor<uint64_t>());
+	auto acc_num = field_num->second.new_accessor().into<uint32_t>();
+	auto acc_str = field_str->second.new_accessor().into<std::string>();
+	ASSERT_ANY_THROW((void)field_num->second.new_accessor().into<uint64_t>());
+	ASSERT_ANY_THROW((void)field_str->second.new_accessor().into<uint64_t>());
 
 	ASSERT_EQ(s.get_num(), 0);
 	ASSERT_EQ(s.read_field(acc_num), 0);
@@ -147,7 +147,7 @@ TEST(static_struct, defs_and_access) {
 	// but for now we have no elegant way to do it efficiently.
 	// todo(jasondellaluce): find a good way to check for this
 	auto acc_num2 =
-	        sample_struct2::get_static_fields().find("num")->second.new_accessor<uint32_t>();
+	        sample_struct2::get_static_fields().find("num")->second.new_accessor().into<uint32_t>();
 	ASSERT_NO_THROW(s.read_field(acc_num2));
 }
 
@@ -195,10 +195,10 @@ TEST(dynamic_struct, defs_and_access) {
 	ASSERT_ANY_THROW(fields->add_field<uint32_t>("str"));
 
 	// check field access
-	auto acc_num = field_num.new_accessor<uint64_t>();
-	auto acc_str = field_str.new_accessor<std::string>();
-	ASSERT_ANY_THROW(field_num.new_accessor<uint32_t>());
-	ASSERT_ANY_THROW(field_str.new_accessor<uint32_t>());
+	auto acc_num = field_num.new_accessor().into<uint64_t>();
+	auto acc_str = field_str.new_accessor().into<std::string>();
+	ASSERT_ANY_THROW((void)field_num.new_accessor().into<uint32_t>());
+	ASSERT_ANY_THROW((void)field_str.new_accessor().into<uint32_t>());
 
 	uint64_t tmp;
 	s.read_field(acc_num, tmp);
@@ -227,7 +227,7 @@ TEST(dynamic_struct, defs_and_access) {
 	// illegal access from an accessor created from different definition list
 	auto fields2 = std::make_shared<libsinsp::state::dynamic_field_infos>();
 	auto field_num2 = fields2->add_field<uint64_t>("num");
-	auto acc_num2 = field_num2.new_accessor<uint64_t>();
+	auto acc_num2 = field_num2.new_accessor().into<uint64_t>();
 	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
@@ -252,7 +252,7 @@ TEST(dynamic_struct, mem_ownership) {
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field<std::string>("str");
-	auto field_str_acc = field_str.new_accessor<std::string>();
+	auto field_str_acc = field_str.new_accessor().into<std::string>();
 
 	// write same value in both structs, ensure they have two distinct copies
 	s1.write_field(field_str_acc, std::string("hello"));
@@ -405,7 +405,8 @@ TEST(thread_manager, table_access) {
 	std::string tmpstr;
 	auto dynf_acc = table->dynamic_fields()
 	                        ->add_field<std::string>("some_new_field")
-	                        .new_accessor<std::string>();
+	                        .new_accessor()
+	                        .into<std::string>();
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
@@ -482,7 +483,7 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(table->entries_count(), 2);
 
 	// getting the fd tables from the newly created threads
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(subtable_acc));
 	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->read_field(subtable_acc));
 
@@ -522,8 +523,8 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"),
 	          subtable2->dynamic_fields()->fields().end());
 
-	auto sfieldacc = sfield->second.new_accessor<int64_t>();
-	auto dfieldacc = dfield.new_accessor<std::string>();
+	auto sfieldacc = sfield->second.new_accessor().into<int64_t>();
+	auto dfieldacc = dfield.new_accessor().into<std::string>();
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 4096;  // note: configured max entries in fd tables
@@ -623,7 +624,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// getting the "env" tables from the newly created threads
-	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
 	                entry->read_field(subtable_acc));
