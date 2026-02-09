@@ -6,7 +6,7 @@ void plugin_tables::init(const sinsp& inspector) {
 	// Add "container_id" accessor.
 	const auto& fields = inspector.m_thread_manager->dynamic_fields()->fields();
 	if(const auto field = fields.find("container_id"); field != fields.end()) {
-		m_container_id_field = field->second.new_accessor().into<std::string>();
+		m_container_id_field = field->second.into<std::string>();
 	} else {
 		throw sinsp_exception("failed to find dynamic field 'container_id' in threadinfo");
 	}

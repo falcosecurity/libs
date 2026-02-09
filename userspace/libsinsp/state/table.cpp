@@ -389,7 +389,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 		if(type_id != fixed_it->second.type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 		}
-		return fixed_it->second.new_accessor();
+		return fixed_it->second.clone();
 	}
 
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
@@ -397,7 +397,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 			throw sinsp_exception("incompatible data types for dynamic field: " +
 			                      std::string(name));
 		}
-		return libsinsp::state::accessor::ptr(dyn_it->second.new_accessor());
+		return libsinsp::state::accessor::ptr(dyn_it->second.clone());
 	}
 	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
 	                      std::string(this->name()) + "'");
