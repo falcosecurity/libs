@@ -180,8 +180,13 @@ public:
 		write_field(a.as_ref(), in);
 	}
 
-	[[nodiscard]] virtual borrowed_state_data raw_read_field(const accessor& a) const = 0;
-	virtual void raw_write_field(const accessor& a, const borrowed_state_data& in) = 0;
+	[[nodiscard]] virtual borrowed_state_data raw_read_field(const accessor& a) const {
+		return a.read(this);
+	}
+
+	virtual void raw_write_field(const accessor& a, const borrowed_state_data& in) {
+		a.write(this, in);
+	}
 };
 
 template<>
