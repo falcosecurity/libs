@@ -68,19 +68,6 @@ protected:
 	}
 
 private:
-	inline void _check_defsptr(const dynamic_field_info& i, bool write) const {
-		if(!i.valid()) {
-			throw sinsp_exception("can't set invalid field in dynamic struct");
-		}
-		if(m_dynamic_fields->id() != i.m_defs_id) {
-			throw sinsp_exception(
-			        "using dynamic field accessor on struct it was not created from: " + i.name());
-		}
-		if(write && i.readonly()) {
-			throw sinsp_exception("can't set a read-only dynamic struct field: " + i.name());
-		}
-	}
-
 	inline dynamic_field_value* _access_dynamic_field_for_write(size_t index) {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
