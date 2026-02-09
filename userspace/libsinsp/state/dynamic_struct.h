@@ -93,7 +93,7 @@ class extensible_struct;
 /**
  * @brief Info about a given field in a dynamic struct.
  */
-class dynamic_field_info {
+class dynamic_field_info : public accessor {
 public:
 	inline dynamic_field_info(const std::string& n,
 	                          size_t in,
@@ -101,41 +101,7 @@ public:
 	                          bool r,
 	                          accessor::reader_fn reader,
 	                          accessor::writer_fn writer):
-	        m_readonly(r),
-	        m_index(in),
-	        m_name(n),
-	        m_type_id(t),
-	        m_reader(reader),
-	        m_writer(writer) {}
-
-	/**
-	 * @brief Returns true if the field is read only.
-	 */
-	inline bool readonly() const { return m_readonly; }
-
-	/**
-	 * @brief Returns true if the field info is valid.
-	 */
-	inline bool valid() const {
-		// note(jasondellaluce): for now dynamic fields of type table are
-		// not supported, so we consider them to be invalid
-		return m_index != (size_t)-1 && m_type_id != SS_PLUGIN_ST_TABLE;
-	}
-
-	/**
-	 * @brief Returns the name of the field.
-	 */
-	inline const std::string& name() const { return m_name; }
-
-	/**
-	 * @brief Returns the index of the field.
-	 */
-	inline size_t index() const { return m_index; }
-
-	/**
-	 * @brief Returns the type info of the field.
-	 */
-	inline ss_plugin_state_type type_id() const { return m_type_id; }
+	        accessor(n, t, reader, writer, in, r) {}
 
 	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
@@ -143,17 +109,6 @@ public:
 	 * all instances of structs where it is defined.
 	 */
 	inline accessor::ptr new_accessor() const;
-
-private:
-	bool m_readonly;
-	size_t m_index;
-	std::string m_name;
-	ss_plugin_state_type m_type_id;
-	accessor::reader_fn m_reader;
-	accessor::writer_fn m_writer;
-
-	friend class dynamic_field_accessor;
-	friend class extensible_struct;
 };
 
 template<typename T>
@@ -252,10 +207,7 @@ protected:
  * all instances of structs where it is defined.
  */
 inline accessor::ptr dynamic_field_info::new_accessor() const {
-	if(!valid()) {
-		throw sinsp_exception("can't create dynamic struct field accessor for invalid field");
-	}
-	return accessor::ptr(std::make_unique<accessor>(type_id(), m_reader, m_writer, m_index));
+	return clone();
 }
 
 };  // namespace libsinsp::state

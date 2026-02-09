@@ -86,14 +86,21 @@ public:
 		std::unique_ptr<const accessor> m_ptr;
 	};
 
-	explicit accessor(ss_plugin_state_type type_id,
+	explicit accessor(const std::string& name,
+	                  ss_plugin_state_type type_id,
 	                  reader_fn reader,
 	                  writer_fn writer,
-	                  size_t index):
+	                  size_t index,
+	                  bool readonly):
+	        m_name(std::make_shared<const std::string>(name)),
 	        m_type_id(type_id),
 	        m_reader(reader),
 	        m_writer(writer),
-	        m_index(index) {}
+	        m_index(index),
+	        m_readonly(readonly) {}
+
+	accessor(const accessor& other) = default;
+
 	virtual ~accessor() = default;
 
 	[[nodiscard]] ss_plugin_state_type type_id() const { return m_type_id; }
@@ -130,13 +137,21 @@ public:
 		m_writer(obj, m_index, in);
 	}
 
+	inline const std::string& name() const { return *m_name; }
+
+	inline bool readonly() const { return m_readonly; }
+
 	size_t index() const { return m_index; }
 
+	ptr clone() const { return ptr(std::make_unique<accessor>(*this)); }
+
 protected:
+	std::shared_ptr<const std::string> m_name;
 	ss_plugin_state_type m_type_id;
 	reader_fn m_reader;
 	writer_fn m_writer;
 	size_t m_index;
+	bool m_readonly;
 };
 
 /**
