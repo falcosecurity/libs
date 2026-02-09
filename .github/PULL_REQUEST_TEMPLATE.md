@@ -42,13 +42,7 @@ Please remove the leading whitespace before the `/kind <>` you uncommented.
 
 > /area driver-kmod
 
-> /area driver-bpf
-
 > /area driver-modern-bpf
-
-> /area libscap-engine-bpf
-
-> /area libscap-engine-gvisor
 
 > /area libscap-engine-kmod
 
