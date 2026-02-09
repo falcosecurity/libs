@@ -138,17 +138,9 @@ public:
 	 */
 	inline const accessor& add_field(const std::string& name, ss_plugin_state_type type_id) {
 		auto field = accessor(name, type_id, m_reader, m_writer, m_definitions.size(), false);
-		return add_field_info(field);
-	}
-
-	virtual const std::unordered_map<std::string, accessor>& fields() { return m_definitions; }
-
-protected:
-	virtual const accessor& add_field_info(const accessor& field) {
 		if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 			throw sinsp_exception("dynamic fields of type table are not supported");
 		}
-
 		const auto& it = m_definitions.find(field.name());
 		if(it != m_definitions.end()) {
 			const auto& t = field.type_id();
@@ -168,6 +160,9 @@ protected:
 		return def;
 	}
 
+	const std::unordered_map<std::string, accessor>& fields() { return m_definitions; }
+
+protected:
 	std::unordered_map<std::string, accessor> m_definitions;
 	std::vector<const accessor*> m_definitions_ordered;
 	accessor::reader_fn m_reader;
