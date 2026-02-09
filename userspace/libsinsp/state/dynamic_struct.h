@@ -90,27 +90,6 @@ private:
 
 class extensible_struct;
 
-/**
- * @brief Info about a given field in a dynamic struct.
- */
-class dynamic_field_info : public accessor {
-public:
-	inline dynamic_field_info(const std::string& n,
-	                          size_t in,
-	                          ss_plugin_state_type t,
-	                          bool r,
-	                          accessor::reader_fn reader,
-	                          accessor::writer_fn writer):
-	        accessor(n, t, reader, writer, in, r) {}
-
-	/**
-	 * @brief Returns a strongly-typed accessor for the given field,
-	 * that can be used to reading and writing the field's value in
-	 * all instances of structs where it is defined.
-	 */
-	inline accessor::ptr new_accessor() const;
-};
-
 template<typename T>
 borrowed_state_data read_dynamic_field(const void* obj, size_t index) {
 	auto dstruct = static_cast<const T*>(obj);
@@ -157,19 +136,15 @@ public:
 	 * @param name Display name of the field.
 	 * @param type_id Type of the field.
 	 */
-	inline const dynamic_field_info& add_field(const std::string& name,
-	                                           ss_plugin_state_type type_id) {
-		auto field =
-		        dynamic_field_info(name, m_definitions.size(), type_id, false, m_reader, m_writer);
+	inline const accessor& add_field(const std::string& name, ss_plugin_state_type type_id) {
+		auto field = accessor(name, type_id, m_reader, m_writer, m_definitions.size(), false);
 		return add_field_info(field);
 	}
 
-	virtual const std::unordered_map<std::string, dynamic_field_info>& fields() {
-		return m_definitions;
-	}
+	virtual const std::unordered_map<std::string, accessor>& fields() { return m_definitions; }
 
 protected:
-	virtual const dynamic_field_info& add_field_info(const dynamic_field_info& field) {
+	virtual const accessor& add_field_info(const accessor& field) {
 		if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 			throw sinsp_exception("dynamic fields of type table are not supported");
 		}
@@ -193,21 +168,12 @@ protected:
 		return def;
 	}
 
-	std::unordered_map<std::string, dynamic_field_info> m_definitions;
-	std::vector<const dynamic_field_info*> m_definitions_ordered;
+	std::unordered_map<std::string, accessor> m_definitions;
+	std::vector<const accessor*> m_definitions_ordered;
 	accessor::reader_fn m_reader;
 	accessor::writer_fn m_writer;
 
 	friend class extensible_struct;
 };
-
-/**
- * @brief Returns a strongly-typed accessor for the given field,
- * that can be used to reading and writing the field's value in
- * all instances of structs where it is defined.
- */
-inline accessor::ptr dynamic_field_info::new_accessor() const {
-	return clone();
-}
 
 };  // namespace libsinsp::state
