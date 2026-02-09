@@ -128,15 +128,7 @@ private:
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 	// end of dynamic_struct interface
 
-	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		return a.read(this);
-	}
-
 protected:
-	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		a.write(this, in);
-	}
-
 	template<typename T>
 	friend borrowed_state_data read_dynamic_field(const void* obj, size_t index);
 
