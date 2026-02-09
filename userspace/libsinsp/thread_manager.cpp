@@ -122,7 +122,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
         const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
-        extensible_table{s_thread_table_name,
+        extensible_table{type_tag<sinsp_threadinfo>{},
+                         s_thread_table_name,
                          &s_threadinfo_static_fields,
                          thread_manager_dyn_fields},
         m_sinsp_mode{sinsp_mode},
