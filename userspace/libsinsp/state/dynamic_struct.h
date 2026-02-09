@@ -99,7 +99,6 @@ public:
 	inline dynamic_field_info(const std::string& n,
 	                          size_t in,
 	                          ss_plugin_state_type t,
-	                          uintptr_t defsptr,
 	                          bool r,
 	                          accessor::reader_fn reader,
 	                          accessor::writer_fn writer):
@@ -107,23 +106,16 @@ public:
 	        m_index(in),
 	        m_name(n),
 	        m_type_id(t),
-	        m_defs_id(defsptr),
 	        m_reader(reader),
 	        m_writer(writer) {}
 
 	friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
-		return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index &&
-		       a.m_defs_id == b.m_defs_id;
+		return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index;
 	};
 
 	friend inline bool operator!=(const dynamic_field_info& a, const dynamic_field_info& b) {
 		return !(a == b);
 	};
-
-	/**
-	 * @brief Returns the id of the shared definitions this info belongs to.
-	 */
-	inline uintptr_t defs_id() const { return m_defs_id; }
 
 	/**
 	 * @brief Returns true if the field is read only.
@@ -166,7 +158,6 @@ private:
 	size_t m_index;
 	std::string m_name;
 	ss_plugin_state_type m_type_id;
-	uintptr_t m_defs_id;
 	accessor::reader_fn m_reader;
 	accessor::writer_fn m_writer;
 
@@ -199,17 +190,13 @@ void write_dynamic_field(void* obj, size_t index, const libsinsp::state::borrowe
 class dynamic_field_infos {
 public:
 	inline dynamic_field_infos(accessor::reader_fn reader, accessor::writer_fn writer):
-	        m_defs_id((uintptr_t)this),
 	        m_reader(reader),
 	        m_writer(writer) {};
-	inline explicit dynamic_field_infos(uintptr_t defs_id): m_defs_id(defs_id) {};
 	virtual ~dynamic_field_infos() = default;
 	inline dynamic_field_infos(dynamic_field_infos&&) = default;
 	inline dynamic_field_infos& operator=(dynamic_field_infos&&) = default;
 	inline dynamic_field_infos(const dynamic_field_infos& s) = delete;
 	inline dynamic_field_infos& operator=(const dynamic_field_infos& s) = delete;
-
-	inline uintptr_t id() const { return m_defs_id; }
 
 	template<typename T>
 	static std::shared_ptr<dynamic_field_infos> make() {
@@ -226,13 +213,8 @@ public:
 	 */
 	inline const dynamic_field_info& add_field(const std::string& name,
 	                                           ss_plugin_state_type type_id) {
-		auto field = dynamic_field_info(name,
-		                                m_definitions.size(),
-		                                type_id,
-		                                id(),
-		                                false,
-		                                m_reader,
-		                                m_writer);
+		auto field =
+		        dynamic_field_info(name, m_definitions.size(), type_id, false, m_reader, m_writer);
 		return add_field_info(field);
 	}
 
@@ -265,7 +247,6 @@ protected:
 		return def;
 	}
 
-	uintptr_t m_defs_id;
 	std::unordered_map<std::string, dynamic_field_info> m_definitions;
 	std::vector<const dynamic_field_info*> m_definitions_ordered;
 	accessor::reader_fn m_reader;
