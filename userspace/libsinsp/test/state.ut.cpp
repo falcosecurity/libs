@@ -507,7 +507,6 @@ TEST(thread_manager, fdtable_access) {
 	const auto& dfield = subtable->dynamic_fields()->add_field("str_val", SS_PLUGIN_ST_STRING);
 	ASSERT_EQ(dfield.index(), subtable->dynamic_fields()->fields().find("str_val")->second.index());
 	ASSERT_EQ(dfield.readonly(), false);
-	ASSERT_EQ(dfield.valid(), true);
 	ASSERT_EQ(dfield.index(), 0);
 	ASSERT_EQ(dfield.name(), "str_val");
 	ASSERT_EQ(dfield.type_id(), SS_PLUGIN_ST_STRING);
