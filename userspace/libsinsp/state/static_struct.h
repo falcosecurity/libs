@@ -103,7 +103,8 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  * all instances of structs where it is defined.
  */
 inline accessor::ptr static_field_info::new_accessor() const {
-	return accessor::ptr(std::make_unique<accessor>(type_id(), reader(), writer(), 0));
+	return accessor::ptr(
+	        std::make_unique<accessor>(name(), type_id(), reader(), writer(), 0, readonly()));
 }
 
 };  // namespace state
