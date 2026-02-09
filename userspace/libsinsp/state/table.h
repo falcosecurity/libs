@@ -333,18 +333,26 @@ private:
 template<typename KeyType>
 class extensible_table : public built_in_table<KeyType> {
 public:
+	template<typename T>
+	struct type_tag {
+		using type = T;
+	};
+
+	template<typename T>
 	inline extensible_table(
+	        type_tag<T>,
 	        const std::string& name,
 	        const static_field_infos* static_fields,
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
 	        built_in_table<KeyType>(name),
 	        m_static_fields(static_fields),
 	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
-	                                                   : std::make_shared<dynamic_field_infos>()) {}
+	                                                   : dynamic_field_infos::make<T>()) {}
 
-	inline extensible_table(const std::string& name):
+	template<typename T>
+	inline extensible_table(type_tag<T>, const std::string& name):
 	        built_in_table<KeyType>(name),
-	        m_dynamic_fields(std::make_shared<dynamic_field_infos>()) {}
+	        m_dynamic_fields(dynamic_field_infos::make<T>()) {}
 
 	/**
 	 * @brief Returns the fields metadata list for the static fields defined
