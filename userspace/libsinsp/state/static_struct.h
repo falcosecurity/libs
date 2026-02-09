@@ -27,8 +27,6 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
-class static_field_accessor;
-
 /**
  * @brief Info about a given field in a static struct.
  */
@@ -60,13 +58,12 @@ public:
 	/**
 	 * @brief Returns the reader function for this field.
 	 */
-	inline borrowed_state_data read(const void* obj, size_t index) const {
-		return m_reader(obj, index);
-	}
+	inline accessor::reader_fn reader() const { return m_reader; }
 
-	inline void write(void* obj, size_t index, const borrowed_state_data& data) const {
-		m_writer(obj, index, data);
-	}
+	/**
+	 * @brief Returns the writer function for this field.
+	 */
+	inline accessor::writer_fn writer() const { return m_writer; }
 
 	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
@@ -95,25 +92,6 @@ private:
 };
 
 /**
- * @brief An accessor for accessing a field of a static struct.
- * @tparam T Type of the field.
- */
-class static_field_accessor : public accessor {
-public:
-	/**
-	 * @brief Returns the info about the field to which this accessor is tied.
-	 */
-	[[nodiscard]] const static_field_info& info() const { return m_info; }
-
-	explicit static_field_accessor(static_field_info info):
-	        accessor(info.type_id()),
-	        m_info(std::move(info)) {};
-
-private:
-	static_field_info m_info;
-};
-
-/**
  * @brief A group of field infos, describing all the ones available
  * in a static struct.
  */
@@ -125,7 +103,7 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  * all instances of structs where it is defined.
  */
 inline accessor::ptr static_field_info::new_accessor() const {
-	return accessor::ptr(std::make_unique<static_field_accessor>(*this));
+	return accessor::ptr(std::make_unique<accessor>(type_id(), reader(), writer(), 0));
 }
 
 };  // namespace state

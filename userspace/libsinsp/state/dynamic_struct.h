@@ -89,7 +89,6 @@ private:
 };
 
 class extensible_struct;
-class dynamic_field_accessor;
 
 /**
  * @brief Info about a given field in a dynamic struct.
@@ -256,32 +255,6 @@ protected:
 };
 
 /**
- * @brief An accessor for accessing a field of a dynamic struct.
- */
-class dynamic_field_accessor : public accessor {
-public:
-	/**
-	 * @brief Returns the info about the field to which this accessor is tied.
-	 */
-	inline const dynamic_field_info& info() const { return m_info; }
-
-	inline explicit dynamic_field_accessor(const dynamic_field_info& info):
-	        accessor(info.type_id()),
-	        m_info(info) {};
-
-	inline borrowed_state_data read(const void* obj) const {
-		return m_info.m_reader(obj, m_info.index());
-	}
-
-	inline void write(void* obj, const borrowed_state_data& in) const {
-		m_info.m_writer(obj, m_info.index(), in);
-	}
-
-private:
-	dynamic_field_info m_info;
-};
-
-/**
  * @brief Returns a strongly-typed accessor for the given field,
  * that can be used to reading and writing the field's value in
  * all instances of structs where it is defined.
@@ -290,7 +263,7 @@ inline accessor::ptr dynamic_field_info::new_accessor() const {
 	if(!valid()) {
 		throw sinsp_exception("can't create dynamic struct field accessor for invalid field");
 	}
-	return accessor::ptr(std::make_unique<dynamic_field_accessor>(*this));
+	return accessor::ptr(std::make_unique<accessor>(type_id(), m_reader, m_writer, m_index));
 }
 
 };  // namespace libsinsp::state
