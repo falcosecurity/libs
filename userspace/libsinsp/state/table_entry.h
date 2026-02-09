@@ -145,6 +145,8 @@ public:
 
 	ptr clone() const { return ptr(std::make_unique<accessor>(*this)); }
 
+	virtual ptr new_accessor() const { return clone(); }
+
 protected:
 	std::shared_ptr<const std::string> m_name;
 	ss_plugin_state_type m_type_id;
