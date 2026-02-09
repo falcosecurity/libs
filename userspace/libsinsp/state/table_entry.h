@@ -130,6 +130,8 @@ public:
 		m_writer(obj, m_index, in);
 	}
 
+	size_t index() const { return m_index; }
+
 protected:
 	ss_plugin_state_type m_type_id;
 	reader_fn m_reader;
