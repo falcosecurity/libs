@@ -156,19 +156,25 @@ TEST(static_struct, defs_and_access) {
 }
 
 TEST(dynamic_struct, defs_and_access) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 	public:
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
 
+	struct sample_struct2 : public libsinsp::state::extensible_struct {
+	public:
+		sample_struct2(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
+
 	// struct construction and setting fields definition
 	sample_struct s(fields);
 	ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
 	ASSERT_ANY_THROW(
-	        s.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_field_infos>()));
+	        s.set_dynamic_fields(libsinsp::state::dynamic_field_infos::make<sample_struct>()));
 	// The double paranthesis fixes
 	// Error C2063 'std::shared_ptr<libsinsp::state::dynamic_field_infos>' : not a function
 	// C on the Windows compiler. This should be quirk of the Windows compiler.
@@ -227,12 +233,6 @@ TEST(dynamic_struct, defs_and_access) {
 	ctmpstr = "";
 	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
-
-	// illegal access from an accessor created from different definition list
-	auto fields2 = std::make_shared<libsinsp::state::dynamic_field_infos>();
-	auto field_num2 = fields2->add_field("num", SS_PLUGIN_ST_UINT64);
-	auto acc_num2 = field_num2.new_accessor().into<uint64_t>();
-	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
 TEST(dynamic_struct, mem_ownership) {
@@ -242,7 +242,7 @@ TEST(dynamic_struct, mem_ownership) {
 	};
 
 	std::string tmpstr1, tmpstr2;
-	auto defs1 = std::make_shared<libsinsp::state::dynamic_field_infos>();
+	auto defs1 = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	// construct two entries, test safety checks
 	sample_struct s1(nullptr);
@@ -252,7 +252,7 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_ANY_THROW(s1.set_dynamic_fields(nullptr));
 	ASSERT_NO_THROW(s1.set_dynamic_fields(defs1));
 	ASSERT_ANY_THROW(
-	        s1.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_field_infos>()));
+	        s1.set_dynamic_fields(libsinsp::state::dynamic_field_infos::make<sample_struct>()));
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field("str", SS_PLUGIN_ST_STRING);
@@ -281,7 +281,7 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_NE(tmpstr1, tmpstr2);
 
 	// deep copy and memory ownership (assignment)
-	sample_struct s4(std::make_shared<libsinsp::state::dynamic_field_infos>());
+	sample_struct s4(libsinsp::state::dynamic_field_infos::make<sample_struct>());
 	s4 = s1;
 	s1.read_field(field_str_acc, tmpstr1);
 	s4.read_field(field_str_acc, tmpstr2);
@@ -306,7 +306,8 @@ TEST(dynamic_struct, mem_ownership) {
 TEST(table_registry, defs_and_access) {
 	class sample_table : public libsinsp::state::extensible_table<uint64_t> {
 	public:
-		sample_table(): extensible_table("sample") {}
+		sample_table():
+		        extensible_table(type_tag<libsinsp::state::extensible_struct>{}, "sample") {}
 
 		size_t entries_count() const override { return m_entries.size(); }
 

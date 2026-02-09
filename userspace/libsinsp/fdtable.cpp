@@ -28,7 +28,7 @@ limitations under the License.
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
 sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
-        extensible_table{"file_descriptors", &s_fdtable_static_fields},
+        extensible_table{type_tag<sinsp_fdinfo>{}, "file_descriptors", &s_fdtable_static_fields},
         m_params{params},
         m_tid{0} {
 	reset_cache();
