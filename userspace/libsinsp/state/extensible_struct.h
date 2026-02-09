@@ -165,8 +165,7 @@ protected:
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			auto ptr = _access_dynamic_field_for_write(dynamic_acc->info().index());
-			ptr->update(in);
+			dynamic_acc->write(this, in);
 			return;
 		}
 
@@ -179,6 +178,9 @@ protected:
 
 	template<typename T>
 	friend borrowed_state_data read_dynamic_field(const void* obj, size_t index);
+
+	template<typename T>
+	friend void write_dynamic_field(void* obj, size_t index, const borrowed_state_data& in);
 };
 
 /**
