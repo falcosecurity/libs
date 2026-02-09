@@ -118,7 +118,8 @@ sinsp_thread_manager::sinsp_thread_manager(
         scap_t* const& scap_handle,
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields):
-        extensible_table{s_thread_table_name,
+        extensible_table{type_tag<sinsp_threadinfo>{},
+                         s_thread_table_name,
                          &s_threadinfo_static_fields,
                          thread_manager_dyn_fields},
         m_threadinfo_factory{threadinfo_factory},

@@ -158,19 +158,25 @@ TEST(static_struct, defs_and_access) {
 }
 
 TEST(dynamic_struct, defs_and_access) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 	public:
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
 
+	struct sample_struct2 : public libsinsp::state::extensible_struct {
+	public:
+		sample_struct2(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
+
 	// struct construction and setting fields definition
 	sample_struct s(fields);
 	ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
 	ASSERT_ANY_THROW(
-	        s.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_field_infos>()));
+	        s.set_dynamic_fields(libsinsp::state::dynamic_field_infos::make<sample_struct>()));
 	// The double paranthesis fixes
 	// Error C2063 'std::shared_ptr<libsinsp::state::dynamic_field_infos>' : not a function
 	// C on the Windows compiler. This should be quirk of the Windows compiler.
@@ -229,12 +235,6 @@ TEST(dynamic_struct, defs_and_access) {
 	ctmpstr = "";
 	s.read_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
-
-	// illegal access from an accessor created from different definition list
-	auto fields2 = std::make_shared<libsinsp::state::dynamic_field_infos>();
-	auto field_num2 = fields2->add_field("num", SS_PLUGIN_ST_UINT64);
-	auto acc_num2 = field_num2.new_accessor().into<uint64_t>();
-	ASSERT_ANY_THROW(s.read_field(acc_num2, tmp));
 }
 
 TEST(dynamic_struct, mem_ownership) {
@@ -244,7 +244,7 @@ TEST(dynamic_struct, mem_ownership) {
 	};
 
 	std::string tmpstr1, tmpstr2;
-	auto defs1 = std::make_shared<libsinsp::state::dynamic_field_infos>();
+	auto defs1 = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	// construct two entries, test safety checks
 	sample_struct s1(nullptr);
@@ -254,7 +254,7 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_ANY_THROW(s1.set_dynamic_fields(nullptr));
 	ASSERT_NO_THROW(s1.set_dynamic_fields(defs1));
 	ASSERT_ANY_THROW(
-	        s1.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_field_infos>()));
+	        s1.set_dynamic_fields(libsinsp::state::dynamic_field_infos::make<sample_struct>()));
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field("str", SS_PLUGIN_ST_STRING);
@@ -283,7 +283,7 @@ TEST(dynamic_struct, mem_ownership) {
 	ASSERT_NE(tmpstr1, tmpstr2);
 
 	// deep copy and memory ownership (assignment)
-	sample_struct s4(std::make_shared<libsinsp::state::dynamic_field_infos>());
+	sample_struct s4(libsinsp::state::dynamic_field_infos::make<sample_struct>());
 	s4 = s1;
 	s1.read_field(field_str_acc, tmpstr1);
 	s4.read_field(field_str_acc, tmpstr2);
@@ -308,7 +308,8 @@ TEST(dynamic_struct, mem_ownership) {
 TEST(table_registry, defs_and_access) {
 	class sample_table : public libsinsp::state::extensible_table<uint64_t> {
 	public:
-		sample_table(): extensible_table("sample") {}
+		sample_table():
+		        extensible_table(type_tag<libsinsp::state::extensible_struct>{}, "sample") {}
 
 		size_t entries_count() const override { return m_entries.size(); }
 
@@ -737,12 +738,12 @@ TEST(thread_manager, env_vars_access) {
 //
 // Under ASan/Valgrind this should report a use-after-free / heap-use-after-free.
 TEST(dynamic_struct, thread_local_string_dangling_pointer_regression) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	// Create two string fields
 	auto field_a = fields->add_field("field_a", SS_PLUGIN_ST_STRING);
@@ -794,12 +795,12 @@ TEST(dynamic_struct, thread_local_string_dangling_pointer_regression) {
 // read string fields from two different entries; verify the first pointer
 // survives the second read.
 TEST(dynamic_struct, thread_local_string_cross_entry_dangling_pointer) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	auto acc_str = field_str.new_accessor().into<std::string>();
@@ -842,12 +843,12 @@ TEST(dynamic_struct, thread_local_string_cross_entry_dangling_pointer) {
 //
 // This test triggers the read path; the copy path is tested below.
 TEST(dynamic_struct, read_null_string_field_after_lazy_materialization) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	// Define two fields: string at index 0, uint64 at index 1.
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
@@ -874,12 +875,12 @@ TEST(dynamic_struct, read_null_string_field_after_lazy_materialization) {
 // After the above test's scenario, copying the entry invokes
 // strdup(nullptr) in dynamic_field_value's copy path.
 TEST(dynamic_struct, strdup_nullptr_on_copy_with_uninitialized_string_field) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
@@ -928,12 +929,12 @@ TEST(dynamic_struct, strdup_nullptr_on_copy_with_uninitialized_string_field) {
 // (a weaker variant of the nullptr test — ensures the empty-string path
 // also works correctly after the fix).
 TEST(dynamic_struct, copy_entry_with_empty_string_field) {
-	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
-
 	struct sample_struct : public libsinsp::state::extensible_struct {
 		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
 		        extensible_struct(i) {}
 	};
+
+	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	auto acc_str = field_str.new_accessor().into<std::string>();

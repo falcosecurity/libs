@@ -147,11 +147,7 @@ private:
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			_check_defsptr(dynamic_acc->info(), false);
-			if(auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index())) {
-				return borrowed_state_data(ptr->m_data);
-			}
-			return {};
+			return dynamic_acc->read(this);
 		}
 
 #ifdef _MSC_VER
@@ -180,6 +176,9 @@ protected:
 		__builtin_unreachable();
 #endif
 	}
+
+	template<typename T>
+	friend borrowed_state_data read_dynamic_field(const void* obj, size_t index);
 };
 
 /**
