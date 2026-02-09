@@ -129,38 +129,12 @@ private:
 	// end of dynamic_struct interface
 
 	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			return static_acc->info().read(this, 0);
-		}
-
-		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			return dynamic_acc->read(this);
-		}
-
-#ifdef _MSC_VER
-		_assume(0);
-#else
-		__builtin_unreachable();
-#endif
+		return a.read(this);
 	}
 
 protected:
 	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			static_acc->info().write(this, 0, in);
-			return;
-		}
-
-		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			dynamic_acc->write(this, in);
-			return;
-		}
-
-#ifdef _MSC_VER
-		_assume(0);
-#else
-		__builtin_unreachable();
-#endif
+		a.write(this, in);
 	}
 
 	template<typename T>

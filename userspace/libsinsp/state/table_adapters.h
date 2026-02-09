@@ -21,9 +21,9 @@ namespace state {
 
 class stl_table_entry_accessor : public accessor {
 public:
-	stl_table_entry_accessor(ss_plugin_state_type type_id, int m_index):
-	        accessor(type_id),
-	        m_index(m_index) {}
+	stl_table_entry_accessor(ss_plugin_state_type type_id, int index):
+	        accessor(type_id, nullptr, nullptr, index),
+	        m_index(index) {}
 
 	[[nodiscard]] int index() const { return m_index; }
 
