@@ -86,7 +86,14 @@ public:
 		std::unique_ptr<const accessor> m_ptr;
 	};
 
-	explicit accessor(ss_plugin_state_type type_id): m_type_id(type_id) {}
+	explicit accessor(ss_plugin_state_type type_id,
+	                  reader_fn reader,
+	                  writer_fn writer,
+	                  size_t index):
+	        m_type_id(type_id),
+	        m_reader(reader),
+	        m_writer(writer),
+	        m_index(index) {}
 	virtual ~accessor() = default;
 
 	[[nodiscard]] ss_plugin_state_type type_id() const { return m_type_id; }
@@ -109,8 +116,25 @@ public:
 
 	static ptr null() { return ptr(std::unique_ptr<const accessor>(nullptr)); }
 
+	borrowed_state_data read(const void* obj) const {
+		if(m_reader == nullptr) {
+			throw sinsp_exception("accessor has no reader function");
+		}
+		return m_reader(obj, m_index);
+	}
+
+	void write(void* obj, const borrowed_state_data& in) const {
+		if(m_writer == nullptr) {
+			throw sinsp_exception("accessor has no writer function");
+		}
+		m_writer(obj, m_index, in);
+	}
+
 protected:
 	ss_plugin_state_type m_type_id;
+	reader_fn m_reader;
+	writer_fn m_writer;
+	size_t m_index;
 };
 
 /**
