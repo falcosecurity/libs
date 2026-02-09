@@ -145,7 +145,11 @@ public:
 
 	ptr clone() const { return ptr(std::make_unique<accessor>(*this)); }
 
-	virtual ptr new_accessor() const { return clone(); }
+	template<typename T>
+	typed_ptr<T> into() const {
+		assert_type<T>();
+		return typed_ptr<T>(std::make_unique<accessor>(*this));
+	}
 
 protected:
 	std::shared_ptr<const std::string> m_name;
