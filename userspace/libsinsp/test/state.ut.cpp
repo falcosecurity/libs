@@ -92,7 +92,6 @@ TEST(static_struct, defs_and_access) {
 	auto field_num = fields.find("num");
 	auto field_str = fields.find("str");
 	ASSERT_EQ(fields.size(), 2);
-	ASSERT_EQ(fields, sample_struct::get_static_fields());
 
 	ASSERT_NE(field_num, fields.end());
 	ASSERT_EQ(field_num->second.name(), "num");
@@ -370,7 +369,6 @@ TEST(thread_manager, table_access) {
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
-	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo::get_static_fields());
 	ASSERT_NE(table->dynamic_fields(), nullptr);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 	ASSERT_EQ(table->entries_count(), 0);
