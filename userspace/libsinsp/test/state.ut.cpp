@@ -190,18 +190,18 @@ TEST(dynamic_struct, defs_and_access) {
 	// adding new fields
 	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
 	ASSERT_EQ(fields->fields().size(), 1);
-	ASSERT_EQ(field_num, fields->fields().find("num")->second);
+	ASSERT_EQ(field_num.index(), fields->fields().find("num")->second.index());
 	ASSERT_EQ(field_num.name(), "num");
 	ASSERT_EQ(field_num.type_id(), SS_PLUGIN_ST_UINT64);
-	ASSERT_EQ(field_num, fields->add_field("num", SS_PLUGIN_ST_UINT64));
+	ASSERT_EQ(field_num.index(), fields->add_field("num", SS_PLUGIN_ST_UINT64).index());
 	ASSERT_ANY_THROW(fields->add_field("num", SS_PLUGIN_ST_UINT32));
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	ASSERT_EQ(fields->fields().size(), 2);
-	ASSERT_EQ(field_str, fields->fields().find("str")->second);
+	ASSERT_EQ(field_str.index(), fields->fields().find("str")->second.index());
 	ASSERT_EQ(field_str.name(), "str");
 	ASSERT_EQ(field_str.type_id(), SS_PLUGIN_ST_STRING);
-	ASSERT_EQ(field_str, fields->add_field("str", SS_PLUGIN_ST_STRING));
+	ASSERT_EQ(field_str.index(), fields->add_field("str", SS_PLUGIN_ST_STRING).index());
 	ASSERT_ANY_THROW(fields->add_field("str", SS_PLUGIN_ST_UINT32));
 
 	// check field access
@@ -505,7 +505,7 @@ TEST(thread_manager, fdtable_access) {
 
 	// adding a new dynamic field
 	const auto& dfield = subtable->dynamic_fields()->add_field("str_val", SS_PLUGIN_ST_STRING);
-	ASSERT_EQ(dfield, subtable->dynamic_fields()->fields().find("str_val")->second);
+	ASSERT_EQ(dfield.index(), subtable->dynamic_fields()->fields().find("str_val")->second.index());
 	ASSERT_EQ(dfield.readonly(), false);
 	ASSERT_EQ(dfield.valid(), true);
 	ASSERT_EQ(dfield.index(), 0);
