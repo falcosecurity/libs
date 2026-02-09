@@ -108,14 +108,6 @@ public:
 	        m_reader(reader),
 	        m_writer(writer) {}
 
-	friend inline bool operator==(const dynamic_field_info& a, const dynamic_field_info& b) {
-		return a.type_id() == b.type_id() && a.name() == b.name() && a.m_index == b.m_index;
-	};
-
-	friend inline bool operator!=(const dynamic_field_info& a, const dynamic_field_info& b) {
-		return !(a == b);
-	};
-
 	/**
 	 * @brief Returns true if the field is read only.
 	 */
