@@ -28,84 +28,10 @@ namespace libsinsp {
 namespace state {
 
 /**
- * @brief Info about a given field in a static struct.
- */
-class static_field_info {
-public:
-	friend inline bool operator==(const static_field_info& a, const static_field_info& b) {
-		return a.type_id() == b.type_id() && a.name() == b.name() && a.readonly() == b.readonly();
-	};
-
-	friend inline bool operator!=(const static_field_info& a, const static_field_info& b) {
-		return !(a == b);
-	};
-
-	/**
-	 * @brief Returns true if the field is read only.
-	 */
-	inline bool readonly() const { return m_readonly; }
-
-	/**
-	 * @brief Returns the name of the field.
-	 */
-	inline const std::string& name() const { return m_name; }
-
-	/**
-	 * @brief Returns the type info of the field.
-	 */
-	inline ss_plugin_state_type type_id() const { return m_type_id; }
-
-	/**
-	 * @brief Returns the reader function for this field.
-	 */
-	inline accessor::reader_fn reader() const { return m_reader; }
-
-	/**
-	 * @brief Returns the writer function for this field.
-	 */
-	inline accessor::writer_fn writer() const { return m_writer; }
-
-	/**
-	 * @brief Returns a strongly-typed accessor for the given field,
-	 * that can be used to reading and writing the field's value in
-	 * all instances of structs where it is defined.
-	 */
-	inline accessor::ptr new_accessor() const;
-
-	inline static_field_info(const std::string& n,
-	                         ss_plugin_state_type t,
-	                         bool r,
-	                         accessor::reader_fn reader,
-	                         accessor::writer_fn writer):
-	        m_readonly(r),
-	        m_name(n),
-	        m_type_id(t),
-	        m_reader(reader),
-	        m_writer(writer) {}
-
-private:
-	bool m_readonly;
-	std::string m_name;
-	ss_plugin_state_type m_type_id;
-	accessor::reader_fn m_reader;
-	accessor::writer_fn m_writer;
-};
-
-/**
  * @brief A group of field infos, describing all the ones available
  * in a static struct.
  */
-using static_field_infos = std::unordered_map<std::string, static_field_info>;
-
-/**
- * @brief Returns a strongly-typed accessor for the given field,
- * that can be used to reading and writing the field's value in
- * all instances of structs where it is defined.
- */
-inline accessor::ptr static_field_info::new_accessor() const {
-	return accessor::ptr(
-	        std::make_unique<accessor>(name(), type_id(), reader(), writer(), 0, readonly()));
-}
+using static_field_infos = std::unordered_map<std::string, accessor>;
 
 };  // namespace state
 };  // namespace libsinsp
