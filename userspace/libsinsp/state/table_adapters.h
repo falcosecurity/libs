@@ -50,14 +50,16 @@ public:
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<accessor>(tinfo, read_key, write_key, 0));
+			return accessor::ptr(
+			        std::make_unique<accessor>("first", tinfo, read_key, write_key, 0, false));
 		} else if(strcmp(name, "second") == 0) {
 			auto tinfo = type_id_of<Tsecond>();
 			if(type_id != tinfo) {
 				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<accessor>(tinfo, read_value, write_value, 1));
+			return accessor::ptr(
+			        std::make_unique<accessor>("second", tinfo, read_value, write_value, 1, false));
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
@@ -118,7 +120,8 @@ public:
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<accessor>(tinfo, read_value, write_value, 0));
+			return accessor::ptr(
+			        std::make_unique<accessor>("value", tinfo, read_value, write_value, 0, false));
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
