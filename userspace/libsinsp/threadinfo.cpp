@@ -48,74 +48,36 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
 
 libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	using self = sinsp_threadinfo;
+	using namespace libsinsp::state;
 
-	libsinsp::state::static_field_infos ret;
+	static_field_infos ret;
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
-	DEFINE_STATIC_TYPED_FIELD(ret, self, m_tid, "tid", SS_PLUGIN_ST_INT64);
-	DEFINE_STATIC_FIELD(ret, self, m_pid, "pid");
-	DEFINE_STATIC_FIELD(ret, self, m_ptid, "ptid");
-	DEFINE_STATIC_FIELD(ret, self, m_reaper_tid, "reaper_tid");
-	DEFINE_STATIC_FIELD(ret, self, m_sid, "sid");
-	DEFINE_STATIC_FIELD(ret, self, m_comm, "comm");
-	DEFINE_STATIC_FIELD(ret, self, m_exe, "exe");
-	DEFINE_STATIC_FIELD(ret, self, m_exepath, "exe_path");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_writable, "exe_writable");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
-	libsinsp::state::define_static_field(
-	        ret,
-	        "args",
-	        SS_PLUGIN_ST_TABLE,
-	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
-		        auto c = static_cast<const self*>(in);
-		        return libsinsp::state::borrowed_state_data::
-		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
-		                        &c->m_args_table_adapter);
-	        },
-	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
-		        throw sinsp_exception("attempt to write to read-only static struct field: args");
-	        },
-	        true);
-	libsinsp::state::define_static_field(
-	        ret,
-	        "env",
-	        SS_PLUGIN_ST_TABLE,
-	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
-		        auto c = static_cast<const self*>(in);
-		        return libsinsp::state::borrowed_state_data::
-		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
-		                        &c->m_env_table_adapter);
-	        },
-	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
-		        throw sinsp_exception("attempt to write to read-only static struct field: env");
-	        },
-	        true);
-	libsinsp::state::define_static_field(
-	        ret,
-	        "cgroups",
-	        SS_PLUGIN_ST_TABLE,
-	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
-		        auto c = static_cast<const self*>(in);
-		        return libsinsp::state::borrowed_state_data::
-		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
-		                        &c->m_cgroups_table_adapter);
-	        },
-	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
-		        throw sinsp_exception("attempt to write to read-only static struct field: cgroups");
-	        },
-	        true);
-	DEFINE_STATIC_FIELD(ret, self, m_flags, "flags");
-	DEFINE_STATIC_FIELD(ret, self, m_fdlimit, "fd_limit");
-	DEFINE_STATIC_FIELD(ret, self, m_uid, "uid");
-	DEFINE_STATIC_FIELD(ret, self, m_gid, "gid");
-	DEFINE_STATIC_FIELD(ret, self, m_loginuid, "loginuid");
+	define_static_typed_member_field<int64_t, &self::m_tid>(ret, "tid");
+	define_static_member_field<&self::m_pid>(ret, "pid");
+	define_static_member_field<&self::m_ptid>(ret, "ptid");
+	define_static_member_field<&self::m_reaper_tid>(ret, "reaper_tid");
+	define_static_member_field<&self::m_sid>(ret, "sid");
+	define_static_member_field<&self::m_comm>(ret, "comm");
+	define_static_member_field<&self::m_exe>(ret, "exe");
+	define_static_member_field<&self::m_exepath>(ret, "exe_path");
+	define_static_member_field<&self::m_exe_writable>(ret, "exe_writable");
+	define_static_member_field<&self::m_exe_upper_layer>(ret, "exe_upper_layer");
+	define_static_member_field<&self::m_exe_lower_layer>(ret, "exe_lower_layer");
+	define_static_member_field<&self::m_exe_from_memfd>(ret, "exe_from_memfd");
+	define_subtable_field<&self::m_args_table_adapter>(ret, "args");
+	define_subtable_field<&self::m_env_table_adapter>(ret, "env");
+	define_subtable_field<&self::m_cgroups_table_adapter>(ret, "cgroups");
+	define_static_member_field<&self::m_flags>(ret, "flags");
+	define_static_member_field<&self::m_fdlimit>(ret, "fd_limit");
+	define_static_member_field<&self::m_uid>(ret, "uid");
+	define_static_member_field<&self::m_gid>(ret, "gid");
+	define_static_member_field<&self::m_loginuid>(ret, "loginuid");
 	// m_cap_permitted
 	// m_cap_effective
 	// m_cap_inheritable
-	DEFINE_STATIC_FIELD(ret, self, m_exe_ino, "exe_ino");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_ino_ctime, "exe_ino_ctime");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_ino_mtime, "exe_ino_mtime");
+	define_static_member_field<&self::m_exe_ino>(ret, "exe_ino");
+	define_static_member_field<&self::m_exe_ino_ctime>(ret, "exe_ino_ctime");
+	define_static_member_field<&self::m_exe_ino_mtime>(ret, "exe_ino_mtime");
 	// m_exe_ino_ctime_duration_clone_ts
 	// m_exe_ino_ctime_duration_pidns_start
 	// m_vmsize_kb
@@ -123,19 +85,19 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// m_vmswap_kb
 	// m_pfmajor
 	// m_pfminor
-	DEFINE_STATIC_FIELD(ret, self, m_vtid, "vtid");
-	DEFINE_STATIC_FIELD(ret, self, m_vpid, "vpid");
-	DEFINE_STATIC_FIELD(ret, self, m_vpgid, "vpgid");
-	DEFINE_STATIC_FIELD(ret, self, m_pgid, "pgid");
-	DEFINE_STATIC_FIELD(ret, self, m_pidns_init_start_ts, "pidns_init_start_ts");
-	DEFINE_STATIC_FIELD(ret, self, m_root, "root");
-	DEFINE_STATIC_FIELD(ret, self, m_tty, "tty");
+	define_static_member_field<&self::m_vtid>(ret, "vtid");
+	define_static_member_field<&self::m_vpid>(ret, "vpid");
+	define_static_member_field<&self::m_vpgid>(ret, "vpgid");
+	define_static_member_field<&self::m_pgid>(ret, "pgid");
+	define_static_member_field<&self::m_pidns_init_start_ts>(ret, "pidns_init_start_ts");
+	define_static_member_field<&self::m_root>(ret, "root");
+	define_static_member_field<&self::m_tty>(ret, "tty");
 	// m_category
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
-	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
-	DEFINE_STATIC_FIELD_READONLY(ret, self, m_cwd, "cwd");
+	define_static_readonly_member_field<&self::m_main_fdtable>(ret, "file_descriptors");
+	define_static_member_field<&self::m_cwd>(ret, "cwd");
 	// m_parent_loop_detected
 	return ret;
 }

@@ -133,6 +133,13 @@ inline void borrowed_state_data::borrow_from<SS_PLUGIN_ST_TABLE>(base_table cons
 }
 
 template<>
+void borrowed_state_data::copy_to<SS_PLUGIN_ST_TABLE, base_table*>(base_table*& out) const = delete;
+
+template<>
+void borrowed_state_data::copy_to<SS_PLUGIN_ST_TABLE, const base_table*>(
+        base_table const*& out) const = delete;
+
+template<>
 inline void borrowed_state_data::borrow_to<SS_PLUGIN_ST_STRING, std::string>(
         std::string& out) const {
 	if(m_data.str == nullptr) {
