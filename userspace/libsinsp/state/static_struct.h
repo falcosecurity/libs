@@ -32,69 +32,159 @@ namespace state {
  */
 using static_field_infos = std::unordered_map<std::string, accessor>;
 
+template<typename>
+struct member_class;
+
+template<typename C, typename T>
+struct member_class<T C::*> {
+	using type = C;
+};
+
+template<typename>
+struct fn_container;
+
+template<typename Ret, typename C, typename... Args>
+struct fn_container<Ret (*)(const C*, Args...)> {
+	using type = C;
+};
+
+template<typename Ret, typename C, typename... Args>
+struct fn_container<Ret (*)(C*, Args...)> {
+	using type = C;
+};
+
+template<ss_plugin_state_type StateType, auto Fn>
+borrowed_state_data read_fn(const void* obj, size_t) {
+	using FnType = decltype(Fn);
+	using Container = typename fn_container<FnType>::type;
+
+	auto* c = static_cast<const Container*>(obj);
+	auto&& value = Fn(c);
+
+	using decayed_t = std::decay_t<decltype(value)>;
+	return borrowed_state_data::from<StateType, decayed_t>(value);
+}
+
+template<typename Base, auto... Members>
+struct nested_member;
+
+template<typename Base, auto Member>
+struct nested_member<Base, Member> {
+	using container_type = typename member_class<decltype(Member)>::type;
+	using leaf_type = std::decay_t<decltype(std::declval<container_type>().*Member)>;
+
+	static decltype(auto) get(const Base* obj) { return obj->*Member; }
+	static decltype(auto) get(Base* obj) { return obj->*Member; }
+};
+
+template<typename Base, auto First, auto Second, auto... Rest>
+struct nested_member<Base, First, Second, Rest...> {
+	using first_container = typename member_class<decltype(First)>::type;
+	using leaf_type = typename nested_member<first_container, Second, Rest...>::leaf_type;
+
+	static decltype(auto) get(const Base* obj) {
+		static_assert(std::is_same<Base, first_container>::value,
+		              "nested_member chain: first member does not belong to Base");
+
+		const auto& sub = obj->*First;
+		using sub_t = std::decay_t<decltype(sub)>;
+		return nested_member<sub_t, Second, Rest...>::get(&sub);
+	}
+
+	static decltype(auto) get(Base* obj) {
+		static_assert(std::is_same<Base, first_container>::value,
+		              "nested_member chain: first member does not belong to Base");
+
+		auto& sub = obj->*First;
+		using sub_t = std::decay_t<decltype(sub)>;
+		return nested_member<sub_t, Second, Rest...>::get(&sub);
+	}
+};
+
+template<ss_plugin_state_type StateType, auto... Members>
+borrowed_state_data read_field_typed(const void* obj, size_t) {
+	static_assert(sizeof...(Members) >= 1,
+	              "read_field_nested requires at least one member pointer");
+
+	// The container is the class type of the first pointer-to-member in the chain.
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<const Container*>(obj);
+
+	// Reach the final leaf (may be a reference).
+	decltype(auto) value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+
+	if constexpr(StateType == SS_PLUGIN_ST_TABLE && std::is_base_of_v<base_table, decayed_t>) {
+		auto* tbl = const_cast<base_table*>(static_cast<const base_table*>(&value));
+		return borrowed_state_data::from<SS_PLUGIN_ST_TABLE, base_table*>(tbl);
+	}
+
+	return borrowed_state_data::from<StateType, decayed_t>(value);
+}
+
+template<auto... Members>
+borrowed_state_data read_field(const void* obj, size_t) {
+	static_assert(sizeof...(Members) >= 1,
+	              "read_field_nested requires at least one member pointer");
+
+	// The container is the class type of the first pointer-to-member in the chain.
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<const Container*>(obj);
+
+	// Reach the final leaf (may be a reference).
+	decltype(auto) value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+	constexpr ss_plugin_state_type type_id = type_id_of<decayed_t>();
+
+	return borrowed_state_data::from<type_id, decayed_t>(value);
+}
+
+template<auto Fn>
+void write_fn(void* obj, size_t, const borrowed_state_data& in_data) {
+	using FnType = decltype(Fn);
+	using Container = typename fn_container<FnType>::type;
+
+	auto* c = static_cast<Container*>(obj);
+	Fn(c, in_data);
+}
+
+template<typename StateType, auto... Members>
+void write_field_typed(void* obj, size_t, const borrowed_state_data& in) {
+	static_assert(sizeof...(Members) >= 1, "write_field requires at least one member pointer");
+
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<Container*>(obj);
+
+	auto& value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+	in.copy_to<type_id_of<StateType>(), decayed_t>(value);
+}
+
+template<auto... Members>
+void write_field(void* obj, size_t, const borrowed_state_data& in) {
+	static_assert(sizeof...(Members) >= 1, "write_field requires at least one member pointer");
+
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<Container*>(obj);
+
+	decltype(auto) value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+	constexpr ss_plugin_state_type type_id = type_id_of<decayed_t>();
+
+	in.copy_to<type_id, decayed_t>(value);
+}
+
+static inline void reject_write(void*, size_t, const borrowed_state_data&) {
+	throw sinsp_exception("attempt to write to read-only field");
+}
+
 };  // namespace state
 };  // namespace libsinsp
-
-#define READER_LAMBDA(container_type, container_field, state_type)                       \
-	[](const void* in, size_t) -> libsinsp::state::borrowed_state_data {                 \
-		auto* c = static_cast<const container_type*>(in);                                \
-		return libsinsp::state::borrowed_state_data::from<state_type,                    \
-		                                                  decltype(c->container_field)>( \
-		        c->container_field);                                                     \
-	}
-
-#define WRITER_LAMBDA(container_type, container_field, field_type)                     \
-	[](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {        \
-		auto* c = static_cast<container_type*>(in);                                    \
-		in_data.copy_to<field_type, decltype(c->container_field)>(c->container_field); \
-	}
-
-#define READONLY_WRITER_LAMBDA(name)                                                  \
-	[](void*, size_t, const libsinsp::state::borrowed_state_data&) {                  \
-		throw sinsp_exception("attempt to write to read-only static struct field: " + \
-		                      std::string(name));                                     \
-	}
-
-// DEFINE_STATIC_FIELD macro is a wrapper around static_struct::define_static_field helping to
-// extract the field type.
-#define DEFINE_STATIC_TYPED_FIELD(field_infos, container_type, container_field, name, state_type) \
-	libsinsp::state::define_static_field(                                                         \
-	        field_infos,                                                                          \
-	        name,                                                                                 \
-	        state_type,                                                                           \
-	        READER_LAMBDA(container_type, container_field, state_type),                           \
-	        WRITER_LAMBDA(container_type, container_field, state_type));
-
-#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name) \
-	DEFINE_STATIC_TYPED_FIELD(                                                  \
-	        field_infos,                                                        \
-	        container_type,                                                     \
-	        container_field,                                                    \
-	        name,                                                               \
-	        libsinsp::state::type_id_of<                                        \
-	                decltype(static_cast<container_type*>(0)->container_field)>());
-
-#define DEFINE_STATIC_TYPED_FIELD_READONLY(field_infos,                 \
-                                           container_type,              \
-                                           container_field,             \
-                                           name,                        \
-                                           state_type)                  \
-	libsinsp::state::define_static_field(                               \
-	        field_infos,                                                \
-	        name,                                                       \
-	        state_type,                                                 \
-	        READER_LAMBDA(container_type, container_field, state_type), \
-	        READONLY_WRITER_LAMBDA(name),                               \
-	        true);
-
-// DEFINE_STATIC_FIELD_READONLY macro is a wrapper around static_struct::define_static_field helping
-// to extract the field type and field offset. The defined field is set to guarantee read-only
-// access.
-#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name) \
-	DEFINE_STATIC_TYPED_FIELD_READONLY(                                                  \
-	        field_infos,                                                                 \
-	        container_type,                                                              \
-	        container_field,                                                             \
-	        name,                                                                        \
-	        libsinsp::state::type_id_of<                                                 \
-	                decltype(static_cast<container_type*>(0)->container_field)>());

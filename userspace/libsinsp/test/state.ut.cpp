@@ -35,9 +35,11 @@ TEST(static_struct, defs_and_access) {
 #endif
 		static libsinsp::state::static_field_infos
 		get_static_fields() {
-			libsinsp::state::static_field_infos ret;
-			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
-			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
+			using namespace libsinsp::state;
+			static_field_infos ret;
+
+			define_static_member_field<&err_multidef_struct::m_num>(ret, "num");
+			define_static_member_field<&err_multidef_struct::m_num>(ret, "num");
 			return ret;
 		}
 
@@ -51,9 +53,11 @@ TEST(static_struct, defs_and_access) {
 #endif
 		static libsinsp::state::static_field_infos
 		get_static_fields() {
-			libsinsp::state::static_field_infos ret;
-			DEFINE_STATIC_FIELD(ret, sample_struct, m_num, "num");
-			DEFINE_STATIC_FIELD_READONLY(ret, sample_struct, m_str, "str");
+			using namespace libsinsp::state;
+			static_field_infos ret;
+
+			define_static_member_field<&sample_struct::m_num>(ret, "num");
+			define_static_readonly_member_field<&sample_struct::m_str>(ret, "str");
 			return ret;
 		}
 
@@ -75,7 +79,7 @@ TEST(static_struct, defs_and_access) {
 		static libsinsp::state::static_field_infos
 		get_static_fields() {
 			libsinsp::state::static_field_infos ret;
-			DEFINE_STATIC_FIELD(ret, sample_struct2, m_num, "num");
+			libsinsp::state::define_static_member_field<&sample_struct2::m_num>(ret, "num");
 			return ret;
 		}
 

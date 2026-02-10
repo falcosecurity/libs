@@ -168,4 +168,80 @@ static inline const accessor& define_static_field(static_field_infos& fields,
 	return fields.at(name);
 }
 
+template<auto... Members>
+static inline const accessor& define_static_member_field(static_field_infos& fields,
+                                                         const std::string& name) {
+	static_assert(sizeof...(Members) >= 1,
+	              "define_static_member_field requires at least one member pointer");
+
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+	using decayed_t = typename nested_member<Container, Members...>::leaf_type;
+
+	return define_static_field(fields,
+	                           name,
+	                           type_id_of<decayed_t>(),
+	                           &read_field<Members...>,
+	                           &write_field<Members...>,
+	                           false);
+}
+
+template<auto... Members>
+static inline const accessor& define_static_readonly_member_field(static_field_infos& fields,
+                                                                  const std::string& name) {
+	static_assert(sizeof...(Members) >= 1,
+	              "define_static_member_field requires at least one member pointer");
+
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+	using decayed_t = typename nested_member<Container, Members...>::leaf_type;
+
+	return define_static_field(fields,
+	                           name,
+	                           type_id_of<decayed_t>(),
+	                           &read_field<Members...>,
+	                           &reject_write,
+	                           true);
+}
+
+template<typename StateType, auto... Members>
+static inline const accessor& define_static_typed_member_field(static_field_infos& fields,
+                                                               const std::string& name,
+                                                               bool readonly = false) {
+	static_assert(sizeof...(Members) >= 1,
+	              "define_static_member_field requires at least one member pointer");
+
+	return define_static_field(fields,
+	                           name,
+	                           type_id_of<StateType>(),
+	                           &read_field_typed<type_id_of<StateType>(), Members...>,
+	                           &write_field_typed<StateType, Members...>,
+	                           readonly);
+}
+
+template<typename Handler>
+static inline const accessor& define_custom_static_field(static_field_infos& fields,
+                                                         const std::string& name,
+                                                         bool readonly = false) {
+	return define_static_field(fields,
+	                           name,
+	                           Handler::type_id(),
+	                           &read_fn<Handler::type_id(), Handler::read>,
+	                           &write_fn<Handler::write>,
+	                           readonly);
+}
+
+template<auto... Members>
+static inline const accessor& define_subtable_field(static_field_infos& fields,
+                                                    const std::string& name) {
+	static_assert(sizeof...(Members) >= 1,
+	              "define_static_member_field requires at least one member pointer");
+
+	return define_static_field(fields,
+	                           name,
+	                           SS_PLUGIN_ST_TABLE,
+	                           &read_field_typed<SS_PLUGIN_ST_TABLE, Members...>,
+	                           &reject_write,
+	                           true);
+}
 }  // namespace libsinsp::state
