@@ -35,7 +35,10 @@ limitations under the License.
 #include <thread>
 #include <json/json.h>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <Windows.h>
+#include <shellapi.h>
+#else
 extern "C" {
 #include <sys/syscall.h>
 #include <sys/stat.h>
@@ -688,6 +691,21 @@ static void print_perftest_table_data(const uint64_t num_events_diff,
 	          << std::setw(14) << curr_vm_rss_in_mebibytes << '\r' << std::flush;
 }
 
+#ifdef _WIN32
+char* utf16_to_utf8(const LPWSTR utf16_str) {
+	int utf8_str_len = WideCharToMultiByte(CP_UTF8, 0, utf16_str, -1, NULL, 0, NULL, NULL);
+	if(utf8_str_len <= 0) {
+		return NULL;
+	}
+	char* utf8_str = (char*)malloc(utf8_str_len * sizeof(char));
+	if(WideCharToMultiByte(CP_UTF8, 0, utf16_str, -1, utf8_str, utf8_str_len, NULL, NULL) <= 0) {
+		free(utf8_str);
+		return NULL;
+	}
+	return utf8_str;
+}
+#endif
+
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -695,6 +713,24 @@ static void print_perftest_table_data(const uint64_t num_events_diff,
 //   or evt.type=vfork)"
 //
 int main(int argc, char** argv) {
+#ifdef _WIN32
+	// main+argv uses the system encoding, which may not be able to handle all
+	// filesystem paths. Fetch the wide command line arguments and convert them
+	// to UTF-8.
+	int wide_argc;
+	LPWSTR* wide_argv = CommandLineToArgvW(GetCommandLineW(), &wide_argc);
+
+	if(wide_argv && wide_argc == argc) {
+		char** new_argv = (char**)malloc((argc + 1) * sizeof(char*));
+		for(int idx = 0; idx < argc; idx++) {
+			new_argv[idx] = utf16_to_utf8(wide_argv[idx]);
+		}
+		new_argv[argc] = NULL;
+		argv = new_argv;
+	}
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+
 	sinsp inspector;
 
 	filter_list.reset(new sinsp_filter_check_list());
