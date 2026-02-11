@@ -35,7 +35,6 @@ if(NOT HAVE_LIBSINSP)
 	include(jsoncpp)
 	include(valijson)
 	include(re2)
-	include(cxxopts)
 
 	if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
 		include(bs_threadpool)

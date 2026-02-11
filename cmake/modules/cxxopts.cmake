@@ -35,8 +35,9 @@ elseif(NOT USE_BUNDLED_CXXOPTS)
 		endif()
 	endif()
 else()
-	set(CXXOPTS_SRC "${PROJECT_BINARY_DIR}/cxxopts-prefix/src/cxxopts/")
+	set(CXXOPTS_SRC "${CMAKE_CURRENT_BINARY_DIR}/cxxopts-prefix/src/cxxopts/")
 	set(CXXOPTS_INCLUDE_DIR "${CXXOPTS_SRC}/include")
+	file(MAKE_DIRECTORY "${CXXOPTS_INCLUDE_DIR}") # needed to make target_include_directories() work
 
 	message(STATUS "Using bundled cxxopts in ${CXXOPTS_SRC}")
 

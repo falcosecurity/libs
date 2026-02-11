@@ -24,6 +24,7 @@ endif()
 
 add_executable(sinsp-example ${sources})
 
+add_dependencies(sinsp-example cxxopts)
 target_include_directories(sinsp-example PRIVATE "${CXXOPTS_INCLUDE_DIR}")
 target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}")
 
