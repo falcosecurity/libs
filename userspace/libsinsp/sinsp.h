@@ -734,6 +734,8 @@ public:
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
 	// The created sinsp_plugin is returned.
+	// filepath must be encoded as UTF-8 on Windows.
+
 	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath);
 
 	// Create and register a plugin given a custom API vtable.

@@ -19,7 +19,9 @@ include(jsoncpp)
 set(sources util.cpp platform.cpp test.cpp)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	set(sources ${sources} perftest.cpp)
+	list(APPEND sources perftest.cpp)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+	list(APPEND sources sinsp-example.manifest)
 endif()
 
 add_executable(sinsp-example ${sources})
