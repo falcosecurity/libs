@@ -14,6 +14,7 @@
 */
 
 #include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
+#include "driver/ppm_events_public.h"
 
 sinsp_filter_multivalue_transformer::sinsp_filter_multivalue_transformer(
         value_type_info result,
@@ -82,6 +83,15 @@ multivalue_transformer_filter_check::multivalue_transformer_filter_check(
 	m_field = multivalue_transformer_check_fields;
 	m_info = &s_field_infos;
 	m_field_id = 0;
+
+	if(m_transformer && m_transformer->result_type().is_list) {
+		m_transformed_field = std::make_unique<filtercheck_field_info>();
+		m_transformed_field->m_flags = EPF_IS_LIST | EPF_ARG_ALLOWED;
+		m_transformed_field->m_type = PT_CHARBUF;
+		m_transformed_field->m_name = "INTERNAL";
+		m_transformed_field->m_description = "NA";
+		m_transformed_field->m_display = "NA";
+	}
 }
 
 multivalue_transformer_filter_check::~multivalue_transformer_filter_check() = default;
@@ -225,6 +235,154 @@ bool sinsp_filter_multivalue_transformer_concat::extract(sinsp_evt* evt,
 
 sinsp_filter_multivalue_transformer_concat::~sinsp_filter_multivalue_transformer_concat() = default;
 
+// getopt
+
+sinsp_filter_multivalue_transformer_getopt::sinsp_filter_multivalue_transformer_getopt(
+        std::vector<std::unique_ptr<sinsp_filter_check>> args):
+        sinsp_filter_multivalue_transformer({PT_CHARBUF, true}, std::move(args)) {
+	// Validate using argument_types()
+	const auto& arg_types = argument_types();
+
+	// getopt requires exactly 2 arguments
+	if(arg_types.size() != 2) {
+		throw sinsp_exception("getopt() requires exactly 2 arguments: args list and optstring");
+	}
+
+	// First argument (args) must be a list
+	if(!arg_types[0].is_list) {
+		throw sinsp_exception("getopt() first argument must be a list");
+	}
+
+	// Second argument (optstring) must not be a list
+	if(arg_types[1].is_list) {
+		throw sinsp_exception("getopt() second argument (optstring) must be a single value");
+	}
+
+	// Both arguments must be strings
+	if(arg_types[0].type != PT_CHARBUF || arg_types[1].type != PT_CHARBUF) {
+		throw sinsp_exception("getopt() arguments must be strings");
+	}
+}
+
+std::string sinsp_filter_multivalue_transformer_getopt::name() const {
+	return "getopt";
+}
+
+bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
+                                                         std::vector<extract_value_t>& values,
+                                                         bool sanitize_strings) {
+	// Extract the optstring (second argument)
+	values.clear();
+	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings)) {
+		return false;
+	}
+	// Copy optstring to avoid pointer invalidation when values is cleared
+	std::string optstring((char*)values[0].ptr, values[0].len);
+
+	// Build a lookup table for which options require arguments
+	bool opts_with_args[256] = {};
+	for(size_t i = 0; i < optstring.size(); i++) {
+		unsigned char opt = static_cast<unsigned char>(optstring[i]);
+		if(i + 1 < optstring.size() && optstring[i + 1] == ':') {
+			opts_with_args[opt] = true;
+			i++;  // Skip the ':'
+		}
+	}
+
+	// Extract the arguments list (first argument)
+	values.clear();
+	if(!m_arguments.at(0)->extract(evt, values, sanitize_strings)) {
+		return false;
+	}
+
+	// Parse the arguments following POSIX getopt conventions
+	m_result_storage.clear();
+	m_storage.clear();
+
+	for(size_t arg_idx = 0; arg_idx < values.size(); arg_idx++) {
+		const char* arg_ptr = (char*)values[arg_idx].ptr;
+		size_t arg_len = values[arg_idx].len;
+
+		// Stop processing at "--"
+		if(arg_len == 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
+			break;
+		}
+
+		// Skip non-option arguments (doesn't start with - or is just -)
+		// Continue processing to support GNU extension (options after non-options)
+		if(arg_len == 0 || arg_ptr[0] != '-' || arg_len == 1) {
+			continue;
+		}
+
+		// Process each character after the '-'
+		for(size_t i = 1; i < arg_len; i++) {
+			unsigned char opt = static_cast<unsigned char>(arg_ptr[i]);
+
+			// Check if this option is alphanumeric
+			if(!std::isalnum(opt)) {
+				continue;
+			}
+
+			// Check if this option is in the optstring
+			bool found = false;
+			for(size_t j = 0; j < optstring.size(); j++) {
+				if(optstring[j] == static_cast<char>(opt) && optstring[j] != ':') {
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				continue;
+			}
+
+			// Add the option character to result
+			// Use emplace_back to construct in-place and avoid extra allocation
+			m_result_storage.emplace_back(1, static_cast<char>(opt));
+
+			// Check if this option requires an argument
+			if(opts_with_args[opt]) {
+				// Option value can be:
+				// 1. Remainder of current argument (e.g., -ofoo same as -o foo)
+				// 2. Next argument (e.g., -o foo)
+				if(i + 1 < arg_len) {
+					// Value is remainder of current argument
+					m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
+					break;  // Done with this argument
+				} else if(arg_idx + 1 < values.size()) {
+					// Value is next argument
+					arg_idx++;
+					m_result_storage.emplace_back((char*)values[arg_idx].ptr, values[arg_idx].len);
+					break;  // Done with this argument
+				} else {
+					// No value available, use empty string
+					m_result_storage.emplace_back();
+				}
+			}
+		}
+	}
+
+	// Convert result storage to extract_value_t format
+	values.clear();
+	values.reserve(m_result_storage.size());
+	// Calculate exact space needed and reserve to prevent reallocation (would invalidate pointers)
+	size_t total_size = 0;
+	for(const auto& str : m_result_storage) {
+		total_size += str.size() + 1;  // +1 for null terminator
+	}
+	m_storage.reserve(total_size);
+
+	for(const auto& str : m_result_storage) {
+		size_t offset = m_storage.size();
+		m_storage.insert(m_storage.end(), str.begin(), str.end());
+		m_storage.push_back('\0');
+		values.emplace_back(extract_value_t{&m_storage[offset], static_cast<uint32_t>(str.size())});
+	}
+
+	return true;
+}
+
+sinsp_filter_multivalue_transformer_getopt::~sinsp_filter_multivalue_transformer_getopt() = default;
+
 std::unique_ptr<sinsp_filter_check> sinsp_filter_multivalue_transformer::create_transformer(
         const std::string& name,
         std::vector<std::unique_ptr<sinsp_filter_check>> args) {
@@ -234,6 +392,9 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_multivalue_transformer::create_
 	} else if(name == "concat") {
 		return std::make_unique<multivalue_transformer_filter_check>(
 		        std::make_unique<sinsp_filter_multivalue_transformer_concat>(std::move(args)));
+	} else if(name == "getopt") {
+		return std::make_unique<multivalue_transformer_filter_check>(
+		        std::make_unique<sinsp_filter_multivalue_transformer_getopt>(std::move(args)));
 	} else {
 		throw std::runtime_error("unknown multivalue transformer");
 	}
