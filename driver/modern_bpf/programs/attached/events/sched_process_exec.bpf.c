@@ -132,8 +132,7 @@ int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_bi
 	auxmap__store_empty_param(auxmap);
 
 	/* Parameter 8: fdlimit (type: PT_UINT64) */
-	unsigned long fdlimit = 0;
-	extract__fdlimit(task, &fdlimit);
+	unsigned long fdlimit = extract__fdlimit(task);
 	auxmap__store_u64_param(auxmap, fdlimit);
 
 	/* Parameter 9: pgft_maj (type: PT_UINT64) */

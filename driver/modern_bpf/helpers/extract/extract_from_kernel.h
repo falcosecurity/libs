@@ -345,10 +345,10 @@ static __always_inline uint32_t extract__fmode_created_from_fd(int32_t fd) {
  * @brief Extract the fd rlimit
  *
  * @param task pointer to the task struct.
- * @param fdlimit return value passed by reference.
+ * @return the fd rlimit.
  */
-static __always_inline void extract__fdlimit(struct task_struct *task, unsigned long *fdlimit) {
-	READ_TASK_FIELD_INTO(fdlimit, task, signal, rlim[RLIMIT_NOFILE].rlim_cur);
+static __always_inline unsigned long extract__fdlimit(struct task_struct *task) {
+	return READ_TASK_FIELD(task, signal, rlim[RLIMIT_NOFILE].rlim_cur);
 }
 
 /////////////////////////

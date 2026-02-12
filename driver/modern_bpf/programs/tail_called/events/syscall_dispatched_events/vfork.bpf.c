@@ -89,8 +89,7 @@ int BPF_PROG(vfork_x, struct pt_regs *regs, long ret) {
 	auxmap__store_empty_param(auxmap);
 
 	/* Parameter 8: fdlimit (type: PT_UINT64) */
-	unsigned long fdlimit = 0;
-	extract__fdlimit(task, &fdlimit);
+	unsigned long fdlimit = extract__fdlimit(task);
 	auxmap__store_u64_param(auxmap, fdlimit);
 
 	/* Parameter 9: pgft_maj (type: PT_UINT64) */
