@@ -503,6 +503,14 @@ static __always_inline pid_t extract__task_xid_nr(struct task_struct *task, enum
 	case PIDTYPE_PGID:
 		return READ_TASK_FIELD(task, real_parent, pid);
 
+	case PIDTYPE_SID: {
+		struct pid *pid_struct = extract__task_pid_struct(task, type);
+		if(!pid_struct) {
+			return (pid_t)0;
+		}
+		return (pid_t)BPF_CORE_READ(pid_struct, numbers[0].nr);
+	}
+
 	default:
 		return 0;
 	}
