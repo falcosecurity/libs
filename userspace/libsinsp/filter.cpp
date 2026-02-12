@@ -29,6 +29,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <iomanip>
+#include <json/json.h>
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
@@ -854,10 +855,19 @@ sinsp_filter_factory::check_infos_to_fieldclass_infos(
 				info.tags.insert("EPF_NO_TRANSFORMER");
 			}
 
-			if(fld->m_flags & EPF_ARG_REQUIRED) {
-				info.tags.insert("ARG_REQUIRED");
-			} else if(fld->m_flags & EPF_ARG_ALLOWED) {
-				info.tags.insert("ARG_ALLOWED");
+			if(fld->m_flags & (EPF_ARG_REQUIRED | EPF_ARG_ALLOWED)) {
+				if(fld->m_flags & EPF_ARG_REQUIRED) {
+					info.tags.insert("ARG_REQUIRED");
+				} else if(fld->m_flags & EPF_ARG_ALLOWED) {
+					info.tags.insert("ARG_ALLOWED");
+				}
+				// A LIST can support both index and key
+				if(fld->m_flags & EPF_ARG_INDEX) {
+					info.tags.insert("ARG_INDEX");
+				}
+				if(fld->m_flags & EPF_ARG_KEY) {
+					info.tags.insert("ARG_KEY");
+				}
 			}
 
 			if(fld->m_flags & EPF_IS_LIST) {
@@ -885,6 +895,29 @@ bool sinsp_filter_factory::filter_field_info::is_deprecated() const {
 
 bool sinsp_filter_factory::filter_field_info::is_list() const {
 	return (tags.find("EPF_IS_LIST") != tags.end());
+}
+
+sinsp_filter_factory::field_argument_type
+sinsp_filter_factory::filter_field_info::get_argument_type() const {
+	uint8_t retval = ARG_TYPE_NONE;
+	if(tags.find("ARG_KEY") != tags.end()) {
+		retval |= ARG_TYPE_KEY;
+	}
+	if(tags.find("ARG_INDEX") != tags.end()) {
+		retval |= ARG_TYPE_INDEX;
+	}
+	return static_cast<sinsp_filter_factory::field_argument_type>(retval);
+}
+
+sinsp_filter_factory::field_argument_requirement
+sinsp_filter_factory::filter_field_info::is_expecting_arg() const {
+	if(tags.find("ARG_REQUIRED") != tags.end()) {
+		return ARG_REQ_REQUIRED;
+	}
+	if(tags.find("ARG_ALLOWED") != tags.end()) {
+		return ARG_REQ_ALLOWED;
+	}
+	return ARG_REQ_NONE;
 }
 
 uint32_t sinsp_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
@@ -961,6 +994,81 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_markdown(
 	}
 
 	return os.str();
+}
+
+std::string sinsp_filter_factory::filter_fieldclass_info::as_json(
+        const std::set<std::string>& event_sources,
+        bool include_deprecated) {
+	Json::Value root;
+	uint32_t deprecated_count = 0;
+
+	root["name"] = name;
+
+	if(!desc.empty()) {
+		root["desc"] = desc;
+	}
+
+	if(!event_sources.empty()) {
+		Json::Value sources(Json::arrayValue);
+		for(const auto& src : event_sources) {
+			sources.append(src);
+		}
+		root["event_sources"] = sources;
+	}
+
+	Json::Value fields_array(Json::arrayValue);
+	for(auto& fld_info : fields) {
+		// Skip fields that should not be included
+		// (e.g. hidden fields)
+		if(fld_info.is_skippable()) {
+			continue;
+		}
+		if(!include_deprecated && fld_info.is_deprecated()) {
+			deprecated_count++;
+			continue;
+		}
+
+		Json::Value field;
+		field["name"] = fld_info.name;
+		field["type"] = fld_info.data_type;
+		field["desc"] = fld_info.desc;
+		field["is_list"] = fld_info.is_list();
+
+		if(include_deprecated) {
+			field["is_deprecated"] = fld_info.is_deprecated();
+		}
+
+		if(fld_info.is_expecting_arg() != ARG_REQ_NONE) {
+			Json::Value argument;
+			argument["required"] = (fld_info.is_expecting_arg() == ARG_REQ_REQUIRED);
+
+			Json::Value type_array(Json::arrayValue);
+			auto arg_type = fld_info.get_argument_type();
+			if(arg_type & ARG_TYPE_INDEX) {
+				type_array.append("INDEX");
+			}
+			if(arg_type & ARG_TYPE_KEY) {
+				type_array.append("KEY");
+			}
+			argument["type"] = type_array;
+
+			field["argument"] = argument;
+		} else {
+			field["argument"] = Json::nullValue;
+		}
+
+		fields_array.append(field);
+	}
+
+	if(deprecated_count == fields.size()) {
+		return "";
+	}
+
+	root["fields"] = fields_array;
+
+	Json::StreamWriterBuilder builder;
+	builder["indentation"] = "  ";
+	return Json::writeString(builder, root);
 }
 
 std::string sinsp_filter_factory::filter_fieldclass_info::as_string(

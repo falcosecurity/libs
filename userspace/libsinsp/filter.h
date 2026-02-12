@@ -92,6 +92,20 @@ private:
 
 class sinsp_filter_factory {
 public:
+	// Enum describing the type of argument a field accepts
+	enum field_argument_type : uint8_t {
+		ARG_TYPE_NONE = 0,   // No argument
+		ARG_TYPE_INDEX = 1,  // Field accepts index argument (ARG_INDEX)
+		ARG_TYPE_KEY = 2,    // Field accepts key argument (ARG_KEY)
+	};
+
+	// Enum describing if the field supports an argument and if it's required or not
+	enum field_argument_requirement : uint8_t {
+		ARG_REQ_NONE = 0,      // No argument
+		ARG_REQ_ALLOWED = 1,   // Field allows an argument (ARG_ALLOWED)
+		ARG_REQ_REQUIRED = 2,  // Field requires an argument (ARG_REQUIRED)
+	};
+
 	// A struct describing a single filtercheck field ("ka.user")
 	struct filter_field_info {
 		// The name of the field
@@ -113,6 +127,8 @@ public:
 		bool is_skippable() const;
 		bool is_deprecated() const;
 		bool is_list() const;
+		field_argument_type get_argument_type() const;
+		field_argument_requirement is_expecting_arg() const;
 	};
 
 	// Describes a group of filtercheck fields ("ka")
@@ -142,6 +158,10 @@ public:
 		std::string as_markdown(
 		        const std::set<std::string>& event_sources = std::set<std::string>(),
 		        bool include_deprecated = false);
+
+		// Print a JSON representation of this field class.
+		std::string as_json(const std::set<std::string>& event_sources = std::set<std::string>(),
+		                    bool include_deprecated = false);
 
 		// How far to right-justify the name/description/etc block.
 		static uint32_t s_rightblock_start;
