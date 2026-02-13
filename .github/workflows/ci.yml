@@ -255,6 +255,11 @@ jobs:
       - name: Install cmake 🌊
         uses: ./.github/actions/install-cmake
 
+      - name: Install bpftool 🐝
+        uses: ./.github/actions/install-bpftool
+        with:
+          arch: 'amd64'
+
       - name: Build sinsp-example
         run: |
           cmake -B build -S . \
