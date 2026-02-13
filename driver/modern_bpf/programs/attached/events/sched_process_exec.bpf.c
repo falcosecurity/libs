@@ -202,9 +202,8 @@ int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux
 	auxmap__store_s64_param(auxmap, (int64_t)vpgid);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
-	uint32_t loginuid;
-	extract__loginuid(task, &loginuid);
-	auxmap__store_u32_param(auxmap, (uint32_t)loginuid);
+	uint32_t loginuid = extract__loginuid(task);
+	auxmap__store_u32_param(auxmap, loginuid);
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
 	uint32_t flags = 0;

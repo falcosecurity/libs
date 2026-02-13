@@ -722,21 +722,23 @@ static __always_inline uint32_t exctract__tty(struct task_struct *task) {
 /**
  * @brief Extract loginuid
  *
- * @param task pointer to task struct
- * @param loginuid return value by reference
+ * @param task pointer to task struct.
+ * @return the loginuid.
  */
-static __always_inline void extract__loginuid(struct task_struct *task, uint32_t *loginuid) {
-	*loginuid = UINT32_MAX;
+static __always_inline uint32_t extract__loginuid(struct task_struct *task) {
+	uint32_t loginuid = UINT32_MAX;
 
 	if(bpf_core_field_exists(task->loginuid)) {
-		READ_TASK_FIELD_INTO(loginuid, task, loginuid.val);
+		READ_TASK_FIELD_INTO(&loginuid, task, loginuid.val);
 	} else {
 		struct task_struct___cos *task_cos = (void *)task;
 
 		if(bpf_core_field_exists(struct task_struct___cos, audit)) {
-			BPF_CORE_READ_INTO(loginuid, task_cos, audit, loginuid.val);
+			BPF_CORE_READ_INTO(&loginuid, task_cos, audit, loginuid.val);
 		}
 	}
+
+	return loginuid;
 }
 
 /////////////////////////

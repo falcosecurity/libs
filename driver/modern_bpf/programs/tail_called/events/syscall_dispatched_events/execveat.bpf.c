@@ -170,9 +170,8 @@ int BPF_PROG(t1_execveat_x, struct pt_regs *regs, long ret) {
 	auxmap__store_s64_param(auxmap, (int64_t)pgid);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
-	uint32_t loginuid;
-	extract__loginuid(task, &loginuid);
-	auxmap__store_u32_param(auxmap, (uint32_t)loginuid);
+	uint32_t loginuid = extract__loginuid(task);
+	auxmap__store_u32_param(auxmap, loginuid);
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
 	uint32_t flags = 0;
