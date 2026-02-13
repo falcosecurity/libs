@@ -295,10 +295,10 @@ static __always_inline struct file *extract__exe_file_from_task(struct task_stru
 /**
  * @brief Return the `i_ino` from `f_inode`.
  *
- * @param ino pointer to the inode number we have to fill.
+ * @return the inode number.
  */
-static __always_inline void extract__ino_from_inode(struct inode *f_inode, uint64_t *ino) {
-	BPF_CORE_READ_INTO(ino, f_inode, i_ino);
+static __always_inline uint64_t extract__ino_from_inode(struct inode *f_inode) {
+	return BPF_CORE_READ(f_inode, i_ino);
 }
 
 /**
