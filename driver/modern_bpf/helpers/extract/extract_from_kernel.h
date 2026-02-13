@@ -682,7 +682,7 @@ static __always_inline unsigned long extract__vm_swap(struct mm_struct *mm) {
  * @param task pointer to task_struct.
  * @return encoded tty number
  */
-static __always_inline uint32_t exctract__tty(struct task_struct *task) {
+static __always_inline uint32_t extract__tty(struct task_struct *task) {
 	struct signal_struct *signal;
 	struct tty_struct *tty;
 	struct tty_driver *driver;
