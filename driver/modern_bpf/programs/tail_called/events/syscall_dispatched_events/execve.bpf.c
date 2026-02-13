@@ -165,8 +165,8 @@ int BPF_PROG(t1_execve_x, struct pt_regs *regs, long ret) {
 	}
 
 	/* Parameter 17: tty (type: PT_INT32) */
-	uint32_t tty = exctract__tty(task);
-	auxmap__store_u32_param(auxmap, (uint32_t)tty);
+	uint32_t tty = extract__tty(task);
+	auxmap__store_u32_param(auxmap, tty);
 
 	/* Parameter 18: vpgid (type: PT_PID) */
 	pid_t vpgid = extract__task_xid_vnr(task, PIDTYPE_PGID);
