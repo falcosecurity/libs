@@ -208,8 +208,7 @@ int BPF_PROG(t1_execveat_x, struct pt_regs *regs, long ret) {
 	auxmap__store_u64_param(auxmap, cap_effective);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	uint64_t ino = 0;
-	extract__ino_from_inode(exe_inode, &ino);
+	uint64_t ino = extract__ino_from_inode(exe_inode);
 	auxmap__store_u64_param(auxmap, ino);
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
