@@ -126,6 +126,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	prefix_search.ut.cpp
 	string_visitor.ut.cpp
 	filtercheck_has_args.ut.cpp
+	filter_fields_info.ut.cpp
 	filter_escaping.ut.cpp
 	filter_parser.ut.cpp
 	filter_op_bcontains.ut.cpp
