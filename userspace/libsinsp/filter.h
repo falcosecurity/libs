@@ -150,18 +150,18 @@ public:
 		// event sources, and the name and description of each field.
 		std::string as_string(bool verbose,
 		                      const std::set<std::string>& event_sources = std::set<std::string>(),
-		                      bool include_deprecated = false);
+		                      bool include_deprecated = false) const;
 
 		// Print a markdown representation of this
 		// field class, suitable for publication on the documentation
 		// website.
 		std::string as_markdown(
 		        const std::set<std::string>& event_sources = std::set<std::string>(),
-		        bool include_deprecated = false);
+		        bool include_deprecated = false) const;
 
 		// Print a JSON representation of this field class.
 		std::string as_json(const std::set<std::string>& event_sources = std::set<std::string>(),
-		                    bool include_deprecated = false);
+		                    bool include_deprecated = false) const;
 
 		// How far to right-justify the name/description/etc block.
 		static uint32_t s_rightblock_start;
@@ -170,7 +170,7 @@ public:
 		static uint32_t s_width;
 
 	private:
-		void wrapstring(const std::string& in, std::ostringstream& os);
+		void wrapstring(const std::string& in, std::ostringstream& os) const;
 	};
 
 	sinsp_filter_factory(sinsp* inspector, filter_check_list& available_checks);

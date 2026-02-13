@@ -924,7 +924,7 @@ uint32_t sinsp_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
 uint32_t sinsp_filter_factory::filter_fieldclass_info::s_width = 120;
 
 void sinsp_filter_factory::filter_fieldclass_info::wrapstring(const std::string& in,
-                                                              std::ostringstream& os) {
+                                                              std::ostringstream& os) const {
 	std::istringstream is(in);
 	std::string word;
 	uint32_t len = 0;
@@ -947,7 +947,7 @@ void sinsp_filter_factory::filter_fieldclass_info::wrapstring(const std::string&
 
 std::string sinsp_filter_factory::filter_fieldclass_info::as_markdown(
         const std::set<std::string>& event_sources,
-        bool include_deprecated) {
+        bool include_deprecated) const {
 	std::ostringstream os;
 	uint32_t deprecated_count = 0;
 
@@ -998,7 +998,7 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_markdown(
 
 std::string sinsp_filter_factory::filter_fieldclass_info::as_json(
         const std::set<std::string>& event_sources,
-        bool include_deprecated) {
+        bool include_deprecated) const {
 	Json::Value root;
 	uint32_t deprecated_count = 0;
 
@@ -1074,7 +1074,7 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_json(
 std::string sinsp_filter_factory::filter_fieldclass_info::as_string(
         bool verbose,
         const std::set<std::string>& event_sources,
-        bool include_deprecated) {
+        bool include_deprecated) const {
 	std::ostringstream os;
 	uint32_t deprecated_count = 0;
 
