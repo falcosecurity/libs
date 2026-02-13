@@ -601,20 +601,18 @@ static __always_inline uint64_t extract__task_pidns_start_time(struct task_struc
  * @brief Extract major page fault number
  *
  * @param task pointer to task struct.
- * @param pgft_maj return value passed by reference.
  */
-static __always_inline void extract__pgft_maj(struct task_struct *task, unsigned long *pgft_maj) {
-	READ_TASK_FIELD_INTO(pgft_maj, task, maj_flt);
+static __always_inline unsigned long extract__pgft_maj(struct task_struct *task) {
+	return READ_TASK_FIELD(task, maj_flt);
 }
 
 /**
  * @brief Extract minor page fault number
  *
  * @param task pointer to task struct.
- * @param pgft_min return value passed by reference.
  */
-static __always_inline void extract__pgft_min(struct task_struct *task, unsigned long *pgft_min) {
-	READ_TASK_FIELD_INTO(pgft_min, task, min_flt);
+static __always_inline unsigned long extract__pgft_min(struct task_struct *task) {
+	return READ_TASK_FIELD(task, min_flt);
 }
 
 /**

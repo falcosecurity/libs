@@ -35,13 +35,11 @@ int BPF_PROG(sched_switch, bool preempt, struct task_struct *prev, struct task_s
 	ringbuf__store_s64(&ringbuf, (int64_t)pid);
 
 	/* Parameter 2: pgft_maj (type: PT_UINT64) */
-	unsigned long pgft_maj = 0;
-	extract__pgft_maj(prev, &pgft_maj);
+	unsigned long pgft_maj = extract__pgft_maj(prev);
 	ringbuf__store_u64(&ringbuf, pgft_maj);
 
 	/* Parameter 3: pgft_min (type: PT_UINT64) */
-	unsigned long pgft_min = 0;
-	extract__pgft_min(prev, &pgft_min);
+	unsigned long pgft_min = extract__pgft_min(prev);
 	ringbuf__store_u64(&ringbuf, pgft_min);
 
 	struct mm_struct *mm = NULL;
