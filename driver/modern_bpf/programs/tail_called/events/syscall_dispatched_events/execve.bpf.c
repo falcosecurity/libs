@@ -250,8 +250,7 @@ int BPF_PROG(t1_execve_x, struct pt_regs *regs, long ret) {
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 27: euid (type: PT_UID) */
-	uint32_t euid;
-	extract__euid(task, &euid);
+	uint32_t euid = extract__euid(task);
 	auxmap__store_u32_param(auxmap, euid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -283,8 +282,7 @@ int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret) {
 	auxmap__store_pgid(auxmap, task);
 
 	/* Parameter 30: egid (type: PT_GID) */
-	uint32_t egid;
-	extract__egid(task, &egid);
+	uint32_t egid = extract__egid(task);
 	auxmap__store_u32_param(auxmap, egid);
 
 	/* Parameter 31: filename (type: PT_FSPATH) */

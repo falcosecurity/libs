@@ -157,13 +157,11 @@ int BPF_PROG(t1_clone3_x, struct pt_regs *regs, long ret) {
 	auxmap__store_u32_param(auxmap, (uint32_t)flags);
 
 	/* Parameter 17: uid (type: PT_UINT32) */
-	uint32_t euid = 0;
-	extract__euid(task, &euid);
+	uint32_t euid = extract__euid(task);
 	auxmap__store_u32_param(auxmap, euid);
 
 	/* Parameter 18: gid (type: PT_UINT32) */
-	uint32_t egid = 0;
-	extract__egid(task, &egid);
+	uint32_t egid = extract__egid(task);
 	auxmap__store_u32_param(auxmap, egid);
 
 	/* Parameter 19: vtid (type: PT_PID) */

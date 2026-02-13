@@ -214,13 +214,11 @@ int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *ch
 	auxmap__store_u32_param(auxmap, flags);
 
 	/* Parameter 17: uid (type: PT_UINT32) */
-	uint32_t euid = 0;
-	extract__euid(child, &euid);
+	uint32_t euid = extract__euid(child);
 	auxmap__store_u32_param(auxmap, euid);
 
 	/* Parameter 18: gid (type: PT_UINT32) */
-	uint32_t egid = 0;
-	extract__egid(child, &egid);
+	uint32_t egid = extract__egid(child);
 	auxmap__store_u32_param(auxmap, egid);
 
 	/* Parameter 19: vtid (type: PT_PID) */
