@@ -248,34 +248,12 @@ int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
 	 * PT_ABSTIME) */
 	struct timespec64 time = {0, 0};
-	if(bpf_core_field_exists(exe_inode->i_ctime)) {
-		BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
-	} else {
-		struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
-		if(bpf_core_field_exists(exe_inode_v6_6->__i_ctime)) {
-			BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
-		} else {
-			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
-			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_ctime_sec);
-			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_ctime_nsec);
-		}
-	}
+	extract__ctime_from_inode(exe_inode, &time);
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
 	 * PT_ABSTIME) */
-	if(bpf_core_field_exists(exe_inode->i_mtime)) {
-		BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
-	} else {
-		struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
-		if(bpf_core_field_exists(exe_inode_v6_7->__i_mtime)) {
-			BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
-		} else {
-			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
-			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_mtime_sec);
-			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_mtime_nsec);
-		}
-	}
+	extract__mtime_from_inode(exe_inode, &time);
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 27: euid (type: PT_UID) */

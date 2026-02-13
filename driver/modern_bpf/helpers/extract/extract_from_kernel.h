@@ -293,14 +293,58 @@ static __always_inline struct file *extract__exe_file_from_task(struct task_stru
 }
 
 /**
- * @brief Return the `i_ino` from f_inode.
+ * @brief Return the `i_ino` from `f_inode`.
  *
- * @param mm pointer to inode struct.
  * @param ino pointer to the inode number we have to fill.
- * @return `i_ino` from f_inode.
  */
 static __always_inline void extract__ino_from_inode(struct inode *f_inode, uint64_t *ino) {
 	BPF_CORE_READ_INTO(ino, f_inode, i_ino);
+}
+
+/**
+ * @brief Return the last status change time from `f_inode`.
+ *
+ * @param time pointer to the time spec we have to fill.
+ */
+static __always_inline void extract__ctime_from_inode(struct inode *f_inode,
+                                                      struct timespec64 *time) {
+	if(bpf_core_field_exists(f_inode->i_ctime)) {
+		BPF_CORE_READ_INTO(time, f_inode, i_ctime);
+		return;
+	}
+
+	struct inode___v6_6 *f_inode_v6_6 = (void *)f_inode;
+	if(bpf_core_field_exists(f_inode_v6_6->__i_ctime)) {
+		BPF_CORE_READ_INTO(time, f_inode_v6_6, __i_ctime);
+		return;
+	}
+
+	struct inode___v6_11 *f_inode_v6_11 = (void *)f_inode;
+	BPF_CORE_READ_INTO(&time->tv_sec, f_inode_v6_11, i_ctime_sec);
+	BPF_CORE_READ_INTO(&time->tv_nsec, f_inode_v6_11, i_ctime_nsec);
+}
+
+/**
+ * @brief Return the last modification change time from `f_inode`.
+ *
+ * @param time pointer to the time spec we have to fill.
+ */
+static __always_inline void extract__mtime_from_inode(struct inode *f_inode,
+                                                      struct timespec64 *time) {
+	if(bpf_core_field_exists(f_inode->i_mtime)) {
+		BPF_CORE_READ_INTO(time, f_inode, i_mtime);
+		return;
+	}
+
+	struct inode___v6_7 *f_inode_v6_7 = (void *)f_inode;
+	if(bpf_core_field_exists(f_inode_v6_7->__i_mtime)) {
+		BPF_CORE_READ_INTO(time, f_inode_v6_7, __i_mtime);
+		return;
+	}
+
+	struct inode___v6_11 *f_inode_v6_11 = (void *)f_inode;
+	BPF_CORE_READ_INTO(&time->tv_sec, f_inode_v6_11, i_mtime_sec);
+	BPF_CORE_READ_INTO(&time->tv_nsec, f_inode_v6_11, i_mtime_nsec);
 }
 
 /**
@@ -376,7 +420,6 @@ static __always_inline unsigned long extract__fdlimit(struct task_struct *task) 
 static __always_inline uint64_t extract__capability(struct task_struct *task,
                                                     enum capability_type capability_type) {
 	kernel_cap_t cap_struct;
-	unsigned long capability;
 
 	switch(capability_type) {
 	case CAP_INHERITABLE:
@@ -402,7 +445,7 @@ static __always_inline uint64_t extract__capability(struct task_struct *task,
 		return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
 	}
 	kernel_cap_t___v6_3 *new_cap = (kernel_cap_t___v6_3 *)&cap_struct;
-	return capabilities_to_scap(((unsigned long)new_cap->val));
+	return capabilities_to_scap((unsigned long)new_cap->val);
 }
 
 /////////////////////////
