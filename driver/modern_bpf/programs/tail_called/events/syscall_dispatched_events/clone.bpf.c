@@ -93,13 +93,11 @@ int BPF_PROG(clone_x, struct pt_regs *regs, long ret) {
 	auxmap__store_u64_param(auxmap, fdlimit);
 
 	/* Parameter 9: pgft_maj (type: PT_UINT64) */
-	unsigned long pgft_maj = 0;
-	extract__pgft_maj(task, &pgft_maj);
+	unsigned long pgft_maj = extract__pgft_maj(task);
 	auxmap__store_u64_param(auxmap, pgft_maj);
 
 	/* Parameter 10: pgft_min (type: PT_UINT64) */
-	unsigned long pgft_min = 0;
-	extract__pgft_min(task, &pgft_min);
+	unsigned long pgft_min = extract__pgft_min(task);
 	auxmap__store_u64_param(auxmap, pgft_min);
 
 	struct mm_struct *mm;
