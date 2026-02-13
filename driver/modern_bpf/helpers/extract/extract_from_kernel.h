@@ -736,24 +736,33 @@ static __always_inline unsigned long extract__clone_flags(struct task_struct *ta
 ////////////////////////
 
 /**
- * @brief Extract euid
+ * @brief Extract the effective uid.
  *
- * @param task pointer to task struct
- * @param euid return value by reference
+ * @param task pointer to task struct.
+ * @return the effective uid in case of success, UINT32_MAX in case of failure.
  */
-static __always_inline void extract__euid(struct task_struct *task, uint32_t *euid) {
-	*euid = UINT32_MAX;
-	BPF_CORE_READ_INTO(euid, task, cred, euid.val);
+static __always_inline uint32_t extract__euid(struct task_struct *task) {
+	uint32_t euid = UINT32_MAX;
+	const int err = BPF_CORE_READ_INTO(&euid, task, cred, euid.val);
+	if(unlikely(err)) {
+		return UINT32_MAX;
+	}
+	return euid;
 }
 
 /**
- * @brief Extract egid
+ * @brief Extract the effective gid.
  *
- * @param task pointer to task struct
- * @param egid return value by reference
+ * @param task pointer to task struct.
+ * @return the effective gid in case of success, UINT32_MAX in case of failure.
  */
-static __always_inline void extract__egid(struct task_struct *task, uint32_t *egid) {
-	BPF_CORE_READ_INTO(egid, task, cred, egid.val);
+static __always_inline uint32_t extract__egid(struct task_struct *task) {
+	uint32_t egid = UINT32_MAX;
+	const int err = BPF_CORE_READ_INTO(&egid, task, cred, egid.val);
+	if(unlikely(err)) {
+		return UINT32_MAX;
+	}
+	return egid;
 }
 
 /////////////////////////
