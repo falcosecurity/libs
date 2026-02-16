@@ -911,8 +911,8 @@ private:
 	//
 	std::string m_input_plugin_open_params;
 
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_thread_manager_dyn_fields;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos> m_thread_manager_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos> m_fdtable_dyn_fields;
 	const sinsp_fdinfo_factory m_fdinfo_factory;
 	// Parameter shared with each single sinsp_fdtable instance.
 	const std::shared_ptr<sinsp_fdtable::ctor_params> m_fdtable_ctor_params;

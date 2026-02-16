@@ -166,9 +166,8 @@ sinsp::sinsp(bool with_metrics):
         m_evt(this),
         m_timestamper{0},
         m_host_root(scap_get_host_root()),
-        m_thread_manager_dyn_fields{
-                std::make_shared<libsinsp::state::dynamic_struct::field_infos>()},
-        m_fdtable_dyn_fields{std::make_shared<libsinsp::state::dynamic_struct::field_infos>()},
+        m_thread_manager_dyn_fields{libsinsp::state::dynamic_field_infos::make<sinsp_threadinfo>()},
+        m_fdtable_dyn_fields{libsinsp::state::dynamic_field_infos::make<sinsp_fdinfo>()},
         m_fdinfo_factory{this, &m_external_event_processor, m_fdtable_dyn_fields},
         m_fdtable_ctor_params{std::make_shared<sinsp_fdtable::ctor_params>(
                 sinsp_fdtable::ctor_params{m_mode,

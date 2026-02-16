@@ -35,9 +35,8 @@ class sinsp_thread_manager_factory {
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_platform* const& m_scap_platform;
 	scap_t* const& m_scap_handle;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	        m_thread_manager_dyn_fields;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& m_fdtable_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& m_thread_manager_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& m_fdtable_dyn_fields;
 	const std::shared_ptr<sinsp_usergroup_manager>& m_usergroup_manager;
 
 public:
@@ -54,9 +53,8 @@ public:
 	        const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
 	        scap_platform* const& scap_platform,
 	        scap_t* const& scap_handle,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>&
-	                thread_manager_dyn_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& fdtable_dyn_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
 	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
 	        m_sinsp_mode{sinsp_mode},
 	        m_threadinfo_factory{threadinfo_factory},

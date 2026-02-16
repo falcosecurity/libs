@@ -25,7 +25,7 @@ limitations under the License.
 class sinsp_fdinfo_factory {
 	sinsp* m_sinsp;
 	libsinsp::event_processor** m_external_event_processor;
-	const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& m_dyn_fields;
+	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& m_dyn_fields;
 
 	libsinsp::event_processor* get_external_event_processor() const {
 		return *m_external_event_processor;
@@ -49,10 +49,9 @@ public:
 		friend libsinsp::event_processor;
 	};
 
-	sinsp_fdinfo_factory(
-	        sinsp* sinsp,
-	        libsinsp::event_processor** external_event_processor,
-	        const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
+	sinsp_fdinfo_factory(sinsp* sinsp,
+	                     libsinsp::event_processor** external_event_processor,
+	                     const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields):
 	        m_sinsp{sinsp},
 	        m_external_event_processor{external_event_processor},
 	        m_dyn_fields{dyn_fields} {}
@@ -61,9 +60,7 @@ public:
 		const auto external_event_processor = get_external_event_processor();
 		auto fdinfo = external_event_processor ? external_event_processor->build_fdinfo(m_sinsp)
 		                                       : create_unique();
-		if(fdinfo->dynamic_fields() == nullptr) {
-			fdinfo->set_dynamic_fields(m_dyn_fields);
-		}
+		fdinfo->set_dynamic_fields(m_dyn_fields);
 		return fdinfo;
 	}
 };
