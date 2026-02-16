@@ -42,7 +42,7 @@ int BPF_PROG(socketpair_x, struct pt_regs *regs, long ret) {
 
 		/* Get source and peer. */
 		struct file *file = extract__file_struct_from_fd((int32_t)fds[0]);
-		struct socket *socket = get_sock_from_file(file);
+		struct socket *socket = extract__socket_from_file(file);
 		if(socket != NULL) {
 			BPF_CORE_READ_INTO(&source, socket, sk);
 			struct unix_sock *us = (struct unix_sock *)source;

@@ -662,7 +662,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	/* Get the socket family directly from the socket */
 	uint16_t socket_family = 0;
 	struct file *file = extract__file_struct_from_fd(socket_fd);
-	struct socket *socket = get_sock_from_file(file);
+	struct socket *socket = extract__socket_from_file(file);
 	if(socket == NULL) {
 		auxmap__store_empty_param(auxmap);
 		return;
@@ -1663,7 +1663,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	}
 
 	struct file *file = extract__file_struct_from_fd(socket_fd);
-	struct socket *socket = get_sock_from_file(file);
+	struct socket *socket = extract__socket_from_file(file);
 	if(socket == NULL) {
 		return;
 	}
