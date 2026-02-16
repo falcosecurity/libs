@@ -283,6 +283,16 @@ static __always_inline struct inode *extract__exe_inode_from_task(struct task_st
 }
 
 /**
+ * @brief Return the `f_inode` of `file`.
+ *
+ * @param file pointer to file struct.
+ * @return `f_inode` of the file.
+ */
+static __always_inline struct inode *extract__inode_from_file(struct file *file) {
+	return BPF_CORE_READ(file, f_inode);
+}
+
+/**
  * @brief Return the `exe_file` of task mm.
  *
  * @param task pointer to task struct.
@@ -903,7 +913,7 @@ static __always_inline void extract__dev_ino_overlay_from_fd(int32_t fd,
 		return;
 	}
 
-	struct inode *i = BPF_CORE_READ(f, f_inode);
+	struct inode *i = extract__inode_from_file(f);
 	*ol = extract__overlay_layer(f);
 
 	BPF_CORE_READ_INTO(dev, i, i_sb, s_dev);
