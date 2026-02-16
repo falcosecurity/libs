@@ -1095,7 +1095,7 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
  * @brief Return a socket pointer from a file pointer.
  * @param file pointer to the file struct.
  */
-static __always_inline struct socket *get_sock_from_file(struct file *file) {
+static __always_inline struct socket *extract__socket_from_file(struct file *file) {
 	if(file == NULL) {
 		return NULL;
 	}

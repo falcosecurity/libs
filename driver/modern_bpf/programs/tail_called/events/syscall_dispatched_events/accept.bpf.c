@@ -53,7 +53,7 @@ int BPF_PROG(accept_x, struct pt_regs *regs, long ret) {
 		 * new one.
 		 */
 		struct file *file = extract__file_struct_from_fd((int32_t)socket_fd);
-		struct socket *socket = get_sock_from_file(file);
+		struct socket *socket = extract__socket_from_file(file);
 		if(socket != NULL) {
 			struct sock *sk = BPF_CORE_READ(socket, sk);
 			if(sk != NULL) {
