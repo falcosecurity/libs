@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
     clang \
+    clang-format \
     clangd \
     llvm \
     pkg-config \
@@ -50,6 +51,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     vim \
+    gdb \
+    lldb \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pre-commit
