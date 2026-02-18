@@ -777,8 +777,9 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* See if the child is already there, if yes and it is valid we return immediately */
-	sinsp_threadinfo *existing_child_tinfo = m_thread_manager->find_thread(child_tid, true).get();
-	if(existing_child_tinfo != nullptr) {
+	auto existing_child_ptr = m_thread_manager->find_thread(child_tid, true);
+	if(existing_child_ptr != nullptr) {
+		auto *existing_child_tinfo = existing_child_ptr.get();
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
 		 * Otherwise, we assume that the entry is there because we missed the proc exit event
@@ -3683,15 +3684,15 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 		tid = evt.get_tid();
 	}
 
-	auto *const ptinfo = m_thread_manager->get_thread(tid, true).get();
+	auto ptinfo_ptr = m_thread_manager->get_thread(tid, true);
 	// If the thread info is invalid we cannot recover the main thread because we don't even have
 	// the `pid` of the thread.
-	if(ptinfo == nullptr || ptinfo->is_invalid()) {
+	if(ptinfo_ptr == nullptr || ptinfo_ptr->is_invalid()) {
 		return;
 	}
 
 	// Update the process fdlimit.
-	auto *const main_thread = ptinfo->get_main_thread();
+	auto *const main_thread = ptinfo_ptr->get_main_thread();
 	if(main_thread == nullptr) {
 		return;
 	}

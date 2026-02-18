@@ -133,7 +133,9 @@ public:
 
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
 
-	threadinfo_map_t* get_threads() { return &m_threadtable; }
+	[[deprecated("Use loop_threads() instead")]] threadinfo_map_t* get_threads() {
+		return &m_threadtable;
+	}
 
 	bool loop_threads(std::function<bool(sinsp_threadinfo&)> callback) {
 		return m_threadtable.loop(callback);

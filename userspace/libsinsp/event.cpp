@@ -121,7 +121,9 @@ sinsp_threadinfo *sinsp_evt::get_thread_info() {
 		return m_tinfo;
 	}
 
-	return m_inspector->m_thread_manager->find_thread(m_pevt->tid, false).get();
+	m_tinfo_ref = m_inspector->m_thread_manager->find_thread(m_pevt->tid, false);
+	m_tinfo = m_tinfo_ref.get();
+	return m_tinfo;
 }
 
 int64_t sinsp_evt::get_fd_num() const {

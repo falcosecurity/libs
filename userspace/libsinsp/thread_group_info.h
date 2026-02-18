@@ -94,11 +94,15 @@ public:
 	inline void clean_expired_threads() {
 		auto thread = m_threads.begin();
 		while(thread != m_threads.end()) {
-			/* This child is expired */
+			/* Remove expired threads from the list.
+			 * Note: with deferred memory reclamation (hazard pointers),
+			 * expired() may return false for threads that have already
+			 * been removed from the table. These entries will be cleaned
+			 * up on a subsequent call after the hazard pointer epoch
+			 * passes. The m_alive_count counter is eagerly decremented
+			 * and is the authoritative thread count.
+			 */
 			if(thread->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
 				thread = m_threads.erase(thread);
 				continue;
 			}

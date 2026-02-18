@@ -32,7 +32,6 @@ struct iovec {
 #include <functional>
 #include <memory>
 #include <folly/concurrency/ConcurrentHashMap.h>
-#include <folly/synchronization/Hazptr.h>
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/thread_group_info.h>
@@ -327,11 +326,15 @@ public:
 	inline void clean_expired_children() {
 		auto child = m_children.begin();
 		while(child != m_children.end()) {
-			/* This child is expired */
+			/* Note: with deferred memory reclamation (hazard pointers),
+			 * expired() may return false for children that have been
+			 * removed from the table but whose shared_ptr has not yet
+			 * been reclaimed. These entries will be cleaned up on a
+			 * subsequent call after the reclamation epoch passes.
+			 * The m_not_expired_children counter is eagerly decremented
+			 * and is the authoritative child count.
+			 */
 			if(child->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
 				child = m_children.erase(child);
 				continue;
 			}
@@ -589,12 +592,6 @@ public:
 	inline void erase(int64_t tid) { m_threads.erase(tid); }
 
 	inline void clear() { m_threads.clear(); }
-
-	// Force reclamation of deferred-destroyed nodes. Folly ConcurrentHashMap
-	// uses hazard pointers which defer node destruction. Call this after
-	// operations where immediate shared_ptr release is required (e.g., to
-	// ensure weak_ptrs expire promptly after erase).
-	inline void reclaim_deferred() { folly::hazptr_cleanup(); }
 
 	bool const_loop_shared_pointer(const_shared_ptr_visitor_t callback) {
 		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {

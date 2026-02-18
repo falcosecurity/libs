@@ -1229,9 +1229,10 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			RETURN_EXTRACT_STRING(m_tstr);
 		} else if(m_argid > 0) {
 			// start parent lineage traversal
+			std::shared_ptr<sinsp_threadinfo> mt_holder;
 			for(int32_t j = 0; j < m_argid; j++) {
-				auto mt_ptr = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true);
-				mt = mt_ptr.get();
+				mt_holder = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true);
+				mt = mt_holder.get();
 				if(mt == NULL) {
 					return NULL;
 				}

@@ -23,6 +23,10 @@ limitations under the License.
 #include <thread>
 #include <vector>
 
+// Suppress deprecation warning for get_threads() -- used intentionally for direct map access
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 // Helper: create a threadinfo via the inspector's factory and set its tid.
 static threadinfo_map_t::ptr_t make_test_entry(sinsp& inspector, int64_t tid) {
 	auto ti = inspector.m_thread_manager->new_entry();

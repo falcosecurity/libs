@@ -1445,10 +1445,10 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		 */
 		const auto tid_of_fds_to_remove = m_parser_verdict.get_tid_of_fds_to_remove();
 		const auto& fds_to_remove = m_parser_verdict.get_fds_to_remove();
-		if(sinsp_threadinfo* ptinfo =
-		           m_thread_manager->find_thread(tid_of_fds_to_remove, true).get()) {
+		auto ptinfo_ptr = m_thread_manager->find_thread(tid_of_fds_to_remove, true);
+		if(ptinfo_ptr) {
 			for(const auto fd : fds_to_remove) {
-				ptinfo->remove_fd(fd);
+				ptinfo_ptr->remove_fd(fd);
 			}
 		}
 		m_parser_verdict.clear_fds_to_remove();
