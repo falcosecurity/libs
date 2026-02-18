@@ -259,7 +259,7 @@ public:
 		return nullptr;
 	}
 
-	inline sinsp_table<std::string>* get_table(std::string table) {
+	inline sinsp_table<std::string>* get_table(const std::string& table) {
 		if(m_foreign_tables.count(table) > 0) {
 			return &m_foreign_tables.at(table);
 		}
