@@ -408,7 +408,7 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid) {
-	const auto& thread_to_remove_ref = m_threadtable.get_ref(tid);
+	auto thread_to_remove_ref = m_threadtable.get_ref(tid);
 	if(!thread_to_remove_ref) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
@@ -960,7 +960,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
 }
 
 threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only) {
-	const auto& thr = m_threadtable.get_ref(tid);
+	auto thr = m_threadtable.get_ref(tid);
 	if(thr) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_noncached_thread_lookups++;

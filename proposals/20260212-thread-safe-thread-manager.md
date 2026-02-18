@@ -68,6 +68,14 @@ Using **Folly’s ConcurrentHashMap** instead:
   - `size()` is a **rolling count** (not exact at any instant).
   - For atomic in-place update, Folly provides **assign_if_equal**, **assign_if**, **insert_or_assign**; mutation of threadinfo beyond the map’s API is out of scope here.
 
+#### 4.1.1 threadinfo_map_t: no shared cache (return by value)
+
+The storage abstraction used by the thread manager (`threadinfo_map_t`) must not use a **single-slot shared cache** for lookup or insert when built with Folly. A shared mutable cache (e.g. `get_ref(tid)` or `put(ptr)` returning a reference to a member that is overwritten on the next call) causes **data races** when multiple threads call `get_ref` or `put` concurrently, and allows a caller to see the wrong thread if it holds the returned reference across another lookup.
+
+- **Required (Option 1 — return by value):** When using Folly, `get_ref(tid)` and `put(ptr)` must **return `ptr_t` by value** (a copy of the `shared_ptr`), not a reference to an internal cache. Copy from the iterator (or from the inserted element) and return; return an empty `ptr_t` when the key is not found (for `get_ref`). No `m_put_cache` / `m_get_ref_cache` (or equivalent) in the Folly path.
+- **Call sites:** Callers that today store `const auto& ref = get_ref(tid)` and then use `ref` must instead store the result by value (e.g. `auto ptr = get_ref(tid)`); the existing pattern of immediately copying into a local `shared_ptr` (e.g. in `find_thread`, `remove_thread`) already supports this. `add_thread` and the state table already return `ptr_t` by value; the storage layer's `put` should return by value so that no reference to internal state is exposed.
+- **Non-Folly path:** For consistency and to avoid two different APIs, the non-Folly backend can also use return-by-value for `get_ref` and `put` (return a copy of the map value or empty).
+
 ### 4.2 Lookup and get_thread / find_thread
 
 - **Return by value:** Implement `get_thread(tid)` / `find_thread(tid)` by calling `find(tid)` and returning a **copy** of `it->second` (or empty `shared_ptr` if not found). Return type is `std::shared_ptr<sinsp_threadinfo>` **by value**. The caller holds a reference; no internal cache is used, so lookups are thread-safe and the returned handle remains valid regardless of later lookups or erases.
