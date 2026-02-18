@@ -250,7 +250,16 @@ public:
 		return false;
 	}
 
-	inline sinsp_table<std::string>* get_table(std::string table) {
+	const libsinsp::state::dynamic_field_accessor<std::string>* get_field_accessor(
+	        const std::string& field) const {
+		if(auto it = m_foreign_fields_accessors.find(field);
+		   it != m_foreign_fields_accessors.end()) {
+			return &it->second;
+		}
+		return nullptr;
+	}
+
+	inline sinsp_table<std::string>* get_table(const std::string& table) {
 		if(m_foreign_tables.count(table) > 0) {
 			return &m_foreign_tables.at(table);
 		}
