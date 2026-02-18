@@ -38,7 +38,8 @@ limitations under the License.
 class sinsp_observer;
 
 ///////////////////////////////////////////////////////////////////////////////
-// This class manages the thread table
+// Manages the thread table. Add/remove/lookup/iteration are thread-safe when
+// built with LIBSINSP_USE_FOLLY (Folly ConcurrentHashMap).
 ///////////////////////////////////////////////////////////////////////////////
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::extensible_table<int64_t>,
                                           public libsinsp::state::sinsp_table_owner {
@@ -57,10 +58,20 @@ public:
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields);
 	void clear();
 
+	/*!
+	  \brief Add a thread to the table.
+	  \return shared_ptr to the inserted (or existing) thread. Safe for concurrent use.
+	*/
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool must_create_thread_dependencies);
 
-	threadinfo_map_t::ptr_t find_new_reaper(sinsp_threadinfo*);
+	/*!
+	  \brief Find the new reaper for a thread being removed (e.g. for reparenting children).
+	  \param tinfo the thread that is being removed (must not be null).
+	  \return shared_ptr to the reaper thread, or empty if none (e.g. loop detected).
+	  Caller holds a reference; safe for concurrent use.
+	*/
+	threadinfo_map_t::ptr_t find_new_reaper(sinsp_threadinfo* tinfo);
 	void remove_thread(int64_t tid);
 
 	/*!
@@ -112,35 +123,44 @@ public:
 	                                   bool lookup_only = true,
 	                                   bool main_thread = false);
 
-	//
-	// Note: lookup_only when false updates the thread's m_lastaccess_ts and
-	//       main fdtable; use true for lookups that are not event-driven.
-	//
+	/*!
+	  \brief Look up a thread by TID without creating it from /proc.
+	  \param lookup_only when false, updates the thread's m_lastaccess_ts and main fdtable; use true
+	  for read-only lookups. \return shared_ptr to the thread info, or empty if not found.
+	*/
 	threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
 
 	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
 	  ancestors.
-
-	  \param thread_manager
-	  \param n when 1 it will look for the parent process, when 2 the grandparent and so forth.
-
-	  \return Pointer to the threadinfo or NULL if it doesn't exist
+	  \param tinfo the thread whose ancestor to look up.
+	  \param n when 1 look for the parent process, when 2 the grandparent, and so forth.
+	  \return shared_ptr to the ancestor threadinfo, or empty if it does not exist or was removed.
+	  Caller holds a reference; safe for concurrent use.
 	*/
 	threadinfo_map_t::ptr_t get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
-	//
-	// Walk up the parent process hierarchy, calling the provided
-	// function for each node. If the function returns false, the
-	// traversal stops.
-	//
+	/*!
+	  \brief Walk up the parent process hierarchy, calling the provided function for each node.
+	  If the function returns false, the traversal stops.
+	  \note tinfo and the visitor must remain valid for the duration; use a shared_ptr or
+	  callback scope where the table holds a reference.
+	*/
 	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
 	void traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor);
 
+	/*!
+	  \brief Return the oldest ancestor for which get_thread_id matches the given id (e.g. session
+	  leader). \param tinfo the thread to start from. \param get_thread_id function returning the id
+	  to match (e.g. sid, pgid). \param is_virtual_id if true, resolve in pid-namespace context.
+	  \return shared_ptr to the matching ancestor, or empty if none. Caller holds a reference.
+	*/
 	threadinfo_map_t::ptr_t get_oldest_matching_ancestor(
 	        sinsp_threadinfo* tinfo,
 	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
 	        bool is_virtual_id = false);
 
+	/*! \brief Return a string field from the oldest matching ancestor (e.g. session leader). Uses
+	 * get_oldest_matching_ancestor internally. */
 	std::string get_ancestor_field_as_string(
 	        sinsp_threadinfo* tinfo,
 	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
@@ -149,11 +169,15 @@ public:
 
 	void dump_threads_to_file(scap_dumper_t* dumper);
 
+	/*! \return Approximate number of threads in the table (rolling count when using concurrent
+	 * storage). */
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
 
-	/// Thread-safe iteration: invokes \a callback with each thread's shared_ptr; return false to
-	/// stop.
+	/** Callback receives a shared_ptr to each thread; return false to stop iteration. Safe for
+	 * concurrent use. */
 	using thread_visitor_t = std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)>;
+	/*! \brief Iterate over all threads, calling \a callback with a shared_ptr to each. Returns
+	 * false if callback returned false. */
 	bool loop_threads(thread_visitor_t callback) const;
 
 	std::set<uint16_t> m_server_ports;
