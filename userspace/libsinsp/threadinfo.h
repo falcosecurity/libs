@@ -320,6 +320,23 @@ public:
 		m_not_expired_children++;
 	}
 
+	/* Remove a specific child from the list immediately (e.g. when using
+	 * concurrent map with deferred reclamation, so weak_ptrs may not expire
+	 * in time for clean_expired_children to remove them).
+	 */
+	inline void remove_child_from_list(const std::shared_ptr<sinsp_threadinfo>& child) {
+		for(auto it = m_children.begin(); it != m_children.end(); ++it) {
+			auto locked = it->lock();
+			if(locked.get() == child.get()) {
+				m_children.erase(it);
+				if(m_not_expired_children > 0) {
+					m_not_expired_children--;
+				}
+				return;
+			}
+		}
+	}
+
 	inline void clean_expired_children() {
 		auto child = m_children.begin();
 		while(child != m_children.end()) {
@@ -553,6 +570,10 @@ private:
 
 /*@}*/
 
+#ifdef LIBSINSP_USE_FOLLY
+#include <folly/concurrency/ConcurrentHashMap.h>
+#endif
+
 class threadinfo_map_t {
 public:
 	typedef std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)>
@@ -562,24 +583,47 @@ public:
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
 	inline const ptr_t& put(const ptr_t& tinfo) {
+#ifdef LIBSINSP_USE_FOLLY
+		auto [it, _] = m_threads.insert_or_assign(tinfo->m_tid, tinfo);
+		m_put_cache = it->second;
+		return m_put_cache;
+#else
 		m_threads[tinfo->m_tid] = tinfo;
 		return m_threads[tinfo->m_tid];
+#endif
 	}
 
 	inline sinsp_threadinfo* get(uint64_t tid) {
+#ifdef LIBSINSP_USE_FOLLY
 		auto it = m_threads.find(tid);
 		if(it == m_threads.end()) {
 			return nullptr;
 		}
 		return it->second.get();
+#else
+		auto it = m_threads.find(tid);
+		if(it == m_threads.end()) {
+			return nullptr;
+		}
+		return it->second.get();
+#endif
 	}
 
 	inline const ptr_t& get_ref(uint64_t tid) {
+#ifdef LIBSINSP_USE_FOLLY
+		auto it = m_threads.find(tid);
+		if(it == m_threads.end()) {
+			return m_nullptr_ret;
+		}
+		m_get_ref_cache = it->second;
+		return m_get_ref_cache;
+#else
 		auto it = m_threads.find(tid);
 		if(it == m_threads.end()) {
 			return m_nullptr_ret;
 		}
 		return it->second;
+#endif
 	}
 
 	inline void erase(uint64_t tid) { m_threads.erase(tid); }
@@ -587,35 +631,68 @@ public:
 	inline void clear() { m_threads.clear(); }
 
 	bool const_loop_shared_pointer(const_shared_ptr_visitor_t callback) {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
+			if(!callback(it->second)) {
+				return false;
+			}
+		}
+		return true;
+#else
 		for(auto& it : m_threads) {
 			if(!callback(it.second)) {
 				return false;
 			}
 		}
 		return true;
+#endif
 	}
 
 	bool const_loop(const_visitor_t callback) const {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_threads.cbegin(); it != m_threads.cend(); ++it) {
+			if(!callback(*it->second)) {
+				return false;
+			}
+		}
+		return true;
+#else
 		for(const auto& it : m_threads) {
 			if(!callback(*it.second)) {
 				return false;
 			}
 		}
 		return true;
+#endif
 	}
 
 	bool loop(visitor_t callback) {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
+			if(!callback(*it->second)) {
+				return false;
+			}
+		}
+		return true;
+#else
 		for(auto& it : m_threads) {
 			if(!callback(*it.second)) {
 				return false;
 			}
 		}
 		return true;
+#endif
 	}
 
 	inline size_t size() const { return m_threads.size(); }
 
 protected:
+#ifdef LIBSINSP_USE_FOLLY
+	folly::ConcurrentHashMap<int64_t, ptr_t> m_threads;
+	mutable ptr_t m_put_cache;
+	mutable ptr_t m_get_ref_cache;
+#else
 	std::unordered_map<int64_t, ptr_t> m_threads;
+#endif
 	const ptr_t m_nullptr_ret;  // needed for returning a reference
 };

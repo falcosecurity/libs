@@ -135,6 +135,11 @@ set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
+	# Folly ConcurrentHashMap for thread-safe thread manager (see
+	# proposals/20260212-thread-safe-thread-manager.md)
+	find_package(Folly CONFIG REQUIRED)
+	target_link_libraries(sinsp PUBLIC Folly::folly)
+	target_compile_definitions(sinsp PUBLIC LIBSINSP_USE_FOLLY)
 endif()
 
 if(USE_BUNDLED_VALIJSON)
