@@ -1776,18 +1776,19 @@ void sinsp::stop_capture() {
 	/* Print the number of threads and fds in our tables */
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
-	m_thread_manager->get_threads()->loop([&thread_cnt, &fd_cnt](sinsp_threadinfo& tinfo) {
-		thread_cnt++;
+	m_thread_manager->loop_threads(
+	        [&thread_cnt, &fd_cnt](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+		        thread_cnt++;
 
-		/* Only main threads have an associated fdtable */
-		if(tinfo.is_main_thread()) {
-			auto fdtable_ptr = tinfo.get_fd_table();
-			if(fdtable_ptr != nullptr) {
-				fd_cnt += fdtable_ptr->size();
-			}
-		}
-		return true;
-	});
+		        /* Only main threads have an associated fdtable */
+		        if(tinfo->is_main_thread()) {
+			        auto fdtable_ptr = tinfo->get_fd_table();
+			        if(fdtable_ptr != nullptr) {
+				        fd_cnt += fdtable_ptr->size();
+			        }
+		        }
+		        return true;
+	        });
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "total threads in the table:%" PRIu64
 	                          ", total fds in all threads:%" PRIu64 "\n",
@@ -2088,13 +2089,13 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 	// 1. Invalid threads.
 	// 2. Threads that we are not using and that are no more alive in /proc.
 	std::unordered_set<int64_t> to_delete;
-	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		if(tinfo.is_invalid() || (last_event_ts > tinfo.m_lastaccess_ts + m_thread_timeout_ns &&
-		                          !scap_is_thread_alive(m_scap_platform,
-		                                                tinfo.m_pid,
-		                                                tinfo.m_tid,
-		                                                tinfo.m_comm.c_str()))) {
-			to_delete.insert(tinfo.m_tid);
+	loop_threads([&to_delete, last_event_ts, this](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+		if(tinfo->is_invalid() || (last_event_ts > tinfo->m_lastaccess_ts + m_thread_timeout_ns &&
+		                           !scap_is_thread_alive(m_scap_platform,
+		                                                 tinfo->m_pid,
+		                                                 tinfo->m_tid,
+		                                                 tinfo->m_comm.c_str()))) {
+			to_delete.insert(tinfo->m_tid);
 		}
 		return true;
 	});

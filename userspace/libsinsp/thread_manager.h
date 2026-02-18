@@ -99,8 +99,8 @@ public:
 	  \param tid the ID of the thread. In case of multi-thread processes,
 	   this corresponds to the PID.
 
-	  \return the \ref sinsp_threadinfo object containing full thread information
-	   and state.
+	  \return a copy of the shared_ptr to the thread info, or empty if not found.
+	   Caller holds a reference; safe for concurrent use (no internal cache).
 
 	  \note if you are interested in a process' information, just give this
 	  function with the PID of the process.
@@ -108,17 +108,15 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	const threadinfo_map_t::ptr_t& get_thread(int64_t tid,
-	                                          bool lookup_only = true,
-	                                          bool main_thread = false);
+	threadinfo_map_t::ptr_t get_thread(int64_t tid,
+	                                   bool lookup_only = true,
+	                                   bool main_thread = false);
 
 	//
-	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
+	// Note: lookup_only when false updates the thread's m_lastaccess_ts and
+	//       main fdtable; use true for lookups that are not event-driven.
 	//
-	const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
+	threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
 
 	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
@@ -153,7 +151,10 @@ public:
 
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
 
-	threadinfo_map_t* get_threads() { return &m_threadtable; }
+	/// Thread-safe iteration: invokes \a callback with each thread's shared_ptr; return false to
+	/// stop.
+	using thread_visitor_t = std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)>;
+	bool loop_threads(thread_visitor_t callback) const;
 
 	std::set<uint16_t> m_server_ports;
 
@@ -192,9 +193,7 @@ public:
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;
 
-	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
-		return m_threadtable.loop([&pred](sinsp_threadinfo& e) { return pred(e); });
-	}
+	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override;
 
 	std::shared_ptr<libsinsp::state::table_entry> get_entry(const int64_t& key) override {
 		return find_thread(key, true);
@@ -280,7 +279,7 @@ public:
 
 private:
 	/* We call it immediately before removing the thread from the thread table. */
-	void remove_child_from_parent(int64_t ptid);
+	void remove_child_from_parent(int64_t ptid, const std::shared_ptr<sinsp_threadinfo>& child);
 
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
@@ -305,8 +304,6 @@ private:
 	 */
 	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
 	threadinfo_map_t m_threadtable;
-	int64_t m_last_tid;
-	std::shared_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	// Increased legacy default of 131072 in January 2024 to prevent
 	// possible drops due to full threadtable on more modern servers
@@ -320,8 +317,6 @@ private:
 	uint64_t m_proc_lookup_period = 0;
 	uint64_t m_last_proc_lookup_period_start = 0;
 
-	const std::shared_ptr<sinsp_threadinfo>
-	        m_nullptr_tinfo_ret;  // needed for returning a reference
 	const std::shared_ptr<thread_group_info>
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
 

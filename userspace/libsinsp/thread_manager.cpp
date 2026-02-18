@@ -21,7 +21,6 @@ limitations under the License.
 #include <limits.h>
 #endif
 #include <stdio.h>
-#include <algorithm>
 #include <cinttypes>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp.h>
@@ -139,11 +138,18 @@ sinsp_thread_manager::sinsp_thread_manager(
 void sinsp_thread_manager::clear() {
 	m_threadtable.clear();
 	m_thread_groups.clear();
-	m_last_tid = -1;
-	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
 	m_recently_exited_tids.fill({});
 	m_recently_exited_write_idx = 0;
+}
+
+bool sinsp_thread_manager::loop_threads(thread_visitor_t callback) const {
+	return m_threadtable.const_loop_shared_pointer(callback);
+}
+
+bool sinsp_thread_manager::foreach_entry(
+        std::function<bool(libsinsp::state::table_entry& e)> pred) {
+	return m_threadtable.loop([&pred](sinsp_threadinfo& e) { return pred(e); });
 }
 
 /* This is called on the table after the `/proc` scan */
@@ -226,6 +232,11 @@ void sinsp_thread_manager::create_thread_dependencies(
 	parent_thread->add_child(tinfo);
 }
 
+/* Can be called when:
+ * 1. We crafted a new event to create in clone parsers. (`must_create_thread_dependencies==true`)
+ * 2. We are doing a proc scan with a callback or without. (`must_create_thread_dependencies==true`)
+ * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
+ */
 const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
         std::unique_ptr<sinsp_threadinfo> threadinfo,
         const bool must_create_thread_dependencies) {
@@ -244,7 +255,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 			m_sinsp_stats_v2->m_n_drops_full_threadtable++;
 		}
 
-		return m_nullptr_tinfo_ret;
+		return {};
 	}
 
 	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(std::move(threadinfo));
@@ -262,22 +273,19 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 		m_sinsp_stats_v2->m_n_added_threads++;
 	}
 
-	if(m_last_tid == tinfo_shared_ptr->m_tid) {
-		m_last_tid = -1;
-		m_last_tinfo.reset();
-	}
-
 	tinfo_shared_ptr->update_main_fdtable();
 	return m_threadtable.put(tinfo_shared_ptr);
 }
 
-void sinsp_thread_manager::remove_child_from_parent(int64_t ptid) {
+void sinsp_thread_manager::remove_child_from_parent(
+        int64_t ptid,
+        const std::shared_ptr<sinsp_threadinfo>& child) {
 	auto parent = find_thread(ptid, true).get();
 	if(parent == nullptr) {
 		return;
 	}
 
-	parent->m_not_expired_children--;
+	parent->remove_child_from_list(child);
 
 	/* Clean expired children if necessary. */
 	if((parent->m_children.size() - parent->m_not_expired_children) >=
@@ -398,25 +406,22 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid) {
-	auto thread_to_remove = m_threadtable.get_ref(tid);
-
-	/* This should never happen but just to be sure. */
-	if(thread_to_remove == nullptr) {
+	const auto& thread_to_remove_ref = m_threadtable.get_ref(tid);
+	if(!thread_to_remove_ref) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
 		return;
 	}
+	std::shared_ptr<sinsp_threadinfo> thread_to_remove = thread_to_remove_ref;
 
 	/* [Remove invalid threads]
 	 * All threads should have a m_tginfo apart from the invalid ones
 	 * which don't have a group or children.
 	 */
 	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr) {
-		remove_child_from_parent(thread_to_remove->m_ptid);
+		remove_child_from_parent(thread_to_remove->m_ptid, thread_to_remove);
 		m_threadtable.erase(tid);
-		m_last_tid = -1;
-		m_last_tinfo.reset();
 		return;
 	}
 
@@ -497,8 +502,12 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		/* even if thread_to_remove is not the main thread the parent will be
 		 * the same so it's ok.
 		 */
-		remove_child_from_parent(thread_to_remove->m_ptid);
+		thread_to_remove->m_tginfo->remove_thread_from_list(thread_to_remove);
+		remove_child_from_parent(thread_to_remove->m_ptid, thread_to_remove);
 		m_thread_groups.erase(thread_to_remove->m_pid);
+		// Only init (tid 1) has m_pid 1; ensure we never erase key 1 when removing a non-init
+		// thread
+		ASSERT(thread_to_remove->m_pid != 1 || thread_to_remove->m_tid == 1);
 		m_threadtable.erase(thread_to_remove->m_pid);
 	}
 
@@ -508,15 +517,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * in the previous `if`.
 	 */
 	if(!thread_to_remove->is_main_thread()) {
-		remove_child_from_parent(thread_to_remove->m_ptid);
+		thread_to_remove->m_tginfo->remove_thread_from_list(thread_to_remove);
+		remove_child_from_parent(thread_to_remove->m_ptid, thread_to_remove);
 		m_threadtable.erase(tid);
 	}
-
-	/* Maybe we removed the thread info that was cached, we clear
-	 * the cache just to be sure.
-	 */
-	m_last_tid = -1;
-	m_last_tinfo.reset();
 	if(m_sinsp_stats_v2 != nullptr) {
 		m_sinsp_stats_v2->m_n_removed_threads++;
 	}
@@ -799,7 +803,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 		free(args_iov);
 		free(envs_iov);
 		free(cgroups_iov);
-
 		return true;
 	});
 
@@ -882,10 +885,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	});
 }
 
-const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t tid,
-                                                                const bool lookup_only,
-                                                                const bool main_thread) {
-	const auto& sinsp_proc = find_thread(tid, lookup_only);
+threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
+                                                         const bool lookup_only,
+                                                         const bool main_thread) {
+	auto sinsp_proc = find_thread(tid, lookup_only);
 
 	if(!sinsp_proc && (m_threadtable.size() < m_max_thread_table_size || tid == m_sinsp_pid)) {
 		// Certain code paths can lead to this point from scap_open() (incomplete example:
@@ -897,7 +900,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 			                          ": sinsp::scap_t* is uninitialized",
 			                          __func__,
 			                          tid);
-			return m_nullptr_tinfo_ret;
+			return {};
 		}
 
 		bool thread_fetched = false;
@@ -951,45 +954,22 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 	return sinsp_proc;
 }
 
-/* `lookup_only==true` means that we don't fill the `m_last_tinfo` field */
-const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only) {
-	//
-	// Try looking up in our simple cache
-	//
-	if(m_last_tid >= 0 && tid == m_last_tid && m_last_tinfo) {
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_cached_thread_lookups++;
-		}
-		// This allows us to avoid performing an actual timestamp lookup
-		// for something that may not need to be precise
-		m_last_tinfo->m_lastaccess_ts = m_timestamper.get_cached_ts();
-		m_last_tinfo->update_main_fdtable();
-		return m_last_tinfo;
-	}
-
-	//
-	// Caching failed, do a real lookup
-	//
+threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only) {
 	const auto& thr = m_threadtable.get_ref(tid);
-
 	if(thr) {
 		if(m_sinsp_stats_v2 != nullptr) {
 			m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
 		}
 		if(!lookup_only) {
-			m_last_tid = tid;
-			m_last_tinfo = thr;
 			thr->m_lastaccess_ts = m_timestamper.get_cached_ts();
 		}
 		thr->update_main_fdtable();
 		return thr;
-	} else {
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
-		}
-
-		return m_nullptr_tinfo_ret;
 	}
+	if(m_sinsp_stats_v2 != nullptr) {
+		m_sinsp_stats_v2->m_n_failed_thread_lookups++;
+	}
+	return {};
 }
 
 sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n) {

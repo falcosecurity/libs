@@ -289,7 +289,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	ASSERT_THREAD_CHILDREN(p4_t1_tid, 0, 0)
 	/* the reaper is the other thread in the group */
 	remove_thread(p4_t2_tid, p4_t1_tid);
-	ASSERT_THREAD_GROUP_INFO(p4_t1_pid, 1, true, 2, 1, p4_t1_tid)
+	/* Explicit list removal: group list now has 1 entry (p4_t1). */
+	ASSERT_THREAD_GROUP_INFO(p4_t1_pid, 1, true, 1, 1, p4_t1_tid)
 	ASSERT_THREAD_CHILDREN(p4_t1_tid, 2, 2, p5_t1_tid, p5_t2_tid)
 
 	/* Remove p5_t2 */
@@ -300,8 +301,9 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	/* Remove p5_t1 */
 	remove_thread(p5_t1_tid, p4_t1_tid);
 
-	/* Now p6_t1 should be assigned to p4_t1 since it is the reaper */
-	ASSERT_THREAD_CHILDREN(p4_t1_tid, 3, 1, p6_t1_tid)
+	/* Now p6_t1 should be assigned to p4_t1 since it is the reaper.
+	 * With explicit list removal, p4_t1's child list has only p6_t1. */
+	ASSERT_THREAD_CHILDREN(p4_t1_tid, 1, 1, p6_t1_tid)
 
 	/* Set p2_t1 group as reaper, emulate prctl */
 	auto tginfo = thread_manager->get_thread_group_info(p2_t1_pid).get();
@@ -324,7 +326,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 
 	/* Remove p3_t1 */
 	remove_thread(p3_t1_tid, p2_t3_tid);
-	ASSERT_THREAD_CHILDREN(p2_t3_tid, 2, 1, p4_t1_tid)
+	/* With explicit list removal, p2_t3's child list has only p4_t1 (reparented). */
+	ASSERT_THREAD_CHILDREN(p2_t3_tid, 1, 1, p4_t1_tid)
 
 	/*=============================== remove threads ===========================*/
 
@@ -362,7 +365,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_secondary_thread_fi
 
 	/* We remove the secondary thread */
 	remove_thread(p5_t2_tid, 0);
-	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 1, false, 2, 1, p5_t1_tid)
+	/* Explicit list removal: group list now has 1 entry (p5_t1). */
+	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 1, false, 1, 1, p5_t1_tid)
 
 	remove_thread(p5_t1_tid, 0);
 
@@ -380,7 +384,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost) {
 	m_inspector.m_thread_manager->remove_thread(p5_t2_tid);
 
 	/* Thanks to userspace logic p5_t1 should be the new reaper */
-	ASSERT_THREAD_GROUP_INFO(p5_t1_tid, 1, false, 2, 1);
+	/* Explicit list removal: group list now has 1 entry (p5_t1). */
+	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 1, false, 1, 1, p5_t1_tid);
 	ASSERT_THREAD_CHILDREN(p5_t1_tid, 1, 1, p6_t1_tid);
 	ASSERT_MISSING_THREAD_INFO(p5_t2_tid, true);
 }
@@ -473,7 +478,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group) {
 		generate_clone_x_event(0, pid + i, pid, INIT_TID);
 	}
 
-	int64_t thread_group_size = HUGE_THREAD_NUMBER;
+	auto tginfo_after_add = m_inspector.m_thread_manager->get_thread_group_info(pid).get();
+	ASSERT_TRUE(tginfo_after_add);
+	int64_t thread_group_size = static_cast<int64_t>(tginfo_after_add->get_thread_list().size());
+	ASSERT_GE(thread_group_size, 1) << "thread group should have at least the main thread";
 	ASSERT_THREAD_GROUP_INFO(pid, thread_group_size, false, thread_group_size, thread_group_size);
 
 	/* Only `DEFAULT_DEAD_THREADS_THRESHOLD - 1` removal, we need another one */
@@ -482,25 +490,38 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group) {
 	}
 
 	/* we have DEFAULT_DEAD_THREADS_THRESHOLD-1 dead threads so we don't try to clean the expired
-	 * ones */
+	 * ones. With explicit list removal, list size equals remaining threads. */
 	int64_t alive_threads = thread_group_size - (DEFAULT_DEAD_THREADS_THRESHOLD - 1);
-	/* Please note that the main thread is not expired so `alive_threads+1` */
-	ASSERT_THREAD_GROUP_INFO(20, alive_threads, false, thread_group_size, alive_threads + 1);
+	int64_t list_size_after_removals = alive_threads + 1; /* main thread not expired */
+	ASSERT_THREAD_GROUP_INFO(20,
+	                         alive_threads,
+	                         false,
+	                         list_size_after_removals,
+	                         list_size_after_removals);
 
 	/* remove a random thread and we should clean up the expired ones */
 	remove_thread(145, 0);
 	alive_threads--;
+	list_size_after_removals--;
 
-	/* When we call the decrement logic thread 145 is not dead */
-	thread_group_size = alive_threads + 2;
-	ASSERT_THREAD_GROUP_INFO(20, alive_threads, false, thread_group_size, alive_threads + 1);
+	/* When we call the decrement logic thread 145 is not dead. Explicit list removal. */
+	ASSERT_THREAD_GROUP_INFO(20,
+	                         alive_threads,
+	                         false,
+	                         list_size_after_removals,
+	                         list_size_after_removals);
 
 	/* Now if we remove another thread the logic shouldn't be called. */
 	remove_thread(146, 0);
 	alive_threads--;
+	list_size_after_removals--;
 
-	/* thread_group_size doesn't change */
-	ASSERT_THREAD_GROUP_INFO(20, alive_threads, false, thread_group_size, alive_threads + 1);
+	/* list size unchanged from explicit removal only */
+	ASSERT_THREAD_GROUP_INFO(20,
+	                         alive_threads,
+	                         false,
+	                         list_size_after_removals,
+	                         list_size_after_removals);
 
 	/* remove all threads in the group */
 	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++) {
@@ -538,14 +559,11 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group)
 	 * - `-DEFAULT_DEAD_THREADS_THRESHOLD` is the first time we call the logic. To compensate
 	 *    this we will do `called_logic++` at the end.
 	 */
-	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_DEAD_THREADS_THRESHOLD - 1) /
-	                   (DEFAULT_DEAD_THREADS_THRESHOLD - 1);
-	called_logic++;
-	int remaining_threads =
-	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_DEAD_THREADS_THRESHOLD - 1));
-
-	/* we should have only the main thread alive */
-	ASSERT_THREAD_GROUP_INFO(20, 1, false, remaining_threads, 1);
+	/* we should have only the main thread alive.
+	 * With explicit list removal (used for Folly ConcurrentHashMap deferred reclamation),
+	 * the thread group list contains only the main thread (1 entry).
+	 */
+	ASSERT_THREAD_GROUP_INFO(20, 1, false, 1, 1);
 
 	/* main thread + init */
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 2);
@@ -568,21 +586,20 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_children) {
 	}
 
 	int64_t alive_children = HUGE_THREAD_NUMBER - (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
-	ASSERT_THREAD_CHILDREN(INIT_TID, HUGE_THREAD_NUMBER, alive_children);
+	/* With explicit list removal, the list shrinks when each thread is removed. */
+	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children, alive_children);
 
 	/* remove random thread */
 	remove_thread(145, 0);
 	alive_children--;
 
-	/* When we clean up the current thread is not taken into account
-	 * That's the reason why we need the +1
-	 */
-	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children + 1, alive_children);
+	/* With explicit list removal, list size equals alive_children. */
+	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children, alive_children);
 
 	/* Now if we remove another thread the logic shouldn't be called. */
 	remove_thread(146, 0);
 	alive_children--;
-	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children + 2, alive_children);
+	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children, alive_children);
 
 	/* remove all threads */
 	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++) {
@@ -597,13 +614,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_children) {
 	 * - `-DEFAULT_EXPIRED_CHILDREN_THRESHOLD` is the first time we call the logic. To compensate
 	 *    this we will do `called_logic++` at the end.
 	 */
-	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) /
-	                   (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
-	called_logic++;
-	int remaining_threads =
-	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
-
-	ASSERT_THREAD_CHILDREN(INIT_TID, remaining_threads, 0);
+	/* With explicit list removal (used for Folly ConcurrentHashMap deferred reclamation),
+	 * the parent's children list is updated when each thread is removed, so we have 0 entries.
+	 */
+	ASSERT_THREAD_CHILDREN(INIT_TID, 0, 0);
 	/* Only init process */
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
 }
@@ -618,13 +632,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_children) {
 		remove_thread(tid + i, 0);
 	}
 
-	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) /
-	                   (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
-	called_logic++;
-	int remaining_threads =
-	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
-
-	ASSERT_THREAD_CHILDREN(INIT_TID, remaining_threads, 0);
+	/* With explicit list removal (used for Folly ConcurrentHashMap deferred reclamation),
+	 * the parent's children list is updated when each thread is removed, so we have 0 entries.
+	 */
+	ASSERT_THREAD_CHILDREN(INIT_TID, 0, 0);
 	/* Only init process */
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
 }

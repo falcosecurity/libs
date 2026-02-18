@@ -23,7 +23,6 @@ limitations under the License.
 #include <list>
 #include <libsinsp/sinsp_exception.h>
 
-/* Forward declaration */
 class sinsp_threadinfo;
 
 /* Apart from the main thread all other threads when marked as dead should be removed
@@ -103,6 +102,20 @@ public:
 				continue;
 			}
 			thread++;
+		}
+	}
+
+	/* Remove a specific thread from the list immediately (e.g. when using
+	 * concurrent map with deferred reclamation, so weak_ptrs may not expire
+	 * in time for clean_expired_threads to remove them).
+	 */
+	inline void remove_thread_from_list(const std::shared_ptr<sinsp_threadinfo>& thread) {
+		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
+			auto locked = it->lock();
+			if(locked.get() == thread.get()) {
+				m_threads.erase(it);
+				return;
+			}
 		}
 	}
 

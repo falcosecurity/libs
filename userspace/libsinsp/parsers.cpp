@@ -1760,8 +1760,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 *
 	 * if `evt.get_tinfo()->m_tginfo->get_thread_count() > 1` it means
 	 * we still have some not leader threads in the group.
+	 *
+	 * Collect TIDs to remove first, then remove after the loop, so we
+	 * never call remove_thread (which mutates the thread group list) while
+	 * iterating over that same list.
 	 */
 	if(evt.get_tinfo()->m_tginfo != nullptr && evt.get_tinfo()->m_tginfo->get_thread_count() > 1) {
+		std::vector<int64_t> tids_to_remove;
 		for(const auto &thread : evt.get_tinfo()->m_tginfo->get_thread_list()) {
 			auto thread_ptr = thread.lock().get();
 			/* we don't want to remove the main thread since it is the one
@@ -1780,7 +1785,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			   thread_ptr->m_tid == evt.get_tinfo()->m_tid) {
 				continue;
 			}
-			m_params->m_thread_manager->remove_thread(thread_ptr->m_tid);
+			tids_to_remove.push_back(thread_ptr->m_tid);
+		}
+		for(int64_t tid : tids_to_remove) {
+			m_params->m_thread_manager->remove_thread(tid);
 		}
 	}
 }
