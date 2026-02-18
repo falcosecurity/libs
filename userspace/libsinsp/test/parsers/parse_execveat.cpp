@@ -28,7 +28,7 @@ TEST_F(sinsp_with_test_input, EXECVEAT_from_a_not_leader_thread) {
 	generate_execveat_enter_and_exit_event(0, p2_t2_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
 
 	/* we should have just one thread alive, the leader one */
-	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t1_tid);
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid);
 
 	/* we shouldn't be able to find other threads in the thread table */
 	ASSERT_MISSING_THREAD_INFO(p2_t2_tid, true);
@@ -43,7 +43,7 @@ TEST_F(sinsp_with_test_input, EXECVEAT_from_a_leader_thread) {
 	generate_execveat_enter_and_exit_event(0, p2_t1_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
 
 	/* we should have just one thread alive, the leader one */
-	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t1_tid);
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid);
 
 	/* we shouldn't be able to find other threads in the thread table */
 	ASSERT_MISSING_THREAD_INFO(p2_t2_tid, true);
@@ -69,7 +69,7 @@ TEST_F(sinsp_with_test_input, EXECVEAT_from_a_not_leader_thread_with_a_child) {
 	generate_execveat_enter_and_exit_event(0, p2_t2_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
 
 	/* we should have just one thread alive, the leader one */
-	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t1_tid);
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid);
 
 	/* we shouldn't be able to find other threads in the thread table */
 	ASSERT_MISSING_THREAD_INFO(p2_t2_tid, true);
@@ -105,7 +105,7 @@ TEST_F(sinsp_with_test_input, EXECVEAT_resurrect_thread) {
 	/* The main thread is no more dead and it has again its children */
 	ASSERT_FALSE(p2_t1_tinfo->is_dead());
 	ASSERT_THREAD_CHILDREN(p2_t1_tid, 1, 1, p3_t1_tid);
-	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1);
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1);
 	ASSERT_MISSING_THREAD_INFO(p2_t2_tid, true);
 	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
 }

@@ -650,6 +650,24 @@ public:
 #endif
 	}
 
+	bool const_loop_shared_pointer(const_shared_ptr_visitor_t callback) const {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_threads.cbegin(); it != m_threads.cend(); ++it) {
+			if(!callback(it->second)) {
+				return false;
+			}
+		}
+		return true;
+#else
+		for(const auto& it : m_threads) {
+			if(!callback(it.second)) {
+				return false;
+			}
+		}
+		return true;
+#endif
+	}
+
 	bool const_loop(const_visitor_t callback) const {
 #ifdef LIBSINSP_USE_FOLLY
 		for(auto it = m_threads.cbegin(); it != m_threads.cend(); ++it) {

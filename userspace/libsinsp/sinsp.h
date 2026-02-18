@@ -858,12 +858,10 @@ private:
 	int32_t fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer);
 
 	//
-	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
+	// Note: lookup_only when false updates the thread's m_lastaccess_ts;
+	//       use true for lookups that are not event-driven.
 	//
-	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only) {
+	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only) {
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
 
