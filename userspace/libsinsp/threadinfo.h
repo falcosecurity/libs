@@ -576,6 +576,7 @@ private:
 #include <folly/concurrency/ConcurrentHashMap.h>
 #endif
 
+/** Thread table storage: concurrent (Folly) when LIBSINSP_USE_FOLLY, else std::unordered_map. */
 class threadinfo_map_t {
 public:
 	typedef std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)>
