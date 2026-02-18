@@ -585,11 +585,10 @@ public:
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
-	inline const ptr_t& put(const ptr_t& tinfo) {
+	inline ptr_t put(const ptr_t& tinfo) {
 #ifdef LIBSINSP_USE_FOLLY
 		auto [it, _] = m_threads.insert_or_assign(tinfo->m_tid, tinfo);
-		m_put_cache = it->second;
-		return m_put_cache;
+		return it->second;
 #else
 		m_threads[tinfo->m_tid] = tinfo;
 		return m_threads[tinfo->m_tid];
@@ -612,18 +611,17 @@ public:
 #endif
 	}
 
-	inline const ptr_t& get_ref(uint64_t tid) {
+	inline ptr_t get_ref(uint64_t tid) {
 #ifdef LIBSINSP_USE_FOLLY
 		auto it = m_threads.find(tid);
 		if(it == m_threads.end()) {
-			return m_nullptr_ret;
+			return {};
 		}
-		m_get_ref_cache = it->second;
-		return m_get_ref_cache;
+		return it->second;
 #else
 		auto it = m_threads.find(tid);
 		if(it == m_threads.end()) {
-			return m_nullptr_ret;
+			return {};
 		}
 		return it->second;
 #endif
@@ -710,10 +708,7 @@ public:
 protected:
 #ifdef LIBSINSP_USE_FOLLY
 	folly::ConcurrentHashMap<int64_t, ptr_t> m_threads;
-	mutable ptr_t m_put_cache;
-	mutable ptr_t m_get_ref_cache;
 #else
 	std::unordered_map<int64_t, ptr_t> m_threads;
 #endif
-	const ptr_t m_nullptr_ret;  // needed for returning a reference
 };
