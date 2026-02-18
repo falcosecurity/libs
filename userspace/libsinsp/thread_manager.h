@@ -60,7 +60,7 @@ public:
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
 	                                          bool must_create_thread_dependencies);
 
-	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
+	threadinfo_map_t::ptr_t find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
 
 	/*!
@@ -127,7 +127,7 @@ public:
 
 	  \return Pointer to the threadinfo or NULL if it doesn't exist
 	*/
-	sinsp_threadinfo* get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
+	threadinfo_map_t::ptr_t get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
 	//
 	// Walk up the parent process hierarchy, calling the provided
 	// function for each node. If the function returns false, the
@@ -136,7 +136,7 @@ public:
 	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
 	void traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor);
 
-	sinsp_threadinfo* get_oldest_matching_ancestor(
+	threadinfo_map_t::ptr_t get_oldest_matching_ancestor(
 	        sinsp_threadinfo* tinfo,
 	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
 	        bool is_virtual_id = false);
