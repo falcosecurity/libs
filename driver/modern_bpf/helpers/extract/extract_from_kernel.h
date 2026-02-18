@@ -293,6 +293,16 @@ static __always_inline struct inode *extract__inode_from_file(struct file *file)
 }
 
 /**
+ * @brief Return the dentry associated with `file`.
+ *
+ * @param file pointer to file struct.
+ * @return the dentry associated with `file`.
+ */
+static __always_inline struct dentry *extract__dentry_from_file(struct file *file) {
+	return (struct dentry *)BPF_CORE_READ(file, f_path.dentry);
+}
+
+/**
  * @brief Return the `exe_file` of task mm.
  *
  * @param task pointer to task struct.
@@ -823,7 +833,7 @@ static __always_inline uint32_t extract__egid(struct task_struct *task) {
 ////////////////////////
 
 static __always_inline enum ppm_overlay extract__overlay_layer(struct file *file) {
-	struct dentry *dentry = (struct dentry *)BPF_CORE_READ(file, f_path.dentry);
+	struct dentry *dentry = extract__dentry_from_file(file);
 	unsigned long sb_magic = BPF_CORE_READ(dentry, d_sb, s_magic);
 
 	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC) {
@@ -858,7 +868,7 @@ static __always_inline enum ppm_overlay extract__overlay_layer(struct file *file
  *
  **/
 static __always_inline bool extract__exe_from_memfd(struct file *file) {
-	struct dentry *dentry = BPF_CORE_READ(file, f_path.dentry);
+	struct dentry *dentry = extract__dentry_from_file(file);
 	if(!dentry) {
 		bpf_printk("extract__exe_from_memfd(): failed to get dentry");
 		return false;
