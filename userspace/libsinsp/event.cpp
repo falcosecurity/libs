@@ -804,10 +804,9 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 		         "%" PRId64,
 		         param->as<int64_t>());
 
-		sinsp_threadinfo *atinfo =
-		        m_inspector->m_thread_manager->find_thread(param->as<int64_t>(), true).get();
-		if(atinfo != NULL) {
-			std::string &tcomm = atinfo->m_comm;
+		auto atinfo_ptr = m_inspector->m_thread_manager->find_thread(param->as<int64_t>(), true);
+		if(atinfo_ptr != NULL) {
+			std::string &tcomm = atinfo_ptr->m_comm;
 
 			//
 			// Make sure the string will fit

@@ -1169,12 +1169,12 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 	case TYPE_AARGS: {
 		m_tstr.clear();
 
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
 		}
 
-		sinsp_threadinfo::populate_args(m_tstr, mt);
+		sinsp_threadinfo::populate_args(m_tstr, mt.get());
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_ENV: {
@@ -1215,7 +1215,8 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			for(int32_t j = 0; j < 20; j++)  // up to 20 levels, but realistically we will exit way
 			                                 // before given the mt nullptr check
 			{
-				mt = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true).get();
+				auto mt_ptr = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true);
+				mt = mt_ptr.get();
 				if(mt == NULL) {
 					break;
 				}
@@ -1229,7 +1230,8 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		} else if(m_argid > 0) {
 			// start parent lineage traversal
 			for(int32_t j = 0; j < m_argid; j++) {
-				mt = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true).get();
+				auto mt_ptr = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true);
+				mt = mt_ptr.get();
 				if(mt == NULL) {
 					return NULL;
 				}
@@ -1302,7 +1304,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		}
 	}
 	case TYPE_PPID: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 		if(!mt) {
 			return NULL;
 		}
@@ -1313,7 +1315,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(mt->m_pid);
 	}
 	case TYPE_PNAME: {
-		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
+		auto ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 		if(!ptinfo) {
 			return NULL;
 		}
@@ -1322,25 +1324,25 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PCMDLINE: {
-		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
+		auto ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 		if(!ptinfo) {
 			return NULL;
 		}
 
-		sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo);
+		sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo.get());
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_ACMDLINE: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
 		}
 
-		sinsp_threadinfo::populate_cmdline(m_tstr, mt);
+		sinsp_threadinfo::populate_cmdline(m_tstr, mt.get());
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_APID: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
 		}
@@ -1351,7 +1353,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(mt->m_pid);
 	}
 	case TYPE_ANAME: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
 		}
@@ -1360,7 +1362,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PEXE: {
-		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
+		auto ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 		if(!ptinfo) {
 			return NULL;
 		}
@@ -1369,7 +1371,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_AEXE: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
 		}
@@ -1378,7 +1380,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PEXEPATH: {
-		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
+		auto ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 		if(!ptinfo) {
 			return NULL;
 		}
@@ -1387,7 +1389,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_AEXEPATH: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		auto mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
 		}
@@ -1437,7 +1439,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		}
 	}
 	case TYPE_PPID_DURATION: {
-		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
+		auto ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 		if(!ptinfo) {
 			return NULL;
 		}
@@ -1599,11 +1601,10 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(m_val.u64);
 	}
 	case TYPE_PVPID: {
-		sinsp_threadinfo* ptinfo =
-		        m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true).get();
+		auto ptinfo_ptr = m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true);
 
-		if(ptinfo != NULL) {
-			RETURN_EXTRACT_VAR(ptinfo->m_vpid);
+		if(ptinfo_ptr != NULL) {
+			RETURN_EXTRACT_VAR(ptinfo_ptr->m_vpid);
 		} else {
 			return NULL;
 		}
@@ -1645,11 +1646,10 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		}
 		RETURN_EXTRACT_VAR(tinfo->m_clone_ts);
 	case TYPE_PPID_CLONE_TS: {
-		sinsp_threadinfo* ptinfo =
-		        m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true).get();
+		auto ptinfo_ptr = m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true);
 
-		if(ptinfo != NULL) {
-			RETURN_EXTRACT_VAR(ptinfo->m_clone_ts);
+		if(ptinfo_ptr != NULL) {
+			RETURN_EXTRACT_VAR(ptinfo_ptr->m_clone_ts);
 		} else {
 			return NULL;
 		}

@@ -782,16 +782,22 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 
 	auto child = m_children.begin();
 	while(child != m_children.end()) {
-		/* If the child is not expired we move it to the reaper
-		 * and we change its `ptid`.
+		/* If the child is alive, move it to the reaper and update its ptid.
+		 * We check both expired() and is_dead() because with concurrent data
+		 * structures using deferred memory reclamation (hazard pointers),
+		 * weak_ptr::expired() may return false for children that have already
+		 * been removed from the table but whose shared_ptr has not yet been
+		 * reclaimed. The is_dead() flag is set eagerly during remove_thread()
+		 * and is the authoritative indicator.
 		 */
-		if(!child->expired()) {
+		auto locked = child->lock();
+		if(locked && !locked->is_dead()) {
 			if(reaper == nullptr) {
 				/* we set `0` as the parent for all children */
-				child->lock()->m_ptid = 0;
+				locked->m_ptid = 0;
 			} else {
 				/* Add the child to the reaper list */
-				reaper->add_child(child->lock());
+				reaper->add_child(locked);
 			}
 		}
 

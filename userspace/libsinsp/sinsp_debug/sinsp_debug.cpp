@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 	std::cout << "ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ " << std::endl << std::endl;
 
 	// Print lineage for all threads in the table
-	inspector.m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
+	inspector.m_thread_manager->loop_threads([&](sinsp_threadinfo& tinfo) {
 		printf("* %s\n", thread_info_to_string(&tinfo).c_str());
 		return true;
 	});
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
 	std::cout << "📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜" << std::endl << std::endl;
 
 	// Print lineage for all threads in the table
-	inspector.m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
+	inspector.m_thread_manager->loop_threads([&](sinsp_threadinfo& tinfo) {
 		display_thread_lineage(*inspector.m_thread_manager, &tinfo);
 		return true;
 	});
