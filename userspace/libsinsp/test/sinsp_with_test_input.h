@@ -138,8 +138,6 @@ protected:
 	sinsp_with_test_input();
 	~sinsp_with_test_input();
 
-	sinsp m_inspector = sinsp(true);
-
 	void open_inspector(sinsp_mode_t mode = SINSP_MODE_TEST);
 
 	template<class... Ts>
@@ -481,6 +479,10 @@ protected:
 
 	uint64_t m_test_timestamp = 1566230400000000000;
 	uint64_t m_last_recorded_timestamp = 0;
+
+	// Declared last so destroyed first: tear down inspector before the
+	// filter list, avoiding any inspector-held references into the list.
+	sinsp m_inspector = sinsp(true);
 };
 
 template<>
