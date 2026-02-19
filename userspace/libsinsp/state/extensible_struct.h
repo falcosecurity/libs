@@ -22,7 +22,7 @@ limitations under the License.
 #include <libsinsp/state/static_struct.h>
 
 namespace libsinsp::state {
-class extensible_struct : public state_struct {
+class extensible_struct : public table_entry {
 public:
 	explicit extensible_struct(
 	        const std::shared_ptr<dynamic_field_infos>& dynamic_fields = nullptr):
@@ -40,28 +40,7 @@ public:
 	}
 	~extensible_struct() override { extensible_struct::destroy_dynamic_fields(); }
 
-	// static_struct interface
-	/**
-	 * @brief A group of field infos, describing all the ones available
-	 * in a static struct.
-	 */
-	using field_infos = std::unordered_map<std::string, static_field_info>;
-
-	/**
-	 * @brief Returns information about all the static fields accessible in a struct.
-	 */
-	virtual field_infos static_fields() const { return {}; }
-	// end of static_struct interface
-
 	// dynamic_struct interface
-
-	inline const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
-		return m_dynamic_fields;
-	}
-
-	/**
-	 * @brief Returns information about all the dynamic fields accessible in a struct.
-	 */
 
 	/**
 	 * @brief Sets the shared definitions for the dynamic fields accessible in a struct.
@@ -82,6 +61,13 @@ public:
 	}
 
 protected:
+	/**
+	 * @brief Returns information about all the dynamic fields accessible in a struct.
+	 */
+	inline const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
+
 	/**
 	 * @brief Destroys all the dynamic field values currently allocated
 	 */
@@ -247,6 +233,12 @@ protected:
 };
 
 /**
+ * @brief A group of field infos, describing all the ones available
+ * in a static struct.
+ */
+using static_field_infos = std::unordered_map<std::string, static_field_info>;
+
+/**
  * @brief Defines the information about a field defined in the class or struct.
  * An exception is thrown if two fields are defined with the same name.
  *
@@ -257,11 +249,10 @@ protected:
  * @param readonly Read-only field annotation.
  */
 template<typename T>
-constexpr static const static_field_info& define_static_field(
-        extensible_struct::field_infos& fields,
-        const size_t offset,
-        const std::string& name,
-        const bool readonly = false) {
+constexpr static const static_field_info& define_static_field(static_field_infos& fields,
+                                                              const size_t offset,
+                                                              const std::string& name,
+                                                              const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);

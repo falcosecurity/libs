@@ -320,20 +320,7 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
         uint32_t* nfields) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		this->m_field_list.clear();
-		for(auto& info : *this->static_fields()) {
-			ss_plugin_table_fieldinfo i;
-			i.name = info.second.name().c_str();
-			i.field_type = info.second.info().type_id();
-			i.read_only = info.second.readonly();
-			this->m_field_list.push_back(i);
-		}
-		for(auto& info : this->dynamic_fields()->fields()) {
-			ss_plugin_table_fieldinfo i;
-			i.name = info.second.name().c_str();
-			i.field_type = info.second.info().type_id();
-			i.read_only = false;
-			this->m_field_list.push_back(i);
-		}
+		this->list_fields(m_field_list);
 		*nfields = this->m_field_list.size();
 		return this->m_field_list.data();
 	});
@@ -341,69 +328,79 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
 }
 
 template<typename KeyType>
+void libsinsp::state::extensible_table<KeyType>::list_fields(
+        std::vector<ss_plugin_table_fieldinfo>& out) {
+	out.clear();
+	for(auto& info : *this->static_fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = info.second.readonly();
+		out.push_back(i);
+	}
+	for(auto& info : this->dynamic_fields()->fields()) {
+		ss_plugin_table_fieldinfo i;
+		i.name = info.second.name().c_str();
+		i.field_type = info.second.info().type_id();
+		i.read_only = false;
+		out.push_back(i);
+	}
+}
+
+template<typename KeyType>
 ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
-	libsinsp::state::static_field_infos::const_iterator fixed_it;
-	std::unordered_map<std::string, libsinsp::state::dynamic_field_info>::const_iterator dyn_it;
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);
 		if(it != this->m_field_accessors.end()) {
 			return static_cast<ss_plugin_table_field_t*>(it->second);
 		}
 
-		fixed_it = this->static_fields()->find(name);
-		dyn_it = this->dynamic_fields()->fields().find(name);
-		if(fixed_it != this->static_fields()->end() &&
-		   dyn_it != this->dynamic_fields()->fields().end()) {
-			// todo(jasondellaluce): plugins are not aware of the difference
-			// between static and dynamic fields. Do we want to enforce
-			// this limitation in the sinsp tables implementation as well?
-			throw sinsp_exception("field is defined as both static and dynamic: " +
-			                      std::string(name));
-		}
+		auto acc = this->get_field(name, typeinfo::from(data_type));
+		owner->m_accessed_table_fields.push_back(std::move(acc));
+		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get();
+		return this->m_field_accessors[name];
 	});
-
-#define _X(_type, _dtype)                                                            \
-	{                                                                                \
-		auto acc = fixed_it->second.new_accessor<_type>();                           \
-		owner->m_accessed_table_fields.push_back(std::move(acc));                    \
-		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get(); \
-		return this->m_field_accessors[name];                                        \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		if(fixed_it != this->static_fields()->end()) {
-			if(data_type != fixed_it->second.info().type_id()) {
-				throw sinsp_exception("incompatible data types for static field: " +
-				                      std::string(name));
-			}
-			__PLUGIN_STATETYPE_SWITCH(data_type);
-		}
-	});
-#undef _X
-
-#define _X(_type, _dtype)                                                            \
-	{                                                                                \
-		auto acc = dyn_it->second.new_accessor<_type>();                             \
-		owner->m_accessed_table_fields.push_back(std::move(acc));                    \
-		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().get(); \
-		return this->m_field_accessors[name];                                        \
-	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		if(dyn_it != this->dynamic_fields()->fields().end()) {
-			if(data_type != dyn_it->second.info().type_id()) {
-				throw sinsp_exception("incompatible data types for dynamic field: " +
-				                      std::string(name));
-			}
-			__PLUGIN_STATETYPE_SWITCH(data_type);
-		}
-		throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-		                      std::string(this->name()) + "'");
-	});
-#undef _X
 
 	return NULL;
+}
+
+template<typename KeyType>
+std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<KeyType>::get_field(
+        const char* name,
+        const typeinfo& data_type) {
+	auto fixed_it = this->static_fields()->find(name);
+	auto dyn_it = this->dynamic_fields()->fields().find(name);
+	if(fixed_it != this->static_fields()->end() &&
+	   dyn_it != this->dynamic_fields()->fields().end()) {
+		// todo(jasondellaluce): plugins are not aware of the difference
+		// between static and dynamic fields. Do we want to enforce
+		// this limitation in the sinsp tables implementation as well?
+		throw sinsp_exception("field is defined as both static and dynamic: " + std::string(name));
+	}
+
+#define _X(_type, _dtype) return fixed_it->second.template new_accessor<_type>();
+	if(fixed_it != this->static_fields()->end()) {
+		if(data_type.type_id() != fixed_it->second.info().type_id()) {
+			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
+		}
+		__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+	}
+#undef _X
+
+#define _X(_type, _dtype) return dyn_it->second.template new_accessor<_type>();
+	if(dyn_it != this->dynamic_fields()->fields().end()) {
+		if(data_type.type_id() != dyn_it->second.info().type_id()) {
+			throw sinsp_exception("incompatible data types for dynamic field: " +
+			                      std::string(name));
+		}
+		__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+	}
+	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
+	                      std::string(this->name()) + "'");
+#undef _X
 }
 
 template<typename KeyType>
@@ -411,10 +408,20 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
         sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		this->add_field(name, typeinfo::from(data_type));
+		return get_field(owner, name, data_type);
+	});
+	return NULL;
+}
+
+template<typename KeyType>
+std::unique_ptr<libsinsp::state::accessor> libsinsp::state::extensible_table<KeyType>::add_field(
+        const char* name,
+        const typeinfo& data_type) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
-		owner->m_last_owner_err =
-		        "can't add dynamic field already defined as static: " + std::string(name);
-		return NULL;
+		throw sinsp_exception("can't add dynamic field already defined as static: " +
+		                      std::string(name));
 	}
 
 #define _X(_type, _dtype)                                        \
@@ -422,10 +429,8 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 		this->dynamic_fields()->template add_field<_type>(name); \
 		break;                                                   \
 	}
-	__CATCH_ERR_MSG(owner->m_last_owner_err, {
-		__PLUGIN_STATETYPE_SWITCH(data_type);
-		return get_field(owner, name, data_type);
-	});
+	__PLUGIN_STATETYPE_SWITCH(data_type.type_id());
+	return get_field(name, data_type);
 #undef _X
 	return NULL;
 }
@@ -619,3 +624,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
 template class libsinsp::state::built_in_table<std::string>;
+
+template class libsinsp::state::extensible_table<int64_t>;
+template class libsinsp::state::extensible_table<uint64_t>;
+template class libsinsp::state::extensible_table<std::string>;
