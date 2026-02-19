@@ -22,6 +22,47 @@ limitations under the License.
 #include <cmath>
 #include <re2/re2.h>
 
+std::atomic<uint64_t> sinsp_stats_v2::s_next_instance_id{1};
+
+sinsp_stats_v2::sinsp_stats_v2(): m_instance_id(s_next_instance_id.fetch_add(1)) {}
+
+sinsp_stats_v2_thread_counters& sinsp_stats_v2::get_thread_counters() {
+	thread_local uint64_t t_cached_id = 0;
+	thread_local sinsp_stats_v2_thread_counters* t_counters = nullptr;
+	if(t_cached_id != m_instance_id) {
+		std::lock_guard<std::mutex> g(m_mutex);
+		m_thread_counters.push_back(std::make_unique<sinsp_stats_v2_thread_counters>());
+		t_counters = m_thread_counters.back().get();
+		t_cached_id = m_instance_id;
+	}
+	return *t_counters;
+}
+
+sinsp_stats_v2_snapshot sinsp_stats_v2::get_snapshot() const {
+	using std::memory_order_relaxed;
+	sinsp_stats_v2_snapshot s = {};
+	std::lock_guard<std::mutex> g(m_mutex);
+	for(const auto& c : m_thread_counters) {
+		s.m_n_noncached_fd_lookups += c->m_n_noncached_fd_lookups.load(memory_order_relaxed);
+		s.m_n_cached_fd_lookups += c->m_n_cached_fd_lookups.load(memory_order_relaxed);
+		s.m_n_failed_fd_lookups += c->m_n_failed_fd_lookups.load(memory_order_relaxed);
+		s.m_n_added_fds += c->m_n_added_fds.load(memory_order_relaxed);
+		s.m_n_removed_fds += c->m_n_removed_fds.load(memory_order_relaxed);
+		s.m_n_stored_evts += c->m_n_stored_evts.load(memory_order_relaxed);
+		s.m_n_store_evts_drops += c->m_n_store_evts_drops.load(memory_order_relaxed);
+		s.m_n_retrieved_evts += c->m_n_retrieved_evts.load(memory_order_relaxed);
+		s.m_n_retrieve_evts_drops += c->m_n_retrieve_evts_drops.load(memory_order_relaxed);
+		s.m_n_noncached_thread_lookups +=
+		        c->m_n_noncached_thread_lookups.load(memory_order_relaxed);
+		s.m_n_cached_thread_lookups += c->m_n_cached_thread_lookups.load(memory_order_relaxed);
+		s.m_n_failed_thread_lookups += c->m_n_failed_thread_lookups.load(memory_order_relaxed);
+		s.m_n_added_threads += c->m_n_added_threads.load(memory_order_relaxed);
+		s.m_n_removed_threads += c->m_n_removed_threads.load(memory_order_relaxed);
+		s.m_n_drops_full_threadtable += c->m_n_drops_full_threadtable.load(memory_order_relaxed);
+	}
+	return s;
+}
+
 #ifdef __linux__
 #include <libsinsp/linux/resource_utilization.h>
 #endif
@@ -284,96 +325,97 @@ std::vector<metrics_v2> libs_state_counters::to_metrics() {
 		return metrics;
 	}
 
+	const auto snap = m_sinsp_stats_v2->get_snapshot();
 	metrics.emplace_back(new_metric("n_noncached_fd_lookups",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_noncached_fd_lookups));
+	                                snap.m_n_noncached_fd_lookups));
 	metrics.emplace_back(new_metric("n_cached_fd_lookups",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_cached_fd_lookups));
+	                                snap.m_n_cached_fd_lookups));
 	metrics.emplace_back(new_metric("n_failed_fd_lookups",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_failed_fd_lookups));
+	                                snap.m_n_failed_fd_lookups));
 	metrics.emplace_back(new_metric("n_added_fds",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_added_fds));
+	                                snap.m_n_added_fds));
 	metrics.emplace_back(new_metric("n_removed_fds",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_removed_fds));
+	                                snap.m_n_removed_fds));
 	metrics.emplace_back(new_metric("n_stored_evts",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_stored_evts));
+	                                snap.m_n_stored_evts));
 	metrics.emplace_back(new_metric("n_store_evts_drops",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_store_evts_drops));
+	                                snap.m_n_store_evts_drops));
 	metrics.emplace_back(new_metric("n_retrieved_evts",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_retrieved_evts));
+	                                snap.m_n_retrieved_evts));
 	metrics.emplace_back(new_metric("n_retrieve_evts_drops",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_retrieve_evts_drops));
+	                                snap.m_n_retrieve_evts_drops));
 	metrics.emplace_back(new_metric("n_noncached_thread_lookups",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_noncached_thread_lookups));
+	                                snap.m_n_noncached_thread_lookups));
 	metrics.emplace_back(new_metric("n_cached_thread_lookups",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_cached_thread_lookups));
+	                                snap.m_n_cached_thread_lookups));
 	metrics.emplace_back(new_metric("n_failed_thread_lookups",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_failed_thread_lookups));
+	                                snap.m_n_failed_thread_lookups));
 	metrics.emplace_back(new_metric("n_added_threads",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_added_threads));
+	                                snap.m_n_added_threads));
 	metrics.emplace_back(new_metric("n_removed_threads",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U64,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_removed_threads));
+	                                snap.m_n_removed_threads));
 	metrics.emplace_back(new_metric("n_drops_full_threadtable",
 	                                METRICS_V2_STATE_COUNTERS,
 	                                METRIC_VALUE_TYPE_U32,
 	                                METRIC_VALUE_UNIT_COUNT,
 	                                METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-	                                m_sinsp_stats_v2->m_n_drops_full_threadtable));
+	                                snap.m_n_drops_full_threadtable));
 	return metrics;
 }
 

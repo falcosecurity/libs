@@ -27,32 +27,68 @@ limitations under the License.
 #include <optional>
 #include <string_view>
 #include <map>
+#include <mutex>
+#include <vector>
+#include <atomic>
 
-struct sinsp_stats_v2 {
-	///@(
-	/** fdtable state related counters, unit: count. */
+/** Per-thread counter block; atomics so get_snapshot() can read safely while other threads write.
+ */
+struct sinsp_stats_v2_thread_counters {
+	std::atomic<uint64_t> m_n_noncached_fd_lookups{0};
+	std::atomic<uint64_t> m_n_cached_fd_lookups{0};
+	std::atomic<uint64_t> m_n_failed_fd_lookups{0};
+	std::atomic<uint64_t> m_n_added_fds{0};
+	std::atomic<uint64_t> m_n_removed_fds{0};
+	std::atomic<uint64_t> m_n_stored_evts{0};
+	std::atomic<uint64_t> m_n_store_evts_drops{0};
+	std::atomic<uint64_t> m_n_retrieved_evts{0};
+	std::atomic<uint64_t> m_n_retrieve_evts_drops{0};
+	std::atomic<uint64_t> m_n_noncached_thread_lookups{0};
+	std::atomic<uint64_t> m_n_cached_thread_lookups{0};
+	std::atomic<uint64_t> m_n_failed_thread_lookups{0};
+	std::atomic<uint64_t> m_n_added_threads{0};
+	std::atomic<uint64_t> m_n_removed_threads{0};
+	std::atomic<uint32_t> m_n_drops_full_threadtable{0};
+};
+
+/** Aggregated snapshot for metrics (sum of all threads' counters). */
+struct sinsp_stats_v2_snapshot {
 	uint64_t m_n_noncached_fd_lookups;
 	uint64_t m_n_cached_fd_lookups;
 	uint64_t m_n_failed_fd_lookups;
 	uint64_t m_n_added_fds;
 	uint64_t m_n_removed_fds;
-	///@)
-	///@(
-	/** evt parsing related counters, unit: count. */
 	uint64_t m_n_stored_evts;
 	uint64_t m_n_store_evts_drops;
 	uint64_t m_n_retrieved_evts;
 	uint64_t m_n_retrieve_evts_drops;
-	///@)
-	///@(
-	/** threadtable state related counters, unit: count. */
 	uint64_t m_n_noncached_thread_lookups;
 	uint64_t m_n_cached_thread_lookups;
 	uint64_t m_n_failed_thread_lookups;
 	uint64_t m_n_added_threads;
 	uint64_t m_n_removed_threads;
-	///@)
-	uint32_t m_n_drops_full_threadtable;  ///< Number of drops due to full threadtable, unit: count.
+	uint32_t m_n_drops_full_threadtable;
+};
+
+/**
+ * Thread-local sinsp stats: each thread updates its own counters; get_snapshot() aggregates.
+ * Safe for concurrent updates from thread_manager, parsers, fdtable.
+ */
+class sinsp_stats_v2 {
+public:
+	sinsp_stats_v2();
+
+	/** Reference to this thread's counters (create and register on first use). */
+	sinsp_stats_v2_thread_counters& get_thread_counters();
+
+	/** Aggregate all threads' counters for metrics. */
+	sinsp_stats_v2_snapshot get_snapshot() const;
+
+private:
+	static std::atomic<uint64_t> s_next_instance_id;
+	uint64_t m_instance_id;
+	mutable std::mutex m_mutex;
+	mutable std::vector<std::unique_ptr<sinsp_stats_v2_thread_counters>> m_thread_counters;
 };
 
 namespace libs::metrics {
