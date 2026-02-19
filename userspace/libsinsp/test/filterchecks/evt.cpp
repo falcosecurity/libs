@@ -136,7 +136,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 
 	// We remove the user, and the fields should be empty again
 	m_inspector.m_usergroup_manager->rm_user(container_id, user_id);
-	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user(container_id, user_id));
+	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user(container_id, user_id).has_value());
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "<NA>");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[1]"), "<NA>");

@@ -566,17 +566,14 @@ const unordered_map<uint32_t, scap_userinfo> *sinsp_usergroup_manager::get_userl
 	return &m_userlist[container_id];
 }
 
-scap_userinfo *sinsp_usergroup_manager::get_user(const string &container_id, uint32_t uid) {
-	if(m_userlist.find(container_id) == m_userlist.end()) {
-		return nullptr;
+std::optional<scap_userinfo> sinsp_usergroup_manager::get_user(const std::string &container_id,
+                                                               uint32_t uid) {
+	std::shared_lock lock(m_mutex);
+	scap_userinfo *p = get_user_assuming_lock_held(container_id, uid);
+	if(!p) {
+		return std::nullopt;
 	}
-
-	auto &userlist = m_userlist[container_id];
-	auto it = userlist.find(uid);
-	if(it == userlist.end()) {
-		return nullptr;
-	}
-	return &it->second;
+	return *p;
 }
 
 const unordered_map<uint32_t, scap_groupinfo> *sinsp_usergroup_manager::get_grouplist(
@@ -587,17 +584,14 @@ const unordered_map<uint32_t, scap_groupinfo> *sinsp_usergroup_manager::get_grou
 	return &m_grouplist[container_id];
 }
 
-scap_groupinfo *sinsp_usergroup_manager::get_group(const std::string &container_id, uint32_t gid) {
-	if(m_grouplist.find(container_id) == m_grouplist.end()) {
-		return nullptr;
+std::optional<scap_groupinfo> sinsp_usergroup_manager::get_group(const std::string &container_id,
+                                                                 uint32_t gid) {
+	std::shared_lock lock(m_mutex);
+	scap_groupinfo *p = get_group_assuming_lock_held(container_id, gid);
+	if(!p) {
+		return std::nullopt;
 	}
-
-	auto &grplist = m_grouplist[container_id];
-	auto it = grplist.find(gid);
-	if(it == grplist.end()) {
-		return nullptr;
-	}
-	return &it->second;
+	return *p;
 }
 
 scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id,

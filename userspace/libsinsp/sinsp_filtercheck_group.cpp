@@ -71,13 +71,11 @@ uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(m_gid);
 	case TYPE_NAME: {
 		auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-		auto group = m_inspector->m_usergroup_manager->get_group(container_id, tinfo->m_gid);
-		if(group) {
-			m_name = group->name;
-		} else if(tinfo->m_gid == 0) {
-			m_name = "root";
-		} else {
-			m_name = "<NA>";
+		if(!m_inspector->m_usergroup_manager->with_group(
+		           container_id,
+		           tinfo->m_gid,
+		           [this](const scap_groupinfo& g) { m_name = g.name; })) {
+			m_name = (tinfo->m_gid == 0) ? "root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_name);
 	}
