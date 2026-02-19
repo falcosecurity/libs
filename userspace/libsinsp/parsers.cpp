@@ -3088,7 +3088,7 @@ struct ppm_cmsghdr {
 	        ((char *)(cmsg)) + offsetof(ppm_cmsghdr, field), \
 	        sizeof((cmsg)->field)))
 
-#define PPM_CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t)~(sizeof(size_t) - 1))
+#define PPM_CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t) ~(sizeof(size_t) - 1))
 
 // Given a length, return the additional padding necessary such that
 // `len + __PPM_CMSG_PADDING(len) == PPM_CMSG_ALIGN(len)`.
