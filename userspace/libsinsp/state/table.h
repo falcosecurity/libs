@@ -30,32 +30,6 @@ namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
 
-// wraps instances of libsinsp::state::XXX_field_accessor and
-// help making them comply to the plugin API state tables definitions
-struct sinsp_field_accessor_wrapper {
-	// depending on the value of `dynamic`, one of:
-	// - libsinsp::state::static_field_accessor
-	// - libsinsp::state::dynamic_field_accessor
-	void* accessor = nullptr;
-	bool dynamic = false;
-	ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-
-	inline sinsp_field_accessor_wrapper() = default;
-	~sinsp_field_accessor_wrapper();
-	inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
-	inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) = delete;
-	sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
-	sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
-};
-
-/**
- * @brief Base class for entries of a state table.
- */
-struct table_entry : public extensible_struct {
-	explicit table_entry(const std::shared_ptr<dynamic_field_infos>& dyn_fields):
-	        extensible_struct(dyn_fields) {}
-};
-
 template<typename KeyType>
 class table;
 
@@ -124,7 +98,7 @@ struct table_accessor {
  */
 class base_table {
 public:
-	inline base_table(const typeinfo& key_info): m_key_info(key_info) {}
+	inline base_table(ss_plugin_state_type key_type): m_key_type_id(key_type) {}
 
 	virtual ~base_table() = default;
 	inline base_table(base_table&&) = default;
@@ -140,7 +114,7 @@ public:
 	/**
 	 * @brief Returns the non-null type info about the table's key.
 	 */
-	inline const typeinfo& key_info() const { return m_key_info; }
+	inline ss_plugin_state_type key_type() const { return m_key_type_id; }
 
 	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
 	                                                     uint32_t* nfields) = 0;
@@ -187,7 +161,7 @@ public:
 	                                       const ss_plugin_state_data* in) = 0;
 
 protected:
-	typeinfo m_key_info;
+	ss_plugin_state_type m_key_type_id;
 };
 
 /**
@@ -199,7 +173,7 @@ class table : public base_table {
 	              "table key types must have a default constructor");
 
 public:
-	inline table(): base_table(typeinfo::of<KeyType>()) {}
+	inline table(): base_table(type_id_of<KeyType>()) {}
 	virtual ~table() = default;
 	inline table(table&&) = default;
 	inline table& operator=(table&&) = default;
@@ -210,48 +184,36 @@ public:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
-	inline built_in_table(
-	        const std::string& name,
-	        const extensible_struct::field_infos* static_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name),
-	        m_static_fields(static_fields),
-	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
-	                                                   : std::make_shared<dynamic_field_infos>()) {}
-	inline built_in_table(const std::string& name):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name),
-	        m_dynamic_fields(std::make_shared<dynamic_field_infos>()) {}
-
-	/**
-	 * @brief Returns a pointer to the area of memory in which this table
-	 * object is allocated. Here for convenience as required in other code parts.
-	 */
-	inline const base_table* const& table_ptr() const { return m_this_ptr; }
-
-	/**
-	 * @brief Returns the offset of m_this_ptr. Here for convenience as required in other code
-	 * parts.
-	 */
-#if defined(__clang__)
-	__attribute__((no_sanitize("undefined")))
-#endif
-	static size_t
-	table_ptr_offset() {
-		return OFFSETOF_STATIC_FIELD(built_in_table<KeyType>, m_this_ptr);
-	}
+	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
 
 	const char* name() const override { return m_name.c_str(); }
 
 	/**
-	 * @brief Returns the fields metadata list for the static fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table.
+	 * @brief Returns a list of the fields present in the table, with their
+	 * name and type.
+	 *
+	 * @param out Output vector to be filled with the field info of all the
+	 * fields present in the table.
 	 */
-	virtual const extensible_struct::field_infos* static_fields() const { return m_static_fields; }
+	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) = 0;
+
+	/**
+	 * @brief Returns an accessor for the field with the given name and type.
+	 *
+	 * @param name Name of the field to be retrieved.
+	 * @param type_id Type of the field to be retrieved.
+	 * @return The accessor for * the requested field.
+	 */
+	virtual accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) = 0;
+
+	/**
+	 * @brief Adds a new field to the table with the given name and type.
+	 *
+	 * @param name Name of the field to be added.
+	 * @param type_id Type of the field to be added.
+	 * @return The accessor for the newly-added field.
+	 */
+	virtual accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) = 0;
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -318,31 +280,6 @@ public:
 	 */
 	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
-	/**
-	 * @brief Returns the fields metadata list for the dynamic fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table. The returned metadata list can
-	 * be expended at runtime by adding new dynamic fields, which will then
-	 * be allocated and accessible for all the present and future entries
-	 * present in the table.
-	 */
-	virtual const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
-		return m_dynamic_fields;
-	}
-
-	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& dynf) {
-		if(m_dynamic_fields.get() == dynf.get()) {
-			return;
-		}
-		if(!dynf) {
-			throw sinsp_exception("null definitions passed to set_dynamic_fields");
-		}
-		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
-			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
-		}
-		m_dynamic_fields = dynf;
-	}
-
 	uint64_t get_size(sinsp_table_owner* owner) override;
 
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
@@ -388,11 +325,78 @@ public:
 	                               const ss_plugin_state_data* in) override;
 
 private:
-	const base_table* m_this_ptr;
 	std::string m_name;
-	const extensible_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
-	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
+	std::unordered_map<std::string, const accessor*> m_field_accessors;
+};
+
+template<typename KeyType>
+class extensible_table : public built_in_table<KeyType> {
+public:
+	template<typename T>
+	struct type_tag {
+		using type = T;
+	};
+
+	template<typename T>
+	inline extensible_table(
+	        type_tag<T>,
+	        const std::string& name,
+	        const static_field_infos* static_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
+	        built_in_table<KeyType>(name),
+	        m_static_fields(static_fields),
+	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
+	                                                   : dynamic_field_infos::make<T>()) {}
+
+	template<typename T>
+	inline extensible_table(type_tag<T>, const std::string& name):
+	        built_in_table<KeyType>(name),
+	        m_dynamic_fields(dynamic_field_infos::make<T>()) {}
+
+	/**
+	 * @brief Returns the fields metadata list for the static fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table.
+	 */
+	virtual const static_field_infos* static_fields() const { return m_static_fields; }
+
+	/**
+	 * @brief Returns the fields metadata list for the dynamic fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table. The returned metadata list can
+	 * be expended at runtime by adding new dynamic fields, which will then
+	 * be allocated and accessible for all the present and future entries
+	 * present in the table.
+	 */
+	virtual const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
+
+	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& dynf) {
+		if(m_dynamic_fields.get() == dynf.get()) {
+			return;
+		}
+		if(!dynf) {
+			throw sinsp_exception("null definitions passed to set_dynamic_fields");
+		}
+		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
+			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
+		}
+		m_dynamic_fields = dynf;
+	}
+
+	using built_in_table<KeyType>::list_fields;
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override;
+
+	using built_in_table<KeyType>::get_field;
+	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override;
+
+	using built_in_table<KeyType>::add_field;
+	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override;
+
+private:
+	const static_field_infos* m_static_fields;
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 };
 
@@ -409,9 +413,8 @@ protected:
 	std::list<std::unique_ptr<libsinsp::state::table_entry>>
 	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
-	        m_ephemeral_tables;  // note: lists have pointer stability
-	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
-	        m_accessed_table_fields;  // note: lists have pointer stability
+	        m_ephemeral_tables;                        // note: lists have pointer stability
+	std::list<accessor::ptr> m_accessed_table_fields;  // note: lists have pointer stability
 
 	bool m_ephemeral_tables_clear = false;
 	bool m_accessed_entries_clear = false;

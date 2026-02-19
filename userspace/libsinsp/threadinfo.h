@@ -76,14 +76,12 @@ struct sinsp_threadinfo_ctor_params {
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
+class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct {
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
 
 	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
 	~sinsp_threadinfo() override;
-
-	libsinsp::state::extensible_struct::field_infos static_fields() const override;
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -353,7 +351,7 @@ public:
 	//
 	// Core state
 	//
-	int64_t m_tid;   ///< The id of this thread
+	std::atomic<int64_t> m_tid;  ///< The id of this thread
 	int64_t m_pid;   ///< The id of the process containing this thread. In single thread threads,
 	                 ///< this is equal to tid.
 	int64_t m_ptid;  ///< The id of the process that started this thread.
@@ -496,8 +494,7 @@ public:
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();
 		m_main_fdtable =
-		        !fdtable ? nullptr
-		                 : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+		        !fdtable ? nullptr : static_cast<const libsinsp::state::base_table*>(fdtable);
 	}
 
 	void set_exepath(std::string&& exepath);
@@ -506,7 +503,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static extensible_struct::field_infos get_static_fields();
+	static libsinsp::state::static_field_infos get_static_fields();
 
 protected:
 	// Parameters provided at thread info construction phase.

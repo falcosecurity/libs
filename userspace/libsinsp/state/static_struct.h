@@ -18,8 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/state/state_struct.h>
-#include <libsinsp/state/type_info.h>
+#include <libsinsp/state/table_entry.h>
 
 #include <string>
 #include <unordered_map>
@@ -27,133 +26,165 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
-template<typename T>
-class static_field_accessor;
-
-/**
- * @brief Info about a given field in a static struct.
- */
-class static_field_info {
-public:
-	friend inline bool operator==(const static_field_info& a, const static_field_info& b) {
-		return a.info() == b.info() && a.name() == b.name() && a.readonly() == b.readonly() &&
-		       a.m_offset == b.m_offset;
-	};
-
-	friend inline bool operator!=(const static_field_info& a, const static_field_info& b) {
-		return !(a == b);
-	};
-
-	/**
-	 * @brief Returns true if the field info is valid.
-	 */
-	inline bool valid() const { return m_offset != (size_t)-1; }
-
-	/**
-	 * @brief Returns true if the field is read only.
-	 */
-	inline bool readonly() const { return m_readonly; }
-
-	/**
-	 * @brief Returns the name of the field.
-	 */
-	inline const std::string& name() const { return m_name; }
-
-	/**
-	 * @brief Returns the type info of the field.
-	 */
-	inline const libsinsp::state::typeinfo& info() const { return m_info; }
-
-	/**
-	 * @brief Returns the offset of the field within the struct.
-	 */
-	inline size_t offset() const { return m_offset; }
-
-	/**
-	 * @brief Returns a strongly-typed accessor for the given field,
-	 * that can be used to reading and writing the field's value in
-	 * all instances of structs where it is defined.
-	 */
-	template<typename T>
-	inline static_field_accessor<T> new_accessor() const {
-		if(!valid()) {
-			throw sinsp_exception("can't create static struct field accessor for invalid field");
-		}
-		auto t = libsinsp::state::typeinfo::of<T>();
-		if(m_info != t) {
-			throw sinsp_exception(
-			        "incompatible type for static struct field accessor: field=" + m_name +
-			        ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
-		}
-		return static_field_accessor<T>(*this);
-	}
-
-	inline static_field_info(const std::string& n, size_t o, const typeinfo& i, bool r):
-	        m_readonly(r),
-	        m_offset(o),
-	        m_name(n),
-	        m_info(i) {}
-
-private:
-	bool m_readonly;
-	size_t m_offset;
-	std::string m_name;
-	libsinsp::state::typeinfo m_info;
-
-	friend class static_struct;
-};
-
-/**
- * @brief An strongly-typed accessor for accessing a field of a static struct.
- * @tparam T Type of the field.
- */
-template<typename T>
-class static_field_accessor : public typed_accessor<T> {
-public:
-	/**
-	 * @brief Returns the info about the field to which this accessor is tied.
-	 */
-	[[nodiscard]] const static_field_info& info() const { return m_info; }
-
-private:
-	explicit static_field_accessor(static_field_info info): m_info(std::move(info)) {};
-
-	static_field_info m_info;
-
-	friend class static_struct;
-	friend class static_field_info;
-};
-
 /**
  * @brief A group of field infos, describing all the ones available
  * in a static struct.
  */
-using static_field_infos = std::unordered_map<std::string, static_field_info>;
+using static_field_infos = std::unordered_map<std::string, accessor>;
+
+template<typename>
+struct member_class;
+
+template<typename C, typename T>
+struct member_class<T C::*> {
+	using type = C;
+};
+
+template<typename>
+struct fn_container;
+
+template<typename Ret, typename C, typename... Args>
+struct fn_container<Ret (*)(const C*, Args...)> {
+	using type = C;
+};
+
+template<typename Ret, typename C, typename... Args>
+struct fn_container<Ret (*)(C*, Args...)> {
+	using type = C;
+};
+
+template<ss_plugin_state_type StateType, auto Fn>
+borrowed_state_data read_fn(const void* obj, size_t) {
+	using FnType = decltype(Fn);
+	using Container = typename fn_container<FnType>::type;
+
+	auto* c = static_cast<const Container*>(obj);
+	auto&& value = Fn(c);
+
+	using decayed_t = std::decay_t<decltype(value)>;
+	return borrowed_state_data::from<StateType, decayed_t>(value);
+}
+
+template<typename Base, auto... Members>
+struct nested_member;
+
+template<typename Base, auto Member>
+struct nested_member<Base, Member> {
+	using container_type = typename member_class<decltype(Member)>::type;
+	using leaf_type = std::decay_t<decltype(std::declval<container_type>().*Member)>;
+
+	static decltype(auto) get(const Base* obj) { return obj->*Member; }
+	static decltype(auto) get(Base* obj) { return obj->*Member; }
+};
+
+template<typename Base, auto First, auto Second, auto... Rest>
+struct nested_member<Base, First, Second, Rest...> {
+	using first_container = typename member_class<decltype(First)>::type;
+	using leaf_type = typename nested_member<first_container, Second, Rest...>::leaf_type;
+
+	static decltype(auto) get(const Base* obj) {
+		static_assert(std::is_same<Base, first_container>::value,
+		              "nested_member chain: first member does not belong to Base");
+
+		const auto& sub = obj->*First;
+		using sub_t = std::decay_t<decltype(sub)>;
+		return nested_member<sub_t, Second, Rest...>::get(&sub);
+	}
+
+	static decltype(auto) get(Base* obj) {
+		static_assert(std::is_same<Base, first_container>::value,
+		              "nested_member chain: first member does not belong to Base");
+
+		auto& sub = obj->*First;
+		using sub_t = std::decay_t<decltype(sub)>;
+		return nested_member<sub_t, Second, Rest...>::get(&sub);
+	}
+};
+
+template<ss_plugin_state_type StateType, auto... Members>
+borrowed_state_data read_field_typed(const void* obj, size_t) {
+	static_assert(sizeof...(Members) >= 1,
+	              "read_field_nested requires at least one member pointer");
+
+	// The container is the class type of the first pointer-to-member in the chain.
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<const Container*>(obj);
+
+	// Reach the final leaf (may be a reference).
+	decltype(auto) value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+
+	if constexpr(StateType == SS_PLUGIN_ST_TABLE && std::is_base_of_v<base_table, decayed_t>) {
+		auto* tbl = const_cast<base_table*>(static_cast<const base_table*>(&value));
+		return borrowed_state_data::from<SS_PLUGIN_ST_TABLE, base_table*>(tbl);
+	}
+
+	return borrowed_state_data::from<StateType, decayed_t>(value);
+}
+
+template<auto... Members>
+borrowed_state_data read_field(const void* obj, size_t) {
+	static_assert(sizeof...(Members) >= 1,
+	              "read_field_nested requires at least one member pointer");
+
+	// The container is the class type of the first pointer-to-member in the chain.
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<const Container*>(obj);
+
+	// Reach the final leaf (may be a reference).
+	decltype(auto) value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+	constexpr ss_plugin_state_type type_id = type_id_of<decayed_t>();
+
+	return borrowed_state_data::from<type_id, decayed_t>(value);
+}
+
+template<auto Fn>
+void write_fn(void* obj, size_t, const borrowed_state_data& in_data) {
+	using FnType = decltype(Fn);
+	using Container = typename fn_container<FnType>::type;
+
+	auto* c = static_cast<Container*>(obj);
+	Fn(c, in_data);
+}
+
+template<typename StateType, auto... Members>
+void write_field_typed(void* obj, size_t, const borrowed_state_data& in) {
+	static_assert(sizeof...(Members) >= 1, "write_field requires at least one member pointer");
+
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<Container*>(obj);
+
+	auto& value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+	in.copy_to<type_id_of<StateType>(), decayed_t>(value);
+}
+
+template<auto... Members>
+void write_field(void* obj, size_t, const borrowed_state_data& in) {
+	static_assert(sizeof...(Members) >= 1, "write_field requires at least one member pointer");
+
+	using first_member_t = std::decay_t<decltype(std::get<0>(std::tuple{Members...}))>;
+	using Container = typename member_class<first_member_t>::type;
+
+	auto* c = static_cast<Container*>(obj);
+
+	decltype(auto) value = nested_member<Container, Members...>::get(c);
+	using decayed_t = std::decay_t<decltype(value)>;
+	constexpr ss_plugin_state_type type_id = type_id_of<decayed_t>();
+
+	in.copy_to<type_id, decayed_t>(value);
+}
+
+static inline void reject_write(void*, size_t, const borrowed_state_data&) {
+	throw sinsp_exception("attempt to write to read-only field");
+}
 
 };  // namespace state
 };  // namespace libsinsp
-
-// This `offsetof` custom definition prevents the compiler from complaining about "offsetof"-ing on
-// non-standard-layout types (e.g.: `warning: ‘offsetof’ within non-standard-layout type ‘X’ is
-// conditionally-supported)`.
-#define OFFSETOF_STATIC_FIELD(type, member) reinterpret_cast<size_t>(&static_cast<type*>(0)->member)
-
-// DEFINE_STATIC_FIELD macro is a wrapper around static_struct::define_static_field helping to
-// extract the field type and field offset.
-#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name) \
-	libsinsp::state::define_static_field<                                       \
-	        decltype(static_cast<container_type*>(0)->container_field)>(        \
-	        field_infos,                                                        \
-	        OFFSETOF_STATIC_FIELD(container_type, container_field),             \
-	        name);
-
-// DEFINE_STATIC_FIELD_READONLY macro is a wrapper around static_struct::define_static_field helping
-// to extract the field type and field offset. The defined field is set to guarantee read-only
-// access.
-#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name) \
-	libsinsp::state::define_static_field<                                                \
-	        decltype(static_cast<container_type*>(0)->container_field)>(                 \
-	        field_infos,                                                                 \
-	        OFFSETOF_STATIC_FIELD(container_type, container_field),                      \
-	        name,                                                                        \
-	        true);

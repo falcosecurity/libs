@@ -961,11 +961,10 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		// Allocate thread storage for the value
 		//
 		if(alloc_state) {
-			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>(
-			        "_tmp_sinsp_filter_thread_totexectime");
-			m_thread_dyn_field_accessor =
-			        std::make_unique<libsinsp::state::dynamic_field_accessor<uint64_t>>(
-			                acc.new_accessor<uint64_t>());
+			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field(
+			        "_tmp_sinsp_filter_thread_totexectime",
+			        SS_PLUGIN_ST_UINT64);
+			m_thread_dyn_field_accessor = acc.into<uint64_t>();
 		}
 
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
@@ -976,11 +975,10 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val,
 		return extract_arg("thread.cgroup", val, NULL);
 	} else if(STR_MATCH("thread.cpu")) {
 		if(alloc_state) {
-			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>(
-			        "_tmp_sinsp_filter_thread_cpu");
-			m_thread_dyn_field_accessor =
-			        std::make_unique<libsinsp::state::dynamic_field_accessor<uint64_t>>(
-			                acc.new_accessor<uint64_t>());
+			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field(
+			        "_tmp_sinsp_filter_thread_cpu",
+			        SS_PLUGIN_ST_UINT64);
+			m_thread_dyn_field_accessor = acc.into<uint64_t>();
 		}
 
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
@@ -1046,7 +1044,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt* evt,
 		tcpu = user + system;
 
 		uint64_t last_t_tot_cpu = 0;
-		tinfo->read_field(*m_thread_dyn_field_accessor, last_t_tot_cpu);
+		tinfo->read_field(m_thread_dyn_field_accessor, last_t_tot_cpu);
 		if(last_t_tot_cpu != 0) {
 			uint64_t deltaval = tcpu - last_t_tot_cpu;
 			m_val.d = (double)deltaval;  // / (ONE_SECOND_IN_NS / 100);
@@ -1057,7 +1055,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt* evt,
 			m_val.d = 0;
 		}
 
-		tinfo->write_field(*m_thread_dyn_field_accessor, tcpu);
+		tinfo->write_field(m_thread_dyn_field_accessor, tcpu);
 
 		RETURN_EXTRACT_VAR(m_val.d);
 	}
@@ -1293,9 +1291,9 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 
 		if(tinfo != NULL) {
 			uint64_t ptot = 0;
-			tinfo->read_field(*m_thread_dyn_field_accessor, ptot);
+			tinfo->read_field(m_thread_dyn_field_accessor, ptot);
 			m_val.u64 += ptot;
-			tinfo->write_field(*m_thread_dyn_field_accessor, m_val.u64);
+			tinfo->write_field(m_thread_dyn_field_accessor, m_val.u64);
 			RETURN_EXTRACT_VAR(m_val.u64);
 		} else {
 			return NULL;

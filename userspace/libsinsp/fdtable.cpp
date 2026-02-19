@@ -28,7 +28,7 @@ limitations under the License.
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
 sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
-        built_in_table{"file_descriptors", &s_fdtable_static_fields},
+        extensible_table{type_tag<sinsp_fdinfo>{}, "file_descriptors", &s_fdtable_static_fields},
         m_params{params},
         m_tid{0} {
 	reset_cache();
@@ -70,10 +70,6 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
         int64_t fd,
         std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
-	if(fdinfo->dynamic_fields() != dynamic_fields()) {
-		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
-	}
-
 	fdinfo->m_fd = fd;
 
 	const auto it = m_table.find(fd);
