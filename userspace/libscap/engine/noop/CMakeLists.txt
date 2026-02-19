@@ -22,4 +22,4 @@ target_include_directories(
 )
 
 add_dependencies(scap_engine_noop uthash)
-target_link_libraries(scap_engine_noop PRIVATE scap_error)
+target_link_libraries(scap_engine_noop PRIVATE scap_error scap_buffer)
