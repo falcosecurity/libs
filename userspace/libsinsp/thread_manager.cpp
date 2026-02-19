@@ -241,8 +241,9 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size && threadinfo->m_pid != m_sinsp_pid) {
 		if(m_sinsp_stats_v2 != nullptr) {
+			auto& c = m_sinsp_stats_v2->get_thread_counters();
 			// rate limit messages to avoid spamming the logs
-			if(m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0) {
+			if(c.m_n_drops_full_threadtable % m_max_thread_table_size == 0) {
 				libsinsp_logger()->format(
 				        sinsp_logger::SEV_INFO,
 				        "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
@@ -250,7 +251,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 				        threadinfo->m_pid,
 				        threadinfo->m_comm.c_str());
 			}
-			m_sinsp_stats_v2->m_n_drops_full_threadtable++;
+			c.m_n_drops_full_threadtable++;
 		}
 
 		return {};
@@ -272,7 +273,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 	}
 
 	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_added_threads++;
+		m_sinsp_stats_v2->get_thread_counters().m_n_added_threads++;
 	}
 
 	tinfo_shared_ptr->update_main_fdtable();
@@ -413,7 +414,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	auto thread_to_remove_ref = m_threadtable.get_ref(tid);
 	if(!thread_to_remove_ref) {
 		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
+			m_sinsp_stats_v2->get_thread_counters().m_n_failed_thread_lookups++;
 		}
 		return;
 	}
@@ -526,7 +527,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		m_threadtable.erase(tid);
 	}
 	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_removed_threads++;
+		m_sinsp_stats_v2->get_thread_counters().m_n_removed_threads++;
 	}
 }
 
@@ -965,7 +966,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	auto thr = m_threadtable.get_ref(tid);
 	if(thr) {
 		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
+			m_sinsp_stats_v2->get_thread_counters().m_n_noncached_thread_lookups++;
 		}
 		if(!lookup_only) {
 			thr->m_lastaccess_ts = m_timestamper.get_cached_ts();
@@ -974,7 +975,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		return thr;
 	}
 	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_failed_thread_lookups++;
+		m_sinsp_stats_v2->get_thread_counters().m_n_failed_thread_lookups++;
 	}
 	return {};
 }
