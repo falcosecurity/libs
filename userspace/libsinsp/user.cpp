@@ -23,6 +23,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libscap/strl.h>
 #include <sys/types.h>
+#include <shared_mutex>
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -131,6 +132,7 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector, const timesta
 // clang-format on
 
 void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
+	std::shared_lock lock(m_mutex);
 	for(const auto &it : m_userlist) {
 		std::string container_id = it.first;
 		const auto &usrlist = m_userlist[container_id];
@@ -157,16 +159,17 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 }
 
 void sinsp_usergroup_manager::delete_container(const std::string &container_id) {
-	if(auto usrlist = get_userlist(container_id)) {
-		for(auto &u : *usrlist) {
+	std::unique_lock lock(m_mutex);
+	if(const auto *usrlist = get_userlist_assuming_lock_held(container_id)) {
+		for(const auto &u : *usrlist) {
 			// We do not have a thread id here, as a removed container
 			// means that it has no tIDs anymore.
 			notify_user_changed(&u.second, container_id, false);
 		}
 	}
 
-	if(auto grplist = get_grouplist(container_id)) {
-		for(auto &g : *grplist) {
+	if(const auto *grplist = get_grouplist_assuming_lock_held(container_id)) {
+		for(const auto &g : *grplist) {
 			// We do not have a thread id here, as a removed container
 			// means that it has no tIDs anymore.
 			notify_group_changed(&g.second, container_id, false);
@@ -213,14 +216,14 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(groupinfo_map &map
 	return &grp;
 }
 
-scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id,
-                                                 int64_t pid,
-                                                 uint32_t uid,
-                                                 uint32_t gid,
-                                                 std::string_view name,
-                                                 std::string_view home,
-                                                 std::string_view shell,
-                                                 bool notify) {
+scap_userinfo *sinsp_usergroup_manager::add_user_impl(const std::string &container_id,
+                                                      int64_t pid,
+                                                      uint32_t uid,
+                                                      uint32_t gid,
+                                                      std::string_view name,
+                                                      std::string_view home,
+                                                      std::string_view shell,
+                                                      bool notify) {
 	// ignore NSS entries
 	if(!name.empty() && (name[0] == '+' || name[0] == '-')) {
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -236,7 +239,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 		return &m_fallback_user;
 	}
 
-	scap_userinfo *usr = get_user(container_id, uid);
+	scap_userinfo *usr = get_user_assuming_lock_held(container_id, uid);
 	if(usr) {
 		// Update user if it was already there
 		if(name.data() != nullptr) {
@@ -253,6 +256,18 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 	return add_container_user(container_id, pid, uid, notify);
 }
 
+scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id,
+                                                 int64_t pid,
+                                                 uint32_t uid,
+                                                 uint32_t gid,
+                                                 std::string_view name,
+                                                 std::string_view home,
+                                                 std::string_view shell,
+                                                 bool notify) {
+	std::unique_lock lock(m_mutex);
+	return add_user_impl(container_id, pid, uid, gid, name, home, shell, notify);
+}
+
 scap_groupinfo *sinsp_usergroup_manager::add_group(const std::string &container_id,
                                                    int64_t pid,
                                                    uint32_t gid,
@@ -260,14 +275,15 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const std::string &container_
 	if(gid == (uint32_t)-1) {
 		return nullptr;
 	}
-	if(auto gr = get_group(container_id, gid); gr != nullptr) {
+	std::unique_lock lock(m_mutex);
+	if(auto gr = get_group_assuming_lock_held(container_id, gid); gr != nullptr) {
 		return gr;
 	}
 
 	if(gid == 0) {
-		return add_group(container_id, pid, gid, "root", notify);
+		return add_group_impl(container_id, pid, gid, "root", notify);
 	} else {
-		return add_group(container_id, pid, gid, {}, notify);
+		return add_group_impl(container_id, pid, gid, {}, notify);
 	}
 }
 
@@ -355,8 +371,9 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 	                          "removing user: container: %s, uid: %d",
 	                          container_id.c_str(),
 	                          uid);
+	std::unique_lock lock(m_mutex);
 	bool res = false;
-	scap_userinfo *usr = get_user(container_id, uid);
+	scap_userinfo *usr = get_user_assuming_lock_held(container_id, uid);
 	if(usr) {
 		if(notify) {
 			notify_user_changed(usr, container_id, false);
@@ -367,11 +384,11 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 	return res;
 }
 
-scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id,
-                                                   int64_t pid,
-                                                   uint32_t gid,
-                                                   std::string_view name,
-                                                   bool notify) {
+scap_groupinfo *sinsp_usergroup_manager::add_group_impl(const std::string &container_id,
+                                                        int64_t pid,
+                                                        uint32_t gid,
+                                                        std::string_view name,
+                                                        bool notify) {
 	// ignore NSS entries
 	if(!name.empty() && (name[0] == '+' || name[0] == '-')) {
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -386,7 +403,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id,
 		return &m_fallback_grp;
 	}
 
-	scap_groupinfo *gr = get_group(container_id, gid);
+	scap_groupinfo *gr = get_group_assuming_lock_held(container_id, gid);
 	if(gr) {
 		// Update group if it was already there
 		if(name.data() != nullptr) {
@@ -399,6 +416,15 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id,
 		return add_host_group(gid, name, notify);
 	}
 	return add_container_group(container_id, pid, gid, notify);
+}
+
+scap_groupinfo *sinsp_usergroup_manager::add_group(const std::string &container_id,
+                                                   int64_t pid,
+                                                   uint32_t gid,
+                                                   std::string_view name,
+                                                   bool notify) {
+	std::unique_lock lock(m_mutex);
+	return add_group_impl(container_id, pid, gid, name, notify);
 }
 
 scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid,
@@ -472,8 +498,9 @@ bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid,
 	                          "removing group: container: %s, gid: %d",
 	                          container_id.c_str(),
 	                          gid);
+	std::unique_lock lock(m_mutex);
 	bool res = false;
-	scap_groupinfo *gr = get_group(container_id, gid);
+	scap_groupinfo *gr = get_group_assuming_lock_held(container_id, gid);
 	if(gr) {
 		if(notify) {
 			notify_group_changed(gr, container_id, false);
@@ -482,6 +509,53 @@ bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid,
 		res = true;
 	}
 	return res;
+}
+
+const sinsp_usergroup_manager::userinfo_map *
+sinsp_usergroup_manager::get_userlist_assuming_lock_held(const std::string &container_id) {
+	auto it = m_userlist.find(container_id);
+	if(it == m_userlist.end()) {
+		return nullptr;
+	}
+	return &it->second;
+}
+
+const sinsp_usergroup_manager::groupinfo_map *
+sinsp_usergroup_manager::get_grouplist_assuming_lock_held(const std::string &container_id) {
+	auto it = m_grouplist.find(container_id);
+	if(it == m_grouplist.end()) {
+		return nullptr;
+	}
+	return &it->second;
+}
+
+scap_userinfo *sinsp_usergroup_manager::get_user_assuming_lock_held(const std::string &container_id,
+                                                                    uint32_t uid) {
+	auto it = m_userlist.find(container_id);
+	if(it == m_userlist.end()) {
+		return nullptr;
+	}
+	auto &userlist = it->second;
+	auto uit = userlist.find(uid);
+	if(uit == userlist.end()) {
+		return nullptr;
+	}
+	return &uit->second;
+}
+
+scap_groupinfo *sinsp_usergroup_manager::get_group_assuming_lock_held(
+        const std::string &container_id,
+        uint32_t gid) {
+	auto it = m_grouplist.find(container_id);
+	if(it == m_grouplist.end()) {
+		return nullptr;
+	}
+	auto &grplist = it->second;
+	auto git = grplist.find(gid);
+	if(git == grplist.end()) {
+		return nullptr;
+	}
+	return &git->second;
 }
 
 const unordered_map<uint32_t, scap_userinfo> *sinsp_usergroup_manager::get_userlist(
@@ -534,14 +608,15 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 	if(uid == (uint32_t)-1) {
 		return nullptr;
 	}
-	if(auto usr = get_user(container_id, uid); usr != nullptr) {
+	std::unique_lock lock(m_mutex);
+	if(auto usr = get_user_assuming_lock_held(container_id, uid); usr != nullptr) {
 		return usr;
 	}
 
 	if(uid == 0) {
-		return add_user(container_id, pid, uid, gid, "root", "/root", {}, notify);
+		return add_user_impl(container_id, pid, uid, gid, "root", "/root", {}, notify);
 	} else {
-		return add_user(container_id, pid, uid, gid, {}, {}, {}, notify);
+		return add_user_impl(container_id, pid, uid, gid, {}, {}, {}, notify);
 	}
 }
 
