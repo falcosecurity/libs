@@ -254,16 +254,13 @@ libs_state_counters::libs_state_counters(const std::shared_ptr<sinsp_stats_v2>& 
         m_n_threads(0) {
 	if(thread_manager != nullptr) {
 		m_n_threads = thread_manager->get_thread_count();
-		threadinfo_map_t* threadtable = thread_manager->get_threads();
-		if(threadtable != nullptr) {
-			threadtable->loop([this](sinsp_threadinfo& tinfo) {
-				sinsp_fdtable* fdtable = tinfo.get_fd_table();
-				if(fdtable != nullptr) {
-					this->m_n_fds += fdtable->size();
-				}
-				return true;
-			});
-		}
+		thread_manager->loop_threads([this](sinsp_threadinfo& tinfo) {
+			sinsp_fdtable* fdtable = tinfo.get_fd_table();
+			if(fdtable != nullptr) {
+				this->m_n_fds += fdtable->size();
+			}
+			return true;
+		});
 	}
 }
 

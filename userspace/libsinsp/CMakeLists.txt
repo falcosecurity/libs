@@ -34,6 +34,10 @@ include(jsoncpp)
 include(zlib)
 include(tbb)
 
+if(NOT EMSCRIPTEN)
+	include(folly)
+endif()
+
 add_library(
 	sinsp
 	filter/ast.cpp
@@ -132,7 +136,7 @@ set(SINSP_PKGCONFIG_REQUIRES jsoncpp)
 set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 
 if(NOT EMSCRIPTEN)
-	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
+	target_link_libraries(sinsp PRIVATE "${TBB_LIB}" "${FOLLY_LIB}")
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
 endif()
 
@@ -153,7 +157,7 @@ if(ENABLE_THREAD_POOL AND USE_BUNDLED_BS_THREADPOOL)
 endif()
 
 if(NOT EMSCRIPTEN)
-	add_dependencies(sinsp tbb)
+	add_dependencies(sinsp tbb folly)
 endif()
 
 if(NOT WIN32)

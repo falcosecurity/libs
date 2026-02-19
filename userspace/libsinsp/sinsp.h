@@ -825,10 +825,9 @@ private:
 	//
 	// Note: lookup_only should be used when the query for the thread is made
 	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
+	//       just for lookup reason. In that case, m_lastaccess_ts is not updated.
 	//
-	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only) {
+	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only) {
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
 

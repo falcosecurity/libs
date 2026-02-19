@@ -1445,10 +1445,10 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		 */
 		const auto tid_of_fds_to_remove = m_parser_verdict.get_tid_of_fds_to_remove();
 		const auto& fds_to_remove = m_parser_verdict.get_fds_to_remove();
-		if(sinsp_threadinfo* ptinfo =
-		           m_thread_manager->find_thread(tid_of_fds_to_remove, true).get()) {
+		auto ptinfo_ptr = m_thread_manager->find_thread(tid_of_fds_to_remove, true);
+		if(ptinfo_ptr) {
 			for(const auto fd : fds_to_remove) {
-				ptinfo->remove_fd(fd);
+				ptinfo_ptr->remove_fd(fd);
 			}
 		}
 		m_parser_verdict.clear_fds_to_remove();
@@ -1704,7 +1704,7 @@ void sinsp::stop_capture() {
 	/* Print the number of threads and fds in our tables */
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
-	m_thread_manager->get_threads()->loop([&thread_cnt, &fd_cnt](sinsp_threadinfo& tinfo) {
+	m_thread_manager->loop_threads([&thread_cnt, &fd_cnt](sinsp_threadinfo& tinfo) {
 		thread_cnt++;
 
 		/* Only main threads have an associated fdtable */

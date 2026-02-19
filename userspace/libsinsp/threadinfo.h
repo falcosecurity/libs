@@ -31,6 +31,7 @@ struct iovec {
 
 #include <functional>
 #include <memory>
+#include <folly/concurrency/ConcurrentHashMap.h>
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/thread_group_info.h>
@@ -325,11 +326,15 @@ public:
 	inline void clean_expired_children() {
 		auto child = m_children.begin();
 		while(child != m_children.end()) {
-			/* This child is expired */
+			/* Note: with deferred memory reclamation (hazard pointers),
+			 * expired() may return false for children that have been
+			 * removed from the table but whose shared_ptr has not yet
+			 * been reclaimed. These entries will be cleaned up on a
+			 * subsequent call after the reclamation epoch passes.
+			 * The m_not_expired_children counter is eagerly decremented
+			 * and is the authoritative child count.
+			 */
 			if(child->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
 				child = m_children.erase(child);
 				continue;
 			}
@@ -563,12 +568,12 @@ public:
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
-	inline const ptr_t& put(const ptr_t& tinfo) {
-		m_threads[tinfo->m_tid] = tinfo;
-		return m_threads[tinfo->m_tid];
+	inline ptr_t put(const ptr_t& tinfo) {
+		m_threads.insert_or_assign(tinfo->m_tid, tinfo);
+		return tinfo;
 	}
 
-	inline sinsp_threadinfo* get(uint64_t tid) {
+	inline sinsp_threadinfo* get(int64_t tid) {
 		auto it = m_threads.find(tid);
 		if(it == m_threads.end()) {
 			return nullptr;
@@ -576,30 +581,30 @@ public:
 		return it->second.get();
 	}
 
-	inline const ptr_t& get_ref(uint64_t tid) {
+	inline ptr_t get_ref(int64_t tid) {
 		auto it = m_threads.find(tid);
 		if(it == m_threads.end()) {
-			return m_nullptr_ret;
+			return nullptr;
 		}
 		return it->second;
 	}
 
-	inline void erase(uint64_t tid) { m_threads.erase(tid); }
+	inline void erase(int64_t tid) { m_threads.erase(tid); }
 
 	inline void clear() { m_threads.clear(); }
 
 	bool const_loop_shared_pointer(const_shared_ptr_visitor_t callback) {
-		for(auto& it : m_threads) {
-			if(!callback(it.second)) {
+		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
+			if(!callback(it->second)) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	bool const_loop(const_visitor_t callback) const {
-		for(const auto& it : m_threads) {
-			if(!callback(*it.second)) {
+	bool const_loop(const_visitor_t callback) {
+		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
+			if(!callback(*it->second)) {
 				return false;
 			}
 		}
@@ -607,8 +612,8 @@ public:
 	}
 
 	bool loop(visitor_t callback) {
-		for(auto& it : m_threads) {
-			if(!callback(*it.second)) {
+		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
+			if(!callback(*it->second)) {
 				return false;
 			}
 		}
@@ -618,6 +623,5 @@ public:
 	inline size_t size() const { return m_threads.size(); }
 
 protected:
-	std::unordered_map<int64_t, ptr_t> m_threads;
-	const ptr_t m_nullptr_ret;  // needed for returning a reference
+	folly::ConcurrentHashMap<int64_t, ptr_t> m_threads;
 };

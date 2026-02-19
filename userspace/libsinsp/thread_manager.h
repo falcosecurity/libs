@@ -61,10 +61,10 @@ public:
 	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager);
 	void clear();
 
-	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
-	                                          bool from_scap_proctable);
+	threadinfo_map_t::ptr_t add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
+	                                   bool from_scap_proctable);
 
-	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
+	std::shared_ptr<sinsp_threadinfo> find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
@@ -89,17 +89,16 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	const threadinfo_map_t::ptr_t& get_thread(int64_t tid,
-	                                          bool lookup_only = true,
-	                                          bool main_thread = false);
+	threadinfo_map_t::ptr_t get_thread(int64_t tid,
+	                                   bool lookup_only = true,
+	                                   bool main_thread = false);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
 	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
+	//       just for lookup reason. In that case, m_lastaccess_ts is not updated.
 	//
-	const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
+	threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
 
 	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
@@ -110,7 +109,7 @@ public:
 
 	  \return Pointer to the threadinfo or NULL if it doesn't exist
 	*/
-	sinsp_threadinfo* get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
+	std::shared_ptr<sinsp_threadinfo> get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
 	//
 	// Walk up the parent process hierarchy, calling the provided
 	// function for each node. If the function returns false, the
@@ -119,7 +118,7 @@ public:
 	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
 	void traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor);
 
-	sinsp_threadinfo* get_oldest_matching_ancestor(
+	std::shared_ptr<sinsp_threadinfo> get_oldest_matching_ancestor(
 	        sinsp_threadinfo* tinfo,
 	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
 	        bool is_virtual_id = false);
@@ -134,7 +133,13 @@ public:
 
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
 
-	threadinfo_map_t* get_threads() { return &m_threadtable; }
+	[[deprecated("Use loop_threads() instead")]] threadinfo_map_t* get_threads() {
+		return &m_threadtable;
+	}
+
+	bool loop_threads(std::function<bool(sinsp_threadinfo&)> callback) {
+		return m_threadtable.loop(callback);
+	}
 
 	std::set<uint16_t> m_server_ports;
 
@@ -314,8 +319,6 @@ private:
 	 */
 	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
 	threadinfo_map_t m_threadtable;
-	int64_t m_last_tid;
-	std::shared_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	// Increased legacy default of 131072 in January 2024 to prevent
 	// possible drops due to full threadtable on more modern servers
@@ -329,8 +332,6 @@ private:
 	uint64_t m_proc_lookup_period = 0;
 	uint64_t m_last_proc_lookup_period_start = 0;
 
-	const std::shared_ptr<sinsp_threadinfo>
-	        m_nullptr_tinfo_ret;  // needed for returning a reference
 	const std::shared_ptr<thread_group_info>
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
 
