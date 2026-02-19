@@ -21,6 +21,7 @@ limitations under the License.
 #include <libscap/scap_const.h>
 #include <libscap/scap_platform_api.h>
 #include <libscap/metrics_v2.h>
+#include <libscap/scap_buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -560,9 +561,6 @@ uint64_t scap_max_buf_used(scap_t* handle);
   error.
 */
 int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags);
-
-typedef uint32_t scap_buffer_t;
-extern scap_buffer_t SCAP_INVALID_BUFFER_HANDLE;
 
 /*!
   \brief Get the next event from the given capture instance
