@@ -508,6 +508,27 @@ void sinsp::open_common(scap_open_args* oargs,
 		throw scap_open_exception(m_platform_lasterr, scap_rc);
 	}
 
+	// m_buffers must be allocated before init() because init() -> consume_initialstate_events()
+	// uses m_buffers.at(SINSP_INVALID_BUFFER_HANDLE) when is_capture().
+	const uint16_t n_allocated_scap_buffer_handles = scap_buffer_get_n_allocated_handles(m_h);
+	if(n_allocated_scap_buffer_handles == UINT16_MAX) {
+		throw sinsp_exception(
+		        "Found " + std::to_string(n_allocated_scap_buffer_handles) +
+		        " allocated buffer handles, but the current implementation only support " +
+		        std::to_string(n_allocated_scap_buffer_handles - 1));
+	}
+	const uint16_t n_sinsp_buffer_handles_to_allocate = n_allocated_scap_buffer_handles + 1;
+	m_buffers.reserve(n_sinsp_buffer_handles_to_allocate);
+	m_buffers.emplace_back(SINSP_INVALID_BUFFER_HANDLE,
+	                       SCAP_INVALID_BUFFER_HANDLE,
+	                       this,
+	                       m_parser_shared_params);
+	for(int i = 0; i < n_allocated_scap_buffer_handles; i++) {
+		const auto sinsp_buffer_h = static_cast<sinsp_buffer_t>(m_buffers.size());
+		const auto scap_buffer_h = scap_buffer_reserve_handle(m_h);
+		m_buffers.emplace_back(sinsp_buffer_h, scap_buffer_h, this, m_parser_shared_params);
+	}
+
 	init();
 
 	// enable generation of async meta-events for all loaded plugins supporting
@@ -538,35 +559,6 @@ void sinsp::open_common(scap_open_args* oargs,
 				                      "' : " + p->get_last_error());
 			}
 		}
-	}
-
-	// m_buffers contains the default buffer at index 0.
-
-	// At the moment, the following call to `scap_buffer_get_n_allocated_handles` can return a value
-	// greater than 0 only in the modern eBPF probe.
-	const uint16_t n_allocated_scap_buffer_handles = scap_buffer_get_n_allocated_handles(m_h);
-	if(n_allocated_scap_buffer_handles == UINT16_MAX) {
-		throw sinsp_exception(
-		        "Found " + std::to_string(n_allocated_scap_buffer_handles) +
-		        " allocated buffer handles, but the current implementation only support " +
-		        std::to_string(n_allocated_scap_buffer_handles - 1));
-	}
-	// Pre-allocate space for all buffers: this is key to not invalidate internal buffers pointers
-	// upon reallocation.
-	// The following + 1 accounts for the default buffer, which must always be present and placed at
-	// index 0.
-	const uint16_t n_sinsp_buffer_handles_to_allocate = n_allocated_scap_buffer_handles + 1;
-	m_buffers.reserve(n_sinsp_buffer_handles_to_allocate);
-	m_buffers.emplace_back(SINSP_INVALID_BUFFER_HANDLE,
-	                       SCAP_INVALID_BUFFER_HANDLE,
-	                       this,
-	                       m_parser_shared_params);
-	for(int i = 0; i < n_allocated_scap_buffer_handles; i++) {
-		// use m_buffers.size(), that is the position where the new buffer is going to be inserted,
-		// as buffer handle.
-		const auto sinsp_buffer_h = static_cast<sinsp_buffer_t>(m_buffers.size());
-		const auto scap_buffer_h = scap_buffer_reserve_handle(m_h);
-		m_buffers.emplace_back(sinsp_buffer_h, scap_buffer_h, this, m_parser_shared_params);
 	}
 }
 
