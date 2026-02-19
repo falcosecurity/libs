@@ -24,6 +24,13 @@
 #    tests that use it hit this TLS path. TSAN reports races on these Folly internals
 #    despite the design being per-thread and properly synchronized.
 #
+# 3) sinsp_threadinfo in-place updates: Internal synchronization of sinsp_threadinfo
+#    (e.g. get_fd_table, set_dead) is out of scope for the thread-safe thread manager
+#    proposal. Concurrent tests that lookup (find_thread) while another thread removes
+#    (remove_thread) can trigger races on the same threadinfo object.
+race:sinsp_threadinfo::
+race:threadinfo.h
+
 # The patterns below match only these Folly TLS/registry internals, not application code.
 race:folly::threadlocal_detail
 race:folly::SingletonThreadLocal

@@ -131,14 +131,37 @@ sinsp_thread_manager::sinsp_thread_manager(
         m_scap_handle{scap_handle},
         m_fdtable_dyn_fields{fdtable_dyn_fields},
         m_max_thread_table_size(m_thread_table_default_size),
-        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()) {
+        m_usergroup_manager{usergroup_manager} {
+	m_last_proc_lookup_period_start.store(sinsp_utils::get_current_time_ns());
 	clear();
 }
 
+std::shared_ptr<thread_group_info> sinsp_thread_manager::get_thread_group_info(
+        const int64_t pid) const {
+	std::shared_lock lock(m_thread_groups_mutex);
+	auto it = m_thread_groups.find(pid);
+	if(it != m_thread_groups.end()) {
+		return it->second;
+	}
+	return nullptr;
+}
+
+void sinsp_thread_manager::set_thread_group_info(const int64_t pid,
+                                                 const std::shared_ptr<thread_group_info>& tginfo) {
+	std::unique_lock lock(m_thread_groups_mutex);
+	// It should be impossible to have a pid conflict. Right now we manage it by replacing the
+	// old entry with the new one.
+	if(const auto [it, inserted] = m_thread_groups.emplace(pid, tginfo); !inserted) {
+		it->second = tginfo;
+	}
+}
+
 void sinsp_thread_manager::clear() {
-	m_threadtable.clear();
-	m_thread_groups.clear();
-	m_last_flush_time_ns = 0;
+	{
+		std::unique_lock lock(m_thread_groups_mutex);
+		m_thread_groups.clear();
+	}
+	m_last_flush_time_ns.store(0);
 	m_recently_exited_tids.fill({});
 	m_recently_exited_write_idx = 0;
 }
@@ -503,7 +526,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		 */
 		thread_to_remove->m_tginfo->remove_thread_from_list(thread_to_remove);
 		remove_child_from_parent(thread_to_remove->m_ptid, thread_to_remove);
-		m_thread_groups.erase(thread_to_remove->m_pid);
+		{
+			std::unique_lock lock(m_thread_groups_mutex);
+			m_thread_groups.erase(thread_to_remove->m_pid);
+		}
 		// Only init (tid 1) has m_pid 1; ensure we never erase key 1 when removing a non-init
 		// thread
 		ASSERT(thread_to_remove->m_pid != 1 || thread_to_remove->m_tid == 1);
@@ -526,8 +552,13 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostname_and_port) {
+	std::set<uint16_t> server_ports_copy;
+	{
+		std::shared_lock lock(m_server_ports_mutex);
+		server_ports_copy = m_server_ports;
+	}
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		tinfo.fix_sockets_coming_from_proc(m_server_ports, resolve_hostname_and_port);
+		tinfo.fix_sockets_coming_from_proc(server_ports_copy, resolve_hostname_and_port);
 		return true;
 	});
 }
@@ -624,45 +655,48 @@ sinsp_fdinfo* sinsp_thread_manager::add_thread_fd_from_scap(sinsp_threadinfo& ti
 		return newfdinfo;
 	}
 
-	m_server_ports.insert(server_port);
+	{
+		std::unique_lock lock(m_server_ports_mutex);
+		m_server_ports.insert(server_port);
+	}
 	return newfdinfo;
 }
 
 void sinsp_thread_manager::maybe_log_max_lookup(int64_t tid, bool scan_sockets, uint64_t period) {
 	if(m_proc_lookup_period) {
-		if(m_n_proc_lookups == m_max_n_proc_lookups) {
+		if(m_n_proc_lookups.load() == m_max_n_proc_lookups) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Reached max process lookup number (%d)"
 			                          " in the last %" PRIu64 "ms, duration=%" PRIu64 "ms",
-			                          m_n_proc_lookups,
+			                          m_n_proc_lookups.load(),
 			                          period / 1000000,
-			                          m_n_proc_lookups_duration_ns / 1000000);
+			                          m_n_proc_lookups_duration_ns.load() / 1000000);
 		}
-		if(scan_sockets && m_n_proc_lookups == m_max_n_proc_socket_lookups) {
+		if(scan_sockets && m_n_proc_lookups.load() == m_max_n_proc_socket_lookups) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Reached max socket lookup number (%d)"
 			                          " in the last %" PRIu64 "ms, tid=%" PRIu64
 			                          ", duration=%" PRIu64 "ms",
-			                          m_n_proc_lookups,
+			                          m_n_proc_lookups.load(),
 			                          period / 1000000,
 			                          tid,
-			                          m_n_proc_lookups_duration_ns / 1000000);
+			                          m_n_proc_lookups_duration_ns.load() / 1000000);
 		}
 	} else {
-		if(m_n_proc_lookups == m_max_n_proc_lookups) {
+		if(m_n_proc_lookups.load() == m_max_n_proc_lookups) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Reached max process lookup number (%d)"
 			                          ", duration=%" PRIu64 "ms",
-			                          m_n_proc_lookups,
-			                          m_n_proc_lookups_duration_ns / 1000000);
+			                          m_n_proc_lookups.load(),
+			                          m_n_proc_lookups_duration_ns.load() / 1000000);
 		}
-		if(scan_sockets && m_n_proc_lookups == m_max_n_proc_socket_lookups) {
+		if(scan_sockets && m_n_proc_lookups.load() == m_max_n_proc_socket_lookups) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Reached max socket lookup number (%d), tid=%" PRIu64
 			                          ", duration=%" PRIu64 "ms",
-			                          m_n_proc_lookups,
+			                          m_n_proc_lookups.load(),
 			                          tid,
-			                          m_n_proc_lookups_duration_ns / 1000000);
+			                          m_n_proc_lookups_duration_ns.load() / 1000000);
 		}
 	}
 }
@@ -908,12 +942,13 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
 		bool thread_fetched = false;
 
 		if(main_thread) {
-			m_n_main_thread_lookups++;
+			m_n_main_thread_lookups.fetch_add(1);
 		}
 
-		if(m_max_n_proc_lookups < 0 || m_n_proc_lookups < m_max_n_proc_lookups) {
+		if(m_max_n_proc_lookups < 0 || m_n_proc_lookups.load() < m_max_n_proc_lookups) {
 			bool scan_sockets = false;
-			if(m_max_n_proc_socket_lookups < 0 || m_n_proc_lookups < m_max_n_proc_socket_lookups) {
+			if(m_max_n_proc_socket_lookups < 0 ||
+			   m_n_proc_lookups.load() < m_max_n_proc_socket_lookups) {
 				scan_sockets = true;
 			}
 
@@ -921,16 +956,17 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
 			thread_fetched = scap_proc_get(m_scap_platform, tid, scan_sockets) == SCAP_SUCCESS;
 			const uint64_t ts_end = sinsp_utils::get_current_time_ns();
 
-			m_n_proc_lookups_duration_ns += (ts_end - ts_start);
-			m_n_proc_lookups++;
+			m_n_proc_lookups_duration_ns.fetch_add(ts_end - ts_start);
+			m_n_proc_lookups.fetch_add(1);
 
-			const uint64_t actual_proc_lookup_period = (ts_end - m_last_proc_lookup_period_start);
+			const uint64_t actual_proc_lookup_period =
+			        (ts_end - m_last_proc_lookup_period_start.load());
 
 			maybe_log_max_lookup(tid, scan_sockets, actual_proc_lookup_period);
 
 			if(m_proc_lookup_period && actual_proc_lookup_period >= m_proc_lookup_period) {
 				reset_thread_counters();
-				m_last_proc_lookup_period_start = ts_end;
+				m_last_proc_lookup_period_start.store(ts_end);
 			}
 		}
 

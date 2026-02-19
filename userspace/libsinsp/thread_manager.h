@@ -21,9 +21,11 @@ limitations under the License.
 #define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
 
 #include <array>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <set>
+#include <shared_mutex>
 
 #include <libscap/scap_savefile_api.h>
 #include <libsinsp/fdtable.h>
@@ -189,16 +191,19 @@ public:
 	}
 
 	std::set<uint16_t> m_server_ports;
+	mutable std::shared_mutex m_server_ports_mutex; /* protects m_server_ports */
 
 	void set_max_thread_table_size(uint32_t value);
 
-	int32_t get_m_n_proc_lookups() const { return m_n_proc_lookups; }
-	int32_t get_m_n_main_thread_lookups() const { return m_n_main_thread_lookups; }
-	uint64_t get_m_n_proc_lookups_duration_ns() const { return m_n_proc_lookups_duration_ns; }
+	int32_t get_m_n_proc_lookups() const { return m_n_proc_lookups.load(); }
+	int32_t get_m_n_main_thread_lookups() const { return m_n_main_thread_lookups.load(); }
+	uint64_t get_m_n_proc_lookups_duration_ns() const {
+		return m_n_proc_lookups_duration_ns.load();
+	}
 	void reset_thread_counters() {
-		m_n_proc_lookups = 0;
-		m_n_main_thread_lookups = 0;
-		m_n_proc_lookups_duration_ns = 0;
+		m_n_proc_lookups.store(0);
+		m_n_main_thread_lookups.store(0);
+		m_n_proc_lookups_duration_ns.store(0);
 	}
 
 	void set_m_max_n_proc_lookups(int32_t val) { m_max_n_proc_lookups = val; }
@@ -274,21 +279,10 @@ public:
 		return nullptr;
 	}
 
-	const std::shared_ptr<thread_group_info>& get_thread_group_info(const int64_t pid) const {
-		if(const auto tgroup = m_thread_groups.find(pid); tgroup != m_thread_groups.end()) {
-			return tgroup->second;
-		}
-		return m_nullptr_tginfo_ret;
-	}
+	/** Returns a copy of the shared_ptr so callers hold a reference; thread-safe. */
+	std::shared_ptr<thread_group_info> get_thread_group_info(const int64_t pid) const;
 
-	void set_thread_group_info(const int64_t pid,
-	                           const std::shared_ptr<thread_group_info>& tginfo) {
-		// It should be impossible to have a pid conflict. Right now we manage it by replacing the
-		// old entry with the new one.
-		if(const auto [it, inserted] = m_thread_groups.emplace(pid, tginfo); !inserted) {
-			it->second = tginfo;
-		}
-	}
+	void set_thread_group_info(const int64_t pid, const std::shared_ptr<thread_group_info>& tginfo);
 
 	void create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo);
 
@@ -296,9 +290,9 @@ public:
 
 	void maybe_log_max_lookup(int64_t tid, bool scan_sockets, uint64_t period);
 
-	inline uint64_t get_last_flush_time_ns() const { return m_last_flush_time_ns; }
+	inline uint64_t get_last_flush_time_ns() const { return m_last_flush_time_ns.load(); }
 
-	inline void set_last_flush_time_ns(uint64_t v) { m_last_flush_time_ns = v; }
+	inline void set_last_flush_time_ns(uint64_t v) { m_last_flush_time_ns.store(v); }
 
 	inline uint32_t get_max_thread_table_size() const { return m_max_thread_table_size; }
 
@@ -341,30 +335,32 @@ private:
 	scap_t* const& m_scap_handle;
 	const std::shared_ptr<libsinsp::state::dynamic_field_infos> m_fdtable_dyn_fields;
 
-	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info
+	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info.
+	 * Protected by m_thread_groups_mutex for thread-safe access.
 	 */
 	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
+	mutable std::shared_mutex m_thread_groups_mutex;
 	threadinfo_map_t m_threadtable;
-	uint64_t m_last_flush_time_ns;
+	std::atomic<uint64_t> m_last_flush_time_ns{0};
 	// Increased legacy default of 131072 in January 2024 to prevent
 	// possible drops due to full threadtable on more modern servers
 	const uint32_t m_thread_table_default_size = 262144;
 	uint32_t m_max_thread_table_size;
-	int32_t m_n_proc_lookups = 0;
-	uint64_t m_n_proc_lookups_duration_ns = 0;
-	int32_t m_n_main_thread_lookups = 0;
+	std::atomic<int32_t> m_n_proc_lookups{0};
+	std::atomic<uint64_t> m_n_proc_lookups_duration_ns{0};
+	std::atomic<int32_t> m_n_main_thread_lookups{0};
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
 	uint64_t m_proc_lookup_period = 0;
-	uint64_t m_last_proc_lookup_period_start = 0;
+	std::atomic<uint64_t> m_last_proc_lookup_period_start{0};
 
-	const std::shared_ptr<thread_group_info>
-	        m_nullptr_tginfo_ret;  // needed for returning a reference
+	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
-	// State table API field accessors to foreign keys written by plugins.
-	std::map<std::string, libsinsp::state::accessor::typed_ptr<std::string>>
+	// State table API: field accessors and tables for plugin-provided (foreign) state.
+	// Populated only during single-threaded init (plugin load / inspector init) and
+	// read-only thereafter during concurrent use. No mutex required for reads.
+	std::map<std::string, libsinsp::state::dynamic_field_accessor<std::string>>
 	        m_foreign_fields_accessors;
-	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
 
 	// Ring buffer of recently-exited TIDs (from procexit events).

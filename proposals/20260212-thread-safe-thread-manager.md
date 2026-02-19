@@ -259,6 +259,15 @@ std::shared_ptr<sinsp_threadinfo> get_oldest_matching_ancestor(
 - **Concurrency tests (new):** Concurrent add + lookup (e.g. get_thread / find), concurrent remove + iteration (loop_threads), mixed add/remove/lookup/iteration; all run under **TSAN** with no data races or use-after-free.
 - **TSAN in CI:** Enable ThreadSanitizer for the libsinsp (or relevant) tests and run in CI.
 
+### 6.1 Concurrent test matrix and TSAN
+
+- **Existing concurrent tests** ([userspace/libsinsp/test/classes/thread_manager_concurrent.ut.cpp](userspace/libsinsp/test/classes/thread_manager_concurrent.ut.cpp)): Cover concurrent add, lookup, iteration, and remove for the **thread table**. These run under TSAN (no skip) with [tsan_suppressions.txt](userspace/libsinsp/test/tsan_suppressions.txt) for known Folly hazptr TLS false positives.
+- **Extended tests:**
+  - **Thread groups:** Concurrent `add_thread` (which may create/update thread groups via `create_thread_dependencies`) plus concurrent `get_thread_group_info(pid)` and concurrent `remove_thread` (which erases from `m_thread_groups` when the last thread in a group is removed). All under TSAN.
+  - **Server ports:** Concurrent `add_thread_fd_from_scap` (insert into `m_server_ports`) with `fix_sockets_coming_from_proc` (read `m_server_ports`); under TSAN.
+  - **Flush and proc counters:** Concurrent `get_thread`/`find_thread` with `get_last_flush_time_ns`/`set_last_flush_time_ns`/`reset_thread_counters`; under TSAN.
+- **TSAN validation:** All concurrency tests must be run with **ThreadSanitizer** (USE_TSAN=ON) and `tsan_suppressions.txt`; zero data races reported. CI must run the libsinsp unit tests with TSAN (and suppressions) so that regressions are caught.
+
 ---
 
 ## 7. Risks and mitigations
@@ -287,3 +296,22 @@ std::shared_ptr<sinsp_threadinfo> get_oldest_matching_ancestor(
 | **Tests** | Concurrency tests + TSAN in CI to validate thread-safe behaviour |
 
 This proposal provides a **less intrusive** path to a thread-safe thread manager by building on Folly’s ConcurrentHashMap: **iterator- and copy-based access** allow retaining a **shared_ptr**-oriented API (get_thread, find_thread, loop_threads with shared_ptr callback) without switching to a full visitation-only design, while still achieving safe concurrent add/remove/lookup/iteration.
+
+---
+
+## 10. Remaining structures and thread-safety
+
+Beyond the thread table (Folly ConcurrentHashMap), the following shared state in the thread manager (and in `thread_group_info`) must be synchronized for full thread-safety when multiple threads call into the thread manager.
+
+| Structure | Current type | Proposed synchronization | API change (if any) |
+|-----------|--------------|---------------------------|---------------------|
+| **m_thread_groups** | `unordered_map<int64_t, shared_ptr<thread_group_info>>` | Dedicated `std::shared_mutex` (or Folly ConcurrentHashMap) | `get_thread_group_info(pid)` returns `shared_ptr<thread_group_info>` **by value** so callers hold a reference and the lock is not held across caller code |
+| **thread_group_info** (internal) | list + count + reaper | Internal `mutable std::shared_mutex` (or `std::mutex`) in `thread_group_info`; all accessors/mutators take the lock (shared for getters, exclusive for add/remove/clean) | None |
+| **m_server_ports** | `std::set<uint16_t>` | `std::shared_mutex`: insert in `add_thread_fd_from_scap` under exclusive lock; read in `fix_sockets_coming_from_proc` under shared lock (or copy the set under shared lock and iterate on the copy) | None |
+| **m_last_flush_time_ns** | `uint64_t` | `std::atomic<uint64_t>` | None |
+| **Proc lookup counters** | `int32_t` / `uint64_t` | `std::atomic` for each: `m_n_proc_lookups`, `m_n_main_thread_lookups`, `m_n_proc_lookups_duration_ns`, `m_last_proc_lookup_period_start` | None |
+| **m_foreign_fields_accessors**, **m_foreign_tables** | `std::map` | Document that they are populated **only during single-threaded init** (plugin load / inspector init) and read-only thereafter; no mutex required for reads. If they can be modified later (e.g. dynamic plugin tables), protect with `std::shared_mutex`. | None |
+
+### 10.1 thread_group_info
+
+The class `thread_group_info` ([userspace/libsinsp/thread_group_info.h](userspace/libsinsp/thread_group_info.h)) holds `m_threads` (list of weak_ptr), `m_alive_count`, and `m_reaper`. The same group (same pid) can be updated from `add_thread` (via `create_thread_dependencies`) and from `remove_thread` on different TIDs in the same process; `find_new_reaper` and others read `get_thread_list()`. An **internal `mutable std::shared_mutex`** (or `std::mutex`) is added; all methods that read or modify `m_threads` / `m_alive_count` / `m_reaper` take the lock (shared for getters, exclusive for add/remove/clean). `get_thread_list()` returns a **copy** of the list by value so the result is safe to use after the lock is released.
