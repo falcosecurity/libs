@@ -782,6 +782,9 @@ public:
 
 	uint64_t get_lastevent_ts() const { return m_timestamper.get_cached_ts(); }
 	void set_lastevent_ts(const uint64_t v) { m_timestamper.set_cached_ts(v); }
+	/** Reset cached last-event timestamp so a subsequent set_lastevent_ts can set any value (e.g.
+	 * in tests). */
+	void reset_lastevent_ts() { m_timestamper.reset(); }
 
 	inline const std::string& get_host_root() const { return m_host_root; }
 	inline void set_host_root(const std::string& s) { m_host_root = s; }
