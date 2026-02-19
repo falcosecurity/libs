@@ -67,7 +67,6 @@ __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
  */
 __weak const volatile uint16_t ringbufs_num;
 
-
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
