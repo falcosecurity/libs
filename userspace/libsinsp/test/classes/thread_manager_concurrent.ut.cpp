@@ -16,23 +16,17 @@ limitations under the License.
 
 */
 
+/*
+ * These tests run under TSAN. Folly hazptr TLS false positives are suppressed via
+ * tsan_suppressions.txt. sinsp_stats_v2 counters are thread-local (get_thread_counters()).
+ */
+
 #include <helpers/threads_helpers.h>
 #include <atomic>
 #include <thread>
 
-#if defined(__SANITIZE_THREAD__)
-#define LIBSINSP_SKIP_CONCURRENT_TESTS_UNDER_TSAN 1
-#else
-#define LIBSINSP_SKIP_CONCURRENT_TESTS_UNDER_TSAN 0
-#endif
-
 // Concurrent add, lookup, and iteration. Validates thread-safe table operations.
-// Skipped under ThreadSanitizer: Folly's hazptr TLS can trigger TSAN reports;
-// run without USE_TSAN to exercise these tests.
 TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate) {
-#if LIBSINSP_SKIP_CONCURRENT_TESTS_UNDER_TSAN
-	GTEST_SKIP() << "concurrent thread manager tests skipped under TSAN (Folly hazptr TLS)";
-#endif
 	open_inspector();
 	auto* manager = m_inspector.m_thread_manager.get();
 	auto& factory = m_inspector.get_threadinfo_factory();
@@ -80,11 +74,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate) {
 	}
 }
 
-// Concurrent add, lookup, iteration, and remove. Skipped under TSAN (see above).
+// Concurrent add, lookup, iteration, and remove.
 TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate_remove) {
-#if LIBSINSP_SKIP_CONCURRENT_TESTS_UNDER_TSAN
-	GTEST_SKIP() << "concurrent thread manager tests skipped under TSAN (Folly hazptr TLS)";
-#endif
 	open_inspector();
 	auto* manager = m_inspector.m_thread_manager.get();
 	auto& factory = m_inspector.get_threadinfo_factory();

@@ -238,3 +238,22 @@ add_custom_target(
 	DEPENDS unit-test-libsinsp
 	COMMAND unit-test-libsinsp
 )
+
+# Run unit tests under TSAN with suppressions for known Folly TLS false positives. Only defined when
+# USE_TSAN is on; suppressions file must exist.
+if(USE_TSAN)
+	set(TSAN_SUPPRESSIONS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/tsan_suppressions.txt")
+	if(EXISTS "${TSAN_SUPPRESSIONS_FILE}")
+		add_custom_target(
+			run-unit-test-libsinsp-tsan
+			DEPENDS unit-test-libsinsp
+			COMMAND ${CMAKE_COMMAND} -E env TSAN_OPTIONS=suppressions=${TSAN_SUPPRESSIONS_FILE}
+					$<TARGET_FILE:unit-test-libsinsp> --gtest_brief=1
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		)
+		message(
+			STATUS
+				"TSAN suppressions: ${TSAN_SUPPRESSIONS_FILE} (target run-unit-test-libsinsp-tsan)"
+		)
+	endif()
+endif()
