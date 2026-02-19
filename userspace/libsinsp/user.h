@@ -19,9 +19,11 @@ limitations under the License.
 #ifndef FALCOSECURITY_LIBS_USER_H
 #define FALCOSECURITY_LIBS_USER_H
 
-#include <unordered_map>
-#include <string>
+#include <atomic>
 #include <memory>
+#include <shared_mutex>
+#include <string>
+#include <unordered_map>
 #include <libsinsp/procfs_utils.h>
 #include <libsinsp/sinsp.h>
 
@@ -148,9 +150,35 @@ public:
 	//
 	// User and group tables
 	//
-	bool m_import_users;
+	std::atomic<bool> m_import_users;
 
 private:
+	// Lookups that assume the caller holds m_mutex (unique or shared as appropriate).
+	// Used only from add_*, rm_*, delete_container (which hold unique lock).
+	scap_userinfo *get_user_assuming_lock_held(const std::string &container_id, uint32_t uid);
+	scap_groupinfo *get_group_assuming_lock_held(const std::string &container_id, uint32_t gid);
+	const std::unordered_map<uint32_t, scap_userinfo> *get_userlist_assuming_lock_held(
+	        const std::string &container_id);
+	const std::unordered_map<uint32_t, scap_groupinfo> *get_grouplist_assuming_lock_held(
+	        const std::string &container_id);
+
+	mutable std::shared_mutex m_mutex;
+
+private:
+	scap_userinfo *add_user_impl(const std::string &container_id,
+	                             int64_t pid,
+	                             uint32_t uid,
+	                             uint32_t gid,
+	                             std::string_view name,
+	                             std::string_view home,
+	                             std::string_view shell,
+	                             bool notify);
+	scap_groupinfo *add_group_impl(const std::string &container_id,
+	                               int64_t pid,
+	                               uint32_t gid,
+	                               std::string_view name,
+	                               bool notify);
+
 	scap_userinfo *add_host_user(uint32_t uid,
 	                             uint32_t gid,
 	                             std::string_view name,
