@@ -59,7 +59,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate) {
 
 	std::thread iter([&]() {
 		for(int k = 0; k < num_loop_iters; ++k) {
-			manager->loop_threads([&](const std::shared_ptr<sinsp_threadinfo>&) { return true; });
+			manager->loop_threads([&](const sinsp_threadinfo&) { return true; });
 		}
 	});
 
@@ -107,8 +107,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate_remove)
 		});
 		std::thread iter([&]() {
 			while(!phase2_done.load()) {
-				manager->loop_threads(
-				        [&](const std::shared_ptr<sinsp_threadinfo>&) { return true; });
+				manager->loop_threads([&](const sinsp_threadinfo&) { return true; });
 			}
 		});
 		std::thread remover([&]() {

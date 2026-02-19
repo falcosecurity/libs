@@ -173,12 +173,20 @@ public:
 	 * storage). */
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
 
-	/** Callback receives a shared_ptr to each thread; return false to stop iteration. Safe for
-	 * concurrent use. */
-	using thread_visitor_t = std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)>;
-	/*! \brief Iterate over all threads, calling \a callback with a shared_ptr to each. Returns
-	 * false if callback returned false. */
-	bool loop_threads(thread_visitor_t callback) const;
+	/*! \brief Iterate over all threads, calling \a callback with a const reference to each.
+	 * Return false from the callback to stop iteration. Safe for concurrent use.
+	 * Template avoids std::function allocation; callback signature: bool(const sinsp_threadinfo&).
+	 */
+	template<typename Visitor>
+	bool loop_threads(Visitor&& callback) const {
+		return m_threadtable.const_loop_shared_pointer(
+		        [&callback](const std::shared_ptr<sinsp_threadinfo>& ptr) {
+			        if(!ptr) {
+				        return true;
+			        }
+			        return callback(*ptr);
+		        });
+	}
 
 	std::set<uint16_t> m_server_ports;
 
