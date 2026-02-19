@@ -20,7 +20,9 @@ limitations under the License.
 #define FALCOSECURITY_LIBS_USER_H
 
 #include <atomic>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -81,16 +83,25 @@ public:
 	        const std::string &container_id);
 
 	/*!
-	  \brief Lookup for user in the user table.
-
-	  \return the \ref scap_userinfo object containing full user information,
-	   if user not found, returns NULL.
-
-	  \note this call works with file captures as well, because the user
-	   table is stored in the trace files. In that case, the returned
-	   user list is the one of the machine where the capture happened.
+	  \brief Invoke visitor with the user entry if found (no copy, no allocation).
+	  \return true if found and visitor was invoked, false otherwise.
 	*/
-	scap_userinfo *get_user(const std::string &container_id, uint32_t uid);
+	template<typename Visitor>
+	bool with_user(const std::string &container_id, uint32_t uid, Visitor &&visitor) {
+		std::shared_lock lock(m_mutex);
+		scap_userinfo *p = get_user_assuming_lock_held(container_id, uid);
+		if(!p) {
+			return false;
+		}
+		visitor(*p);
+		return true;
+	}
+
+	/*!
+	  \brief Lookup for user in the user table (returns a copy for tests/convenience).
+	  \return optional with user info if found, nullopt otherwise.
+	*/
+	std::optional<scap_userinfo> get_user(const std::string &container_id, uint32_t uid);
 
 	/*!
 	  \brief Return the table with all the machine user groups.
@@ -106,16 +117,25 @@ public:
 	        const std::string &container_id);
 
 	/*!
-	  \brief Lookup for group in the group table for a container.
-
-	  \return the \ref scap_groupinfo object containing full group information,
-	   if group not found, returns NULL.
-
-	  \note this call works with file captures as well, because the group
-	   table is stored in the trace files. In that case, the returned
-	   group list is the one of the machine where the capture happened.
+	  \brief Invoke visitor with the group entry if found (no copy, no allocation).
+	  \return true if found and visitor was invoked, false otherwise.
 	*/
-	scap_groupinfo *get_group(const std::string &container_id, uint32_t gid);
+	template<typename Visitor>
+	bool with_group(const std::string &container_id, uint32_t gid, Visitor &&visitor) {
+		std::shared_lock lock(m_mutex);
+		scap_groupinfo *p = get_group_assuming_lock_held(container_id, gid);
+		if(!p) {
+			return false;
+		}
+		visitor(*p);
+		return true;
+	}
+
+	/*!
+	  \brief Lookup for group in the group table (returns a copy for tests/convenience).
+	  \return optional with group info if found, nullopt otherwise.
+	*/
+	std::optional<scap_groupinfo> get_group(const std::string &container_id, uint32_t gid);
 
 	// Note: pid is an unused parameter when container_id is an empty string
 	// ie: it is only used when adding users/groups from containers.

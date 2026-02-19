@@ -22,16 +22,16 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_VAR(x)  \
-	do {                       \
-		*len = sizeof((x));    \
-		return (uint8_t*)&(x); \
+#define RETURN_EXTRACT_VAR(x)   \
+	do {                        \
+		*len = sizeof((x));     \
+		return (uint8_t *)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
+#define RETURN_EXTRACT_STRING(x)       \
+	do {                               \
+		*len = (x).size();             \
+		return (uint8_t *)(x).c_str(); \
 	} while(0)
 
 static const filtercheck_field_info sinsp_filter_check_user_fields[] = {
@@ -77,11 +77,11 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_user::allocate_new() {
 	return std::make_unique<sinsp_filter_check_user>();
 }
 
-uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
-                                                 uint32_t* len,
+uint8_t *sinsp_filter_check_user::extract_single(sinsp_evt *evt,
+                                                 uint32_t *len,
                                                  bool sanitize_strings) {
 	*len = 0;
-	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	sinsp_threadinfo *tinfo = evt->get_thread_info();
 	if(tinfo == NULL) {
 		return NULL;
 	}
@@ -105,34 +105,29 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	}
 
 	auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-	auto user = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_uid);
-	auto loginuser = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_loginuid);
+	auto *mgr = m_inspector->m_usergroup_manager.get();
 	switch(m_field_id) {
 	case TYPE_UID:
 		m_val.u32 = tinfo->m_uid;
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_NAME:
-		if(user) {
-			m_strval = user->name;
-		} else if(tinfo->m_uid == 0) {
-			m_strval = "root";
-		} else {
-			m_strval = "<NA>";
+		if(!mgr->with_user(container_id, tinfo->m_uid, [this](const scap_userinfo &u) {
+			   m_strval = u.name;
+		   })) {
+			m_strval = (tinfo->m_uid == 0) ? "root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_HOMEDIR:
-		if(user) {
-			m_strval = user->homedir;
-		} else if(tinfo->m_uid == 0) {
-			m_strval = "/root";
-		} else {
-			m_strval = "<NA>";
+		if(!mgr->with_user(container_id, tinfo->m_uid, [this](const scap_userinfo &u) {
+			   m_strval = u.homedir;
+		   })) {
+			m_strval = (tinfo->m_uid == 0) ? "/root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_SHELL:
-		if(user) {
-			m_strval = user->shell;
-		} else {
+		if(!mgr->with_user(container_id, tinfo->m_uid, [this](const scap_userinfo &u) {
+			   m_strval = u.shell;
+		   })) {
 			m_strval = "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
@@ -143,12 +138,10 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		}
 		RETURN_EXTRACT_VAR(m_val.s64);
 	case TYPE_LOGINNAME:
-		if(loginuser) {
-			m_strval = loginuser->name;
-		} else if(tinfo->m_loginuid == 0) {
-			m_strval = "root";
-		} else {
-			m_strval = "<NA>";
+		if(!mgr->with_user(container_id, tinfo->m_loginuid, [this](const scap_userinfo &u) {
+			   m_strval = u.name;
+		   })) {
+			m_strval = (tinfo->m_loginuid == 0) ? "root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
 	default:

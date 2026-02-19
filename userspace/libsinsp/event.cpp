@@ -1335,16 +1335,25 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			// therefore we cannot directly use tinfo->m_user here.
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
-			scap_userinfo *user_info = NULL;
+			bool resolved = false;
 			if(tinfo) {
 				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-				user_info = m_inspector->m_usergroup_manager->get_user(container_id, val);
+				resolved = m_inspector->m_usergroup_manager->with_user(
+				        container_id,
+				        val,
+				        [this](const scap_userinfo &user_info) {
+					        if(user_info.name[0] != 0) {
+						        strcpy_sanitized(&m_resolved_paramstr_storage[0],
+						                         user_info.name,
+						                         (uint32_t)m_resolved_paramstr_storage.size());
+					        } else {
+						        snprintf(&m_resolved_paramstr_storage[0],
+						                 m_resolved_paramstr_storage.size(),
+						                 "<NA>");
+					        }
+				        });
 			}
-			if(user_info != NULL && user_info->name[0] != 0) {
-				strcpy_sanitized(&m_resolved_paramstr_storage[0],
-				                 user_info->name,
-				                 (uint32_t)m_resolved_paramstr_storage.size());
-			} else {
+			if(!resolved) {
 				snprintf(&m_resolved_paramstr_storage[0],
 				         m_resolved_paramstr_storage.size(),
 				         "<NA>");
@@ -1365,16 +1374,25 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			// therefore we cannot directly use tinfo->m_group here.
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
-			scap_groupinfo *group_info = NULL;
+			bool resolved = false;
 			if(tinfo) {
 				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-				group_info = m_inspector->m_usergroup_manager->get_group(container_id, val);
+				resolved = m_inspector->m_usergroup_manager->with_group(
+				        container_id,
+				        val,
+				        [this](const scap_groupinfo &group_info) {
+					        if(group_info.name[0] != 0) {
+						        strcpy_sanitized(&m_resolved_paramstr_storage[0],
+						                         group_info.name,
+						                         (uint32_t)m_resolved_paramstr_storage.size());
+					        } else {
+						        snprintf(&m_resolved_paramstr_storage[0],
+						                 m_resolved_paramstr_storage.size(),
+						                 "<NA>");
+					        }
+				        });
 			}
-			if(group_info != NULL && group_info->name[0] != 0) {
-				strcpy_sanitized(&m_resolved_paramstr_storage[0],
-				                 group_info->name,
-				                 (uint32_t)m_resolved_paramstr_storage.size());
-			} else {
+			if(!resolved) {
 				snprintf(&m_resolved_paramstr_storage[0],
 				         m_resolved_paramstr_storage.size(),
 				         "<NA>");

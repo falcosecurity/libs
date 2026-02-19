@@ -36,15 +36,15 @@ TEST_F(usergroup_manager_test, add_rm) {
 	const timestamper timestamper{0};
 	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 	// no data so far
-	ASSERT_EQ(mgr.get_user(container_id, 0), nullptr);
-	ASSERT_EQ(mgr.get_group(container_id, 0), nullptr);
+	ASSERT_FALSE(mgr.get_user(container_id, 0).has_value());
+	ASSERT_FALSE(mgr.get_group(container_id, 0).has_value());
 	ASSERT_EQ(mgr.get_userlist(container_id), nullptr);
 	ASSERT_EQ(mgr.get_grouplist(container_id), nullptr);
 
 	// user
 	mgr.add_user(container_id, -1, 0, 0, "test", "/test", "/bin/test");
-	auto* user = mgr.get_user(container_id, 0);
-	ASSERT_NE(user, nullptr);
+	auto user = mgr.get_user(container_id, 0);
+	ASSERT_TRUE(user.has_value());
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
 	ASSERT_STREQ(user->name, "test");
@@ -53,30 +53,32 @@ TEST_F(usergroup_manager_test, add_rm) {
 
 	auto* userlist = mgr.get_userlist(container_id);
 	{
+		ASSERT_NE(userlist, nullptr);
 		auto it = userlist->find(0);
 		ASSERT_NE(it, userlist->end());
-		ASSERT_EQ(&(it->second), user);
+		ASSERT_EQ(it->second.uid, user->uid);
 	}
 
 	// group
 	mgr.add_group(container_id, -1, 0, std::string_view("test"));
-	auto* group = mgr.get_group(container_id, 0);
-	ASSERT_NE(group, nullptr);
+	auto group = mgr.get_group(container_id, 0);
+	ASSERT_TRUE(group.has_value());
 	ASSERT_EQ(group->gid, 0);
 	ASSERT_STREQ(group->name, "test");
 
 	auto* grouplist = mgr.get_grouplist(container_id);
 	{
+		ASSERT_NE(grouplist, nullptr);
 		auto it = grouplist->find(0);
 		ASSERT_NE(it, grouplist->end());
-		ASSERT_EQ(&(it->second), group);
+		ASSERT_EQ(it->second.gid, group->gid);
 	}
 
 	// rm
 	mgr.rm_user(container_id, 0);
-	ASSERT_EQ(mgr.get_user(container_id, 0), nullptr);
+	ASSERT_FALSE(mgr.get_user(container_id, 0).has_value());
 	mgr.rm_group(container_id, 0);
-	ASSERT_EQ(mgr.get_group(container_id, 0), nullptr);
+	ASSERT_FALSE(mgr.get_group(container_id, 0).has_value());
 }
 
 TEST_F(usergroup_manager_test, invalid_sentinel_uid_gid) {
@@ -104,8 +106,8 @@ TEST_F(usergroup_manager_test, system_lookup) {
 	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 
 	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
-	auto* user = mgr.get_user(container_id, 0);
-	ASSERT_NE(user, nullptr);
+	auto user = mgr.get_user(container_id, 0);
+	ASSERT_TRUE(user.has_value());
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
 	ASSERT_STREQ(user->name, "root");
@@ -120,8 +122,8 @@ TEST_F(usergroup_manager_test, system_lookup) {
 	ASSERT_EQ(std::string(user->shell).empty(), false);
 
 	mgr.add_group(container_id, -1, 0, std::string_view{});
-	auto* group = mgr.get_group(container_id, 0);
-	ASSERT_NE(group, nullptr);
+	auto group = mgr.get_group(container_id, 0);
+	ASSERT_TRUE(group.has_value());
 	ASSERT_EQ(group->gid, 0);
 #if defined(__APPLE__)
 	// if the container_id is empty the group will be populated
@@ -148,16 +150,14 @@ TEST_F(usergroup_manager_test, add_no_import_users) {
 	ASSERT_STREQ(added_usr->homedir, "<NA>");
 	ASSERT_STREQ(added_usr->shell, "<NA>");
 
-	auto* user = mgr.get_user(container_id, 37);
-	ASSERT_EQ(user, nullptr);
+	ASSERT_FALSE(mgr.get_user(container_id, 37).has_value());
 
 	auto* added_grp = mgr.add_group(container_id, -1, 15, std::string_view{"foo"});
 	ASSERT_NE(added_grp, nullptr);
 	ASSERT_EQ(added_grp->gid, 15);
 	ASSERT_STREQ(added_grp->name, "<NA>");
 
-	auto* group = mgr.get_group(container_id, 15);
-	ASSERT_EQ(group, nullptr);
+	ASSERT_FALSE(mgr.get_group(container_id, 15).has_value());
 }
 
 // note(jasondellaluce): emscripten has issues with fgetpwent
@@ -206,8 +206,8 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup) {
 	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
 
 	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
-	auto* user = mgr.get_user(container_id, 0);
-	ASSERT_NE(user, nullptr);
+	auto user = mgr.get_user(container_id, 0);
+	ASSERT_TRUE(user.has_value());
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
 	ASSERT_STREQ(user->name, "toor");
@@ -215,8 +215,8 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup) {
 	ASSERT_STREQ(user->shell, "/bin/ash");
 
 	mgr.add_group(container_id, -1, 0, std::string_view{});
-	auto* group = mgr.get_group(container_id, 0);
-	ASSERT_NE(group, nullptr);
+	auto group = mgr.get_group(container_id, 0);
+	ASSERT_TRUE(group.has_value());
 	ASSERT_EQ(group->gid, 0);
 	ASSERT_STREQ(group->name, "toor");
 }
