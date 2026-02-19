@@ -71,15 +71,11 @@ public:
 	void dump_users_groups(sinsp_dumper &dumper);
 
 	/*!
-	  \brief Return the table with all the machine users.
+	  \brief Return a copy of the user table for the given container.
 
-	  \return a hash table with the user ID (UID) as the key and the user information as the data.
-
-	  \note this call works with file captures as well, because the user
-	   table is stored in the trace files. In that case, the returned
-	   user list is the one of the machine where the capture happened.
+	  \return optional with the map (uid -> scap_userinfo) if container exists, nullopt otherwise.
 	*/
-	const std::unordered_map<uint32_t, scap_userinfo> *get_userlist(
+	std::optional<std::unordered_map<uint32_t, scap_userinfo>> get_userlist(
 	        const std::string &container_id);
 
 	/*!
@@ -104,16 +100,11 @@ public:
 	std::optional<scap_userinfo> get_user(const std::string &container_id, uint32_t uid);
 
 	/*!
-	  \brief Return the table with all the machine user groups.
+	  \brief Return a copy of the group table for the given container.
 
-	  \return a hash table with the group ID (GID) as the key and the group
-	   information as the data.
-
-	  \note this call works with file captures as well, because the group
-	   table is stored in the trace files. In that case, the returned
-	   user table is the one of the machine where the capture happened.
+	  \return optional with the map (gid -> scap_groupinfo) if container exists, nullopt otherwise.
 	*/
-	const std::unordered_map<uint32_t, scap_groupinfo> *get_grouplist(
+	std::optional<std::unordered_map<uint32_t, scap_groupinfo>> get_grouplist(
 	        const std::string &container_id);
 
 	/*!

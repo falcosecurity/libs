@@ -38,8 +38,8 @@ TEST_F(usergroup_manager_test, add_rm) {
 	// no data so far
 	ASSERT_FALSE(mgr.get_user(container_id, 0).has_value());
 	ASSERT_FALSE(mgr.get_group(container_id, 0).has_value());
-	ASSERT_EQ(mgr.get_userlist(container_id), nullptr);
-	ASSERT_EQ(mgr.get_grouplist(container_id), nullptr);
+	ASSERT_FALSE(mgr.get_userlist(container_id).has_value());
+	ASSERT_FALSE(mgr.get_grouplist(container_id).has_value());
 
 	// user
 	mgr.add_user(container_id, -1, 0, 0, "test", "/test", "/bin/test");
@@ -51,9 +51,9 @@ TEST_F(usergroup_manager_test, add_rm) {
 	ASSERT_STREQ(user->homedir, "/test");
 	ASSERT_STREQ(user->shell, "/bin/test");
 
-	auto* userlist = mgr.get_userlist(container_id);
+	auto userlist = mgr.get_userlist(container_id);
 	{
-		ASSERT_NE(userlist, nullptr);
+		ASSERT_TRUE(userlist.has_value());
 		auto it = userlist->find(0);
 		ASSERT_NE(it, userlist->end());
 		ASSERT_EQ(it->second.uid, user->uid);
@@ -66,9 +66,9 @@ TEST_F(usergroup_manager_test, add_rm) {
 	ASSERT_EQ(group->gid, 0);
 	ASSERT_STREQ(group->name, "test");
 
-	auto* grouplist = mgr.get_grouplist(container_id);
+	auto grouplist = mgr.get_grouplist(container_id);
 	{
-		ASSERT_NE(grouplist, nullptr);
+		ASSERT_TRUE(grouplist.has_value());
 		auto it = grouplist->find(0);
 		ASSERT_NE(it, grouplist->end());
 		ASSERT_EQ(it->second.gid, group->gid);

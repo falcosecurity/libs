@@ -558,12 +558,14 @@ scap_groupinfo *sinsp_usergroup_manager::get_group_assuming_lock_held(
 	return &git->second;
 }
 
-const unordered_map<uint32_t, scap_userinfo> *sinsp_usergroup_manager::get_userlist(
-        const string &container_id) {
-	if(m_userlist.find(container_id) == m_userlist.end()) {
-		return nullptr;
+std::optional<std::unordered_map<uint32_t, scap_userinfo>> sinsp_usergroup_manager::get_userlist(
+        const std::string &container_id) {
+	std::shared_lock lock(m_mutex);
+	const auto *p = get_userlist_assuming_lock_held(container_id);
+	if(!p) {
+		return std::nullopt;
 	}
-	return &m_userlist[container_id];
+	return *p;
 }
 
 std::optional<scap_userinfo> sinsp_usergroup_manager::get_user(const std::string &container_id,
@@ -576,12 +578,14 @@ std::optional<scap_userinfo> sinsp_usergroup_manager::get_user(const std::string
 	return *p;
 }
 
-const unordered_map<uint32_t, scap_groupinfo> *sinsp_usergroup_manager::get_grouplist(
-        const string &container_id) {
-	if(m_grouplist.find(container_id) == m_grouplist.end()) {
-		return nullptr;
+std::optional<std::unordered_map<uint32_t, scap_groupinfo>> sinsp_usergroup_manager::get_grouplist(
+        const std::string &container_id) {
+	std::shared_lock lock(m_mutex);
+	const auto *p = get_grouplist_assuming_lock_held(container_id);
+	if(!p) {
+		return std::nullopt;
 	}
-	return &m_grouplist[container_id];
+	return *p;
 }
 
 std::optional<scap_groupinfo> sinsp_usergroup_manager::get_group(const std::string &container_id,
