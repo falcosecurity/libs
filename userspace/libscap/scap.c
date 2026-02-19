@@ -217,8 +217,6 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
 	return res;
 }
 
-scap_buffer_t SCAP_INVALID_BUFFER_HANDLE = 0xFFFFFFFF;
-
 int32_t scap_buffer_next(scap_t* handle,
                          scap_buffer_t buffer_h,
                          scap_evt** pevent,
