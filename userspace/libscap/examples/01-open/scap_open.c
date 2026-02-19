@@ -176,8 +176,12 @@ static ppm_sc_counter ppm_sc_count[PPM_SC_MAX * 2] = {
         0}; /* Number of times a syscall is called. We want the `*2` because we store the enter and
                the exit count separately */
 
-static bool is_multiple_workers_mode_enabled() {
+static bool is_multiple_workers_mode_enabled(void) {
+#ifdef HAS_ENGINE_MODERN_BPF
 	return vtable == &scap_modern_bpf_engine && modern_bpf_params.buffers_num > 1;
+#else
+	return false;
+#endif
 }
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
@@ -681,7 +685,7 @@ void count_syscalls(scap_evt* ev) {
 	if(type == PPME_GENERIC_X) {
 		const uint16_t ppm_sc_code = *(uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr) +
 		                                          ev->nparams * sizeof(uint16_t));
-		atomic_fetch_add(ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter, 1);
+		atomic_fetch_add(&ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter, 1);
 		return;
 	}
 
