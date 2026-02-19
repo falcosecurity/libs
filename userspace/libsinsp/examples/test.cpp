@@ -353,9 +353,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			cxxopts::value<unsigned long>())
 		("c,buffers-num",
 		"(modern eBPF probe only) Determines the number of allocated ring buffers. The behaviour depends on its value:\n"
-										 " - if `<num> > 1`, it is the number of requested ring buffers;\n
-										 " - if `<num> > 0 && <num> <= 1`, a ring buffer is allocated for every `1 / <num>`;\n
-										 " - if `<num> == 0`, it means that 1 ring buffer is shared among all available CPUs.\n
+										 " - if `<num> > 1`, it is the number of requested ring buffers;\n"
+										 " - if `<num> > 0 && <num> <= 1`, a ring buffer is allocated for every `1 / <num>`;\n"
+										 " - if `<num> == 0`, it means that 1 ring buffer is shared among all available CPUs.\n"
 										 " (default: 1).",
 			cxxopts::value<double>())
 		("A,all-cpus",
