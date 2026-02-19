@@ -65,6 +65,10 @@ add_library(scap_error STATIC strerror.c)
 
 target_include_directories(scap_error PUBLIC $<BUILD_INTERFACE:${LIBS_DIR}/userspace>)
 
+add_library(scap_buffer STATIC scap_buffer.c)
+
+target_include_directories(scap_buffer PUBLIC $<BUILD_INTERFACE:${LIBS_DIR}/userspace>)
+
 add_library(scap scap.c scap_api_version.c scap_savefile.c scap_platform_api.c)
 
 target_include_directories(
@@ -88,7 +92,7 @@ target_include_directories(
 		   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 )
 
-target_link_libraries(scap PRIVATE scap_error "${ZLIB_LIB}")
+target_link_libraries(scap PRIVATE scap_error scap_buffer "${ZLIB_LIB}")
 set(SCAP_PKGCONFIG_REQUIRES "")
 set(SCAP_PKGCONFIG_REQUIRES_PRIVATE zlib)
 
