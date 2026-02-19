@@ -4,6 +4,8 @@
 
 Make **sinsp_usergroup_manager** safe for concurrent use when multiple threads call into it (e.g. event processing, filter/formatter evaluation, dump, and thread manager /proc lookup). The manager is shared via **m_usergroup_manager** (std::shared_ptr) between sinsp, thread_manager, and parsers; its internal tables are currently unsynchronized.
 
+This work is part of the broader goal of **making Falco multithreaded** (see falcosecurity/falco PR 3751): once event processing, filtering, and other work can run concurrently, the usergroup manager will be accessed from multiple threads and must be safe under that usage.
+
 ## 2. Current state
 
 ### 2.1 Ownership and call sites
@@ -48,10 +50,12 @@ No mutex or atomic is used today; concurrent read/write of the maps or m_import_
 
 Today get_user/get_group return **raw pointers** into the map; get_userlist/get_grouplist return **const pointer to the map**. If we hold only a shared lock inside the method and then release it, the pointer can dangle as soon as another thread mutates the map. So we must not return pointers into the map that outlive the lock.
 
-**Option A — Return by value / out-param (recommended for get_user / get_group):**
+**Option A — Visitor pattern (recommended for get_user / get_group on the critical path):**
 
-- **get_user(container_id, uid):** Take shared lock, find entry, copy scap_userinfo into a **thread-local or method-local** buffer, return **pointer to that copy** (and document that it is valid only until the next call to any sinsp_usergroup_manager method from any thread), **or** change signature to return **std::optional<scap_userinfo>** (or bool get_user(..., scap_userinfo& out)) so no pointer into internal state is exposed.
-- **get_group(container_id, gid):** Same idea: return optional<scap_groupinfo> or out-param.
+- **Avoid allocations in the hot path:** Returning a copy (e.g. std::optional&lt;scap_userinfo&gt;) can introduce allocations or a fixed-size copy on every call; on the event/formatter critical path, avoiding per-call allocations is desirable.
+- **API:** Template visitor so callers get a **const reference** while the shared lock is held (no pointer escape, no copy; template avoids std::function allocation): **template&lt;typename V&gt; bool with_user(container_id, uid, V&amp;&amp; visitor);** and **with_group(...)** — if found, invoke visitor(entry), return true; else false. Callers read fields in the lambda and copy into their own storage. Lock held only during the visitor.
+- **Internal use (add_user, add_group, rm_user, rm_group):** They hold the **unique** lock and need a pointer to modify or pass to notify_*. Do not call public with_user/with_group (deadlock). Keep a **private** lookup that assumes the mutex is held (e.g. get_user_assuming_lock_held(...)) and use it only from those four methods.
+- **Option A' — Return a copy (fallback / tests):** Under shared lock, find and return a copy (e.g. std::optional&lt;scap_userinfo&gt; / optional&lt;scap_groupinfo&gt; or out-param). No shared buffer. Can be offered in addition to the visitor (e.g. for tests) as a thin wrapper that uses the visitor to fill an optional.
 
 **Option B — Return shared_ptr to a copy of the per-container map:**
 
@@ -62,7 +66,9 @@ Today get_user/get_group return **raw pointers** into the map; get_userlist/get_
 
 - Keep get_user/get_group returning raw pointers. Hold shared lock only while doing the lookup; return the pointer; release lock. Document that the pointer is **invalidated by any subsequent call** to add_user, add_group, rm_user, rm_group, delete_container (or any get that might resize), and that callers must not store the pointer or use it after any such call. This is brittle and not recommended for new code; only if we must avoid API churn.
 
-**Recommendation:** Option A for get_user/get_group (return optional<scap_userinfo> / optional<scap_groupinfo>, or out-param). Option B for get_userlist/get_grouplist (return a copy or shared_ptr to a copy of the requested container’s map). Option C only if we cannot change the public API.
+**Recommendation:** Prefer **Option A (visitor)** for get_user/get_group on the critical path to avoid allocations and copies; offer **Option A' (return copy)** as an optional helper for tests or simpler call sites. Option B for get_userlist/get_grouplist (return a copy or shared_ptr to a copy of the requested container’s map). Option C only if we cannot change the public API.
+
+**Impact of the visitor API (Option A):** Call sites are few and the change is localized. **event.cpp** (PT_UID / PT_GID): two places that today do get_user/get_group then copy name into a buffer; each becomes a single with_user/with_group call whose lambda does the same copy. **sinsp_filtercheck_user.cpp**: two get_user calls (user, loginuser) and a switch on fields — call with_user(uid, [&](const auto& u){ ... }) and with_user(loginuid, ...) and set m_strval (or fallbacks) inside the lambdas. **sinsp_filtercheck_group.cpp**: one get_group, use name — one with_group(..., [&](const auto& g){ m_name = g.name; }). **user.cpp** (add_user, add_group, rm_user, rm_group): no change to their logic; they use a **private** lookup that assumes the unique lock is held (get_user_assuming_lock_held / get_group_assuming_lock_held) instead of the public get_user/get_group. **Tests**: use the visitor with a lambda that ASSERTs on fields, or a small test helper that uses the visitor to fill an optional&lt;scap_userinfo&gt; for convenience. Overall the refactor is small and keeps the hot path allocation-free.
 
 ### 3.3 m_fallback_user / m_fallback_grp
 
@@ -78,14 +84,14 @@ Takes sinsp_dumper& and iterates m_userlist/m_grouplist. Under shared lock, eith
 |------|----------|
 | **m_userlist / m_grouplist** | Protect with single **mutable std::shared_mutex m_mutex**. Readers: shared lock. Writers: unique lock. |
 | **m_import_users** | **std::atomic<bool>** (or protect with same mutex). |
-| **get_user / get_group** | Do not return raw pointers into the map after releasing the lock. Prefer **return by value** (e.g. std::optional<scap_userinfo>) or **out-param**; alternatively document “pointer valid until next call” and keep pointer return (brittle). |
+| **get_user / get_group** | **Visitor API** (with_user / with_group) on the critical path to avoid allocations; optional **return copy** (e.g. std::optional or out-param) for tests. Private lookup for add_* / rm_* under unique lock. |
 | **get_userlist / get_grouplist** | Under shared lock, **return a copy** of the per-container map (or shared_ptr to copy) so callers do not hold references into the map. |
 | **dump_users_groups** | Run under shared lock for the duration of the dump, or copy under lock and dump from copy. |
 | **m_fallback_user / m_fallback_grp** | When m_import_users is false, return a copy from add_user/add_group (or protect with mutex and document pointer lifetime). |
 
 ## 5. Call site impact
 
-- **event.cpp, sinsp_filtercheck_*.cpp:** If get_user/get_group return optional or out-param, adjust to use the new API (e.g. if (auto u = get_user(...)) use *u).
+- **event.cpp, sinsp_filtercheck_*.cpp:** Use with_user / with_group visitor; lambda copies needed fields (e.g. name) into existing buffers. Optional get_user/get_group that return a copy can be used for tests.
 - **user.h user_group_updater:** Already calls add_user, add_group, delete_container; no change if signatures of add_* stay the same. m_import_users read: make it atomic so no change at call site.
 - **dumper, tests:** get_userlist/get_grouplist returning a copy or shared_ptr may require call sites to hold the result (e.g. shared_ptr<const userinfo_map>) instead of const map*.
 
@@ -100,4 +106,4 @@ Takes sinsp_dumper& and iterates m_userlist/m_grouplist. Under shared lock, eith
 
 ---
 
-**Next step:** After your confirmation, implementation will: (1) add m_mutex and m_import_users as atomic or under mutex; (2) implement the chosen get_user/get_group and get_userlist/get_grouplist API (return by value/copy or documented pointer lifetime); (3) take shared/unique lock in all public methods as above; (4) update call sites and add/run concurrent tests under TSAN.
+**Next step:** After your confirmation, implementation will: (1) add m_mutex and m_import_users as atomic or under mutex; (2) implement **with_user / with_group** (template visitor) and optional get_user/get_group that return a copy for tests; private get_user_assuming_lock_held / get_group_assuming_lock_held for add_* and rm_*; get_userlist/get_grouplist to return a copy or shared_ptr to a copy; (3) take shared/unique lock in all public methods as above; (4) update call sites (event.cpp, sinsp_filtercheck_*.cpp, user.cpp internal) and add/run concurrent tests under TSAN.
