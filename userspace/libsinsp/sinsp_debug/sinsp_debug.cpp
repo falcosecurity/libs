@@ -86,8 +86,8 @@ int main(int argc, char** argv) {
 	std::cout << "ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ " << std::endl << std::endl;
 
 	// Print lineage for all threads in the table
-	inspector.m_thread_manager->loop_threads([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
-		printf("* %s\n", thread_info_to_string(tinfo.get()).c_str());
+	inspector.m_thread_manager->loop_threads([&](const sinsp_threadinfo& tinfo) {
+		printf("* %s\n", thread_info_to_string(const_cast<sinsp_threadinfo*>(&tinfo)).c_str());
 		return true;
 	});
 
@@ -170,8 +170,8 @@ int main(int argc, char** argv) {
 	std::cout << "📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜📜" << std::endl << std::endl;
 
 	// Print lineage for all threads in the table
-	inspector.m_thread_manager->loop_threads([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
-		display_thread_lineage(*inspector.m_thread_manager, tinfo.get());
+	inspector.m_thread_manager->loop_threads([&](const sinsp_threadinfo& tinfo) {
+		display_thread_lineage(*inspector.m_thread_manager, const_cast<sinsp_threadinfo*>(&tinfo));
 		return true;
 	});
 

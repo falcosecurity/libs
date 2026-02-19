@@ -143,10 +143,6 @@ void sinsp_thread_manager::clear() {
 	m_recently_exited_write_idx = 0;
 }
 
-bool sinsp_thread_manager::loop_threads(thread_visitor_t callback) const {
-	return m_threadtable.const_loop_shared_pointer(callback);
-}
-
 bool sinsp_thread_manager::foreach_entry(
         std::function<bool(libsinsp::state::table_entry& e)> pred) {
 	return m_threadtable.loop([&pred](sinsp_threadinfo& e) { return pred(e); });
