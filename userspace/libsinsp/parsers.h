@@ -36,7 +36,8 @@ class sinsp_plugin_manager;
   \brief Container holding parameters to be provided to sinsp_parser constructor.
   An instance of this struct is meant to be shared among all sinsp_parser instances.
 */
-struct sinsp_parser_shared_params {
+class sinsp_parser_shared_params {
+public:
 	// The following fields are externally provided and access to them is expected to be
 	// read-only.
 	const sinsp_mode& m_sinsp_mode;
