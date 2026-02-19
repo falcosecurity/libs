@@ -21,6 +21,9 @@ limitations under the License.
 #include <memory>
 #include <stdint.h>
 #include <list>
+#include <mutex>
+#include <shared_mutex>
+
 #include <libsinsp/sinsp_exception.h>
 
 class sinsp_threadinfo;
@@ -31,7 +34,9 @@ class sinsp_threadinfo;
  */
 #define DEFAULT_DEAD_THREADS_THRESHOLD 11
 
-/* New struct that keep information regarding the thread group */
+/* New struct that keep information regarding the thread group.
+ * All access to m_threads, m_alive_count, m_reaper is protected by m_mutex for thread safety.
+ */
 struct thread_group_info {
 public:
 	thread_group_info(int64_t group_pid,
@@ -45,13 +50,18 @@ public:
 
 		/* When we create the thread group info the count is 1, because we only have the creator
 		 * thread */
+		std::unique_lock lock(m_mutex);
 		m_alive_count = 1;
 		m_threads.push_front(current_thread);
-	};
+	}
 
-	inline void increment_thread_count() { m_alive_count++; }
+	inline void increment_thread_count() {
+		std::unique_lock lock(m_mutex);
+		m_alive_count++;
+	}
 
 	inline void decrement_thread_count() {
+		std::unique_lock lock(m_mutex);
 		m_alive_count--;
 
 		/* Clean expired threads if necessary.
@@ -61,23 +71,36 @@ public:
 		 * exists.
 		 */
 		if((m_threads.size() - m_alive_count) >= DEFAULT_DEAD_THREADS_THRESHOLD) {
-			clean_expired_threads();
+			clean_expired_threads(lock);
 		}
 	}
 
-	inline uint64_t get_thread_count() const { return m_alive_count; }
+	inline uint64_t get_thread_count() const {
+		std::shared_lock lock(m_mutex);
+		return m_alive_count;
+	}
 
-	inline bool is_reaper() const { return m_reaper; }
+	inline bool is_reaper() const {
+		std::shared_lock lock(m_mutex);
+		return m_reaper;
+	}
 
-	inline void set_reaper(bool reaper) { m_reaper = reaper; }
+	inline void set_reaper(bool reaper) {
+		std::unique_lock lock(m_mutex);
+		m_reaper = reaper;
+	}
 
 	inline int64_t get_tgroup_pid() const { return m_pid; }
 
-	inline const std::list<std::weak_ptr<sinsp_threadinfo>>& get_thread_list() const {
+	/** Returns a copy of the thread list so the result is safe to use after the lock is released.
+	 */
+	inline std::list<std::weak_ptr<sinsp_threadinfo>> get_thread_list() const {
+		std::shared_lock lock(m_mutex);
 		return m_threads;
 	}
 
 	inline void add_thread_to_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main) {
+		std::unique_lock lock(m_mutex);
 		/* The main thread should always be the first element of the list, if present.
 		 * In this way we can efficiently obtain the main thread.
 		 */
@@ -86,23 +109,12 @@ public:
 		} else {
 			m_threads.push_back(thread);
 		}
-		/* we are adding a thread so we increment the count */
-		increment_thread_count();
+		m_alive_count++;
 	}
 
 	inline void clean_expired_threads() {
-		auto thread = m_threads.begin();
-		while(thread != m_threads.end()) {
-			/* This child is expired */
-			if(thread->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
-				thread = m_threads.erase(thread);
-				continue;
-			}
-			thread++;
-		}
+		std::unique_lock lock(m_mutex);
+		clean_expired_threads(lock);
 	}
 
 	/* Remove a specific thread from the list immediately (e.g. when using
@@ -110,6 +122,7 @@ public:
 	 * in time for clean_expired_threads to remove them).
 	 */
 	inline void remove_thread_from_list(const std::shared_ptr<sinsp_threadinfo>& thread) {
+		std::unique_lock lock(m_mutex);
 		for(auto it = m_threads.begin(); it != m_threads.end(); ++it) {
 			auto locked = it->lock();
 			if(locked.get() == thread.get()) {
@@ -119,10 +132,29 @@ public:
 		}
 	}
 
-	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().lock().get(); }
+	inline sinsp_threadinfo* get_first_thread() const {
+		std::shared_lock lock(m_mutex);
+		if(m_threads.empty()) {
+			return nullptr;
+		}
+		return m_threads.front().lock().get();
+	}
 
 private:
+	/** Called with m_mutex already held (unique_lock). */
+	inline void clean_expired_threads(std::unique_lock<std::shared_mutex>&) {
+		auto thread = m_threads.begin();
+		while(thread != m_threads.end()) {
+			if(thread->expired()) {
+				thread = m_threads.erase(thread);
+				continue;
+			}
+			thread++;
+		}
+	}
+
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
+	mutable std::shared_mutex m_mutex;
 	uint64_t m_alive_count;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_threads;
 	bool m_reaper;
