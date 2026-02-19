@@ -405,8 +405,8 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	if(!tinfo) {
 		if(is_clone_exit_event(etype) || is_fork_exit_event(etype)) {
-			if(m_params->m_sinsp_stats_v2 != nullptr) {
-				m_params->m_sinsp_stats_v2->m_n_failed_thread_lookups--;
+			if(m_sinsp_stats_v2 != nullptr) {
+				m_sinsp_stats_v2->get_thread_counters().m_n_failed_thread_lookups--;
 			}
 		}
 		return false;
@@ -491,8 +491,8 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 	if(evt.get_tinfo() == nullptr) {
 		// No thread in the table. We won't store this event, which mean that we could not be able
 		// to parse the corresponding exit event, and we'll have to drop the information it carries.
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->m_n_store_evts_drops++;
+		if(m_sinsp_stats_v2 != nullptr) {
+			m_sinsp_stats_v2->get_thread_counters().m_n_store_evts_drops++;
 		}
 		return;
 	}
@@ -520,8 +520,8 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 	memcpy(tinfo->get_last_event_data(), evt.get_scap_evt(), evt_len);
 	tinfo->set_lastevent_cpuid(evt.get_cpuid());
 
-	if(m_params->m_sinsp_stats_v2 != nullptr) {
-		m_params->m_sinsp_stats_v2->m_n_stored_evts++;
+	if(m_sinsp_stats_v2 != nullptr) {
+		m_sinsp_stats_v2->get_thread_counters().m_n_stored_evts++;
 	}
 }
 
@@ -542,8 +542,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 		// This happen especially at the beginning of trace files, where events
 		// can be truncated
 		//
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
+		if(m_sinsp_stats_v2 != nullptr) {
+			m_sinsp_stats_v2->get_thread_counters().m_n_retrieve_evts_drops++;
 		}
 		return false;
 	}
@@ -562,8 +562,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	 */
 	if(exit_evt.get_type() == PPME_SYSCALL_EXECVE_19_X &&
 	   enter_evt.get_type() == PPME_SYSCALL_EXECVEAT_E) {
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->m_n_retrieved_evts++;
+		if(m_sinsp_stats_v2 != nullptr) {
+			m_sinsp_stats_v2->get_thread_counters().m_n_retrieved_evts++;
 		}
 		return true;
 	}
@@ -575,13 +575,13 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	if(enter_evt.get_type() != (exit_evt.get_type() - 1)) {
 		// ASSERT(false);
 		exit_evt.get_tinfo()->set_lastevent_data_validity(false);
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
+		if(m_sinsp_stats_v2 != nullptr) {
+			m_sinsp_stats_v2->get_thread_counters().m_n_retrieve_evts_drops++;
 		}
 		return false;
 	}
-	if(m_params->m_sinsp_stats_v2 != nullptr) {
-		m_params->m_sinsp_stats_v2->m_n_retrieved_evts++;
+	if(m_sinsp_stats_v2 != nullptr) {
+		m_sinsp_stats_v2->get_thread_counters().m_n_retrieved_evts++;
 	}
 
 	return true;
@@ -2739,8 +2739,8 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 	// It is normal when a close fails that the fd lookup failed, so we revert the increment of
 	// m_n_failed_fd_lookups.
-	if(m_params->m_sinsp_stats_v2 != nullptr) {
-		m_params->m_sinsp_stats_v2->m_n_failed_fd_lookups--;
+	if(m_sinsp_stats_v2 != nullptr) {
+		m_sinsp_stats_v2->get_thread_counters().m_n_failed_fd_lookups--;
 	}
 }
 
