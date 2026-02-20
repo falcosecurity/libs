@@ -71,17 +71,16 @@ const char *const modern_bpf_libbpf_stats_names[] = {
 };
 
 int pman_get_scap_stats(struct scap_stats *stats) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
 
 	if(!stats) {
-		pman_print_error("pointer to scap_stats is empty");
+		pman_print_errorf("pointer to scap_stats is empty");
 		return errno;
 	}
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd <= 0) {
-		pman_print_error("unable to get counter maps");
+		pman_print_errorf("unable to get counter maps");
 		return errno;
 	}
 
@@ -96,11 +95,7 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 	 */
 	for(int index = 0; index < g_state.n_possible_cpus; index++) {
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
-			snprintf(error_message,
-			         MAX_ERROR_MESSAGE_LEN,
-			         "unable to get the counter map for CPU %d",
-			         index);
-			pman_print_error((const char *)error_message);
+			pman_print_errorf("unable to get the counter map for CPU %d", index);
 			goto clean_print_stats;
 		}
 		stats->n_evts += cnt_map.n_evts;
@@ -159,7 +154,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 		g_state.stats = (metrics_v2 *)calloc(g_state.nstats, sizeof(metrics_v2));
 		if(!g_state.stats) {
 			g_state.nstats = 0;
-			pman_print_error("unable to allocate memory for 'metrics_v2' array");
+			pman_print_errorf("unable to allocate memory for 'metrics_v2' array");
 			return NULL;
 		}
 	}
@@ -169,10 +164,9 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 	/* KERNEL COUNTER STATS */
 	if(flags & METRICS_V2_KERNEL_COUNTERS) {
-		char error_message[MAX_ERROR_MESSAGE_LEN];
 		int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 		if(counter_maps_fd <= 0) {
-			pman_print_error("unable to get 'counter_maps' fd during kernel stats processing");
+			pman_print_errorf("unable to get 'counter_maps' fd during kernel stats processing");
 			return NULL;
 		}
 
@@ -190,11 +184,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 		uint32_t pos = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS;
 		for(uint32_t index = 0; index < g_state.n_possible_cpus; index++) {
 			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
-				snprintf(error_message,
-				         MAX_ERROR_MESSAGE_LEN,
-				         "unable to get the counter map for CPU %d",
-				         index);
-				pman_print_error((const char *)error_message);
+				pman_print_errorf("unable to get the counter map for CPU %d", index);
 				close(counter_maps_fd);
 				return NULL;
 			}
@@ -277,7 +267,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++) {
 				if(offset >= g_state.nstats) {
 					/* This should never happen, we are doing something wrong */
-					pman_print_error("no enough space for all the stats");
+					pman_print_errorf("no enough space for all the stats");
 					return NULL;
 				}
 				g_state.stats[offset].type = METRIC_VALUE_TYPE_U64;
@@ -322,12 +312,11 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 }
 
 int pman_get_n_tracepoint_hit(long *n_events_per_cpu) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd <= 0) {
-		pman_print_error("unable to get counter maps");
+		pman_print_errorf("unable to get counter maps");
 		return errno;
 	}
 
@@ -336,11 +325,7 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu) {
 	 */
 	for(int index = 0; index < g_state.n_possible_cpus; index++) {
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
-			snprintf(error_message,
-			         MAX_ERROR_MESSAGE_LEN,
-			         "unbale to get the counter map for CPU %d",
-			         index);
-			pman_print_error((const char *)error_message);
+			pman_print_errorf("unbale to get the counter map for CPU %d", index);
 			goto clean_print_stats;
 		}
 		n_events_per_cpu[index] = cnt_map.n_evts;

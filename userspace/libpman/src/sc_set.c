@@ -27,13 +27,11 @@ static int ignore_and_log_enoent(const char *sc_name, const int err) {
 		return err;
 	}
 
-	char msg[MAX_ERROR_MESSAGE_LEN];
-	snprintf(msg,
-	         MAX_ERROR_MESSAGE_LEN,
-	         "failure while attaching TOCTOU mitigation program for '%s' system call. Detection "
-	         "will continue to work, but TOCTOU mitigation may not properly work",
-	         sc_name);
-	pman_print_msg(FALCOSECURITY_LOG_SEV_WARNING, msg);
+	pman_print_msgf(
+	        FALCOSECURITY_LOG_SEV_WARNING,
+	        "failure while attaching TOCTOU mitigation program for '%s' system call. Detection "
+	        "will continue to work, but TOCTOU mitigation may not properly work",
+	        sc_name);
 	return 0;
 }
 

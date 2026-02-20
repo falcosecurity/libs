@@ -34,7 +34,7 @@ int pman_attach_syscall_exit_dispatcher() {
 
 	g_state.skel->links.sys_exit = bpf_program__attach(g_state.skel->progs.sys_exit);
 	if(!g_state.skel->links.sys_exit) {
-		pman_print_error("failed to attach the 'sys_exit' program");
+		pman_print_errorf("failed to attach the 'sys_exit' program");
 		return errno;
 	}
 	return 0;
@@ -48,7 +48,7 @@ int pman_attach_sched_proc_exit() {
 
 	g_state.skel->links.sched_proc_exit = bpf_program__attach(g_state.skel->progs.sched_proc_exit);
 	if(!g_state.skel->links.sched_proc_exit) {
-		pman_print_error("failed to attach the 'sched_proc_exit' program");
+		pman_print_errorf("failed to attach the 'sched_proc_exit' program");
 		return errno;
 	}
 	return 0;
@@ -62,7 +62,7 @@ int pman_attach_sched_switch() {
 
 	g_state.skel->links.sched_switch = bpf_program__attach(g_state.skel->progs.sched_switch);
 	if(!g_state.skel->links.sched_switch) {
-		pman_print_error("failed to attach the 'sched_switch' program");
+		pman_print_errorf("failed to attach the 'sched_switch' program");
 		return errno;
 	}
 	return 0;
@@ -76,7 +76,7 @@ int pman_attach_sched_proc_exec() {
 
 	g_state.skel->links.sched_p_exec = bpf_program__attach(g_state.skel->progs.sched_p_exec);
 	if(!g_state.skel->links.sched_p_exec) {
-		pman_print_error("failed to attach the 'sched_proc_exec' program");
+		pman_print_errorf("failed to attach the 'sched_proc_exec' program");
 		return errno;
 	}
 	return 0;
@@ -91,7 +91,7 @@ int pman_attach_sched_proc_fork() {
 
 	g_state.skel->links.sched_p_fork = bpf_program__attach(g_state.skel->progs.sched_p_fork);
 	if(!g_state.skel->links.sched_p_fork) {
-		pman_print_error("failed to attach the 'sched_proc_fork' program");
+		pman_print_errorf("failed to attach the 'sched_proc_fork' program");
 		return errno;
 	}
 #endif
@@ -107,7 +107,7 @@ int pman_attach_page_fault_user() {
 
 	g_state.skel->links.pf_user = bpf_program__attach(g_state.skel->progs.pf_user);
 	if(!g_state.skel->links.pf_user) {
-		pman_print_error("failed to attach the 'pf_user' program");
+		pman_print_errorf("failed to attach the 'pf_user' program");
 		return errno;
 	}
 #endif
@@ -123,7 +123,7 @@ int pman_attach_page_fault_kernel() {
 
 	g_state.skel->links.pf_kernel = bpf_program__attach(g_state.skel->progs.pf_kernel);
 	if(!g_state.skel->links.pf_kernel) {
-		pman_print_error("failed to attach the 'pf_kernel' program");
+		pman_print_errorf("failed to attach the 'pf_kernel' program");
 		return errno;
 	}
 #endif
@@ -138,7 +138,7 @@ int pman_attach_signal_deliver() {
 
 	g_state.skel->links.signal_deliver = bpf_program__attach(g_state.skel->progs.signal_deliver);
 	if(!g_state.skel->links.signal_deliver) {
-		pman_print_error("failed to attach the 'signal_deliver' program");
+		pman_print_errorf("failed to attach the 'signal_deliver' program");
 		return errno;
 	}
 	return 0;
@@ -245,7 +245,7 @@ int pman_attach_openat2_toctou_mitigation_progs() {
 
 int pman_detach_syscall_exit_dispatcher() {
 	if(g_state.skel->links.sys_exit && bpf_link__destroy(g_state.skel->links.sys_exit)) {
-		pman_print_error("failed to detach the 'sys_exit' program");
+		pman_print_errorf("failed to detach the 'sys_exit' program");
 		return errno;
 	}
 	g_state.skel->links.sys_exit = NULL;
@@ -255,7 +255,7 @@ int pman_detach_syscall_exit_dispatcher() {
 int pman_detach_sched_proc_exit() {
 	if(g_state.skel->links.sched_proc_exit &&
 	   bpf_link__destroy(g_state.skel->links.sched_proc_exit)) {
-		pman_print_error("failed to detach the 'sched_proc_exit' program");
+		pman_print_errorf("failed to detach the 'sched_proc_exit' program");
 		return errno;
 	}
 	g_state.skel->links.sched_proc_exit = NULL;
@@ -264,7 +264,7 @@ int pman_detach_sched_proc_exit() {
 
 int pman_detach_sched_switch() {
 	if(g_state.skel->links.sched_switch && bpf_link__destroy(g_state.skel->links.sched_switch)) {
-		pman_print_error("failed to detach the 'sched_switch' program");
+		pman_print_errorf("failed to detach the 'sched_switch' program");
 		return errno;
 	}
 	g_state.skel->links.sched_switch = NULL;
@@ -273,7 +273,7 @@ int pman_detach_sched_switch() {
 
 int pman_detach_sched_proc_exec() {
 	if(g_state.skel->links.sched_p_exec && bpf_link__destroy(g_state.skel->links.sched_p_exec)) {
-		pman_print_error("failed to detach the 'sched_proc_exec' program");
+		pman_print_errorf("failed to detach the 'sched_proc_exec' program");
 		return errno;
 	}
 	g_state.skel->links.sched_p_exec = NULL;
@@ -283,7 +283,7 @@ int pman_detach_sched_proc_exec() {
 int pman_detach_sched_proc_fork() {
 #ifdef CAPTURE_SCHED_PROC_FORK
 	if(g_state.skel->links.sched_p_fork && bpf_link__destroy(g_state.skel->links.sched_p_fork)) {
-		pman_print_error("failed to detach the 'sched_proc_fork' program");
+		pman_print_errorf("failed to detach the 'sched_proc_fork' program");
 		return errno;
 	}
 	g_state.skel->links.sched_p_fork = NULL;
@@ -294,7 +294,7 @@ int pman_detach_sched_proc_fork() {
 int pman_detach_page_fault_user() {
 #ifdef CAPTURE_PAGE_FAULTS
 	if(g_state.skel->links.pf_user && bpf_link__destroy(g_state.skel->links.pf_user)) {
-		pman_print_error("failed to detach the 'pf_user' program");
+		pman_print_errorf("failed to detach the 'pf_user' program");
 		return errno;
 	}
 	g_state.skel->links.pf_user = NULL;
@@ -305,7 +305,7 @@ int pman_detach_page_fault_user() {
 int pman_detach_page_fault_kernel() {
 #ifdef CAPTURE_PAGE_FAULTS
 	if(g_state.skel->links.pf_kernel && bpf_link__destroy(g_state.skel->links.pf_kernel)) {
-		pman_print_error("failed to detach the 'pf_kernel' program");
+		pman_print_errorf("failed to detach the 'pf_kernel' program");
 		return errno;
 	}
 	g_state.skel->links.pf_kernel = NULL;
@@ -316,7 +316,7 @@ int pman_detach_page_fault_kernel() {
 int pman_detach_signal_deliver() {
 	if(g_state.skel->links.signal_deliver &&
 	   bpf_link__destroy(g_state.skel->links.signal_deliver)) {
-		pman_print_error("failed to detach the 'signal_deliver' program");
+		pman_print_errorf("failed to detach the 'signal_deliver' program");
 		return errno;
 	}
 	g_state.skel->links.signal_deliver = NULL;
@@ -325,9 +325,7 @@ int pman_detach_signal_deliver() {
 
 static void print_prog_detachment_failure_error(const struct bpf_program* prog) {
 	const char* prog_name = bpf_program__name(prog);
-	char error_message[MAX_ERROR_MESSAGE_LEN];
-	snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "failed to detach the '%s' program", prog_name);
-	pman_print_error(error_message);
+	pman_print_errorf("failed to detach the '%s' program", prog_name);
 }
 
 static int detach_toctou_progs(const struct bpf_program* prog,

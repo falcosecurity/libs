@@ -96,8 +96,6 @@ int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     uint16_t cpus_for_each_buffer,
                     bool allocate_online_only) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
-
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
 	 * of libbpf to simulate libbpf v1.0 behavior.
 	 * `libbpf_set_strict_mode` returns always 0.
@@ -122,14 +120,14 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	rl.rlim_max = RLIM_INFINITY;
 	rl.rlim_cur = rl.rlim_max;
 	if(setrlimit(RLIMIT_MEMLOCK, &rl)) {
-		pman_print_error("unable to bump RLIMIT_MEMLOCK to RLIM_INFINITY");
+		pman_print_errorf("unable to bump RLIMIT_MEMLOCK to RLIM_INFINITY");
 		return -1;
 	}
 
 	/* Set the available number of CPUs inside the internal state. */
 	g_state.n_possible_cpus = libbpf_num_possible_cpus();
 	if(g_state.n_possible_cpus <= 0) {
-		pman_print_error("no available cpus");
+		pman_print_errorf("no available cpus");
 		return -1;
 	}
 
@@ -154,14 +152,11 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	 * but `cpus_for_each_buffer` is greater than our possible CPU number!
 	 */
 	if(cpus_for_each_buffer > g_state.n_interesting_cpus) {
-		snprintf(
-		        error_message,
-		        MAX_ERROR_MESSAGE_LEN,
+		pman_print_errorf(
 		        "buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!",
 		        cpus_for_each_buffer,
 		        cpus_for_each_buffer,
 		        g_state.n_interesting_cpus);
-		pman_print_error((const char *)error_message);
 		return -1;
 	}
 
@@ -303,7 +298,7 @@ bool probe_BPF_TRACE_RAW_TP_type(void) {
 bool pman_check_support() {
 	bool res = libbpf_probe_bpf_map_type(BPF_MAP_TYPE_RINGBUF, NULL) > 0;
 	if(!res) {
-		pman_print_error("ring buffer map type is not supported");
+		pman_print_errorf("ring buffer map type is not supported");
 		return res;
 	}
 
@@ -315,9 +310,9 @@ bool pman_check_support() {
 		// for it in the `vmlinux` file.
 		res = probe_BPF_TRACE_RAW_TP_type();
 		if(!res) {
-			// Clear the errno for `pman_print_error`
+			// Clear the errno for `pman_print_errorf`
 			errno = 0;
-			pman_print_error("prog 'BPF_TRACE_RAW_TP' is not supported");
+			pman_print_errorf("prog 'BPF_TRACE_RAW_TP' is not supported");
 			return res;
 		}
 	}

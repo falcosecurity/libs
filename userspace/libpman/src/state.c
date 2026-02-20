@@ -25,43 +25,44 @@ limitations under the License.
 
 struct internal_state g_state = {};
 
-static void log_msg(enum falcosecurity_log_severity level, const char* fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-
-	if(g_state.log_fn != NULL) {
-		char buf[MAX_ERROR_MESSAGE_LEN];
-		vsnprintf(buf, sizeof(buf), fmt, args);
-		g_state.log_fn("libpman", buf, level);
-	} else {
-		fprintf(stderr, "libpman: ");
-		vfprintf(stderr, fmt, args);
-		fprintf(stderr, "\n");
-	}
-
-	va_end(args);
-}
-
-void pman_print_error(const char* error_message) {
-	pman_print_msg(FALCOSECURITY_LOG_SEV_ERROR, error_message);
-}
-
-void pman_print_msg(enum falcosecurity_log_severity level, const char* error_message) {
-	if(!error_message) {
+static void log_msg_v(const enum falcosecurity_log_severity level, const char* fmt, va_list args) {
+	if(!fmt) {
 		return;
 	}
 
-	if(errno != 0) {
-		/*
-		 * libbpf uses -ESRCH to indicate that something could not be found,
-		 * e.g. vmlinux or btf id. This will be interpreted via strerror as "No
-		 * such process" (which was the original meaning of the error code),
-		 * and it is extremely confusing. Avoid that by having a special case
-		 * for this error code.
-		 */
-		const char* err_str = (errno == ESRCH) ? "Object not found" : strerror(errno);
-		log_msg(level, "%s (errno: %d | message: %s)", error_message, errno, err_str);
-	} else {
-		log_msg(level, "%s", error_message);
+	// note: `vsnprintf()` returns the number of bytes it would have written if the buffer had been
+	// infinitely large, not the amount of written bytes. That's why we must cap it (see below).
+	char buf[MAX_ERROR_MESSAGE_LEN];
+	const int writable_bytes = vsnprintf(buf, sizeof(buf), fmt, args);
+	// Append errno details if set.
+	if(errno != 0 && writable_bytes >= 0) {
+		// See above why we cap to `sizeof(buf) - 1`.
+		const size_t offset = writable_bytes < sizeof(buf) ? writable_bytes : sizeof(buf) - 1;
+		// libbpf uses -ESRCH to indicate that something could not be found, e.g. vmlinux or btf id.
+		// This will be interpreted via strerror as "No such process" (which was the original
+		// meaning of the error code), and it is extremely confusing. Avoid that by having a special
+		// case for this error code.
+		const char* err_str = errno == ESRCH ? "Object not found" : strerror(errno);
+		snprintf(buf + offset, sizeof(buf) - offset, " (errno: %d | message: %s)", errno, err_str);
 	}
+
+	if(g_state.log_fn != NULL) {
+		g_state.log_fn("libpman", buf, level);
+	} else {
+		fprintf(stderr, "libpman: %s\n", buf);
+	}
+}
+
+void pman_print_errorf(const char* fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	log_msg_v(FALCOSECURITY_LOG_SEV_ERROR, fmt, args);
+	va_end(args);
+}
+
+void pman_print_msgf(const enum falcosecurity_log_severity level, const char* fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	log_msg_v(level, fmt, args);
+	va_end(args);
 }

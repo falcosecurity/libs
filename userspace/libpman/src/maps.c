@@ -76,38 +76,30 @@ uint64_t pman_get_probe_schema_ver() {
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 int pman_get_capture_settings(struct capture_settings* settings) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	int ret;
 	uint32_t key = 0;
 	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
 	if(fd <= 0) {
-		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings map fd!");
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to get capture_settings map fd!");
 		return errno;
 	}
 	if((ret = bpf_map_lookup_elem(fd, &key, settings)) != 0) {
-		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings!");
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to get capture_settings!");
 	}
 
 	return ret;
 }
 
 int pman_update_capture_settings(struct capture_settings* settings) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	int ret;
 	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
 	if(fd <= 0) {
-		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get capture_settings map fd!");
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to get capture_settings map fd!");
 		return errno;
 	}
 	uint32_t key = 0;
 	if((ret = bpf_map_update_elem(fd, &key, settings, BPF_ANY)) != 0) {
-		snprintf(error_message,
-		         MAX_ERROR_MESSAGE_LEN,
-		         "unable to initialize capture_settings map!");
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to initialize capture_settings map!");
 	}
 
 	return ret;
@@ -232,17 +224,14 @@ void pman_fill_ia32_to_64_table() {
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 
 static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog_name, int key) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct bpf_program* bpf_prog = NULL;
 	int bpf_prog_fd = 0;
 
 	bpf_prog = bpf_object__find_program_by_name(g_state.skel->obj, bpf_prog_name);
 	if(!bpf_prog) {
-		snprintf(error_message,
-		         MAX_ERROR_MESSAGE_LEN,
-		         "unable to find BPF program '%s'",
-		         bpf_prog_name);
-		pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char*)error_message);
+		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		                "unable to find BPF program '%s'",
+		                bpf_prog_name);
 
 		/*
 		 * It's not a hard failure, as programs could be excluded from the
@@ -254,20 +243,12 @@ static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog
 
 	bpf_prog_fd = bpf_program__fd(bpf_prog);
 	if(bpf_prog_fd <= 0) {
-		snprintf(error_message,
-		         MAX_ERROR_MESSAGE_LEN,
-		         "unable to get the fd for BPF program '%s'",
-		         bpf_prog_name);
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to get the fd for BPF program '%s'", bpf_prog_name);
 		goto clean_add_program_to_tail_table;
 	}
 
 	if(bpf_map_update_elem(tail_table_fd, &key, &bpf_prog_fd, BPF_ANY)) {
-		snprintf(error_message,
-		         MAX_ERROR_MESSAGE_LEN,
-		         "unable to update the tail table with BPF program '%s'",
-		         bpf_prog_name);
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to update the tail table with BPF program '%s'", bpf_prog_name);
 		goto clean_add_program_to_tail_table;
 	}
 	return 0;
@@ -280,7 +261,7 @@ clean_add_program_to_tail_table:
 int pman_fill_syscalls_tail_table() {
 	const int syscall_exit_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_exit_tail_table);
 	if(syscall_exit_tail_table_fd <= 0) {
-		pman_print_error("unable to get the syscall exit tail table");
+		pman_print_errorf("unable to get the syscall exit tail table");
 		return errno;
 	}
 
@@ -319,7 +300,7 @@ int pman_fill_syscall_exit_extra_tail_table() {
 	int extra_sys_exit_tail_table_fd =
 	        bpf_map__fd(g_state.skel->maps.syscall_exit_extra_tail_table);
 	if(extra_sys_exit_tail_table_fd <= 0) {
-		pman_print_error("unable to get the extra sys exit tail table");
+		pman_print_errorf("unable to get the extra sys exit tail table");
 		return errno;
 	}
 
@@ -328,7 +309,7 @@ int pman_fill_syscall_exit_extra_tail_table() {
 		tail_prog_name = sys_exit_extra_event_names[j];
 
 		if(!tail_prog_name) {
-			pman_print_error("unknown entry in the extra sys exit tail table");
+			pman_print_errorf("unknown entry in the extra sys exit tail table");
 			return -1;
 		}
 
@@ -345,16 +326,11 @@ int pman_fill_syscall_exit_extra_tail_table() {
 /*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
 
 int pman_fill_interesting_syscalls_table_64bit() {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
 	for(uint32_t i = 0; i < SYSCALL_TABLE_SIZE; i++) {
 		const bool interesting = false;
 		if(bpf_map_update_elem(fd, &i, &interesting, BPF_ANY) < 0) {
-			snprintf(error_message,
-			         MAX_ERROR_MESSAGE_LEN,
-			         "unable to initialize interesting syscall table at index %d!",
-			         i);
-			pman_print_error((const char*)error_message);
+			pman_print_errorf("unable to initialize interesting syscall table at index %d!", i);
 			return errno;
 		}
 	}
@@ -362,15 +338,11 @@ int pman_fill_interesting_syscalls_table_64bit() {
 }
 
 int pman_mark_single_64bit_syscall(int syscall_id, bool interesting) {
-	char error_message[MAX_ERROR_MESSAGE_LEN];
 	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
 	if(bpf_map_update_elem(fd, &syscall_id, &interesting, BPF_ANY) < 0) {
-		snprintf(error_message,
-		         MAX_ERROR_MESSAGE_LEN,
-		         "unable to set interesting syscall at index %d as %d!",
-		         syscall_id,
-		         interesting);
-		pman_print_error((const char*)error_message);
+		pman_print_errorf("unable to set interesting syscall at index %d as %d!",
+		                  syscall_id,
+		                  interesting);
 		return errno;
 	}
 	return 0;
@@ -379,7 +351,7 @@ int pman_mark_single_64bit_syscall(int syscall_id, bool interesting) {
 static int size_auxiliary_maps() {
 	/* We always allocate auxiliary maps from all the CPUs, even if some of them are not online. */
 	if(bpf_map__set_max_entries(g_state.skel->maps.auxiliary_maps, g_state.n_possible_cpus)) {
-		pman_print_error("unable to set max entries for 'auxiliary_maps'");
+		pman_print_errorf("unable to set max entries for 'auxiliary_maps'");
 		return errno;
 	}
 	return 0;
@@ -388,7 +360,7 @@ static int size_auxiliary_maps() {
 static int size_counter_maps() {
 	/* We always allocate counter maps from all the CPUs, even if some of them are not online. */
 	if(bpf_map__set_max_entries(g_state.skel->maps.counter_maps, g_state.n_possible_cpus)) {
-		pman_print_error("unable to set max entries for 'counter_maps'");
+		pman_print_errorf("unable to set max entries for 'counter_maps'");
 		return errno;
 	}
 	return 0;
