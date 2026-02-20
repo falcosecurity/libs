@@ -116,6 +116,9 @@ if(NOT MSVC)
 	add_definitions(-D__STDC_FORMAT_MACROS)
 
 else() # MSVC
+	# C sources use scap_stdatomic.h on MSVC (intrinsics fallback), not <stdatomic.h>.
+	set(CMAKE_C_STANDARD 11)
+
 	set(FALCOSECURITY_LIBS_COMMON_FLAGS
 		"-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi /std:c++17"
 	)
