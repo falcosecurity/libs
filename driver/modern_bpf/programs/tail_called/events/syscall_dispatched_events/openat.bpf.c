@@ -65,6 +65,26 @@ int BPF_PROG(openat_x, struct pt_regs *regs, long ret) {
 	/* Parameter 7: ino (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, ino);
 
+	/* Parameter 8: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
+	if(ret > 0) {
+		/* Extract the full path from the opened file descriptor to prevent TOCTOU race conditions.
+		 * This captures the actual resolved path at syscall time, including any symlink resolution
+		 * and path normalization performed by the kernel.
+		 */
+		struct file *f = extract__file_struct_from_fd(ret);
+		if(f != NULL) {
+			struct path f_path = {};
+			BPF_CORE_READ_INTO(&f_path, f, f_path);
+			auxmap__store_d_path_approx(auxmap, &f_path);
+		} else {
+			/* If we cannot resolve the FD, store empty and fall back to user space resolution. */
+			auxmap__store_empty_param(auxmap);
+		}
+	} else {
+		/* Syscall failed (ret <= 0), store empty */
+		auxmap__store_empty_param(auxmap);
+	}
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
