@@ -71,6 +71,14 @@ uint64_t pman_get_probe_schema_ver() {
 	return g_state.skel->rodata->probe_schema_var;
 }
 
+static void set_ringbufs_num() {
+	// If the cpus-to-ring-buffers mapping is disabled, set the ring buffers number to 0: in this
+	// way, the kernel probe can push events in the traditional way (i.e. on the ring buffer
+	// associated with the current CPU).
+	g_state.skel->rodata->ringbufs_num =
+	        pman_is_cpus_to_ringbufs_mapping_disabled() ? g_state.n_required_buffers : 0;
+}
+
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
@@ -407,6 +415,7 @@ int pman_prepare_maps_before_loading() {
 	fill_ppm_sc_table();
 	pman_fill_ia32_to_64_table();
 	pman_fill_syscall_sampling_table();
+	set_ringbufs_num();
 
 	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY
 	 * The number of entries will be always equal to the CPUs number.

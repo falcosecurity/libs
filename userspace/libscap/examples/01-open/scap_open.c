@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include <inttypes.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -25,6 +26,14 @@ limitations under the License.
 #include <sys/time.h>
 #include <libscap/strl.h>
 #include <libscap/scap_engines.h>
+
+// TODO: replace this ifdef with something that doesn't use the entire std namespace for C++
+#ifdef __cplusplus
+#include <atomic>
+using namespace std;
+#else
+#include <stdatomic.h>
+#endif
 
 #define SYSCALL_NAME_MAX_LEN 40
 
@@ -39,7 +48,7 @@ limitations under the License.
 #define EVENT_TYPE_OPTION "--evt_type"
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
-#define CPUS_FOR_EACH_BUFFER_MODE "--cpus_for_buf"
+#define BUFFERS_NUM_OPTION "--buffers_num"
 #define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 #define DROP_FAILED "--drop-failed"
 #define VERBOSE_OPTION "--verbose"
@@ -147,23 +156,33 @@ static int simple_set[] = {PPM_SC_ACCEPT,
                            -1};
 
 typedef struct ppm_sc_counter {
-	uint64_t counter;
+	atomic_uint_fast64_t counter;
 	ppm_sc_code code; /* we need the code also here because at the end we will sort */
 } ppm_sc_counter;
 
 /* Generic global variables. */
 static scap_open_args oargs = {}; /* scap oargs used in `scap_open`. */
 static const struct scap_vtable* vtable = NULL;
-static uint64_t g_nevts = 0;                 /* total number of events captured. */
-static uint64_t g_total_number_of_bytes = 0; /* total dimension of events in bytes. */
-static scap_t* g_h = NULL;                   /* global scap handler. */
+static scap_t* g_h = NULL; /* global scap handler. */
 static struct timeval tval_start, tval_end, tval_result;
-static unsigned long number_of_timeouts;  /* Times in which there were no events in the buffer. */
-static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
+static atomic_uint_fast64_t g_nevts;                     /* total number of events captured. */
+static atomic_uint_fast64_t g_total_number_of_bytes = 0; /* total dimension of events in bytes. */
+static atomic_uint_fast64_t
+        number_of_timeouts; /* Times in which there were no events in the buffer. */
+static atomic_uint_fast64_t number_of_scap_next; /* Times in which the 'scap-next' or
+                                                    'scap-buffer-next' method is called. */
 // TODO(ekoops): half the size of this once we get rid of all the enter event processing.
 static ppm_sc_counter ppm_sc_count[PPM_SC_MAX * 2] = {
         0}; /* Number of times a syscall is called. We want the `*2` because we store the enter and
                the exit count separately */
+
+static bool is_multiple_workers_mode_enabled(void) {
+#ifdef HAS_ENGINE_MODERN_BPF
+	return vtable == &scap_modern_bpf_engine && modern_bpf_params.buffers_num > 1;
+#else
+	return false;
+#endif
+}
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -279,11 +298,14 @@ void print_help() {
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, "
 	       "no print)\n",
 	       EVENT_TYPE_OPTION);
-	printf("'%s <dim>': dimension in bytes of a single per CPU buffer.\n", BUFFER_OPTION);
+	printf("'%s <dim>': dimension in bytes of a single buffer.\n", BUFFER_OPTION);
 	printf("[MODERN PROBE ONLY, EXPERIMENTAL]\n");
-	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` "
-	       "CPUs.\n",
-	       CPUS_FOR_EACH_BUFFER_MODE);
+	printf("'%s <buffers_num>': determines the number of allocated ring buffers. If "
+	       "`<buffers_num> > 1`, it is the number of requested ring buffers; if `<buffers_num> > 0 "
+	       "&& <buffers_num> <= 1`, a ring buffer is allocated for every `1 / <buffers_num>`; if "
+	       "`<buffers_num == 0` it means that 1 ring buffer is shared among all available CPUs. "
+	       "Default: 1.\n",
+	       BUFFERS_NUM_OPTION);
 	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for "
 	       "online CPUs only.\n",
 	       ALL_AVAILABLE_CPUS_MODE);
@@ -309,7 +331,15 @@ void print_scap_source() {
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(vtable == &scap_modern_bpf_engine) {
 		struct scap_modern_bpf_engine_params* params = oargs.engine_params;
-		printf("* Modern BPF probe, 1 ring buffer every %d CPUs\n", params->cpus_for_each_buffer);
+		const double buffers_num = params->buffers_num;
+		if(buffers_num == 0) {
+			printf("* Modern BPF probe, 1 ring buffer shared among all CPUs\n");
+		} else if(buffers_num <= 1) {
+			uint16_t cpus_for_each_buffer = (uint16_t)((double)1 / buffers_num);
+			printf("* Modern BPF probe, 1 ring buffer every %d CPU(s)\n", cpus_for_each_buffer);
+		} else {
+			printf("* Modern BPF probe, %d ring buffers\n", (uint32_t)buffers_num);
+		}
 	}
 #endif
 #ifdef HAS_ENGINE_SAVEFILE
@@ -357,6 +387,12 @@ void print_start_capture() {
 		printf("Cannot start the capture! Bye\n");
 		exit(EXIT_FAILURE);
 	}
+	if(is_multiple_workers_mode_enabled()) {
+		uint16_t const buffers_num = (uint16_t)modern_bpf_params.buffers_num;
+		printf("* Multiple workers mode enabled (%d buffers handled by %d workers)\n",
+		       buffers_num,
+		       buffers_num);
+	}
 	printf("* Live capture in progress...\n");
 	printf("* Press CTRL+C to stop the capture\n");
 }
@@ -376,7 +412,7 @@ void parse_CLI_options(int argc, char** argv) {
 		if(!strcmp(argv[i], MODERN_BPF_OPTION)) {
 			vtable = &scap_modern_bpf_engine;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
-			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
+			modern_bpf_params.buffers_num = DEFAULT_BUFFERS_NUM;
 			modern_bpf_params.allocate_online_only = true;
 			oargs.engine_params = &modern_bpf_params;
 		}
@@ -432,12 +468,36 @@ void parse_CLI_options(int argc, char** argv) {
 			enable_simple_set();
 		}
 		/* This should be used only with the modern probe */
-		if(!strcmp(argv[i], CPUS_FOR_EACH_BUFFER_MODE)) {
+		if(!strcmp(argv[i], BUFFERS_NUM_OPTION)) {
 			if(!(i + 1 < argc)) {
-				printf("\nYou need to specify also the number of CPUs. Bye!\n");
+				printf("\nYou need to specify also the number of buffers. Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			modern_bpf_params.cpus_for_each_buffer = atoi(argv[++i]);
+
+			char* err_ptr;
+			const double buffers_num = strtod(argv[++i], &err_ptr);
+			if(*err_ptr != '\0' || buffers_num < 0) {
+				printf("\nInvalid %s parameter. Must be greater than or equal to 0. Bye!\n",
+				       BUFFERS_NUM_OPTION);
+				exit(EXIT_FAILURE);
+			}
+
+			if(buffers_num > 0 && buffers_num <= 1) {
+				const double cpus_for_each_buffer = (double)1 / buffers_num;
+				if(cpus_for_each_buffer != (double)(uint16_t)cpus_for_each_buffer) {
+					printf("\nInvalid %s parameter. 1 / <buffers_num> must be a positive integer. "
+					       "Bye!\n",
+					       BUFFERS_NUM_OPTION);
+					exit(EXIT_FAILURE);
+				}
+			} else if(buffers_num != (double)(uint16_t)buffers_num) {  // buffers_num > 1
+				printf("\nInvalid %s parameter. If the value specified is above 1, it must be a "
+				       "positive integer. Bye!\n",
+				       BUFFERS_NUM_OPTION);
+				exit(EXIT_FAILURE);
+			}
+
+			modern_bpf_params.buffers_num = buffers_num;
 		}
 		/* This should be used only with the modern probe */
 		if(!strcmp(argv[i], ALL_AVAILABLE_CPUS_MODE)) {
@@ -502,7 +562,7 @@ void print_syscalls_stats() {
 	ppm_sc_counter tmp;
 	for(int i = 0; i < PPM_SC_MAX * 2; ++i) {
 		for(int j = i + 1; j < PPM_SC_MAX * 2; ++j) {
-			if(ppm_sc_count[i].counter < ppm_sc_count[j].counter) {
+			if(atomic_load(&ppm_sc_count[i].counter) < atomic_load(&ppm_sc_count[j].counter)) {
 				tmp = ppm_sc_count[i];
 				ppm_sc_count[i] = ppm_sc_count[j];
 				ppm_sc_count[j] = tmp;
@@ -517,7 +577,7 @@ void print_syscalls_stats() {
 			printf("- [%s__%s]: %lu\n",
 			       scap_get_ppm_sc_name(ppm_sc_count[i].code % PPM_SC_MAX),
 			       ppm_sc_count[i].code >= PPM_SC_MAX ? "exit" : "enter",
-			       ppm_sc_count[i].counter);
+			       atomic_load(&ppm_sc_count[i].counter));
 		}
 	}
 }
@@ -583,17 +643,20 @@ void print_stats() {
 	/////////////////////
 
 	printf("\n------------> Userspace stats\n");
-	printf("Number of `SCAP_SUCCESS` (events correctly captured): %" PRIu64 "\n", g_nevts);
-	printf("Number of `SCAP_TIMEOUTS`: %ld\n", number_of_timeouts);
-	printf("Number of `scap_next` calls: %ld\n", number_of_scap_next);
-	printf("Number of bytes received: %" PRIu64 " bytes\n", g_total_number_of_bytes);
-	if(g_nevts != 0) {
+	printf("Number of `SCAP_SUCCESS` (events correctly captured): %" PRIu64 "\n",
+	       atomic_load(&g_nevts));
+	printf("Number of `SCAP_TIMEOUTS`: %ld\n", atomic_load(&number_of_timeouts));
+	printf("Number of `scap_next`/`scap_buffer_next` calls: %ld\n",
+	       atomic_load(&number_of_scap_next));
+	printf("Number of bytes received: %" PRIu64 " bytes\n", atomic_load(&g_total_number_of_bytes));
+	if(atomic_load(&g_nevts) != 0) {
 		printf("Average dimension of events: %" PRIu64 " bytes\n",
-		       g_total_number_of_bytes / g_nevts);
+		       atomic_load(&g_total_number_of_bytes) / atomic_load(&g_nevts));
 	}
 	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
 	if(tval_result.tv_sec != 0) {
-		printf("Rate of userspace events (events/second): %ld\n", g_nevts / tval_result.tv_sec);
+		printf("Rate of userspace events (events/second): %ld\n",
+		       atomic_load(&g_nevts) / tval_result.tv_sec);
 	}
 	printf("Syscall stats (userspace-side):\n");
 	print_syscalls_stats();
@@ -602,13 +665,6 @@ void print_stats() {
 }
 
 /*=============================== PRINT CAPTURE INFO ===========================*/
-
-static void signal_callback(int signal) {
-	scap_stop_capture(g_h);
-	print_stats();
-	scap_close(g_h);
-	exit(EXIT_SUCCESS);
-}
 
 void scap_open_log_fn(const char* component,
                       const char* msg,
@@ -629,7 +685,7 @@ void count_syscalls(scap_evt* ev) {
 	if(type == PPME_GENERIC_X) {
 		const uint16_t ppm_sc_code = *(uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr) +
 		                                          ev->nparams * sizeof(uint16_t));
-		ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter++;
+		atomic_fetch_add(&ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter, 1);
 		return;
 	}
 
@@ -651,27 +707,219 @@ void count_syscalls(scap_evt* ev) {
 	for(int i = 0; i < PPM_SC_MAX; i++) {
 		if(ppm_sc_array[i]) {
 			if(PPME_IS_ENTER(type)) {
-				ppm_sc_count[i].counter++;
+				atomic_fetch_add(&ppm_sc_count[i].counter, 1);
 			} else {
-				ppm_sc_count[i + PPM_SC_MAX].counter++;
+				atomic_fetch_add(&ppm_sc_count[i + PPM_SC_MAX].counter, 1);
 			}
 			return;
 		}
 	}
 }
 
-int main(int argc, char** argv) {
-	char error[SCAP_LASTERR_SIZE] = {0};
+pthread_rwlock_t rw_workers_lock = PTHREAD_RWLOCK_INITIALIZER;
+bool capturing = true;
+
+static void init_workers_lock() {
+	pthread_rwlockattr_t attr;
+	pthread_rwlockattr_init(&attr);
+	// Set preference for writer to avoid writer starvation.
+	pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+	pthread_rwlock_init(&rw_workers_lock, &attr);
+}
+
+static void signal_callback(int signal) {
+	if(is_multiple_workers_mode_enabled()) {
+		pthread_rwlock_wrlock(&rw_workers_lock);
+		if(!capturing) {
+			pthread_rwlock_unlock(&rw_workers_lock);
+			return;
+		}
+		scap_stop_capture(g_h);
+		print_stats();
+		scap_close(g_h);
+		capturing = false;
+		pthread_rwlock_unlock(&rw_workers_lock);
+		return;
+	}
+
+	// Single worker mode.
+	// Single worker mode doesn't use any locking strategy to prevent the global handle to be
+	// accessed after scap_close, so call, call exit here.
+	scap_stop_capture(g_h);
+	print_stats();
+	scap_close(g_h);
+	exit(EXIT_SUCCESS);
+}
+
+static void* worker_run_fn(void* buffer_ptr) {
+	scap_buffer_t const buffer = *(scap_buffer_t*)buffer_ptr;
+
+	int32_t res = 0;
+	scap_evt* ev = NULL;
+	uint32_t flags = 0;
+
+	while(atomic_load(&g_nevts) != num_events) {
+		pthread_rwlock_rdlock(&rw_workers_lock);
+		if(!capturing) {
+			pthread_rwlock_unlock(&rw_workers_lock);
+			return NULL;
+		}
+		// printf("before ");
+		res = scap_buffer_next(g_h, buffer, &ev, &flags);
+		atomic_fetch_add(&number_of_scap_next, 1);
+		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT) {
+			atomic_fetch_add(&number_of_timeouts, 1);
+			pthread_rwlock_unlock(&rw_workers_lock);
+			continue;
+		}
+		if(res == SCAP_EOF) {
+			pthread_rwlock_unlock(&rw_workers_lock);
+			break;
+		}
+
+		if(res != SCAP_SUCCESS) {
+			fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
+			pthread_rwlock_unlock(&rw_workers_lock);
+			return NULL;
+		}
+		if(ev->type == evt_type) {
+			scap_print_event(ev, PRINT_FULL);
+		}
+		count_syscalls(ev);
+		atomic_fetch_add(&g_total_number_of_bytes, ev->len);
+		atomic_fetch_add(&g_nevts, 1);
+		pthread_rwlock_unlock(&rw_workers_lock);
+	}
+	return NULL;
+}
+
+static void join_threads(pthread_t const* threads, size_t const n_threads) {
+	for(int i = n_threads - 1; i >= 0; i--) {
+		if(pthread_join(threads[i], NULL)) {
+			fprintf(stderr, "Failed to join thread '%d' \n", i);
+		}
+	}
+}
+
+static int run_with_multiple_workers() {
+	int exit_code = EXIT_FAILURE;
+	pthread_t* workers = NULL;
+	scap_buffer_t* buffer_handles = NULL;
+	size_t n_spawned_workers = 0;
+
+	uint16_t const n_allocated_buffer_handles = scap_buffer_get_n_allocated_handles(g_h);
+	workers = calloc(n_allocated_buffer_handles, sizeof(pthread_t));
+	if(workers == NULL) {
+		fprintf(stderr, "Failed to allocate memory for %d workers\n", n_allocated_buffer_handles);
+		goto exit;
+	}
+
+	buffer_handles = malloc(n_allocated_buffer_handles * sizeof(scap_buffer_t));
+	if(buffer_handles == NULL) {
+		fprintf(stderr,
+		        "Failed to allocate buffer handles for %d workers\n",
+		        n_allocated_buffer_handles);
+		goto exit;
+	}
+
+	// Mask all signals in the main thread. In this way, all created workers will inherit the mask
+	// and avoid to handle any signal.
+	sigset_t set;
+	sigfillset(&set);
+	pthread_sigmask(SIG_BLOCK, &set, NULL);
+
+	// Init lock shared by all workers.
+	init_workers_lock();
+
+	for(int i = 0; i < n_allocated_buffer_handles; i++) {
+		buffer_handles[i] = scap_buffer_reserve_handle(g_h);
+		if(buffer_handles[i] == SCAP_INVALID_BUFFER_HANDLE) {
+			fprintf(stderr, "Failed to reserve buffer for worker '%d'\n", i);
+			goto exit;
+		}
+
+		if(pthread_create(&workers[i], NULL, worker_run_fn, &buffer_handles[i])) {
+			fprintf(stderr, "Failed to create worker '%d'\n", i);
+			goto exit;
+		}
+		n_spawned_workers++;
+	}
+
+	// Unmask SIGINT on the main thread and install the signal handler.
+	sigemptyset(&set);
+	sigaddset(&set, SIGINT);
+	pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+	struct sigaction const action = {.sa_handler = signal_callback};
+	if(sigaction(SIGINT, &action, NULL) == -1) {
+		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
+		goto exit;
+	}
+
+	exit_code = EXIT_SUCCESS;
+
+exit:
+	if(exit_code != EXIT_SUCCESS) {
+		signal_callback(-1);
+	}
+	if(workers != NULL) {
+		join_threads(workers, n_spawned_workers);
+		free(workers);
+	}
+	if(buffer_handles != NULL) {
+		free(buffer_handles);
+	}
+	signal_callback(-1);
+	return exit_code;
+}
+
+int run_with_single_worker() {
+	struct sigaction const action = {.sa_handler = signal_callback};
+	if(sigaction(SIGINT, &action, NULL) == -1) {
+		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
+		return EXIT_FAILURE;
+	}
+
 	int32_t res = 0;
 	scap_evt* ev = NULL;
 	uint16_t cpuid = 0;
 	uint32_t flags = 0;
+	while(atomic_load(&g_nevts) != num_events) {
+		res = scap_next(g_h, &ev, &cpuid, &flags);
+		atomic_fetch_add(&number_of_scap_next, 1);
+		if(res == SCAP_UNEXPECTED_BLOCK) {
+			res = scap_restart_capture(g_h);
+			if(res == SCAP_SUCCESS) {
+				continue;
+			}
+		}
+		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT) {
+			atomic_fetch_add(&number_of_timeouts, 1);
+			continue;
+		}
+		if(res == SCAP_EOF) {
+			break;
+		}
+		if(res != SCAP_SUCCESS) {
+			fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
+			scap_close(g_h);
+			return EXIT_FAILURE;
+		}
+
+		if(ev->type == evt_type) {
+			scap_print_event(ev, PRINT_FULL);
+		}
+		count_syscalls(ev);
+		atomic_fetch_add(&g_total_number_of_bytes, ev->len);
+		atomic_fetch_add(&g_nevts, 1);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+int main(int argc, char** argv) {
+	char error[SCAP_LASTERR_SIZE] = {0};
 
 	printf("\n[SCAP-OPEN]: Hello!\n");
-	if(signal(SIGINT, signal_callback) == SIG_ERR) {
-		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
-		return EXIT_FAILURE;
-	}
 
 	parse_CLI_options(argc, argv);
 
@@ -682,6 +930,7 @@ int main(int argc, char** argv) {
 	enable_sc_and_print();
 
 	oargs.log_fn = scap_open_log_fn;
+	int32_t res = 0;
 	g_h = scap_open(&oargs, vtable, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS) {
 		fprintf(stderr, "%s (%d)\n", error, res);
@@ -698,33 +947,8 @@ int main(int argc, char** argv) {
 		scap_set_dropfailed(g_h, true);
 	}
 
-	while(g_nevts != num_events) {
-		res = scap_next(g_h, &ev, &cpuid, &flags);
-		number_of_scap_next++;
-		if(res == SCAP_UNEXPECTED_BLOCK) {
-			res = scap_restart_capture(g_h);
-			if(res == SCAP_SUCCESS) {
-				continue;
-			}
-		}
-		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT) {
-			number_of_timeouts++;
-			continue;
-		} else if(res == SCAP_EOF) {
-			break;
-		} else if(res != SCAP_SUCCESS) {
-			fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
-			scap_close(g_h);
-			return -1;
-		}
-
-		if(ev->type == evt_type) {
-			scap_print_event(ev, PRINT_FULL);
-		}
-		count_syscalls(ev);
-		g_total_number_of_bytes += ev->len;
-		g_nevts++;
-	}
-
+	int const exit_code = is_multiple_workers_mode_enabled() ? run_with_multiple_workers()
+	                                                         : run_with_single_worker();
 	signal_callback(-1);
+	exit(exit_code);
 }

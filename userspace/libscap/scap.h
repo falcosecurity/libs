@@ -21,6 +21,7 @@ limitations under the License.
 #include <libscap/scap_const.h>
 #include <libscap/scap_platform_api.h>
 #include <libscap/metrics_v2.h>
+#include <libscap/scap_buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -543,13 +544,15 @@ const char* scap_getlasterr(scap_t* handle);
 uint64_t scap_max_buf_used(scap_t* handle);
 
 /*!
-  \brief Get the next event from the from the given capture instance
+  \brief Get the next event from the given capture instance
 
   \param handle Handle to the capture instance.
   \param pevent [out] User-provided event pointer that will be initialized with address of the
-  event. \param pdevid [out] User-provided event pointer that will be initialized with the ID of the
-  device where the event was captured. \param pflags [out] User-provided event pointer that will be
-  initialized with the flags of the event.
+  event.
+  \param pdevid [out] User-provided event pointer that will be initialized with the ID of the device
+  where the event was captured.
+  \param pflags [out] User-provided event pointer that will be initialized with the flags of the
+  event.
 
   \return SCAP_SUCCESS if the call is successful and pevent, pcpuid and pflags contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
@@ -557,7 +560,51 @@ uint64_t scap_max_buf_used(scap_t* handle);
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the
   error.
 */
-int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid, uint32_t* pflags);
+int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags);
+
+/*!
+  \brief Get the next event from the given capture instance
+
+  \param handle Handle to the capture instance.
+  \param buffer_h Handle to a buffer instance.
+  \param pevent [out] User-provided event pointer that will be initialized with address of the
+  event.
+  \param pflags [out] User-provided event pointer that will be initialized with the flags of the
+  event.
+
+  \return SCAP_SUCCESS if the call is successful and pevent, pcpuid and pflags contain valid data.
+   SCAP_TIMEOUT in case the read timeout expired and no event is available.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the
+  error.
+*/
+int32_t scap_buffer_next(scap_t* handle,
+                         scap_buffer_t buffer_h,
+                         scap_evt** pevent,
+                         uint32_t* pflags);
+
+/*!
+  \brief Get the number of allocated buffer handles.
+
+  \param handle Handle to the capture instance.
+
+  \return The number of allocated buffer handles.
+
+    The returned value determines the maximum number of times that `scap_buffer_reserve_handle` can
+  be called.
+*/
+uint16_t scap_buffer_get_n_allocated_handles(scap_t* handle);
+
+/*!
+    \brief Reserve a buffer handle.
+
+    \param handle Handle to the capture instance.
+
+    \return A valid buffer handle if the call is successful.
+    If a buffer handle cannot be reserved (i.e.: uninitialized and/or unopened handle, unsupported
+    feature, etc...), `SCAP_INVALID_BUFFER_HANDLE` is returned and scap_getlasterr() can be used to
+    obtain the cause of the error.
+*/
+scap_buffer_t scap_buffer_reserve_handle(scap_t* handle);
 
 /*!
   \brief Get the length of an event

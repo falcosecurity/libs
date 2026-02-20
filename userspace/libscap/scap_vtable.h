@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <libscap/engine_handle.h>
 #include <libscap/scap_open.h>
+#include <libscap/scap.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -182,6 +183,45 @@ struct scap_vtable {
 	                scap_evt** pevent,
 	                uint16_t* pdevid,
 	                uint32_t* pflags);
+
+	/**
+	 * @brief fetch the next event from the buffer
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param buffer_h the handle of the buffer
+	 * @param pevent [out] where the pointer to the next event gets stored
+	 * @param pflags [out] where the flags for the event get stored
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * SCAP_SUCCESS: event successfully returned and stored in *pevent
+	 * SCAP_FAILURE: an error occurred
+	 * SCAP_TIMEOUT: no events arrived for a while (not an error)
+	 * SCAP_EOF: no more events are going to arrive
+	 *
+	 * The memory pointed to by *pevent must be owned by the engine
+	 * and must remain valid at least until the next call to next()
+	 */
+	int32_t (*next_from_buffer)(struct scap_engine_handle engine,
+	                            scap_buffer_t buffer_h,
+	                            scap_evt** pevent,
+	                            uint32_t* pflags);
+
+	/**
+	 * @brief get the number of allocated buffer handles
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return the number of allocated buffer handles
+	 *
+	 * The returned value determines the maximum number of times that `reserve_buffer_handle` can be
+	 * called.
+	 */
+	uint16_t (*get_n_allocated_buffer_handles)(struct scap_engine_handle engine);
+
+	/**
+	 * @brief reserve a buffer handle
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return a valid buffer handle if the call is successful, `SCAP_INVALID_BUFFER_HANDLE`
+	 * otherwise.
+	 */
+	scap_buffer_t (*reserve_buffer_handle)(struct scap_engine_handle engine);
 
 	/**
 	 * @brief start a capture

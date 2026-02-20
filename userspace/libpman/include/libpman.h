@@ -53,13 +53,18 @@ struct scap_stats;
  *
  * @param log_fn logging callback
  * @param buf_bytes_dim dimension of a single per-CPU buffer in bytes.
- * @param cpus_for_each_buffer number of CPUs to which we want to associate a ring buffer.
+ * @param buffers_num determines the number of allocated ring buffers:
+ * - if buffers_num > 1, it is the number of requested ring buffers
+ * - if buffers_num > 0 && buffers_num <= 1, 1 / buffers_num is the number of CPUs to which we want
+ *   to associate a ring buffer.
+ * - if buffers_num == 0, it means that 1 ring buffer is shared among all available CPUs
  * @param allocate_online_only if true, allocate ring buffers taking only into account online CPUs.
+ *   This parameter is taken into account only if buffers_num >= 0 && buffers_num <= 1.
  * @return `0` on success, `-1` in case of error.
  */
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
-                    uint16_t cpus_for_each_buffer,
+                    double buffers_num,
                     bool allocate_online_only);
 
 /**
@@ -330,6 +335,25 @@ int pman_prepare_ringbuf_array_before_loading(void);
  */
 int pman_finalize_ringbuf_array_after_loading(void);
 
+typedef uint16_t pman_ringbuf_t;
+extern pman_ringbuf_t PMAN_INVALID_RING_BUFFER_HANDLE;
+
+/**
+ * @brief Get the number of allocated ring buffer handles. The returned value determines the maximum
+ * number of times that `scap_buffer_reserve_handle` can be called.
+ *
+ * @return The number of allocated ring buffer handles.
+ */
+uint16_t pman_get_n_allocated_ringbuf_handles();
+
+/*!
+ * @brief Reserve a ring buffer handle.
+ *
+ * \return A valid buffer handle if the call is successful.
+ * If all ring buffer handles are allocated, `PMAN_INVALID_RING_BUFFER_HANDLE` is returned.
+ */
+pman_ringbuf_t pman_reserve_ringbuf_handle();
+
 /**
  * @brief Search for the event with the lowest timestamp in
  * all the ring buffers.
@@ -340,6 +364,14 @@ int pman_finalize_ringbuf_array_after_loading(void);
  * from which we retrieved the event, otherwise return `-1`.
  */
 void pman_consume_first_event(void** event_ptr, int16_t* buffer_id);
+
+/**
+ * @brief Get the first event from the requested ring buffer.
+ *
+ * @param ringbuf_h the handle of the ring buffer from which the event is requested to be consumed.
+ * @param event_ptr in case of success return a pointer to the event, otherwise return NULL.
+ */
+void pman_consume_first_event_from_ringbuf(pman_ringbuf_t ringbuf_h, void** event_ptr);
 
 /////////////////////////////
 // CAPTURE (EXCHANGE VALUES WITH BPF SIDE)

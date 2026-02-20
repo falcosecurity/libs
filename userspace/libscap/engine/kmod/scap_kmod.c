@@ -545,6 +545,24 @@ int32_t scap_kmod_next(struct scap_engine_handle engine,
 	return ringbuffer_next(&HANDLE(engine)->m_dev_set, pevent, pdevid, pflags);
 }
 
+int32_t scap_kmod_next_from_buffer(struct scap_engine_handle engine,
+                                   scap_buffer_t buffer_h,
+                                   scap_evt **pevent,
+                                   uint32_t *pflags) {
+	// TODO: implement
+	return SCAP_FAILURE;
+}
+
+static uint16_t scap_kmod_get_n_allocated_buffer_handles(struct scap_engine_handle engine) {
+	// TODO: implement
+	return 0;
+}
+
+static scap_buffer_t scap_kmod_reserve_buffer_handle(struct scap_engine_handle engine) {
+	// TODO: implement
+	return SCAP_INVALID_BUFFER_HANDLE;
+}
+
 uint32_t scap_kmod_get_n_devs(struct scap_engine_handle engine) {
 	return HANDLE(engine)->m_dev_set.m_ndevs;
 }
@@ -1003,6 +1021,9 @@ struct scap_vtable scap_kmod_engine = {
         .free_handle = free_handle,
         .close = scap_kmod_close,
         .next = scap_kmod_next,
+        .next_from_buffer = scap_kmod_next_from_buffer,
+        .get_n_allocated_buffer_handles = scap_kmod_get_n_allocated_buffer_handles,
+        .reserve_buffer_handle = scap_kmod_reserve_buffer_handle,
         .start_capture = scap_kmod_start_capture,
         .stop_capture = scap_kmod_stop_capture,
         .configure = configure,

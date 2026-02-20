@@ -71,6 +71,49 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine,
 	return SCAP_SUCCESS;
 }
 
+// Use the 32 bits of the buffer handle as follows:
+// - the lower 16 bits encode the ring buffer handle
+// - the upper 16 bits encode the number of microseconds to wait if the ring buffer is empty
+#define BUFFER(x) ((pman_ringbuf_t)(x))
+#define RETRY_US(x) ((uint16_t)((x) >> 16))
+#define SET_BUFFER(x, b) (x = ((x & 0xFFFF0000) | (b & 0x0000FFFF)))
+#define SET_RETRY_US(x, r) (x = ((x & 0x0000FFFF) | ((r & 0x0000FFFF) << 16)))
+
+static int32_t scap_modern_bpf__next_from_buffer(struct scap_engine_handle engine,
+                                                 scap_buffer_t buffer_h,
+                                                 scap_evt** pevent,
+                                                 uint32_t* pflags) {
+	pman_consume_first_event_from_ringbuf(BUFFER(buffer_h), (void**)pevent);
+
+	if(*pevent == NULL) {
+		/* The first time we sleep 500 us, if we have consecutive timeouts we can reach also 30 ms.
+		 */
+		uint16_t const retry_us = RETRY_US(buffer_h);
+		usleep(retry_us);
+		SET_RETRY_US(buffer_h, MIN(retry_us * 2, BUFFER_EMPTY_WAIT_TIME_US_MAX));
+		return SCAP_TIMEOUT;
+	}
+	SET_RETRY_US(buffer_h, BUFFER_EMPTY_WAIT_TIME_US_START);
+	*pflags = 0;
+	return SCAP_SUCCESS;
+}
+
+static uint16_t scap_modern_bpf__get_n_allocated_buffer_handles(struct scap_engine_handle engine) {
+	return pman_get_n_allocated_ringbuf_handles();
+}
+
+static scap_buffer_t scap_modern_bpf__reserve_buffer_handle(struct scap_engine_handle engine) {
+	pman_ringbuf_t const ringbuf_h = pman_reserve_ringbuf_handle();
+	if(ringbuf_h == PMAN_INVALID_RING_BUFFER_HANDLE) {
+		return SCAP_INVALID_BUFFER_HANDLE;
+	}
+
+	scap_buffer_t buffer_h = 0;
+	SET_BUFFER(buffer_h, ringbuf_h);
+	SET_RETRY_US(buffer_h, BUFFER_EMPTY_WAIT_TIME_US_START);
+	return buffer_h;
+}
+
 static int32_t scap_modern_bpf_start_dropping_mode(struct scap_engine_handle engine,
                                                    uint32_t sampling_ratio) {
 	pman_set_sampling_ratio(sampling_ratio);
@@ -248,12 +291,12 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs) {
 	}
 
 	/* Initialize the libpman internal state.
-	 * Validation of `cpus_for_each_buffer` is made inside libpman
+	 * Validation of `buffers_num` is made inside libpman
 	 * since this is the unique place where we have the number of CPUs
 	 */
 	if(pman_init_state(oargs->log_fn,
 	                   params->buffer_bytes_dim,
-	                   params->cpus_for_each_buffer,
+	                   params->buffers_num,
 	                   params->allocate_online_only)) {
 		return scap_errprintf(handle->m_lasterr, 0, "unable to configure the libpman state.");
 	}
@@ -358,6 +401,9 @@ struct scap_vtable scap_modern_bpf_engine = {
         .free_handle = scap_modern_bpf__free_engine,
         .close = scap_modern_bpf__close,
         .next = scap_modern_bpf__next,
+        .next_from_buffer = scap_modern_bpf__next_from_buffer,
+        .get_n_allocated_buffer_handles = scap_modern_bpf__get_n_allocated_buffer_handles,
+        .reserve_buffer_handle = scap_modern_bpf__reserve_buffer_handle,
         .start_capture = scap_modern_bpf__start_capture,
         .stop_capture = scap_modern_bpf__stop_capture,
         .configure = scap_modern_bpf__configure,

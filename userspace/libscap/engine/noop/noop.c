@@ -53,6 +53,24 @@ int32_t noop_next(struct scap_engine_handle handle,
 	return SCAP_EOF;
 }
 
+int32_t noop_next_from_buffer(struct scap_engine_handle engine,
+                              scap_buffer_t buffer_h,
+                              scap_evt** pevent,
+                              uint32_t* pflags) {
+	// TODO: implement
+	return SCAP_EOF;
+}
+
+uint16_t noop_get_n_allocated_buffer_handles(struct scap_engine_handle engine) {
+	// TODO: implement
+	return 0;
+}
+
+scap_buffer_t noop_reserve_buffer_handle(struct scap_engine_handle engine) {
+	// TODO: implement
+	return SCAP_INVALID_BUFFER_HANDLE;
+}
+
 int32_t noop_start_capture(struct scap_engine_handle engine) {
 	return SCAP_SUCCESS;
 }
@@ -107,6 +125,9 @@ const struct scap_vtable scap_noop_engine = {
         .free_handle = noop_free_handle,
         .close = noop_close_engine,
         .next = noop_next,
+        .next_from_buffer = noop_next_from_buffer,
+        .get_n_allocated_buffer_handles = noop_get_n_allocated_buffer_handles,
+        .reserve_buffer_handle = noop_reserve_buffer_handle,
         .start_capture = noop_start_capture,
         .stop_capture = noop_stop_capture,
         .configure = noop_configure,
