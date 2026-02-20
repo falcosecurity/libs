@@ -23,23 +23,20 @@ limitations under the License.
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
 	if(!g_state.skel) {
-		pman_print_error("failed to open BPF skeleton");
+		pman_print_errorf("failed to open BPF skeleton");
 		return errno;
 	}
 	return 0;
 }
 
-static void disable_prog_autoloading(char *msg_buffer, const char *prog_name) {
-	snprintf(msg_buffer, MAX_ERROR_MESSAGE_LEN, "disabling BPF program '%s'", prog_name);
-	pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg_buffer);
+static void disable_prog_autoloading(const char *prog_name) {
+	pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "disabling BPF program '%s'", prog_name);
 	struct bpf_program *p = bpf_object__find_program_by_name(g_state.skel->obj, prog_name);
 	if(!p || bpf_program__set_autoload(p, false) < 0) {
-		snprintf(msg_buffer, MAX_ERROR_MESSAGE_LEN, "failed to disable prog '%s'", prog_name);
-		pman_print_error(msg_buffer);
+		pman_print_errorf("failed to disable prog '%s'", prog_name);
 		return;
 	}
-	snprintf(msg_buffer, MAX_ERROR_MESSAGE_LEN, "disabled BPF program '%s'", prog_name);
-	pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg_buffer);
+	pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "disabled BPF program '%s'", prog_name);
 }
 
 // note: this temporarily disables logging.
@@ -57,7 +54,6 @@ static bool is_kernel_symbol_available(const char *symbol) {
 }
 
 int pman_prepare_progs_before_loading() {
-	char msg[MAX_ERROR_MESSAGE_LEN];
 	/*
 	 * Probe required features for each bpf program, as requested
 	 */
@@ -76,40 +72,32 @@ int pman_prepare_progs_before_loading() {
 				if(progs[idx].feat > 0 &&
 				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) !=
 				           1) {
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "BPF program '%s' did not satisfy required feature [%d]",
-					         progs[idx].name,
-					         progs[idx].feat);
-					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+					                "BPF program '%s' did not satisfy required feature [%d]",
+					                progs[idx].name,
+					                progs[idx].feat);
 					// Required feature not present
 					should_disable = true;
 				} else {
 					// We satisfied requested feature
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "BPF program '%s' satisfied required feature [%d]",
-					         progs[idx].name,
-					         progs[idx].feat);
-					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, (const char *)msg);
+					pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+					                "BPF program '%s' satisfied required feature [%d]",
+					                progs[idx].name,
+					                progs[idx].feat);
 					chosen_idx = idx;
 				}
 			}
 
 			// Disable autoloading for all programs except chosen one
 			if(should_disable) {
-				disable_prog_autoloading(msg, progs[idx].name);
+				disable_prog_autoloading(progs[idx].name);
 			}
 		}
 
 		// In case we couldn't find any program satisfying required features, give an error.
 		// As of today, this will never happen, but better safe than sorry.
 		if(chosen_idx == -1 && progs[0].name != NULL) {
-			snprintf(msg,
-			         MAX_ERROR_MESSAGE_LEN,
-			         "no program satisfies required features for event %d",
-			         ev);
-			pman_print_error(msg);
+			pman_print_errorf("no program satisfies required features for event %d", ev);
 			errno = ENXIO;
 			return errno;
 		}
@@ -138,27 +126,25 @@ int pman_prepare_progs_before_loading() {
 			bool should_disable = chosen_idx != -1;
 			if(!should_disable) {
 				if(!is_kernel_symbol_available(ia32_prog->kernel_symbol)) {
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "kernel symbol '%s' (required by BPF program '%s') not available",
-					         ia32_prog->kernel_symbol,
-					         ia32_prog->name);
-					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg);
+					pman_print_msgf(
+					        FALCOSECURITY_LOG_SEV_DEBUG,
+					        "kernel symbol '%s' (required by BPF program '%s') not available",
+					        ia32_prog->kernel_symbol,
+					        ia32_prog->name);
 					should_disable = true;
 				} else {
 					// We satisfied requested feature
-					snprintf(msg,
-					         MAX_ERROR_MESSAGE_LEN,
-					         "kernel symbol '%s' (required by BPF program '%s') is available",
-					         ia32_prog->kernel_symbol,
-					         ia32_prog->name);
-					pman_print_msg(FALCOSECURITY_LOG_SEV_DEBUG, msg);
+					pman_print_msgf(
+					        FALCOSECURITY_LOG_SEV_DEBUG,
+					        "kernel symbol '%s' (required by BPF program '%s') is available",
+					        ia32_prog->kernel_symbol,
+					        ia32_prog->name);
 					chosen_idx = j;
 				}
 			}
 			// Disable autoloading for all programs except chosen one.
 			if(should_disable) {
-				disable_prog_autoloading(msg, ia32_prog->name);
+				disable_prog_autoloading(ia32_prog->name);
 			}
 		}
 	}
@@ -210,7 +196,7 @@ static void pman_save_attached_progs() {
 
 int pman_load_probe() {
 	if(bpf_probe__load(g_state.skel)) {
-		pman_print_error("failed to load BPF object");
+		pman_print_errorf("failed to load BPF object");
 		return errno;
 	}
 	pman_save_attached_progs();
