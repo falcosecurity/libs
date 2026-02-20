@@ -34,6 +34,10 @@ limitations under the License.
 #ifdef __cplusplus
 #include <atomic>
 using namespace std;
+#elif defined(_MSC_VER)
+/* MSVC C: C11 atomics are not enabled in all toolchains; use intrinsics fallback so we never
+ * pull in <stdatomic.h> and hit "C atomic support is not enabled". */
+#include <libscap/scap_stdatomic.h>
 #else
 #include <stdatomic.h>
 #endif
