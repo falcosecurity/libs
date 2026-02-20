@@ -2298,11 +2298,18 @@ struct ppm_proc_info {
 	uint64_t stime;
 };
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#endif
 struct ppm_proclist_info {
 	int64_t n_entries;
 	int64_t max_entries;
 	struct ppm_proc_info entries[];
 };
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 enum syscall_flags {
 	UF_NONE = 0,

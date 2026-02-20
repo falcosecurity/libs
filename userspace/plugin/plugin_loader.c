@@ -71,7 +71,24 @@ plugin_handle_t* plugin_load(const char* path, char* err) {
 
 	// open dynamic library
 #ifdef _WIN32
-	ret->handle = LoadLibrary(path);
+	// Using LoadLibraryW ensures that we have a valid path independent
+	// of the system or application code page.
+	int wpath_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
+	if(wpath_len <= 0) {
+		free(ret);
+		strlcpy(err, "unable to decode plugin path", PLUGIN_MAX_ERRLEN);
+		return NULL;
+	}
+
+	WCHAR* wpath = malloc(wpath_len * sizeof(WCHAR));
+	if(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wpath, wpath_len) <= 0) {
+		free(ret);
+		free(wpath);
+		strlcpy(err, "unable to decode plugin path", PLUGIN_MAX_ERRLEN);
+		return NULL;
+	}
+	ret->handle = LoadLibraryW(wpath);
+	free(wpath);
 	if(ret->handle == NULL) {
 		DWORD flg = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
 		            FORMAT_MESSAGE_IGNORE_INSERTS;
