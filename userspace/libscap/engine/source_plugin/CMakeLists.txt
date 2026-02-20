@@ -16,5 +16,4 @@ add_library(scap_engine_source_plugin source_plugin.c)
 target_link_libraries(
 	scap_engine_source_plugin PRIVATE scap_event_schema scap_engine_noop scap_error
 )
-
 set_scap_target_properties(scap_engine_source_plugin)
