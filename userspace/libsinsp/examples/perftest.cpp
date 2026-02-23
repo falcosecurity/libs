@@ -15,8 +15,8 @@
 // Utility function to calculate CPU usage
 int get_cpu_usage_percent() {
 	constexpr uint64_t USECS_PER_SEC = 1000L * 1000;
-	static uint64_t cpu_time_last_run_us = 0;
-	static uint64_t time_last_run_us = 0;
+	static thread_local uint64_t cpu_time_last_run_us = 0;
+	static thread_local uint64_t time_last_run_us = 0;
 	double cpu_usage = 0.0;
 
 	// Get the current timestamp in usecs
