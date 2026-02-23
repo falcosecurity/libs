@@ -38,7 +38,7 @@ jobs:
         architecture: [ X64, ARM64 ]
     runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}", "kernel-testing-matrix" ]
     steps:
-      - uses: falcosecurity/kernel-testing@deca9eb5dc8062a299d2c4fb570258534bcbc62d
+      - uses: falcosecurity/kernel-testing@ba69d924c6f0145ecdddc57705a450ac45e20398
         id: kernel_tests
         with:
           libsversion: ${{ inputs.libsversion }}
