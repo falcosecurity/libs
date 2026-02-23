@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: Apache-2.0
 /*
 Copyright (C) 2023 The Falco Authors.
 
@@ -22,6 +21,7 @@ limitations under the License.
 #include <cxxopts.hpp>
 #include <csignal>
 #include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_buffer.h>
 #include <libscap/scap_engines.h>
 #include <functional>
 #include <memory>
@@ -29,6 +29,9 @@ limitations under the License.
 
 #include <iomanip>
 #include <libsinsp/filter/ppm_codes.h>
+#include <atomic>
+#include <vector>
+#include <map>
 #include <libsinsp/state/table_registry.h>
 #include <unordered_set>
 #include <memory>
@@ -41,6 +44,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 }
 #endif  // _WIN32
 
@@ -53,14 +57,21 @@ using namespace std;
 #include "platform.h"
 
 // Functions used for dumping to stdout
-void raw_dump(sinsp&, sinsp_evt* ev);
-void formatted_dump(sinsp&, sinsp_evt* ev);
+void raw_dump(sinsp&, sinsp_evt* ev, sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE);
+void formatted_dump(sinsp&, sinsp_evt* ev, sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE);
 
-#define BUFFERS_NUM_OPTION "--buffers_num"
+// Functions used for printing perftest table data
+static void print_perftest_table_header();
+static void print_perftest_table_data(const uint32_t worker_id,
+                                      const uint64_t num_events_diff,
+                                      const long double curr_throughput,
+                                      const int cpu_usage,
+                                      const double curr_vm_size_in_mebibytes,
+                                      const double curr_vm_rss_in_mebibytes);
 
 libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector);
-std::function<void(sinsp&, sinsp_evt*)> dump = formatted_dump;
-static bool g_interrupted = false;
+std::function<void(sinsp&, sinsp_evt*, sinsp_buffer_t)> dump = formatted_dump;
+static std::atomic<bool> g_interrupted{false};
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
 static bool ppm_sc_modifies_state = false;
@@ -76,12 +87,40 @@ static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static double buffers_num = DEFAULT_BUFFERS_NUM;
 static bool all_cpus = false;
 static uint64_t max_events = UINT64_MAX;
+static uint32_t num_processing_threads = 1;  // Number of threads for parallel event processing
 static std::shared_ptr<sinsp_plugin> plugin;
 static std::string open_params;  // for source plugins, its open params
 static std::unique_ptr<filter_check_list> filter_list;
 static std::shared_ptr<sinsp_filter_factory> filter_factory;
 
-sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
+sinsp_evt* get_event(sinsp& inspector,
+                     std::function<void(const std::string&)> handle_error,
+                     sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE);
+
+struct event_processing_stats {
+	uint64_t num_events{0};
+	uint64_t last_events{0};
+	uint64_t last_ts_ns{0};
+	uint64_t cpu_total{0};
+	uint64_t num_samples{0};
+	double max_throughput{0.0};
+};
+
+event_processing_stats process_events_loop(
+        sinsp& inspector,
+        std::function<void(sinsp&, sinsp_evt*, sinsp_buffer_t)> dump_func,
+        bool perftest_mode,
+        bool all_threads,
+        uint64_t max_events,
+        sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE);
+
+event_processing_stats process_events_parallel(
+        sinsp& inspector,
+        std::function<void(sinsp&, sinsp_evt*, sinsp_buffer_t)> dump_func,
+        bool perftest_mode,
+        bool all_threads,
+        uint64_t max_events,
+        uint32_t num_threads);
 
 const char* state_type_to_string(ss_plugin_state_type type) {
 	switch(type) {
@@ -306,13 +345,84 @@ std::string process_output = PROCESS_DEFAULTS;
 std::string net_output = PROCESS_DEFAULTS " %fd.name";
 std::string plugin_output = PLUGIN_DEFAULTS;
 
-static std::unique_ptr<sinsp_evt_formatter> default_formatter = nullptr;
-static std::unique_ptr<sinsp_evt_formatter> process_formatter = nullptr;
-static std::unique_ptr<sinsp_evt_formatter> net_formatter = nullptr;
-static std::unique_ptr<sinsp_evt_formatter> plugin_evt_formatter = nullptr;
+// Formatter vectors - one entry per buffer handle
+static std::vector<std::unique_ptr<sinsp_evt_formatter>> default_formatters;
+static std::vector<std::unique_ptr<sinsp_evt_formatter>> process_formatters;
+static std::vector<std::unique_ptr<sinsp_evt_formatter>> net_formatters;
+static std::vector<std::unique_ptr<sinsp_evt_formatter>> plugin_evt_formatters;
+
+static void initialize_formatter_vectors(sinsp& inspector, uint32_t num_threads) {
+	default_formatters.resize(num_threads);
+	process_formatters.resize(num_threads);
+	net_formatters.resize(num_threads);
+	plugin_evt_formatters.resize(num_threads);
+	for(uint32_t i = 0; i < num_threads; ++i) {
+		default_formatters[i] = std::make_unique<sinsp_evt_formatter>(&inspector,
+		                                                              default_output,
+		                                                              *filter_list.get());
+		process_formatters[i] = std::make_unique<sinsp_evt_formatter>(&inspector,
+		                                                              process_output,
+		                                                              *filter_list.get());
+		net_formatters[i] =
+		        std::make_unique<sinsp_evt_formatter>(&inspector, net_output, *filter_list.get());
+		plugin_evt_formatters[i] = std::make_unique<sinsp_evt_formatter>(&inspector,
+		                                                                 plugin_output,
+		                                                                 *filter_list.get());
+	}
+}
+
+static sinsp_evt_formatter* get_default_formatter(sinsp_buffer_t buffer_h) {
+	uint32_t index = (buffer_h == SINSP_INVALID_BUFFER_HANDLE) ? 0 : buffer_h - 1;
+	return default_formatters[index].get();
+}
+
+static sinsp_evt_formatter* get_process_formatter(sinsp_buffer_t buffer_h) {
+	uint32_t index = (buffer_h == SINSP_INVALID_BUFFER_HANDLE) ? 0 : buffer_h - 1;
+	return process_formatters[index].get();
+}
+
+static sinsp_evt_formatter* get_net_formatter(sinsp_buffer_t buffer_h) {
+	uint32_t index = (buffer_h == SINSP_INVALID_BUFFER_HANDLE) ? 0 : buffer_h - 1;
+	return net_formatters[index].get();
+}
+
+static sinsp_evt_formatter* get_plugin_evt_formatter(sinsp_buffer_t buffer_h) {
+	uint32_t index = (buffer_h == SINSP_INVALID_BUFFER_HANDLE) ? 0 : buffer_h - 1;
+	return plugin_evt_formatters[index].get();
+}
+
+static sinsp* g_inspector = nullptr;
 
 static void sigint_handler(int signum) {
-	g_interrupted = true;
+	g_interrupted.store(true);
+}
+
+static void check_interruption() {
+	static bool interruption_reported = false;
+	if(g_interrupted.load() && !interruption_reported) {
+		std::cout << "\n-- Received signal, initiating graceful shutdown..." << std::endl;
+		interruption_reported = true;
+	}
+}
+
+static void cleanup_resources() {
+	if(g_inspector == nullptr) {
+		return;
+	}
+	std::cout << "-- Cleaning up resources..." << std::endl;
+	try {
+		g_inspector->stop_capture();
+		std::cout << "-- Capture stopped" << std::endl;
+	} catch(const std::exception& e) {
+		std::cerr << "-- Warning: Error stopping capture: " << e.what() << std::endl;
+	}
+	try {
+		g_inspector->close();
+		std::cout << "-- Engine closed" << std::endl;
+	} catch(const std::exception& e) {
+		std::cerr << "-- Warning: Error closing engine: " << e.what() << std::endl;
+	}
+	std::cout << "-- Cleanup completed" << std::endl;
 }
 
 static void select_engine(const char* select) {
@@ -391,8 +501,18 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		("T,tables",
 			"-T or -Tbrief print tables descriptions. -Tlist print table entries, if "
 			"-n is specified, print only the first n entries.",
-			cxxopts::value<std::string>()->implicit_value("brief")
-	);
+			cxxopts::value<std::string>()->implicit_value("brief"))
+		("b,buffers_num",
+			"Advanced: controls ring buffer allocation without parallel processing.\n"
+			" - if `<num> > 0 && <num> <= 1`, a ring buffer is allocated for every `1 / <num>` CPUs;\n"
+			" - if `<num> == 0`, it means that 1 ring buffer is shared among all available CPUs.\n"
+			" Default: (online CPUs)/2, at least 1. Ignored when -P is specified.",
+			cxxopts::value<double>())
+		("P,processing-threads",
+			"Number of parallel event processing threads with TGID-partitioned ring buffers.\n"
+			" Allocates <num> ring buffers with events routed by tgid, one thread per buffer.\n"
+			" When specified, overrides -b.",
+			cxxopts::value<uint32_t>());
 	// clang-format on
 
 	add_platform_test_options(options);
@@ -473,11 +593,12 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			buffer_bytes_dim = result["buffer_dim"].as<unsigned long>();
 		}
 
-		if(result.count("buffers-num")) {
-			const auto bufs_num = result["buffers-num"].as<double>();
+		if(result.count("buffers_num")) {
+			const auto bufs_num = result["buffers_num"].as<double>();
 			if(bufs_num < 0) {
-				std::cerr << "Invalid " << BUFFERS_NUM_OPTION
-				          << " option value. Must be greater than or equal to 0" << std::endl;
+				std::cerr << "Invalid buffers_num option value. Must be greater than or equal to 0"
+				             " option value. Must be greater than or equal to 0"
+				          << std::endl;
 				exit(EXIT_FAILURE);
 			}
 
@@ -485,20 +606,21 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				if(const auto cpus_for_each_buffer = static_cast<double>(1) / bufs_num;
 				   cpus_for_each_buffer !=
 				   static_cast<double>(static_cast<uint16_t>(cpus_for_each_buffer))) {
-					std::cerr << "Invalid " << BUFFERS_NUM_OPTION
-					          << " option value. 1 / <num> must be a positive integer" << std::endl;
+					std::cerr << "Invalid buffers_num option value. 1 / <num> must be a positive "
+					             "integer"
+					             " option value. 1 / <num> must be a positive integer"
+					          << std::endl;
 					exit(EXIT_FAILURE);
 				}
 			} else if(bufs_num !=
 			          static_cast<double>(static_cast<uint16_t>(bufs_num))) {  // bufs_num > 1
-				std::cerr << "Invalid " << BUFFERS_NUM_OPTION
+				std::cerr << "Invalid buffers_num option value. If the value specified is above 1, "
+				             "it must be a positive integer"
 				          << " option value. If the value specified is above 1, it must be a "
 				             "positive integer"
 				          << std::endl;
 				exit(EXIT_FAILURE);
 			}
-
-			buffers_num = bufs_num;
 		}
 
 		if(result.count("all-cpus")) {
@@ -553,6 +675,15 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				          << std::endl;
 				exit(EXIT_FAILURE);
 			}
+		}
+
+		if(result.count("processing-threads")) {
+			num_processing_threads = result["processing-threads"].as<uint32_t>();
+			if(num_processing_threads < 2) {
+				std::cerr << "Number of processing threads must be >= 2" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			buffers_num = static_cast<double>(num_processing_threads);
 		}
 
 		parse_platform_test_options(result);
@@ -695,6 +826,141 @@ error:
 }
 #endif  // __linux__
 
+event_processing_stats process_events_loop(
+        sinsp& inspector,
+        std::function<void(sinsp&, sinsp_evt*, sinsp_buffer_t)> dump_func,
+        bool perftest_mode,
+        bool all_threads,
+        uint64_t max_events,
+        sinsp_buffer_t buffer_h) {
+	event_processing_stats stats;
+	const uint64_t one_second_ns = 1'000'000'000;
+
+	// Perftest-related variables.
+	double min_vm_size_in_mebibytes = std::numeric_limits<double>::max();
+	double max_vm_size_in_mebibytes = 0.0;
+	double min_vm_rss_in_mebibytes = std::numeric_limits<double>::max();
+	double max_vm_rss_in_mebibytes = 0.0;
+
+#if __linux__
+	mem_stats_t mem_stats{};
+	constexpr int ONE_MEBIBYTE_IN_BYTES = 1024 * 1024;
+	const long int page_size = sysconf(_SC_PAGESIZE);
+#endif
+
+	while(!g_interrupted.load() && stats.num_events < max_events) {
+		check_interruption();
+		sinsp_evt* ev = get_event(
+		        inspector,
+		        [](const std::string& error_msg) { cout << "[ERROR] " << error_msg << endl; },
+		        buffer_h);
+		if(ev != nullptr) {
+			uint64_t ts_ns = ev->get_ts();
+			stats.num_events++;
+			if(ts_ns - stats.last_ts_ns > one_second_ns) {
+				stats.num_samples++;
+				uint64_t events_diff = stats.num_events - stats.last_events;
+				long double curr_throughput = events_diff / static_cast<long double>(1000);
+				if(curr_throughput > stats.max_throughput) {
+					stats.max_throughput = curr_throughput;
+				}
+				stats.last_ts_ns = ts_ns;
+				stats.last_events = stats.num_events;
+				if(perftest_mode) {
+#if __linux__
+					// Compute CPU stats.
+					int curr_cpu_usage = get_cpu_usage_percent();
+					stats.cpu_total += curr_cpu_usage;
+
+					// Compute memory stats.
+					get_mem_stats(&mem_stats);
+					const auto curr_vm_size_in_mebibytes =
+					        static_cast<double>(mem_stats.vm_size_in_pages * page_size) /
+					        ONE_MEBIBYTE_IN_BYTES;
+					const auto curr_vm_rss_in_mebibytes =
+					        static_cast<double>(mem_stats.vm_rss_in_pages * page_size) /
+					        ONE_MEBIBYTE_IN_BYTES;
+					if(curr_vm_size_in_mebibytes > max_vm_size_in_mebibytes) {
+						max_vm_size_in_mebibytes = curr_vm_size_in_mebibytes;
+					}
+					if(curr_vm_size_in_mebibytes < min_vm_size_in_mebibytes) {
+						min_vm_size_in_mebibytes = curr_vm_size_in_mebibytes;
+					}
+					if(curr_vm_rss_in_mebibytes > max_vm_rss_in_mebibytes) {
+						max_vm_rss_in_mebibytes = curr_vm_rss_in_mebibytes;
+					}
+					if(curr_vm_rss_in_mebibytes < min_vm_rss_in_mebibytes) {
+						min_vm_rss_in_mebibytes = curr_vm_rss_in_mebibytes;
+					}
+#else  // __linux__
+					int curr_cpu_usage = -1;
+					double curr_vm_size_in_mebibytes = -1;
+					double curr_vm_rss_in_mebibytes = -1;
+#endif
+					print_perftest_table_data(buffer_h,
+					                          events_diff,
+					                          curr_throughput,
+					                          curr_cpu_usage,
+					                          curr_vm_size_in_mebibytes,
+					                          curr_vm_rss_in_mebibytes);
+				}
+			}
+			sinsp_threadinfo* thread = ev->get_thread_info();
+			if(!perftest_mode && (!thread || all_threads || thread->is_main_thread())) {
+				dump_func(inspector, ev, buffer_h);
+			}
+		}
+	}
+	return stats;
+}
+
+event_processing_stats process_events_parallel(
+        sinsp& inspector,
+        std::function<void(sinsp&, sinsp_evt*, sinsp_buffer_t)> dump_func,
+        bool perftest_mode,
+        bool all_threads,
+        uint64_t max_events,
+        uint32_t num_threads) {
+	event_processing_stats total_stats;
+	std::vector<std::thread> threads;
+	std::vector<event_processing_stats> thread_stats(num_threads);
+
+	for(uint32_t i = 0; i < num_threads; ++i) {
+		threads.emplace_back([&, i]() {
+			sinsp_buffer_t buffer_h = inspector.reserve_buffer_handle();
+
+			uint64_t events_per_thread = max_events / num_threads;
+			uint64_t thread_max_events =
+			        (i == num_threads - 1) ? (max_events - (events_per_thread * (num_threads - 1)))
+			                               : events_per_thread;
+
+			thread_stats[i] = process_events_loop(inspector,
+			                                      dump_func,
+			                                      perftest_mode,
+			                                      all_threads,
+			                                      thread_max_events,
+			                                      buffer_h);
+		});
+	}
+
+	for(auto& thread : threads) {
+		thread.join();
+	}
+
+	for(const auto& stats : thread_stats) {
+		total_stats.num_events += stats.num_events;
+		total_stats.cpu_total += stats.cpu_total;
+		total_stats.num_samples += stats.num_samples;
+		if(stats.max_throughput > total_stats.max_throughput) {
+			total_stats.max_throughput = stats.max_throughput;
+		}
+	}
+	if(total_stats.num_samples > 0) {
+		total_stats.cpu_total /= num_threads;
+	}
+	return total_stats;
+}
+
 static std::string format_suggested_field(const filtercheck_field_info* info) {
 	std::ostringstream out;
 
@@ -708,19 +974,21 @@ static std::string format_suggested_field(const filtercheck_field_info* info) {
 }
 
 static void print_perftest_table_header() {
-	std::cout << std::setw(14) << "Events (num)" << std::setw(24) << "Throughput (events/ms)"
-	          << std::setw(10) << "CPU (%)" << std::setw(14) << "VmSize (MiB)" << std::setw(14)
-	          << "VmRSS (MiB)" << '\n';
+	std::cout << std::setw(14) << "Worker" << std::setw(14) << "Events (num)" << std::setw(24)
+	          << "Throughput (events/ms)" << std::setw(10) << "CPU (%)" << std::setw(14)
+	          << "VmSize (MiB)" << std::setw(14) << "VmRSS (MiB)" << '\n';
 }
 
-static void print_perftest_table_data(const uint64_t num_events_diff,
+static void print_perftest_table_data(const uint32_t worker_id,
+                                      const uint64_t num_events_diff,
                                       const long double curr_throughput,
                                       const int cpu_usage,
                                       const double curr_vm_size_in_mebibytes,
                                       const double curr_vm_rss_in_mebibytes) {
-	std::cout << std::setw(14) << (num_events_diff) << std::setw(24) << curr_throughput
-	          << std::setw(10) << cpu_usage << std::setw(14) << curr_vm_size_in_mebibytes
-	          << std::setw(14) << curr_vm_rss_in_mebibytes << '\r' << std::flush;
+	std::cout << std::setw(14) << worker_id << std::setw(14) << (num_events_diff) << std::setw(24)
+	          << curr_throughput << std::setw(10) << cpu_usage << std::setw(14)
+	          << curr_vm_size_in_mebibytes << std::setw(14) << curr_vm_rss_in_mebibytes << '\r'
+	          << std::flush;
 }
 
 //
@@ -731,6 +999,8 @@ static void print_perftest_table_data(const uint64_t num_events_diff,
 //
 int main(int argc, char** argv) {
 	sinsp inspector;
+	g_inspector = &inspector;
+	atexit(cleanup_resources);
 
 	filter_list.reset(new sinsp_filter_check_list());
 	filter_factory.reset(new sinsp_filter_factory(&inspector, *filter_list.get()));
@@ -816,170 +1086,102 @@ int main(int argc, char** argv) {
 
 	inspector.start_capture();
 
-	default_formatter =
-	        std::make_unique<sinsp_evt_formatter>(&inspector, default_output, *filter_list.get());
-	process_formatter =
-	        std::make_unique<sinsp_evt_formatter>(&inspector, process_output, *filter_list.get());
-	net_formatter =
-	        std::make_unique<sinsp_evt_formatter>(&inspector, net_output, *filter_list.get());
-	plugin_evt_formatter =
-	        std::make_unique<sinsp_evt_formatter>(&inspector, plugin_output, *filter_list.get());
+	initialize_formatter_vectors(inspector, num_processing_threads);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-	uint64_t curr_num_events = 0, last_num_events = 0;
-	uint64_t last_ts_ns = 0;
-	uint64_t cpu_total = 0;
-	uint64_t num_samples = 0;
+	event_processing_stats stats;
 
-	// Perftest-related variables.
-	double max_throughput = 0.0;
-	double min_vm_size_in_mebibytes = std::numeric_limits<double>::max();
-	double max_vm_size_in_mebibytes = 0.0;
-	double min_vm_rss_in_mebibytes = std::numeric_limits<double>::max();
-	double max_vm_rss_in_mebibytes = 0.0;
-
-#if __linux__
-	mem_stats_t mem_stats{};
-	constexpr int ONE_MEBIBYTE_IN_BYTES = 1024 * 1024;
-	const long int page_size = sysconf(_SC_PAGESIZE);
-#endif
-
-	if(perftest) {
-		print_perftest_table_header();
-	}
-
-	while(!g_interrupted && curr_num_events < max_events) {
-		sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg) {
-			cout << "[ERROR] " << error_msg << endl;
-		});
-		if(ev != nullptr) {
-			uint64_t ts_ns = ev->get_ts();
-			sinsp_threadinfo* thread = ev->get_thread_info();
-			++curr_num_events;
-			if(perftest) {
-				// Perftest mode does not print individual events but instead prints a running
-				// throughput every second
-				if(ts_ns - last_ts_ns > 1'000'000'000) {
-					++num_samples;
-
-					// Compute num events fetched in the last iteration.
-					uint64_t num_events_diff = curr_num_events - last_num_events;
-
-					// Compute throughput.
-					const auto curr_throughput = static_cast<long double>(num_events_diff) / 1000;
-					if(curr_throughput > max_throughput) {
-						max_throughput = curr_throughput;
-					}
-
-#if __linux__
-					// Compute CPU stats.
-					int curr_cpu_usage = get_cpu_usage_percent();
-					cpu_total += curr_cpu_usage;
-
-					// Compute memory stats.
-					get_mem_stats(&mem_stats);
-					const auto curr_vm_size_in_mebibytes =
-					        static_cast<double>(mem_stats.vm_size_in_pages * page_size) /
-					        ONE_MEBIBYTE_IN_BYTES;
-					const auto curr_vm_rss_in_mebibytes =
-					        static_cast<double>(mem_stats.vm_rss_in_pages * page_size) /
-					        ONE_MEBIBYTE_IN_BYTES;
-					if(curr_vm_size_in_mebibytes > max_vm_size_in_mebibytes) {
-						max_vm_size_in_mebibytes = curr_vm_size_in_mebibytes;
-					}
-					if(curr_vm_size_in_mebibytes < min_vm_size_in_mebibytes) {
-						min_vm_size_in_mebibytes = curr_vm_size_in_mebibytes;
-					}
-					if(curr_vm_rss_in_mebibytes > max_vm_rss_in_mebibytes) {
-						max_vm_rss_in_mebibytes = curr_vm_rss_in_mebibytes;
-					}
-					if(curr_vm_rss_in_mebibytes < min_vm_rss_in_mebibytes) {
-						min_vm_rss_in_mebibytes = curr_vm_rss_in_mebibytes;
-					}
-#else  // __linux__
-					int curr_cpu_usage = -1;
-					double curr_vm_size_in_mebibytes = -1;
-					double curr_vm_rss_in_mebibytes = -1;
-#endif
-					print_perftest_table_data(num_events_diff,
-					                          curr_throughput,
-					                          curr_cpu_usage,
-					                          curr_vm_size_in_mebibytes,
-					                          curr_vm_rss_in_mebibytes);
-					last_ts_ns = ts_ns;
-					last_num_events = curr_num_events;
-				}
-			} else if(!thread || g_all_threads || thread->is_main_thread()) {
-				dump(inspector, ev);
-			}
+	if(num_processing_threads > 1) {
+		std::cout << "-- Starting parallel event processing with " << num_processing_threads
+		          << " threads" << std::endl;
+		if(perftest) {
+			print_perftest_table_header();
 		}
+		stats = process_events_parallel(inspector,
+		                                dump,
+		                                perftest,
+		                                g_all_threads,
+		                                max_events,
+		                                num_processing_threads);
+	} else {
+		if(perftest) {
+			print_perftest_table_header();
+		}
+		stats = process_events_loop(inspector,
+		                            dump,
+		                            perftest,
+		                            g_all_threads,
+		                            max_events,
+		                            SINSP_INVALID_BUFFER_HANDLE);
 	}
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	const auto duration =
 	        std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
+	if(g_interrupted.load()) {
+		std::cout << "-- Shutdown requested, stopping capture..." << std::endl;
+	} else {
+		std::cout << "-- Stop capture" << std::endl;
+	}
 	inspector.stop_capture();
 
-	std::cout
-	        << "-- Stop capture                                                                    "
-	        << std::endl;
-	std::cout << "Retrieved events: " << std::to_string(curr_num_events) << std::endl;
+	std::cout << "Retrieved events: " << std::to_string(stats.num_events) << std::endl;
+	if(num_processing_threads > 1) {
+		std::cout << "Processing threads: " << num_processing_threads << std::endl;
+	}
 	std::cout << "Time spent: " << duration << "ms" << std::endl;
 	if(duration > 0) {
-		std::cout << "Events/ms: " << curr_num_events / static_cast<long double>(duration)
+		std::cout << "Events/ms: " << stats.num_events / static_cast<long double>(duration)
 		          << std::endl;
 	}
-	if(max_throughput > 0) {
-		std::cout << "Max throughput observed: " << max_throughput << " events / ms" << std::endl;
+	if(stats.max_throughput > 0) {
+		std::cout << "Max throughput observed: " << stats.max_throughput << " events / ms"
+		          << std::endl;
 	}
-	if(num_samples > 0) {
-		std::cout << "Average CPU usage: " << cpu_total / num_samples << "%" << std::endl;
-	}
-	if(max_vm_size_in_mebibytes > 0) {
-		std::cout << "Min/Max VmSize observed: " << min_vm_size_in_mebibytes << " MiB / "
-		          << max_vm_size_in_mebibytes << " MiB" << std::endl;
-	}
-	if(max_vm_rss_in_mebibytes > 0) {
-		std::cout << "Min/Max VmRSS observed: " << min_vm_rss_in_mebibytes << " MiB / "
-		          << max_vm_rss_in_mebibytes << " MiB" << std::endl;
+	if(stats.num_samples > 0) {
+		std::cout << "Average CPU usage: " << stats.cpu_total / stats.num_samples << "%"
+		          << std::endl;
 	}
 
+	g_inspector = nullptr;
 	return 0;
 }
 
-sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error) {
+sinsp_evt* get_event(sinsp& inspector,
+                     std::function<void(const std::string&)> handle_error,
+                     sinsp_buffer_t buffer_h) {
 	sinsp_evt* ev = nullptr;
 
-	int32_t res = inspector.next(&ev);
+	int32_t res = inspector.next(&ev, buffer_h);
 
 	if(res == SCAP_SUCCESS) {
 		return ev;
 	}
 	if(res == SCAP_EOF) {
 		std::cout << "-- EOF" << std::endl;
-		g_interrupted = true;
+		g_interrupted.store(true);
 		return nullptr;
 	}
 
 	if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT) {
-		handle_error(inspector.getlasterr());
+		handle_error(inspector.getlasterr(buffer_h));
 		std::this_thread::sleep_for(std::chrono::seconds(g_backoff_timeout_secs));
 	}
 
 	return nullptr;
 }
 
-void formatted_dump(sinsp&, sinsp_evt* ev) {
+void formatted_dump(sinsp& inspector, sinsp_evt* ev, sinsp_buffer_t buffer_h) {
 	std::string output;
 	if(ev->get_category() == EC_PROCESS) {
-		process_formatter->tostring(ev, output);
+		get_process_formatter(buffer_h)->tostring(ev, output);
 	} else if(ev->get_category() == EC_NET || ev->get_category() == EC_IO_READ ||
 	          ev->get_category() == EC_IO_WRITE) {
-		net_formatter->tostring(ev, output);
+		get_net_formatter(buffer_h)->tostring(ev, output);
 	} else if(ev->get_info()->category & EC_PLUGIN) {
-		plugin_evt_formatter->tostring(ev, output);
+		get_plugin_evt_formatter(buffer_h)->tostring(ev, output);
 	} else {
-		default_formatter->tostring(ev, output);
+		get_default_formatter(buffer_h)->tostring(ev, output);
 	}
 
 	cout << output << std::endl;
@@ -1016,7 +1218,7 @@ static void hexdump(const unsigned char* buf, size_t len) {
 	putc(']', stdout);
 }
 
-void raw_dump(sinsp& inspector, sinsp_evt* ev) {
+void raw_dump(sinsp& inspector, sinsp_evt* ev, sinsp_buffer_t buffer_h) {
 	string date_time;
 	sinsp_utils::ts_to_iso_8601(ev->get_ts(), &date_time);
 
