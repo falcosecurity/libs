@@ -81,6 +81,7 @@ limitations under the License.
 #include <libsinsp/timestamper.h>
 #include <libsinsp/sinsp_buffer.h>
 
+#include <atomic>
 #include <list>
 #include <map>
 #include <memory>
@@ -1073,8 +1074,9 @@ public:
 	std::vector<sinsp_buffer> m_buffers;
 
 	// next reservable buffer handle. Used internally by reserve_buffer_handle() to take note of the
-	// buffer handle to be returned on the next invocation.
-	sinsp_buffer_t m_next_reservable_buffer_handle;
+	// buffer handle to be returned on the next invocation. Atomic so that reserve_buffer_handle()
+	// can be called from multiple threads (e.g. parallel event processing).
+	std::atomic<sinsp_buffer_t> m_next_reservable_buffer_handle;
 
 	// The following mutex is used in next().
 	std::mutex m_global_next_mutex;

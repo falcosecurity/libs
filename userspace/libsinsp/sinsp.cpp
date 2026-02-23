@@ -480,7 +480,7 @@ void sinsp::open_common(scap_open_args* oargs,
 	if(scap_rc != SCAP_SUCCESS) {
 		std::string error = scap_getlasterr(m_h);
 		if(error.empty()) {
-			error = "Initialization issues during scap_init";
+			error = "Initialization issues during scap_init (rc=" + std::to_string(scap_rc) + ")";
 		}
 		throw scap_open_exception(error, scap_rc);
 	}
@@ -1600,10 +1600,18 @@ uint16_t sinsp::get_num_allocated_buffer_handles() const {
 }
 
 sinsp_buffer_t sinsp::reserve_buffer_handle() {
-	if(m_next_reservable_buffer_handle == m_buffers.size()) {
-		return SINSP_INVALID_BUFFER_HANDLE;
+	const uint16_t capacity = static_cast<uint16_t>(m_buffers.size());
+	sinsp_buffer_t current = m_next_reservable_buffer_handle.load(std::memory_order_relaxed);
+	while(current < capacity) {
+		sinsp_buffer_t next = current + 1;
+		if(m_next_reservable_buffer_handle.compare_exchange_weak(current,
+		                                                         next,
+		                                                         std::memory_order_acquire,
+		                                                         std::memory_order_relaxed)) {
+			return current;
+		}
 	}
-	return m_next_reservable_buffer_handle++;
+	return SINSP_INVALID_BUFFER_HANDLE;
 }
 
 uint64_t sinsp::get_num_events() const {
