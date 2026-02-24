@@ -170,7 +170,8 @@ public:
 	template<typename T>
 	T read_field(const accessor::typed_ref<T>& a) const {
 		T val{};
-		this->raw_read_field(a).template borrow_to<libsinsp::state::type_id_of<T>(), T>(val);
+		const auto& acc = static_cast<const accessor&>(a);
+		acc.read(this).borrow_to<libsinsp::state::type_id_of<T>(), T>(val);
 		return val;
 	}
 
@@ -193,25 +194,21 @@ public:
 	void write_field(const accessor::typed_ref<T>& a, const Val& in) {
 		borrowed_state_data in_val =
 		        borrowed_state_data::from<libsinsp::state::type_id_of<T>(), Val>(in);
-		this->raw_write_field(a, in_val);
+		const auto& acc = static_cast<const accessor&>(a);
+		acc.write(this, in_val);
 	}
 
 	template<typename T, typename Val = T>
 	void write_field(const accessor::typed_ptr<T>& a, const Val& in) {
 		write_field(a.as_ref(), in);
 	}
-
-	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const {
-		return a.read(this);
-	}
-
-	void raw_write_field(const accessor& a, const borrowed_state_data& in) { a.write(this, in); }
 };
 
 template<>
 inline void table_entry::read_field(const accessor::typed_ref<std::string>& a,
                                     const char*& out) const {
-	const auto val = this->raw_read_field(a);
+	const auto& acc = static_cast<const accessor&>(a);
+	const auto val = acc.read(this);
 	if(val.data().str == nullptr) {
 		out = "";
 	} else {
