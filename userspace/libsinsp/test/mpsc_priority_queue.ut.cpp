@@ -99,8 +99,6 @@ TEST(mpsc_priority_queue, single_concurrent_producer) {
 	ASSERT_EQ(failed, 0);
 }
 
-#if defined(__x86_64__)
-
 TEST(mpsc_priority_queue, multi_concurrent_producers) {
 	using val_t = std::unique_ptr<int>;
 	const constexpr int64_t timeout_secs = 30;
@@ -108,18 +106,33 @@ TEST(mpsc_priority_queue, multi_concurrent_producers) {
 	const constexpr int num_producers = 10;
 	const constexpr int num_total_elems = num_values * num_producers;
 
-	mpsc_priority_queue<val_t, std::greater_equal<int>> q;
-	std::atomic<int> counter{1};
+	mpsc_priority_queue<val_t, std::greater_equal<int>> q{num_total_elems};
 
 	// multiple producer
 	std::vector<std::thread> producers;
+	producers.reserve(num_producers);
 	for(int i = 0; i < num_producers; i++) {
-		producers.emplace_back([&]() {
-			for(int i = 0; i <= num_values; i++) {
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
-				q.push(std::make_unique<int>(counter++));
+		producers.emplace_back([&, i]() {
+			for(int j = 0; j < num_values; j++) {
+				q.push(std::make_unique<int>(i * num_values + j));
 			}
 		});
+	}
+
+	// wait for producers to stop, otherwise we cannot guarantee that all elements have been pushed
+	// and we might not be able to receive all elements in order
+	bool all_joinable = false;
+	while(!all_joinable) {
+		all_joinable = true;
+		for(int j = 0; j < num_producers; j++) {
+			if(!producers[j].joinable()) {
+				all_joinable = false;
+				break;
+			}
+		}
+	}
+	for(int j = 0; j < num_producers; j++) {
+		producers[j].join();
 	}
 
 	// single consumer
@@ -136,32 +149,17 @@ TEST(mpsc_priority_queue, multi_concurrent_producers) {
 			break;
 		}
 
-		std::this_thread::sleep_for(std::chrono::microseconds(100));
 		if(q.empty()) {
 			continue;
 		}
 
 		if(!q.try_pop_if(v, [&](const int& n) { return n >= last_val; })) {
 			failed++;
+			continue;  // don't update last_val or i when predicate rejected the top
 		}
 
 		last_val = *v;
 		i++;
-	}
-
-	// wait for producers to stop
-	bool all_joinable = false;
-	while(!all_joinable) {
-		all_joinable = true;
-		for(int j = 0; j < num_producers; j++) {
-			if(!producers[j].joinable()) {
-				all_joinable = false;
-				break;
-			}
-		}
-	}
-	for(int j = 0; j < num_producers; j++) {
-		producers[j].join();
 	}
 
 	if(elapsed_secs >= timeout_secs) {
@@ -173,7 +171,5 @@ TEST(mpsc_priority_queue, multi_concurrent_producers) {
 	// check we received everything in order
 	ASSERT_EQ(failed, 0) << "received " << failed << " elements out of order";
 }
-
-#endif  // __x86_64__
 
 #endif  // __EMSCRIPTEN__
