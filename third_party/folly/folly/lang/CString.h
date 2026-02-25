@@ -22,11 +22,14 @@
 #include <folly/CPortability.h>
 
 #if FOLLY_HAS_BUILTIN(__builtin_memcpy_inline)
-#define FOLLY_BUILTIN_MEMCPY(dest, src, size) void(__builtin_memcpy_inline((dest), (src), (size)))
+#define FOLLY_BUILTIN_MEMCPY(dest, src, size) \
+  void(__builtin_memcpy_inline((dest), (src), (size)))
 #elif FOLLY_HAS_BUILTIN(__builtin_memcpy)
-#define FOLLY_BUILTIN_MEMCPY(dest, src, size) void(__builtin_memcpy((dest), (src), (size)))
+#define FOLLY_BUILTIN_MEMCPY(dest, src, size) \
+  void(__builtin_memcpy((dest), (src), (size)))
 #else
-#define FOLLY_BUILTIN_MEMCPY(dest, src, size) void(::std::memcpy((dest), (src), (size)))
+#define FOLLY_BUILTIN_MEMCPY(dest, src, size) \
+  void(::std::memcpy((dest), (src), (size)))
 #endif
 
 namespace folly {
@@ -36,7 +39,7 @@ namespace detail {
 void* memrchr_fallback(void* s, int c, std::size_t len) noexcept;
 void const* memrchr_fallback(void const* s, int c, std::size_t len) noexcept;
 
-}  // namespace detail
+} // namespace detail
 
 //  memrchr
 //
@@ -49,4 +52,4 @@ void const* memrchr(void const* s, int c, std::size_t len) noexcept;
 //  mimic: strlcpy, libbsd
 std::size_t strlcpy(char* dest, char const* src, std::size_t size);
 
-}  // namespace folly
+} // namespace folly

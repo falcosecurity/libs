@@ -27,25 +27,25 @@ namespace folly {
 namespace {
 
 fbstring exception_string_type(std::type_info const* ti) {
-	return ti ? demangle(*ti) : "<unknown exception>";
+  return ti ? demangle(*ti) : "<unknown exception>";
 }
 
-}  // namespace
+} // namespace
 
 /**
  * Debug string for an exception: include type and what(), if
  * defined.
  */
 fbstring exceptionStr(std::exception const& e) {
-	auto prefix = exception_string_type(folly::type_info_of(e));
-	return std::move(prefix) + ": " + e.what();
+  auto prefix = exception_string_type(folly::type_info_of(e));
+  return std::move(prefix) + ": " + e.what();
 }
 
 fbstring exceptionStr(std::exception_ptr const& ep) {
-	if(auto ex = exception_ptr_get_object<std::exception>(ep)) {
-		return exceptionStr(*ex);
-	}
-	return exception_string_type(exception_ptr_get_type(ep));
+  if (auto ex = exception_ptr_get_object<std::exception>(ep)) {
+    return exceptionStr(*ex);
+  }
+  return exception_string_type(exception_ptr_get_type(ep));
 }
 
-}  // namespace folly
+} // namespace folly

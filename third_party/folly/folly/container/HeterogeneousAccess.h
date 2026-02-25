@@ -54,148 +54,171 @@ namespace folly {
 // stable across different program runs, so do not persist hash values
 // anywhere.
 
-template<typename T, typename Enable>
+template <typename T, typename Enable>
 struct HeterogeneousAccessEqualTo : std::equal_to<T> {};
 
-template<typename T, typename Enable>
+template <typename T, typename Enable>
 struct HeterogeneousAccessHash : std::hash<T> {
-	using folly_is_avalanching = IsAvalanchingHasher<std::hash<T>, T>;
+  using folly_is_avalanching = IsAvalanchingHasher<std::hash<T>, T>;
 };
 
 //////// strings
 
 namespace detail {
 
-template<typename T, typename Enable = void>
+template <typename T, typename Enable = void>
 struct ValueTypeForTransparentConversionToRange {
-	using type = char;
+  using type = char;
 };
 
 // We assume that folly::hasher<folly::Range<T const*>> won't be enabled
 // when it would be lower quality than std::hash<U> for a U that is
 // convertible to folly::Range<T const*>.
-template<typename T>
+template <typename T>
 struct ValueTypeForTransparentConversionToRange<
-        T,
-        void_t<decltype(std::declval<hasher<Range<typename T::value_type const*>>>()(
-                std::declval<Range<typename T::value_type const*>>()))>> {
-	using type = std::remove_const_t<typename T::value_type>;
+    T,
+    void_t<
+        decltype(std::declval<hasher<Range<typename T::value_type const*>>>()(
+            std::declval<Range<typename T::value_type const*>>()))>> {
+  using type = std::remove_const_t<typename T::value_type>;
 };
 
-template<typename T>
-using TransparentlyConvertibleToRange = std::
-        is_convertible<T, Range<typename ValueTypeForTransparentConversionToRange<T>::type const*>>;
+template <typename T>
+using TransparentlyConvertibleToRange = std::is_convertible<
+    T,
+    Range<typename ValueTypeForTransparentConversionToRange<T>::type const*>>;
 
-template<typename T>
+template <typename T>
 struct TransparentRangeEqualTo {
-	using is_transparent = void;
+  using is_transparent = void;
 
-	template<typename TOtherHash>
-	using is_compatible = std::is_base_of<detail::TransparentRangeEqualTo<T>, TOtherHash>;
+  template <typename TOtherHash>
+  using is_compatible =
+      std::is_base_of<detail::TransparentRangeEqualTo<T>, TOtherHash>;
 
-	template<typename U1, typename U2>
-	bool operator()(U1 const& lhs, U2 const& rhs) const {
-		return Range<T const*>{lhs} == Range<T const*>{rhs};
-	}
+  template <typename U1, typename U2>
+  bool operator()(U1 const& lhs, U2 const& rhs) const {
+    return Range<T const*>{lhs} == Range<T const*>{rhs};
+  }
 
-	// This overload is not required for functionality, but
-	// guarantees that replacing std::equal_to<std::string> with
-	// HeterogeneousAccessEqualTo<std::string> is truly zero overhead
-	bool operator()(std::string const& lhs, std::string const& rhs) const { return lhs == rhs; }
+  // This overload is not required for functionality, but
+  // guarantees that replacing std::equal_to<std::string> with
+  // HeterogeneousAccessEqualTo<std::string> is truly zero overhead
+  bool operator()(std::string const& lhs, std::string const& rhs) const {
+    return lhs == rhs;
+  }
 };
 
-template<typename T>
+template <typename T>
 struct TransparentRangeHash {
-	using is_transparent = void;
-	using folly_is_avalanching = std::true_type;
+  using is_transparent = void;
+  using folly_is_avalanching = std::true_type;
 
-	template<typename TOtherHash>
-	using is_compatible = std::is_base_of<detail::TransparentRangeHash<T>, TOtherHash>;
+  template <typename TOtherHash>
+  using is_compatible =
+      std::is_base_of<detail::TransparentRangeHash<T>, TOtherHash>;
 
-	template<typename U>
-	std::size_t operator()(U const& stringish) const {
-		return hasher<Range<T const*>>{}(Range<T const*>{stringish});
-	}
+  template <typename U>
+  std::size_t operator()(U const& stringish) const {
+    return hasher<Range<T const*>>{}(Range<T const*>{stringish});
+  }
 };
 
-template<>
+template <>
 struct TransparentRangeHash<char> {
-	using is_transparent = void;
-	using folly_is_avalanching = std::true_type;
+  using is_transparent = void;
+  using folly_is_avalanching = std::true_type;
 
-	template<typename TOtherHash>
-	using is_compatible = std::is_base_of<detail::TransparentRangeHash<char>, TOtherHash>;
+  template <typename TOtherHash>
+  using is_compatible =
+      std::is_base_of<detail::TransparentRangeHash<char>, TOtherHash>;
 
-	template<typename U>
-	std::size_t operator()(U const& stringish) const {
-		auto sp = StringPiece{stringish};
-		return static_cast<std::size_t>(
-		        folly::hash::rapidhashNano_with_seed(sp.data(),
-		                                             sp.size(),
-		                                             hash::detail::RandomSeed::seed()));
-	}
+  template <typename U>
+  std::size_t operator()(U const& stringish) const {
+    auto sp = StringPiece{stringish};
+    return static_cast<std::size_t>(folly::hash::rapidhashNano_with_seed(
+        sp.data(), sp.size(), hash::detail::RandomSeed::seed()));
+  }
 };
 
-template<typename TableKey, typename Hasher, typename KeyEqual, typename ArgKey>
+template <
+    typename TableKey,
+    typename Hasher,
+    typename KeyEqual,
+    typename ArgKey>
 struct EligibleForHeterogeneousFind
-        : Conjunction<is_transparent<Hasher>,
-                      is_transparent<KeyEqual>,
-                      is_invocable<Hasher, ArgKey const&>,
-                      is_invocable<KeyEqual, ArgKey const&, TableKey const&>> {};
+    : Conjunction<
+          is_transparent<Hasher>,
+          is_transparent<KeyEqual>,
+          is_invocable<Hasher, ArgKey const&>,
+          is_invocable<KeyEqual, ArgKey const&, TableKey const&>> {};
 
-template<typename TableKey, typename Hasher, typename KeyEqual, typename ArgKey>
-using EligibleForHeterogeneousInsert =
-        Conjunction<EligibleForHeterogeneousFind<TableKey, Hasher, KeyEqual, ArgKey>,
-                    std::is_constructible<TableKey, ArgKey>>;
+template <
+    typename TableKey,
+    typename Hasher,
+    typename KeyEqual,
+    typename ArgKey>
+using EligibleForHeterogeneousInsert = Conjunction<
+    EligibleForHeterogeneousFind<TableKey, Hasher, KeyEqual, ArgKey>,
+    std::is_constructible<TableKey, ArgKey>>;
 
-template<typename T, typename OtherT, typename Enable = void>
+template <typename T, typename OtherT, typename Enable = void>
 struct HasCompatibleTest : std::false_type {};
 
-template<typename T, typename OtherT>
-struct HasCompatibleTest<T, OtherT, void_t<typename T::template is_compatible<OtherT>>>
-        : std::true_type {};
+template <typename T, typename OtherT>
+struct HasCompatibleTest<
+    T,
+    OtherT,
+    void_t<typename T::template is_compatible<OtherT>>> : std::true_type {};
 
-}  // namespace detail
+} // namespace detail
 
-template<typename T>
+template <typename T>
 struct HeterogeneousAccessEqualTo<
-        T,
-        std::enable_if_t<detail::TransparentlyConvertibleToRange<T>::value>>
-        : detail::TransparentRangeEqualTo<
-                  typename detail::ValueTypeForTransparentConversionToRange<T>::type> {};
+    T,
+    std::enable_if_t<detail::TransparentlyConvertibleToRange<T>::value>>
+    : detail::TransparentRangeEqualTo<
+          typename detail::ValueTypeForTransparentConversionToRange<T>::type> {
+};
 
-template<typename T>
-struct HeterogeneousAccessHash<T,
-                               std::enable_if_t<detail::TransparentlyConvertibleToRange<T>::value>>
-        : detail::TransparentRangeHash<
-                  typename detail::ValueTypeForTransparentConversionToRange<T>::type> {};
+template <typename T>
+struct HeterogeneousAccessHash<
+    T,
+    std::enable_if_t<detail::TransparentlyConvertibleToRange<T>::value>>
+    : detail::TransparentRangeHash<
+          typename detail::ValueTypeForTransparentConversionToRange<T>::type> {
+};
 
-template<typename Hash1, typename Hash2, typename Enable = void>
+template <typename Hash1, typename Hash2, typename Enable = void>
 struct HeterogeneousPreHashCompatible : std::is_same<Hash1, Hash2> {};
 
-template<typename Hash1, typename Hash2>
+template <typename Hash1, typename Hash2>
 struct HeterogeneousPreHashCompatible<
-        Hash1,
-        Hash2,
-        std::enable_if_t<detail::HasCompatibleTest<Hash1, Hash2>::value &&
-                         detail::HasCompatibleTest<Hash2, Hash1>::value>>
-        : Disjunction<typename Hash1::template is_compatible<Hash2>,
-                      typename Hash2::template is_compatible<Hash1>> {};
+    Hash1,
+    Hash2,
+    std::enable_if_t<
+        detail::HasCompatibleTest<Hash1, Hash2>::value &&
+        detail::HasCompatibleTest<Hash2, Hash1>::value>>
+    : Disjunction<
+          typename Hash1::template is_compatible<Hash2>,
+          typename Hash2::template is_compatible<Hash1>> {};
 
-template<typename Hash1, typename Hash2>
+template <typename Hash1, typename Hash2>
 struct HeterogeneousPreHashCompatible<
-        Hash1,
-        Hash2,
-        std::enable_if_t<detail::HasCompatibleTest<Hash1, Hash2>::value &&
-                         !detail::HasCompatibleTest<Hash2, Hash1>::value>>
-        : Hash1::template is_compatible<Hash2> {};
+    Hash1,
+    Hash2,
+    std::enable_if_t<
+        detail::HasCompatibleTest<Hash1, Hash2>::value &&
+        !detail::HasCompatibleTest<Hash2, Hash1>::value>>
+    : Hash1::template is_compatible<Hash2> {};
 
-template<typename Hash1, typename Hash2>
+template <typename Hash1, typename Hash2>
 struct HeterogeneousPreHashCompatible<
-        Hash1,
-        Hash2,
-        std::enable_if_t<!detail::HasCompatibleTest<Hash1, Hash2>::value &&
-                         detail::HasCompatibleTest<Hash2, Hash1>::value>>
-        : Hash2::template is_compatible<Hash1> {};
+    Hash1,
+    Hash2,
+    std::enable_if_t<
+        !detail::HasCompatibleTest<Hash1, Hash2>::value &&
+        detail::HasCompatibleTest<Hash2, Hash1>::value>>
+    : Hash2::template is_compatible<Hash1> {};
 
-}  // namespace folly
+} // namespace folly

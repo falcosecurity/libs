@@ -18,16 +18,16 @@
 
 namespace folly {
 
-template<typename T, typename Enable = void>
+template <typename T, typename Enable = void>
 struct HeterogeneousAccessEqualTo;
 
-template<typename T, typename Enable = void>
+template <typename T, typename Enable = void>
 struct HeterogeneousAccessHash;
 
-template<typename CharT>
+template <typename CharT>
 struct TransparentStringEqualTo;
 
-template<typename CharT>
+template <typename CharT>
 struct TransparentStringHash;
 
-}  // namespace folly
+} // namespace folly

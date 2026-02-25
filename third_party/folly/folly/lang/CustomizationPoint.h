@@ -29,10 +29,10 @@
 //  potential conflicts with customizations defined as friend-functions of types
 //  defined in the same namespace as the CPO.
 #define FOLLY_DEFINE_CPO(Type, Name) \
-	namespace folly_cpo__ {          \
-	inline constexpr Type Name{};    \
-	}                                \
-	using namespace folly_cpo__;
+  namespace folly_cpo__ {            \
+  inline constexpr Type Name{};      \
+  }                                  \
+  using namespace folly_cpo__;
 
 namespace folly {
 
@@ -52,7 +52,7 @@ namespace folly {
 //   };
 //
 //  See <folly/functional/Invoke.h> for more details.
-template<const auto& Tag>
+template <const auto& Tag>
 using cpo_t = std::decay_t<decltype(Tag)>;
 
-}  // namespace folly
+} // namespace folly

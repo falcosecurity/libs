@@ -26,9 +26,9 @@ namespace folly {
 //  from constexpr functions.
 //
 //  Prefer std::array when using C++17 or later.
-template<typename V, size_t N>
+template <typename V, size_t N>
 struct c_array {
-	V data[N];
+  V data[N];
 };
 
-}  // namespace folly
+} // namespace folly

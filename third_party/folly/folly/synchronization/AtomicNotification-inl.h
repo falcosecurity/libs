@@ -34,103 +34,113 @@ static_assert(std::is_same<atomic_uint_fast_wait_t, Futex<std::atomic>>{});
  * functions
  */
 inline std::cv_status toCvStatus(FutexResult result) {
-	return (result == FutexResult::TIMEDOUT) ? std::cv_status::timeout : std::cv_status::no_timeout;
+  return (result == FutexResult::TIMEDOUT)
+      ? std::cv_status::timeout
+      : std::cv_status::no_timeout;
 }
 inline std::cv_status toCvStatus(ParkResult result) {
-	return (result == ParkResult::Timeout) ? std::cv_status::timeout : std::cv_status::no_timeout;
+  return (result == ParkResult::Timeout)
+      ? std::cv_status::timeout
+      : std::cv_status::no_timeout;
 }
 
 // ParkingLot instantiation for futex management
 extern ParkingLot<std::uint32_t> parkingLot;
 
-template<template<typename...> class Atom, typename... Args>
-void atomic_wait_impl(const Atom<std::uint32_t, Args...>* atomic, std::uint32_t old) {
-	futexWait(atomic, old);
-	return;
+template <template <typename...> class Atom, typename... Args>
+void atomic_wait_impl(
+    const Atom<std::uint32_t, Args...>* atomic, std::uint32_t old) {
+  futexWait(atomic, old);
+  return;
 }
 
-template<template<typename...> class Atom, typename Integer, typename... Args>
+template <template <typename...> class Atom, typename Integer, typename... Args>
 void atomic_wait_impl(const Atom<Integer, Args...>* atomic, Integer old) {
-	static_assert(!std::is_same<Integer, std::uint32_t>{});
-	parkingLot.park(atomic, -1, [&] { return atomic->load() == old; }, [] {});
+  static_assert(!std::is_same<Integer, std::uint32_t>{});
+  parkingLot.park(atomic, -1, [&] { return atomic->load() == old; }, [] {});
 }
 
-template<template<typename...> class Atom, typename... Args, typename Clock, typename Duration>
-std::cv_status atomic_wait_until_impl(const Atom<std::uint32_t, Args...>* atomic,
-                                      std::uint32_t expected,
-                                      const std::chrono::time_point<Clock, Duration>& deadline) {
-	return toCvStatus(futexWaitUntil(atomic, expected, deadline));
+template <
+    template <typename...> class Atom,
+    typename... Args,
+    typename Clock,
+    typename Duration>
+std::cv_status atomic_wait_until_impl(
+    const Atom<std::uint32_t, Args...>* atomic,
+    std::uint32_t expected,
+    const std::chrono::time_point<Clock, Duration>& deadline) {
+  return toCvStatus(futexWaitUntil(atomic, expected, deadline));
 }
 
-template<template<typename...> class Atom,
-         typename Integer,
-         typename... Args,
-         typename Clock,
-         typename Duration>
-std::cv_status atomic_wait_until_impl(const Atom<Integer, Args...>* atomic,
-                                      Integer expected,
-                                      const std::chrono::time_point<Clock, Duration>& deadline) {
-	static_assert(!std::is_same<Integer, std::uint32_t>{});
-	return toCvStatus(parkingLot.park_until(
-	        atomic,
-	        -1,
-	        [&] { return atomic->load() == expected; },
-	        [] {},
-	        deadline));
+template <
+    template <typename...> class Atom,
+    typename Integer,
+    typename... Args,
+    typename Clock,
+    typename Duration>
+std::cv_status atomic_wait_until_impl(
+    const Atom<Integer, Args...>* atomic,
+    Integer expected,
+    const std::chrono::time_point<Clock, Duration>& deadline) {
+  static_assert(!std::is_same<Integer, std::uint32_t>{});
+  return toCvStatus(parkingLot.park_until(
+      atomic, -1, [&] { return atomic->load() == expected; }, [] {}, deadline));
 }
 
-template<template<typename...> class Atom, typename... Args>
+template <template <typename...> class Atom, typename... Args>
 void atomic_notify_one_impl(const Atom<std::uint32_t, Args...>* atomic) {
-	futexWake(atomic, 1);
-	return;
+  futexWake(atomic, 1);
+  return;
 }
 
-template<template<typename...> class Atom, typename Integer, typename... Args>
+template <template <typename...> class Atom, typename Integer, typename... Args>
 void atomic_notify_one_impl(const Atom<Integer, Args...>* atomic) {
-	static_assert(!std::is_same<Integer, std::uint32_t>{});
-	parkingLot.unpark(atomic, [&](const auto& data) {
-		FOLLY_SAFE_DCHECK(data == std::numeric_limits<std::uint32_t>::max(), "");
-		return UnparkControl::RemoveBreak;
-	});
+  static_assert(!std::is_same<Integer, std::uint32_t>{});
+  parkingLot.unpark(atomic, [&](const auto& data) {
+    FOLLY_SAFE_DCHECK(data == std::numeric_limits<std::uint32_t>::max(), "");
+    return UnparkControl::RemoveBreak;
+  });
 }
 
-template<template<typename...> class Atom, typename... Args>
+template <template <typename...> class Atom, typename... Args>
 void atomic_notify_all_impl(const Atom<std::uint32_t, Args...>* atomic) {
-	futexWake(atomic);
-	return;
+  futexWake(atomic);
+  return;
 }
 
-template<template<typename...> class Atom, typename Integer, typename... Args>
+template <template <typename...> class Atom, typename Integer, typename... Args>
 void atomic_notify_all_impl(const Atom<Integer, Args...>* atomic) {
-	static_assert(!std::is_same<Integer, std::uint32_t>{});
-	parkingLot.unpark(atomic, [&](const auto& data) {
-		FOLLY_SAFE_DCHECK(data == std::numeric_limits<std::uint32_t>::max(), "");
-		return UnparkControl::RemoveContinue;
-	});
+  static_assert(!std::is_same<Integer, std::uint32_t>{});
+  parkingLot.unpark(atomic, [&](const auto& data) {
+    FOLLY_SAFE_DCHECK(data == std::numeric_limits<std::uint32_t>::max(), "");
+    return UnparkControl::RemoveContinue;
+  });
 }
 
-template<typename Integer>
-void tag_invoke(atomic_wait_fn, const std::atomic<Integer>* atomic, Integer expected) {
-	atomic_wait_impl(atomic, expected);
+template <typename Integer>
+void tag_invoke(
+    atomic_wait_fn, const std::atomic<Integer>* atomic, Integer expected) {
+  atomic_wait_impl(atomic, expected);
 }
 
-template<typename Integer, typename Clock, typename Duration>
-std::cv_status tag_invoke(atomic_wait_until_fn,
-                          const std::atomic<Integer>* atomic,
-                          Integer expected,
-                          const std::chrono::time_point<Clock, Duration>& deadline) {
-	return atomic_wait_until_impl(atomic, expected, deadline);
+template <typename Integer, typename Clock, typename Duration>
+std::cv_status tag_invoke(
+    atomic_wait_until_fn,
+    const std::atomic<Integer>* atomic,
+    Integer expected,
+    const std::chrono::time_point<Clock, Duration>& deadline) {
+  return atomic_wait_until_impl(atomic, expected, deadline);
 }
 
-template<typename Integer>
+template <typename Integer>
 void tag_invoke(atomic_notify_one_fn, const std::atomic<Integer>* atomic) {
-	atomic_notify_one_impl(atomic);
+  atomic_notify_one_impl(atomic);
 }
 
-template<typename Integer>
+template <typename Integer>
 void tag_invoke(atomic_notify_all_fn, const std::atomic<Integer>* atomic) {
-	atomic_notify_all_impl(atomic);
+  atomic_notify_all_impl(atomic);
 }
-}  // namespace atomic_notification
-}  // namespace detail
-}  // namespace folly
+} // namespace atomic_notification
+} // namespace detail
+} // namespace folly

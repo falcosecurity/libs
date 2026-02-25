@@ -21,17 +21,19 @@
 #include <folly/CPortability.h>
 #include <folly/portability/Config.h>
 
-#if(defined(USE_JEMALLOC) || defined(FOLLY_USE_JEMALLOC)) && !defined(FOLLY_SANITIZE)
+#if (defined(USE_JEMALLOC) || defined(FOLLY_USE_JEMALLOC)) && \
+    !defined(FOLLY_SANITIZE)
 #if defined(FOLLY_ASSUME_NO_JEMALLOC)
-#error "Both USE_JEMALLOC/FOLLY_USE_JEMALLOC and FOLLY_ASSUME_NO_JEMALLOC defined"
+#error \
+    "Both USE_JEMALLOC/FOLLY_USE_JEMALLOC and FOLLY_ASSUME_NO_JEMALLOC defined"
 #endif
 // JEMalloc provides it's own implementation of
 // malloc_usable_size, and that's what we should be using.
 #if defined(__FreeBSD__)
-#include <malloc_np.h>  // @manual
+#include <malloc_np.h> // @manual
 #define FOLLY_HAS_JEMALLOC_DEFS 0
 #else
-#include <jemalloc/jemalloc.h>  // @manual
+#include <jemalloc/jemalloc.h> // @manual
 #define FOLLY_HAS_JEMALLOC_DEFS 1
 #endif
 #else

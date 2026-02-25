@@ -59,4 +59,4 @@ uint64_t getCurrentThreadID();
  */
 uint64_t getOSThreadID();
 
-}  // namespace folly
+} // namespace folly

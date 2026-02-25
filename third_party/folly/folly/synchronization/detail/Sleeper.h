@@ -33,40 +33,43 @@ namespace detail {
  * spinning, and falls back to sleeping for small quantums.
  */
 class Sleeper {
-	const std::chrono::nanoseconds delta;
+  const std::chrono::nanoseconds delta;
 
-	static constexpr uint32_t kMaxActiveSpin = 4096;
-	static constexpr bool useBackOff = kIsArchAArch64 && !kIsMobile;
+  static constexpr uint32_t kMaxActiveSpin = 4096;
+  static constexpr bool useBackOff = kIsArchAArch64 && !kIsMobile;
 
-	uint32_t spinCount = 0;
+  uint32_t spinCount = 0;
 
-	uint32_t spinCountTarget = 1;
+  uint32_t spinCountTarget = 1;
 
-public:
-	static constexpr std::chrono::nanoseconds kMinYieldingSleep = std::chrono::microseconds(500);
+ public:
+  static constexpr std::chrono::nanoseconds kMinYieldingSleep =
+      std::chrono::microseconds(500);
 
-	constexpr Sleeper() noexcept: delta(kMinYieldingSleep) {}
+  constexpr Sleeper() noexcept : delta(kMinYieldingSleep) {}
 
-	explicit Sleeper(std::chrono::nanoseconds d) noexcept: delta(d) {}
+  explicit Sleeper(std::chrono::nanoseconds d) noexcept : delta(d) {}
 
-	void wait() noexcept {
-		bool doSpin = useBackOff ? spinCountTarget <= kMaxActiveSpin : spinCount < kMaxActiveSpin;
-		if(doSpin) {
-			if constexpr(useBackOff) {
-				do {
-					asm_volatile_pause();
-				} while(++spinCount < spinCountTarget);
-				spinCountTarget <<= 1;
-			} else {
-				++spinCount;
-				asm_volatile_pause();
-			}
-		} else {
-			/* sleep override */
-			std::this_thread::sleep_for(delta);
-		}
-	}
+  void wait() noexcept {
+    bool doSpin = useBackOff
+        ? spinCountTarget <= kMaxActiveSpin
+        : spinCount < kMaxActiveSpin;
+    if (doSpin) {
+      if constexpr (useBackOff) {
+        do {
+          asm_volatile_pause();
+        } while (++spinCount < spinCountTarget);
+        spinCountTarget <<= 1;
+      } else {
+        ++spinCount;
+        asm_volatile_pause();
+      }
+    } else {
+      /* sleep override */
+      std::this_thread::sleep_for(delta);
+    }
+  }
 };
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

@@ -27,27 +27,28 @@
 namespace folly {
 inline void asm_volatile_memory() {
 #if defined(__GNUC__) || defined(__clang__)
-	asm volatile("" : : : "memory");
+  asm volatile("" : : : "memory");
 #elif defined(_MSC_VER)
-	::_ReadWriteBarrier();
+  ::_ReadWriteBarrier();
 #endif
 }
 
 inline void asm_volatile_pause() {
 #if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
-	::_mm_pause();
-#elif defined(__i386__) || FOLLY_X64 || (defined(__mips_isa_rev) && __mips_isa_rev > 1)
-	asm volatile("pause");
+  ::_mm_pause();
+#elif defined(__i386__) || FOLLY_X64 || \
+    (defined(__mips_isa_rev) && __mips_isa_rev > 1)
+  asm volatile("pause");
 #elif FOLLY_AARCH64
 #if __ARM_ARCH >= 9
-	asm volatile("sb");
+  asm volatile("sb");
 #else
-	asm volatile("isb");
+  asm volatile("isb");
 #endif
-#elif(defined(__arm__) && !(__ARM_ARCH < 7))
-	asm volatile("yield");
+#elif (defined(__arm__) && !(__ARM_ARCH < 7))
+  asm volatile("yield");
 #elif FOLLY_PPC64
-	asm volatile("or 27,27,27");
+  asm volatile("or 27,27,27");
 #endif
 }
-}  // namespace folly
+} // namespace folly

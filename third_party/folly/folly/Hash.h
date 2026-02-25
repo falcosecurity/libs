@@ -17,4 +17,4 @@
 #pragma once
 
 //  shims:
-#include <folly/hash/Hash.h>  // @shim
+#include <folly/hash/Hash.h> // @shim

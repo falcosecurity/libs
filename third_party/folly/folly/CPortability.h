@@ -27,7 +27,8 @@
 #ifndef __GNUC_PREREQ
 #if defined __GNUC__ && defined __GNUC_MINOR__
 /* nolint */
-#define __GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#define __GNUC_PREREQ(maj, min) \
+  ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
 #else
 /* nolint */
 #define __GNUC_PREREQ(maj, min) 0
@@ -39,7 +40,7 @@
 #if defined __clang__ && defined __clang_major__ && defined __clang_minor__
 /* nolint */
 #define __CLANG_PREREQ(maj, min) \
-	((__clang_major__ << 16) + __clang_minor__ >= ((maj) << 16) + (min))
+  ((__clang_major__ << 16) + __clang_minor__ >= ((maj) << 16) + (min))
 #else
 /* nolint */
 #define __CLANG_PREREQ(maj, min) 0
@@ -51,7 +52,7 @@
 #define FOLLY_GLIBC_PREREQ(maj, min) 0
 #else
 #define FOLLY_GLIBC_PREREQ(maj, min) \
-	(__GLIBC__ > (maj)) || (__GLIBC__ == (maj) && __GLIBC_MINOR__ >= (min))
+  (__GLIBC__ > (maj)) || (__GLIBC__ == (maj) && __GLIBC_MINOR__ >= (min))
 #endif
 
 #if defined(__has_builtin)
@@ -86,7 +87,7 @@
  */
 #ifndef FOLLY_SANITIZE_ADDRESS
 #if FOLLY_HAS_FEATURE(address_sanitizer) || defined(__SANITIZE_ADDRESS__) || \
-        FOLLY_HAS_FEATURE(hwaddress_sanitizer)
+    FOLLY_HAS_FEATURE(hwaddress_sanitizer)
 #define FOLLY_SANITIZE_ADDRESS 1
 #endif
 #endif
@@ -97,18 +98,19 @@
 #ifdef FOLLY_SANITIZE_ADDRESS
 #if defined(__clang__)
 #if __has_attribute(__no_sanitize__)
-#define FOLLY_DISABLE_ADDRESS_SANITIZER                       \
-	__attribute__((__no_sanitize__("address"), __noinline__)) \
-	__attribute__((__no_sanitize__("hwaddress"), __noinline__))
+#define FOLLY_DISABLE_ADDRESS_SANITIZER                     \
+  __attribute__((__no_sanitize__("address"), __noinline__)) \
+  __attribute__((__no_sanitize__("hwaddress"), __noinline__))
 #elif __has_attribute(__no_address_safety_analysis__)
 #define FOLLY_DISABLE_ADDRESS_SANITIZER \
-	__attribute__((__no_address_safety_analysis__, __noinline__))
+  __attribute__((__no_address_safety_analysis__, __noinline__))
 #elif __has_attribute(__no_sanitize_address__)
-#define FOLLY_DISABLE_ADDRESS_SANITIZER __attribute__((__no_sanitize_address__, __noinline__))
+#define FOLLY_DISABLE_ADDRESS_SANITIZER \
+  __attribute__((__no_sanitize_address__, __noinline__))
 #endif
 #elif defined(__GNUC__)
 #define FOLLY_DISABLE_ADDRESS_SANITIZER \
-	__attribute__((__no_address_safety_analysis__, __noinline__))
+  __attribute__((__no_address_safety_analysis__, __noinline__))
 #elif defined(_MSC_VER)
 #define FOLLY_DISABLE_ADDRESS_SANITIZER __declspec(no_sanitize_address)
 #endif
@@ -126,7 +128,8 @@
 #endif
 
 #ifdef FOLLY_SANITIZE_THREAD
-#define FOLLY_DISABLE_THREAD_SANITIZER __attribute__((no_sanitize_thread, noinline))
+#define FOLLY_DISABLE_THREAD_SANITIZER \
+  __attribute__((no_sanitize_thread, noinline))
 #else
 #define FOLLY_DISABLE_THREAD_SANITIZER
 #endif
@@ -142,7 +145,8 @@
 #endif
 
 #ifdef FOLLY_SANITIZE_MEMORY
-#define FOLLY_DISABLE_MEMORY_SANITIZER __attribute__((no_sanitize_memory, noinline))
+#define FOLLY_DISABLE_MEMORY_SANITIZER \
+  __attribute__((no_sanitize_memory, noinline))
 #else
 #define FOLLY_DISABLE_MEMORY_SANITIZER
 #endif
@@ -158,7 +162,8 @@
 #endif
 
 #ifdef FOLLY_SANITIZE_DATAFLOW
-#define FOLLY_DISABLE_DATAFLOW_SANITIZER __attribute__((no_sanitize_dataflow, noinline))
+#define FOLLY_DISABLE_DATAFLOW_SANITIZER \
+  __attribute__((no_sanitize_dataflow, noinline))
 #else
 #define FOLLY_DISABLE_DATAFLOW_SANITIZER
 #endif
@@ -168,13 +173,15 @@
  * used across the different compilers (e.g. clang, gcc)
  */
 #ifndef FOLLY_SANITIZE_UNDEFINED_BEHAVIOR
-#if FOLLY_HAS_FEATURE(undefined_behavior_sanitizer) || defined(__SANITIZER_UNDEFINED__)
+#if FOLLY_HAS_FEATURE(undefined_behavior_sanitizer) || \
+    defined(__SANITIZER_UNDEFINED__)
 #define FOLLY_SANITIZE_UNDEFINED_BEHAVIOR(...) 1
 #endif
 #endif
 
 #ifdef FOLLY_SANITIZE_UNDEFINED_BEHAVIOR
-#define FOLLY_DISABLE_UNDEFINED_BEHAVIOR_SANITIZER(...) __attribute__((no_sanitize(__VA_ARGS__)))
+#define FOLLY_DISABLE_UNDEFINED_BEHAVIOR_SANITIZER(...) \
+  __attribute__((no_sanitize(__VA_ARGS__)))
 #else
 #define FOLLY_DISABLE_UNDEFINED_BEHAVIOR_SANITIZER(...)
 #endif
@@ -184,18 +191,18 @@
  * are being used
  */
 #ifndef FOLLY_SANITIZE
-#if defined(FOLLY_SANITIZE_ADDRESS) || defined(FOLLY_SANITIZE_THREAD) ||      \
-        defined(FOLLY_SANITIZE_MEMORY) || defined(FOLLY_SANITIZE_DATAFLOW) || \
-        defined(FOLLY_SANITIZE_UNDEFINED_BEHAVIOR)
+#if defined(FOLLY_SANITIZE_ADDRESS) || defined(FOLLY_SANITIZE_THREAD) ||  \
+    defined(FOLLY_SANITIZE_MEMORY) || defined(FOLLY_SANITIZE_DATAFLOW) || \
+    defined(FOLLY_SANITIZE_UNDEFINED_BEHAVIOR)
 #define FOLLY_SANITIZE 1
 #endif
 #endif
 
-#define FOLLY_DISABLE_SANITIZERS    \
-	FOLLY_DISABLE_ADDRESS_SANITIZER \
-	FOLLY_DISABLE_THREAD_SANITIZER  \
-	FOLLY_DISABLE_MEMORY_SANITIZER  \
-	FOLLY_DISABLE_UNDEFINED_BEHAVIOR_SANITIZER("undefined")
+#define FOLLY_DISABLE_SANITIZERS  \
+  FOLLY_DISABLE_ADDRESS_SANITIZER \
+  FOLLY_DISABLE_THREAD_SANITIZER  \
+  FOLLY_DISABLE_MEMORY_SANITIZER  \
+  FOLLY_DISABLE_UNDEFINED_BEHAVIOR_SANITIZER("undefined")
 
 /**
  * Macro for marking functions as having public visibility.
@@ -322,17 +329,21 @@
 #define FOLLY_GNU_DISABLE_WARNING_INTERNAL2(warningName) #warningName
 #define FOLLY_GNU_ENABLE_ERROR_INTERNAL2(warningName) #warningName
 #define FOLLY_GNU_DISABLE_WARNING(warningName) \
-	_Pragma(FOLLY_GNU_DISABLE_WARNING_INTERNAL2(GCC diagnostic ignored warningName))
+  _Pragma(                                     \
+      FOLLY_GNU_DISABLE_WARNING_INTERNAL2(GCC diagnostic ignored warningName))
 #define FOLLY_GNU_ENABLE_WARNING(warningName) \
-	_Pragma(FOLLY_GNU_ENABLE_WARNING_INTERNAL2(GCC diagnostic warning warningName))
+  _Pragma(                                    \
+      FOLLY_GNU_ENABLE_WARNING_INTERNAL2(GCC diagnostic warning warningName))
 #define FOLLY_GNU_ENABLE_ERROR(warningName) \
-	_Pragma(FOLLY_GNU_ENABLE_ERROR_INTERNAL2(GCC diagnostic error warningName))
+  _Pragma(FOLLY_GNU_ENABLE_ERROR_INTERNAL2(GCC diagnostic error warningName))
 #ifdef __clang__
-#define FOLLY_CLANG_DISABLE_WARNING(warningName) FOLLY_GNU_DISABLE_WARNING(warningName)
+#define FOLLY_CLANG_DISABLE_WARNING(warningName) \
+  FOLLY_GNU_DISABLE_WARNING(warningName)
 #define FOLLY_GCC_DISABLE_WARNING(warningName)
 #else
 #define FOLLY_CLANG_DISABLE_WARNING(warningName)
-#define FOLLY_GCC_DISABLE_WARNING(warningName) FOLLY_GNU_DISABLE_WARNING(warningName)
+#define FOLLY_GCC_DISABLE_WARNING(warningName) \
+  FOLLY_GNU_DISABLE_WARNING(warningName)
 #endif
 #define FOLLY_MSVC_DISABLE_WARNING(warningNumber)
 #elif defined(_MSC_VER)
@@ -344,7 +355,8 @@
 #define FOLLY_GNU_ENABLE_ERROR(warningName)
 #define FOLLY_GCC_DISABLE_WARNING(warningName)
 #define FOLLY_CLANG_DISABLE_WARNING(warningName)
-#define FOLLY_MSVC_DISABLE_WARNING(warningNumber) __pragma(warning(disable : warningNumber))
+#define FOLLY_MSVC_DISABLE_WARNING(warningNumber) \
+  __pragma(warning(disable : warningNumber))
 #else
 #define FOLLY_PUSH_WARNING
 #define FOLLY_POP_WARNING
@@ -357,10 +369,10 @@
 #endif
 
 #ifdef FOLLY_HAVE_SHADOW_LOCAL_WARNINGS
-#define FOLLY_GCC_DISABLE_NEW_SHADOW_WARNINGS              \
-	FOLLY_GNU_DISABLE_WARNING("-Wshadow-compatible-local") \
-	FOLLY_GNU_DISABLE_WARNING("-Wshadow-local")            \
-	FOLLY_GNU_DISABLE_WARNING("-Wshadow")
+#define FOLLY_GCC_DISABLE_NEW_SHADOW_WARNINGS            \
+  FOLLY_GNU_DISABLE_WARNING("-Wshadow-compatible-local") \
+  FOLLY_GNU_DISABLE_WARNING("-Wshadow-local")            \
+  FOLLY_GNU_DISABLE_WARNING("-Wshadow")
 #else
 #define FOLLY_GCC_DISABLE_NEW_SHADOW_WARNINGS /* empty */
 #endif

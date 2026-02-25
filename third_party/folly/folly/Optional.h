@@ -75,583 +75,610 @@
 
 namespace folly {
 
-template<class Value>
+template <class Value>
 class Optional;
 
 namespace detail {
 struct OptionalEmptyTag {};
-template<class Value>
+template <class Value>
 struct OptionalPromise;
-template<class Value>
+template <class Value>
 struct OptionalPromiseReturn;
-}  // namespace detail
+} // namespace detail
 
 struct None {
-	enum class _secret { _token };
+  enum class _secret { _token };
 
-	/**
-	 * No default constructor to support both `op = {}` and `op = none`
-	 * as syntax for clearing an Optional, just like std::nullopt_t.
-	 */
-	explicit constexpr None(_secret) {}
+  /**
+   * No default constructor to support both `op = {}` and `op = none`
+   * as syntax for clearing an Optional, just like std::nullopt_t.
+   */
+  explicit constexpr None(_secret) {}
 };
 constexpr None none{None::_secret::_token};
 
 class FOLLY_EXPORT OptionalEmptyException : public std::runtime_error {
-public:
-	OptionalEmptyException(): std::runtime_error("Empty Optional cannot be unwrapped") {}
+ public:
+  OptionalEmptyException()
+      : std::runtime_error("Empty Optional cannot be unwrapped") {}
 };
 
 /**
  * Optional is superseded by std::optional. Now that the C++ has a standardized
  * implementation, Optional exists primarily for backward compatibility.
  */
-template<class Value>
+template <class Value>
 class Optional {
-public:
-	using value_type = Value;
+ public:
+  using value_type = Value;
 
-	using promise_type = detail::OptionalPromise<Value>;
+  using promise_type = detail::OptionalPromise<Value>;
 
-	static_assert(!std::is_reference<Value>::value,
-	              "Optional may not be used with reference types");
-	static_assert(!std::is_abstract<Value>::value, "Optional may not be used with abstract types");
+  static_assert(
+      !std::is_reference<Value>::value,
+      "Optional may not be used with reference types");
+  static_assert(
+      !std::is_abstract<Value>::value,
+      "Optional may not be used with abstract types");
 
-	/// Default-constructed Optionals are None.
-	constexpr Optional() noexcept {}
+  /// Default-constructed Optionals are None.
+  constexpr Optional() noexcept {}
 
-	Optional(const Optional& src) noexcept(std::is_nothrow_copy_constructible<Value>::value) {
-		if(src.hasValue()) {
-			construct(src.value());
-		}
-	}
+  Optional(const Optional& src) noexcept(
+      std::is_nothrow_copy_constructible<Value>::value) {
+    if (src.hasValue()) {
+      construct(src.value());
+    }
+  }
 
-	Optional(Optional&& src) noexcept(std::is_nothrow_move_constructible<Value>::value) {
-		if(src.hasValue()) {
-			construct(std::move(src.value()));
-			src.reset();
-		}
-	}
+  Optional(Optional&& src) noexcept(
+      std::is_nothrow_move_constructible<Value>::value) {
+    if (src.hasValue()) {
+      construct(std::move(src.value()));
+      src.reset();
+    }
+  }
 
-	constexpr /* implicit */ Optional(const None&) noexcept {}
+  constexpr /* implicit */ Optional(const None&) noexcept {}
 
-	constexpr /* implicit */ Optional(Value&& newValue) noexcept(
-	        std::is_nothrow_move_constructible<Value>::value) {
-		construct(std::move(newValue));
-	}
+  constexpr /* implicit */ Optional(Value&& newValue) noexcept(
+      std::is_nothrow_move_constructible<Value>::value) {
+    construct(std::move(newValue));
+  }
 
-	constexpr /* implicit */ Optional(const Value& newValue) noexcept(
-	        std::is_nothrow_copy_constructible<Value>::value) {
-		construct(newValue);
-	}
+  constexpr /* implicit */ Optional(const Value& newValue) noexcept(
+      std::is_nothrow_copy_constructible<Value>::value) {
+    construct(newValue);
+  }
 
-	/**
-	 * Creates an Optional with a value, where that value is constructed in-place.
-	 *
-	 * The std::in_place argument exists so that values can be default constructed
-	 * (i.e. have no arguments), since this would otherwise be confused with
-	 * default-constructing an Optional, which in turn results in None.
-	 */
-	template<typename... Args>
-	constexpr explicit Optional(std::in_place_t, Args&&... args) noexcept(
-	        std::is_nothrow_constructible<Value, Args...>::value):
-	        Optional{PrivateConstructor{}, std::forward<Args>(args)...} {}
+  /**
+   * Creates an Optional with a value, where that value is constructed in-place.
+   *
+   * The std::in_place argument exists so that values can be default constructed
+   * (i.e. have no arguments), since this would otherwise be confused with
+   * default-constructing an Optional, which in turn results in None.
+   */
+  template <typename... Args>
+  constexpr explicit Optional(std::in_place_t, Args&&... args) noexcept(
+      std::is_nothrow_constructible<Value, Args...>::value)
+      : Optional{PrivateConstructor{}, std::forward<Args>(args)...} {}
 
-	template<typename U, typename... Args>
-	constexpr explicit Optional(
-	        std::in_place_t,
-	        std::initializer_list<U> il,
-	        Args&&... args) noexcept(std::is_nothrow_constructible<Value,
-	                                                               std::initializer_list<U>,
-	                                                               Args...>::value):
-	        Optional{PrivateConstructor{}, il, std::forward<Args>(args)...} {}
+  template <typename U, typename... Args>
+  constexpr explicit Optional(
+      std::in_place_t,
+      std::initializer_list<U> il,
+      Args&&... args) noexcept(std::
+                                   is_nothrow_constructible<
+                                       Value,
+                                       std::initializer_list<U>,
+                                       Args...>::value)
+      : Optional{PrivateConstructor{}, il, std::forward<Args>(args)...} {}
 
-	// Used only when an Optional is used with coroutines on MSVC
-	/* implicit */ Optional(const detail::OptionalPromiseReturn<Value>& p): Optional{} {
-		p.promise_->value_ = this;
-	}
+  // Used only when an Optional is used with coroutines on MSVC
+  /* implicit */ Optional(const detail::OptionalPromiseReturn<Value>& p)
+      : Optional{} {
+    p.promise_->value_ = this;
+  }
 
-	// Conversions to ease migration to std::optional
+  // Conversions to ease migration to std::optional
 
-	/// Allow construction of Optional from std::optional.
-	template<typename U, typename = std::enable_if_t<std::is_same_v<U, std::optional<Value>>>>
-	explicit Optional(U&& newValue) noexcept(std::is_nothrow_move_constructible<Value>::value) {
-		if(newValue.has_value()) {
-			construct(std::move(*newValue));
-			newValue.reset();
-		}
-	}
-	template<typename U, typename = std::enable_if_t<std::is_same_v<U, std::optional<Value>>>>
-	explicit Optional(const U& newValue) noexcept(
-	        std::is_nothrow_copy_constructible<Value>::value) {
-		if(newValue.has_value()) {
-			construct(*newValue);
-		}
-	}
-	/// Allow explicit cast to std::optional
-	/// @methodset Migration
-	explicit operator std::optional<Value>() && noexcept(
-	        std::is_nothrow_move_constructible<Value>::value) {
-		std::optional<Value> ret =
-		        storage_.hasValue ? std::optional<Value>(std::move(storage_.value)) : std::nullopt;
-		reset();
-		return ret;
-	}
-	explicit operator std::optional<Value>() const& noexcept(
-	        std::is_nothrow_copy_constructible<Value>::value) {
-		return storage_.hasValue ? std::optional<Value>(storage_.value) : std::nullopt;
-	}
+  /// Allow construction of Optional from std::optional.
+  template <
+      typename U,
+      typename = std::enable_if_t<std::is_same_v<U, std::optional<Value>>>>
+  explicit Optional(U&& newValue) noexcept(
+      std::is_nothrow_move_constructible<Value>::value) {
+    if (newValue.has_value()) {
+      construct(std::move(*newValue));
+      newValue.reset();
+    }
+  }
+  template <
+      typename U,
+      typename = std::enable_if_t<std::is_same_v<U, std::optional<Value>>>>
+  explicit Optional(const U& newValue) noexcept(
+      std::is_nothrow_copy_constructible<Value>::value) {
+    if (newValue.has_value()) {
+      construct(*newValue);
+    }
+  }
+  /// Allow explicit cast to std::optional
+  /// @methodset Migration
+  explicit operator std::optional<Value>() && noexcept(
+      std::is_nothrow_move_constructible<Value>::value) {
+    std::optional<Value> ret = storage_.hasValue
+        ? std::optional<Value>(std::move(storage_.value))
+        : std::nullopt;
+    reset();
+    return ret;
+  }
+  explicit operator std::optional<Value>() const& noexcept(
+      std::is_nothrow_copy_constructible<Value>::value) {
+    return storage_.hasValue
+        ? std::optional<Value>(storage_.value)
+        : std::nullopt;
+  }
 
-	std::optional<Value> toStdOptional() && noexcept {
-		if(has_value()) {
-			auto opt = std::optional<Value>(std::move(value()));
-			reset();
-			return opt;
-		}
-		return std::nullopt;
-	}
+  std::optional<Value> toStdOptional() && noexcept {
+    if (has_value()) {
+      auto opt = std::optional<Value>(std::move(value()));
+      reset();
+      return opt;
+    }
+    return std::nullopt;
+  }
 
-	std::optional<Value> toStdOptional() const& noexcept {
-		if(has_value()) {
-			return std::optional<Value>(value());
-		}
-		return std::nullopt;
-	}
+  std::optional<Value> toStdOptional() const& noexcept {
+    if (has_value()) {
+      return std::optional<Value>(value());
+    }
+    return std::nullopt;
+  }
 
-	/// Set the Optional
-	/// @methodset Modifiers
-	void assign(const None&) { reset(); }
+  /// Set the Optional
+  /// @methodset Modifiers
+  void assign(const None&) { reset(); }
 
-	void assign(Optional&& src) {
-		if(this != &src) {
-			if(src.hasValue()) {
-				assign(std::move(src.value()));
-				src.reset();
-			} else {
-				reset();
-			}
-		}
-	}
+  void assign(Optional&& src) {
+    if (this != &src) {
+      if (src.hasValue()) {
+        assign(std::move(src.value()));
+        src.reset();
+      } else {
+        reset();
+      }
+    }
+  }
 
-	void assign(const Optional& src) {
-		if(src.hasValue()) {
-			assign(src.value());
-		} else {
-			reset();
-		}
-	}
+  void assign(const Optional& src) {
+    if (src.hasValue()) {
+      assign(src.value());
+    } else {
+      reset();
+    }
+  }
 
-	void assign(Value&& newValue) {
-		if(hasValue()) {
-			FOLLY_PUSH_WARNING
-			FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
-			storage_.value = std::move(newValue);
-			FOLLY_POP_WARNING
-		} else {
-			construct(std::move(newValue));
-		}
-	}
+  void assign(Value&& newValue) {
+    if (hasValue()) {
+      FOLLY_PUSH_WARNING
+      FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
+      storage_.value = std::move(newValue);
+      FOLLY_POP_WARNING
+    } else {
+      construct(std::move(newValue));
+    }
+  }
 
-	void assign(const Value& newValue) {
-		if(hasValue()) {
-			FOLLY_PUSH_WARNING
-			FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
-			storage_.value = newValue;
-			FOLLY_POP_WARNING
-		} else {
-			construct(newValue);
-		}
-	}
+  void assign(const Value& newValue) {
+    if (hasValue()) {
+      FOLLY_PUSH_WARNING
+      FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
+      storage_.value = newValue;
+      FOLLY_POP_WARNING
+    } else {
+      construct(newValue);
+    }
+  }
 
-	/// @methodset Modifiers
-	Optional& operator=(None) noexcept {
-		reset();
-		return *this;
-	}
+  /// @methodset Modifiers
+  Optional& operator=(None) noexcept {
+    reset();
+    return *this;
+  }
 
-	template<class Arg>
-	Optional& operator=(Arg&& arg) {
-		assign(std::forward<Arg>(arg));
-		return *this;
-	}
+  template <class Arg>
+  Optional& operator=(Arg&& arg) {
+    assign(std::forward<Arg>(arg));
+    return *this;
+  }
 
-	Optional& operator=(Optional&& other) noexcept(std::is_nothrow_move_assignable<Value>::value) {
-		assign(std::move(other));
-		return *this;
-	}
+  Optional& operator=(Optional&& other) noexcept(
+      std::is_nothrow_move_assignable<Value>::value) {
+    assign(std::move(other));
+    return *this;
+  }
 
-	Optional& operator=(const Optional& other) noexcept(
-	        std::is_nothrow_copy_assignable<Value>::value) {
-		assign(other);
-		return *this;
-	}
+  Optional& operator=(const Optional& other) noexcept(
+      std::is_nothrow_copy_assignable<Value>::value) {
+    assign(other);
+    return *this;
+  }
 
-	/// Construct a new value in the Optional, in-place.
-	/// @methodset Modifiers
-	template<class... Args>
-	Value& emplace(Args&&... args) {
-		reset();
-		construct(std::forward<Args>(args)...);
-		return value();
-	}
+  /// Construct a new value in the Optional, in-place.
+  /// @methodset Modifiers
+  template <class... Args>
+  Value& emplace(Args&&... args) {
+    reset();
+    construct(std::forward<Args>(args)...);
+    return value();
+  }
 
-	template<class U, class... Args>
-	typename std::enable_if<
-	        std::is_constructible<Value, std::initializer_list<U>&, Args&&...>::value,
-	        Value&>::type
-	emplace(std::initializer_list<U> ilist, Args&&... args) {
-		reset();
-		construct(ilist, std::forward<Args>(args)...);
-		return value();
-	}
+  template <class U, class... Args>
+  typename std::enable_if<
+      std::is_constructible<Value, std::initializer_list<U>&, Args&&...>::value,
+      Value&>::type
+  emplace(std::initializer_list<U> ilist, Args&&... args) {
+    reset();
+    construct(ilist, std::forward<Args>(args)...);
+    return value();
+  }
 
-	/// Set the Optional to None
-	/// @methodset Modifiers
-	void reset() noexcept { storage_.clear(); }
+  /// Set the Optional to None
+  /// @methodset Modifiers
+  void reset() noexcept { storage_.clear(); }
 
-	/// Set the Optional to None
-	/// @methodset Modifiers
-	void clear() noexcept { reset(); }
+  /// Set the Optional to None
+  /// @methodset Modifiers
+  void clear() noexcept { reset(); }
 
-	/// @methodset Modifiers
-	void swap(Optional& that) noexcept(std::is_nothrow_swappable_v<Value>) {
-		if(hasValue() && that.hasValue()) {
-			using std::swap;
-			swap(value(), that.value());
-		} else if(hasValue()) {
-			that.emplace(std::move(value()));
-			reset();
-		} else if(that.hasValue()) {
-			emplace(std::move(that.value()));
-			that.reset();
-		}
-	}
+  /// @methodset Modifiers
+  void swap(Optional& that) noexcept(std::is_nothrow_swappable_v<Value>) {
+    if (hasValue() && that.hasValue()) {
+      using std::swap;
+      swap(value(), that.value());
+    } else if (hasValue()) {
+      that.emplace(std::move(value()));
+      reset();
+    } else if (that.hasValue()) {
+      emplace(std::move(that.value()));
+      that.reset();
+    }
+  }
 
-	/// Get the value. Must have value.
-	/// @methodset Getters
-	constexpr const Value& value() const& {
-		require_value();
-		return storage_.value;
-	}
+  /// Get the value. Must have value.
+  /// @methodset Getters
+  constexpr const Value& value() const& {
+    require_value();
+    return storage_.value;
+  }
 
-	constexpr Value& value() & {
-		require_value();
-		return storage_.value;
-	}
+  constexpr Value& value() & {
+    require_value();
+    return storage_.value;
+  }
 
-	constexpr Value&& value() && {
-		require_value();
-		return std::move(storage_.value);
-	}
+  constexpr Value&& value() && {
+    require_value();
+    return std::move(storage_.value);
+  }
 
-	constexpr const Value&& value() const&& {
-		require_value();
-		return std::move(storage_.value);
-	}
+  constexpr const Value&& value() const&& {
+    require_value();
+    return std::move(storage_.value);
+  }
 
-	/// Get the value by pointer; nullptr if None.
-	/// @methodset Getters
-	const Value* get_pointer() const& { return storage_.hasValue ? &storage_.value : nullptr; }
-	Value* get_pointer() & { return storage_.hasValue ? &storage_.value : nullptr; }
-	Value* get_pointer() && = delete;
+  /// Get the value by pointer; nullptr if None.
+  /// @methodset Getters
+  const Value* get_pointer() const& {
+    return storage_.hasValue ? &storage_.value : nullptr;
+  }
+  Value* get_pointer() & {
+    return storage_.hasValue ? &storage_.value : nullptr;
+  }
+  Value* get_pointer() && = delete;
 
-	/// Does this Optional have a value.
-	/// @methodset Observers
-	constexpr bool has_value() const noexcept { return storage_.hasValue; }
+  /// Does this Optional have a value.
+  /// @methodset Observers
+  constexpr bool has_value() const noexcept { return storage_.hasValue; }
 
-	/// Does this Optional have a value.
-	/// @methodset Observers
-	constexpr bool hasValue() const noexcept { return has_value(); }
+  /// Does this Optional have a value.
+  /// @methodset Observers
+  constexpr bool hasValue() const noexcept { return has_value(); }
 
-	/// Does this Optional have a value.
-	/// @methodset Observers
-	constexpr explicit operator bool() const noexcept { return has_value(); }
+  /// Does this Optional have a value.
+  /// @methodset Observers
+  constexpr explicit operator bool() const noexcept { return has_value(); }
 
-	/// Get the value. Must have value.
-	/// @methodset Getters
-	constexpr const Value& operator*() const& { return value(); }
-	constexpr Value& operator*() & { return value(); }
-	constexpr const Value&& operator*() const&& { return std::move(value()); }
-	constexpr Value&& operator*() && { return std::move(value()); }
+  /// Get the value. Must have value.
+  /// @methodset Getters
+  constexpr const Value& operator*() const& { return value(); }
+  constexpr Value& operator*() & { return value(); }
+  constexpr const Value&& operator*() const&& { return std::move(value()); }
+  constexpr Value&& operator*() && { return std::move(value()); }
 
-	/// Get the value. Must have value.
-	/// @methodset Getters
-	constexpr const Value* operator->() const { return &value(); }
-	constexpr Value* operator->() { return &value(); }
+  /// Get the value. Must have value.
+  /// @methodset Getters
+  constexpr const Value* operator->() const { return &value(); }
+  constexpr Value* operator->() { return &value(); }
 
-	/// Return a copy of the value if set, or a given default if not.
-	/// @methodset Getters
-	template<class U>
-	constexpr Value value_or(U&& dflt) const& {
-		if(storage_.hasValue) {
-			return storage_.value;
-		}
+  /// Return a copy of the value if set, or a given default if not.
+  /// @methodset Getters
+  template <class U>
+  constexpr Value value_or(U&& dflt) const& {
+    if (storage_.hasValue) {
+      return storage_.value;
+    }
 
-		return std::forward<U>(dflt);
-	}
+    return std::forward<U>(dflt);
+  }
 
-	template<class U>
-	constexpr Value value_or(U&& dflt) && {
-		if(storage_.hasValue) {
-			return std::move(storage_.value);
-		}
+  template <class U>
+  constexpr Value value_or(U&& dflt) && {
+    if (storage_.hasValue) {
+      return std::move(storage_.value);
+    }
 
-		return std::forward<U>(dflt);
-	}
+    return std::forward<U>(dflt);
+  }
 
-private:
-	friend struct detail::OptionalPromiseReturn<Value>;
+ private:
+  friend struct detail::OptionalPromiseReturn<Value>;
 
-	template<class T>
-	friend constexpr Optional<std::decay_t<T>> make_optional(T&&);
-	template<class T, class... Args>
-	friend constexpr Optional<T> make_optional(Args&&... args);
-	template<class T, class U, class... As>
-	friend constexpr Optional<T> make_optional(std::initializer_list<U>, As&&...);
+  template <class T>
+  friend constexpr Optional<std::decay_t<T>> make_optional(T&&);
+  template <class T, class... Args>
+  friend constexpr Optional<T> make_optional(Args&&... args);
+  template <class T, class U, class... As>
+  friend constexpr Optional<T> make_optional(std::initializer_list<U>, As&&...);
 
-	/**
-	 * Construct the optional in place, this is duplicated as a non-explicit
-	 * constructor to allow returning values that are non-movable from
-	 * make_optional using list initialization.
-	 *
-	 * Until C++17, at which point this will become unnecessary because of
-	 * specified prvalue elision.
-	 */
-	struct PrivateConstructor {
-		explicit PrivateConstructor() = default;
-	};
-	template<typename... Args>
-	constexpr Optional(PrivateConstructor, Args&&... args) noexcept(
-	        std::is_nothrow_constructible<Value, Args&&...>::value) {
-		construct(std::forward<Args>(args)...);
-	}
-	// for when coroutine promise return-object conversion is eager
-	explicit Optional(detail::OptionalEmptyTag, Optional*& pointer) noexcept { pointer = this; }
+  /**
+   * Construct the optional in place, this is duplicated as a non-explicit
+   * constructor to allow returning values that are non-movable from
+   * make_optional using list initialization.
+   *
+   * Until C++17, at which point this will become unnecessary because of
+   * specified prvalue elision.
+   */
+  struct PrivateConstructor {
+    explicit PrivateConstructor() = default;
+  };
+  template <typename... Args>
+  constexpr Optional(PrivateConstructor, Args&&... args) noexcept(
+      std::is_nothrow_constructible<Value, Args&&...>::value) {
+    construct(std::forward<Args>(args)...);
+  }
+  // for when coroutine promise return-object conversion is eager
+  explicit Optional(detail::OptionalEmptyTag, Optional*& pointer) noexcept {
+    pointer = this;
+  }
 
-	void require_value() const {
-		if(!storage_.hasValue) {
-			throw_exception<OptionalEmptyException>();
-		}
-	}
+  void require_value() const {
+    if (!storage_.hasValue) {
+      throw_exception<OptionalEmptyException>();
+    }
+  }
 
-	template<class... Args>
-	void construct(Args&&... args) {
-		const void* ptr = &storage_.value;
-		// For supporting const types.
-		new(const_cast<void*>(ptr)) Value(std::forward<Args>(args)...);
-		storage_.hasValue = true;
-	}
+  template <class... Args>
+  void construct(Args&&... args) {
+    const void* ptr = &storage_.value;
+    // For supporting const types.
+    new (const_cast<void*>(ptr)) Value(std::forward<Args>(args)...);
+    storage_.hasValue = true;
+  }
 
-	struct StorageTriviallyDestructible {
-		union {
-			char emptyState;
-			Value value;
-		};
-		bool hasValue;
+  struct StorageTriviallyDestructible {
+    union {
+      char emptyState;
+      Value value;
+    };
+    bool hasValue;
 
-		constexpr StorageTriviallyDestructible():
-		        emptyState(unsafe_default_initialized),
-		        hasValue{false} {}
-		void clear() { hasValue = false; }
-	};
+    constexpr StorageTriviallyDestructible()
+        : emptyState(unsafe_default_initialized), hasValue{false} {}
+    void clear() { hasValue = false; }
+  };
 
-	struct StorageNonTriviallyDestructible {
-		union {
-			char emptyState;
-			Value value;
-		};
-		bool hasValue;
+  struct StorageNonTriviallyDestructible {
+    union {
+      char emptyState;
+      Value value;
+    };
+    bool hasValue;
 
-		constexpr StorageNonTriviallyDestructible(): hasValue{false} {}
-		~StorageNonTriviallyDestructible() { clear(); }
+    constexpr StorageNonTriviallyDestructible() : hasValue{false} {}
+    ~StorageNonTriviallyDestructible() { clear(); }
 
-		void clear() {
-			if(hasValue) {
-				hasValue = false;
-				FOLLY_PUSH_WARNING
-				FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
-				value.~Value();
-				FOLLY_POP_WARNING
-			}
-		}
-	};
+    void clear() {
+      if (hasValue) {
+        hasValue = false;
+        FOLLY_PUSH_WARNING
+        FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
+        value.~Value();
+        FOLLY_POP_WARNING
+      }
+    }
+  };
 
-	using Storage = typename std::conditional<std::is_trivially_destructible<Value>::value,
-	                                          StorageTriviallyDestructible,
-	                                          StorageNonTriviallyDestructible>::type;
+  using Storage = typename std::conditional<
+      std::is_trivially_destructible<Value>::value,
+      StorageTriviallyDestructible,
+      StorageNonTriviallyDestructible>::type;
 
-	Storage storage_;
+  Storage storage_;
 };
 
-template<class T>
+template <class T>
 const T* get_pointer(const Optional<T>& opt) {
-	return opt.get_pointer();
+  return opt.get_pointer();
 }
 
-template<class T>
+template <class T>
 T* get_pointer(Optional<T>& opt) {
-	return opt.get_pointer();
+  return opt.get_pointer();
 }
 
-template<class T>
+template <class T>
 void swap(Optional<T>& a, Optional<T>& b) noexcept(noexcept(a.swap(b))) {
-	a.swap(b);
+  a.swap(b);
 }
 
-template<class T>
+template <class T>
 constexpr Optional<std::decay_t<T>> make_optional(T&& v) {
-	using PrivateConstructor = typename folly::Optional<std::decay_t<T>>::PrivateConstructor;
-	return {PrivateConstructor{}, std::forward<T>(v)};
+  using PrivateConstructor =
+      typename folly::Optional<std::decay_t<T>>::PrivateConstructor;
+  return {PrivateConstructor{}, std::forward<T>(v)};
 }
 
-template<class T, class... Args>
+template <class T, class... Args>
 constexpr folly::Optional<T> make_optional(Args&&... args) {
-	using PrivateConstructor = typename folly::Optional<T>::PrivateConstructor;
-	return {PrivateConstructor{}, std::forward<Args>(args)...};
+  using PrivateConstructor = typename folly::Optional<T>::PrivateConstructor;
+  return {PrivateConstructor{}, std::forward<Args>(args)...};
 }
 
-template<class T, class U, class... Args>
-constexpr folly::Optional<T> make_optional(std::initializer_list<U> il, Args&&... args) {
-	using PrivateConstructor = typename folly::Optional<T>::PrivateConstructor;
-	return {PrivateConstructor{}, il, std::forward<Args>(args)...};
+template <class T, class U, class... Args>
+constexpr folly::Optional<T> make_optional(
+    std::initializer_list<U> il, Args&&... args) {
+  using PrivateConstructor = typename folly::Optional<T>::PrivateConstructor;
+  return {PrivateConstructor{}, il, std::forward<Args>(args)...};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Comparisons.
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator==(const Optional<U>& a, const V& b) {
-	return a.hasValue() && a.value() == b;
+  return a.hasValue() && a.value() == b;
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator!=(const Optional<U>& a, const V& b) {
-	return !(a == b);
+  return !(a == b);
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator==(const U& a, const Optional<V>& b) {
-	return b.hasValue() && b.value() == a;
+  return b.hasValue() && b.value() == a;
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator!=(const U& a, const Optional<V>& b) {
-	return !(a == b);
+  return !(a == b);
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator==(const Optional<U>& a, const Optional<V>& b) {
-	if(a.hasValue() != b.hasValue()) {
-		return false;
-	}
-	if(a.hasValue()) {
-		return a.value() == b.value();
-	}
-	return true;
+  if (a.hasValue() != b.hasValue()) {
+    return false;
+  }
+  if (a.hasValue()) {
+    return a.value() == b.value();
+  }
+  return true;
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator!=(const Optional<U>& a, const Optional<V>& b) {
-	return !(a == b);
+  return !(a == b);
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator<(const Optional<U>& a, const Optional<V>& b) {
-	if(a.hasValue() != b.hasValue()) {
-		return a.hasValue() < b.hasValue();
-	}
-	if(a.hasValue()) {
-		return a.value() < b.value();
-	}
-	return false;
+  if (a.hasValue() != b.hasValue()) {
+    return a.hasValue() < b.hasValue();
+  }
+  if (a.hasValue()) {
+    return a.value() < b.value();
+  }
+  return false;
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator>(const Optional<U>& a, const Optional<V>& b) {
-	return b < a;
+  return b < a;
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator<=(const Optional<U>& a, const Optional<V>& b) {
-	return !(b < a);
+  return !(b < a);
 }
 
-template<class U, class V>
+template <class U, class V>
 constexpr bool operator>=(const Optional<U>& a, const Optional<V>& b) {
-	return !(a < b);
+  return !(a < b);
 }
 
 // Suppress comparability of Optional<T> with T, despite implicit conversion.
-template<class V>
+template <class V>
 bool operator<(const Optional<V>&, const V& other) = delete;
-template<class V>
+template <class V>
 bool operator<=(const Optional<V>&, const V& other) = delete;
-template<class V>
+template <class V>
 bool operator>=(const Optional<V>&, const V& other) = delete;
-template<class V>
+template <class V>
 bool operator>(const Optional<V>&, const V& other) = delete;
-template<class V>
+template <class V>
 bool operator<(const V& other, const Optional<V>&) = delete;
-template<class V>
+template <class V>
 bool operator<=(const V& other, const Optional<V>&) = delete;
-template<class V>
+template <class V>
 bool operator>=(const V& other, const Optional<V>&) = delete;
-template<class V>
+template <class V>
 bool operator>(const V& other, const Optional<V>&) = delete;
 
 // Comparisons with none
-template<class V>
+template <class V>
 constexpr bool operator==(const Optional<V>& a, None) noexcept {
-	return !a.hasValue();
+  return !a.hasValue();
 }
-template<class V>
+template <class V>
 constexpr bool operator==(None, const Optional<V>& a) noexcept {
-	return !a.hasValue();
+  return !a.hasValue();
 }
-template<class V>
+template <class V>
 constexpr bool operator<(const Optional<V>&, None) noexcept {
-	return false;
+  return false;
 }
-template<class V>
+template <class V>
 constexpr bool operator<(None, const Optional<V>& a) noexcept {
-	return a.hasValue();
+  return a.hasValue();
 }
-template<class V>
+template <class V>
 constexpr bool operator>(const Optional<V>& a, None) noexcept {
-	return a.hasValue();
+  return a.hasValue();
 }
-template<class V>
+template <class V>
 constexpr bool operator>(None, const Optional<V>&) noexcept {
-	return false;
+  return false;
 }
-template<class V>
+template <class V>
 constexpr bool operator<=(None, const Optional<V>&) noexcept {
-	return true;
+  return true;
 }
-template<class V>
+template <class V>
 constexpr bool operator<=(const Optional<V>& a, None) noexcept {
-	return !a.hasValue();
+  return !a.hasValue();
 }
-template<class V>
+template <class V>
 constexpr bool operator>=(const Optional<V>&, None) noexcept {
-	return true;
+  return true;
 }
-template<class V>
+template <class V>
 constexpr bool operator>=(None, const Optional<V>& a) noexcept {
-	return !a.hasValue();
+  return !a.hasValue();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-}  // namespace folly
+} // namespace folly
 
 // Allow usage of Optional<T> in std::unordered_map and std::unordered_set
 FOLLY_NAMESPACE_STD_BEGIN
-template<class T>
-struct hash<folly::enable_std_hash_helper<folly::Optional<T>, remove_const_t<T>>> {
-	size_t operator()(folly::Optional<T> const& obj) const {
-		return static_cast<bool>(obj) ? hash<remove_const_t<T>>()(*obj) : 0;
-	}
+template <class T>
+struct hash<
+    folly::enable_std_hash_helper<folly::Optional<T>, remove_const_t<T>>> {
+  size_t operator()(folly::Optional<T> const& obj) const {
+    return static_cast<bool>(obj) ? hash<remove_const_t<T>>()(*obj) : 0;
+  }
 };
 FOLLY_NAMESPACE_STD_END
 
@@ -662,72 +689,74 @@ FOLLY_NAMESPACE_STD_END
 
 namespace folly {
 namespace detail {
-template<typename Value>
+template <typename Value>
 struct OptionalPromise;
 
-template<typename Value>
+template <typename Value>
 struct OptionalPromiseReturn {
-	Optional<Value> storage_;
-	Optional<Value>*& pointer_;
+  Optional<Value> storage_;
+  Optional<Value>*& pointer_;
 
-	/* implicit */ OptionalPromiseReturn(OptionalPromise<Value>& p) noexcept: pointer_{p.value_} {
-		pointer_ = &storage_;
-	}
-	OptionalPromiseReturn(OptionalPromiseReturn const&) = delete;
-	// letting dtor be trivial makes the coroutine crash
-	// TODO: fix clang/llvm codegen
-	~OptionalPromiseReturn() {}
-	/* implicit */ operator Optional<Value>() {
-		// handle both deferred and eager return-object conversion behaviors
-		// see docs for detect_promise_return_object_eager_conversion
-		if(folly::coro::detect_promise_return_object_eager_conversion()) {
-			assert(!storage_.has_value());
-			return Optional{OptionalEmptyTag{}, pointer_};  // eager
-		} else {
-			return std::move(storage_);  // deferred
-		}
-	}
+  /* implicit */ OptionalPromiseReturn(OptionalPromise<Value>& p) noexcept
+      : pointer_{p.value_} {
+    pointer_ = &storage_;
+  }
+  OptionalPromiseReturn(OptionalPromiseReturn const&) = delete;
+  // letting dtor be trivial makes the coroutine crash
+  // TODO: fix clang/llvm codegen
+  ~OptionalPromiseReturn() {}
+  /* implicit */ operator Optional<Value>() {
+    // handle both deferred and eager return-object conversion behaviors
+    // see docs for detect_promise_return_object_eager_conversion
+    if (folly::coro::detect_promise_return_object_eager_conversion()) {
+      assert(!storage_.has_value());
+      return Optional{OptionalEmptyTag{}, pointer_}; // eager
+    } else {
+      return std::move(storage_); // deferred
+    }
+  }
 };
 
-template<typename Value>
+template <typename Value>
 struct OptionalPromise {
-	Optional<Value>* value_ = nullptr;
-	OptionalPromise() = default;
-	OptionalPromise(OptionalPromise const&) = delete;
-	OptionalPromiseReturn<Value> get_return_object() noexcept { return *this; }
-	coro::suspend_never initial_suspend() const noexcept { return {}; }
-	coro::suspend_never final_suspend() const noexcept { return {}; }
-	template<typename U = Value>
-	void return_value(U&& u) {
-		*value_ = static_cast<U&&>(u);
-	}
-	void unhandled_exception() {
-		// Technically, throwing from unhandled_exception is underspecified:
-		// https://github.com/GorNishanov/CoroutineWording/issues/17
-		rethrow_current_exception();
-	}
+  Optional<Value>* value_ = nullptr;
+  OptionalPromise() = default;
+  OptionalPromise(OptionalPromise const&) = delete;
+  OptionalPromiseReturn<Value> get_return_object() noexcept { return *this; }
+  coro::suspend_never initial_suspend() const noexcept { return {}; }
+  coro::suspend_never final_suspend() const noexcept { return {}; }
+  template <typename U = Value>
+  void return_value(U&& u) {
+    *value_ = static_cast<U&&>(u);
+  }
+  void unhandled_exception() {
+    // Technically, throwing from unhandled_exception is underspecified:
+    // https://github.com/GorNishanov/CoroutineWording/issues/17
+    rethrow_current_exception();
+  }
 };
 
-template<typename Value>
+template <typename Value>
 struct OptionalAwaitable {
-	Optional<Value> o_;
-	bool await_ready() const noexcept { return o_.hasValue(); }
-	Value await_resume() { return std::move(o_.value()); }
+  Optional<Value> o_;
+  bool await_ready() const noexcept { return o_.hasValue(); }
+  Value await_resume() { return std::move(o_.value()); }
 
-	// Explicitly only allow suspension into an OptionalPromise
-	template<typename U>
-	void await_suspend(coro::coroutine_handle<OptionalPromise<U>> h) const noexcept {
-		// Abort the rest of the coroutine. resume() is not going to be called
-		h.destroy();
-	}
+  // Explicitly only allow suspension into an OptionalPromise
+  template <typename U>
+  void await_suspend(
+      coro::coroutine_handle<OptionalPromise<U>> h) const noexcept {
+    // Abort the rest of the coroutine. resume() is not going to be called
+    h.destroy();
+  }
 };
-}  // namespace detail
+} // namespace detail
 
-template<typename Value>
+template <typename Value>
 detail::OptionalAwaitable<Value>
 /* implicit */ operator co_await(Optional<Value> o) {
-	return {std::move(o)};
+  return {std::move(o)};
 }
-}  // namespace folly
+} // namespace folly
 
-#endif  // FOLLY_HAS_COROUTINES
+#endif // FOLLY_HAS_COROUTINES

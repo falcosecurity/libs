@@ -44,63 +44,69 @@ namespace folly {
 ///
 /// Throw an exception if exceptions are enabled, or terminate if compiled with
 /// -fno-exceptions.
-template<typename Ex>
+template <typename Ex>
 [[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void throw_exception(Ex&& ex) {
 #if FOLLY_HAS_EXCEPTIONS
-	throw static_cast<Ex&&>(ex);
+  throw static_cast<Ex&&>(ex);
 #else
-	(void)ex;
-	std::terminate();
+  (void)ex;
+  std::terminate();
 #endif
 }
 
 /// terminate_with
 ///
 /// Terminates as if by forwarding to throw_exception but in a noexcept context.
-template<typename Ex>
-[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void terminate_with(Ex&& ex) noexcept {
-	throw_exception(static_cast<Ex&&>(ex));
+template <typename Ex>
+[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void terminate_with(
+    Ex&& ex) noexcept {
+  throw_exception(static_cast<Ex&&>(ex));
 }
 
 namespace detail {
 
 struct throw_exception_arg_array_ {
-	template<typename R>
-	using v = std::remove_extent_t<std::remove_reference_t<R>>;
-	template<typename R>
-	using apply = std::enable_if_t<std::is_same<char const, v<R>>::value, v<R>*>;
+  template <typename R>
+  using v = std::remove_extent_t<std::remove_reference_t<R>>;
+  template <typename R>
+  using apply = std::enable_if_t<std::is_same<char const, v<R>>::value, v<R>*>;
 };
 struct throw_exception_arg_trivial_ {
-	template<typename R>
-	using apply = remove_cvref_t<R>;
+  template <typename R>
+  using apply = remove_cvref_t<R>;
 };
 struct throw_exception_arg_base_ {
-	template<typename R>
-	using apply = R;
+  template <typename R>
+  using apply = R;
 };
-template<typename R>
-using throw_exception_arg_ =  //
-        conditional_t<std::is_array<std::remove_reference_t<R>>::value,
-                      throw_exception_arg_array_,
-                      conditional_t<std::is_trivially_copyable_v<remove_cvref_t<R>>,
-                                    throw_exception_arg_trivial_,
-                                    throw_exception_arg_base_>>;
-template<typename R>
-using throw_exception_arg_t = typename throw_exception_arg_<R>::template apply<R>;
-template<typename R>
+template <typename R>
+using throw_exception_arg_ = //
+    conditional_t<
+        std::is_array<std::remove_reference_t<R>>::value,
+        throw_exception_arg_array_,
+        conditional_t<
+            std::is_trivially_copyable_v<remove_cvref_t<R>>,
+            throw_exception_arg_trivial_,
+            throw_exception_arg_base_>>;
+template <typename R>
+using throw_exception_arg_t =
+    typename throw_exception_arg_<R>::template apply<R>;
+template <typename R>
 using throw_exception_arg_fmt_t =
-        remove_cvref_t<typename throw_exception_arg_<R>::template apply<R>>;
+    remove_cvref_t<typename throw_exception_arg_<R>::template apply<R>>;
 
-template<typename Ex, typename... Args>
-[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void throw_exception_(Args... args) {
-	throw_exception(Ex(static_cast<Args>(args)...));
+template <typename Ex, typename... Args>
+[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void throw_exception_(
+    Args... args) {
+  throw_exception(Ex(static_cast<Args>(args)...));
 }
-template<typename Ex, typename... Args>
-[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void terminate_with_(Args... args) noexcept {
-	throw_exception(Ex(static_cast<Args>(args)...));
+template <typename Ex, typename... Args>
+[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void terminate_with_(
+    Args... args) noexcept {
+  throw_exception(Ex(static_cast<Args>(args)...));
 }
 
-}  // namespace detail
+} // namespace detail
 
 /// throw_exception
 ///
@@ -116,76 +122,78 @@ template<typename Ex, typename... Args>
 /// The reason for treating refs to arrays as invalid is to avoid having two
 /// behaviors for refs to arrays, one for the general case and one for where the
 /// inner type is char const. Having two behaviors can be surprising, so avoid.
-template<typename Ex, typename... Args>
+template <typename Ex, typename... Args>
 [[noreturn]] FOLLY_ERASE void throw_exception(Args&&... args) {
-	detail::throw_exception_<Ex, detail::throw_exception_arg_t<Args&&>...>(
-	        static_cast<Args&&>(args)...);
+  detail::throw_exception_<Ex, detail::throw_exception_arg_t<Args&&>...>(
+      static_cast<Args&&>(args)...);
 }
 
 /// terminate_with
 ///
 /// Terminates as if by forwarding to throw_exception within a noexcept context.
-template<typename Ex, typename... Args>
+template <typename Ex, typename... Args>
 [[noreturn]] FOLLY_ERASE void terminate_with(Args&&... args) {
-	detail::terminate_with_<Ex, detail::throw_exception_arg_t<Args&&>...>(
-	        static_cast<Args&&>(args)...);
+  detail::terminate_with_<Ex, detail::throw_exception_arg_t<Args&&>...>(
+      static_cast<Args&&>(args)...);
 }
 
 #if __has_include(<fmt/format.h>)
 
 namespace detail {
 
-template<typename Ex, typename... Args, typename Str>
-[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void throw_exception_fmt_format_(Str str,
-                                                                                  Args&&... args) {
-	auto what = [&] { return fmt::format(str, static_cast<Args&&>(args)...); };
-	if constexpr(std::is_constructible_v<Ex, std::string&&>) {
-		throw_exception<Ex>(what());
-	} else {
-		throw_exception<Ex>(what().c_str());
-	}
+template <typename Ex, typename... Args, typename Str>
+[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void
+throw_exception_fmt_format_(Str str, Args&&... args) {
+  auto what = [&] { return fmt::format(str, static_cast<Args&&>(args)...); };
+  if constexpr (std::is_constructible_v<Ex, std::string&&>) {
+    throw_exception<Ex>(what());
+  } else {
+    throw_exception<Ex>(what().c_str());
+  }
 }
 
-template<typename Ex, typename... Args, typename Str>
-[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void terminate_with_fmt_format_(
-        Str str,
-        Args&&... args) noexcept {
-	auto what = [&] { return fmt::format(str, static_cast<Args&&>(args)...); };
-	if constexpr(std::is_constructible_v<Ex, std::string&&>) {
-		throw_exception<Ex>(what());
-	} else {
-		throw_exception<Ex>(what().c_str());
-	}
+template <typename Ex, typename... Args, typename Str>
+[[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void
+terminate_with_fmt_format_(Str str, Args&&... args) noexcept {
+  auto what = [&] { return fmt::format(str, static_cast<Args&&>(args)...); };
+  if constexpr (std::is_constructible_v<Ex, std::string&&>) {
+    throw_exception<Ex>(what());
+  } else {
+    throw_exception<Ex>(what().c_str());
+  }
 }
 
 #if FMT_VERSION >= 80000
 
-template<typename... Args>
-using fmt_format_string = fmt::format_string<detail::throw_exception_arg_fmt_t<Args&&>...>;
+template <typename... Args>
+using fmt_format_string =
+    fmt::format_string<detail::throw_exception_arg_fmt_t<Args&&>...>;
 
 #else
 
-template<typename...>
+template <typename...>
 using fmt_format_string = fmt::string_view;
 
 #endif
 
-}  // namespace detail
+} // namespace detail
 
-template<typename Ex, typename... Args>
-[[noreturn]] FOLLY_ERASE void throw_exception_fmt_format(detail::fmt_format_string<Args...> str,
-                                                         Args&&... args) {
-	detail::throw_exception_fmt_format_<  //
-	        Ex,
-	        detail::throw_exception_arg_t<Args&&>...>(str, static_cast<Args&&>(args)...);
+template <typename Ex, typename... Args>
+[[noreturn]] FOLLY_ERASE void throw_exception_fmt_format(
+    detail::fmt_format_string<Args...> str, Args&&... args) {
+  detail::throw_exception_fmt_format_< //
+      Ex,
+      detail::throw_exception_arg_t<Args&&>...>(
+      str, static_cast<Args&&>(args)...);
 }
 
-template<typename Ex, typename... Args>
-[[noreturn]] FOLLY_ERASE void terminate_with_fmt_format(detail::fmt_format_string<Args...> str,
-                                                        Args&&... args) {
-	detail::terminate_with_fmt_format_<  //
-	        Ex,
-	        detail::throw_exception_arg_t<Args&&>...>(str, static_cast<Args&&>(args)...);
+template <typename Ex, typename... Args>
+[[noreturn]] FOLLY_ERASE void terminate_with_fmt_format(
+    detail::fmt_format_string<Args...> str, Args&&... args) {
+  detail::terminate_with_fmt_format_< //
+      Ex,
+      detail::throw_exception_arg_t<Args&&>...>(
+      str, static_cast<Args&&>(args)...);
 }
 
 #endif
@@ -211,23 +219,25 @@ template<typename Ex, typename... Args>
 ///         },
 ///         i);
 ///   }
-template<typename F,
-         typename... A,
-         typename FD = std::remove_pointer_t<std::decay_t<F>>,
-         std::enable_if_t<!std::is_function<FD>::value, int> = 0,
-         typename R = decltype(FOLLY_DECLVAL(F&&)(FOLLY_DECLVAL(A&&)...))>
-[[FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE R invoke_cold(F&& f, A&&... a)  //
-        noexcept(noexcept(static_cast<F&&>(f)(static_cast<A&&>(a)...))) {
-	return static_cast<F&&>(f)(static_cast<A&&>(a)...);
+template <
+    typename F,
+    typename... A,
+    typename FD = std::remove_pointer_t<std::decay_t<F>>,
+    std::enable_if_t<!std::is_function<FD>::value, int> = 0,
+    typename R = decltype(FOLLY_DECLVAL(F&&)(FOLLY_DECLVAL(A&&)...))>
+[[FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE R invoke_cold(F&& f, A&&... a) //
+    noexcept(noexcept(static_cast<F&&>(f)(static_cast<A&&>(a)...))) {
+  return static_cast<F&&>(f)(static_cast<A&&>(a)...);
 }
-template<typename F,
-         typename... A,
-         typename FD = std::remove_pointer_t<std::decay_t<F>>,
-         std::enable_if_t<std::is_function<FD>::value, int> = 0,
-         typename R = decltype(FOLLY_DECLVAL(F&&)(FOLLY_DECLVAL(A&&)...))>
-FOLLY_ERASE R invoke_cold(F&& f, A&&... a)  //
-        noexcept(noexcept(f(static_cast<A&&>(a)...))) {
-	return f(static_cast<A&&>(a)...);
+template <
+    typename F,
+    typename... A,
+    typename FD = std::remove_pointer_t<std::decay_t<F>>,
+    std::enable_if_t<std::is_function<FD>::value, int> = 0,
+    typename R = decltype(FOLLY_DECLVAL(F&&)(FOLLY_DECLVAL(A&&)...))>
+FOLLY_ERASE R invoke_cold(F&& f, A&&... a) //
+    noexcept(noexcept(f(static_cast<A&&>(a)...))) {
+  return f(static_cast<A&&>(a)...);
 }
 
 /// invoke_noreturn_cold
@@ -254,12 +264,12 @@ FOLLY_ERASE R invoke_cold(F&& f, A&&... a)  //
 ///         },
 ///         i);
 ///   }
-template<typename F, typename... A>
+template <typename F, typename... A>
 [[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void
 invoke_noreturn_cold(F&& f, A&&... a) noexcept(
-        /* formatting */ noexcept(static_cast<F&&>(f)(static_cast<A&&>(a)...))) {
-	static_cast<F&&>(f)(static_cast<A&&>(a)...);
-	std::terminate();
+    /* formatting */ noexcept(static_cast<F&&>(f)(static_cast<A&&>(a)...))) {
+  static_cast<F&&>(f)(static_cast<A&&>(a)...);
+  std::terminate();
 }
 
 /// catch_exception
@@ -290,23 +300,25 @@ invoke_noreturn_cold(F&& f, A&&... a) noexcept(
 ///      [](auto&& e, int num) { return num; },
 ///      def);
 ///  assert(result == input < 0 ? def : input);
-template<typename E,
-         typename Try,
-         typename Catch,
-         typename... CatchA,
-         typename R = std::common_type_t<
-                 decltype(FOLLY_DECLVAL(Try&&)()),
-                 decltype(FOLLY_DECLVAL(Catch&&)(FOLLY_DECLVAL(E&), FOLLY_DECLVAL(CatchA&&)...))>>
+template <
+    typename E,
+    typename Try,
+    typename Catch,
+    typename... CatchA,
+    typename R = std::common_type_t<
+        decltype(FOLLY_DECLVAL(Try&&)()),
+        decltype(FOLLY_DECLVAL(Catch&&)(
+            FOLLY_DECLVAL(E&), FOLLY_DECLVAL(CatchA&&)...))>>
 FOLLY_ERASE_TRYCATCH R catch_exception(Try&& t, Catch&& c, CatchA&&... a) {
 #if FOLLY_HAS_EXCEPTIONS
-	try {
-		return static_cast<Try&&>(t)();
-	} catch(E e) {
-		return invoke_cold(static_cast<Catch&&>(c), e, static_cast<CatchA&&>(a)...);
-	}
+  try {
+    return static_cast<Try&&>(t)();
+  } catch (E e) {
+    return invoke_cold(static_cast<Catch&&>(c), e, static_cast<CatchA&&>(a)...);
+  }
 #else
-	[](auto&&...) {}(c, a...);  // ignore
-	return static_cast<Try&&>(t)();
+  [](auto&&...) {}(c, a...); // ignore
+  return static_cast<Try&&>(t)();
 #endif
 }
 
@@ -332,23 +344,25 @@ FOLLY_ERASE_TRYCATCH R catch_exception(Try&& t, Catch&& c, CatchA&&... a) {
 ///      [](int num) { return num; },
 ///      def);
 ///  assert(result == input < 0 ? def : input);
-template<typename Try,
-         typename Catch,
-         typename... CatchA,
-         typename R =
-                 std::common_type_t<decltype(FOLLY_DECLVAL(Try&&)()),
-                                    decltype(FOLLY_DECLVAL(Catch&&)(FOLLY_DECLVAL(CatchA&&)...))>>
-FOLLY_ERASE_TRYCATCH R catch_exception(Try&& t, Catch&& c, CatchA&&... a) noexcept(
-        noexcept(static_cast<Catch&&>(c)(static_cast<CatchA&&>(a)...))) {
+template <
+    typename Try,
+    typename Catch,
+    typename... CatchA,
+    typename R = std::common_type_t<
+        decltype(FOLLY_DECLVAL(Try&&)()),
+        decltype(FOLLY_DECLVAL(Catch&&)(FOLLY_DECLVAL(CatchA&&)...))>>
+FOLLY_ERASE_TRYCATCH R
+catch_exception(Try&& t, Catch&& c, CatchA&&... a) noexcept(
+    noexcept(static_cast<Catch&&>(c)(static_cast<CatchA&&>(a)...))) {
 #if FOLLY_HAS_EXCEPTIONS
-	try {
-		return static_cast<Try&&>(t)();
-	} catch(...) {
-		return invoke_cold(static_cast<Catch&&>(c), static_cast<CatchA&&>(a)...);
-	}
+  try {
+    return static_cast<Try&&>(t)();
+  } catch (...) {
+    return invoke_cold(static_cast<Catch&&>(c), static_cast<CatchA&&>(a)...);
+  }
 #else
-	[](auto&&...) {}(c, a...);  // ignore
-	return static_cast<Try&&>(t)();
+  [](auto&&...) {}(c, a...); // ignore
+  return static_cast<Try&&>(t)();
 #endif
 }
 
@@ -359,9 +373,9 @@ FOLLY_ERASE_TRYCATCH R catch_exception(Try&& t, Catch&& c, CatchA&&... a) noexce
 ///   throw;
 [[noreturn]] FOLLY_ERASE void rethrow_current_exception() {
 #if FOLLY_HAS_EXCEPTIONS
-	throw;
+  throw;
 #else
-	std::terminate();
+  std::terminate();
 #endif
 }
 
@@ -369,23 +383,25 @@ namespace detail {
 
 unsigned int* uncaught_exceptions_ptr() noexcept;
 
-}  // namespace detail
+} // namespace detail
 
 /// uncaught_exceptions
 ///
 /// An accelerated version of std::uncaught_exceptions.
 ///
 /// mimic: std::uncaught_exceptions, c++17
-[[FOLLY_ATTR_GNU_PURE]] FOLLY_EXPORT FOLLY_ALWAYS_INLINE int uncaught_exceptions() noexcept {
+[[FOLLY_ATTR_GNU_PURE]] FOLLY_EXPORT FOLLY_ALWAYS_INLINE int
+uncaught_exceptions() noexcept {
 #if defined(__APPLE__)
-	return std::uncaught_exceptions();
+  return std::uncaught_exceptions();
 #elif defined(_CPPLIB_VER)
-	return std::uncaught_exceptions();
+  return std::uncaught_exceptions();
 #elif defined(__has_feature) && !FOLLY_HAS_FEATURE(cxx_thread_local)
-	return std::uncaught_exceptions();
+  return std::uncaught_exceptions();
 #else
-	thread_local unsigned int* ct;
-	return to_signed(FOLLY_LIKELY(!!ct) ? *ct : *(ct = detail::uncaught_exceptions_ptr()));
+  thread_local unsigned int* ct;
+  return to_signed(
+      FOLLY_LIKELY(!!ct) ? *ct : *(ct = detail::uncaught_exceptions_ptr()));
 #endif
 }
 
@@ -414,28 +430,34 @@ extern std::atomic<int> exception_ptr_access_rt_cache_;
 [[FOLLY_ATTR_GNU_COLD]] bool exception_ptr_access_rt_() noexcept;
 
 inline bool exception_ptr_access_rt() noexcept {
-	auto const& cache = exception_ptr_access_rt_cache_;
-	auto const value = cache.load(std::memory_order_relaxed);
-	return FOLLY_LIKELY(value) ? value > 0 : exception_ptr_access_rt_();
+  auto const& cache = exception_ptr_access_rt_cache_;
+  auto const value = cache.load(std::memory_order_relaxed);
+  return FOLLY_LIKELY(value) ? value > 0 : exception_ptr_access_rt_();
 }
 
 inline std::nullptr_t exception_ptr_nullptr() {
-	return nullptr;
+  return nullptr;
 }
 
-template<typename T, typename Catch>
+template <typename T, typename Catch>
 auto exception_ptr_catching(std::exception_ptr const& ptr, Catch catch_) {
-	auto const try_ = [&] { return ptr ? (std::rethrow_exception(ptr), nullptr) : nullptr; };
-	return catch_exception([&] { return catch_exception<T>(try_, catch_); }, exception_ptr_nullptr);
+  auto const try_ = [&] {
+    return ptr ? (std::rethrow_exception(ptr), nullptr) : nullptr;
+  };
+  return catch_exception(
+      [&] { return catch_exception<T>(try_, catch_); }, exception_ptr_nullptr);
 }
 
-std::type_info const* exception_ptr_exception_typeid(std::exception const&) noexcept;
+std::type_info const* exception_ptr_exception_typeid(
+    std::exception const&) noexcept;
 
-std::type_info const* exception_ptr_get_type_(std::exception_ptr const& ptr) noexcept;
+std::type_info const* exception_ptr_get_type_(
+    std::exception_ptr const& ptr) noexcept;
 
-void* exception_ptr_get_object_(std::exception_ptr const&, std::type_info const*) noexcept;
+void* exception_ptr_get_object_(
+    std::exception_ptr const&, std::type_info const*) noexcept;
 
-}  // namespace detail
+} // namespace detail
 
 //  exception_ptr_access
 //
@@ -449,19 +471,19 @@ void* exception_ptr_get_object_(std::exception_ptr const&, std::type_info const*
 //  ABI and the system-provided libstdc++/libc++/cxxabi ABI. May falsely return
 //  true on other platforms.
 [[FOLLY_ATTR_GNU_PURE]] inline bool exception_ptr_access() noexcept {
-	return detail::exception_ptr_access_ct || detail::exception_ptr_access_rt();
+  return detail::exception_ptr_access_ct || detail::exception_ptr_access_rt();
 }
 
 //  exception_ptr_get_type
 //
 //  Returns the true runtime type info of the exception as stored.
-inline std::type_info const* exception_ptr_get_type(std::exception_ptr const& ptr) noexcept {
-	if(!exception_ptr_access()) {
-		return detail::exception_ptr_catching<std::exception&>(
-		        ptr,
-		        detail::exception_ptr_exception_typeid);
-	}
-	return detail::exception_ptr_get_type_(ptr);
+inline std::type_info const* exception_ptr_get_type(
+    std::exception_ptr const& ptr) noexcept {
+  if (!exception_ptr_access()) {
+    return detail::exception_ptr_catching<std::exception&>(
+        ptr, detail::exception_ptr_exception_typeid);
+  }
+  return detail::exception_ptr_get_type_(ptr);
 }
 
 //  exception_ptr_get_object
@@ -474,33 +496,36 @@ inline std::type_info const* exception_ptr_get_type(std::exception_ptr const& pt
 //  on some platforms caught exceptions may be copied from the stored exception.
 //  The address is only the address of the object as stored, not as thrown and
 //  not as caught.
-inline void* exception_ptr_get_object(std::exception_ptr const& ptr,
-                                      std::type_info const* const target) noexcept {
-	FOLLY_SAFE_CHECK(exception_ptr_access(), "unsupported");
-	return detail::exception_ptr_get_object_(ptr, target);
+inline void* exception_ptr_get_object(
+    std::exception_ptr const& ptr,
+    std::type_info const* const target) noexcept {
+  FOLLY_SAFE_CHECK(exception_ptr_access(), "unsupported");
+  return detail::exception_ptr_get_object_(ptr, target);
 }
 
 //  exception_ptr_get_object
 //
 //  Returns the true address of the exception as stored without upcasting.
-inline void* exception_ptr_get_object(  //
-        std::exception_ptr const& ptr) noexcept {
-	return exception_ptr_get_object(ptr, nullptr);
+inline void* exception_ptr_get_object( //
+    std::exception_ptr const& ptr) noexcept {
+  return exception_ptr_get_object(ptr, nullptr);
 }
 
 //  exception_ptr_get_object
 //
 //  Returns the address of the stored exception as if it were upcast to the
 //  given type, if it could be upcast to that type.
-template<typename T>
+template <typename T>
 T* exception_ptr_get_object(std::exception_ptr const& ptr) noexcept {
-	static_assert(!std::is_reference<T>::value, "is a reference");
-	if(!exception_ptr_access()) {
-		return detail::exception_ptr_catching<T&>(ptr, +[](T& ex) { return std::addressof(ex); });
-	}
-	auto const target = type_info_of<T>();
-	auto const object = !to_bool(target) ? nullptr : exception_ptr_get_object(ptr, target);
-	return static_cast<T*>(object);
+  static_assert(!std::is_reference<T>::value, "is a reference");
+  if (!exception_ptr_access()) {
+    return detail::exception_ptr_catching<T&>(
+        ptr, +[](T& ex) { return std::addressof(ex); });
+  }
+  auto const target = type_info_of<T>();
+  auto const object =
+      !to_bool(target) ? nullptr : exception_ptr_get_object(ptr, target);
+  return static_cast<T*>(object);
 }
 
 //  exception_ptr_use_count
@@ -532,32 +557,32 @@ bool exception_ptr_unique(std::exception_ptr const& ptr) noexcept;
 /// May hypothetically fail in cases where multipe type-info objects exist for
 /// any of the given types. Positives are true but negatives may be either true
 /// or false.
-template<typename T, typename... S>
-T* exception_ptr_try_get_object_exact_fast(std::exception_ptr const& ptr,
-                                           tag_t<S...> /*unused*/) noexcept {
-	static_assert((std::is_convertible_v<S*, T*> && ...));
-	if(!kHasRtti || !ptr || !exception_ptr_access()) {
-		return nullptr;
-	}
-	auto const type = exception_ptr_get_type(ptr);
-	if(!type) {
-		return nullptr;
-	}
-	auto const object = exception_ptr_get_object(ptr);
-	auto const fun = [&](auto const phantom, std::type_info const* const target) {
-		assume(!!object);
-		return type == target ? static_cast<decltype(phantom)>(object) : nullptr;
-	};
-	T* out = nullptr;
-	((out = fun(static_cast<S*>(nullptr), FOLLY_TYPE_INFO_OF(S))) || ...);
-	return out;
+template <typename T, typename... S>
+T* exception_ptr_try_get_object_exact_fast(
+    std::exception_ptr const& ptr, tag_t<S...> /*unused*/) noexcept {
+  static_assert((std::is_convertible_v<S*, T*> && ...));
+  if (!kHasRtti || !ptr || !exception_ptr_access()) {
+    return nullptr;
+  }
+  auto const type = exception_ptr_get_type(ptr);
+  if (!type) {
+    return nullptr;
+  }
+  auto const object = exception_ptr_get_object(ptr);
+  auto const fun = [&](auto const phantom, std::type_info const* const target) {
+    assume(!!object);
+    return type == target ? static_cast<decltype(phantom)>(object) : nullptr;
+  };
+  T* out = nullptr;
+  ((out = fun(static_cast<S*>(nullptr), FOLLY_TYPE_INFO_OF(S))) || ...);
+  return out;
 }
 
 namespace detail {
-template<typename T>
+template <typename T>
 using detect_folly_get_exception_hint_types =
-        typename std::remove_cv_t<T>::folly_get_exception_hint_types;
-}  // namespace detail
+    typename std::remove_cv_t<T>::folly_get_exception_hint_types;
+} // namespace detail
 
 /// exception_ptr_get_object_hint
 ///
@@ -568,16 +593,18 @@ using detect_folly_get_exception_hint_types =
 /// this may be faster than `exception_ptr_get_object` without the hint.
 ///
 /// Prefer the next overload that uses `T::folly_get_exception_hint_types`.
-template<typename T, typename... S>
-T* exception_ptr_get_object_hint(std::exception_ptr const& ptr, tag_t<S...> const hint) noexcept {
-	auto const val = exception_ptr_try_get_object_exact_fast<T>(ptr, hint);
-	return FOLLY_LIKELY(!!val) ? val : exception_ptr_get_object<T>(ptr);
+template <typename T, typename... S>
+T* exception_ptr_get_object_hint(
+    std::exception_ptr const& ptr, tag_t<S...> const hint) noexcept {
+  auto const val = exception_ptr_try_get_object_exact_fast<T>(ptr, hint);
+  return FOLLY_LIKELY(!!val) ? val : exception_ptr_get_object<T>(ptr);
 }
 
-template<typename T>
+template <typename T>
 T* exception_ptr_get_object_hint(std::exception_ptr const& ptr) noexcept {
-	using hints = detected_or_t<tag_t<T>, detail::detect_folly_get_exception_hint_types, T>;
-	return exception_ptr_get_object_hint<T>(ptr, hints{});
+  using hints =
+      detected_or_t<tag_t<T>, detail::detect_folly_get_exception_hint_types, T>;
+  return exception_ptr_get_object_hint<T>(ptr, hints{});
 }
 
 /// get_exception_tag_t
@@ -649,64 +676,69 @@ struct get_exception_tag_t {};
 ///
 /// The "lifetimebound" attribute provides _some_ use-after-free protection,
 /// see the `#if 0` manual test in `get_exception_from_std_exception_ptr`.
-template<typename Ex>
+template <typename Ex>
 class get_exception_fn {
-public:
-	template<typename Src>
-	constexpr auto operator()([[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] const Src& src) const noexcept {
-		if constexpr(std::is_same_v<Src, std::exception_ptr>) {
-			return exception_ptr_get_object_hint<const Ex>(src);
-		} else {
-			constexpr get_exception_tag_t passkey;
-			static_assert(  // Return type & `noexcept`ness must match
-			        std::is_same_v<const Ex&, decltype(*src.template get_exception<Ex>(passkey))> &&
-			        noexcept(noexcept(*src.template get_exception<Ex>(passkey))));
-			return src.template get_exception<Ex>(passkey);
-		}
-	}
-	// For a mutable ptr, use `folly::get_mutable_exception<Ex>(v)` instead.
-	template<typename Src>
-	constexpr auto operator()([[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] Src& s) const noexcept {
-		return operator()(std::as_const(s));
-	}
+ public:
+  template <typename Src>
+  constexpr auto operator()(
+      [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] const Src& src) const noexcept {
+    if constexpr (std::is_same_v<Src, std::exception_ptr>) {
+      return exception_ptr_get_object_hint<const Ex>(src);
+    } else {
+      constexpr get_exception_tag_t passkey;
+      static_assert( // Return type & `noexcept`ness must match
+          std::is_same_v<
+              const Ex&,
+              decltype(*src.template get_exception<Ex>(passkey))> &&
+          noexcept(noexcept(*src.template get_exception<Ex>(passkey))));
+      return src.template get_exception<Ex>(passkey);
+    }
+  }
+  // For a mutable ptr, use `folly::get_mutable_exception<Ex>(v)` instead.
+  template <typename Src>
+  constexpr auto operator()(
+      [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] Src& s) const noexcept {
+    return operator()(std::as_const(s));
+  }
 
-	// It is unsafe to use `get_exception()` to get a pointer into an rvalue.
-	// If you know what you're doing, add a `static_cast`.
-	template<typename Src>
-	void operator()(Src&&) const noexcept = delete;
-	template<typename Src>
-	void operator()(const Src&&) const noexcept = delete;
+  // It is unsafe to use `get_exception()` to get a pointer into an rvalue.
+  // If you know what you're doing, add a `static_cast`.
+  template <typename Src>
+  void operator()(Src&&) const noexcept = delete;
+  template <typename Src>
+  void operator()(const Src&&) const noexcept = delete;
 };
-template<typename Ex>
+template <typename Ex>
 class get_mutable_exception_fn {
-public:
-	template<typename Src>
-	auto operator()([[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] Src& src) const noexcept {
-		if constexpr(std::is_same_v<Src, std::exception_ptr>) {
-			return exception_ptr_get_object_hint<Ex>(src);
-		} else {
-			constexpr get_exception_tag_t passkey;
-			static_assert(  // Return type & `noexcept`ness must match
-			        std::is_same_v<Ex&,
-			                       decltype(*src.template get_mutable_exception<Ex>(passkey))> &&
-			        noexcept(noexcept(*src.template get_mutable_exception<Ex>(passkey))));
-			return src.template get_mutable_exception<Ex>(passkey);
-		}
-	}
-	// You want `folly::get_exception<Ex>(v)` instead.
-	template<typename Src>
-	void operator()(const Src&) const noexcept = delete;
+ public:
+  template <typename Src>
+  auto operator()([[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] Src& src) const noexcept {
+    if constexpr (std::is_same_v<Src, std::exception_ptr>) {
+      return exception_ptr_get_object_hint<Ex>(src);
+    } else {
+      constexpr get_exception_tag_t passkey;
+      static_assert( // Return type & `noexcept`ness must match
+          std::is_same_v<
+              Ex&,
+              decltype(*src.template get_mutable_exception<Ex>(passkey))> &&
+          noexcept(noexcept(*src.template get_mutable_exception<Ex>(passkey))));
+      return src.template get_mutable_exception<Ex>(passkey);
+    }
+  }
+  // You want `folly::get_exception<Ex>(v)` instead.
+  template <typename Src>
+  void operator()(const Src&) const noexcept = delete;
 
-	// It is unsafe to use `get_mutable_exception()` to get a pointer into an
-	// rvalue.  If you know what you're doing, add a `static_cast`.
-	template<typename Src>
-	void operator()(Src&&) const noexcept = delete;
-	template<typename Src>
-	void operator()(const Src&&) const noexcept = delete;
+  // It is unsafe to use `get_mutable_exception()` to get a pointer into an
+  // rvalue.  If you know what you're doing, add a `static_cast`.
+  template <typename Src>
+  void operator()(Src&&) const noexcept = delete;
+  template <typename Src>
+  void operator()(const Src&&) const noexcept = delete;
 };
-template<typename Ex = std::exception>
+template <typename Ex = std::exception>
 inline constexpr get_exception_fn<Ex> get_exception{};
-template<typename Ex = std::exception>
+template <typename Ex = std::exception>
 inline constexpr get_mutable_exception_fn<Ex> get_mutable_exception{};
 
 class rich_error_base;
@@ -720,69 +752,77 @@ namespace detail {
 // CRITICALLY IMPORTANT: Do not add or change specializations of this template
 // without reading the corresponding docblock in `rich_error_code.h`, which
 // explains the ODR risk inherent in this setup, and why it is currently safe.
-template<typename T, typename /*SFINAE*/>
+template <typename T, typename /*SFINAE*/>
 struct get_rich_error_code_traits;
-template<typename T>
-struct get_rich_error_code_traits<T,
-                                  std::enable_if_t<!std::is_same_v<T, std::exception_ptr> &&
-                                                   !std::is_base_of_v<rich_error_base, T>>> {
-	static constexpr void retrieve_code(const T& container, rich_error_code_query& query) {
-		if(auto ex = folly::get_exception<folly::rich_error_base>(container)) {
-			ex->retrieve_code(query);
-		}
-	}
+template <typename T>
+struct get_rich_error_code_traits<
+    T,
+    std::enable_if_t<
+        !std::is_same_v<T, std::exception_ptr> &&
+        !std::is_base_of_v<rich_error_base, T>>> {
+  static constexpr void retrieve_code(
+      const T& container, rich_error_code_query& query) {
+    if (auto ex = folly::get_exception<folly::rich_error_base>(container)) {
+      ex->retrieve_code(query);
+    }
+  }
 };
 
 // The libc++ and cpplib implementations do not have a move constructor or a
 // move-assignment operator. To avoid refcount operations, we must improvise.
 // The libstdc++ implementation has a move constructor and a move-assignment
 // operator but having this does no harm.
-inline std::exception_ptr extract_exception_ptr(std::exception_ptr&& ptr) noexcept {
-	constexpr auto sz = sizeof(std::exception_ptr);
-	// assume relocatability on all platforms
-	// assume nrvo for performance
-	std::exception_ptr ret;
-	std::memcpy(static_cast<void*>(&ret), &ptr, sz);
-	std::memset(static_cast<void*>(&ptr), 0, sz);
-	return ret;
+inline std::exception_ptr extract_exception_ptr(
+    std::exception_ptr&& ptr) noexcept {
+  constexpr auto sz = sizeof(std::exception_ptr);
+  // assume relocatability on all platforms
+  // assume nrvo for performance
+  std::exception_ptr ret;
+  std::memcpy(static_cast<void*>(&ret), &ptr, sz);
+  std::memset(static_cast<void*>(&ptr), 0, sz);
+  return ret;
 }
 
 struct make_exception_ptr_with_arg_ {
-	using dtor_ret_t = std::conditional_t<kIsArchWasm, void*, void>;
+  using dtor_ret_t = std::conditional_t<kIsArchWasm, void*, void>;
 
-	size_t size = 0;
-	std::type_info const* type = nullptr;
-	void (*ctor)(void*, void*) = nullptr;
-	dtor_ret_t (*dtor)(void*) = nullptr;
+  size_t size = 0;
+  std::type_info const* type = nullptr;
+  void (*ctor)(void*, void*) = nullptr;
+  dtor_ret_t (*dtor)(void*) = nullptr;
 
-	template<typename F, typename E>
-	static void make(void* p, void* f) {
-		::new(p) E((*static_cast<F*>(f))());
-	}
+  template <typename F, typename E>
+  static void make(void* p, void* f) {
+    ::new (p) E((*static_cast<F*>(f))());
+  }
 
-	template<typename E>
-	static dtor_ret_t dtor_(void* ptr) {
-		static_cast<E*>(ptr)->~E();
-		return dtor_ret_t(ptr);
-	}
+  template <typename E>
+  static dtor_ret_t dtor_(void* ptr) {
+    static_cast<E*>(ptr)->~E();
+    return dtor_ret_t(ptr);
+  }
 
-	template<typename F, typename E = decltype(FOLLY_DECLVAL(F&)())>
-	FOLLY_ERASE explicit constexpr make_exception_ptr_with_arg_(tag_t<F> /*unused*/) noexcept:
-	        size{sizeof(E)},
-	        type{FOLLY_TYPE_INFO_OF(E)},
-	        ctor{make<F, E>},
-	        dtor{dtor_<E>} {}
+  template <typename F, typename E = decltype(FOLLY_DECLVAL(F&)())>
+  FOLLY_ERASE explicit constexpr make_exception_ptr_with_arg_(
+      tag_t<F> /*unused*/) noexcept
+      : size{sizeof(E)},
+        type{FOLLY_TYPE_INFO_OF(E)},
+        ctor{make<F, E>},
+        dtor{dtor_<E>} {}
 };
 
-std::exception_ptr make_exception_ptr_with_(make_exception_ptr_with_arg_ const&, void*) noexcept;
+std::exception_ptr make_exception_ptr_with_(
+    make_exception_ptr_with_arg_ const&, void*) noexcept;
 
-template<typename F>
+template <typename F>
 struct make_exception_ptr_with_fn_ {
-	F& f_;
-	FOLLY_ERASE std::exception_ptr operator()() const { return std::make_exception_ptr(f_()); }
+  F& f_;
+  FOLLY_ERASE std::exception_ptr operator()() const {
+    return std::make_exception_ptr(f_());
+  }
 };
 
-}  // namespace detail
+} // namespace detail
 
 /// make_exception_ptr_with_fn
 /// make_exception_ptr_with
@@ -826,50 +866,54 @@ struct make_exception_ptr_with_fn_ {
 /// is not required to have value type of or inheriting std::exception. This is
 /// the same principle as for throw statements and throw_exception above.
 struct make_exception_ptr_with_fn {
-private:
-	template<typename R>
-	using make_arg_ = conditional_t<std::is_array<std::remove_reference_t<R>>::value,
-	                                detail::throw_exception_arg_array_,
-	                                detail::throw_exception_arg_base_>;
-	template<typename R>
-	using make_arg_t = typename make_arg_<R>::template apply<R>;
+ private:
+  template <typename R>
+  using make_arg_ = conditional_t<
+      std::is_array<std::remove_reference_t<R>>::value,
+      detail::throw_exception_arg_array_,
+      detail::throw_exception_arg_base_>;
+  template <typename R>
+  using make_arg_t = typename make_arg_<R>::template apply<R>;
 
-	template<typename E, typename... A>
-	auto make(A&&... a) const noexcept {
-		return [&] { return E(static_cast<A&&>(a)...); };
-	}
+  template <typename E, typename... A>
+  auto make(A&&... a) const noexcept {
+    return [&] { return E(static_cast<A&&>(a)...); };
+  }
 
-public:
-	template<typename F, decltype(FOLLY_DECLVAL(F&)())* = nullptr>
-	std::exception_ptr operator()(F f) const noexcept {
-		if((kIsGlibcxx || kIsLibcpp) && !kIsApple && !kIsWindows  //
-		   && kHasRtti && exception_ptr_access()) {
-			static const detail::make_exception_ptr_with_arg_ arg{tag<F>};
-			return detail::make_exception_ptr_with_(arg, &f);
-		}
-		if(kHasExceptions) {
-			return catch_exception(detail::make_exception_ptr_with_fn_<F>{f}, current_exception);
-		}
-		return std::exception_ptr();
-	}
-	template<typename E, typename... A>
-	FOLLY_ERASE std::exception_ptr operator()(std::in_place_type_t<E> /*unused*/,
-	                                          A&&... a) const noexcept {
-		return operator()(make<E, make_arg_t<A&&>...>(static_cast<A&&>(a)...));
-	}
-	template<typename E>
-	FOLLY_ERASE std::exception_ptr operator()(std::in_place_t /*unused*/, E&& e) const noexcept {
-		constexpr auto tag = std::in_place_type<remove_cvref_t<E>>;
-		check_(FOLLY_TYPE_INFO_OF(std::decay_t<E>), FOLLY_TYPE_INFO_OF(e));
-		return operator()(tag, static_cast<E&&>(e));
-	}
+ public:
+  template <typename F, decltype(FOLLY_DECLVAL(F&)())* = nullptr>
+  std::exception_ptr operator()(F f) const noexcept {
+    if ((kIsGlibcxx || kIsLibcpp) && !kIsApple && !kIsWindows //
+        && kHasRtti && exception_ptr_access()) {
+      static const detail::make_exception_ptr_with_arg_ arg{tag<F>};
+      return detail::make_exception_ptr_with_(arg, &f);
+    }
+    if (kHasExceptions) {
+      return catch_exception(
+          detail::make_exception_ptr_with_fn_<F>{f}, current_exception);
+    }
+    return std::exception_ptr();
+  }
+  template <typename E, typename... A>
+  FOLLY_ERASE std::exception_ptr operator()(
+      std::in_place_type_t<E> /*unused*/, A&&... a) const noexcept {
+    return operator()(make<E, make_arg_t<A&&>...>(static_cast<A&&>(a)...));
+  }
+  template <typename E>
+  FOLLY_ERASE std::exception_ptr operator()(
+      std::in_place_t /*unused*/, E&& e) const noexcept {
+    constexpr auto tag = std::in_place_type<remove_cvref_t<E>>;
+    check_(FOLLY_TYPE_INFO_OF(std::decay_t<E>), FOLLY_TYPE_INFO_OF(e));
+    return operator()(tag, static_cast<E&&>(e));
+  }
 
-private:
-	FOLLY_ALWAYS_INLINE void check_(std::type_info const* s,
-	                                std::type_info const* d) const noexcept {
-		FOLLY_SAFE_DCHECK(!s || !d || *s == *d,
-		                  "mismatched static and dynamic types indicates object slicing");
-	}
+ private:
+  FOLLY_ALWAYS_INLINE void check_(
+      std::type_info const* s, std::type_info const* d) const noexcept {
+    FOLLY_SAFE_DCHECK(
+        !s || !d || *s == *d,
+        "mismatched static and dynamic types indicates object slicing");
+  }
 };
 inline constexpr make_exception_ptr_with_fn make_exception_ptr_with{};
 
@@ -883,140 +927,144 @@ inline constexpr make_exception_ptr_with_fn make_exception_ptr_with{};
 //  May be constructed with a string literal pointer, which will be stored with
 //  no refcount required.
 class exception_shared_string {
-private:
-	using format_sig_ = void(void*, char*, std::size_t);
+ private:
+  using format_sig_ = void(void*, char*, std::size_t);
 
-	template<typename F>
-	using test_format_ = decltype(FOLLY_DECLVAL(F)(static_cast<char*>(nullptr), std::size_t(0)));
+  template <typename F>
+  using test_format_ =
+      decltype(FOLLY_DECLVAL(F)(static_cast<char*>(nullptr), std::size_t(0)));
 
-	static void test_params_(char const*, std::size_t);
-	template<typename F>
-	static void ffun_(void* f, char* b, std::size_t l) {
-		(*static_cast<F*>(f))(b, l);
-	}
+  static void test_params_(char const*, std::size_t);
+  template <typename F>
+  static void ffun_(void* f, char* b, std::size_t l) {
+    (*static_cast<F*>(f))(b, l);
+  }
 
-	struct state;  // alignment is alignof(void*)
+  struct state; // alignment is alignof(void*)
 
-	struct tagged_what_t {
-		static inline constexpr uintptr_t non_literal_mask = uintptr_t(1)
-		                                                     << (sizeof(const char*) * 8 - 1);
+  struct tagged_what_t {
+    static inline constexpr uintptr_t non_literal_mask = uintptr_t(1)
+        << (sizeof(const char*) * 8 - 1);
 
-		//  The top bit of p_ encodes where the string lives:
-		//  - top bit == 0: in an immortal literal
-		//  - top bit == 1: in an refcounted allocated state
-		//  The top bit of a userspace pointer is zero on all supported platforms.
-		const char* p_;
+    //  The top bit of p_ encodes where the string lives:
+    //  - top bit == 0: in an immortal literal
+    //  - top bit == 1: in an refcounted allocated state
+    //  The top bit of a userspace pointer is zero on all supported platforms.
+    const char* p_;
 
-		void assert_top_bit_is_zero(const char* p) {
-			// Debug-only on 64-bit platforms because all known ones leave the top
-			// bit free.  Userspace pointers MAY use the top bit on unsupported
-			// 32-bit platforms -- abort in opt builds, instead of corrupting memory.
-			//
-			// Limitations of constexpr force a gap in assertion coverage -- if a
-			// literal const char* sets the top bit (seems very unlikely!), and it is
-			// only used in a constexpr exception_shared_string, then invalid memory
-			// access would be triggered by what(), and the copy constructor.
-			if constexpr(sizeof(void*) != 8 || kIsDebug) {
-				FOLLY_SAFE_CHECK(!(uintptr_t(p) & non_literal_mask));
-			}
-		}
+    void assert_top_bit_is_zero(const char* p) {
+      // Debug-only on 64-bit platforms because all known ones leave the top
+      // bit free.  Userspace pointers MAY use the top bit on unsupported
+      // 32-bit platforms -- abort in opt builds, instead of corrupting memory.
+      //
+      // Limitations of constexpr force a gap in assertion coverage -- if a
+      // literal const char* sets the top bit (seems very unlikely!), and it is
+      // only used in a constexpr exception_shared_string, then invalid memory
+      // access would be triggered by what(), and the copy constructor.
+      if constexpr (sizeof(void*) != 8 || kIsDebug) {
+        FOLLY_SAFE_CHECK(!(uintptr_t(p) & non_literal_mask));
+      }
+    }
 
 #if FOLLY_CPLUSPLUS >= 202002 && !defined(__NVCC__)
-		constexpr tagged_what_t(vtag_t<true> /*literal*/, const char* p): p_{p} {
-			if(!std::is_constant_evaluated()) {
-				assert_top_bit_is_zero(p);
-			}
-		}
+    constexpr tagged_what_t(vtag_t<true> /*literal*/, const char* p) : p_{p} {
+      if (!std::is_constant_evaluated()) {
+        assert_top_bit_is_zero(p);
+      }
+    }
 #endif
-		// NEVER make this `constexpr`; `what()` explains why.
-		tagged_what_t(vtag_t<false> /*allocated*/, const char* p):
-		        p_{reinterpret_cast<const char*>(non_literal_mask |
-		                                         reinterpret_cast<uintptr_t>(p))} {
-			assert_top_bit_is_zero(p);
-		}
+    // NEVER make this `constexpr`; `what()` explains why.
+    tagged_what_t(vtag_t<false> /*allocated*/, const char* p)
+        : p_{reinterpret_cast<const char*>(
+              non_literal_mask | reinterpret_cast<uintptr_t>(p))} {
+      assert_top_bit_is_zero(p);
+    }
 
-		bool is_literal() const noexcept {
-			return !(non_literal_mask & reinterpret_cast<uintptr_t>(p_));
-		}
+    bool is_literal() const noexcept {
+      return !(non_literal_mask & reinterpret_cast<uintptr_t>(p_));
+    }
 #if FOLLY_CPLUSPLUS >= 202002
-		constexpr const char* what() const noexcept {
-			if(std::is_constant_evaluated()) {
-				// Only the literal ctor is `constexpr`, so we can assume no
-				// bit-twiddling is needed.  Consteval code cannot do Pointer bithacks.
-				return p_;
-			}
-			return reinterpret_cast<const char*>(~non_literal_mask &
-			                                     reinterpret_cast<uintptr_t>(p_));
-		}
+    constexpr const char* what() const noexcept {
+      if (std::is_constant_evaluated()) {
+        // Only the literal ctor is `constexpr`, so we can assume no
+        // bit-twiddling is needed.  Consteval code cannot do Pointer bithacks.
+        return p_;
+      }
+      return reinterpret_cast<const char*>(
+          ~non_literal_mask & reinterpret_cast<uintptr_t>(p_));
+    }
 #else
-		const char* what() const noexcept {
-			return reinterpret_cast<const char*>(~non_literal_mask &
-			                                     reinterpret_cast<uintptr_t>(p_));
-		}
+    const char* what() const noexcept {
+      return reinterpret_cast<const char*>(
+          ~non_literal_mask & reinterpret_cast<uintptr_t>(p_));
+    }
 #endif
-	};
-	static_assert(sizeof(tagged_what_t) == sizeof(void*));
+  };
+  static_assert(sizeof(tagged_what_t) == sizeof(void*));
 
-	tagged_what_t tagged_what_;
+  tagged_what_t tagged_what_;
 
-	exception_shared_string(std::size_t, format_sig_&, void*);
+  exception_shared_string(std::size_t, format_sig_&, void*);
 
-	static char const* from_state(state const* state) noexcept;
-	static state* to_state(const tagged_what_t&) noexcept;
-	void ruin_state() noexcept;
+  static char const* from_state(state const* state) noexcept;
+  static state* to_state(const tagged_what_t&) noexcept;
+  void ruin_state() noexcept;
 
-public:
+ public:
 #if FOLLY_CPLUSPLUS >= 202002 && !defined(__NVCC__)
-	constexpr explicit exception_shared_string(literal_c_str p) noexcept:
-	        tagged_what_{vtag<true>, p.ptr} {}
+  constexpr explicit exception_shared_string(literal_c_str p) noexcept
+      : tagged_what_{vtag<true>, p.ptr} {}
 #endif
 
-	exception_shared_string(char const*, std::size_t);
+  exception_shared_string(char const*, std::size_t);
 
-	template<typename String,
-	         typename = decltype(test_params_(FOLLY_DECLVAL(String const&).data(),
-	                                          FOLLY_DECLVAL(String const&).size()))>
-	explicit exception_shared_string(String const& str):
-	        exception_shared_string{str.data(), str.size()} {}
+  template <
+      typename String,
+      typename = decltype(test_params_(
+          FOLLY_DECLVAL(String const&).data(),
+          FOLLY_DECLVAL(String const&).size()))>
+  explicit exception_shared_string(String const& str)
+      : exception_shared_string{str.data(), str.size()} {}
 
-	template<typename F, decltype((void(test_format_<F&>()), 0)) = 0>
-	exception_shared_string(std::size_t size, F func):
-	        exception_shared_string(size, ffun_<F>, &reinterpret_cast<unsigned char&>(func)) {}
+  template <typename F, decltype((void(test_format_<F&>()), 0)) = 0>
+  exception_shared_string(std::size_t size, F func)
+      : exception_shared_string(
+            size, ffun_<F>, &reinterpret_cast<unsigned char&>(func)) {}
 
-	exception_shared_string(exception_shared_string const&) noexcept;
-	exception_shared_string& operator=(exception_shared_string const&) noexcept;
+  exception_shared_string(exception_shared_string const&) noexcept;
+  exception_shared_string& operator=(exception_shared_string const&) noexcept;
 
-	// It would be extra effort to implement move support in C++17, but there is
-	// currently no demand for it.
+  // It would be extra effort to implement move support in C++17, but there is
+  // currently no demand for it.
 #if FOLLY_CPLUSPLUS >= 202002 && !defined(__NVCC__)
-	constexpr exception_shared_string(exception_shared_string&& that) noexcept:
-	        tagged_what_{that.tagged_what_} {
-		that.tagged_what_ = tagged_what_t{vtag<true>, ""};  // safe-to-read moved-out state
-	}
+  constexpr exception_shared_string(exception_shared_string&& that) noexcept
+      : tagged_what_{that.tagged_what_} {
+    that.tagged_what_ =
+        tagged_what_t{vtag<true>, ""}; // safe-to-read moved-out state
+  }
 
-	exception_shared_string& operator=(exception_shared_string&&) noexcept;
+  exception_shared_string& operator=(exception_shared_string&&) noexcept;
 #else
-	exception_shared_string(exception_shared_string&&) = delete;
-	exception_shared_string& operator=(exception_shared_string&&) = delete;
+  exception_shared_string(exception_shared_string&&) = delete;
+  exception_shared_string& operator=(exception_shared_string&&) = delete;
 #endif
 
 #if FOLLY_CPLUSPLUS >= 202002 && defined(__cpp_lib_is_constant_evaluated)
-	constexpr ~exception_shared_string() {
-		if(!std::is_constant_evaluated()) {
-			ruin_state();
-		}
-	}
+  constexpr ~exception_shared_string() {
+    if (!std::is_constant_evaluated()) {
+      ruin_state();
+    }
+  }
 #else
-	~exception_shared_string() { ruin_state(); }
+  ~exception_shared_string() { ruin_state(); }
 #endif
 
 #if FOLLY_CPLUSPLUS >= 202002
-	constexpr
+  constexpr
 #endif
-	        char const*
-	        what() const noexcept {
-		return tagged_what_.what();
-	}
+      char const* what() const noexcept {
+    return tagged_what_.what();
+  }
 };
 
-}  // namespace folly
+} // namespace folly

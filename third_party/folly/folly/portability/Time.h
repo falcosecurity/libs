@@ -64,7 +64,10 @@ char* ctime_r(const time_t* t, char* buf);
 tm* gmtime_r(const time_t* t, tm* res);
 tm* localtime_r(const time_t* t, tm* o);
 int nanosleep(const struct timespec* request, struct timespec* remain);
-char* strptime(const char* __restrict buf, const char* __restrict fmt, struct tm* __restrict tm);
+char* strptime(
+    const char* __restrict buf,
+    const char* __restrict fmt,
+    struct tm* __restrict tm);
 time_t timelocal(tm* tm);
 time_t timegm(tm* tm);
 }

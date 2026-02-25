@@ -27,14 +27,15 @@ namespace folly {
 
 namespace detail {
 
-#if FOLLY_HAS_FEATURE(cxx_constexpr_string_builtins) || FOLLY_HAS_BUILTIN(__builtin_strlen) || \
-        defined(_MSC_VER)
+#if FOLLY_HAS_FEATURE(cxx_constexpr_string_builtins) || \
+    FOLLY_HAS_BUILTIN(__builtin_strlen) || defined(_MSC_VER)
 #define FOLLY_DETAIL_STRLEN __builtin_strlen
 #else
 #define FOLLY_DETAIL_STRLEN ::std::strlen
 #endif
 
-#if FOLLY_HAS_FEATURE(cxx_constexpr_string_builtins) || FOLLY_HAS_BUILTIN(__builtin_strcmp)
+#if FOLLY_HAS_FEATURE(cxx_constexpr_string_builtins) || \
+    FOLLY_HAS_BUILTIN(__builtin_strcmp)
 #define FOLLY_DETAIL_STRCMP __builtin_strcmp
 #else
 #define FOLLY_DETAIL_STRCMP ::std::strcmp
@@ -42,77 +43,86 @@ namespace detail {
 
 // This overload is preferred if Char is char and if FOLLY_DETAIL_STRLEN
 // yields a compile-time constant.
-template<typename Char, std::size_t = FOLLY_DETAIL_STRLEN(static_cast<const Char*>(""))>
+template <
+    typename Char,
+    std::size_t = FOLLY_DETAIL_STRLEN(static_cast<const Char*>(""))>
 constexpr std::size_t constexpr_strlen_internal(const Char* s, int) noexcept {
-	return FOLLY_DETAIL_STRLEN(s);
+  return FOLLY_DETAIL_STRLEN(s);
 }
-template<typename Char>
-constexpr std::size_t constexpr_strlen_internal(const Char* s, unsigned) noexcept {
-	std::size_t ret = 0;
-	while(*s++) {
-		++ret;
-	}
-	return ret;
+template <typename Char>
+constexpr std::size_t constexpr_strlen_internal(
+    const Char* s, unsigned) noexcept {
+  std::size_t ret = 0;
+  while (*s++) {
+    ++ret;
+  }
+  return ret;
 }
 
-template<typename Char>
+template <typename Char>
 constexpr std::size_t constexpr_strlen_fallback(const Char* s) noexcept {
-	return constexpr_strlen_internal(s, 0u);
+  return constexpr_strlen_internal(s, 0u);
 }
 
-static_assert(constexpr_strlen_fallback("123456789") == 9,
-              "Someone appears to have broken constexpr_strlen...");
+static_assert(
+    constexpr_strlen_fallback("123456789") == 9,
+    "Someone appears to have broken constexpr_strlen...");
 
 // This overload is preferred if Char is char and if FOLLY_DETAIL_STRCMP
 // yields a compile-time constant.
-template<typename Char, int = FOLLY_DETAIL_STRCMP(static_cast<const Char*>(""), "")>
-constexpr int constexpr_strcmp_internal(const Char* s1, const Char* s2, int) noexcept {
-	return FOLLY_DETAIL_STRCMP(s1, s2);
+template <
+    typename Char,
+    int = FOLLY_DETAIL_STRCMP(static_cast<const Char*>(""), "")>
+constexpr int constexpr_strcmp_internal(
+    const Char* s1, const Char* s2, int) noexcept {
+  return FOLLY_DETAIL_STRCMP(s1, s2);
 }
-template<typename Char>
-constexpr int constexpr_strcmp_internal(const Char* s1, const Char* s2, unsigned) noexcept {
-	while(*s1 && *s1 == *s2) {
-		++s1, ++s2;
-	}
-	// NOTE: `int(*s1 - *s2)` may cause signed arithmetics overflow which is UB.
-	return int(*s2 < *s1) - int(*s1 < *s2);
+template <typename Char>
+constexpr int constexpr_strcmp_internal(
+    const Char* s1, const Char* s2, unsigned) noexcept {
+  while (*s1 && *s1 == *s2) {
+    ++s1, ++s2;
+  }
+  // NOTE: `int(*s1 - *s2)` may cause signed arithmetics overflow which is UB.
+  return int(*s2 < *s1) - int(*s1 < *s2);
 }
 
-template<typename Char>
-constexpr int constexpr_strcmp_fallback(const Char* s1, const Char* s2) noexcept {
-	return constexpr_strcmp_internal(s1, s2, 0u);
+template <typename Char>
+constexpr int constexpr_strcmp_fallback(
+    const Char* s1, const Char* s2) noexcept {
+  return constexpr_strcmp_internal(s1, s2, 0u);
 }
 
 #undef FOLLY_DETAIL_STRCMP
 #undef FOLLY_DETAIL_STRLEN
 
-}  // namespace detail
+} // namespace detail
 
-template<typename Char>
+template <typename Char>
 constexpr std::size_t constexpr_strlen(const Char* s) noexcept {
 #if __GNUC_PREREQ(11, 0)
-	return detail::constexpr_strlen_internal(s, 0u);
+  return detail::constexpr_strlen_internal(s, 0u);
 #else
-	return detail::constexpr_strlen_internal(s, 0);
+  return detail::constexpr_strlen_internal(s, 0);
 #endif
 }
 
-template<typename Char>
+template <typename Char>
 constexpr int constexpr_strcmp(const Char* s1, const Char* s2) noexcept {
-	return detail::constexpr_strcmp_internal(s1, s2, 0);
+  return detail::constexpr_strcmp_internal(s1, s2, 0);
 }
 
 namespace detail {
 
-template<typename V>
+template <typename V>
 struct is_constant_evaluated_or_constinit_ {
-	V value;
-	FOLLY_ERASE FOLLY_CONSTEVAL /* implicit */
-	is_constant_evaluated_or_constinit_(V const v) noexcept(noexcept(V(v))):
-	        value{v} {}
+  V value;
+  FOLLY_ERASE FOLLY_CONSTEVAL /* implicit */
+  is_constant_evaluated_or_constinit_(V const v) noexcept(noexcept(V(v)))
+      : value{v} {}
 };
 
-}  // namespace detail
+} // namespace detail
 
 //  is_constant_evaluated_or
 //
@@ -120,15 +130,15 @@ struct is_constant_evaluated_or_constinit_ {
 //  * Takes an argument to be used as the default return value, if the code is
 //    unable to tell whether it is in a constant context.
 constexpr bool is_constant_evaluated_or(
-        detail::is_constant_evaluated_or_constinit_<bool> const def) noexcept {
-	(void)def;  // silence unused variable warning
+    detail::is_constant_evaluated_or_constinit_<bool> const def) noexcept {
+  (void)def; // silence unused variable warning
 #if defined(__cpp_lib_is_constant_evaluated)
-	return std::is_constant_evaluated();
+  return std::is_constant_evaluated();
 #elif FOLLY_HAS_BUILTIN(__builtin_is_constant_evaluated)
-	return __builtin_is_constant_evaluated();
+  return __builtin_is_constant_evaluated();
 #else
-	return def.value;
+  return def.value;
 #endif
 }
 
-}  // namespace folly
+} // namespace folly

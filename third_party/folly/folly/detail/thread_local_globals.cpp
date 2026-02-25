@@ -41,30 +41,29 @@ namespace {
 ///
 /// https://github.com/bminor/glibc/blob/glibc-2.39/nptl/pthread_create.c#L451-L455
 struct thread_is_dying_global {
-	pthread_key_t key{};
+  pthread_key_t key{};
 
-	thread_is_dying_global() {
-		int ret = pthread_key_create(&key, nullptr);
-		if(ret != 0) {
-			throw_exception<std::system_error>(ret,
-			                                   std::generic_category(),
-			                                   "pthread_key_create failed");
-		}
-	}
+  thread_is_dying_global() {
+    int ret = pthread_key_create(&key, nullptr);
+    if (ret != 0) {
+      throw_exception<std::system_error>(
+          ret, std::generic_category(), "pthread_key_create failed");
+    }
+  }
 };
 
-}  // namespace
+} // namespace
 
 bool thread_is_dying() {
-	auto& global = createGlobal<thread_is_dying_global, void>();
-	return !!pthread_getspecific(global.key);
+  auto& global = createGlobal<thread_is_dying_global, void>();
+  return !!pthread_getspecific(global.key);
 }
 
 void thread_is_dying_mark() {
-	auto& global = createGlobal<thread_is_dying_global, void>();
-	if(!pthread_getspecific(global.key)) {
-		pthread_setspecific(global.key, &global.key);
-	}
+  auto& global = createGlobal<thread_is_dying_global, void>();
+  if (!pthread_getspecific(global.key)) {
+    pthread_setspecific(global.key, &global.key);
+  }
 }
 
-}  // namespace folly::detail
+} // namespace folly::detail

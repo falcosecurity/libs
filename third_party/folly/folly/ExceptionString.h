@@ -30,4 +30,4 @@ fbstring exceptionStr(std::exception const& e);
 
 fbstring exceptionStr(std::exception_ptr const& ep);
 
-}  // namespace folly
+} // namespace folly

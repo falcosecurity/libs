@@ -45,16 +45,6 @@ struct LogStream {
 }  // namespace portability
 }  // namespace folly
 
-#ifdef NDEBUG
-#define FOLLY_GLOG_DCHECK_SINK() ::folly::portability::detail::DCheckStream()
-#define DCHECK(condition) FOLLY_GLOG_DCHECK_SINK()
-#define DCHECK_EQ(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define DCHECK_NE(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define DCHECK_GE(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define DCHECK_GT(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define DCHECK_LE(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define DCHECK_LT(a, b) FOLLY_GLOG_DCHECK_SINK()
-#else
 #define FOLLY_GLOG_DCHECK_SINK() ::folly::portability::detail::DCheckStream()
 #define DCHECK(condition) \
 	((condition) ? (void)0 : (void)assert(condition)), FOLLY_GLOG_DCHECK_SINK()
@@ -64,22 +54,11 @@ struct LogStream {
 #define DCHECK_GT(a, b) DCHECK((a) > (b))
 #define DCHECK_LE(a, b) DCHECK((a) <= (b))
 #define DCHECK_LT(a, b) DCHECK((a) < (b))
-#endif
 
 // LOG(severity) - no-op in vendored build (no glog).
 #define LOG(severity) ::folly::portability::detail::LogStream()
 
 // CHECK* - same as DCHECK* (release: no-op sink; debug: assert).
-#ifdef NDEBUG
-#define CHECK(condition) FOLLY_GLOG_DCHECK_SINK()
-#define CHECK_EQ(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define CHECK_NE(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define CHECK_GE(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define CHECK_GT(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define CHECK_LE(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define CHECK_LT(a, b) FOLLY_GLOG_DCHECK_SINK()
-#define PCHECK(condition) FOLLY_GLOG_DCHECK_SINK()
-#else
 #define CHECK(condition) DCHECK(condition)
 #define CHECK_EQ(a, b) DCHECK_EQ(a, b)
 #define CHECK_NE(a, b) DCHECK_NE(a, b)
@@ -88,4 +67,3 @@ struct LogStream {
 #define CHECK_LE(a, b) DCHECK_LE(a, b)
 #define CHECK_LT(a, b) DCHECK_LT(a, b)
 #define PCHECK(condition) DCHECK(condition)
-#endif

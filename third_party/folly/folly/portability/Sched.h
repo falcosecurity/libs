@@ -29,14 +29,14 @@ namespace folly {
 namespace portability {
 namespace sched {
 struct sched_param {
-	int sched_priority;
+  int sched_priority;
 };
 int sched_yield();
 int sched_get_priority_min(int policy);
 int sched_get_priority_max(int policy);
-}  // namespace sched
-}  // namespace portability
-}  // namespace folly
+} // namespace sched
+} // namespace portability
+} // namespace folly
 
 FOLLY_PUSH_WARNING
 FOLLY_CLANG_DISABLE_WARNING("-Wheader-hygiene")

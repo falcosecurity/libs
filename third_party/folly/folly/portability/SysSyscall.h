@@ -55,19 +55,20 @@ namespace detail {
 //  required.
 //
 //  mimic: syscall(2), linux
-template<typename... A>
-FOLLY_ERASE long linux_syscall([[maybe_unused]] long number, [[maybe_unused]] A... a) {
+template <typename... A>
+FOLLY_ERASE long linux_syscall(
+    [[maybe_unused]] long number, [[maybe_unused]] A... a) {
 #if defined(_WIN32) || (defined(__EMSCRIPTEN__) && !defined(syscall))
-	errno = ENOSYS;
-	return -1;
+  errno = ENOSYS;
+  return -1;
 #else
-	// syscall is deprecated under iOS >= 10.0
-	FOLLY_PUSH_WARNING
-	FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
-	return syscall(number, a...);
-	FOLLY_POP_WARNING
+  // syscall is deprecated under iOS >= 10.0
+  FOLLY_PUSH_WARNING
+  FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
+  return syscall(number, a...);
+  FOLLY_POP_WARNING
 #endif
 }
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

@@ -32,7 +32,7 @@ namespace hash {
 //
 //  Discouraged for suboptimal performance in the smhasher suite.
 
-#define FOLLY_HSIEH_GET16BITS(d) folly::loadUnaligned<uint16_t>(d)
+#define get16bits(d) folly::loadUnaligned<uint16_t>(d)
 
 /**
  * hsieh hash a byte-range.
@@ -40,64 +40,64 @@ namespace hash {
  * @see hsieh_hash32_str
  * @methodset hsieh
  */
-inline constexpr uint32_t hsieh_hash32_buf_constexpr(const unsigned char* buf,
-                                                     size_t len) noexcept {
-	// forcing signed char, since other platforms can use unsigned
-	const unsigned char* s = buf;
-	uint32_t hash = static_cast<uint32_t>(len);
-	uint32_t tmp = 0;
-	size_t rem = 0;
+inline constexpr uint32_t hsieh_hash32_buf_constexpr(
+    const unsigned char* buf, size_t len) noexcept {
+  // forcing signed char, since other platforms can use unsigned
+  const unsigned char* s = buf;
+  uint32_t hash = static_cast<uint32_t>(len);
+  uint32_t tmp = 0;
+  size_t rem = 0;
 
-	if(len <= 0 || buf == nullptr) {
-		return 0;
-	}
+  if (len <= 0 || buf == nullptr) {
+    return 0;
+  }
 
-	rem = len & 3;
-	len >>= 2;
+  rem = len & 3;
+  len >>= 2;
 
-	/* Main loop */
-	for(; len > 0; len--) {
-		hash += FOLLY_HSIEH_GET16BITS(s);
-		tmp = (FOLLY_HSIEH_GET16BITS(s + 2) << 11) ^ hash;
-		hash = (hash << 16) ^ tmp;
-		s += 2 * sizeof(uint16_t);
-		hash += hash >> 11;
-	}
+  /* Main loop */
+  for (; len > 0; len--) {
+    hash += get16bits(s);
+    tmp = (get16bits(s + 2) << 11) ^ hash;
+    hash = (hash << 16) ^ tmp;
+    s += 2 * sizeof(uint16_t);
+    hash += hash >> 11;
+  }
 
-	/* Handle end cases */
-	switch(rem) {
-	case 3:
-		hash += FOLLY_HSIEH_GET16BITS(s);
-		hash ^= hash << 16;
-		hash ^= s[sizeof(uint16_t)] << 18;
-		hash += hash >> 11;
-		break;
-	case 2:
-		hash += FOLLY_HSIEH_GET16BITS(s);
-		hash ^= hash << 11;
-		hash += hash >> 17;
-		break;
-	case 1:
-		hash += *s;
-		hash ^= hash << 10;
-		hash += hash >> 1;
-		break;
-	default:
-		break;
-	}
+  /* Handle end cases */
+  switch (rem) {
+    case 3:
+      hash += get16bits(s);
+      hash ^= hash << 16;
+      hash ^= s[sizeof(uint16_t)] << 18;
+      hash += hash >> 11;
+      break;
+    case 2:
+      hash += get16bits(s);
+      hash ^= hash << 11;
+      hash += hash >> 17;
+      break;
+    case 1:
+      hash += *s;
+      hash ^= hash << 10;
+      hash += hash >> 1;
+      break;
+    default:
+      break;
+  }
 
-	/* Force "avalanching" of final 127 bits */
-	hash ^= hash << 3;
-	hash += hash >> 5;
-	hash ^= hash << 4;
-	hash += hash >> 17;
-	hash ^= hash << 25;
-	hash += hash >> 6;
+  /* Force "avalanching" of final 127 bits */
+  hash ^= hash << 3;
+  hash += hash >> 5;
+  hash ^= hash << 4;
+  hash += hash >> 17;
+  hash ^= hash << 25;
+  hash += hash >> 6;
 
-	return hash;
+  return hash;
 }
 
-#undef FOLLY_HSIEH_GET16BITS
+#undef get16bits
 
 /**
  * hsieh hash a void* byte-range.
@@ -106,7 +106,8 @@ inline constexpr uint32_t hsieh_hash32_buf_constexpr(const unsigned char* buf,
  * @methodset hsieh
  */
 inline uint32_t hsieh_hash32_buf(const void* buf, size_t len) noexcept {
-	return hsieh_hash32_buf_constexpr(reinterpret_cast<const unsigned char*>(buf), len);
+  return hsieh_hash32_buf_constexpr(
+      reinterpret_cast<const unsigned char*>(buf), len);
 }
 
 /**
@@ -118,7 +119,7 @@ inline uint32_t hsieh_hash32_buf(const void* buf, size_t len) noexcept {
  * @methodset hsieh
  */
 inline uint32_t hsieh_hash32(const char* s) noexcept {
-	return hsieh_hash32_buf(s, std::strlen(s));
+  return hsieh_hash32_buf(s, std::strlen(s));
 }
 
 /**
@@ -129,8 +130,8 @@ inline uint32_t hsieh_hash32(const char* s) noexcept {
  * @methodset hsieh
  */
 inline uint32_t hsieh_hash32_str(const std::string& str) noexcept {
-	return hsieh_hash32_buf(str.data(), str.size());
+  return hsieh_hash32_buf(str.data(), str.size());
 }
 
-}  // namespace hash
-}  // namespace folly
+} // namespace hash
+} // namespace folly

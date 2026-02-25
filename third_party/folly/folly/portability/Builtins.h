@@ -26,7 +26,7 @@
 
 // MSVC had added support for __builtin_clz etc. in 16.3 (1923) but it will be
 // removed in 16.8 (1928).
-#if(_MSC_VER >= 1923) && (_MSC_VER < 1928)
+#if (_MSC_VER >= 1923) && (_MSC_VER < 1928)
 #define FOLLY_DETAILFOLLY_DETAIL_MSC_BUILTIN_SUPPORT 1
 #else
 #define FOLLY_DETAILFOLLY_DETAIL_MSC_BUILTIN_SUPPORT 0
@@ -37,124 +37,124 @@ namespace portability {
 namespace detail {
 void call_flush_instruction_cache_self_pid(void* begin, size_t size);
 }
-}  // namespace portability
-}  // namespace folly
+} // namespace portability
+} // namespace folly
 
 FOLLY_ALWAYS_INLINE void __builtin___clear_cache(char* begin, char* end) {
-	if(folly::kIsArchAmd64) {
-		// x86_64 doesn't require the instruction cache to be flushed after
-		// modification.
-	} else {
-		// Default to flushing it for everything else, such as ARM.
-		folly::portability::detail::call_flush_instruction_cache_self_pid(
-		        static_cast<void*>(begin),
-		        static_cast<size_t>(end - begin));
-	}
+  if (folly::kIsArchAmd64) {
+    // x86_64 doesn't require the instruction cache to be flushed after
+    // modification.
+  } else {
+    // Default to flushing it for everything else, such as ARM.
+    folly::portability::detail::call_flush_instruction_cache_self_pid(
+        static_cast<void*>(begin), static_cast<size_t>(end - begin));
+  }
 }
 
 #if !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
 FOLLY_ALWAYS_INLINE int __builtin_clz(unsigned int x) {
-	unsigned long index;
-	return int(_BitScanReverse(&index, (unsigned long)x) ? 31 - index : 32);
+  unsigned long index;
+  return int(_BitScanReverse(&index, (unsigned long)x) ? 31 - index : 32);
 }
 
 FOLLY_ALWAYS_INLINE int __builtin_clzl(unsigned long x) {
-	return __builtin_clz((unsigned int)x);
+  return __builtin_clz((unsigned int)x);
 }
 
 #if defined(_M_IX86) || defined(_M_ARM) || defined(_M_ARM64)
 FOLLY_ALWAYS_INLINE int __builtin_clzll(unsigned long long x) {
-	if(x == 0) {
-		return 64;
-	}
-	unsigned int msb = (unsigned int)(x >> 32);
-	unsigned int lsb = (unsigned int)x;
-	return (msb != 0) ? __builtin_clz(msb) : 32 + __builtin_clz(lsb);
+  if (x == 0) {
+    return 64;
+  }
+  unsigned int msb = (unsigned int)(x >> 32);
+  unsigned int lsb = (unsigned int)x;
+  return (msb != 0) ? __builtin_clz(msb) : 32 + __builtin_clz(lsb);
 }
 #else
 FOLLY_ALWAYS_INLINE int __builtin_clzll(unsigned long long x) {
-	unsigned long index;
-	return int(_BitScanReverse64(&index, x) ? 63 - index : 64);
+  unsigned long index;
+  return int(_BitScanReverse64(&index, x) ? 63 - index : 64);
 }
 #endif
 
 FOLLY_ALWAYS_INLINE int __builtin_ctz(unsigned int x) {
-	unsigned long index;
-	return int(_BitScanForward(&index, (unsigned long)x) ? index : 32);
+  unsigned long index;
+  return int(_BitScanForward(&index, (unsigned long)x) ? index : 32);
 }
 
 FOLLY_ALWAYS_INLINE int __builtin_ctzl(unsigned long x) {
-	return __builtin_ctz((unsigned int)x);
+  return __builtin_ctz((unsigned int)x);
 }
 
 #if defined(_M_IX86) || defined(_M_ARM) || defined(_M_ARM64)
 FOLLY_ALWAYS_INLINE int __builtin_ctzll(unsigned long long x) {
-	unsigned long index;
-	unsigned int msb = (unsigned int)(x >> 32);
-	unsigned int lsb = (unsigned int)x;
-	if(lsb != 0) {
-		return (int)(_BitScanForward(&index, lsb) ? index : 64);
-	} else {
-		return (int)(_BitScanForward(&index, msb) ? index + 32 : 64);
-	}
+  unsigned long index;
+  unsigned int msb = (unsigned int)(x >> 32);
+  unsigned int lsb = (unsigned int)x;
+  if (lsb != 0) {
+    return (int)(_BitScanForward(&index, lsb) ? index : 64);
+  } else {
+    return (int)(_BitScanForward(&index, msb) ? index + 32 : 64);
+  }
 }
 #else
 FOLLY_ALWAYS_INLINE int __builtin_ctzll(unsigned long long x) {
-	unsigned long index;
-	return int(_BitScanForward64(&index, x) ? index : 64);
+  unsigned long index;
+  return int(_BitScanForward64(&index, x) ? index : 64);
 }
 #endif
-#endif  // !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
+#endif // !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
 
 FOLLY_ALWAYS_INLINE int __builtin_ffs(int x) {
-	unsigned long index;
-	return int(_BitScanForward(&index, (unsigned long)x) ? index + 1 : 0);
+  unsigned long index;
+  return int(_BitScanForward(&index, (unsigned long)x) ? index + 1 : 0);
 }
 
 FOLLY_ALWAYS_INLINE int __builtin_ffsl(long x) {
-	return __builtin_ffs(int(x));
+  return __builtin_ffs(int(x));
 }
 
 #if defined(_M_IX86) || defined(_M_ARM) || defined(_M_ARM64)
 FOLLY_ALWAYS_INLINE int __builtin_ffsll(long long x) {
-	int ctzll = __builtin_ctzll((unsigned long long)x);
-	return ctzll != 64 ? ctzll + 1 : 0;
+  int ctzll = __builtin_ctzll((unsigned long long)x);
+  return ctzll != 64 ? ctzll + 1 : 0;
 }
 #else
 FOLLY_ALWAYS_INLINE int __builtin_ffsll(long long x) {
-	unsigned long index;
-	return int(_BitScanForward64(&index, (unsigned long long)x) ? index + 1 : 0);
+  unsigned long index;
+  return int(_BitScanForward64(&index, (unsigned long long)x) ? index + 1 : 0);
 }
 
 FOLLY_ALWAYS_INLINE int __builtin_popcount(unsigned int x) {
-	return int(__popcnt(x));
+  return int(__popcnt(x));
 }
 
 #if !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
 FOLLY_ALWAYS_INLINE int __builtin_popcountl(unsigned long x) {
-	static_assert(sizeof(x) == 4);
-	return int(__popcnt(x));
+  static_assert(sizeof(x) == 4);
+  return int(__popcnt(x));
 }
-#endif  // !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
+#endif // !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
 #endif
 
 #if !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
 #if defined(_M_IX86)
 FOLLY_ALWAYS_INLINE int __builtin_popcountll(unsigned long long x) {
-	return int(__popcnt((unsigned int)(x >> 32))) + int(__popcnt((unsigned int)x));
+  return int(__popcnt((unsigned int)(x >> 32))) +
+      int(__popcnt((unsigned int)x));
 }
 #elif defined(_M_X64)
 FOLLY_ALWAYS_INLINE int __builtin_popcountll(unsigned long long x) {
-	return int(__popcnt64(x));
+  return int(__popcnt64(x));
 }
 #endif
-#endif  // !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
+#endif // !defined(_MSC_VER) || !defined(FOLLY_DETAIL_MSC_BUILTIN_SUPPORT)
 
 FOLLY_ALWAYS_INLINE void* __builtin_return_address(unsigned int frame) {
-	// I really hope frame is zero...
-	(void)frame;
-	assert(frame == 0);
-	return _ReturnAddress();
+  // I really hope frame is zero...
+  (void)frame;
+  assert(frame == 0);
+  return _ReturnAddress();
 }
 #endif
 

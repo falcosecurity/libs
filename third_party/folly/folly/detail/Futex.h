@@ -27,10 +27,10 @@ namespace folly {
 namespace detail {
 
 enum class FutexResult {
-	VALUE_CHANGED, /* futex value didn't match expected */
-	AWOKEN,        /* wakeup by matching futex wake, or spurious wakeup */
-	INTERRUPTED,   /* wakeup by interrupting signal */
-	TIMEDOUT,      /* wakeup by expiring deadline */
+  VALUE_CHANGED, /* futex value didn't match expected */
+  AWOKEN, /* wakeup by matching futex wake, or spurious wakeup */
+  INTERRUPTED, /* wakeup by interrupting signal */
+  TIMEDOUT, /* wakeup by expiring deadline */
 };
 
 /**
@@ -45,7 +45,7 @@ enum class FutexResult {
  * Because of the semantics of the futex syscall, the futex family of
  * functions are available as free functions rather than member functions
  */
-template<template<typename> class Atom = std::atomic>
+template <template <typename> class Atom = std::atomic>
 using Futex = Atom<std::uint32_t>;
 
 /**
@@ -53,8 +53,9 @@ using Futex = Atom<std::uint32_t>;
  * it is returning because it has consumed a wake() event, false for any
  * other return (signal, this->load() != expected, or spurious wakeup).
  */
-template<typename Futex>
-FutexResult futexWait(const Futex* futex, uint32_t expected, uint32_t waitMask = -1);
+template <typename Futex>
+FutexResult futexWait(
+    const Futex* futex, uint32_t expected, uint32_t waitMask = -1);
 
 /**
  * Similar to futexWait but also accepts a deadline until when the wait call
@@ -66,11 +67,12 @@ FutexResult futexWait(const Futex* futex, uint32_t expected, uint32_t waitMask =
  *
  * For any other clock type, now() will be invoked twice.
  */
-template<typename Futex, class Clock, class Duration>
-FutexResult futexWaitUntil(const Futex* futex,
-                           uint32_t expected,
-                           std::chrono::time_point<Clock, Duration> const& deadline,
-                           uint32_t waitMask = -1);
+template <typename Futex, class Clock, class Duration>
+FutexResult futexWaitUntil(
+    const Futex* futex,
+    uint32_t expected,
+    std::chrono::time_point<Clock, Duration> const& deadline,
+    uint32_t waitMask = -1);
 
 /**
  * Wakes up to count waiters where (waitMask & wakeMask) != 0, returning the
@@ -81,23 +83,25 @@ FutexResult futexWaitUntil(const Futex* futex,
  * the linearization point for unlock or control handoff).  See
  * https://sourceware.org/bugzilla/show_bug.cgi?id=13690
  */
-template<typename Futex>
-int futexWake(const Futex* futex,
-              int count = std::numeric_limits<int>::max(),
-              uint32_t wakeMask = -1);
+template <typename Futex>
+int futexWake(
+    const Futex* futex,
+    int count = std::numeric_limits<int>::max(),
+    uint32_t wakeMask = -1);
 
 /** A std::atomic subclass that can be used to force Futex to emulate
  *  the underlying futex() syscall.  This is primarily useful to test or
  *  benchmark the emulated implementation on systems that don't need it. */
-template<typename T>
+template <typename T>
 struct EmulatedFutexAtomic : public std::atomic<T> {
-	EmulatedFutexAtomic() noexcept = default;
-	constexpr /* implicit */ EmulatedFutexAtomic(T init) noexcept: std::atomic<T>(init) {}
-	// It doesn't copy or move
-	EmulatedFutexAtomic(EmulatedFutexAtomic&& rhs) = delete;
+  EmulatedFutexAtomic() noexcept = default;
+  constexpr /* implicit */ EmulatedFutexAtomic(T init) noexcept
+      : std::atomic<T>(init) {}
+  // It doesn't copy or move
+  EmulatedFutexAtomic(EmulatedFutexAtomic&& rhs) = delete;
 };
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly
 
 #include <folly/detail/Futex-inl.h>

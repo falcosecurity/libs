@@ -29,221 +29,249 @@ namespace folly {
 //
 //  Useful for values which may be loaded and stored concurrently, such as
 //  counters, but which do not guard any associated data.
-template<typename T>
+template <typename T>
 struct relaxed_atomic;
 
 namespace detail {
 
-template<typename T>
+template <typename T>
 struct relaxed_atomic_base : protected std::atomic<T> {
-private:
-	using atomic = std::atomic<T>;
+ private:
+  using atomic = std::atomic<T>;
 
-public:
-	using value_type = T;
+ public:
+  using value_type = T;
 
-	using atomic::atomic;
-	using atomic::is_always_lock_free;
-	using atomic::is_lock_free;
+  using atomic::atomic;
+  using atomic::is_always_lock_free;
+  using atomic::is_lock_free;
 
-	T operator=(T desired) noexcept {
-		store(desired);
-		return desired;
-	}
-	T operator=(T desired) volatile noexcept {
-		store(desired);
-		return desired;
-	}
+  T operator=(T desired) noexcept {
+    store(desired);
+    return desired;
+  }
+  T operator=(T desired) volatile noexcept {
+    store(desired);
+    return desired;
+  }
 
-	void store(T desired) noexcept { atomic::store(desired, std::memory_order_relaxed); }
-	void store(T desired) volatile noexcept { atomic::store(desired, std::memory_order_relaxed); }
+  void store(T desired) noexcept {
+    atomic::store(desired, std::memory_order_relaxed);
+  }
+  void store(T desired) volatile noexcept {
+    atomic::store(desired, std::memory_order_relaxed);
+  }
 
-	T load() const noexcept { return atomic::load(std::memory_order_relaxed); }
-	T load() const volatile noexcept { return atomic::load(std::memory_order_relaxed); }
+  T load() const noexcept { return atomic::load(std::memory_order_relaxed); }
+  T load() const volatile noexcept {
+    return atomic::load(std::memory_order_relaxed);
+  }
 
-	operator T() const noexcept { return load(); }
-	operator T() const volatile noexcept { return load(); }
+  operator T() const noexcept { return load(); }
+  operator T() const volatile noexcept { return load(); }
 
-	T exchange(T desired) noexcept { return atomic::exchange(desired, std::memory_order_relaxed); }
-	T exchange(T desired) volatile noexcept {
-		return atomic::exchange(desired, std::memory_order_relaxed);
-	}
+  T exchange(T desired) noexcept {
+    return atomic::exchange(desired, std::memory_order_relaxed);
+  }
+  T exchange(T desired) volatile noexcept {
+    return atomic::exchange(desired, std::memory_order_relaxed);
+  }
 
-	bool compare_exchange_weak(T& expected, T desired) noexcept {
-		return atomic::compare_exchange_weak(expected, desired, std::memory_order_relaxed);
-	}
-	bool compare_exchange_weak(T& expected, T desired) volatile noexcept {
-		return atomic::compare_exchange_weak(expected, desired, std::memory_order_relaxed);
-	}
+  bool compare_exchange_weak(T& expected, T desired) noexcept {
+    return atomic::compare_exchange_weak(
+        expected, desired, std::memory_order_relaxed);
+  }
+  bool compare_exchange_weak(T& expected, T desired) volatile noexcept {
+    return atomic::compare_exchange_weak(
+        expected, desired, std::memory_order_relaxed);
+  }
 
-	bool compare_exchange_strong(T& expected, T desired) noexcept {
-		return atomic::compare_exchange_strong(expected, desired, std::memory_order_relaxed);
-	}
-	bool compare_exchange_strong(T& expected, T desired) volatile noexcept {
-		return atomic::compare_exchange_strong(expected, desired, std::memory_order_relaxed);
-	}
+  bool compare_exchange_strong(T& expected, T desired) noexcept {
+    return atomic::compare_exchange_strong(
+        expected, desired, std::memory_order_relaxed);
+  }
+  bool compare_exchange_strong(T& expected, T desired) volatile noexcept {
+    return atomic::compare_exchange_strong(
+        expected, desired, std::memory_order_relaxed);
+  }
 };
 
-template<typename T>
+template <typename T>
 struct relaxed_atomic_integral_base : private relaxed_atomic_base<T> {
-private:
-	using atomic = std::atomic<T>;
-	using base = relaxed_atomic_base<T>;
+ private:
+  using atomic = std::atomic<T>;
+  using base = relaxed_atomic_base<T>;
 
-public:
-	using typename base::value_type;
+ public:
+  using typename base::value_type;
 
-	using base::relaxed_atomic_base;
-	using base::operator=;
-	using base::operator T;
-	using base::compare_exchange_strong;
-	using base::compare_exchange_weak;
-	using base::exchange;
-	using base::is_lock_free;
-	using base::load;
-	using base::store;
+  using base::relaxed_atomic_base;
+  using base::operator=;
+  using base::operator T;
+  using base::compare_exchange_strong;
+  using base::compare_exchange_weak;
+  using base::exchange;
+  using base::is_lock_free;
+  using base::load;
+  using base::store;
 
-	T fetch_add(T arg) noexcept { return atomic::fetch_add(arg, std::memory_order_relaxed); }
-	T fetch_add(T arg) volatile noexcept {
-		return atomic::fetch_add(arg, std::memory_order_relaxed);
-	}
+  T fetch_add(T arg) noexcept {
+    return atomic::fetch_add(arg, std::memory_order_relaxed);
+  }
+  T fetch_add(T arg) volatile noexcept {
+    return atomic::fetch_add(arg, std::memory_order_relaxed);
+  }
 
-	T fetch_sub(T arg) noexcept { return atomic::fetch_sub(arg, std::memory_order_relaxed); }
-	T fetch_sub(T arg) volatile noexcept {
-		return atomic::fetch_sub(arg, std::memory_order_relaxed);
-	}
+  T fetch_sub(T arg) noexcept {
+    return atomic::fetch_sub(arg, std::memory_order_relaxed);
+  }
+  T fetch_sub(T arg) volatile noexcept {
+    return atomic::fetch_sub(arg, std::memory_order_relaxed);
+  }
 
-	T fetch_and(T arg) noexcept { return atomic::fetch_and(arg, std::memory_order_relaxed); }
-	T fetch_and(T arg) volatile noexcept {
-		return atomic::fetch_and(arg, std::memory_order_relaxed);
-	}
+  T fetch_and(T arg) noexcept {
+    return atomic::fetch_and(arg, std::memory_order_relaxed);
+  }
+  T fetch_and(T arg) volatile noexcept {
+    return atomic::fetch_and(arg, std::memory_order_relaxed);
+  }
 
-	T fetch_or(T arg) noexcept { return atomic::fetch_or(arg, std::memory_order_relaxed); }
-	T fetch_or(T arg) volatile noexcept { return atomic::fetch_or(arg, std::memory_order_relaxed); }
+  T fetch_or(T arg) noexcept {
+    return atomic::fetch_or(arg, std::memory_order_relaxed);
+  }
+  T fetch_or(T arg) volatile noexcept {
+    return atomic::fetch_or(arg, std::memory_order_relaxed);
+  }
 
-	T fetch_xor(T arg) noexcept { return atomic::fetch_xor(arg, std::memory_order_relaxed); }
-	T fetch_xor(T arg) volatile noexcept {
-		return atomic::fetch_xor(arg, std::memory_order_relaxed);
-	}
+  T fetch_xor(T arg) noexcept {
+    return atomic::fetch_xor(arg, std::memory_order_relaxed);
+  }
+  T fetch_xor(T arg) volatile noexcept {
+    return atomic::fetch_xor(arg, std::memory_order_relaxed);
+  }
 
-	T operator++() noexcept { return fetch_add(1) + 1; }
-	T operator++() volatile noexcept { return fetch_add(1) + 1; }
+  T operator++() noexcept { return fetch_add(1) + 1; }
+  T operator++() volatile noexcept { return fetch_add(1) + 1; }
 
-	T operator++(int) noexcept { return fetch_add(1); }
-	T operator++(int) volatile noexcept { return fetch_add(1); }
+  T operator++(int) noexcept { return fetch_add(1); }
+  T operator++(int) volatile noexcept { return fetch_add(1); }
 
-	T operator--() noexcept { return fetch_sub(1) - 1; }
-	T operator--() volatile noexcept { return fetch_sub(1) - 1; }
+  T operator--() noexcept { return fetch_sub(1) - 1; }
+  T operator--() volatile noexcept { return fetch_sub(1) - 1; }
 
-	T operator--(int) noexcept { return fetch_sub(1); }
-	T operator--(int) volatile noexcept { return fetch_sub(1); }
+  T operator--(int) noexcept { return fetch_sub(1); }
+  T operator--(int) volatile noexcept { return fetch_sub(1); }
 
-	T operator+=(T arg) noexcept { return fetch_add(arg) + arg; }
-	T operator+=(T arg) volatile noexcept { return fetch_add(arg) + arg; }
+  T operator+=(T arg) noexcept { return fetch_add(arg) + arg; }
+  T operator+=(T arg) volatile noexcept { return fetch_add(arg) + arg; }
 
-	T operator-=(T arg) noexcept { return fetch_sub(arg) - arg; }
-	T operator-=(T arg) volatile noexcept { return fetch_sub(arg) - arg; }
+  T operator-=(T arg) noexcept { return fetch_sub(arg) - arg; }
+  T operator-=(T arg) volatile noexcept { return fetch_sub(arg) - arg; }
 
-	T operator&=(T arg) noexcept { return fetch_and(arg) & arg; }
-	T operator&=(T arg) volatile noexcept { return fetch_and(arg) & arg; }
+  T operator&=(T arg) noexcept { return fetch_and(arg) & arg; }
+  T operator&=(T arg) volatile noexcept { return fetch_and(arg) & arg; }
 
-	T operator|=(T arg) noexcept { return fetch_or(arg) | arg; }
-	T operator|=(T arg) volatile noexcept { return fetch_or(arg) | arg; }
+  T operator|=(T arg) noexcept { return fetch_or(arg) | arg; }
+  T operator|=(T arg) volatile noexcept { return fetch_or(arg) | arg; }
 
-	T operator^=(T arg) noexcept { return fetch_xor(arg) ^ arg; }
-	T operator^=(T arg) volatile noexcept { return fetch_xor(arg) ^ arg; }
+  T operator^=(T arg) noexcept { return fetch_xor(arg) ^ arg; }
+  T operator^=(T arg) volatile noexcept { return fetch_xor(arg) ^ arg; }
 };
 
-}  // namespace detail
+} // namespace detail
 
-template<>
+template <>
 struct relaxed_atomic<bool> : detail::relaxed_atomic_base<bool> {
-private:
-	using base = detail::relaxed_atomic_base<bool>;
+ private:
+  using base = detail::relaxed_atomic_base<bool>;
 
-public:
-	using typename base::value_type;
+ public:
+  using typename base::value_type;
 
-	using base::relaxed_atomic_base;
-	using base::operator=;
-	using base::operator bool;
+  using base::relaxed_atomic_base;
+  using base::operator=;
+  using base::operator bool;
 };
 
 using relaxed_atomic_bool = relaxed_atomic<bool>;
 
-template<typename T>
+template <typename T>
 struct relaxed_atomic : detail::relaxed_atomic_base<T> {
-private:
-	using base = detail::relaxed_atomic_base<T>;
+ private:
+  using base = detail::relaxed_atomic_base<T>;
 
-public:
-	using typename base::value_type;
+ public:
+  using typename base::value_type;
 
-	using base::relaxed_atomic_base;
-	using base::operator=;
-	using base::operator T;
+  using base::relaxed_atomic_base;
+  using base::operator=;
+  using base::operator T;
 };
 
-template<typename T>
+template <typename T>
 struct relaxed_atomic<T*> : detail::relaxed_atomic_base<T*> {
-private:
-	using atomic = std::atomic<T*>;
-	using base = detail::relaxed_atomic_base<T*>;
+ private:
+  using atomic = std::atomic<T*>;
+  using base = detail::relaxed_atomic_base<T*>;
 
-public:
-	using typename base::value_type;
+ public:
+  using typename base::value_type;
 
-	using detail::relaxed_atomic_base<T*>::relaxed_atomic_base;
-	using base::operator=;
-	using base::operator T*;
+  using detail::relaxed_atomic_base<T*>::relaxed_atomic_base;
+  using base::operator=;
+  using base::operator T*;
 
-	T* fetch_add(std::ptrdiff_t arg) noexcept {
-		return atomic::fetch_add(arg, std::memory_order_relaxed);
-	}
-	T* fetch_add(std::ptrdiff_t arg) volatile noexcept {
-		return atomic::fetch_add(arg, std::memory_order_relaxed);
-	}
+  T* fetch_add(std::ptrdiff_t arg) noexcept {
+    return atomic::fetch_add(arg, std::memory_order_relaxed);
+  }
+  T* fetch_add(std::ptrdiff_t arg) volatile noexcept {
+    return atomic::fetch_add(arg, std::memory_order_relaxed);
+  }
 
-	T* fetch_sub(std::ptrdiff_t arg) noexcept {
-		return atomic::fetch_sub(arg, std::memory_order_relaxed);
-	}
-	T* fetch_sub(std::ptrdiff_t arg) volatile noexcept {
-		return atomic::fetch_sub(arg, std::memory_order_relaxed);
-	}
+  T* fetch_sub(std::ptrdiff_t arg) noexcept {
+    return atomic::fetch_sub(arg, std::memory_order_relaxed);
+  }
+  T* fetch_sub(std::ptrdiff_t arg) volatile noexcept {
+    return atomic::fetch_sub(arg, std::memory_order_relaxed);
+  }
 
-	T* operator++() noexcept { return fetch_add(1) + 1; }
-	T* operator++() volatile noexcept { return fetch_add(1) + 1; }
+  T* operator++() noexcept { return fetch_add(1) + 1; }
+  T* operator++() volatile noexcept { return fetch_add(1) + 1; }
 
-	T* operator++(int) noexcept { return fetch_add(1); }
-	T* operator++(int) volatile noexcept { return fetch_add(1); }
+  T* operator++(int) noexcept { return fetch_add(1); }
+  T* operator++(int) volatile noexcept { return fetch_add(1); }
 
-	T* operator--() noexcept { return fetch_sub(1) - 1; }
-	T* operator--() volatile noexcept { return fetch_sub(1) - 1; }
+  T* operator--() noexcept { return fetch_sub(1) - 1; }
+  T* operator--() volatile noexcept { return fetch_sub(1) - 1; }
 
-	T* operator--(int) noexcept { return fetch_sub(1); }
-	T* operator--(int) volatile noexcept { return fetch_sub(1); }
+  T* operator--(int) noexcept { return fetch_sub(1); }
+  T* operator--(int) volatile noexcept { return fetch_sub(1); }
 
-	T* operator+=(std::ptrdiff_t arg) noexcept { return fetch_add(arg) + arg; }
-	T* operator+=(std::ptrdiff_t arg) volatile noexcept { return fetch_add(arg) + arg; }
+  T* operator+=(std::ptrdiff_t arg) noexcept { return fetch_add(arg) + arg; }
+  T* operator+=(std::ptrdiff_t arg) volatile noexcept {
+    return fetch_add(arg) + arg;
+  }
 
-	T* operator-=(std::ptrdiff_t arg) noexcept { return fetch_sub(arg) - arg; }
-	T* operator-=(std::ptrdiff_t arg) volatile noexcept { return fetch_sub(arg) - arg; }
+  T* operator-=(std::ptrdiff_t arg) noexcept { return fetch_sub(arg) - arg; }
+  T* operator-=(std::ptrdiff_t arg) volatile noexcept {
+    return fetch_sub(arg) - arg;
+  }
 };
 
-template<typename T>
+template <typename T>
 relaxed_atomic(T) -> relaxed_atomic<T>;
 
-#define FOLLY_RELAXED_ATOMIC_DEFINE_INTEGRAL_SPECIALIZATION(type)              \
-	template<>                                                                 \
-	struct relaxed_atomic<type> : detail::relaxed_atomic_integral_base<type> { \
-	private:                                                                   \
-		using base = detail::relaxed_atomic_integral_base<type>;               \
-                                                                               \
-	public:                                                                    \
-		using base::relaxed_atomic_integral_base;                              \
-		using base::operator=;                                                 \
-		using base::operator type;                                             \
-	};
+#define FOLLY_RELAXED_ATOMIC_DEFINE_INTEGRAL_SPECIALIZATION(type)            \
+  template <>                                                                \
+  struct relaxed_atomic<type> : detail::relaxed_atomic_integral_base<type> { \
+   private:                                                                  \
+    using base = detail::relaxed_atomic_integral_base<type>;                 \
+                                                                             \
+   public:                                                                   \
+    using base::relaxed_atomic_integral_base;                                \
+    using base::operator=;                                                   \
+    using base::operator type;                                               \
+  };
 
 FOLLY_RELAXED_ATOMIC_DEFINE_INTEGRAL_SPECIALIZATION(char)
 FOLLY_RELAXED_ATOMIC_DEFINE_INTEGRAL_SPECIALIZATION(signed char)
@@ -304,4 +332,4 @@ using relaxed_atomic_ptrdiff_t = relaxed_atomic<std::ptrdiff_t>;
 using relaxed_atomic_intmax_t = relaxed_atomic<std::intmax_t>;
 using relaxed_atomic_uintmax_t = relaxed_atomic<std::uintmax_t>;
 
-}  // namespace folly
+} // namespace folly

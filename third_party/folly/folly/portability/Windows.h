@@ -32,8 +32,8 @@
 // disabled to ensure all of the normal names get declared properly.
 #include <stdio.h>
 
-#include <direct.h>  // @manual nolint
-#include <io.h>      // @manual nolint
+#include <direct.h> // @manual nolint
+#include <io.h> // @manual nolint
 
 #if defined(min) || defined(max)
 #error Windows.h needs to be included by this header, or else NOMINMAX needs \
@@ -47,8 +47,8 @@
 #define NOMINMAX 1
 #endif
 
-#include <WinSock2.h>  // @manual
-#include <Windows.h>   // @manual
+#include <WinSock2.h> // @manual
+#include <Windows.h> // @manual
 
 #ifdef CAL_GREGORIAN
 #undef CAL_GREGORIAN

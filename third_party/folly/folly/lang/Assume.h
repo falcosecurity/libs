@@ -53,7 +53,7 @@ namespace folly {
  * to the builtin, which cannot used with expressions that have side-effects.
  */
 FOLLY_ALWAYS_INLINE void assume(bool cond) {
-	compiler_may_unsafely_assume(cond);
+  compiler_may_unsafely_assume(cond);
 }
 
 /**
@@ -66,17 +66,17 @@ FOLLY_ALWAYS_INLINE void assume(bool cond) {
  * provably enumerated.
  */
 [[noreturn]] FOLLY_ALWAYS_INLINE void assume_unreachable() {
-	compiler_may_unsafely_assume_unreachable();
+  compiler_may_unsafely_assume_unreachable();
 }
 
-}  // namespace folly
+} // namespace folly
 
 /**
  * Inform the compiler that the statement is not reachable at runtime, and
  * disable compiler warnings.
  */
-#define FOLLY_ASSUME_UNREACHABLE()                    \
-	FOLLY_PUSH_WARNING                                \
-	FOLLY_CLANG_DISABLE_WARNING("-Wunreachable-code") \
-	::folly::assume_unreachable();                    \
-	FOLLY_POP_WARNING
+#define FOLLY_ASSUME_UNREACHABLE()                  \
+  FOLLY_PUSH_WARNING                                \
+  FOLLY_CLANG_DISABLE_WARNING("-Wunreachable-code") \
+  ::folly::assume_unreachable();                    \
+  FOLLY_POP_WARNING

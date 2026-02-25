@@ -52,6 +52,6 @@ FOLLY_CREATE_FREE_INVOKER_SUITE(begin, std);
 /// Invokes unqualified end with std::end in scope.
 FOLLY_CREATE_FREE_INVOKER_SUITE(end, std);
 
-}  // namespace access
+} // namespace access
 
-}  // namespace folly
+} // namespace folly

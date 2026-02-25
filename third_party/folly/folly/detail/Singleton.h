@@ -25,10 +25,10 @@ namespace detail {
 
 struct FOLLY_EXPORT DefaultTag {};
 
-template<typename T>
+template <typename T>
 struct DefaultMake {
-	T operator()() const { return T(); }
+  T operator()() const { return T(); }
 };
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

@@ -68,51 +68,51 @@ namespace detail {
  *   std::forward_iterator_tag
  *   std::bidirectional_iterator_tag
  */
-template<class D, class V, class Tag>
+template <class D, class V, class Tag>
 class IteratorFacade {
-public:
-	using value_type = V;
-	using reference = value_type&;
-	using pointer = value_type*;
-	using difference_type = std::ptrdiff_t;
-	using iterator_category = Tag;
+ public:
+  using value_type = V;
+  using reference = value_type&;
+  using pointer = value_type*;
+  using difference_type = std::ptrdiff_t;
+  using iterator_category = Tag;
 
-	friend bool operator==(D const& lhs, D const& rhs) { return equal(lhs, rhs); }
+  friend bool operator==(D const& lhs, D const& rhs) { return equal(lhs, rhs); }
 
-	friend bool operator!=(D const& lhs, D const& rhs) { return !(lhs == rhs); }
+  friend bool operator!=(D const& lhs, D const& rhs) { return !(lhs == rhs); }
 
-	V& operator*() const { return asDerivedConst().dereference(); }
+  V& operator*() const { return asDerivedConst().dereference(); }
 
-	V* operator->() const { return std::addressof(operator*()); }
+  V* operator->() const { return std::addressof(operator*()); }
 
-	D& operator++() {
-		asDerived().increment();
-		return asDerived();
-	}
+  D& operator++() {
+    asDerived().increment();
+    return asDerived();
+  }
 
-	D operator++(int) {
-		auto ret = asDerived();  // copy
-		asDerived().increment();
-		return ret;
-	}
+  D operator++(int) {
+    auto ret = asDerived(); // copy
+    asDerived().increment();
+    return ret;
+  }
 
-	D& operator--() {
-		asDerived().decrement();
-		return asDerived();
-	}
+  D& operator--() {
+    asDerived().decrement();
+    return asDerived();
+  }
 
-	D operator--(int) {
-		auto ret = asDerived();  // copy
-		asDerived().decrement();
-		return ret;
-	}
+  D operator--(int) {
+    auto ret = asDerived(); // copy
+    asDerived().decrement();
+    return ret;
+  }
 
-private:
-	D& asDerived() { return static_cast<D&>(*this); }
+ private:
+  D& asDerived() { return static_cast<D&>(*this); }
 
-	D const& asDerivedConst() const { return static_cast<D const&>(*this); }
+  D const& asDerivedConst() const { return static_cast<D const&>(*this); }
 
-	static bool equal(D const& lhs, D const& rhs) { return lhs.equal(rhs); }
+  static bool equal(D const& lhs, D const& rhs) { return lhs.equal(rhs); }
 };
 
 /**
@@ -124,33 +124,33 @@ private:
  * I: the wrapper iterator type
  * V: value type
  */
-template<class D, class I, class V, class Tag>
+template <class D, class I, class V, class Tag>
 class IteratorAdaptor : public IteratorFacade<D, V, Tag> {
-public:
-	using Super = IteratorFacade<D, V, Tag>;
-	using value_type = typename Super::value_type;
-	using iterator_category = typename Super::iterator_category;
-	using reference = typename Super::reference;
-	using pointer = typename Super::pointer;
-	using difference_type = typename Super::difference_type;
+ public:
+  using Super = IteratorFacade<D, V, Tag>;
+  using value_type = typename Super::value_type;
+  using iterator_category = typename Super::iterator_category;
+  using reference = typename Super::reference;
+  using pointer = typename Super::pointer;
+  using difference_type = typename Super::difference_type;
 
-	IteratorAdaptor() = default;
-	explicit IteratorAdaptor(I base): base_(std::move(base)) {}
+  IteratorAdaptor() = default;
+  explicit IteratorAdaptor(I base) : base_(std::move(base)) {}
 
-	void increment() { ++base_; }
+  void increment() { ++base_; }
 
-	void decrement() { --base_; }
+  void decrement() { --base_; }
 
-	V& dereference() const { return *base_; }
+  V& dereference() const { return *base_; }
 
-	bool equal(D const& rhs) const { return base_ == rhs.base_; }
+  bool equal(D const& rhs) const { return base_ == rhs.base_; }
 
-	I const& base() const { return base_; }
-	I& base() { return base_; }
+  I const& base() const { return base_; }
+  I& base() { return base_; }
 
-private:
-	I base_;
+ private:
+  I base_;
 };
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

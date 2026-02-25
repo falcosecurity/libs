@@ -34,35 +34,36 @@ namespace folly {
 namespace detail {
 
 struct SingletonThreadLocalState {
-	struct LocalCache {
-		void* object;  // type-erased pointer to the object field of wrapper, below
-	};
-	static_assert(  // pod avoids tls-init guard var and tls-fini ub use-after-dtor
-	        std::is_standard_layout<LocalCache>::value && std::is_trivial<LocalCache>::value,
-	        "non-pod");
+  struct LocalCache {
+    void* object; // type-erased pointer to the object field of wrapper, below
+  };
+  static_assert( // pod avoids tls-init guard var and tls-fini ub use-after-dtor
+      std::is_standard_layout<LocalCache>::value &&
+          std::is_trivial<LocalCache>::value,
+      "non-pod");
 
-	struct LocalLifetime;
+  struct LocalLifetime;
 
-	struct Tracking {
-		using LocalCacheSet = std::unordered_set<LocalCache*>;
+  struct Tracking {
+    using LocalCacheSet = std::unordered_set<LocalCache*>;
 
-		// per-cache refcounts, the number of lifetimes tracking that cache
-		std::unordered_map<LocalCache*, size_t> caches;
+    // per-cache refcounts, the number of lifetimes tracking that cache
+    std::unordered_map<LocalCache*, size_t> caches;
 
-		// per-lifetime cache tracking; 1-M lifetimes may track 1-N caches
-		std::unordered_map<LocalLifetime*, LocalCacheSet> lifetimes;
+    // per-lifetime cache tracking; 1-M lifetimes may track 1-N caches
+    std::unordered_map<LocalLifetime*, LocalCacheSet> lifetimes;
 
-		Tracking() noexcept;
-		~Tracking();
-	};
+    Tracking() noexcept;
+    ~Tracking();
+  };
 
-	struct LocalLifetime {
-		void destroy(Tracking& tracking) noexcept;
-		void track(LocalCache& cache, Tracking& tracking, void* object) noexcept;
-	};
+  struct LocalLifetime {
+    void destroy(Tracking& tracking) noexcept;
+    void track(LocalCache& cache, Tracking& tracking, void* object) noexcept;
+  };
 };
 
-}  // namespace detail
+} // namespace detail
 
 /// SingletonThreadLocal
 ///
@@ -96,135 +97,143 @@ struct SingletonThreadLocalState {
 ///
 /// Keywords to help people find this class in search:
 /// Thread Local Singleton ThreadLocalSingleton
-template<typename T,
-         typename Tag = detail::DefaultTag,
-         typename Make = void,
-         typename TLTag =
-                 std::conditional_t<std::is_same<Tag, detail::DefaultTag>::value, void, Tag>>
+template <
+    typename T,
+    typename Tag = detail::DefaultTag,
+    typename Make = void,
+    typename TLTag = std::
+        conditional_t<std::is_same<Tag, detail::DefaultTag>::value, void, Tag>>
 class SingletonThreadLocal {
-private:
-	static detail::UniqueInstance unique;
+ private:
+  static detail::UniqueInstance unique;
 
-	using State = detail::SingletonThreadLocalState;
-	using LocalCache = State::LocalCache;
+  using State = detail::SingletonThreadLocalState;
+  using LocalCache = State::LocalCache;
 
-	using MakeFn = std::conditional_t<std::is_void_v<Make>, detail::DefaultMake<T>, Make>;
-	using Object = invoke_result_t<MakeFn>;
-	static_assert(std::is_convertible<Object&, T&>::value, "inconvertible");
+  using MakeFn =
+      std::conditional_t<std::is_void_v<Make>, detail::DefaultMake<T>, Make>;
+  using Object = invoke_result_t<MakeFn>;
+  static_assert(std::is_convertible<Object&, T&>::value, "inconvertible");
 
-	struct ObjectWrapper {
-		// keep as first field in first base, to save 1 instr in the fast path
-		Object object{MakeFn{}()};
-	};
-	struct Wrapper : ObjectWrapper, State::Tracking {
-		/* implicit */ operator T&() { return ObjectWrapper::object; }
-	};
+  struct ObjectWrapper {
+    // keep as first field in first base, to save 1 instr in the fast path
+    Object object{MakeFn{}()};
+  };
+  struct Wrapper : ObjectWrapper, State::Tracking {
+    /* implicit */ operator T&() { return ObjectWrapper::object; }
+  };
 
-	using WrapperTL = ThreadLocal<Wrapper, TLTag>;
+  using WrapperTL = ThreadLocal<Wrapper, TLTag>;
 
-	struct LocalLifetime : State::LocalLifetime {
-		~LocalLifetime() { destroy(getWrapper()); }
-	};
+  struct LocalLifetime : State::LocalLifetime {
+    ~LocalLifetime() { destroy(getWrapper()); }
+  };
 
-	SingletonThreadLocal() = delete;
+  SingletonThreadLocal() = delete;
 
-	FOLLY_ALWAYS_INLINE static WrapperTL& getWrapperTL() {
-		(void)unique;  // force the object not to be thrown out as unused
-		return detail::createGlobal<WrapperTL, Tag>();
-	}
+  FOLLY_ALWAYS_INLINE static WrapperTL& getWrapperTL() {
+    (void)unique; // force the object not to be thrown out as unused
+    return detail::createGlobal<WrapperTL, Tag>();
+  }
 
-	FOLLY_NOINLINE static Wrapper& getWrapper() { return *getWrapperTL(); }
+  FOLLY_NOINLINE static Wrapper& getWrapper() { return *getWrapperTL(); }
 
-	FOLLY_NOINLINE static Wrapper& getSlow(LocalCache& cache) {
-		auto& wrapper = getWrapper();
-		if(threadlocal_detail::StaticMetaBase::dying()) {
-			return wrapper;
-		}
-		static thread_local LocalLifetime lifetime;
-		lifetime.track(cache, wrapper, &wrapper.object);  // idempotent
-		return wrapper;
-	}
+  FOLLY_NOINLINE static Wrapper& getSlow(LocalCache& cache) {
+    auto& wrapper = getWrapper();
+    if (threadlocal_detail::StaticMetaBase::dying()) {
+      return wrapper;
+    }
+    static thread_local LocalLifetime lifetime;
+    lifetime.track(cache, wrapper, &wrapper.object); // idempotent
+    return wrapper;
+  }
 
-	FOLLY_EXPORT FOLLY_ALWAYS_INLINE static LocalCache& getLocalCache() {
-		static thread_local LocalCache cache;
-		return cache;
-	}
+  FOLLY_EXPORT FOLLY_ALWAYS_INLINE static LocalCache& getLocalCache() {
+    static thread_local LocalCache cache;
+    return cache;
+  }
 
-public:
-	FOLLY_ALWAYS_INLINE static T& get() {
-		if(kIsMobile) {
-			return getWrapper();
-		}
-		auto& cache = getLocalCache();
-		auto* object = static_cast<Object*>(cache.object);
-		return FOLLY_LIKELY(!!object) ? *object : getSlow(cache).object;
-	}
+ public:
+  FOLLY_ALWAYS_INLINE static T& get() {
+    if (kIsMobile) {
+      return getWrapper();
+    }
+    auto& cache = getLocalCache();
+    auto* object = static_cast<Object*>(cache.object);
+    return FOLLY_LIKELY(!!object) ? *object : getSlow(cache).object;
+  }
 
-	static T* try_get() {
-		if(!kIsMobile) {
-			auto& cache = getLocalCache();
-			if(auto* object = static_cast<Object*>(cache.object)) {
-				return object;
-			}
-		}
-		if(threadlocal_detail::StaticMetaBase::dying()) {
-			return nullptr;
-		}
-		auto* wrapper = getWrapperTL().get_existing();
-		return wrapper ? &static_cast<T&>(*wrapper) : nullptr;
-	}
+  static T* try_get() {
+    if (!kIsMobile) {
+      auto& cache = getLocalCache();
+      if (auto* object = static_cast<Object*>(cache.object)) {
+        return object;
+      }
+    }
+    if (threadlocal_detail::StaticMetaBase::dying()) {
+      return nullptr;
+    }
+    auto* wrapper = getWrapperTL().get_existing();
+    return wrapper ? &static_cast<T&>(*wrapper) : nullptr;
+  }
 
-	class Accessor {
-	private:
-		using Inner = typename WrapperTL::Accessor;
-		using IteratorBase = typename Inner::Iterator;
-		using IteratorTag = typename IteratorBase::iterator_category;
+  class Accessor {
+   private:
+    using Inner = typename WrapperTL::Accessor;
+    using IteratorBase = typename Inner::Iterator;
+    using IteratorTag = typename IteratorBase::iterator_category;
 
-		Inner inner_;
+    Inner inner_;
 
-		explicit Accessor(Inner inner) noexcept: inner_(std::move(inner)) {}
+    explicit Accessor(Inner inner) noexcept : inner_(std::move(inner)) {}
 
-	public:
-		friend class SingletonThreadLocal<T, Tag, Make, TLTag>;
+   public:
+    friend class SingletonThreadLocal<T, Tag, Make, TLTag>;
 
-		class Iterator : public detail::IteratorAdaptor<Iterator, IteratorBase, T, IteratorTag> {
-		private:
-			using Super = detail::IteratorAdaptor<Iterator, IteratorBase, T, IteratorTag>;
-			using Super::Super;
+    class Iterator
+        : public detail::
+              IteratorAdaptor<Iterator, IteratorBase, T, IteratorTag> {
+     private:
+      using Super =
+          detail::IteratorAdaptor<Iterator, IteratorBase, T, IteratorTag>;
+      using Super::Super;
 
-		public:
-			friend class Accessor;
+     public:
+      friend class Accessor;
 
-			T& dereference() const { return const_cast<Iterator*>(this)->base()->object; }
+      T& dereference() const {
+        return const_cast<Iterator*>(this)->base()->object;
+      }
 
-			std::thread::id getThreadId() const { return this->base().getThreadId(); }
+      std::thread::id getThreadId() const { return this->base().getThreadId(); }
 
-			uint64_t getOSThreadId() const { return this->base().getOSThreadId(); }
-		};
+      uint64_t getOSThreadId() const { return this->base().getOSThreadId(); }
+    };
 
-		Accessor(const Accessor&) = delete;
-		Accessor& operator=(const Accessor&) = delete;
-		Accessor(Accessor&&) = default;
-		Accessor& operator=(Accessor&&) = default;
+    Accessor(const Accessor&) = delete;
+    Accessor& operator=(const Accessor&) = delete;
+    Accessor(Accessor&&) = default;
+    Accessor& operator=(Accessor&&) = default;
 
-		Iterator begin() const { return Iterator(inner_.begin()); }
+    Iterator begin() const { return Iterator(inner_.begin()); }
 
-		Iterator end() const { return Iterator(inner_.end()); }
-	};
+    Iterator end() const { return Iterator(inner_.end()); }
+  };
 
-	// Must use a unique Tag, takes a lock that is one per Tag
-	static Accessor accessAllThreads() { return Accessor(getWrapperTL().accessAllThreads()); }
+  // Must use a unique Tag, takes a lock that is one per Tag
+  static Accessor accessAllThreads() {
+    return Accessor(getWrapperTL().accessAllThreads());
+  }
 };
 
 FOLLY_PUSH_WARNING
 FOLLY_CLANG_DISABLE_WARNING("-Wglobal-constructors")
-template<typename T, typename Tag, typename Make, typename TLTag>
-detail::UniqueInstance SingletonThreadLocal<T, Tag, Make, TLTag>::unique{tag<SingletonThreadLocal>,
-                                                                         tag<T, Tag>,
-                                                                         tag<Make, TLTag>};
+template <typename T, typename Tag, typename Make, typename TLTag>
+detail::UniqueInstance SingletonThreadLocal<T, Tag, Make, TLTag>::unique{
+    tag<SingletonThreadLocal>, tag<T, Tag>, tag<Make, TLTag>};
 FOLLY_POP_WARNING
 
-}  // namespace folly
+} // namespace folly
 
 /// FOLLY_DECLARE_REUSED
 ///
@@ -259,10 +268,12 @@ FOLLY_POP_WARNING
 ///       });
 ///     }
 ///   }
-#define FOLLY_DECLARE_REUSED(name, ...)                                                     \
-	struct __folly_reused_type_##name {                                                     \
-		__VA_ARGS__ object;                                                                 \
-	};                                                                                      \
-	[[maybe_unused]] ::folly::unsafe_for_async_usage __folly_reused_g_prevent_async_##name; \
-	auto& name = ::folly::SingletonThreadLocal<__folly_reused_type_##name>::get().object;   \
-	auto __folly_reused_g_##name = ::folly::makeGuard([&] { name.clear(); })
+#define FOLLY_DECLARE_REUSED(name, ...)                                        \
+  struct __folly_reused_type_##name {                                          \
+    __VA_ARGS__ object;                                                        \
+  };                                                                           \
+  [[maybe_unused]] ::folly::unsafe_for_async_usage                             \
+      __folly_reused_g_prevent_async_##name;                                   \
+  auto& name =                                                                 \
+      ::folly::SingletonThreadLocal<__folly_reused_type_##name>::get().object; \
+  auto __folly_reused_g_##name = ::folly::makeGuard([&] { name.clear(); })

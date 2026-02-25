@@ -20,9 +20,10 @@
 #include <iostream>
 
 /*static*/ void folly::detail::ScopeGuardImplBase::terminate() noexcept {
-	// Ensure the availability of std::cerr
-	std::ios_base::Init ioInit;
-	std::cerr << "This program will now terminate because a folly::ScopeGuard callback "
-	             "threw an \nexception.\n";
-	std::rethrow_exception(current_exception());
+  // Ensure the availability of std::cerr
+  std::ios_base::Init ioInit;
+  std::cerr
+      << "This program will now terminate because a folly::ScopeGuard callback "
+         "threw an \nexception.\n";
+  std::rethrow_exception(current_exception());
 }

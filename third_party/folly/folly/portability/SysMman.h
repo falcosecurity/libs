@@ -29,15 +29,15 @@
 // New flags, may not be available yet in all libc implementations.
 #ifndef MADV_POPULATE_READ
 #define MADV_POPULATE_READ 22
-#endif  // MADV_POPULATE_READ
+#endif // MADV_POPULATE_READ
 #ifndef MADV_COLLAPSE
 #define MADV_COLLAPSE 25
-#endif  // MADV_COLLAPSE
+#endif // MADV_COLLAPSE
 #ifndef MAP_POPULATE
 #define MAP_POPULATE 0
 #endif
 
-#else  //_WIN32
+#else //_WIN32
 
 #include <cstdint>
 
@@ -68,7 +68,8 @@ extern "C" {
 int madvise(const void* addr, size_t len, int advise);
 int mlock(const void* addr, size_t len);
 void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t off);
-void* mmap64(void* addr, size_t length, int prot, int flags, int fd, off64_t off);
+void* mmap64(
+    void* addr, size_t length, int prot, int flags, int fd, off64_t off);
 int mprotect(void* addr, size_t size, int prot);
 int munlock(const void* addr, size_t length);
 int munmap(void* addr, size_t length);

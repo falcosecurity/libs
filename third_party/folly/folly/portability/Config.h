@@ -21,23 +21,23 @@
 #endif
 
 #if __has_include(<features.h>)
-#include <features.h>  // @manual
+#include <features.h> // @manual
 #endif
 
 #if __has_include(<bits/c++config.h>)
-#include <bits/c++config.h>  // @manual
+#include <bits/c++config.h> // @manual
 #endif
 
 #if __has_include(<__config>)
-#include <__config>  // @manual
+#include <__config> // @manual
 #endif
 
 #ifdef __ANDROID__
-#include <android/api-level.h>  // @manual
+#include <android/api-level.h> // @manual
 #endif
 
 #ifdef __APPLE__
-#include <Availability.h>        // @manual
-#include <AvailabilityMacros.h>  // @manual
-#include <TargetConditionals.h>  // @manual
+#include <Availability.h> // @manual
+#include <AvailabilityMacros.h> // @manual
+#include <TargetConditionals.h> // @manual
 #endif

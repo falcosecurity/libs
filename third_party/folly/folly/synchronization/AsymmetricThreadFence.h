@@ -37,15 +37,16 @@ namespace folly {
 //  mimic: std::experimental::asymmetric_thread_fence_light, p1202r4
 //  http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1202r4.pdf
 struct asymmetric_thread_fence_light_fn {
-	FOLLY_ALWAYS_INLINE void operator()(std::memory_order order) const noexcept {
-		if(kIsLinux) {
-			asm_volatile_memory();
-		} else {
-			std::atomic_thread_fence(order);
-		}
-	}
+  FOLLY_ALWAYS_INLINE void operator()(std::memory_order order) const noexcept {
+    if (kIsLinux) {
+      asm_volatile_memory();
+    } else {
+      std::atomic_thread_fence(order);
+    }
+  }
 };
-inline constexpr asymmetric_thread_fence_light_fn asymmetric_thread_fence_light{};
+inline constexpr asymmetric_thread_fence_light_fn
+    asymmetric_thread_fence_light{};
 
 //  asymmetric_thread_fence_heavy
 //
@@ -62,26 +63,27 @@ inline constexpr asymmetric_thread_fence_light_fn asymmetric_thread_fence_light{
 //  mimic: std::experimental::asymmetric_thread_fence_heavy, p1202r4
 //  http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1202r4.pdf
 struct asymmetric_thread_fence_heavy_fn {
-	FOLLY_ALWAYS_INLINE void operator()(std::memory_order order) const noexcept {
-		if(kIsLinux) {
-			impl_(order);
-		} else {
-			std::atomic_thread_fence(order);
-		}
-	}
+  FOLLY_ALWAYS_INLINE void operator()(std::memory_order order) const noexcept {
+    if (kIsLinux) {
+      impl_(order);
+    } else {
+      std::atomic_thread_fence(order);
+    }
+  }
 
-private:
-	static void impl_(std::memory_order) noexcept;
+ private:
+  static void impl_(std::memory_order) noexcept;
 };
-inline constexpr asymmetric_thread_fence_heavy_fn asymmetric_thread_fence_heavy{};
+inline constexpr asymmetric_thread_fence_heavy_fn
+    asymmetric_thread_fence_heavy{};
 
-template<template<typename> class Atom>
+template <template <typename> class Atom>
 struct asymmetric_thread_fence_traits;
 
-template<>
+template <>
 struct asymmetric_thread_fence_traits<std::atomic> {
-	static inline constexpr asymmetric_thread_fence_light_fn light{};
-	static inline constexpr asymmetric_thread_fence_heavy_fn heavy{};
+  static inline constexpr asymmetric_thread_fence_light_fn light{};
+  static inline constexpr asymmetric_thread_fence_heavy_fn heavy{};
 };
 
-}  // namespace folly
+} // namespace folly

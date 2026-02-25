@@ -26,14 +26,14 @@ namespace folly {
 
 namespace detail {
 struct atomic_value_type_alias_ {
-	template<typename Atomic>
-	using apply = typename Atomic::value_type;
+  template <typename Atomic>
+  using apply = typename Atomic::value_type;
 };
 struct atomic_value_type_load_ {
-	template<typename Atomic>
-	using apply = decltype(std::declval<Atomic const&>().load());
+  template <typename Atomic>
+  using apply = decltype(std::declval<Atomic const&>().load());
 };
-}  // namespace detail
+} // namespace detail
 
 //  atomic_value_type_t
 //  atomic_value_type
@@ -41,26 +41,27 @@ struct atomic_value_type_load_ {
 //  A trait type alias and type giving the effective value-type of a type which
 //  are atomic-like. Either member type alias value_type or the return type of
 //  member function load.
-template<typename Atomic>
-using atomic_value_type_t =
-        typename conditional_t<is_detected_v<detail::atomic_value_type_alias_::apply, Atomic>,
-                               detail::atomic_value_type_alias_,
-                               detail::atomic_value_type_load_>::template apply<Atomic>;
-template<typename Atomic>
+template <typename Atomic>
+using atomic_value_type_t = typename conditional_t<
+    is_detected_v<detail::atomic_value_type_alias_::apply, Atomic>,
+    detail::atomic_value_type_alias_,
+    detail::atomic_value_type_load_>::template apply<Atomic>;
+template <typename Atomic>
 struct atomic_value_type {
-	using type = atomic_value_type_t<Atomic>;
+  using type = atomic_value_type_t<Atomic>;
 };
 
 /// memory_order_load
 ///
 /// The load part of a possibly-composite memory-order.
-constexpr std::memory_order memory_order_load(  //
-        std::memory_order order) noexcept;
+constexpr std::memory_order memory_order_load( //
+    std::memory_order order) noexcept;
 
 /// memory_order_store
 ///
 /// The store part of a possibly-composite memory-order.
-constexpr std::memory_order memory_order_store(std::memory_order order) noexcept;
+constexpr std::memory_order memory_order_store(
+    std::memory_order order) noexcept;
 
 //  atomic_compare_exchange_weak_explicit
 //
@@ -68,12 +69,13 @@ constexpr std::memory_order memory_order_store(std::memory_order order) noexcept
 //  Workaround for https://github.com/google/sanitizers/issues/970.
 //
 //  mimic: std::atomic_compare_exchange_weak
-template<template<typename> class Atom = std::atomic, typename T>
-bool atomic_compare_exchange_weak_explicit(Atom<T>* obj,
-                                           type_t<T>* expected,
-                                           type_t<T> desired,
-                                           std::memory_order succ,
-                                           std::memory_order fail);
+template <template <typename> class Atom = std::atomic, typename T>
+bool atomic_compare_exchange_weak_explicit(
+    Atom<T>* obj,
+    type_t<T>* expected,
+    type_t<T> desired,
+    std::memory_order succ,
+    std::memory_order fail);
 
 //  atomic_compare_exchange_strong_explicit
 //
@@ -81,12 +83,13 @@ bool atomic_compare_exchange_weak_explicit(Atom<T>* obj,
 //  Workaround for https://github.com/google/sanitizers/issues/970.
 //
 //  mimic: std::atomic_compare_exchange_strong
-template<template<typename> class Atom = std::atomic, typename T>
-bool atomic_compare_exchange_strong_explicit(Atom<T>* obj,
-                                             type_t<T>* expected,
-                                             type_t<T> desired,
-                                             std::memory_order succ,
-                                             std::memory_order fail);
+template <template <typename> class Atom = std::atomic, typename T>
+bool atomic_compare_exchange_strong_explicit(
+    Atom<T>* obj,
+    type_t<T>* expected,
+    type_t<T> desired,
+    std::memory_order succ,
+    std::memory_order fail);
 
 //  atomic_fetch_set
 //
@@ -102,10 +105,11 @@ bool atomic_compare_exchange_strong_explicit(Atom<T>* obj,
 //  Atomic::fetch_or with mask. The optimization is currently available for
 //  std::atomic on x86, using the bts instruction.
 struct atomic_fetch_set_fn {
-	template<typename Atomic>
-	bool operator()(Atomic& atomic,
-	                std::size_t bit,
-	                std::memory_order order = std::memory_order_seq_cst) const;
+  template <typename Atomic>
+  bool operator()(
+      Atomic& atomic,
+      std::size_t bit,
+      std::memory_order order = std::memory_order_seq_cst) const;
 };
 inline constexpr atomic_fetch_set_fn atomic_fetch_set{};
 
@@ -123,10 +127,11 @@ inline constexpr atomic_fetch_set_fn atomic_fetch_set{};
 //  Atomic::fetch_and with mask. The optimization is currently available for
 //  std::atomic on x86, using the btr instruction.
 struct atomic_fetch_reset_fn {
-	template<typename Atomic>
-	bool operator()(Atomic& atomic,
-	                std::size_t bit,
-	                std::memory_order order = std::memory_order_seq_cst) const;
+  template <typename Atomic>
+  bool operator()(
+      Atomic& atomic,
+      std::size_t bit,
+      std::memory_order order = std::memory_order_seq_cst) const;
 };
 inline constexpr atomic_fetch_reset_fn atomic_fetch_reset{};
 
@@ -143,10 +148,11 @@ inline constexpr atomic_fetch_reset_fn atomic_fetch_reset{};
 //  Atomic::fetch_xor with mask. The optimization is currently available for
 //  std::atomic on x86, using the btc instruction.
 struct atomic_fetch_flip_fn {
-	template<typename Atomic>
-	bool operator()(Atomic& atomic,
-	                std::size_t bit,
-	                std::memory_order order = std::memory_order_seq_cst) const;
+  template <typename Atomic>
+  bool operator()(
+      Atomic& atomic,
+      std::size_t bit,
+      std::memory_order order = std::memory_order_seq_cst) const;
 };
 inline constexpr atomic_fetch_flip_fn atomic_fetch_flip{};
 
@@ -172,21 +178,22 @@ inline constexpr atomic_fetch_flip_fn atomic_fetch_flip{};
 //
 //  Does not attempt to handle ABA scenarios.
 struct atomic_fetch_modify_fn {
-	template<typename Atomic, typename Op>
-	atomic_value_type_t<Atomic> operator()(Atomic& atomic,
-	                                       Op op,
-	                                       std::memory_order mo = std::memory_order_seq_cst) const;
+  template <typename Atomic, typename Op>
+  atomic_value_type_t<Atomic> operator()(
+      Atomic& atomic,
+      Op op,
+      std::memory_order mo = std::memory_order_seq_cst) const;
 };
 inline constexpr atomic_fetch_modify_fn atomic_fetch_modify{};
 
-template<template<typename> class Atom>
+template <template <typename> class Atom>
 struct atomic_thread_fence_traits;
 
-template<>
+template <>
 struct atomic_thread_fence_traits<std::atomic> {
-	static inline constexpr auto fence = std::atomic_thread_fence;
+  static inline constexpr auto fence = std::atomic_thread_fence;
 };
 
-}  // namespace folly
+} // namespace folly
 
 #include <folly/synchronization/AtomicUtil-inl.h>

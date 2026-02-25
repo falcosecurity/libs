@@ -21,7 +21,7 @@
 #if __has_include(<memory_resource>)
 
 #define FOLLY_HAS_MEMORY_RESOURCE 1
-#include <memory_resource>  // @manual
+#include <memory_resource> // @manual
 
 #else
 
@@ -29,4 +29,4 @@
 
 #endif
 
-#endif  // FOLLY_HAS_MEMORY_RESOURCE
+#endif // FOLLY_HAS_MEMORY_RESOURCE

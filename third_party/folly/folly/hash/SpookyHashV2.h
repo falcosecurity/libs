@@ -330,5 +330,5 @@ private:
 
 // clang-format on
 
-}  // namespace hash
-}  // namespace folly
+} // namespace hash
+} // namespace folly

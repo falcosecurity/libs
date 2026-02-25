@@ -23,7 +23,7 @@
 #include <pthread.h>
 
 #if defined(__FreeBSD__)
-#include <sys/thr.h>  // @manual
+#include <sys/thr.h> // @manual
 #endif
 
 #elif !FOLLY_HAVE_PTHREAD
@@ -50,8 +50,8 @@ namespace folly {
 namespace portability {
 namespace pthread {
 struct pthread_attr_t {
-	size_t stackSize;
-	bool detached;
+  size_t stackSize;
+  bool detached;
 };
 
 int pthread_attr_init(pthread_attr_t* attr);
@@ -60,30 +60,32 @@ int pthread_attr_setstacksize(pthread_attr_t* attr, size_t kb);
 
 namespace pthread_detail {
 struct pthread_t {
-	HANDLE handle{INVALID_HANDLE_VALUE};
-	DWORD threadID{0};
-	bool detached{false};
+  HANDLE handle{INVALID_HANDLE_VALUE};
+  DWORD threadID{0};
+  bool detached{false};
 
-	~pthread_t() noexcept;
+  ~pthread_t() noexcept;
 };
-}  // namespace pthread_detail
+} // namespace pthread_detail
 using pthread_t = std::shared_ptr<pthread_detail::pthread_t>;
 
 int pthread_equal(pthread_t threadA, pthread_t threadB);
-int pthread_create(pthread_t* thread,
-                   const pthread_attr_t* attr,
-                   void* (*start_routine)(void*),
-                   void* arg);
+int pthread_create(
+    pthread_t* thread,
+    const pthread_attr_t* attr,
+    void* (*start_routine)(void*),
+    void* arg);
 pthread_t pthread_self();
 int pthread_join(pthread_t thread, void** exitCode);
 
 HANDLE pthread_getw32threadhandle_np(pthread_t thread);
 DWORD pthread_getw32threadid_np(pthread_t thread);
 
-int pthread_setschedparam(pthread_t thread, int policy, const sched_param* param);
+int pthread_setschedparam(
+    pthread_t thread, int policy, const sched_param* param);
 
 struct pthread_mutexattr_t {
-	int type;
+  int type;
 };
 int pthread_mutexattr_init(pthread_mutexattr_t* attr);
 int pthread_mutexattr_destroy(pthread_mutexattr_t* attr);
@@ -95,7 +97,8 @@ int pthread_mutex_destroy(pthread_mutex_t* mutex);
 int pthread_mutex_lock(pthread_mutex_t* mutex);
 int pthread_mutex_trylock(pthread_mutex_t* mutex);
 int pthread_mutex_unlock(pthread_mutex_t* mutex);
-int pthread_mutex_timedlock(pthread_mutex_t* mutex, const timespec* abs_timeout);
+int pthread_mutex_timedlock(
+    pthread_mutex_t* mutex, const timespec* abs_timeout);
 
 using pthread_rwlock_t = struct pthread_rwlock_t_*;
 // Technically the second argument here is supposed to be a
@@ -106,10 +109,12 @@ int pthread_rwlock_init(pthread_rwlock_t* rwlock, const void* attr);
 int pthread_rwlock_destroy(pthread_rwlock_t* rwlock);
 int pthread_rwlock_rdlock(pthread_rwlock_t* rwlock);
 int pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock);
-int pthread_rwlock_timedrdlock(pthread_rwlock_t* rwlock, const timespec* abs_timeout);
+int pthread_rwlock_timedrdlock(
+    pthread_rwlock_t* rwlock, const timespec* abs_timeout);
 int pthread_rwlock_wrlock(pthread_rwlock_t* rwlock);
 int pthread_rwlock_trywrlock(pthread_rwlock_t* rwlock);
-int pthread_rwlock_timedwrlock(pthread_rwlock_t* rwlock, const timespec* abs_timeout);
+int pthread_rwlock_timedwrlock(
+    pthread_rwlock_t* rwlock, const timespec* abs_timeout);
 int pthread_rwlock_unlock(pthread_rwlock_t* rwlock);
 
 using pthread_cond_t = struct pthread_cond_t_*;
@@ -119,7 +124,8 @@ using pthread_cond_t = struct pthread_cond_t_*;
 int pthread_cond_init(pthread_cond_t* cond, const void* attr);
 int pthread_cond_destroy(pthread_cond_t* cond);
 int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
-int pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime);
+int pthread_cond_timedwait(
+    pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime);
 int pthread_cond_signal(pthread_cond_t* cond);
 int pthread_cond_broadcast(pthread_cond_t* cond);
 
@@ -131,9 +137,9 @@ int pthread_key_create(pthread_key_t* key, void (*destructor)(void*));
 int pthread_key_delete(pthread_key_t key);
 void* pthread_getspecific(pthread_key_t key);
 int pthread_setspecific(pthread_key_t key, const void* value);
-}  // namespace pthread
-}  // namespace portability
-}  // namespace folly
+} // namespace pthread
+} // namespace portability
+} // namespace folly
 
 FOLLY_PUSH_WARNING
 FOLLY_CLANG_DISABLE_WARNING("-Wheader-hygiene")

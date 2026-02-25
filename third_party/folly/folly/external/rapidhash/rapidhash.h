@@ -79,14 +79,15 @@ namespace rapidhash_detail {
 /*
  *  Default secret parameters.
  */
-constexpr uint64_t rapidhash_secret[8] = {0x2d358dccaa6c78a5ull,
-                                          0x8bb84b93962eacc9ull,
-                                          0x4b33a62ed433d4a3ull,
-                                          0x4d5a2da51de1aa47ull,
-                                          0xa0761d6478bd642full,
-                                          0xe7037ed1a0b428dbull,
-                                          0x90ed1765281c388cull,
-                                          0xaaaaaaaaaaaaaaaaull};
+ constexpr uint64_t rapidhash_secret[8] = {
+    0x2d358dccaa6c78a5ull,
+    0x8bb84b93962eacc9ull,
+    0x4b33a62ed433d4a3ull,
+    0x4d5a2da51de1aa47ull,
+    0xa0761d6478bd642full,
+    0xe7037ed1a0b428dbull,
+    0x90ed1765281c388cull,
+    0xaaaaaaaaaaaaaaaaull};
 
 /*
  *  64*64 -> 128bit multiply function.
@@ -97,29 +98,30 @@ constexpr uint64_t rapidhash_secret[8] = {0x2d358dccaa6c78a5ull,
  *  Calculates 128-bit C = *A * *B.
  *
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR void rapidhash_mum(uint64_t* A, uint64_t* B) noexcept {
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR void rapidhash_mum(uint64_t* A, uint64_t* B)
+    noexcept {
 #if defined(__SIZEOF_INT128__)
-	__uint128_t r = *A;
-	r *= *B;
-	*A = static_cast<uint64_t>(r);
-	*B = static_cast<uint64_t>(r >> 64);
+  __uint128_t r = *A;
+  r *= *B;
+  *A = static_cast<uint64_t>(r);
+  *B = static_cast<uint64_t>(r >> 64);
 #elif defined(_MSC_VER) && (defined(_WIN64) || defined(_M_HYBRID_CHPE_ARM64))
 #if defined(_M_X64)
-	*A = _umul128(*A, *B, B);
+  *A = _umul128(*A, *B, B);
 #else
-	uint64_t c = __umulh(*A, *B);
-	*A = *A * *B;
-	*B = c;
+  uint64_t c = __umulh(*A, *B);
+  *A = *A * *B;
+  *B = c;
 #endif
 #else
-	uint64_t ha = *A >> 32, hb = *B >> 32, la = (uint32_t)*A, lb = (uint32_t)*B;
-	uint64_t rh = ha * hb, rm0 = ha * lb, rm1 = hb * la, rl = la * lb, t = rl + (rm0 << 32),
-	         c = t < rl;
-	uint64_t lo = t + (rm1 << 32);
-	c += lo < t;
-	uint64_t hi = rh + (rm0 >> 32) + (rm1 >> 32) + c;
-	*A = lo;
-	*B = hi;
+  uint64_t ha = *A >> 32, hb = *B >> 32, la = (uint32_t)*A, lb = (uint32_t)*B;
+  uint64_t rh = ha * hb, rm0 = ha * lb, rm1 = hb * la, rl = la * lb,
+           t = rl + (rm0 << 32), c = t < rl;
+  uint64_t lo = t + (rm1 << 32);
+  c += lo < t;
+  uint64_t hi = rh + (rm0 >> 32) + (rm1 >> 32) + c;
+  *A = lo;
+  *B = hi;
 #endif
 }
 
@@ -132,20 +134,23 @@ FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR void rapidhash_mum(uint64_t* A, uint64
  *  Calculates 128-bit C = A * B.
  *  Returns 64-bit xor between high and low 64 bits of C.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_mix(uint64_t A, uint64_t B) noexcept {
-	rapidhash_mum(&A, &B);
-	return A ^ B;
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
+rapidhash_mix(uint64_t A, uint64_t B) noexcept {
+  rapidhash_mum(&A, &B);
+  return A ^ B;
 }
 
 /*
  *  Read functions.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint32_t rapidhash_read32(const char* p) noexcept {
-	return folly::constexprLoadUnaligned<uint32_t, char>(p);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint32_t
+rapidhash_read32(const char* p) noexcept {
+  return folly::constexprLoadUnaligned<uint32_t, char>(p);
 }
 
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_read64(const char* p) noexcept {
-	return folly::constexprLoadUnaligned<uint64_t, char>(p);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
+rapidhash_read64(const char* p) noexcept {
+  return folly::constexprLoadUnaligned<uint64_t, char>(p);
 }
 
 /*
@@ -159,274 +164,279 @@ FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_read64(const char* 
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
-rapidhash_internal(const char* p, size_t len, uint64_t seed, const uint64_t* secret) noexcept {
-	seed ^= rapidhash_mix(seed ^ secret[2], secret[1]);
-	uint64_t a = 0, b = 0;
-	size_t i = len;
-	if(FOLLY_LIKELY(len <= 16)) {
-		if(len >= 4) {
-			seed ^= len;
-			if(len >= 8) {
-				const char* plast = p + len - 8;
-				a = rapidhash_read64(p);
-				b = rapidhash_read64(plast);
-			} else {
-				const char* plast = p + len - 4;
-				a = rapidhash_read32(p);
-				b = rapidhash_read32(plast);
-			}
-		} else if(len > 0) {
-			a = (static_cast<uint64_t>(p[0]) << 45) | static_cast<uint64_t>(p[len - 1]);
-			b = static_cast<uint64_t>(p[len >> 1]);
-		} else
-			a = b = 0;
-	} else {
-		uint64_t see1 = seed, see2 = seed;
-		uint64_t see3 = seed, see4 = seed;
-		uint64_t see5 = seed, see6 = seed;
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_internal(
+    const char* p, size_t len, uint64_t seed, const uint64_t* secret)
+    noexcept {
+  seed ^= rapidhash_mix(seed ^ secret[2], secret[1]);
+  uint64_t a = 0, b = 0;
+  size_t i = len;
+  if (FOLLY_LIKELY(len <= 16)) {
+    if (len >= 4) {
+      seed ^= len;
+      if (len >= 8) {
+        const char* plast = p + len - 8;
+        a = rapidhash_read64(p);
+        b = rapidhash_read64(plast);
+      } else {
+        const char* plast = p + len - 4;
+        a = rapidhash_read32(p);
+        b = rapidhash_read32(plast);
+      }
+    } else if (len > 0) {
+      a = (static_cast<uint64_t>(p[0]) << 45) | static_cast<uint64_t>(p[len - 1]);
+      b = static_cast<uint64_t>(p[len >> 1]);
+    } else
+      a = b = 0;
+  } else {
+    uint64_t see1 = seed, see2 = seed;
+    uint64_t see3 = seed, see4 = seed;
+    uint64_t see5 = seed, see6 = seed;
 #ifdef FOLLY_EXTERNAL_RAPIDHASH_COMPACT
-		if(i > 112) {
-			do {
-				seed = rapidhash_mix(rapidhash_read64(p) ^ secret[0],
-				                     rapidhash_read64(p + 8) ^ seed);
-				see1 = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[1],
-				                     rapidhash_read64(p + 24) ^ see1);
-				see2 = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[2],
-				                     rapidhash_read64(p + 40) ^ see2);
-				see3 = rapidhash_mix(rapidhash_read64(p + 48) ^ secret[3],
-				                     rapidhash_read64(p + 56) ^ see3);
-				see4 = rapidhash_mix(rapidhash_read64(p + 64) ^ secret[4],
-				                     rapidhash_read64(p + 72) ^ see4);
-				see5 = rapidhash_mix(rapidhash_read64(p + 80) ^ secret[5],
-				                     rapidhash_read64(p + 88) ^ see5);
-				see6 = rapidhash_mix(rapidhash_read64(p + 96) ^ secret[6],
-				                     rapidhash_read64(p + 104) ^ see6);
-				p += 112;
-				i -= 112;
-			} while(i > 112);
-			seed ^= see1;
-			see2 ^= see3;
-			see4 ^= see5;
-			seed ^= see6;
-			see2 ^= see4;
-			seed ^= see2;
-		}
+    if (i > 112) {
+      do {
+        seed =
+            rapidhash_mix(rapidhash_read64(p) ^ secret[0], rapidhash_read64(p + 8) ^ seed);
+        see1 = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[1], rapidhash_read64(p + 24) ^ see1);
+        see2 = rapidhash_mix(
+            rapidhash_read64(p + 32) ^ secret[2], rapidhash_read64(p + 40) ^ see2);
+        see3 = rapidhash_mix(
+            rapidhash_read64(p + 48) ^ secret[3], rapidhash_read64(p + 56) ^ see3);
+        see4 = rapidhash_mix(
+            rapidhash_read64(p + 64) ^ secret[4], rapidhash_read64(p + 72) ^ see4);
+        see5 = rapidhash_mix(
+            rapidhash_read64(p + 80) ^ secret[5], rapidhash_read64(p + 88) ^ see5);
+        see6 = rapidhash_mix(
+            rapidhash_read64(p + 96) ^ secret[6], rapidhash_read64(p + 104) ^ see6);
+        p += 112;
+        i -= 112;
+      } while (i > 112);
+      seed ^= see1;
+      see2 ^= see3;
+      see4 ^= see5;
+      seed ^= see6;
+      see2 ^= see4;
+      seed ^= see2;
+    }
 #else
-		if(i > 224) {
-			do {
-				seed = rapidhash_mix(rapidhash_read64(p) ^ secret[0],
-				                     rapidhash_read64(p + 8) ^ seed);
-				see1 = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[1],
-				                     rapidhash_read64(p + 24) ^ see1);
-				see2 = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[2],
-				                     rapidhash_read64(p + 40) ^ see2);
-				see3 = rapidhash_mix(rapidhash_read64(p + 48) ^ secret[3],
-				                     rapidhash_read64(p + 56) ^ see3);
-				see4 = rapidhash_mix(rapidhash_read64(p + 64) ^ secret[4],
-				                     rapidhash_read64(p + 72) ^ see4);
-				see5 = rapidhash_mix(rapidhash_read64(p + 80) ^ secret[5],
-				                     rapidhash_read64(p + 88) ^ see5);
-				see6 = rapidhash_mix(rapidhash_read64(p + 96) ^ secret[6],
-				                     rapidhash_read64(p + 104) ^ see6);
-				seed = rapidhash_mix(rapidhash_read64(p + 112) ^ secret[0],
-				                     rapidhash_read64(p + 120) ^ seed);
-				see1 = rapidhash_mix(rapidhash_read64(p + 128) ^ secret[1],
-				                     rapidhash_read64(p + 136) ^ see1);
-				see2 = rapidhash_mix(rapidhash_read64(p + 144) ^ secret[2],
-				                     rapidhash_read64(p + 152) ^ see2);
-				see3 = rapidhash_mix(rapidhash_read64(p + 160) ^ secret[3],
-				                     rapidhash_read64(p + 168) ^ see3);
-				see4 = rapidhash_mix(rapidhash_read64(p + 176) ^ secret[4],
-				                     rapidhash_read64(p + 184) ^ see4);
-				see5 = rapidhash_mix(rapidhash_read64(p + 192) ^ secret[5],
-				                     rapidhash_read64(p + 200) ^ see5);
-				see6 = rapidhash_mix(rapidhash_read64(p + 208) ^ secret[6],
-				                     rapidhash_read64(p + 216) ^ see6);
-				p += 224;
-				i -= 224;
-			} while(i > 224);
-		}
-		if(i > 112) {
-			seed = rapidhash_mix(rapidhash_read64(p) ^ secret[0], rapidhash_read64(p + 8) ^ seed);
-			see1 = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[1],
-			                     rapidhash_read64(p + 24) ^ see1);
-			see2 = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[2],
-			                     rapidhash_read64(p + 40) ^ see2);
-			see3 = rapidhash_mix(rapidhash_read64(p + 48) ^ secret[3],
-			                     rapidhash_read64(p + 56) ^ see3);
-			see4 = rapidhash_mix(rapidhash_read64(p + 64) ^ secret[4],
-			                     rapidhash_read64(p + 72) ^ see4);
-			see5 = rapidhash_mix(rapidhash_read64(p + 80) ^ secret[5],
-			                     rapidhash_read64(p + 88) ^ see5);
-			see6 = rapidhash_mix(rapidhash_read64(p + 96) ^ secret[6],
-			                     rapidhash_read64(p + 104) ^ see6);
-			p += 112;
-			i -= 112;
-		}
-		seed ^= see1;
-		see2 ^= see3;
-		see4 ^= see5;
-		seed ^= see6;
-		see2 ^= see4;
-		seed ^= see2;
+    if (i > 224) {
+      do {
+        seed =
+            rapidhash_mix(rapidhash_read64(p) ^ secret[0], rapidhash_read64(p + 8) ^ seed);
+        see1 = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[1], rapidhash_read64(p + 24) ^ see1);
+        see2 = rapidhash_mix(
+            rapidhash_read64(p + 32) ^ secret[2], rapidhash_read64(p + 40) ^ see2);
+        see3 = rapidhash_mix(
+            rapidhash_read64(p + 48) ^ secret[3], rapidhash_read64(p + 56) ^ see3);
+        see4 = rapidhash_mix(
+            rapidhash_read64(p + 64) ^ secret[4], rapidhash_read64(p + 72) ^ see4);
+        see5 = rapidhash_mix(
+            rapidhash_read64(p + 80) ^ secret[5], rapidhash_read64(p + 88) ^ see5);
+        see6 = rapidhash_mix(
+            rapidhash_read64(p + 96) ^ secret[6], rapidhash_read64(p + 104) ^ see6);
+        seed = rapidhash_mix(
+            rapidhash_read64(p + 112) ^ secret[0], rapidhash_read64(p + 120) ^ seed);
+        see1 = rapidhash_mix(
+            rapidhash_read64(p + 128) ^ secret[1], rapidhash_read64(p + 136) ^ see1);
+        see2 = rapidhash_mix(
+            rapidhash_read64(p + 144) ^ secret[2], rapidhash_read64(p + 152) ^ see2);
+        see3 = rapidhash_mix(
+            rapidhash_read64(p + 160) ^ secret[3], rapidhash_read64(p + 168) ^ see3);
+        see4 = rapidhash_mix(
+            rapidhash_read64(p + 176) ^ secret[4], rapidhash_read64(p + 184) ^ see4);
+        see5 = rapidhash_mix(
+            rapidhash_read64(p + 192) ^ secret[5], rapidhash_read64(p + 200) ^ see5);
+        see6 = rapidhash_mix(
+            rapidhash_read64(p + 208) ^ secret[6], rapidhash_read64(p + 216) ^ see6);
+        p += 224;
+        i -= 224;
+      } while (i > 224);
+    }
+    if (i > 112) {
+      seed = rapidhash_mix(rapidhash_read64(p) ^ secret[0], rapidhash_read64(p + 8) ^ seed);
+      see1 = rapidhash_mix(
+          rapidhash_read64(p + 16) ^ secret[1], rapidhash_read64(p + 24) ^ see1);
+      see2 = rapidhash_mix(
+          rapidhash_read64(p + 32) ^ secret[2], rapidhash_read64(p + 40) ^ see2);
+      see3 = rapidhash_mix(
+          rapidhash_read64(p + 48) ^ secret[3], rapidhash_read64(p + 56) ^ see3);
+      see4 = rapidhash_mix(
+          rapidhash_read64(p + 64) ^ secret[4], rapidhash_read64(p + 72) ^ see4);
+      see5 = rapidhash_mix(
+          rapidhash_read64(p + 80) ^ secret[5], rapidhash_read64(p + 88) ^ see5);
+      see6 = rapidhash_mix(
+          rapidhash_read64(p + 96) ^ secret[6], rapidhash_read64(p + 104) ^ see6);
+      p += 112;
+      i -= 112;
+    }
+    seed ^= see1;
+    see2 ^= see3;
+    see4 ^= see5;
+    seed ^= see6;
+    see2 ^= see4;
+    seed ^= see2;
 #endif
-		if(i > 16) {
-			seed = rapidhash_mix(rapidhash_read64(p) ^ secret[2], rapidhash_read64(p + 8) ^ seed);
-			if(i > 32) {
-				seed = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[2],
-				                     rapidhash_read64(p + 24) ^ seed);
-				if(i > 48) {
-					seed = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[1],
-					                     rapidhash_read64(p + 40) ^ seed);
-					if(i > 64) {
-						seed = rapidhash_mix(rapidhash_read64(p + 48) ^ secret[1],
-						                     rapidhash_read64(p + 56) ^ seed);
-						if(i > 80) {
-							seed = rapidhash_mix(rapidhash_read64(p + 64) ^ secret[2],
-							                     rapidhash_read64(p + 72) ^ seed);
-							if(i > 96) {
-								seed = rapidhash_mix(rapidhash_read64(p + 80) ^ secret[1],
-								                     rapidhash_read64(p + 88) ^ seed);
-							}
-						}
-					}
-				}
-			}
-		}
-		a = rapidhash_read64(p + i - 16) ^ i;
-		b = rapidhash_read64(p + i - 8);
-	}
-	a ^= secret[1];
-	b ^= seed;
-	rapidhash_mum(&a, &b);
-	return rapidhash_mix(a ^ secret[7], b ^ secret[1] ^ i);
+    if (i > 16) {
+      seed = rapidhash_mix(rapidhash_read64(p) ^ secret[2], rapidhash_read64(p + 8) ^ seed);
+      if (i > 32) {
+        seed = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[2], rapidhash_read64(p + 24) ^ seed);
+        if (i > 48) {
+          seed = rapidhash_mix(
+              rapidhash_read64(p + 32) ^ secret[1], rapidhash_read64(p + 40) ^ seed);
+          if (i > 64) {
+            seed = rapidhash_mix(
+                rapidhash_read64(p + 48) ^ secret[1], rapidhash_read64(p + 56) ^ seed);
+            if (i > 80) {
+              seed = rapidhash_mix(
+                  rapidhash_read64(p + 64) ^ secret[2],
+                  rapidhash_read64(p + 72) ^ seed);
+              if (i > 96) {
+                seed = rapidhash_mix(
+                    rapidhash_read64(p + 80) ^ secret[1],
+                    rapidhash_read64(p + 88) ^ seed);
+              }
+            }
+          }
+        }
+      }
+    }
+    a = rapidhash_read64(p + i - 16) ^ i;
+    b = rapidhash_read64(p + i - 8);
+  }
+  a ^= secret[1];
+  b ^= seed;
+  rapidhash_mum(&a, &b);
+  return rapidhash_mix(a ^ secret[7], b ^ secret[1] ^ i);
 }
 
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
-rapidhashMicro_internal(const char* p, size_t len, uint64_t seed, const uint64_t* secret) noexcept {
-	seed ^= rapidhash_mix(seed ^ secret[2], secret[1]);
-	uint64_t a = 0, b = 0;
-	size_t i = len;
-	if(FOLLY_LIKELY(len <= 16)) {
-		if(len >= 4) {
-			seed ^= len;
-			if(len >= 8) {
-				const char* plast = p + len - 8;
-				a = rapidhash_read64(p);
-				b = rapidhash_read64(plast);
-			} else {
-				const char* plast = p + len - 4;
-				a = rapidhash_read32(p);
-				b = rapidhash_read32(plast);
-			}
-		} else if(len > 0) {
-			a = (static_cast<uint64_t>(p[0]) << 45) | static_cast<uint64_t>(p[len - 1]);
-			b = static_cast<uint64_t>(p[len >> 1]);
-		} else
-			a = b = 0;
-	} else {
-		if(i > 80) {
-			uint64_t see1 = seed, see2 = seed;
-			uint64_t see3 = seed, see4 = seed;
-			do {
-				seed = rapidhash_mix(rapidhash_read64(p) ^ secret[0],
-				                     rapidhash_read64(p + 8) ^ seed);
-				see1 = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[1],
-				                     rapidhash_read64(p + 24) ^ see1);
-				see2 = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[2],
-				                     rapidhash_read64(p + 40) ^ see2);
-				see3 = rapidhash_mix(rapidhash_read64(p + 48) ^ secret[3],
-				                     rapidhash_read64(p + 56) ^ see3);
-				see4 = rapidhash_mix(rapidhash_read64(p + 64) ^ secret[4],
-				                     rapidhash_read64(p + 72) ^ see4);
-				p += 80;
-				i -= 80;
-			} while(i > 80);
-			seed ^= see1;
-			see2 ^= see3;
-			seed ^= see4;
-			seed ^= see2;
-		}
-		if(i > 16) {
-			seed = rapidhash_mix(rapidhash_read64(p) ^ secret[2], rapidhash_read64(p + 8) ^ seed);
-			if(i > 32) {
-				seed = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[2],
-				                     rapidhash_read64(p + 24) ^ seed);
-				if(i > 48) {
-					seed = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[1],
-					                     rapidhash_read64(p + 40) ^ seed);
-					if(i > 64) {
-						seed = rapidhash_mix(rapidhash_read64(p + 48) ^ secret[1],
-						                     rapidhash_read64(p + 56) ^ seed);
-					}
-				}
-			}
-		}
-		a = rapidhash_read64(p + i - 16) ^ i;
-		b = rapidhash_read64(p + i - 8);
-	}
-	a ^= secret[1];
-	b ^= seed;
-	rapidhash_mum(&a, &b);
-	return rapidhash_mix(a ^ secret[7], b ^ secret[1] ^ i);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashMicro_internal(
+    const char* p, size_t len, uint64_t seed, const uint64_t* secret)
+    noexcept {
+  seed ^= rapidhash_mix(seed ^ secret[2], secret[1]);
+  uint64_t a = 0, b = 0;
+  size_t i = len;
+  if (FOLLY_LIKELY(len <= 16)) {
+    if (len >= 4) {
+      seed ^= len;
+      if (len >= 8) {
+        const char* plast = p + len - 8;
+        a = rapidhash_read64(p);
+        b = rapidhash_read64(plast);
+      } else {
+        const char* plast = p + len - 4;
+        a = rapidhash_read32(p);
+        b = rapidhash_read32(plast);
+      }
+    } else if (len > 0) {
+      a = (static_cast<uint64_t>(p[0]) << 45) | static_cast<uint64_t>(p[len - 1]);
+      b = static_cast<uint64_t>(p[len >> 1]);
+    } else
+      a = b = 0;
+  } else {
+    if (i > 80) {
+      uint64_t see1 = seed, see2 = seed;
+      uint64_t see3 = seed, see4 = seed;
+      do {
+        seed =
+            rapidhash_mix(rapidhash_read64(p) ^ secret[0], rapidhash_read64(p + 8) ^ seed);
+        see1 = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[1], rapidhash_read64(p + 24) ^ see1);
+        see2 = rapidhash_mix(
+            rapidhash_read64(p + 32) ^ secret[2], rapidhash_read64(p + 40) ^ see2);
+        see3 = rapidhash_mix(
+            rapidhash_read64(p + 48) ^ secret[3], rapidhash_read64(p + 56) ^ see3);
+        see4 = rapidhash_mix(
+            rapidhash_read64(p + 64) ^ secret[4], rapidhash_read64(p + 72) ^ see4);
+        p += 80;
+        i -= 80;
+      } while (i > 80);
+      seed ^= see1;
+      see2 ^= see3;
+      seed ^= see4;
+      seed ^= see2;
+    }
+    if (i > 16) {
+      seed = rapidhash_mix(rapidhash_read64(p) ^ secret[2], rapidhash_read64(p + 8) ^ seed);
+      if (i > 32) {
+        seed = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[2], rapidhash_read64(p + 24) ^ seed);
+        if (i > 48) {
+          seed = rapidhash_mix(
+              rapidhash_read64(p + 32) ^ secret[1], rapidhash_read64(p + 40) ^ seed);
+          if (i > 64) {
+            seed = rapidhash_mix(
+                rapidhash_read64(p + 48) ^ secret[1], rapidhash_read64(p + 56) ^ seed);
+          }
+        }
+      }
+    }
+    a = rapidhash_read64(p + i - 16) ^ i;
+    b = rapidhash_read64(p + i - 8);
+  }
+  a ^= secret[1];
+  b ^= seed;
+  rapidhash_mum(&a, &b);
+  return rapidhash_mix(a ^ secret[7], b ^ secret[1] ^ i);
 }
 
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
-rapidhashNano_internal(const char* p, size_t len, uint64_t seed, const uint64_t* secret) noexcept {
-	seed ^= rapidhash_mix(seed ^ secret[2], secret[1]);
-	uint64_t a = 0, b = 0;
-	size_t i = len;
-	if(FOLLY_LIKELY(len <= 16)) {
-		if(len >= 4) {
-			seed ^= len;
-			if(len >= 8) {
-				const char* plast = p + len - 8;
-				a = rapidhash_read64(p);
-				b = rapidhash_read64(plast);
-			} else {
-				const char* plast = p + len - 4;
-				a = rapidhash_read32(p);
-				b = rapidhash_read32(plast);
-			}
-		} else if(len > 0) {
-			a = (static_cast<uint64_t>(p[0]) << 45) | static_cast<uint64_t>(p[len - 1]);
-			b = static_cast<uint64_t>(p[len >> 1]);
-		} else
-			a = b = 0;
-	} else {
-		if(i > 48) {
-			uint64_t see1 = seed, see2 = seed;
-			do {
-				seed = rapidhash_mix(rapidhash_read64(p) ^ secret[0],
-				                     rapidhash_read64(p + 8) ^ seed);
-				see1 = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[1],
-				                     rapidhash_read64(p + 24) ^ see1);
-				see2 = rapidhash_mix(rapidhash_read64(p + 32) ^ secret[2],
-				                     rapidhash_read64(p + 40) ^ see2);
-				p += 48;
-				i -= 48;
-			} while(i > 48);
-			seed ^= see1;
-			seed ^= see2;
-		}
-		if(i > 16) {
-			seed = rapidhash_mix(rapidhash_read64(p) ^ secret[2], rapidhash_read64(p + 8) ^ seed);
-			if(i > 32) {
-				seed = rapidhash_mix(rapidhash_read64(p + 16) ^ secret[2],
-				                     rapidhash_read64(p + 24) ^ seed);
-			}
-		}
-		a = rapidhash_read64(p + i - 16) ^ i;
-		b = rapidhash_read64(p + i - 8);
-	}
-	a ^= secret[1];
-	b ^= seed;
-	rapidhash_mum(&a, &b);
-	return rapidhash_mix(a ^ secret[7], b ^ secret[1] ^ i);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashNano_internal(
+    const char* p, size_t len, uint64_t seed, const uint64_t* secret)
+    noexcept {
+  seed ^= rapidhash_mix(seed ^ secret[2], secret[1]);
+  uint64_t a = 0, b = 0;
+  size_t i = len;
+  if (FOLLY_LIKELY(len <= 16)) {
+    if (len >= 4) {
+      seed ^= len;
+      if (len >= 8) {
+        const char* plast = p + len - 8;
+        a = rapidhash_read64(p);
+        b = rapidhash_read64(plast);
+      } else {
+        const char* plast = p + len - 4;
+        a = rapidhash_read32(p);
+        b = rapidhash_read32(plast);
+      }
+    } else if (len > 0) {
+      a = (static_cast<uint64_t>(p[0]) << 45) | static_cast<uint64_t>(p[len - 1]);
+      b = static_cast<uint64_t>(p[len >> 1]);
+    } else
+      a = b = 0;
+  } else {
+    if (i > 48) {
+      uint64_t see1 = seed, see2 = seed;
+      do {
+        seed =
+            rapidhash_mix(rapidhash_read64(p) ^ secret[0], rapidhash_read64(p + 8) ^ seed);
+        see1 = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[1], rapidhash_read64(p + 24) ^ see1);
+        see2 = rapidhash_mix(
+            rapidhash_read64(p + 32) ^ secret[2], rapidhash_read64(p + 40) ^ see2);
+        p += 48;
+        i -= 48;
+      } while (i > 48);
+      seed ^= see1;
+      seed ^= see2;
+    }
+    if (i > 16) {
+      seed = rapidhash_mix(rapidhash_read64(p) ^ secret[2], rapidhash_read64(p + 8) ^ seed);
+      if (i > 32) {
+        seed = rapidhash_mix(
+            rapidhash_read64(p + 16) ^ secret[2], rapidhash_read64(p + 24) ^ seed);
+      }
+    }
+    a = rapidhash_read64(p + i - 16) ^ i;
+    b = rapidhash_read64(p + i - 8);
+  }
+  a ^= secret[1];
+  b ^= seed;
+  rapidhash_mum(&a, &b);
+  return rapidhash_mix(a ^ secret[7], b ^ secret[1] ^ i);
 }
 
-}  // namespace rapidhash_detail
+} // namespace rapidhash
 
 /*
  *  rapidhash seeded hash function.
@@ -439,10 +449,9 @@ rapidhashNano_internal(const char* p, size_t len, uint64_t seed, const uint64_t*
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_with_seed(const char* key,
-                                                                       size_t len,
-                                                                       uint64_t seed) noexcept {
-	return rapidhash_detail::rapidhash_internal(key, len, seed, rapidhash_detail::rapidhash_secret);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_with_seed(
+    const char* key, size_t len, uint64_t seed) noexcept {
+  return rapidhash_detail::rapidhash_internal(key, len, seed, rapidhash_detail::rapidhash_secret);
 }
 
 /*
@@ -455,8 +464,9 @@ FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash_with_seed(const cha
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash(const char* key, size_t len) noexcept {
-	return rapidhash_with_seed(key, len, 0);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
+rapidhash(const char* key, size_t len) noexcept {
+  return rapidhash_with_seed(key, len, 0);
 }
 
 /*
@@ -475,12 +485,9 @@ FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhash(const char* key, si
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
-rapidhashMicro_with_seed(const char* key, size_t len, uint64_t seed) noexcept {
-	return rapidhash_detail::rapidhashMicro_internal(key,
-	                                                 len,
-	                                                 seed,
-	                                                 rapidhash_detail::rapidhash_secret);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashMicro_with_seed(
+    const char* key, size_t len, uint64_t seed) noexcept {
+  return rapidhash_detail::rapidhashMicro_internal(key, len, seed, rapidhash_detail::rapidhash_secret);
 }
 
 /*
@@ -493,9 +500,9 @@ rapidhashMicro_with_seed(const char* key, size_t len, uint64_t seed) noexcept {
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashMicro(const char* key,
-                                                                  size_t len) noexcept {
-	return rapidhashMicro_with_seed(key, len, 0);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
+rapidhashMicro(const char* key, size_t len) noexcept {
+  return rapidhashMicro_with_seed(key, len, 0);
 }
 
 /*
@@ -509,13 +516,9 @@ FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashMicro(const char* ke
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashNano_with_seed(const char* key,
-                                                                           size_t len,
-                                                                           uint64_t seed) noexcept {
-	return rapidhash_detail::rapidhashNano_internal(key,
-	                                                len,
-	                                                seed,
-	                                                rapidhash_detail::rapidhash_secret);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashNano_with_seed(
+    const char* key, size_t len, uint64_t seed) noexcept {
+  return rapidhash_detail::rapidhashNano_internal(key, len, seed, rapidhash_detail::rapidhash_secret);
 }
 
 /*
@@ -533,10 +536,10 @@ FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashNano_with_seed(const
  *
  *  Returns a 64-bit hash.
  */
-FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t rapidhashNano(const char* key,
-                                                                 size_t len) noexcept {
-	return rapidhashNano_with_seed(key, len, 0);
+FOLLY_EXTERNAL_RAPIDHASH_INLINE_CONSTEXPR uint64_t
+rapidhashNano(const char* key, size_t len) noexcept {
+  return rapidhashNano_with_seed(key, len, 0);
 }
 
-}  // namespace external
-}  // namespace folly
+} // namespace hash
+} // namespace folly

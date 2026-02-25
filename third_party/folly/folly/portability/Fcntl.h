@@ -48,9 +48,9 @@ namespace portability {
 namespace fcntl {
 int fcntl(int fd, int cmd, ...);
 int posix_fallocate(int fd, off_t offset, off_t len);
-}  // namespace fcntl
-}  // namespace portability
-}  // namespace folly
+} // namespace fcntl
+} // namespace portability
+} // namespace folly
 
 FOLLY_PUSH_WARNING
 FOLLY_CLANG_DISABLE_WARNING("-Wheader-hygiene")
@@ -71,5 +71,5 @@ int open(char const* fn, int of, int pm = 0);
 #else
 using ::open;
 #endif
-}  // namespace fileops
-}  // namespace folly
+} // namespace fileops
+} // namespace folly
