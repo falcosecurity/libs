@@ -402,6 +402,7 @@ void StaticMetaBase::onThreadExit(void* ptr) {
 			auto elementsCapacity = threadEntry->getElementsCapacity();
 			auto beforeCount = meta.totalElementWrappers_.fetch_sub(elementsCapacity);
 			DCHECK_GE(beforeCount, elementsCapacity);
+			(void)beforeCount;
 			// No need to hold the lock any longer; the ThreadEntry is private to this
 			// thread now that it's been removed from meta.
 		}
@@ -513,6 +514,7 @@ uint32_t StaticMetaBase::allocate(EntryID* ent) {
 		}
 		uint32_t old_id = ent->value.exchange(id, std::memory_order_release);
 		DCHECK_EQ(old_id, kEntryIDInvalid);
+		(void)old_id;
 	}
 	return id;
 }
