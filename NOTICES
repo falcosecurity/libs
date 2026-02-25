@@ -15,6 +15,11 @@ limitations under the License.
 
 SUBCOMPONENTS:
 
+- Portions of the code in <third_party/folly/> are derived from Folly
+  (https://github.com/facebook/folly), tag v2026.02.23.00, Copyright (c)
+  Meta Platforms, Inc. and affiliates, licensed under the Apache License,
+  Version 2.0. A copy of the license is in <COPYING>.
+
 - The files in <driver/> and its subdirectories are used to compile the
   kernel module and may be injected into eBPF; these are dual licensed
   under the MIT license or the GNU General Public License 2. Copies of
