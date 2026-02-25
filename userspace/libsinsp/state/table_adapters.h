@@ -150,19 +150,21 @@ private:
  * be extra careful when performing addition or deletion operations, as that
  * can lead to expensive sparse array operations or results.
  */
-template<typename T, typename TWrap = value_table_entry_adapter<typename T::value_type>>
+template<typename T>
 class stl_container_table_adapter : public libsinsp::state::built_in_table<uint64_t> {
 public:
+	using wrapper_t = value_table_entry_adapter<typename T::value_type>;
+
 	stl_container_table_adapter(const std::string& name, T& container):
 	        built_in_table(name),
 	        m_container(container) {}
 
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override {
-		TWrap::list_fields(out);
+		wrapper_t::list_fields(out);
 	}
 
 	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override {
-		return TWrap::get_field(name, type_id);
+		return wrapper_t::get_field(name, type_id);
 	}
 
 	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override {
@@ -174,12 +176,12 @@ public:
 	void clear_entries() override { m_container.clear(); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
-		auto ret = std::make_unique<TWrap>();
+		auto ret = std::make_unique<wrapper_t>();
 		return ret;
 	}
 
 	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
-		TWrap w;
+		wrapper_t w;
 		for(auto& v : m_container) {
 			w.set_value(&v);
 			if(!pred(w)) {
@@ -204,7 +206,7 @@ public:
 			        std::string("null entry added to table: " + std::string(this->name())));
 		}
 
-		auto value = dynamic_cast<TWrap*>(entry.get());
+		auto value = dynamic_cast<wrapper_t*>(entry.get());
 		if(!value) {
 			throw sinsp_exception("entry with mismatching type added to table: " +
 			                      std::string(this->name()));
@@ -227,7 +229,7 @@ public:
 	}
 
 private:
-	static inline void wrap_deleter(TWrap* v) { v->set_value(nullptr); }
+	static inline void wrap_deleter(wrapper_t* v) { v->set_value(nullptr); }
 
 	// helps us dynamically allocate a batch of wrappers, creating new ones
 	// only if we need them. Wrappers are reused for multiple entries, and
@@ -247,7 +249,7 @@ private:
 	}
 
 	T& m_container;
-	std::list<TWrap> m_wrappers;  // using lists for ptr stability
+	std::list<wrapper_t> m_wrappers;  // using lists for ptr stability
 };
 
 // Simple adapter for ss_plugin_table_input that implements the base_table interface
