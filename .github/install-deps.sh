@@ -61,6 +61,22 @@ echo "=== Downloading BS_thread_pool.h (4.1.0) ==="
 
 wget -P "/usr/include" "https://github.com/bshoshany/thread-pool/raw/v4.1.0/include/BS_thread_pool.hpp"
 
+# === fmt ===
+echo "=== Building and installing fmt (10.2.1) ==="
+
+wget "https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz"
+tar xzf 10.2.1.tar.gz
+pushd fmt-10.2.1
+cmake -B build -S . \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DFMT_DOC=OFF \
+    -DFMT_TEST=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build --parallel $(nproc)
+cmake --build build --target install
+popd
+
 # === cxxopts ===
 if [ ! -f "/usr/include/cxxopts.hpp" ]; then
     echo "=== Downloading cxxopts.hpp (3.3.1) ==="

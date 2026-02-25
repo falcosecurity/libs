@@ -253,7 +253,7 @@ jobs:
 
       - name: Install deps ⛓️
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares re2 tbb jq jsoncpp openssl uthash cxxopts
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares re2 tbb jq jsoncpp openssl uthash cxxopts fmt
 
       - name: Build 🏗️
         run: |
