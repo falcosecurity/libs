@@ -32,7 +32,7 @@ limitations under the License.
 #include <libsinsp/state/table.h>
 #include <libsinsp/event.h>
 #include <libsinsp/plugin.h>
-#include <libsinsp/threadinfo.h>
+#include <libsinsp/threadinfo_map.h>
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/timestamper.h>
