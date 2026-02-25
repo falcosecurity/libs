@@ -23,9 +23,9 @@ namespace folly {
 
 inline constexpr size_t demangle_max_symbol_size =
 #if defined(FOLLY_DEMANGLE_MAX_SYMBOL_SIZE)
-        FOLLY_DEMANGLE_MAX_SYMBOL_SIZE;
+    FOLLY_DEMANGLE_MAX_SYMBOL_SIZE;
 #else
-        0;
+    0;
 #endif
 
 bool demangle_build_has_cxxabi() noexcept;
@@ -44,7 +44,7 @@ bool demangle_build_has_liberty() noexcept;
  */
 fbstring demangle(const char* name);
 inline fbstring demangle(const std::type_info& type) {
-	return demangle(type.name());
+  return demangle(type.name());
 }
 
 /**
@@ -67,7 +67,7 @@ inline fbstring demangle(const std::type_info& type) {
  */
 size_t demangle(const char* name, char* out, size_t outSize);
 inline size_t demangle(const std::type_info& type, char* buf, size_t bufSize) {
-	return demangle(type.name(), buf, bufSize);
+  return demangle(type.name(), buf, bufSize);
 }
 
-}  // namespace folly
+} // namespace folly

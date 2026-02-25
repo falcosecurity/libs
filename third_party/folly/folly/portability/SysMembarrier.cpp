@@ -28,7 +28,7 @@ namespace detail {
 namespace {
 
 constexpr long linux_syscall_nr_(long nr, long def) {
-	return nr == -1 ? def : nr;
+  return nr == -1 ? def : nr;
 }
 
 //  __NR_membarrier or -1; always defined as v.s. __NR_membarrier
@@ -48,9 +48,10 @@ constexpr long def_linux_syscall_nr_membarrier_ = -1;
 
 //  __NR_membarrier with hardcoded fallback where available or -1
 constexpr long linux_syscall_nr_membarrier =
-        (kIsArchAmd64 || kIsArchAArch64) && !kIsMobile && kIsLinux  //
-                ? linux_syscall_nr_(linux_syscall_nr_membarrier_, def_linux_syscall_nr_membarrier_)
-                : -1;
+    (kIsArchAmd64 || kIsArchAArch64) && !kIsMobile && kIsLinux //
+    ? linux_syscall_nr_(
+          linux_syscall_nr_membarrier_, def_linux_syscall_nr_membarrier_)
+    : -1;
 
 //  linux_membarrier_cmd
 //
@@ -59,45 +60,45 @@ constexpr long linux_syscall_nr_membarrier =
 //
 //  mimic: membarrier_cmd, linux/membarrier.h
 enum linux_membarrier_cmd {
-	MEMBARRIER_CMD_QUERY = 0,
-	MEMBARRIER_CMD_PRIVATE_EXPEDITED = (1 << 3),
-	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED = (1 << 4),
+  MEMBARRIER_CMD_QUERY = 0,
+  MEMBARRIER_CMD_PRIVATE_EXPEDITED = (1 << 3),
+  MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED = (1 << 4),
 };
 
 FOLLY_ERASE int call_membarrier(int cmd, unsigned int flags = 0) {
-	if(linux_syscall_nr_membarrier < 0) {
-		errno = ENOSYS;
-		return -1;
-	}
-	return linux_syscall(linux_syscall_nr_membarrier, cmd, flags);
+  if (linux_syscall_nr_membarrier < 0) {
+    errno = ENOSYS;
+    return -1;
+  }
+  return linux_syscall(linux_syscall_nr_membarrier, cmd, flags);
 }
 
-}  // namespace
+} // namespace
 
 bool sysMembarrierPrivateExpeditedAvailable() {
-	constexpr auto flags = 0                                   //
-	                       | MEMBARRIER_CMD_PRIVATE_EXPEDITED  //
-	                       | MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED;
+  constexpr auto flags = 0 //
+      | MEMBARRIER_CMD_PRIVATE_EXPEDITED //
+      | MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED;
 
-	auto const r = call_membarrier(MEMBARRIER_CMD_QUERY);
-	return r != -1 && (r & flags) == flags;
+  auto const r = call_membarrier(MEMBARRIER_CMD_QUERY);
+  return r != -1 && (r & flags) == flags;
 }
 
 int sysMembarrierPrivateExpedited() {
-	if(0 == call_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED)) {
-		return 0;
-	}
-	switch(errno) {
-	case EINVAL:
-	case ENOSYS:
-		return -1;
-	}
-	assert(errno == EPERM);
-	if(-1 == call_membarrier(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED)) {
-		return -1;
-	}
-	return call_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED);
+  if (0 == call_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED)) {
+    return 0;
+  }
+  switch (errno) {
+    case EINVAL:
+    case ENOSYS:
+      return -1;
+  }
+  assert(errno == EPERM);
+  if (-1 == call_membarrier(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED)) {
+    return -1;
+  }
+  return call_membarrier(MEMBARRIER_CMD_PRIVATE_EXPEDITED);
 }
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

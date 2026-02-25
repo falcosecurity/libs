@@ -61,14 +61,14 @@
  * where the extension is not present.
  */
 #if FOLLY_HAS_EXTENSION(nullability)
-#define FOLLY_NULLABLE                                     \
-	FOLLY_PUSH_WARNING                                     \
-	FOLLY_CLANG_DISABLE_WARNING("-Wnullability-extension") \
-	_Nullable FOLLY_POP_WARNING
-#define FOLLY_NONNULL                                      \
-	FOLLY_PUSH_WARNING                                     \
-	FOLLY_CLANG_DISABLE_WARNING("-Wnullability-extension") \
-	_Nonnull FOLLY_POP_WARNING
+#define FOLLY_NULLABLE                                   \
+  FOLLY_PUSH_WARNING                                     \
+  FOLLY_CLANG_DISABLE_WARNING("-Wnullability-extension") \
+  _Nullable FOLLY_POP_WARNING
+#define FOLLY_NONNULL                                    \
+  FOLLY_PUSH_WARNING                                     \
+  FOLLY_CLANG_DISABLE_WARNING("-Wnullability-extension") \
+  _Nonnull FOLLY_POP_WARNING
 #else
 #define FOLLY_NULLABLE
 #define FOLLY_NONNULL
@@ -202,13 +202,15 @@
 #endif
 
 #if FOLLY_HAS_CPP_ATTRIBUTE(clang::coro_await_elidable_argument)
-#define FOLLY_ATTR_CLANG_CORO_AWAIT_ELIDABLE_ARGUMENT clang::coro_await_elidable_argument
+#define FOLLY_ATTR_CLANG_CORO_AWAIT_ELIDABLE_ARGUMENT \
+  clang::coro_await_elidable_argument
 #else
 #define FOLLY_ATTR_CLANG_CORO_AWAIT_ELIDABLE_ARGUMENT
 #endif
 
 #if FOLLY_HAS_CPP_ATTRIBUTE(clang::no_thread_safety_analysis)
-#define FOLLY_ATTR_CLANG_NO_THREAD_SAFETY_ANALYSIS clang::no_thread_safety_analysis
+#define FOLLY_ATTR_CLANG_NO_THREAD_SAFETY_ANALYSIS \
+  clang::no_thread_safety_analysis
 #else
 #define FOLLY_ATTR_CLANG_NO_THREAD_SAFETY_ANALYSIS
 #endif

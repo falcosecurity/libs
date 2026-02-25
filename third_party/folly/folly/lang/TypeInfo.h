@@ -28,7 +28,8 @@
 #if FOLLY_HAS_RTTI
 #define FOLLY_TYPE_INFO_OF(...) (&typeid(__VA_ARGS__))
 #else
-#define FOLLY_TYPE_INFO_OF(...) ((sizeof(__VA_ARGS__)), static_cast<std::type_info const*>(nullptr))
+#define FOLLY_TYPE_INFO_OF(...) \
+  ((sizeof(__VA_ARGS__)), static_cast<std::type_info const*>(nullptr))
 #endif
 
 namespace folly {
@@ -38,9 +39,9 @@ namespace folly {
 //  Returns &typeid(T) if RTTI is available, nullptr otherwise.
 //
 //  This overload works on the static type of the template parameter.
-template<typename T>
+template <typename T>
 FOLLY_ERASE constexpr std::type_info const* type_info_of() {
-	return FOLLY_TYPE_INFO_OF(T);
+  return FOLLY_TYPE_INFO_OF(T);
 }
 
 //  type_info_of
@@ -48,9 +49,10 @@ FOLLY_ERASE constexpr std::type_info const* type_info_of() {
 //  Returns &typeid(t) if RTTI is available, nullptr otherwise.
 //
 //  This overload works on the dynamic type of the non-template parameter.
-template<typename T>
-FOLLY_ERASE constexpr std::type_info const* type_info_of([[maybe_unused]] T const& t) {
-	return FOLLY_TYPE_INFO_OF(t);
+template <typename T>
+FOLLY_ERASE constexpr std::type_info const* type_info_of(
+    [[maybe_unused]] T const& t) {
+  return FOLLY_TYPE_INFO_OF(t);
 }
 
-}  // namespace folly
+} // namespace folly

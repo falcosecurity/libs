@@ -29,27 +29,28 @@
 namespace folly::detail {
 
 void hazptr_inline_executor_add(folly::Function<void()> func) {
-	using Queue = std::queue<folly::Function<void()>>;
-	thread_local Queue* current = nullptr;
+  using Queue = std::queue<folly::Function<void()>>;
+  thread_local Queue* current = nullptr;
 
-	if(current != nullptr) {
-		current->push(std::move(func));
-		return;
-	}
+  if (current != nullptr) {
+    current->push(std::move(func));
+    return;
+  }
 
-	Queue queue;
-	current = &queue;
-	auto cleanup = makeGuard([&] { current = nullptr; });
-	auto logException = []() noexcept {
-		LOG(ERROR) << "HazptrDomain threw unhandled " << exceptionStr(current_exception());
-	};
+  Queue queue;
+  current = &queue;
+  auto cleanup = makeGuard([&] { current = nullptr; });
+  auto logException = []() noexcept {
+    LOG(ERROR) << "HazptrDomain threw unhandled "
+               << exceptionStr(current_exception());
+  };
 
-	catch_exception(std::exchange(func, {}), logException);
+  catch_exception(std::exchange(func, {}), logException);
 
-	while(!queue.empty()) {
-		catch_exception(std::ref(queue.front()), logException);
-		queue.pop();
-	}
+  while (!queue.empty()) {
+    catch_exception(std::ref(queue.front()), logException);
+    queue.pop();
+  }
 }
 
-}  // namespace folly::detail
+} // namespace folly::detail

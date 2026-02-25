@@ -82,7 +82,7 @@ namespace folly {
  *    folly::for_each(futures, [](auto& fut) { ... });
  *  });
  */
-template<typename Range, typename Func>
+template <typename Range, typename Func>
 constexpr Func for_each(Range&& range, Func func);
 
 /**
@@ -92,7 +92,7 @@ constexpr Func for_each(Range&& range, Func func);
  */
 namespace for_each_detail {
 enum class LoopControl : bool { BREAK, CONTINUE };
-}  // namespace for_each_detail
+} // namespace for_each_detail
 
 constexpr auto loop_break = for_each_detail::LoopControl::BREAK;
 constexpr auto loop_continue = for_each_detail::LoopControl::CONTINUE;
@@ -118,10 +118,10 @@ constexpr auto loop_continue = for_each_detail::LoopControl::CONTINUE;
  * falls back to trying to use the indexing operator (operator[]) to fetch the
  * required element.
  */
-template<typename Sequence, typename Index>
+template <typename Sequence, typename Index>
 constexpr decltype(auto) fetch(Sequence&& sequence, Index&& index);
 
-}  // namespace folly
+} // namespace folly
 
 /**
  * Everything below is deprecated.
@@ -140,11 +140,11 @@ constexpr decltype(auto) fetch(Sequence&& sequence, Index&& index);
  *
  * If you need access to the iterators please write an explicit iterator loop
  */
-#define FOR_EACH(i, c)                                                        \
-	if(bool _FE_ANON(s1_) = false) {                                          \
-	} else                                                                    \
-		for(auto&& _FE_ANON(s2_) = (c); !_FE_ANON(s1_); _FE_ANON(s1_) = true) \
-			for(auto i = _FE_ANON(s2_).begin(); i != _FE_ANON(s2_).end(); ++i)
+#define FOR_EACH(i, c)                                                     \
+  if (bool _FE_ANON(s1_) = false) {                                        \
+  } else                                                                   \
+    for (auto&& _FE_ANON(s2_) = (c); !_FE_ANON(s1_); _FE_ANON(s1_) = true) \
+      for (auto i = _FE_ANON(s2_).begin(); i != _FE_ANON(s2_).end(); ++i)
 
 /*
  * If you just want the element values, please use this (ranges-v3) construct:
@@ -153,11 +153,11 @@ constexpr decltype(auto) fetch(Sequence&& sequence, Index&& index);
  *
  * If you need access to the iterators please write an explicit iterator loop
  */
-#define FOR_EACH_R(i, c)                                                      \
-	if(bool _FE_ANON(s1_) = false) {                                          \
-	} else                                                                    \
-		for(auto&& _FE_ANON(s2_) = (c); !_FE_ANON(s1_); _FE_ANON(s1_) = true) \
-			for(auto i = _FE_ANON(s2_).rbegin(); i != _FE_ANON(s2_).rend(); ++i)
+#define FOR_EACH_R(i, c)                                                   \
+  if (bool _FE_ANON(s1_) = false) {                                        \
+  } else                                                                   \
+    for (auto&& _FE_ANON(s2_) = (c); !_FE_ANON(s1_); _FE_ANON(s1_) = true) \
+      for (auto i = _FE_ANON(s2_).rbegin(); i != _FE_ANON(s2_).rend(); ++i)
 
 namespace folly {
 namespace detail {
@@ -174,24 +174,26 @@ namespace detail {
  * it is known to be valid.
  */
 
-template<class T, class U>
-typename std::enable_if<(std::is_arithmetic<T>::value && std::is_arithmetic<U>::value) ||
-                                (std::is_pointer<T>::value && std::is_pointer<U>::value),
-                        bool>::type
+template <class T, class U>
+typename std::enable_if<
+    (std::is_arithmetic<T>::value && std::is_arithmetic<U>::value) ||
+        (std::is_pointer<T>::value && std::is_pointer<U>::value),
+    bool>::type
 notThereYet(T& iter, const U& end) {
-	return iter < end;
+  return iter < end;
 }
 
-template<class T, class U>
-typename std::enable_if<!((std::is_arithmetic<T>::value && std::is_arithmetic<U>::value) ||
-                          (std::is_pointer<T>::value && std::is_pointer<U>::value)),
-                        bool>::type
+template <class T, class U>
+typename std::enable_if<
+    !((std::is_arithmetic<T>::value && std::is_arithmetic<U>::value) ||
+      (std::is_pointer<T>::value && std::is_pointer<U>::value)),
+    bool>::type
 notThereYet(T& iter, const U& end) {
-	return iter != end;
+  return iter != end;
 }
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly
 
 /*
  * Look at the Ranges-v3 views and you'll probably find an easier way to build
@@ -199,7 +201,9 @@ notThereYet(T& iter, const U& end) {
  *
  *    for (auto& element : make_subrange(begin, end))
  */
-#define FOR_EACH_RANGE(i, begin, end) \
-	for(auto i = (true ? (begin) : (end)); ::folly::detail::notThereYet(i, (end)); ++i)
+#define FOR_EACH_RANGE(i, begin, end)          \
+  for (auto i = (true ? (begin) : (end));      \
+       ::folly::detail::notThereYet(i, (end)); \
+       ++i)
 
 #include <folly/container/Foreach-inl.h>

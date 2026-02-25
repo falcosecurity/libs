@@ -50,142 +50,145 @@ namespace folly {
 /// async-signal-safe
 /// reentrancy-safe
 /// ifunc-safe
-FOLLY_ALWAYS_INLINE void x86_cpuid(unsigned int info[4],
-                                   [[maybe_unused]] unsigned int leaf,
-                                   [[maybe_unused]] unsigned int tag = 0) {
+FOLLY_ALWAYS_INLINE void x86_cpuid(
+    unsigned int info[4],
+    [[maybe_unused]] unsigned int leaf,
+    [[maybe_unused]] unsigned int tag = 0) {
 #if FOLLY_X86 || FOLLY_X64
 #if defined(_MSC_VER)
-	__cpuidex(reinterpret_cast<int*>(info), leaf, tag);  // no inline asm
+  __cpuidex(reinterpret_cast<int*>(info), leaf, tag); // no inline asm
 #else
-	asm volatile(
+  asm volatile(
 #if defined(__pic__) && defined(__i386__)
-	        // ebx is PIC register - must preserve ebx around cpuid
-	        R"(
+      // ebx is PIC register - must preserve ebx around cpuid
+      R"(
         mov %%ebx, %[tmp]
         cpuid
         xchg %%ebx, %[tmp]
       )"
 #else
-	        // ebx is not special
-	        R"(
+      // ebx is not special
+      R"(
         cpuid
       )"
 #endif
-	        :  // outputs
-	        "=a"(info[0]),
+      : // outputs
+      "=a"(info[0]),
 #if defined(__pic__) && defined(__i386__)
-	        [tmp] "=&r"(info[1]),  // ebx out was xchg'd to tmp; early clobber
+      [tmp] "=&r"(info[1]), // ebx out was xchg'd to tmp; early clobber
 #else
-	        "=b"(info[1]),  // ebx out is in ebx
+      "=b"(info[1]), // ebx out is in ebx
 #endif
-	        "=c"(info[2]),
-	        "=d"(info[3])
-	        :  // inputs
-	        "a"(leaf),
-	        "c"(tag)
-	        :  // clobbers
-	);
+      "=c"(info[2]),
+      "=d"(info[3])
+      : // inputs
+      "a"(leaf),
+      "c"(tag)
+      : // clobbers
+  );
 #endif
 #else
-	info[0] = info[1] = info[2] = info[3] = 0;
+  info[0] = info[1] = info[2] = info[3] = 0;
 #endif
 }
 
-FOLLY_ALWAYS_INLINE unsigned int x86_cpuid_max(  //
-        unsigned int leaf,
-        unsigned int* sig) {
-	unsigned int info[4];
-	x86_cpuid(info, leaf);
-	if(sig) {
-		*sig = info[1];  // ebx
-	}
-	return info[0];  // eax
+FOLLY_ALWAYS_INLINE unsigned int x86_cpuid_max( //
+    unsigned int leaf,
+    unsigned int* sig) {
+  unsigned int info[4];
+  x86_cpuid(info, leaf);
+  if (sig) {
+    *sig = info[1]; // ebx
+  }
+  return info[0]; // eax
 }
 
 enum class x86_cpuid_vendor { unknown, intel, amd };
 
 union x86_cpuid_vendor_name {
-	char const str[13];
-	unsigned int words[3];
+  char const str[13];
+  unsigned int words[3];
 };
 inline constexpr x86_cpuid_vendor_name x86_cpuid_vendor_names[3] = {
-        {},
-        {"GenuineIntel"},
-        {"AuthenticAMD"},
+    {},
+    {"GenuineIntel"},
+    {"AuthenticAMD"},
 };
 
 FOLLY_ALWAYS_INLINE x86_cpuid_vendor x86_cpuid_get_vendor() {
-	if constexpr(kIsArchX86 || kIsArchAmd64) {
-		unsigned int info[4];
-		x86_cpuid(info, 0);
-		constexpr auto num_names = sizeof(x86_cpuid_vendor_names) / sizeof(x86_cpuid_vendor_name);
-		for(unsigned int i = 1; i < num_names; ++i) {
-			auto& name = x86_cpuid_vendor_names[i].words;
-			if(info[1] == name[0] && info[2] == name[2] && info[3] == name[1]) {
-				return static_cast<x86_cpuid_vendor>(i);
-			}
-		}
-	}
-	return x86_cpuid_vendor::unknown;
+  if constexpr (kIsArchX86 || kIsArchAmd64) {
+    unsigned int info[4];
+    x86_cpuid(info, 0);
+    constexpr auto num_names =
+        sizeof(x86_cpuid_vendor_names) / sizeof(x86_cpuid_vendor_name);
+    for (unsigned int i = 1; i < num_names; ++i) {
+      auto& name = x86_cpuid_vendor_names[i].words;
+      if (info[1] == name[0] && info[2] == name[2] && info[3] == name[1]) {
+        return static_cast<x86_cpuid_vendor>(i);
+      }
+    }
+  }
+  return x86_cpuid_vendor::unknown;
 }
 
 struct x86_cpuid_cache_info {
-	static inline constexpr unsigned int id_count_max = 32;
+  static inline constexpr unsigned int id_count_max = 32;
 
-	unsigned int eax = 0;
-	unsigned int ebx = 0;
-	unsigned int ecx = 0;
+  unsigned int eax = 0;
+  unsigned int ebx = 0;
+  unsigned int ecx = 0;
 
-	size_t cache_type() const noexcept { return eax & 0x1F; }
-	bool cache_type_data() const noexcept { return cache_type() & 1; }
-	bool cache_type_inst() const noexcept { return cache_type() & 2; }
-	bool cache_type_null() const noexcept { return !cache_type(); }
+  size_t cache_type() const noexcept { return eax & 0x1F; }
+  bool cache_type_data() const noexcept { return cache_type() & 1; }
+  bool cache_type_inst() const noexcept { return cache_type() & 2; }
+  bool cache_type_null() const noexcept { return !cache_type(); }
 
-	size_t level() const noexcept { return (eax >> 5) & 0x7; }
-	size_t line_size() const noexcept { return (ebx & 0xFFF) + 1; }
-	size_t partitions() const noexcept { return ((ebx >> 12) & 0x3FF) + 1; }
-	size_t ways() const noexcept { return ((ebx >> 22) & 0x3FF) + 1; }
-	size_t sets() const noexcept { return ecx + 1; }
-	size_t cache_size() const noexcept {
-		return !cache_type_null() * ways() * partitions() * line_size() * sets();
-	}
+  size_t level() const noexcept { return (eax >> 5) & 0x7; }
+  size_t line_size() const noexcept { return (ebx & 0xFFF) + 1; }
+  size_t partitions() const noexcept { return ((ebx >> 12) & 0x3FF) + 1; }
+  size_t ways() const noexcept { return ((ebx >> 22) & 0x3FF) + 1; }
+  size_t sets() const noexcept { return ecx + 1; }
+  size_t cache_size() const noexcept {
+    return !cache_type_null() * ways() * partitions() * line_size() * sets();
+  }
 };
 
-FOLLY_ALWAYS_INLINE x86_cpuid_cache_info x86_cpuid_get_cache_info(x86_cpuid_vendor vend,
-                                                                  unsigned int id) {
-	unsigned int info[4];
-	switch(vend) {
-	case x86_cpuid_vendor::unknown:
-		return x86_cpuid_cache_info{};
-	case x86_cpuid_vendor::intel:
-		x86_cpuid(info, /* leaf = */ 4, /* tag = */ id + 1);
-		return x86_cpuid_cache_info{info[0], info[1], info[2]};
-	case x86_cpuid_vendor::amd:
-		x86_cpuid(info, /* leaf = */ 0x8000001D, /* tag = */ id + 1);
-		return x86_cpuid_cache_info{info[0], info[1], info[2]};
-	default:
-		assert(0 && "unsupported x86 vendor");
-		return x86_cpuid_cache_info{};
-	}
+FOLLY_ALWAYS_INLINE x86_cpuid_cache_info
+x86_cpuid_get_cache_info(x86_cpuid_vendor vend, unsigned int id) {
+  unsigned int info[4];
+  switch (vend) {
+    case x86_cpuid_vendor::unknown:
+      return x86_cpuid_cache_info{};
+    case x86_cpuid_vendor::intel:
+      x86_cpuid(info, /* leaf = */ 4, /* tag = */ id + 1);
+      return x86_cpuid_cache_info{info[0], info[1], info[2]};
+    case x86_cpuid_vendor::amd:
+      x86_cpuid(info, /* leaf = */ 0x8000001D, /* tag = */ id + 1);
+      return x86_cpuid_cache_info{info[0], info[1], info[2]};
+    default:
+      assert(0 && "unsupported x86 vendor");
+      return x86_cpuid_cache_info{};
+  }
 }
 
-FOLLY_ALWAYS_INLINE x86_cpuid_cache_info x86_cpuid_get_llc_cache_info(x86_cpuid_vendor vend) {
-	x86_cpuid_cache_info cache_info{};
-	for(unsigned int i = 0; i < x86_cpuid_cache_info::id_count_max; ++i) {
-		auto const info = x86_cpuid_get_cache_info(vend, i);
-		if(info.cache_type_null()) {
-			break;
-		}
-		if(info.cache_type_data()) {
-			cache_info = info;
-		}
-	}
-	return cache_info;
+FOLLY_ALWAYS_INLINE x86_cpuid_cache_info
+x86_cpuid_get_llc_cache_info(x86_cpuid_vendor vend) {
+  x86_cpuid_cache_info cache_info{};
+  for (unsigned int i = 0; i < x86_cpuid_cache_info::id_count_max; ++i) {
+    auto const info = x86_cpuid_get_cache_info(vend, i);
+    if (info.cache_type_null()) {
+      break;
+    }
+    if (info.cache_type_data()) {
+      cache_info = info;
+    }
+  }
+  return cache_info;
 }
 
 FOLLY_ALWAYS_INLINE x86_cpuid_cache_info x86_cpuid_get_llc_cache_info() {
-	auto const vend = x86_cpuid_get_vendor();
-	return x86_cpuid_get_llc_cache_info(vend);
+  auto const vend = x86_cpuid_get_vendor();
+  return x86_cpuid_get_llc_cache_info(vend);
 }
 
-}  // namespace folly
+} // namespace folly

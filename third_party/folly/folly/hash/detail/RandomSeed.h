@@ -34,17 +34,19 @@ namespace detail {
 // https://github.com/abseil/abseil-cpp/blob/76fd1e96c71ad20fe08f1b7d18c6c55e197df85e/absl/hash/internal/hash.h#L1299-L1323
 // [2]: https://en.wikipedia.org/wiki/Address_space_layout_randomization
 class RandomSeed {
-public:
-	static uint64_t seed() {
-		// Abseil's implementation takes an address of static variable. It works
-		// fine, as long as hash values doesn't cross shared object/binary
-		// boundary. Unfortunately, we observed few such cases, so we are taking
-		// address of `std::abort` instead to increase chances of having single
-		// address across multiple shared objects.
-		return kIsDebug ? static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&std::abort)) : 0ULL;
-	}
+ public:
+  static uint64_t seed() {
+    // Abseil's implementation takes an address of static variable. It works
+    // fine, as long as hash values doesn't cross shared object/binary
+    // boundary. Unfortunately, we observed few such cases, so we are taking
+    // address of `std::abort` instead to increase chances of having single
+    // address across multiple shared objects.
+    return kIsDebug
+        ? static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&std::abort))
+        : 0ULL;
+  }
 };
 
-}  // namespace detail
-}  // namespace hash
-}  // namespace folly
+} // namespace detail
+} // namespace hash
+} // namespace folly

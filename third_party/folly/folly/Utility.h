@@ -50,21 +50,21 @@ namespace folly {
 #define FOLLY_DECLVAL(...) static_cast<__VA_ARGS__ (*)() noexcept>(nullptr)()
 
 namespace detail {
-template<typename T>
+template <typename T>
 T decay_1_(T const volatile&&);
-template<typename T>
+template <typename T>
 T decay_1_(T const&);
-template<typename T>
+template <typename T>
 T* decay_1_(T*);
 
-template<typename T>
+template <typename T>
 auto decay_0_(int) -> decltype(detail::decay_1_(FOLLY_DECLVAL(T&&)));
-template<typename T>
+template <typename T>
 auto decay_0_(short) -> void;
 
-template<typename T>
+template <typename T>
 using decay_t = decltype(detail::decay_0_<T>(0));
-}  // namespace detail
+} // namespace detail
 
 //  decay_t
 //
@@ -115,16 +115,16 @@ using detail::decay_t;
  *  We mimic it, with a `noexcept` specifier for good measure.
  */
 
-template<typename T>
+template <typename T>
 constexpr detail::decay_t<T> copy(T&& value) noexcept(
-        noexcept(detail::decay_t<T>(static_cast<T&&>(value)))) {
-	return static_cast<T&&>(value);
+    noexcept(detail::decay_t<T>(static_cast<T&&>(value)))) {
+  return static_cast<T&&>(value);
 }
 
 //  mimic: `std::forward_like`, C++23 / p2445r0.
-template<typename Src, typename Dst>
+template <typename Src, typename Dst>
 constexpr like_t<Src, Dst>&& forward_like(Dst&& dst) noexcept {
-	return std::forward<like_t<Src, Dst>>(static_cast<Dst&&>(dst));
+  return std::forward<like_t<Src, Dst>>(static_cast<Dst&&>(dst));
 }
 
 /**
@@ -219,10 +219,10 @@ constexpr sorted_unique_t sorted_unique{};
 struct sorted_equivalent_t {};
 constexpr sorted_equivalent_t sorted_equivalent{};
 
-template<typename T>
+template <typename T>
 struct transparent : T {
-	using is_transparent = void;
-	using T::T;
+  using is_transparent = void;
+  using T::T;
 };
 
 /**
@@ -245,10 +245,10 @@ struct transparent : T {
  *                // is no longer valid
  */
 struct identity_fn {
-	template<class T>
-	constexpr T&& operator()(T&& x) const noexcept {
-		return static_cast<T&&>(x);
-	}
+  template <class T>
+  constexpr T&& operator()(T&& x) const noexcept {
+    return static_cast<T&&>(x);
+  }
 };
 using Identity = identity_fn;
 inline constexpr identity_fn identity{};
@@ -260,8 +260,8 @@ inline constexpr identity_fn identity{};
 /// This can only wrap literal strings, since the constructor is marked
 /// consteval.  Like with fmt::format_string.
 struct literal_c_str {
-	const char* const ptr;
-	/* implicit */ consteval literal_c_str(const char* p): ptr(p) {}
+  const char* const ptr;
+  /* implicit */ consteval literal_c_str(const char* p) : ptr(p) {}
 };
 
 #endif
@@ -285,94 +285,102 @@ struct literal_c_str {
 ///   void do_something() {
 ///     do_something_with_literal_string(vtag<literal_string{"foobar"}>);
 ///   }
-template<typename C, std::size_t N>
+template <typename C, std::size_t N>
 struct literal_string {
-	C buffer[N] = {};
+  C buffer[N] = {};
 
-	FOLLY_CONSTEVAL /* implicit */ literal_string(C const (&buf)[N]) noexcept {
-		for(std::size_t i = 0; i < N; ++i) {
-			buffer[i] = buf[i];
-		}
-	}
+  FOLLY_CONSTEVAL /* implicit */ literal_string(C const (&buf)[N]) noexcept {
+    for (std::size_t i = 0; i < N; ++i) {
+      buffer[i] = buf[i];
+    }
+  }
 
-	constexpr std::size_t size() const noexcept { return N - 1; }
-	constexpr C const* data() const noexcept { return buffer; }
-	constexpr C const* c_str() const noexcept { return buffer; }
+  constexpr std::size_t size() const noexcept { return N - 1; }
+  constexpr C const* data() const noexcept { return buffer; }
+  constexpr C const* c_str() const noexcept { return buffer; }
 
-	template<typename String, decltype((void(String(FOLLY_DECLVAL(C const*), N - 1)), 0)) = 0>
-	constexpr explicit operator String() const  //
-	        noexcept(noexcept(String(FOLLY_DECLVAL(C const*), N - 1))) {
-		return String(data(), N - 1);
-	}
+  template <
+      typename String,
+      decltype((void(String(FOLLY_DECLVAL(C const*), N - 1)), 0)) = 0>
+  constexpr explicit operator String() const //
+      noexcept(noexcept(String(FOLLY_DECLVAL(C const*), N - 1))) {
+    return String(data(), N - 1);
+  }
 };
 
 inline namespace literals {
 inline namespace string_literals {
 
 #if FOLLY_CPLUSPLUS >= 202002 && !defined(__NVCC__)
-template<literal_string Str>
+template <literal_string Str>
 FOLLY_CONSTEVAL decltype(Str) operator""_lit() noexcept {
-	return Str;
+  return Str;
 }
-template<literal_string Str>
+template <literal_string Str>
 FOLLY_CONSTEVAL vtag_t<Str> operator""_litv() noexcept {
-	return vtag<Str>;
+  return vtag<Str>;
 }
 #endif
 
-}  // namespace string_literals
-}  // namespace literals
+} // namespace string_literals
+} // namespace literals
 
 namespace detail {
 
-template<typename T>
+template <typename T>
 struct inheritable_inherit_ : T {
-	using T::T;
-	template<typename... A, std::enable_if_t<std::is_constructible<T, A...>::value, int> = 0>
-	/* implicit */ FOLLY_ERASE inheritable_inherit_(A&&... a) noexcept(
-	        noexcept(T(static_cast<A&&>(a)...))):
-	        T(static_cast<A&&>(a)...) {}
+  using T::T;
+  template <
+      typename... A,
+      std::enable_if_t<std::is_constructible<T, A...>::value, int> = 0>
+  /* implicit */ FOLLY_ERASE inheritable_inherit_(A&&... a) noexcept(
+      noexcept(T(static_cast<A&&>(a)...)))
+      : T(static_cast<A&&>(a)...) {}
 };
 
-template<typename T>
+template <typename T>
 struct inheritable_contain_ {
-	T v;
-	template<typename... A, std::enable_if_t<std::is_constructible<T, A...>::value, int> = 0>
-	/* implicit */ FOLLY_ERASE inheritable_contain_(A&&... a) noexcept(
-	        noexcept(T(static_cast<A&&>(a)...))):
-	        v(static_cast<A&&>(a)...) {}
-	FOLLY_ERASE operator T&() & noexcept { return v; }
-	FOLLY_ERASE operator T&&() && noexcept { return static_cast<T&&>(v); }
-	FOLLY_ERASE operator T const&() const& noexcept { return v; }
-	FOLLY_ERASE operator T const&&() const&& noexcept { return static_cast<T const&&>(v); }
+  T v;
+  template <
+      typename... A,
+      std::enable_if_t<std::is_constructible<T, A...>::value, int> = 0>
+  /* implicit */ FOLLY_ERASE inheritable_contain_(A&&... a) noexcept(
+      noexcept(T(static_cast<A&&>(a)...)))
+      : v(static_cast<A&&>(a)...) {}
+  FOLLY_ERASE operator T&() & noexcept { return v; }
+  FOLLY_ERASE operator T&&() && noexcept { return static_cast<T&&>(v); }
+  FOLLY_ERASE operator T const&() const& noexcept { return v; }
+  FOLLY_ERASE operator T const&&() const&& noexcept {
+    return static_cast<T const&&>(v);
+  }
 };
 
-template<typename T>
-constexpr bool is_inheritable_v_ =  //
-        (std::is_class_v<T> || std::is_union_v<T>) &&
-        !(std::is_abstract_v<T> || std::is_final_v<T>);
+template <typename T>
+constexpr bool is_inheritable_v_ = //
+    (std::is_class_v<T> || std::is_union_v<T>) &&
+    !(std::is_abstract_v<T> || std::is_final_v<T>);
 
-template<bool>
+template <bool>
 struct inheritable_;
-template<>
+template <>
 struct inheritable_<false> {
-	template<typename T>
-	using apply = inheritable_contain_<T>;
+  template <typename T>
+  using apply = inheritable_contain_<T>;
 };
-template<>
+template <>
 struct inheritable_<true> {
-	template<typename T>
-	using apply = inheritable_inherit_<T>;
+  template <typename T>
+  using apply = inheritable_inherit_<T>;
 };
 
 //  inheritable
 //
 //  A class wrapping an arbitrary type T which is always inheritable, and which
 //  enables empty-base-optimization when possible.
-template<typename T, bool C = is_inheritable_v_<T>>
+template <typename T, bool C = is_inheritable_v_<T>>
 using inheritable = typename inheritable_<C>::template apply<T>;
 
-}  // namespace detail
+} // namespace detail
 
 // Prevent child classes from finding anything in folly:: by ADL.
 namespace moveonly_ {
@@ -384,13 +392,13 @@ namespace moveonly_ {
  * 2) It has public methods, enabling aggregate initialization.
  */
 struct MoveOnly {
-	constexpr MoveOnly() noexcept = default;
-	~MoveOnly() noexcept = default;
+  constexpr MoveOnly() noexcept = default;
+  ~MoveOnly() noexcept = default;
 
-	MoveOnly(MoveOnly&&) noexcept = default;
-	MoveOnly& operator=(MoveOnly&&) noexcept = default;
-	MoveOnly(const MoveOnly&) = delete;
-	MoveOnly& operator=(const MoveOnly&) = delete;
+  MoveOnly(MoveOnly&&) noexcept = default;
+  MoveOnly& operator=(MoveOnly&&) noexcept = default;
+  MoveOnly(const MoveOnly&) = delete;
+  MoveOnly& operator=(const MoveOnly&) = delete;
 };
 
 /**
@@ -399,22 +407,24 @@ struct MoveOnly {
  * public methods, enabling aggregate initialization.
  */
 struct NonCopyableNonMovable {
-	constexpr NonCopyableNonMovable() noexcept = default;
-	~NonCopyableNonMovable() noexcept = default;
+  constexpr NonCopyableNonMovable() noexcept = default;
+  ~NonCopyableNonMovable() noexcept = default;
 
-	NonCopyableNonMovable(NonCopyableNonMovable&&) = delete;
-	NonCopyableNonMovable& operator=(NonCopyableNonMovable&&) = delete;
-	NonCopyableNonMovable(const NonCopyableNonMovable&) = delete;
-	NonCopyableNonMovable& operator=(const NonCopyableNonMovable&) = delete;
+  NonCopyableNonMovable(NonCopyableNonMovable&&) = delete;
+  NonCopyableNonMovable& operator=(NonCopyableNonMovable&&) = delete;
+  NonCopyableNonMovable(const NonCopyableNonMovable&) = delete;
+  NonCopyableNonMovable& operator=(const NonCopyableNonMovable&) = delete;
 };
 
 struct Default {};
 
-template<bool Copy, bool Move>
-using EnableCopyMove = std::
-        conditional_t<Copy, Default, std::conditional_t<Move, MoveOnly, NonCopyableNonMovable>>;
+template <bool Copy, bool Move>
+using EnableCopyMove = std::conditional_t<
+    Copy,
+    Default,
+    std::conditional_t<Move, MoveOnly, NonCopyableNonMovable>>;
 
-}  // namespace moveonly_
+} // namespace moveonly_
 
 using moveonly_::MoveOnly;
 using moveonly_::NonCopyableNonMovable;
@@ -428,8 +438,8 @@ using moveonly_::NonCopyableNonMovable;
 ///
 /// May be invoked with any arguments. Returns void.
 struct variadic_noop_fn {
-	template<typename... A>
-	constexpr void operator()(A&&... /*unused*/) const noexcept {}
+  template <typename... A>
+  constexpr void operator()(A&&... /*unused*/) const noexcept {}
 };
 inline constexpr variadic_noop_fn variadic_noop;
 
@@ -439,16 +449,16 @@ inline constexpr variadic_noop_fn variadic_noop;
 /// An invocable object and type that has no side-effects - that does nothing
 /// when invoked regardless of the arguments with which it is invoked - and that
 /// returns a constant value.
-template<auto Value>
+template <auto Value>
 struct variadic_constant_of_fn {
-	using value_type = decltype(Value);
-	static inline constexpr value_type value = Value;
-	template<typename... A>
-	constexpr value_type operator()(A&&... /*unused*/) const noexcept {
-		return value;
-	}
+  using value_type = decltype(Value);
+  static inline constexpr value_type value = Value;
+  template <typename... A>
+  constexpr value_type operator()(A&&... /*unused*/) const noexcept {
+    return value;
+  }
 };
-template<auto Value>
+template <auto Value>
 inline constexpr variadic_constant_of_fn<Value> variadic_constant_of;
 
 //  unsafe_default_initialized
@@ -483,35 +493,35 @@ inline constexpr variadic_constant_of_fn<Value> variadic_constant_of;
 //      store_value_into_int_ptr(&value); // suppresses possible warning
 //      use_value(value); // suppresses possible warning
 struct unsafe_default_initialized_cv {
-	FOLLY_PUSH_WARNING
-	// MSVC requires warning disables to be outside of function definition
-	// Uninitialized local variable 'uninit' used
-	FOLLY_MSVC_DISABLE_WARNING(4700)
-	// Potentially uninitialized local variable 'uninit' used
-	FOLLY_MSVC_DISABLE_WARNING(4701)
-	// Potentially uninitialized local pointer variable 'uninit' used
-	FOLLY_MSVC_DISABLE_WARNING(4703)
-	// Using uninitialized memory `uninit`
-	FOLLY_MSVC_DISABLE_WARNING(6001)
-	FOLLY_GNU_DISABLE_WARNING("-Wuninitialized")
-	// Clang doesn't implement -Wmaybe-uninitialized and warns about it
-	FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
-	template<typename T>
-	FOLLY_ERASE constexpr /* implicit */ operator T() const noexcept {
+  FOLLY_PUSH_WARNING
+  // MSVC requires warning disables to be outside of function definition
+  // Uninitialized local variable 'uninit' used
+  FOLLY_MSVC_DISABLE_WARNING(4700)
+  // Potentially uninitialized local variable 'uninit' used
+  FOLLY_MSVC_DISABLE_WARNING(4701)
+  // Potentially uninitialized local pointer variable 'uninit' used
+  FOLLY_MSVC_DISABLE_WARNING(4703)
+  // Using uninitialized memory `uninit`
+  FOLLY_MSVC_DISABLE_WARNING(6001)
+  FOLLY_GNU_DISABLE_WARNING("-Wuninitialized")
+  // Clang doesn't implement -Wmaybe-uninitialized and warns about it
+  FOLLY_GCC_DISABLE_WARNING("-Wmaybe-uninitialized")
+  template <typename T>
+  FOLLY_ERASE constexpr /* implicit */ operator T() const noexcept {
 #if defined(__cpp_lib_is_constant_evaluated)
 #if __cpp_lib_is_constant_evaluated >= 201811L
-#if(defined(_MSC_VER) && !defined(__MSVC_RUNTIME_CHECKS)) || \
-        (defined(__clang__) && !defined(__GNUC__))
-		if(!std::is_constant_evaluated()) {
-			T uninit;
-			return uninit;
-		}
+#if (defined(_MSC_VER) && !defined(__MSVC_RUNTIME_CHECKS)) || \
+    (defined(__clang__) && !defined(__GNUC__))
+    if (!std::is_constant_evaluated()) {
+      T uninit;
+      return uninit;
+    }
 #endif
 #endif
 #endif
-		return T();
-	}
-	FOLLY_POP_WARNING
+    return T();
+  }
+  FOLLY_POP_WARNING
 };
 inline constexpr unsafe_default_initialized_cv unsafe_default_initialized{};
 
@@ -524,73 +534,77 @@ inline constexpr unsafe_default_initialized_cv unsafe_default_initialized{};
 /// may be declared weak on some platforms but not on others. GCC likes to warn
 /// about them but the warning is unhelpful.
 struct to_bool_fn {
-	template<typename..., typename T>
-	FOLLY_ERASE constexpr auto operator()(T const& t) const noexcept
-	        -> decltype(static_cast<bool>(t)) {
-		FOLLY_PUSH_WARNING
-		FOLLY_GCC_DISABLE_WARNING("-Waddress")
-		FOLLY_GCC_DISABLE_WARNING("-Wnonnull-compare")
-		return static_cast<bool>(t);
-		FOLLY_POP_WARNING
-	}
+  template <typename..., typename T>
+  FOLLY_ERASE constexpr auto operator()(T const& t) const noexcept
+      -> decltype(static_cast<bool>(t)) {
+    FOLLY_PUSH_WARNING
+    FOLLY_GCC_DISABLE_WARNING("-Waddress")
+    FOLLY_GCC_DISABLE_WARNING("-Wnonnull-compare")
+    return static_cast<bool>(t);
+    FOLLY_POP_WARNING
+  }
 };
 inline constexpr to_bool_fn to_bool{};
 
 struct to_signed_fn {
-	template<typename..., typename T>
-	constexpr auto operator()(T const& t) const noexcept -> typename std::make_signed<T>::type {
-		using S = typename std::make_signed<T>::type;
-		// note: static_cast<S>(t) would be more straightforward, but it would also
-		// be implementation-defined behavior and that is typically to be avoided;
-		// the following code optimized into the same thing, though
-		constexpr auto m = static_cast<T>(std::numeric_limits<S>::max());
-		return static_cast<S>(m < t ? -static_cast<S>(~t) + S{-1} : t);
-	}
+  template <typename..., typename T>
+  constexpr auto operator()(T const& t) const noexcept ->
+      typename std::make_signed<T>::type {
+    using S = typename std::make_signed<T>::type;
+    // note: static_cast<S>(t) would be more straightforward, but it would also
+    // be implementation-defined behavior and that is typically to be avoided;
+    // the following code optimized into the same thing, though
+    constexpr auto m = static_cast<T>(std::numeric_limits<S>::max());
+    return static_cast<S>(m < t ? -static_cast<S>(~t) + S{-1} : t);
+  }
 };
 inline constexpr to_signed_fn to_signed{};
 
 struct to_unsigned_fn {
-	template<typename..., typename T>
-	constexpr auto operator()(T const& t) const noexcept -> typename std::make_unsigned<T>::type {
-		using U = typename std::make_unsigned<T>::type;
-		return static_cast<U>(t);
-	}
+  template <typename..., typename T>
+  constexpr auto operator()(T const& t) const noexcept ->
+      typename std::make_unsigned<T>::type {
+    using U = typename std::make_unsigned<T>::type;
+    return static_cast<U>(t);
+  }
 };
 inline constexpr to_unsigned_fn to_unsigned{};
 
 namespace detail {
-template<typename Src, typename Dst>
+template <typename Src, typename Dst>
 inline constexpr bool is_to_narrow_convertible_v =
-        (std::is_integral<Dst>::value) &&
-        (std::is_signed<Dst>::value == std::is_signed<Src>::value);
+    (std::is_integral<Dst>::value) &&
+    (std::is_signed<Dst>::value == std::is_signed<Src>::value);
 }
 
-template<typename Src>
+template <typename Src>
 class to_narrow_convertible {
-	static_assert(std::is_integral<Src>::value, "not an integer");
+  static_assert(std::is_integral<Src>::value, "not an integer");
 
-	template<typename Dst>
-	struct to_ : std::bool_constant<detail::is_to_narrow_convertible_v<Src, Dst>> {};
+  template <typename Dst>
+  struct to_
+      : std::bool_constant<detail::is_to_narrow_convertible_v<Src, Dst>> {};
 
-public:
-	explicit constexpr to_narrow_convertible(Src const& value) noexcept: value_(value) {}
-	explicit to_narrow_convertible(to_narrow_convertible const&) = default;
-	explicit to_narrow_convertible(to_narrow_convertible&&) = default;
-	to_narrow_convertible& operator=(to_narrow_convertible const&) = default;
-	to_narrow_convertible& operator=(to_narrow_convertible&&) = default;
+ public:
+  explicit constexpr to_narrow_convertible(Src const& value) noexcept
+      : value_(value) {}
+  explicit to_narrow_convertible(to_narrow_convertible const&) = default;
+  explicit to_narrow_convertible(to_narrow_convertible&&) = default;
+  to_narrow_convertible& operator=(to_narrow_convertible const&) = default;
+  to_narrow_convertible& operator=(to_narrow_convertible&&) = default;
 
-	template<typename Dst, std::enable_if_t<to_<Dst>::value, int> = 0>
-	/* implicit */ constexpr operator Dst() const noexcept {
-		FOLLY_PUSH_WARNING
-		FOLLY_MSVC_DISABLE_WARNING(4244)  // lossy conversion: arguments
-		FOLLY_MSVC_DISABLE_WARNING(4267)  // lossy conversion: variables
-		FOLLY_GNU_DISABLE_WARNING("-Wconversion")
-		return value_;
-		FOLLY_POP_WARNING
-	}
+  template <typename Dst, std::enable_if_t<to_<Dst>::value, int> = 0>
+  /* implicit */ constexpr operator Dst() const noexcept {
+    FOLLY_PUSH_WARNING
+    FOLLY_MSVC_DISABLE_WARNING(4244) // lossy conversion: arguments
+    FOLLY_MSVC_DISABLE_WARNING(4267) // lossy conversion: variables
+    FOLLY_GNU_DISABLE_WARNING("-Wconversion")
+    return value_;
+    FOLLY_POP_WARNING
+  }
 
-private:
-	Src value_;
+ private:
+  Src value_;
 };
 
 //  to_narrow
@@ -607,40 +621,42 @@ private:
 //  implicit conversions - it checks for truncation, with suppressions in place
 //  for warnings which guard against narrowing implicit conversions.
 struct to_narrow_fn {
-	template<typename..., typename Src>
-	constexpr auto operator()(Src const& src) const noexcept -> to_narrow_convertible<Src> {
-		return to_narrow_convertible<Src>{src};
-	}
+  template <typename..., typename Src>
+  constexpr auto operator()(Src const& src) const noexcept
+      -> to_narrow_convertible<Src> {
+    return to_narrow_convertible<Src>{src};
+  }
 };
 inline constexpr to_narrow_fn to_narrow{};
 
-template<typename Src>
+template <typename Src>
 class to_integral_convertible {
-	static_assert(std::is_floating_point<Src>::value, "not a floating-point");
+  static_assert(std::is_floating_point<Src>::value, "not a floating-point");
 
-	template<typename Dst>
-	static constexpr bool to_ = std::is_integral<Dst>::value;
+  template <typename Dst>
+  static constexpr bool to_ = std::is_integral<Dst>::value;
 
-public:
-	explicit constexpr to_integral_convertible(Src const& value) noexcept: value_(value) {}
+ public:
+  explicit constexpr to_integral_convertible(Src const& value) noexcept
+      : value_(value) {}
 
-	explicit to_integral_convertible(to_integral_convertible const&) = default;
-	explicit to_integral_convertible(to_integral_convertible&&) = default;
-	to_integral_convertible& operator=(to_integral_convertible const&) = default;
-	to_integral_convertible& operator=(to_integral_convertible&&) = default;
+  explicit to_integral_convertible(to_integral_convertible const&) = default;
+  explicit to_integral_convertible(to_integral_convertible&&) = default;
+  to_integral_convertible& operator=(to_integral_convertible const&) = default;
+  to_integral_convertible& operator=(to_integral_convertible&&) = default;
 
-	template<typename Dst, std::enable_if_t<to_<Dst>, int> = 0>
-	/* implicit */ constexpr operator Dst() const noexcept {
-		FOLLY_PUSH_WARNING
-		FOLLY_MSVC_DISABLE_WARNING(4244)  // lossy conversion: arguments
-		FOLLY_MSVC_DISABLE_WARNING(4267)  // lossy conversion: variables
-		FOLLY_GNU_DISABLE_WARNING("-Wconversion")
-		return value_;
-		FOLLY_POP_WARNING
-	}
+  template <typename Dst, std::enable_if_t<to_<Dst>, int> = 0>
+  /* implicit */ constexpr operator Dst() const noexcept {
+    FOLLY_PUSH_WARNING
+    FOLLY_MSVC_DISABLE_WARNING(4244) // lossy conversion: arguments
+    FOLLY_MSVC_DISABLE_WARNING(4267) // lossy conversion: variables
+    FOLLY_GNU_DISABLE_WARNING("-Wconversion")
+    return value_;
+    FOLLY_POP_WARNING
+  }
 
-private:
-	Src value_;
+ private:
+  Src value_;
 };
 
 //  to_integral
@@ -655,38 +671,44 @@ private:
 //  to take advantage of the undefined-behavior sanitizer's inspection of all
 //  implicit conversions.
 struct to_integral_fn {
-	template<typename..., typename Src>
-	constexpr auto operator()(Src const& src) const noexcept -> to_integral_convertible<Src> {
-		return to_integral_convertible<Src>{src};
-	}
+  template <typename..., typename Src>
+  constexpr auto operator()(Src const& src) const noexcept
+      -> to_integral_convertible<Src> {
+    return to_integral_convertible<Src>{src};
+  }
 };
 inline constexpr to_integral_fn to_integral{};
 
-template<typename Src>
+template <typename Src>
 class to_floating_point_convertible {
-	static_assert(std::is_integral<Src>::value, "not a floating-point");
+  static_assert(std::is_integral<Src>::value, "not a floating-point");
 
-	template<typename Dst>
-	static constexpr bool to_ = std::is_floating_point<Dst>::value;
+  template <typename Dst>
+  static constexpr bool to_ = std::is_floating_point<Dst>::value;
 
-public:
-	explicit constexpr to_floating_point_convertible(Src const& value) noexcept: value_(value) {}
+ public:
+  explicit constexpr to_floating_point_convertible(Src const& value) noexcept
+      : value_(value) {}
 
-	explicit to_floating_point_convertible(to_floating_point_convertible const&) = default;
-	explicit to_floating_point_convertible(to_floating_point_convertible&&) = default;
-	to_floating_point_convertible& operator=(to_floating_point_convertible const&) = default;
-	to_floating_point_convertible& operator=(to_floating_point_convertible&&) = default;
+  explicit to_floating_point_convertible(to_floating_point_convertible const&) =
+      default;
+  explicit to_floating_point_convertible(to_floating_point_convertible&&) =
+      default;
+  to_floating_point_convertible& operator=(
+      to_floating_point_convertible const&) = default;
+  to_floating_point_convertible& operator=(to_floating_point_convertible&&) =
+      default;
 
-	template<typename Dst, std::enable_if_t<to_<Dst>, int> = 0>
-	/* implicit */ constexpr operator Dst() const noexcept {
-		FOLLY_PUSH_WARNING
-		FOLLY_GNU_DISABLE_WARNING("-Wconversion")
-		return value_;
-		FOLLY_POP_WARNING
-	}
+  template <typename Dst, std::enable_if_t<to_<Dst>, int> = 0>
+  /* implicit */ constexpr operator Dst() const noexcept {
+    FOLLY_PUSH_WARNING
+    FOLLY_GNU_DISABLE_WARNING("-Wconversion")
+    return value_;
+    FOLLY_POP_WARNING
+  }
 
-private:
-	Src value_;
+ private:
+  Src value_;
 };
 
 //  to_floating_point
@@ -701,89 +723,91 @@ private:
 //  to take advantage of the undefined-behavior sanitizer's inspection of all
 //  implicit conversions.
 struct to_floating_point_fn {
-	template<typename..., typename Src>
-	constexpr auto operator()(Src const& src) const noexcept -> to_floating_point_convertible<Src> {
-		return to_floating_point_convertible<Src>{src};
-	}
+  template <typename..., typename Src>
+  constexpr auto operator()(Src const& src) const noexcept
+      -> to_floating_point_convertible<Src> {
+    return to_floating_point_convertible<Src>{src};
+  }
 };
 inline constexpr to_floating_point_fn to_floating_point{};
 
 struct to_underlying_fn {
-	template<typename..., class E>
-	constexpr std::underlying_type_t<E> operator()(E e) const noexcept {
-		static_assert(std::is_enum<E>::value, "not an enum type");
-		return static_cast<std::underlying_type_t<E>>(e);
-	}
+  template <typename..., class E>
+  constexpr std::underlying_type_t<E> operator()(E e) const noexcept {
+    static_assert(std::is_enum<E>::value, "not an enum type");
+    return static_cast<std::underlying_type_t<E>>(e);
+  }
 };
 inline constexpr to_underlying_fn to_underlying{};
 
 namespace detail {
-template<typename R>
+template <typename R>
 using invocable_to_detect = decltype(FOLLY_DECLVAL(R)());
 
-template<typename F,
-         //  MSVC 14.16.27023 does not permit these to be in the class body:
-         //    error C2833: 'operator decltype' is not a recognized operator or type
-         //  TODO: return these to the class body and remove the static assertions
-         typename TML = detected_t<invocable_to_detect, F&>,
-         typename TCL = detected_t<invocable_to_detect, F const&>,
-         typename TMR = detected_t<invocable_to_detect, F&&>,
-         typename TCR = detected_t<invocable_to_detect, F const&&>>
+template <
+    typename F,
+    //  MSVC 14.16.27023 does not permit these to be in the class body:
+    //    error C2833: 'operator decltype' is not a recognized operator or type
+    //  TODO: return these to the class body and remove the static assertions
+    typename TML = detected_t<invocable_to_detect, F&>,
+    typename TCL = detected_t<invocable_to_detect, F const&>,
+    typename TMR = detected_t<invocable_to_detect, F&&>,
+    typename TCR = detected_t<invocable_to_detect, F const&&>>
 class invocable_to_convertible : private inheritable<F> {
-private:
-	static_assert(std::is_same<F, decay_t<F>>::value, "mismatch");
+ private:
+  static_assert(std::is_same<F, decay_t<F>>::value, "mismatch");
 
-	using base = inheritable<F>;
+  using base = inheritable<F>;
 
-	template<typename R>
-	using result_t = detected_t<invocable_to_detect, R>;
-	template<typename R>
-	static constexpr bool detected_v = is_detected_v<invocable_to_detect, R>;
-	template<typename R>
-	using if_invocable_as_v = std::enable_if_t<detected_v<R>, int>;
-	template<typename R>
-	static constexpr bool nx_v = noexcept(FOLLY_DECLVAL(R)());
-	template<typename G>
-	static constexpr bool constructible_v = std::is_constructible<F, G&&>::value;
+  template <typename R>
+  using result_t = detected_t<invocable_to_detect, R>;
+  template <typename R>
+  static constexpr bool detected_v = is_detected_v<invocable_to_detect, R>;
+  template <typename R>
+  using if_invocable_as_v = std::enable_if_t<detected_v<R>, int>;
+  template <typename R>
+  static constexpr bool nx_v = noexcept(FOLLY_DECLVAL(R)());
+  template <typename G>
+  static constexpr bool constructible_v = std::is_constructible<F, G&&>::value;
 
-	using FML = F&;
-	using FCL = F const&;
-	using FMR = F&&;
-	using FCR = F const&&;
-	static_assert(std::is_same<TML, result_t<FML>>::value, "mismatch");
-	static_assert(std::is_same<TCL, result_t<FCL>>::value, "mismatch");
-	static_assert(std::is_same<TMR, result_t<FMR>>::value, "mismatch");
-	static_assert(std::is_same<TCR, result_t<FCR>>::value, "mismatch");
+  using FML = F&;
+  using FCL = F const&;
+  using FMR = F&&;
+  using FCR = F const&&;
+  static_assert(std::is_same<TML, result_t<FML>>::value, "mismatch");
+  static_assert(std::is_same<TCL, result_t<FCL>>::value, "mismatch");
+  static_assert(std::is_same<TMR, result_t<FMR>>::value, "mismatch");
+  static_assert(std::is_same<TCR, result_t<FCR>>::value, "mismatch");
 
-	using BML = base&;
-	using BCL = base const&;
-	using BMR = base&&;
-	using BCR = base const&&;
+  using BML = base&;
+  using BCL = base const&;
+  using BMR = base&&;
+  using BCR = base const&&;
 
-public:
-	template<typename G, std::enable_if_t<constructible_v<G&&>, int> = 0>
-	FOLLY_ERASE explicit constexpr invocable_to_convertible(G&& g) noexcept(
-	        noexcept(F(static_cast<G&&>(g)))):
-	        inheritable<F>(static_cast<G&&>(g)) {}
+ public:
+  template <typename G, std::enable_if_t<constructible_v<G&&>, int> = 0>
+  FOLLY_ERASE explicit constexpr invocable_to_convertible(G&& g) noexcept(
+      noexcept(F(static_cast<G&&>(g))))
+      : inheritable<F>(static_cast<G&&>(g)) {}
 
-	template<typename..., typename R = FML, if_invocable_as_v<R> = 0>
-	FOLLY_ERASE constexpr operator TML() & noexcept(nx_v<R>) {
-		return static_cast<FML>(static_cast<BML>(*this))();
-	}
-	template<typename..., typename R = FCL, if_invocable_as_v<R> = 0>
-	FOLLY_ERASE constexpr operator TCL() const& noexcept(nx_v<R>) {
-		return static_cast<FCL>(static_cast<BCL>(*this))();
-	}
-	template<typename..., typename R = FMR, if_invocable_as_v<R> = 0>
-	FOLLY_ERASE constexpr operator TMR() && noexcept(nx_v<R>) {
-		return static_cast<FMR>(static_cast<BMR>(*this))();
-	}
-	template<typename..., typename R = FCR, if_invocable_as_v<R> = 0>
-	FOLLY_ERASE constexpr operator TCR() const&& noexcept(nx_v<R>) {
-		return static_cast<FCR>(static_cast<BCR>(*this))();
-	}
+  template <typename..., typename R = FML, if_invocable_as_v<R> = 0>
+  FOLLY_ERASE constexpr operator TML() & noexcept(nx_v<R>) {
+    return static_cast<FML>(static_cast<BML>(*this))();
+  }
+  template <typename..., typename R = FCL, if_invocable_as_v<R> = 0>
+  FOLLY_ERASE constexpr operator TCL() const& noexcept(nx_v<R>) {
+    return static_cast<FCL>(static_cast<BCL>(*this))();
+  }
+  template <typename..., typename R = FMR, if_invocable_as_v<R> = 0>
+  FOLLY_ERASE constexpr operator TMR() && noexcept(nx_v<R>) {
+    return static_cast<FMR>(static_cast<BMR>(*this))();
+  }
+  template <typename..., typename R = FCR, if_invocable_as_v<R> = 0>
+  FOLLY_ERASE constexpr operator TCR() const&& noexcept(nx_v<R>) {
+    return static_cast<FCR>(static_cast<BCR>(*this))();
+  }
 };
-}  // namespace detail
+} // namespace detail
 
 //  invocable_to
 //  invocable_to_fn
@@ -834,14 +858,16 @@ public:
 //        return obj;
 //      }));
 struct invocable_to_fn {
-	template<typename F,
-	         typename...,
-	         typename D = detail::decay_t<F>,
-	         typename R = detail::invocable_to_convertible<D>,
-	         std::enable_if_t<std::is_constructible<D, F&&>::value, int> = 0>
-	FOLLY_ERASE constexpr R operator()(F&& f) const noexcept(noexcept(R(static_cast<F&&>(f)))) {
-		return R(static_cast<F&&>(f));
-	}
+  template <
+      typename F,
+      typename...,
+      typename D = detail::decay_t<F>,
+      typename R = detail::invocable_to_convertible<D>,
+      std::enable_if_t<std::is_constructible<D, F&&>::value, int> = 0>
+  FOLLY_ERASE constexpr R operator()(F&& f) const
+      noexcept(noexcept(R(static_cast<F&&>(f)))) {
+    return R(static_cast<F&&>(f));
+  }
 };
 inline constexpr invocable_to_fn invocable_to{};
 
@@ -858,50 +884,50 @@ inline constexpr invocable_to_fn invocable_to{};
 ///   obj_t obj = {1, 3.0};
 ///   assert(&obj == object_from_member(obj_t::second, &obj.second);
 struct object_from_member_fn {
-private:
-	template<typename M, typename O>
-	using ptr_t = M O::*;
+ private:
+  template <typename M, typename O>
+  using ptr_t = M O::*;
 
-	template<typename M, typename O>
-	static std::ptrdiff_t off(ptr_t<M, O> const p) noexcept {
-		O* o = nullptr;
-		M* m = &(o->*p);
-		return reinterpret_cast<char*>(m) - reinterpret_cast<char*>(o);
-	}
+  template <typename M, typename O>
+  static std::ptrdiff_t off(ptr_t<M, O> const p) noexcept {
+    O* o = nullptr;
+    M* m = &(o->*p);
+    return reinterpret_cast<char*>(m) - reinterpret_cast<char*>(o);
+  }
 
-public:
-	template<typename M, typename O>
-	O* operator()(ptr_t<M, O> const p, M* m) const noexcept {
-		return reinterpret_cast<O*>(reinterpret_cast<char*>(m) - off(p));
-	}
-	template<typename M, typename O>
-	O const* operator()(ptr_t<M, O> const p, M const* m) const noexcept {
-		return reinterpret_cast<O*>(reinterpret_cast<char const*>(m) - off(p));
-	}
+ public:
+  template <typename M, typename O>
+  O* operator()(ptr_t<M, O> const p, M* m) const noexcept {
+    return reinterpret_cast<O*>(reinterpret_cast<char*>(m) - off(p));
+  }
+  template <typename M, typename O>
+  O const* operator()(ptr_t<M, O> const p, M const* m) const noexcept {
+    return reinterpret_cast<O*>(reinterpret_cast<char const*>(m) - off(p));
+  }
 
-	template<typename M, typename O>
-	O& operator()(ptr_t<M, O> const p, M& m) const noexcept {
-		return *operator()(p, &m);
-	}
-	template<typename M, typename O>
-	O const& operator()(ptr_t<M, O> const p, M const& m) const noexcept {
-		return *operator()(p, &m);
-	}
-	template<typename M, typename O>
-	O&& operator()(ptr_t<M, O> const p, M&& m) const noexcept {
-		return static_cast<O&&>(*operator()(p, &m));
-	}
-	template<typename M, typename O>
-	O const&& operator()(ptr_t<M, O> const p, M const& m) const noexcept {
-		return static_cast<O const&&>(*operator()(p, &m));
-	}
+  template <typename M, typename O>
+  O& operator()(ptr_t<M, O> const p, M& m) const noexcept {
+    return *operator()(p, &m);
+  }
+  template <typename M, typename O>
+  O const& operator()(ptr_t<M, O> const p, M const& m) const noexcept {
+    return *operator()(p, &m);
+  }
+  template <typename M, typename O>
+  O&& operator()(ptr_t<M, O> const p, M&& m) const noexcept {
+    return static_cast<O&&>(*operator()(p, &m));
+  }
+  template <typename M, typename O>
+  O const&& operator()(ptr_t<M, O> const p, M const& m) const noexcept {
+    return static_cast<O const&&>(*operator()(p, &m));
+  }
 };
 inline constexpr object_from_member_fn object_from_member{};
 
-#define FOLLY_DETAIL_FORWARD_BODY(...)                       \
-	noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__) { \
-		return __VA_ARGS__;                                  \
-	}
+#define FOLLY_DETAIL_FORWARD_BODY(...)                     \
+  noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__) { \
+    return __VA_ARGS__;                                    \
+  }
 
 /// FOLLY_FOR_EACH_THIS_OVERLOAD_IN_CLASS_BODY_DELEGATE
 ///
@@ -982,4 +1008,4 @@ inline constexpr object_from_member_fn object_from_member{};
           std::move(*this), static_cast<Args&&>(args)...))                    \
   /* enforce semicolon after macro */ static_assert(true)
 // clang-format on
-}  // namespace folly
+} // namespace folly

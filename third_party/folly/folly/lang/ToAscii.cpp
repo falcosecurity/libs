@@ -21,35 +21,38 @@ namespace folly {
 namespace detail {
 
 template to_ascii_array<8, to_ascii_alphabet_lower>::data_type_ const
-        to_ascii_array<8, to_ascii_alphabet_lower>::data;
+    to_ascii_array<8, to_ascii_alphabet_lower>::data;
 template to_ascii_array<10, to_ascii_alphabet_lower>::data_type_ const
-        to_ascii_array<10, to_ascii_alphabet_lower>::data;
+    to_ascii_array<10, to_ascii_alphabet_lower>::data;
 template to_ascii_array<16, to_ascii_alphabet_lower>::data_type_ const
-        to_ascii_array<16, to_ascii_alphabet_lower>::data;
+    to_ascii_array<16, to_ascii_alphabet_lower>::data;
 template to_ascii_array<8, to_ascii_alphabet_upper>::data_type_ const
-        to_ascii_array<8, to_ascii_alphabet_upper>::data;
+    to_ascii_array<8, to_ascii_alphabet_upper>::data;
 template to_ascii_array<10, to_ascii_alphabet_upper>::data_type_ const
-        to_ascii_array<10, to_ascii_alphabet_upper>::data;
+    to_ascii_array<10, to_ascii_alphabet_upper>::data;
 template to_ascii_array<16, to_ascii_alphabet_upper>::data_type_ const
-        to_ascii_array<16, to_ascii_alphabet_upper>::data;
+    to_ascii_array<16, to_ascii_alphabet_upper>::data;
 
 template to_ascii_table<8, to_ascii_alphabet_lower>::data_type_ const
-        to_ascii_table<8, to_ascii_alphabet_lower>::data;
+    to_ascii_table<8, to_ascii_alphabet_lower>::data;
 template to_ascii_table<10, to_ascii_alphabet_lower>::data_type_ const
-        to_ascii_table<10, to_ascii_alphabet_lower>::data;
+    to_ascii_table<10, to_ascii_alphabet_lower>::data;
 template to_ascii_table<16, to_ascii_alphabet_lower>::data_type_ const
-        to_ascii_table<16, to_ascii_alphabet_lower>::data;
+    to_ascii_table<16, to_ascii_alphabet_lower>::data;
 template to_ascii_table<8, to_ascii_alphabet_upper>::data_type_ const
-        to_ascii_table<8, to_ascii_alphabet_upper>::data;
+    to_ascii_table<8, to_ascii_alphabet_upper>::data;
 template to_ascii_table<10, to_ascii_alphabet_upper>::data_type_ const
-        to_ascii_table<10, to_ascii_alphabet_upper>::data;
+    to_ascii_table<10, to_ascii_alphabet_upper>::data;
 template to_ascii_table<16, to_ascii_alphabet_upper>::data_type_ const
-        to_ascii_table<16, to_ascii_alphabet_upper>::data;
+    to_ascii_table<16, to_ascii_alphabet_upper>::data;
 
-template to_ascii_powers<8, uint64_t>::data_type_ const to_ascii_powers<8, uint64_t>::data;
-template to_ascii_powers<10, uint64_t>::data_type_ const to_ascii_powers<10, uint64_t>::data;
-template to_ascii_powers<16, uint64_t>::data_type_ const to_ascii_powers<16, uint64_t>::data;
+template to_ascii_powers<8, uint64_t>::data_type_ const
+    to_ascii_powers<8, uint64_t>::data;
+template to_ascii_powers<10, uint64_t>::data_type_ const
+    to_ascii_powers<10, uint64_t>::data;
+template to_ascii_powers<16, uint64_t>::data_type_ const
+    to_ascii_powers<16, uint64_t>::data;
 
-}  // namespace detail
+} // namespace detail
 
-}  // namespace folly
+} // namespace folly

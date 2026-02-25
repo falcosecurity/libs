@@ -19,13 +19,13 @@
 #include <errno.h>
 
 #include <cstdio>
-#include <sstream>
 #include <stdexcept>
 #include <system_error>
 
+#include <folly/Conv.h>
+#include <folly/FBString.h>
 #include <folly/Likely.h>
 #include <folly/Portability.h>
-#include <folly/lang/Exception.h>
 #include <folly/portability/SysTypes.h>
 
 namespace folly {
@@ -44,110 +44,109 @@ namespace folly {
 // `GetLastError` and codes from the `errno`-domain must be reported as
 // `generic_category`.
 inline const std::error_category& errorCategoryForErrnoDomain() noexcept {
-	if(kIsWindows) {
-		return std::generic_category();
-	}
-	return std::system_category();
+  if (kIsWindows) {
+    return std::generic_category();
+  }
+  return std::system_category();
 }
 
 inline std::system_error makeSystemErrorExplicit(int err, const char* msg) {
-	return std::system_error(err, errorCategoryForErrnoDomain(), msg);
+  return std::system_error(err, errorCategoryForErrnoDomain(), msg);
 }
 
-template<class... Args>
+template <class... Args>
 std::system_error makeSystemErrorExplicit(int err, Args&&... args) {
-	std::ostringstream oss;
-	(oss << ... << std::forward<Args>(args));
-	std::string s = oss.str();
-	return makeSystemErrorExplicit(err, s.c_str());
+  return makeSystemErrorExplicit(
+      err, to<fbstring>(std::forward<Args>(args)...).c_str());
 }
 
 inline std::system_error makeSystemError(const char* msg) {
-	return makeSystemErrorExplicit(errno, msg);
+  return makeSystemErrorExplicit(errno, msg);
 }
 
-template<class... Args>
+template <class... Args>
 std::system_error makeSystemError(Args&&... args) {
-	return makeSystemErrorExplicit(errno, std::forward<Args>(args)...);
+  return makeSystemErrorExplicit(errno, std::forward<Args>(args)...);
 }
 
 // Helper to throw std::system_error
 [[noreturn]] inline void throwSystemErrorExplicit(int err, const char* msg) {
-	throw_exception(makeSystemErrorExplicit(err, msg));
+  throw_exception(makeSystemErrorExplicit(err, msg));
 }
 
-template<class... Args>
+template <class... Args>
 [[noreturn]] void throwSystemErrorExplicit(int err, Args&&... args) {
-	throw_exception(makeSystemErrorExplicit(err, std::forward<Args>(args)...));
+  throw_exception(makeSystemErrorExplicit(err, std::forward<Args>(args)...));
 }
 
 // Helper to throw std::system_error from errno and components of a string
-template<class... Args>
+template <class... Args>
 [[noreturn]] void throwSystemError(Args&&... args) {
-	throwSystemErrorExplicit(errno, std::forward<Args>(args)...);
+  throwSystemErrorExplicit(errno, std::forward<Args>(args)...);
 }
 
 // Check a Posix return code (0 on success, error number on error), throw
 // on error.
-template<class... Args>
+template <class... Args>
 void checkPosixError(int err, Args&&... args) {
-	if(FOLLY_UNLIKELY(err != 0)) {
-		throwSystemErrorExplicit(err, std::forward<Args>(args)...);
-	}
+  if (FOLLY_UNLIKELY(err != 0)) {
+    throwSystemErrorExplicit(err, std::forward<Args>(args)...);
+  }
 }
 
 // Check a Linux kernel-style return code (>= 0 on success, negative error
 // number on error), throw on error.
-template<class... Args>
+template <class... Args>
 void checkKernelError(ssize_t ret, Args&&... args) {
-	if(FOLLY_UNLIKELY(ret < 0)) {
-		throwSystemErrorExplicit(int(-ret), std::forward<Args>(args)...);
-	}
+  if (FOLLY_UNLIKELY(ret < 0)) {
+    throwSystemErrorExplicit(int(-ret), std::forward<Args>(args)...);
+  }
 }
 
 // Check a traditional Unix return code (-1 and sets errno on error), throw
 // on error.
-template<class... Args>
+template <class... Args>
 void checkUnixError(ssize_t ret, Args&&... args) {
-	if(FOLLY_UNLIKELY(ret == -1)) {
-		throwSystemError(std::forward<Args>(args)...);
-	}
+  if (FOLLY_UNLIKELY(ret == -1)) {
+    throwSystemError(std::forward<Args>(args)...);
+  }
 }
 
-template<class... Args>
+template <class... Args>
 void checkUnixErrorExplicit(ssize_t ret, int savedErrno, Args&&... args) {
-	if(FOLLY_UNLIKELY(ret == -1)) {
-		throwSystemErrorExplicit(savedErrno, std::forward<Args>(args)...);
-	}
+  if (FOLLY_UNLIKELY(ret == -1)) {
+    throwSystemErrorExplicit(savedErrno, std::forward<Args>(args)...);
+  }
 }
 
 // Check the return code from a fopen-style function (returns a non-nullptr
 // FILE* on success, nullptr on error, sets errno).  Works with fopen, fdopen,
 // freopen, tmpfile, etc.
-template<class... Args>
+template <class... Args>
 void checkFopenError(FILE* fp, Args&&... args) {
-	if(FOLLY_UNLIKELY(!fp)) {
-		throwSystemError(std::forward<Args>(args)...);
-	}
+  if (FOLLY_UNLIKELY(!fp)) {
+    throwSystemError(std::forward<Args>(args)...);
+  }
 }
 
-template<class... Args>
+template <class... Args>
 void checkFopenErrorExplicit(FILE* fp, int savedErrno, Args&&... args) {
-	if(FOLLY_UNLIKELY(!fp)) {
-		throwSystemErrorExplicit(savedErrno, std::forward<Args>(args)...);
-	}
+  if (FOLLY_UNLIKELY(!fp)) {
+    throwSystemErrorExplicit(savedErrno, std::forward<Args>(args)...);
+  }
 }
 
 /**
  * If cond is not true, raise an exception of type E.  E must have a ctor that
  * works with const char* (a description of the failure).
  */
-#define CHECK_THROW(cond, E)                                                   \
-	do {                                                                       \
-		if(!(cond)) {                                                          \
-			folly::throw_exception<E>("Check failed: " #cond ", in " __FILE__  \
-			                          ":" FOLLY_PP_STRINGIZE_MACRO(__LINE__)); \
-		}                                                                      \
-	} while(0)
+#define CHECK_THROW(cond, E)                       \
+  do {                                             \
+    if (!(cond)) {                                 \
+      folly::throw_exception<E>(                   \
+          "Check failed: " #cond ", in " __FILE__  \
+          ":" FOLLY_PP_STRINGIZE_MACRO(__LINE__)); \
+    }                                              \
+  } while (0)
 
-}  // namespace folly
+} // namespace folly

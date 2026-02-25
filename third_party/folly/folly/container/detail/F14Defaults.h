@@ -22,13 +22,13 @@
 
 namespace folly {
 namespace f14 {
-template<typename T>
+template <typename T>
 using DefaultHasher = HeterogeneousAccessHash<T>;
 
-template<typename T>
+template <typename T>
 using DefaultKeyEqual = HeterogeneousAccessEqualTo<T>;
 
-template<typename T>
+template <typename T>
 using DefaultAlloc = std::allocator<T>;
-}  // namespace f14
-}  // namespace folly
+} // namespace f14
+} // namespace folly

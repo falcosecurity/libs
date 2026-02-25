@@ -33,4 +33,4 @@ namespace folly::detail {
 /// thread_is_dying.
 void thread_is_dying_mark();
 
-}  // namespace folly::detail
+} // namespace folly::detail

@@ -75,7 +75,8 @@ void compiler_may_unsafely_assume(bool cond);
 //  to the compiler. For example, modifying some_vector[0] never modifies the
 //  vector itself; changes to parser state don't need to be stored to memory
 //  before reading the next byte of data to be parsed, etc.
-void compiler_may_unsafely_assume_separate_storage(const void* a, const void* b);
+void compiler_may_unsafely_assume_separate_storage(
+    const void* a, const void* b);
 
 //  compiler_must_not_elide
 //
@@ -88,8 +89,8 @@ void compiler_may_unsafely_assume_separate_storage(const void* a, const void* b)
 //  which can affect benchmark results, and this hint instructs the compiler to
 //  treat the value as though it were used.
 struct compiler_must_not_elide_fn {
-	template<typename T>
-	FOLLY_ALWAYS_INLINE void operator()(T const& t) const noexcept;
+  template <typename T>
+  FOLLY_ALWAYS_INLINE void operator()(T const& t) const noexcept;
 };
 inline constexpr compiler_must_not_elide_fn compiler_must_not_elide{};
 
@@ -105,8 +106,8 @@ inline constexpr compiler_must_not_elide_fn compiler_must_not_elide{};
 //  hint instructs the compiler to treat value which it can predict as though it
 //  were unpredictable.
 struct compiler_must_not_predict_fn {
-	template<typename T>
-	FOLLY_ALWAYS_INLINE void operator()(T& t) const noexcept;
+  template <typename T>
+  FOLLY_ALWAYS_INLINE void operator()(T& t) const noexcept;
 };
 inline constexpr compiler_must_not_predict_fn compiler_must_not_predict{};
 
@@ -114,18 +115,21 @@ inline constexpr compiler_must_not_predict_fn compiler_must_not_predict{};
 
 namespace detail {
 
-template<typename T>
-using detect_folly_is_unsafe_for_async_usage = typename T::folly_is_unsafe_for_async_usage;
+template <typename T>
+using detect_folly_is_unsafe_for_async_usage =
+    typename T::folly_is_unsafe_for_async_usage;
 
 //  is_unsafe_for_async_usage_v
 //
 //  Whether a type is directly marked as unsafe for async usage with a member
 //  type alias. See unsafe_for_async_usage below.
-template<typename T>
-inline constexpr bool is_unsafe_for_async_usage_v =
-        detected_or_t<std::false_type, detail::detect_folly_is_unsafe_for_async_usage, T>::value;
+template <typename T>
+inline constexpr bool is_unsafe_for_async_usage_v = detected_or_t<
+    std::false_type,
+    detail::detect_folly_is_unsafe_for_async_usage,
+    T>::value;
 
-}  // namespace detail
+} // namespace detail
 
 //  unsafe_for_async_usage
 //
@@ -200,34 +204,35 @@ inline constexpr bool is_unsafe_for_async_usage_v =
 //  This marker can be used to implement a static analysis that detects misuses
 //  with objects of classes marked with this tag, namely, where the current
 //  thread may be yielded in any way during the lifetimes of such objects.
-struct unsafe_for_async_usage {  // a convenience wrapper for the marker below:
-	// the marker member type alias
-	using folly_is_unsafe_for_async_usage = std::true_type;
+struct unsafe_for_async_usage { // a convenience wrapper for the marker below:
+  // the marker member type alias
+  using folly_is_unsafe_for_async_usage = std::true_type;
 };
 static_assert(detail::is_unsafe_for_async_usage_v<unsafe_for_async_usage>);
 
 namespace detail {
 
-template<typename T>
+template <typename T>
 using detect_folly_is_coro_aware_mutex = typename T::folly_coro_aware_mutex;
 
-}  // namespace detail
+} // namespace detail
 
 // Inheriting or having a member `unsafe_for_async_usage_if` will conditionally
 // tag the type.
-template<bool If>
+template <bool If>
 struct unsafe_for_async_usage_if {};
 
-template<>
+template <>
 struct unsafe_for_async_usage_if<true> {
-	using folly_is_unsafe_for_async_usage = std::true_type;
+  using folly_is_unsafe_for_async_usage = std::true_type;
 };
 
 // Detects the presense of folly_coro_aware_mutex nested typedef.
 // This helps custom lock guards have the same behavior as std::lock_guard.
-template<typename T>
-constexpr bool is_coro_aware_mutex_v = is_detected_v<detail::detect_folly_is_coro_aware_mutex, T>;
+template <typename T>
+constexpr bool is_coro_aware_mutex_v =
+    is_detected_v<detail::detect_folly_is_coro_aware_mutex, T>;
 
-}  // namespace folly
+} // namespace folly
 
 #include <folly/lang/Hint-inl.h>

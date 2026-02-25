@@ -50,63 +50,68 @@ namespace folly {
 namespace detail {
 namespace atomic_notification {
 struct atomic_wait_fn {
-public:
-	template<typename Atomic, typename Integer>
-	constexpr void operator()(const Atomic* atomic, Integer integer) const {
-		tag_invoke(*this, atomic, integer);
-	}
+ public:
+  template <typename Atomic, typename Integer>
+  constexpr void operator()(const Atomic* atomic, Integer integer) const {
+    tag_invoke(*this, atomic, integer);
+  }
 };
-}  // namespace atomic_notification
-}  // namespace detail
-inline constexpr auto atomic_wait = detail::atomic_notification::atomic_wait_fn{};
+} // namespace atomic_notification
+} // namespace detail
+inline constexpr auto atomic_wait =
+    detail::atomic_notification::atomic_wait_fn{};
 
 //  mimic: std::atomic_wait_until, p1135r0
 namespace detail {
 namespace atomic_notification {
 struct atomic_wait_until_fn {
-public:
-	template<typename Atomic, typename Integer, typename Clock, typename Dur>
-	constexpr std::cv_status operator()(const Atomic* atomic,
-	                                    Integer old,
-	                                    const std::chrono::time_point<Clock, Dur>& deadline) const {
-		return tag_invoke(*this, atomic, old, deadline);
-	}
+ public:
+  template <typename Atomic, typename Integer, typename Clock, typename Dur>
+  constexpr std::cv_status operator()(
+      const Atomic* atomic,
+      Integer old,
+      const std::chrono::time_point<Clock, Dur>& deadline) const {
+    return tag_invoke(*this, atomic, old, deadline);
+  }
 };
-}  // namespace atomic_notification
-}  // namespace detail
-inline constexpr auto atomic_wait_until = detail::atomic_notification::atomic_wait_until_fn{};
+} // namespace atomic_notification
+} // namespace detail
+inline constexpr auto atomic_wait_until =
+    detail::atomic_notification::atomic_wait_until_fn{};
 
 //  mimic: std::atomic_notify_one, p1135r0
 namespace detail {
 namespace atomic_notification {
 struct atomic_notify_one_fn {
-public:
-	template<typename Atomic>
-	constexpr void operator()(const Atomic* atomic) const {
-		tag_invoke(*this, atomic);
-	}
+ public:
+  template <typename Atomic>
+  constexpr void operator()(const Atomic* atomic) const {
+    tag_invoke(*this, atomic);
+  }
 };
-}  // namespace atomic_notification
-}  // namespace detail
-inline constexpr auto atomic_notify_one = detail::atomic_notification::atomic_notify_one_fn{};
+} // namespace atomic_notification
+} // namespace detail
+inline constexpr auto atomic_notify_one =
+    detail::atomic_notification::atomic_notify_one_fn{};
 
 //  mimic: std::atomic_notify_all, p1135r0
 namespace detail {
 namespace atomic_notification {
 struct atomic_notify_all_fn {
-public:
-	template<typename Atomic>
-	constexpr void operator()(Atomic* atomic) const {
-		tag_invoke(*this, atomic);
-	}
+ public:
+  template <typename Atomic>
+  constexpr void operator()(Atomic* atomic) const {
+    tag_invoke(*this, atomic);
+  }
 };
-}  // namespace atomic_notification
-}  // namespace detail
-inline constexpr auto atomic_notify_all = detail::atomic_notification::atomic_notify_all_fn{};
+} // namespace atomic_notification
+} // namespace detail
+inline constexpr auto atomic_notify_all =
+    detail::atomic_notification::atomic_notify_all_fn{};
 
 //  mimic: std::atomic_uint_fast_wait_t, p1135r0
 using atomic_uint_fast_wait_t = std::atomic<std::uint32_t>;
 
-}  // namespace folly
+} // namespace folly
 
 #include <folly/synchronization/AtomicNotification-inl.h>

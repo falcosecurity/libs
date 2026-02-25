@@ -27,22 +27,23 @@ namespace folly {
 
 namespace detail {
 
-template<typename C>
+template <typename C>
 using detect_capacity = decltype(FOLLY_DECLVAL(C).capacity());
 
-template<typename C>
+template <typename C>
 using detect_bucket_count = decltype(FOLLY_DECLVAL(C).bucket_count());
 
-template<typename C>
+template <typename C>
 using detect_max_load_factor = decltype(FOLLY_DECLVAL(C).max_load_factor());
 
-template<typename C, typename... A>
+template <typename C, typename... A>
 using detect_reserve = decltype(FOLLY_DECLVAL(C).reserve(FOLLY_DECLVAL(A)...));
 
-template<typename C>
-using container_detect_reserve = detect_reserve<C, typename remove_cvref_t<C>::size_type>;
+template <typename C>
+using container_detect_reserve =
+    detect_reserve<C, typename remove_cvref_t<C>::size_type>;
 
-}  // namespace detail
+} // namespace detail
 
 /**
  * Avoids quadratic behavior that could arise from c.reserve(c.size() + N).
@@ -53,31 +54,32 @@ using container_detect_reserve = detect_reserve<C, typename remove_cvref_t<C>::s
  * of their sizes being N.  Behaves like reserve() if the container is empty.
  */
 struct grow_capacity_by_fn {
-	template<typename C>
-	constexpr void operator()(C& c, typename C::size_type const n) const {
-		const size_t sz = c.size();
+  template <typename C>
+  constexpr void operator()(C& c, typename C::size_type const n) const {
+    const size_t sz = c.size();
 
-		if(FOLLY_UNLIKELY(c.max_size() - sz < n)) {
-			folly::throw_exception<std::length_error>("max_size exceeded");
-		}
+    if (FOLLY_UNLIKELY(c.max_size() - sz < n)) {
+      folly::throw_exception<std::length_error>("max_size exceeded");
+    }
 
-		if constexpr(folly::is_detected_v<detail::detect_capacity, C&>) {
-			if(sz + n <= c.capacity()) {
-				return;
-			}
-		} else if constexpr(folly::is_detected_v<detail::detect_bucket_count, C&> &&
-		                    folly::is_detected_v<detail::detect_max_load_factor, C&>) {
-			if(sz + n <= c.bucket_count() * c.max_load_factor()) {
-				return;
-			}
-		} else {
-			static_assert(folly::always_false<C>, "unexpected container type");
-		}
+    if constexpr (folly::is_detected_v<detail::detect_capacity, C&>) {
+      if (sz + n <= c.capacity()) {
+        return;
+      }
+    } else if constexpr (
+        folly::is_detected_v<detail::detect_bucket_count, C&> &&
+        folly::is_detected_v<detail::detect_max_load_factor, C&>) {
+      if (sz + n <= c.bucket_count() * c.max_load_factor()) {
+        return;
+      }
+    } else {
+      static_assert(folly::always_false<C>, "unexpected container type");
+    }
 
-		auto const ra = sz * 2;
-		auto const rb = sz + n;
-		c.reserve(rb < ra ? ra : rb);
-	}
+    auto const ra = sz * 2;
+    auto const rb = sz + n;
+    c.reserve(rb < ra ? ra : rb);
+  }
 };
 
 inline constexpr grow_capacity_by_fn grow_capacity_by{};
@@ -90,17 +92,18 @@ inline constexpr grow_capacity_by_fn grow_capacity_by{};
  *  - std::vector provides reserve(), but std::deque and std::list do not
  */
 struct reserve_if_available_fn {
-	template<typename C>
-	constexpr auto operator()(C& c, typename C::size_type const n) const
-	        noexcept(!folly::is_detected_v<detail::container_detect_reserve, C&>) {
-		constexpr auto match = folly::is_detected_v<detail::container_detect_reserve, C&>;
-		if constexpr(match) {
-			c.reserve(n);
-		}
-		return std::bool_constant<match>{};
-	}
+  template <typename C>
+  constexpr auto operator()(C& c, typename C::size_type const n) const
+      noexcept(!folly::is_detected_v<detail::container_detect_reserve, C&>) {
+    constexpr auto match =
+        folly::is_detected_v<detail::container_detect_reserve, C&>;
+    if constexpr (match) {
+      c.reserve(n);
+    }
+    return std::bool_constant<match>{};
+  }
 };
 
 inline constexpr reserve_if_available_fn reserve_if_available{};
 
-}  // namespace folly
+} // namespace folly

@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-#include <folly/lang/Bits.h>  // @shim
+#include <folly/lang/Bits.h> // @shim

@@ -19,7 +19,7 @@
 #include <sys/types.h>
 
 #ifdef _WIN32
-#include <basetsd.h>  // @manual
+#include <basetsd.h> // @manual
 #include <inttypes.h>
 
 // This is a massive pain to have be an `int` due to the pthread implementation

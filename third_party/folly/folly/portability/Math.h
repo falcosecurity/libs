@@ -29,7 +29,7 @@ namespace folly {
 /* using override */ using std::nextafter;
 /* using override */ using std::remainder;
 
-#else  // !__UCLIBC__
+#else // !__UCLIBC__
 
 /**
  * On uclibc, std::nextafter isn't implemented.  However, the C
@@ -39,15 +39,15 @@ namespace folly {
  */
 
 constexpr float nextafter(float x, float y) {
-	return __builtin_nextafterf(x, y);
+  return __builtin_nextafterf(x, y);
 }
 
 constexpr double nextafter(double x, double y) {
-	return __builtin_nextafter(x, y);
+  return __builtin_nextafter(x, y);
 }
 
 constexpr long double nextafter(long double x, long double y) {
-	return __builtin_nextafterl(x, y);
+  return __builtin_nextafterl(x, y);
 }
 
 /**
@@ -55,16 +55,16 @@ constexpr long double nextafter(long double x, long double y) {
  * Implement it using builtin versions
  */
 constexpr float remainder(float x, float y) {
-	return __builtin_remainderf(x, y);
+  return __builtin_remainderf(x, y);
 }
 
 constexpr double remainder(double x, double y) {
-	return __builtin_remainder(x, y);
+  return __builtin_remainder(x, y);
 }
 
 constexpr long double remainder(long double x, long double y) {
-	return __builtin_remainderl(x, y);
+  return __builtin_remainderl(x, y);
 }
 
-#endif  // !__UCLIBC__
-}  // namespace folly
+#endif // !__UCLIBC__
+} // namespace folly

@@ -25,9 +25,9 @@ namespace folly {
 //  A template for defining ODR-usable constexpr instances. Safe from ODR
 //  violations and initialization-order problems.
 
-template<typename T>
+template <typename T>
 struct StaticConst {
-	static constexpr T value{};
+  static constexpr T value{};
 };
 
-}  // namespace folly
+} // namespace folly

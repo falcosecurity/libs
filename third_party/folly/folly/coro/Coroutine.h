@@ -28,7 +28,7 @@
 // libc++'s <coroutine> header only provides its declarations for C++20 and
 // above, so we need to fall back to <experimental/coroutine> when building with
 // C++17.
-#if(__has_include(<coroutine>) && !defined(LLVM_COROUTINES)) || defined(__cpp_impl_coroutine)
+#if (__has_include(<coroutine>) && !defined(LLVM_COROUTINES)) || defined(__cpp_impl_coroutine)
 #define FOLLY_USE_STD_COROUTINE 1
 #else
 #define FOLLY_USE_STD_COROUTINE 0
@@ -40,7 +40,7 @@
 #include <experimental/coroutine>
 #endif
 
-#endif  // FOLLY_HAS_COROUTINES
+#endif // FOLLY_HAS_COROUTINES
 
 //  A place for foundational vocabulary types.
 //
@@ -55,7 +55,7 @@
 namespace folly {
 class exception_wrapper;
 struct AsyncStackFrame;
-}  // namespace folly
+} // namespace folly
 
 namespace folly::coro {
 
@@ -79,34 +79,36 @@ using impl::suspend_never;
 //  Resumption returns the value.
 //
 //  The value type is permitted to be a reference.
-template<typename T = void>
+template <typename T = void>
 class ready_awaitable {
-	static_assert(!std::is_void<T>::value, "base template unsuitable for void");
+  static_assert(!std::is_void<T>::value, "base template unsuitable for void");
 
-public:
-	explicit ready_awaitable(T value)  //
-	        noexcept(noexcept(T(FOLLY_DECLVAL(T&&)))):
-	        value_(static_cast<T&&>(value)) {}
+ public:
+  explicit ready_awaitable(T value) //
+      noexcept(noexcept(T(FOLLY_DECLVAL(T&&))))
+      : value_(static_cast<T&&>(value)) {}
 
-	bool await_ready() noexcept { return true; }
-	void await_suspend(coroutine_handle<>) noexcept {}
-	T await_resume() noexcept(noexcept(T(FOLLY_DECLVAL(T&&)))) { return static_cast<T&&>(value_); }
+  bool await_ready() noexcept { return true; }
+  void await_suspend(coroutine_handle<>) noexcept {}
+  T await_resume() noexcept(noexcept(T(FOLLY_DECLVAL(T&&)))) {
+    return static_cast<T&&>(value_);
+  }
 
-private:
-	T value_;
+ private:
+  T value_;
 };
 
 //  ready_awaitable
 //
 //  An awaitable type which is immediately ready. Suspension is a no-op.
-template<>
+template <>
 class ready_awaitable<void> {
-public:
-	ready_awaitable() noexcept = default;
+ public:
+  ready_awaitable() noexcept = default;
 
-	bool await_ready() noexcept { return true; }
-	void await_suspend(coroutine_handle<>) noexcept {}
-	void await_resume() noexcept {}
+  bool await_ready() noexcept { return true; }
+  void await_suspend(coroutine_handle<>) noexcept {}
+  void await_resume() noexcept {}
 };
 
 namespace detail {
@@ -119,23 +121,24 @@ namespace detail {
 //  await_suspend on the argument, conspiring always to return coroutine_handle
 //  no matter the underlying form of member await_suspend on the argument.
 struct await_suspend_return_coroutine_fn {
-	template<typename A, typename P>
-	coroutine_handle<> operator()(A& a, coroutine_handle<P> coro) const
-	        noexcept(noexcept(a.await_suspend(coro))) {
-		using result = decltype(a.await_suspend(coro));
-		if constexpr(std::is_same<void, result>::value) {
-			a.await_suspend(coro);
-			return noop_coroutine();
-		} else if constexpr(std::is_same<bool, result>::value) {
-			return a.await_suspend(coro) ? noop_coroutine() : coro;
-		} else {
-			return a.await_suspend(coro);
-		}
-	}
+  template <typename A, typename P>
+  coroutine_handle<> operator()(A& a, coroutine_handle<P> coro) const
+      noexcept(noexcept(a.await_suspend(coro))) {
+    using result = decltype(a.await_suspend(coro));
+    if constexpr (std::is_same<void, result>::value) {
+      a.await_suspend(coro);
+      return noop_coroutine();
+    } else if constexpr (std::is_same<bool, result>::value) {
+      return a.await_suspend(coro) ? noop_coroutine() : coro;
+    } else {
+      return a.await_suspend(coro);
+    }
+  }
 };
-inline constexpr await_suspend_return_coroutine_fn await_suspend_return_coroutine{};
+inline constexpr await_suspend_return_coroutine_fn
+    await_suspend_return_coroutine{};
 
-}  // namespace detail
+} // namespace detail
 
 #if __has_include(<variant>)
 
@@ -143,96 +146,99 @@ inline constexpr await_suspend_return_coroutine_fn await_suspend_return_coroutin
 //
 //  An awaitable type which is backed by one of several possible underlying
 //  awaitables.
-template<typename... A>
+template <typename... A>
 class variant_awaitable : private std::variant<A...> {
-private:
-	using base = std::variant<A...>;
+ private:
+  using base = std::variant<A...>;
 
-	template<typename Visitor>
-	auto visit(Visitor v) {
-		return std::visit(v, static_cast<base&>(*this));
-	}
+  template <typename Visitor>
+  auto visit(Visitor v) {
+    return std::visit(v, static_cast<base&>(*this));
+  }
 
-public:
-	// imports the base-class constructors wholesale for implementation simplicity
-	using base::base;  // assume there are no valueless-by-exception instances
+ public:
+  // imports the base-class constructors wholesale for implementation simplicity
+  using base::base; // assume there are no valueless-by-exception instances
 
-	auto await_ready() noexcept((noexcept(FOLLY_DECLVAL(A&).await_ready()) && ...)) {
-		return visit([&](auto& a) { return a.await_ready(); });
-	}
-	template<typename P>
-	auto await_suspend(coroutine_handle<P> coro) noexcept(
-	        (noexcept(FOLLY_DECLVAL(A&).await_suspend(coro)) && ...)) {
-		auto impl = detail::await_suspend_return_coroutine;
-		return visit([&](auto& a) { return impl(a, coro); });
-	}
-	auto await_resume() noexcept((noexcept(FOLLY_DECLVAL(A&).await_resume()) && ...)) {
-		return visit([&](auto& a) { return a.await_resume(); });
-	}
+  auto await_ready() noexcept(
+      (noexcept(FOLLY_DECLVAL(A&).await_ready()) && ...)) {
+    return visit([&](auto& a) { return a.await_ready(); });
+  }
+  template <typename P>
+  auto await_suspend(coroutine_handle<P> coro) noexcept(
+      (noexcept(FOLLY_DECLVAL(A&).await_suspend(coro)) && ...)) {
+    auto impl = detail::await_suspend_return_coroutine;
+    return visit([&](auto& a) { return impl(a, coro); });
+  }
+  auto await_resume() noexcept(
+      (noexcept(FOLLY_DECLVAL(A&).await_resume()) && ...)) {
+    return visit([&](auto& a) { return a.await_resume(); });
+  }
 };
 
-#endif  // __has_include(<variant>)
+#endif // __has_include(<variant>)
 
 //  ----
 
 namespace detail {
 
 struct detect_promise_return_object_eager_conversion_ {
-	struct promise_type {
-		struct return_object {
-			/* implicit */ return_object(promise_type& p) noexcept: promise{&p} {
-				promise->object = this;
-			}
-			~return_object() {
-				if(promise) {
-					promise->object = nullptr;
-				}
-			}
+  struct promise_type {
+    struct return_object {
+      /* implicit */ return_object(promise_type& p) noexcept : promise{&p} {
+        promise->object = this;
+      }
+      ~return_object() {
+        if (promise) {
+          promise->object = nullptr;
+        }
+      }
 
-			promise_type* promise;
-		};
+      promise_type* promise;
+    };
 
-		~promise_type() {
-			if(object) {
-				object->promise = nullptr;
-			}
-		}
+    ~promise_type() {
+      if (object) {
+        object->promise = nullptr;
+      }
+    }
 
-		suspend_never initial_suspend() const noexcept { return {}; }
-		suspend_never final_suspend() const noexcept { return {}; }
-		void unhandled_exception() {}
+    suspend_never initial_suspend() const noexcept { return {}; }
+    suspend_never final_suspend() const noexcept { return {}; }
+    void unhandled_exception() {}
 
-		return_object get_return_object() noexcept { return {*this}; }
-		void return_void() {}
+    return_object get_return_object() noexcept { return {*this}; }
+    void return_void() {}
 
-		return_object* object = nullptr;
-	};
+    return_object* object = nullptr;
+  };
 
-	/* implicit */ detect_promise_return_object_eager_conversion_(
-	        promise_type::return_object const& o) noexcept:
-	        eager{!!o.promise} {}
-	//  letting the coroutine type be trivially-copyable makes the coroutine crash
-	//  under clang; to work around, provide an empty but not trivial destructor
-	~detect_promise_return_object_eager_conversion_() {}
+  /* implicit */ detect_promise_return_object_eager_conversion_(
+      promise_type::return_object const& o) noexcept
+      : eager{!!o.promise} {}
+  //  letting the coroutine type be trivially-copyable makes the coroutine crash
+  //  under clang; to work around, provide an empty but not trivial destructor
+  ~detect_promise_return_object_eager_conversion_() {}
 
-	bool eager = false;
+  bool eager = false;
 
-	static detect_promise_return_object_eager_conversion_ go() noexcept {
-		// FIXME: when building against Apple SDKs using c++17, we hit this all over
-		// the place on complex testing infrastructure for iOS. Since it's not clear
-		// how to fix the issue properly right now, force ignore this warnings and
-		// unblock expected/optional coroutines. This should be removed once the
-		// build config is changed to use -Wno-deprecated-experimental-coroutine.
-		FOLLY_PUSH_WARNING
-#if defined(__clang__) && (13 < __clang_major__ && __clang_major__ < 17 - defined(__APPLE__))
-		FOLLY_CLANG_DISABLE_WARNING("-Wdeprecated-experimental-coroutine")
+  static detect_promise_return_object_eager_conversion_ go() noexcept {
+    // FIXME: when building against Apple SDKs using c++17, we hit this all over
+    // the place on complex testing infrastructure for iOS. Since it's not clear
+    // how to fix the issue properly right now, force ignore this warnings and
+    // unblock expected/optional coroutines. This should be removed once the
+    // build config is changed to use -Wno-deprecated-experimental-coroutine.
+    FOLLY_PUSH_WARNING
+#if defined(__clang__) && \
+    (13 < __clang_major__ && __clang_major__ < 17 - defined(__APPLE__))
+    FOLLY_CLANG_DISABLE_WARNING("-Wdeprecated-experimental-coroutine")
 #endif
-		co_return;
-		FOLLY_POP_WARNING
-	}
+    co_return;
+    FOLLY_POP_WARNING
+  }
 };
 
-}  // namespace detail
+} // namespace detail
 
 //  detect_promise_return_object_eager_conversion
 //
@@ -281,126 +287,131 @@ struct detect_promise_return_object_eager_conversion_ {
 //
 //  TODO: Remove this detection once the behavior is specified.
 inline bool detect_promise_return_object_eager_conversion() {
-	using coro = detail::detect_promise_return_object_eager_conversion_;
-	constexpr auto t = kMscVer && kMscVer < 1925;
-	constexpr auto f = (kGnuc && !kIsClang) || (kMscVer >= 1925);
-	return t ? true : f ? false : coro::go().eager;
+  using coro = detail::detect_promise_return_object_eager_conversion_;
+  constexpr auto t = kMscVer && kMscVer < 1925;
+  constexpr auto f = (kGnuc && !kIsClang) || (kMscVer >= 1925);
+  return t ? true : f ? false : coro::go().eager;
 }
 
-template<typename>
+template <typename>
 class ExtendedCoroutinePromiseCrtp;
 
 namespace detail {
-template<typename, typename, typename>
+template <typename, typename, typename>
 class TaskPromiseWrapperBase;
 }
 
 // Extended version of coroutine_handle<void>
 // Assumes (and enforces) assumption that coroutine_handle is a pointer
 class ExtendedCoroutineHandle {
-protected:
-	template<typename>
-	friend class ExtendedCoroutinePromiseCrtp;
-	template<typename, typename, typename>
-	friend class detail::TaskPromiseWrapperBase;
-	// This passkey aims to stop end users from calling `getPromiseBase`, which
-	// is an unsafe implementation detail, and to prevent overload ambiguity.
-	//
-	// It also doubles as the sigil for `use_extended_handle_concept`, another
-	// private detail.
-	class PrivateTag {
-	private:
-		friend ExtendedCoroutineHandle;
-		PrivateTag() = default;
-	};
+ protected:
+  template <typename>
+  friend class ExtendedCoroutinePromiseCrtp;
+  template <typename, typename, typename>
+  friend class detail::TaskPromiseWrapperBase;
+  // This passkey aims to stop end users from calling `getPromiseBase`, which
+  // is an unsafe implementation detail, and to prevent overload ambiguity.
+  //
+  // It also doubles as the sigil for `use_extended_handle_concept`, another
+  // private detail.
+  class PrivateTag {
+   private:
+    friend ExtendedCoroutineHandle;
+    PrivateTag() = default;
+  };
 
-private:
-	// SFINAE detection for the `use_extended_handle_concept` member type alias
-	// that classes implementing `getErrorHandle` must expose.  We don't want to
-	// use any kind of common base on `TaskWrapperPromise`, be it non-empty
-	// `PromiseBase`, or a dedicated empty tag, since either one would break
-	// empty-base optimization.
+ private:
+  // SFINAE detection for the `use_extended_handle_concept` member type alias
+  // that classes implementing `getErrorHandle` must expose.  We don't want to
+  // use any kind of common base on `TaskWrapperPromise`, be it non-empty
+  // `PromiseBase`, or a dedicated empty tag, since either one would break
+  // empty-base optimization.
 
-	template<typename T>
-	using use_extended_handle_of_ = typename T::use_extended_handle_concept;
+  template <typename T>
+  using use_extended_handle_of_ = typename T::use_extended_handle_concept;
 
-	template<typename T, typename Void = void>
-	struct use_extended_handle {
-		static_assert(require_sizeof<T>, "`use_extended_handle` on incomplete type");
-		static constexpr bool value = false;
-	};
+  template <typename T, typename Void = void>
+  struct use_extended_handle {
+    static_assert(
+        require_sizeof<T>, "`use_extended_handle` on incomplete type");
+    static constexpr bool value = false;
+  };
 
-	template<typename T>
-	struct use_extended_handle<T, void_t<use_extended_handle_of_<T>>> {
-		static constexpr bool value = std::is_same_v<use_extended_handle_of_<T>, PrivateTag>;
-	};
+  template <typename T>
+  struct use_extended_handle<T, void_t<use_extended_handle_of_<T>>> {
+    static constexpr bool value =
+        std::is_same_v<use_extended_handle_of_<T>, PrivateTag>;
+  };
 
-public:
-	using ErrorHandle = std::pair<ExtendedCoroutineHandle, AsyncStackFrame*>;
+ public:
+  using ErrorHandle = std::pair<ExtendedCoroutineHandle, AsyncStackFrame*>;
 
-	class PromiseBase {
-	private:
-		friend class ExtendedCoroutineHandle;
-		template<typename>
-		friend class ExtendedCoroutinePromiseCrtp;
+  class PromiseBase {
+   private:
+    friend class ExtendedCoroutineHandle;
+    template <typename>
+    friend class ExtendedCoroutinePromiseCrtp;
 
-		using Fn = std::optional<ErrorHandle>(PromiseBase*, exception_wrapper& ex);
+    using Fn = std::optional<ErrorHandle>(PromiseBase*, exception_wrapper& ex);
 
-		explicit PromiseBase(Fn* fn): getErrorHandlePtr_(fn) {}
-		~PromiseBase() = default;
+    explicit PromiseBase(Fn* fn) : getErrorHandlePtr_(fn) {}
+    ~PromiseBase() = default;
 
-		// A manual vtable with 1 function. Benefits over virtual inheritance:
-		//   - `TaskWrapperPromise` can implement `getErrorHandle` without bloating
-		//     itself with with a vtable it does not need.
-		//   - A tiny binary size win.
-		//   - Derived classes like `TaskPromise` don't have to be `final` in order
-		//     for the compiler to treat them as non-polymorphic.
-		Fn* getErrorHandlePtr_;
-	};
+    // A manual vtable with 1 function. Benefits over virtual inheritance:
+    //   - `TaskWrapperPromise` can implement `getErrorHandle` without bloating
+    //     itself with with a vtable it does not need.
+    //   - A tiny binary size win.
+    //   - Derived classes like `TaskPromise` don't have to be `final` in order
+    //     for the compiler to treat them as non-polymorphic.
+    Fn* getErrorHandlePtr_;
+  };
 
-	template<typename Promise>
-	/*implicit*/ ExtendedCoroutineHandle(coroutine_handle<Promise> handle) noexcept:
-	        basic_(handle),
-	        extended_(fromBasic(handle)) {}
+  template <typename Promise>
+  /*implicit*/ ExtendedCoroutineHandle(
+      coroutine_handle<Promise> handle) noexcept
+      : basic_(handle), extended_(fromBasic(handle)) {}
 
-	/*implicit*/ ExtendedCoroutineHandle(coroutine_handle<> handle) noexcept: basic_(handle) {}
+  /*implicit*/ ExtendedCoroutineHandle(coroutine_handle<> handle) noexcept
+      : basic_(handle) {}
 
-	template<typename Promise, std::enable_if_t<use_extended_handle<Promise>::value, int> = 0>
-	/*implicit*/ ExtendedCoroutineHandle(Promise* promise) noexcept:
-	        basic_(coroutine_handle<Promise>::from_promise(*promise)),
-	        extended_(Promise::getPromiseBase(PrivateTag{}, promise)) {}
+  template <
+      typename Promise,
+      std::enable_if_t<use_extended_handle<Promise>::value, int> = 0>
+  /*implicit*/ ExtendedCoroutineHandle(Promise* promise) noexcept
+      : basic_(coroutine_handle<Promise>::from_promise(*promise)),
+        extended_(Promise::getPromiseBase(PrivateTag{}, promise)) {}
 
-	ExtendedCoroutineHandle() noexcept = default;
+  ExtendedCoroutineHandle() noexcept = default;
 
-	void resume() { basic_.resume(); }
+  void resume() { basic_.resume(); }
 
-	void destroy() { basic_.destroy(); }
+  void destroy() { basic_.destroy(); }
 
-	coroutine_handle<> getHandle() const noexcept { return basic_; }
+  coroutine_handle<> getHandle() const noexcept { return basic_; }
 
-	ErrorHandle getErrorHandle(exception_wrapper& ex) {
-		if(extended_) {
-			if(auto res = extended_->getErrorHandlePtr_(extended_, ex)) {
-				return *res;
-			}
-		}
-		return {basic_, nullptr};
-	}
+  ErrorHandle getErrorHandle(exception_wrapper& ex) {
+    if (extended_) {
+      if (auto res = extended_->getErrorHandlePtr_(extended_, ex)) {
+        return *res;
+      }
+    }
+    return {basic_, nullptr};
+  }
 
-	explicit operator bool() const noexcept { return !!basic_; }
+  explicit operator bool() const noexcept { return !!basic_; }
 
-private:
-	template<typename Promise>
-	static auto fromBasic(coroutine_handle<Promise> handle) noexcept {
-		if constexpr(use_extended_handle<Promise>::value) {
-			return Promise::getPromiseBase(PrivateTag{}, &handle.promise());
-		} else {
-			return nullptr;
-		}
-	}
+ private:
+  template <typename Promise>
+  static auto fromBasic(coroutine_handle<Promise> handle) noexcept {
+    if constexpr (use_extended_handle<Promise>::value) {
+      return Promise::getPromiseBase(PrivateTag{}, &handle.promise());
+    } else {
+      return nullptr;
+    }
+  }
 
-	coroutine_handle<> basic_;
-	PromiseBase* extended_{nullptr};
+  coroutine_handle<> basic_;
+  PromiseBase* extended_{nullptr};
 };
 
 // folly::coro types are expected to implement this extended promise interface.
@@ -423,25 +434,26 @@ private:
 // Therefore, you must NOT call `coroutine_handle<...>::from_promise(promise)`.
 // In the future, the true handle could be supplied, but none of the current
 // coros required it.
-template<typename Promise>
-class ExtendedCoroutinePromiseCrtp : public ExtendedCoroutineHandle::PromiseBase {
-public:
-	using use_extended_handle_concept = ExtendedCoroutineHandle::PrivateTag;
+template <typename Promise>
+class ExtendedCoroutinePromiseCrtp
+    : public ExtendedCoroutineHandle::PromiseBase {
+ public:
+  using use_extended_handle_concept = ExtendedCoroutineHandle::PrivateTag;
 
-	static ExtendedCoroutineHandle::PromiseBase* getPromiseBase(ExtendedCoroutineHandle::PrivateTag,
-	                                                            ExtendedCoroutinePromiseCrtp* me) {
-		return me;
-	}
+  static ExtendedCoroutineHandle::PromiseBase* getPromiseBase(
+      ExtendedCoroutineHandle::PrivateTag, ExtendedCoroutinePromiseCrtp* me) {
+    return me;
+  }
 
-protected:
-	using PromiseBase = typename ExtendedCoroutineHandle::PromiseBase;
-	ExtendedCoroutinePromiseCrtp():
-	        PromiseBase(+[](PromiseBase* p, exception_wrapper& ex) {
-		        return Promise::getErrorHandleImpl(*static_cast<Promise*>(p), ex);
-	        }) {}
-	~ExtendedCoroutinePromiseCrtp() = default;
+ protected:
+  using PromiseBase = typename ExtendedCoroutineHandle::PromiseBase;
+  ExtendedCoroutinePromiseCrtp()
+      : PromiseBase(+[](PromiseBase* p, exception_wrapper& ex) {
+          return Promise::getErrorHandleImpl(*static_cast<Promise*>(p), ex);
+        }) {}
+  ~ExtendedCoroutinePromiseCrtp() = default;
 };
 
-}  // namespace folly::coro
+} // namespace folly::coro
 
 #endif

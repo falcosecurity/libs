@@ -48,7 +48,8 @@
 #ifdef _MSC_VER
 // GCC refuses to expand this correctly if this macro itself was
 // called with FB_VA_GLUE :(
-#define FB_ARG_2_OR_1(...) FB_VA_GLUE(FB_ARG_2_OR_1_IMPL, (__VA_ARGS__, __VA_ARGS__))
+#define FB_ARG_2_OR_1(...) \
+  FB_VA_GLUE(FB_ARG_2_OR_1_IMPL, (__VA_ARGS__, __VA_ARGS__))
 #else
 #define FB_ARG_2_OR_1(...) FB_ARG_2_OR_1_IMPL(__VA_ARGS__, __VA_ARGS__)
 #endif
@@ -92,7 +93,7 @@
 // to try provide as much uniqueness as possible.
 #if FOLLY_HAS_FEATURE(modules)
 #define FB_ANONYMOUS_VARIABLE(str) \
-	FB_CONCATENATE(FB_CONCATENATE(FB_CONCATENATE(str, __COUNTER__), _), __LINE__)
+  FB_CONCATENATE(FB_CONCATENATE(FB_CONCATENATE(str, __COUNTER__), _), __LINE__)
 #else
 #define FB_ANONYMOUS_VARIABLE(str) FB_CONCATENATE(str, __COUNTER__)
 #endif
@@ -118,79 +119,83 @@
  */
 #define FOLLY_PP_STRINGIZE_MACRO(x) FOLLY_PP_STRINGIZE(x)
 
-#define FOLLY_PP_DETAIL_NARGS_1(dummy, \
-                                _15,   \
-                                _14,   \
-                                _13,   \
-                                _12,   \
-                                _11,   \
-                                _10,   \
-                                _9,    \
-                                _8,    \
-                                _7,    \
-                                _6,    \
-                                _5,    \
-                                _4,    \
-                                _3,    \
-                                _2,    \
-                                _1,    \
-                                _0,    \
-                                ...)   \
-	_0
-#define FOLLY_PP_DETAIL_NARGS(...)         \
-	FOLLY_PP_DETAIL_NARGS_1(dummy,         \
-	                        ##__VA_ARGS__, \
-	                        15,            \
-	                        14,            \
-	                        13,            \
-	                        12,            \
-	                        11,            \
-	                        10,            \
-	                        9,             \
-	                        8,             \
-	                        7,             \
-	                        6,             \
-	                        5,             \
-	                        4,             \
-	                        3,             \
-	                        2,             \
-	                        1,             \
-	                        0)
+#define FOLLY_PP_DETAIL_NARGS_1( \
+    dummy,                       \
+    _15,                         \
+    _14,                         \
+    _13,                         \
+    _12,                         \
+    _11,                         \
+    _10,                         \
+    _9,                          \
+    _8,                          \
+    _7,                          \
+    _6,                          \
+    _5,                          \
+    _4,                          \
+    _3,                          \
+    _2,                          \
+    _1,                          \
+    _0,                          \
+    ...)                         \
+  _0
+#define FOLLY_PP_DETAIL_NARGS(...) \
+  FOLLY_PP_DETAIL_NARGS_1(         \
+      dummy,                       \
+      ##__VA_ARGS__,               \
+      15,                          \
+      14,                          \
+      13,                          \
+      12,                          \
+      11,                          \
+      10,                          \
+      9,                           \
+      8,                           \
+      7,                           \
+      6,                           \
+      5,                           \
+      4,                           \
+      3,                           \
+      2,                           \
+      1,                           \
+      0)
 
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_0(fn, ...)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_1(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_0(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_0(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_2(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_1(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_1(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_3(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_2(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_2(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_4(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_3(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_3(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_5(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_4(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_4(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_6(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_5(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_5(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_7(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_6(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_6(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_8(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_7(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_7(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_9(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_8(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_8(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_10(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_9(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_9(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_11(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_10(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_10(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_12(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_11(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_11(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_13(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_12(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_12(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_14(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_13(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_13(fn, __VA_ARGS__)
 #define FOLLY_PP_DETAIL_FOR_EACH_REC_15(fn, a, ...) \
-	fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_14(fn, __VA_ARGS__)
+  fn(a) FOLLY_PP_DETAIL_FOR_EACH_REC_14(fn, __VA_ARGS__)
 
-#define FOLLY_PP_DETAIL_FOR_EACH_2(fn, n, ...) FOLLY_PP_DETAIL_FOR_EACH_REC_##n(fn, __VA_ARGS__)
-#define FOLLY_PP_DETAIL_FOR_EACH_1(fn, n, ...) FOLLY_PP_DETAIL_FOR_EACH_2(fn, n, __VA_ARGS__)
+#define FOLLY_PP_DETAIL_FOR_EACH_2(fn, n, ...) \
+  FOLLY_PP_DETAIL_FOR_EACH_REC_##n(fn, __VA_ARGS__)
+#define FOLLY_PP_DETAIL_FOR_EACH_1(fn, n, ...) \
+  FOLLY_PP_DETAIL_FOR_EACH_2(fn, n, __VA_ARGS__)
 
 /**
  *  FOLLY_PP_FOR_EACH
@@ -213,7 +218,8 @@
  *    go_do_it(7);
  */
 #define FOLLY_PP_FOR_EACH(fn, ...) \
-	FOLLY_PP_DETAIL_FOR_EACH_1(fn, FOLLY_PP_DETAIL_NARGS(__VA_ARGS__), __VA_ARGS__)
+  FOLLY_PP_DETAIL_FOR_EACH_1(      \
+      fn, FOLLY_PP_DETAIL_NARGS(__VA_ARGS__), __VA_ARGS__)
 
 #if defined(U)
 #error defined(U) // literal U is used below

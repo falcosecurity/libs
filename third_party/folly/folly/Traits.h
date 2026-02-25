@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -38,11 +39,11 @@ using std::type_identity_t;
 /// type_identity
 ///
 /// mimic: std::type_identity_t, std::type_identity, c++20
-template<typename T>
+template <typename T>
 struct type_identity {
-	using type = T;
+  using type = T;
 };
-template<typename T>
+template <typename T>
 using type_identity_t = typename type_identity<T>::type;
 
 #endif
@@ -53,9 +54,9 @@ using type_identity_t = typename type_identity<T>::type;
 /// A generic type-list value type and value.
 ///
 /// A type-list is a class template parameterized by a pack of types.
-template<typename...>
+template <typename...>
 struct tag_t {};
-template<typename... T>
+template <typename... T>
 inline constexpr tag_t<T...> tag{};
 
 /// vtag_t
@@ -64,29 +65,29 @@ inline constexpr tag_t<T...> tag{};
 /// A generic value-list value type and value.
 ///
 /// A value-list is a class template parameterized by a pack of values.
-template<auto...>
+template <auto...>
 struct vtag_t {};
-template<auto... V>
+template <auto... V>
 inline constexpr vtag_t<V...> vtag{};
 
-template<std::size_t I>
+template <std::size_t I>
 using index_constant = std::integral_constant<std::size_t, I>;
 
 namespace detail {
 
-template<typename Int>
+template <typename Int>
 constexpr Int parse_uic(char const* str) noexcept {
-	Int result = 0;
-	while(*str) {
-		auto const c = *str++;
-		if(c >= '0' && c <= '9') {
-			result = result * 10 + (c - '0');
-		}
-	}
-	return result;
+  Int result = 0;
+  while (*str) {
+    auto const c = *str++;
+    if (c >= '0' && c <= '9') {
+      result = result * 10 + (c - '0');
+    }
+  }
+  return result;
 }
 
-}  // namespace detail
+} // namespace detail
 
 inline namespace literals {
 inline namespace integral_constant_literals {
@@ -96,14 +97,14 @@ inline namespace integral_constant_literals {
 /// Evaluates {XYZ}_uzic as index_constant<{XYZ}>.
 ///
 /// mimic: operator""_uzic, p2725r0
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator""_uzic() noexcept {
-	constexpr char digits[] = {Digits..., '\0'};
-	return index_constant<detail::parse_uic<size_t>(digits)>{};
+  constexpr char digits[] = {Digits..., '\0'};
+  return index_constant<detail::parse_uic<size_t>(digits)>{};
 }
 
-}  // namespace integral_constant_literals
-}  // namespace literals
+} // namespace integral_constant_literals
+} // namespace literals
 
 /// always_false
 ///
@@ -138,26 +139,26 @@ constexpr auto operator""_uzic() noexcept {
 ///
 /// This is similar to leaving the base template undefined but we get a nicer
 /// compiler error message with static_assert.
-template<typename...>
+template <typename...>
 inline constexpr bool always_false = false;
 
 namespace detail {
 
-template<typename Void, typename T>
+template <typename Void, typename T>
 struct require_sizeof_ {
-	static_assert(
-	        always_false<T>,
-	        "application of sizeof fails substitution - most commonly, the type is incomplete");
+  static_assert(
+      always_false<T>,
+      "application of sizeof fails substitution - most commonly, the type is incomplete");
 };
-template<typename T>
+template <typename T>
 struct require_sizeof_<decltype(void(sizeof(T))), T> {
-	template<typename V>
-	using apply_t = V;
+  template <typename V>
+  using apply_t = V;
 
-	static constexpr std::size_t size = sizeof(T);
+  static constexpr std::size_t size = sizeof(T);
 };
 
-}  // namespace detail
+} // namespace detail
 
 /// require_sizeof
 ///
@@ -168,7 +169,7 @@ struct require_sizeof_<decltype(void(sizeof(T))), T> {
 /// * function types.
 /// * incomplete types, including possibly-cv-qualified void
 /// * references to types to which application of sizeof would fail
-template<typename T>
+template <typename T>
 constexpr std::size_t require_sizeof = detail::require_sizeof_<void, T>::size;
 
 /// is_complete
@@ -177,11 +178,11 @@ constexpr std::size_t require_sizeof = detail::require_sizeof_<void, T>::size;
 /// It is tempting to define is_complete and is_complete_v, but ultimately these
 /// would be a bad idea. These traits are defined here to witness that these are
 /// intentionally excluded and not merely a missing feature.
-template<typename T>
+template <typename T>
 struct is_complete {
-	static_assert(always_false<T>, "is_complete would break ODR");
+  static_assert(always_false<T>, "is_complete would break ODR");
 };
-template<typename T>
+template <typename T>
 constexpr auto is_complete_v = is_complete<T>::value;
 
 /// is_unbounded_array_v
@@ -190,11 +191,11 @@ constexpr auto is_complete_v = is_complete<T>::value;
 /// A trait variable and type to check if a given type is an unbounded array.
 ///
 /// mimic: std::is_unbounded_array_d, std::is_unbounded_array (C++20)
-template<typename T>
+template <typename T>
 inline constexpr bool is_unbounded_array_v = false;
-template<typename T>
+template <typename T>
 inline constexpr bool is_unbounded_array_v<T[]> = true;
-template<typename T>
+template <typename T>
 struct is_unbounded_array : std::bool_constant<is_unbounded_array_v<T>> {};
 
 /// is_bounded_array_v
@@ -203,11 +204,11 @@ struct is_unbounded_array : std::bool_constant<is_unbounded_array_v<T>> {};
 /// A trait variable and type to check if a given type is a bounded array.
 ///
 /// mimic: std::is_bounded_array_d, std::is_bounded_array (C++20)
-template<typename T>
+template <typename T>
 inline constexpr bool is_bounded_array_v = false;
-template<typename T, std::size_t S>
+template <typename T, std::size_t S>
 inline constexpr bool is_bounded_array_v<T[S]> = true;
-template<typename T>
+template <typename T>
 struct is_bounded_array : std::bool_constant<is_bounded_array_v<T>> {};
 
 /// is_instantiation_of_v
@@ -221,20 +222,22 @@ struct is_bounded_array : std::bool_constant<is_bounded_array_v<T>> {};
 /// Note that this only works with type template parameters. It does not work
 /// with non-type template parameters, template template parameters, or alias
 /// templates.
-template<template<typename...> class, typename>
+template <template <typename...> class, typename>
 inline constexpr bool is_instantiation_of_v = false;
-template<template<typename...> class C, typename... T>
+template <template <typename...> class C, typename... T>
 inline constexpr bool is_instantiation_of_v<C, C<T...>> = true;
-template<template<typename...> class C, typename... T>
-struct is_instantiation_of : std::bool_constant<is_instantiation_of_v<C, T...>> {};
+template <template <typename...> class C, typename... T>
+struct is_instantiation_of
+    : std::bool_constant<is_instantiation_of_v<C, T...>> {};
 
 #if defined(__cpp_concepts)
 
-template<typename T, template<typename...> class Templ>
+template <typename T, template <typename...> class Templ>
 concept instantiated_from = is_instantiation_of_v<Templ, T>;
 
-template<typename T, template<typename...> class Templ>
-concept uncvref_instantiated_from = is_instantiation_of_v<Templ, std::remove_cvref_t<T>>;
+template <typename T, template <typename...> class Templ>
+concept uncvref_instantiated_from =
+    is_instantiation_of_v<Templ, std::remove_cvref_t<T>>;
 
 #endif
 
@@ -243,50 +246,50 @@ concept uncvref_instantiated_from = is_instantiation_of_v<Templ, std::remove_cvr
 /// For a member-pointer, reveals its constituent member-type and object-type.
 ///
 /// Works for both member-object-pointer and member-function-pointer.
-template<typename>
+template <typename>
 struct member_pointer_traits;
-template<typename M, typename O>
+template <typename M, typename O>
 struct member_pointer_traits<M O::*> {
-	using member_type = M;
-	using object_type = O;
+  using member_type = M;
+  using object_type = O;
 };
 
 /// member_pointer_member_t
 ///
 /// The member-type of a pointer-to-member type.
-template<typename P>
+template <typename P>
 using member_pointer_member_t = typename member_pointer_traits<P>::member_type;
 
 /// member_pointer_object_t
 ///
 /// The object-type of a pointer-to-member type.
-template<typename P>
+template <typename P>
 using member_pointer_object_t = typename member_pointer_traits<P>::object_type;
 
 namespace detail {
 
 struct is_constexpr_default_constructible_ {
-	template<typename T>
-	static constexpr auto make(tag_t<T>) -> decltype(void(T()), 0) {
-		return (void(T()), 0);
-	}
-	//  second param should just be: int = (void(T()), 0)
-	//  but under clang 10, crash: https://bugs.llvm.org/show_bug.cgi?id=47620
-	//  and, with assertions disabled, expectation failures showing compiler
-	//  deviation from the language spec
-	//  xcode renumbers clang versions so detection is tricky, but, if detection
-	//  were desired, a combination of __apple_build_version__ and __clang_major__
-	//  may be used to reduce frontend overhead under correct compilers: clang 12
-	//  under xcode and clang 10 otherwise
-	template<typename T, int = make(tag<T>)>
-	static std::true_type sfinae(T*);
-	static std::false_type sfinae(void*);
-	template<typename T>
-	static constexpr bool apply =
-	        !require_sizeof<T> || decltype(sfinae(static_cast<T*>(nullptr)))::value;
+  template <typename T>
+  static constexpr auto make(tag_t<T>) -> decltype(void(T()), 0) {
+    return (void(T()), 0);
+  }
+  //  second param should just be: int = (void(T()), 0)
+  //  but under clang 10, crash: https://bugs.llvm.org/show_bug.cgi?id=47620
+  //  and, with assertions disabled, expectation failures showing compiler
+  //  deviation from the language spec
+  //  xcode renumbers clang versions so detection is tricky, but, if detection
+  //  were desired, a combination of __apple_build_version__ and __clang_major__
+  //  may be used to reduce frontend overhead under correct compilers: clang 12
+  //  under xcode and clang 10 otherwise
+  template <typename T, int = make(tag<T>)>
+  static std::true_type sfinae(T*);
+  static std::false_type sfinae(void*);
+  template <typename T>
+  static constexpr bool apply =
+      !require_sizeof<T> || decltype(sfinae(static_cast<T*>(nullptr)))::value;
 };
 
-}  // namespace detail
+} // namespace detail
 
 /// is_constexpr_default_constructible_v
 /// is_constexpr_default_constructible
@@ -294,12 +297,12 @@ struct is_constexpr_default_constructible_ {
 /// A trait variable and type which determines whether the type parameter is
 /// constexpr default-constructible, that is, default-constructible in a
 /// constexpr context.
-template<typename T>
+template <typename T>
 inline constexpr bool is_constexpr_default_constructible_v =
-        detail::is_constexpr_default_constructible_::apply<T>;
-template<typename T>
+    detail::is_constexpr_default_constructible_::apply<T>;
+template <typename T>
 struct is_constexpr_default_constructible
-        : std::bool_constant<is_constexpr_default_constructible_v<T>> {};
+    : std::bool_constant<is_constexpr_default_constructible_v<T>> {};
 
 /***
  *  _t
@@ -319,52 +322,53 @@ struct is_constexpr_default_constructible
  *  Also useful for any other library with template types having dependent
  *  member types named `type`, like the standard trait types.
  */
-template<typename T>
+template <typename T>
 using _t = typename T::type;
 
 /**
  * A type trait to remove all const volatile and reference qualifiers on a
  * type T
  */
-template<typename T>
+template <typename T>
 struct remove_cvref {
-	using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+  using type =
+      typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 };
-template<typename T>
+template <typename T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 
 namespace detail {
-template<typename Src>
+template <typename Src>
 struct copy_cvref_ {
-	template<typename Dst>
-	using apply = Dst;
+  template <typename Dst>
+  using apply = Dst;
 };
-template<typename Src>
+template <typename Src>
 struct copy_cvref_<Src const> {
-	template<typename Dst>
-	using apply = Dst const;
+  template <typename Dst>
+  using apply = Dst const;
 };
-template<typename Src>
+template <typename Src>
 struct copy_cvref_<Src volatile> {
-	template<typename Dst>
-	using apply = Dst volatile;
+  template <typename Dst>
+  using apply = Dst volatile;
 };
-template<typename Src>
+template <typename Src>
 struct copy_cvref_<Src const volatile> {
-	template<typename Dst>
-	using apply = Dst const volatile;
+  template <typename Dst>
+  using apply = Dst const volatile;
 };
-template<typename Src>
+template <typename Src>
 struct copy_cvref_<Src&> {
-	template<typename Dst>
-	using apply = typename copy_cvref_<Src>::template apply<Dst>&;
+  template <typename Dst>
+  using apply = typename copy_cvref_<Src>::template apply<Dst>&;
 };
-template<typename Src>
+template <typename Src>
 struct copy_cvref_<Src&&> {
-	template<typename Dst>
-	using apply = typename copy_cvref_<Src>::template apply<Dst>&&;
+  template <typename Dst>
+  using apply = typename copy_cvref_<Src>::template apply<Dst>&&;
 };
-}  // namespace detail
+} // namespace detail
 
 /// copy_cvref_t
 ///
@@ -386,30 +390,33 @@ struct copy_cvref_<Src&&> {
 ///   to derive that from `Src`.
 ///
 /// `like_t` and `forward_like` avoid these problems.
-template<typename Src, typename Dst>
-using copy_cvref_t = typename detail::copy_cvref_<Src>::template apply<remove_cvref_t<Dst>>;
+template <typename Src, typename Dst>
+using copy_cvref_t =
+    typename detail::copy_cvref_<Src>::template apply<remove_cvref_t<Dst>>;
 
 namespace detail {
 // These `copy_ref_` functions assume `Dst` is not a reference.
-template<typename Src>
+template <typename Src>
 struct copy_ref_ {
-	template<typename Dst>
-	using apply = Dst;
+  template <typename Dst>
+  using apply = Dst;
 };
-template<typename Src>
+template <typename Src>
 struct copy_ref_<Src&> {
-	template<typename Dst>
-	using apply = Dst&;
+  template <typename Dst>
+  using apply = Dst&;
 };
-template<typename Src>
+template <typename Src>
 struct copy_ref_<Src&&> {
-	template<typename Dst>
-	using apply = Dst&&;
+  template <typename Dst>
+  using apply = Dst&&;
 };
-template<typename Src, typename Dst>
-using copy_const_t =
-        std::conditional_t<std::is_const_v<std::remove_reference_t<Src>>, Dst const, Dst>;
-}  // namespace detail
+template <typename Src, typename Dst>
+using copy_const_t = std::conditional_t<
+    std::is_const_v<std::remove_reference_t<Src>>,
+    Dst const,
+    Dst>;
+} // namespace detail
 
 /// like
 /// like_t
@@ -429,12 +436,12 @@ using copy_const_t =
 /// `Dst` may use `copy_cvref_t`. But heed the cautions in its documentation.
 ///
 /// mimic: `like`, p0847r0
-template<typename Src, typename Dst>
+template <typename Src, typename Dst>
 using like_t = typename detail::copy_ref_<Src>::template apply<
-        detail::copy_const_t<Src, std::remove_reference_t<Dst>>>;
-template<typename Src, typename Dst>
+    detail::copy_const_t<Src, std::remove_reference_t<Dst>>>;
+template <typename Src, typename Dst>
 struct like {
-	using type = like_t<Src, Dst>;
+  using type = like_t<Src, Dst>;
 };
 
 #if defined(__cpp_concepts)
@@ -449,7 +456,7 @@ struct like {
  *    void foo(folly::uncvref_same_as<std::vector<int>> auto&& vec);
  *
  */
-template<typename Ref, typename To>
+template <typename Ref, typename To>
 concept uncvref_same_as = std::is_same_v<std::remove_cvref_t<Ref>, To>;
 
 #endif
@@ -519,15 +526,15 @@ concept uncvref_same_as = std::is_same_v<std::remove_cvref_t<Ref>, To>;
  */
 
 namespace traits_detail {
-template<class T, class...>
+template <class T, class...>
 struct type_t_ {
-	using type = T;
+  using type = T;
 };
-}  // namespace traits_detail
+} // namespace traits_detail
 
-template<class T, class... Ts>
+template <class T, class... Ts>
 using type_t = typename traits_detail::type_t_<T, Ts...>::type;
-template<class... Ts>
+template <class... Ts>
 using void_t = type_t<void, Ts...>;
 
 /// nonesuch
@@ -540,25 +547,25 @@ using void_t = type_t<void, Ts...>;
 ///
 /// mimic: std::experimental::nonesuch, Library Fundamentals TS v2
 struct nonesuch {
-	~nonesuch() = delete;
-	nonesuch(nonesuch const&) = delete;
-	void operator=(nonesuch const&) = delete;
+  ~nonesuch() = delete;
+  nonesuch(nonesuch const&) = delete;
+  void operator=(nonesuch const&) = delete;
 };
 
 namespace detail {
 
-template<typename Void, typename D, template<typename...> class, typename...>
+template <typename Void, typename D, template <typename...> class, typename...>
 struct detected_ {
-	using value_t = std::false_type;
-	using type = D;
+  using value_t = std::false_type;
+  using type = D;
 };
-template<typename D, template<typename...> class T, typename... A>
+template <typename D, template <typename...> class T, typename... A>
 struct detected_<void_t<T<A...>>, D, T, A...> {
-	using value_t = std::true_type;
-	using type = T<A...>;
+  using value_t = std::true_type;
+  using type = T<A...>;
 };
 
-}  // namespace detail
+} // namespace detail
 
 /// detected_or
 ///
@@ -569,7 +576,7 @@ struct detected_<void_t<T<A...>>, D, T, A...> {
 /// mimic: std::experimental::detected_or, Library Fundamentals TS v2
 ///
 /// Note: not resilient against incomplete types; may violate ODR.
-template<typename D, template<typename...> class T, typename... A>
+template <typename D, template <typename...> class T, typename... A>
 using detected_or = detail::detected_<void, D, T, A...>;
 
 /// detected_or_t
@@ -582,7 +589,7 @@ using detected_or = detail::detected_<void, D, T, A...>;
 /// mimic: std::experimental::detected_or_t, Library Fundamentals TS v2
 ///
 /// Note: not resilient against incomplete types; may violate ODR.
-template<typename D, template<typename...> class T, typename... A>
+template <typename D, template <typename...> class T, typename... A>
 using detected_or_t = typename detected_or<D, T, A...>::type;
 
 /// detected_t
@@ -595,7 +602,7 @@ using detected_or_t = typename detected_or<D, T, A...>::type;
 /// mimic: std::experimental::detected_t, Library Fundamentals TS v2
 ///
 /// Note: not resilient against incomplete types; may violate ODR.
-template<template<typename...> class T, typename... A>
+template <template <typename...> class T, typename... A>
 using detected_t = detected_or_t<nonesuch, T, A...>;
 
 //  is_detected_v
@@ -615,26 +622,61 @@ using detected_t = detected_or_t<nonesuch, T, A...>;
 //  Note: not resilient against incomplete types; may violate ODR.
 //
 //  Note: the trait type is_detected differs here by being deferred.
-template<template<typename...> class T, typename... A>
-inline constexpr bool is_detected_v = detected_or<nonesuch, T, A...>::value_t::value;
-template<template<typename...> class T, typename... A>
+template <template <typename...> class T, typename... A>
+inline constexpr bool is_detected_v =
+    detected_or<nonesuch, T, A...>::value_t::value;
+template <template <typename...> class T, typename... A>
 struct is_detected : detected_or<nonesuch, T, A...>::value_t {};
 
-template<typename T>
-using aligned_storage_for_t = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+namespace detail {
+constexpr std::size_t aligned_storage_default_align(std::size_t len) {
+  // Match std::aligned_storage default: the most stringent fundamental
+  // alignment for any type whose size is no greater than len.
+  // Compute bit_floor(min(len, alignof(max_align_t))): propagate the highest
+  // set bit to all lower positions, then isolate it. O(log(bits)) steps.
+  len = len < alignof(std::max_align_t) ? len : alignof(std::max_align_t);
+  len |= len >> 1;
+  len |= len >> 2;
+  len |= len >> 4;
+  len |= len >> 8;
+  if constexpr (sizeof(std::size_t) > 2) {
+    len |= len >> 16;
+  }
+  if constexpr (sizeof(std::size_t) > 4) {
+    len |= len >> 32;
+  }
+  return len - (len >> 1);
+}
+
+template <std::size_t Len, std::size_t Align>
+struct aligned_storage {
+  struct type {
+    alignas(Align) std::byte data[Len];
+  };
+};
+} // namespace detail
+
+template <
+    std::size_t Len,
+    std::size_t Align = detail::aligned_storage_default_align(Len)>
+using aligned_storage_t = typename detail::aligned_storage<Len, Align>::type;
+
+template <typename T>
+using aligned_storage_for_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 //  ----
 
 namespace fallback {
-template<typename From, typename To>
+template <typename From, typename To>
 inline constexpr bool is_nothrow_convertible_v =
-        (std::is_void<From>::value && std::is_void<To>::value) ||
-        (  //
-                std::is_convertible<From, To>::value &&
-                std::is_nothrow_constructible<To, From>::value);
-template<typename From, typename To>
-struct is_nothrow_convertible : std::bool_constant<is_nothrow_convertible_v<From, To>> {};
-}  // namespace fallback
+    (std::is_void<From>::value && std::is_void<To>::value) ||
+    ( //
+        std::is_convertible<From, To>::value &&
+        std::is_nothrow_constructible<To, From>::value);
+template <typename From, typename To>
+struct is_nothrow_convertible
+    : std::bool_constant<is_nothrow_convertible_v<From, To>> {};
+} // namespace fallback
 
 //  is_nothrow_convertible
 //  is_nothrow_convertible_v
@@ -644,7 +686,8 @@ struct is_nothrow_convertible : std::bool_constant<is_nothrow_convertible_v<From
 //  * std::is_nothrow_convertible_v
 //
 //  mimic: is_nothrow_convertible, C++20
-#if defined(__cpp_lib_is_nothrow_convertible) && __cpp_lib_is_nothrow_convertible >= 201806L
+#if defined(__cpp_lib_is_nothrow_convertible) && \
+    __cpp_lib_is_nothrow_convertible >= 201806L
 using std::is_nothrow_convertible;
 using std::is_nothrow_convertible_v;
 #else
@@ -696,94 +739,104 @@ using fallback::is_nothrow_convertible_v;
 
 namespace traits_detail {
 
-#define FOLLY_HAS_TRUE_XXX(name)                                               \
-	template<typename T>                                                       \
-	using detect_##name = typename T::name;                                    \
-	template<class T>                                                          \
-	struct name##_is_true : std::is_same<typename T::name, std::true_type> {}; \
-	template<class T>                                                          \
-	struct has_true_##name : std::conditional<is_detected_v<detect_##name, T>, \
-	                                          name##_is_true<T>,               \
-	                                          std::false_type>::type {}
+#define FOLLY_HAS_TRUE_XXX(name)                                             \
+  template <typename T>                                                      \
+  using detect_##name = typename T::name;                                    \
+  template <class T>                                                         \
+  struct name##_is_true : std::is_same<typename T::name, std::true_type> {}; \
+  template <class T>                                                         \
+  struct has_true_##name                                                     \
+      : std::conditional<                                                    \
+            is_detected_v<detect_##name, T>,                                 \
+            name##_is_true<T>,                                               \
+            std::false_type>::type {}
 
 FOLLY_HAS_TRUE_XXX(IsRelocatable);
 FOLLY_HAS_TRUE_XXX(IsZeroInitializable);
 
 #undef FOLLY_HAS_TRUE_XXX
 
-}  // namespace traits_detail
+} // namespace traits_detail
 
 struct Ignore {
-	Ignore() = default;
-	template<class T>
-	constexpr /* implicit */ Ignore(const T&) {}
-	template<class T>
-	const Ignore& operator=(T const&) const {
-		return *this;
-	}
+  Ignore() = default;
+  template <class T>
+  constexpr /* implicit */ Ignore(const T&) {}
+  template <class T>
+  const Ignore& operator=(T const&) const {
+    return *this;
+  }
 };
 
-template<class...>
+template <class...>
 using Ignored = Ignore;
 
 namespace traits_detail_IsEqualityComparable {
 Ignore operator==(Ignore, Ignore);
 
-template<class T, class U = T>
+template <class T, class U = T>
 struct IsEqualityComparable
-        : std::is_convertible<decltype(std::declval<T>() == std::declval<U>()), bool> {};
-}  // namespace traits_detail_IsEqualityComparable
+    : std::is_convertible<
+          decltype(std::declval<T>() == std::declval<U>()),
+          bool> {};
+} // namespace traits_detail_IsEqualityComparable
 
-/* using override */ using traits_detail_IsEqualityComparable::IsEqualityComparable;
+/* using override */ using traits_detail_IsEqualityComparable::
+    IsEqualityComparable;
 
 namespace traits_detail_IsLessThanComparable {
 Ignore operator<(Ignore, Ignore);
 
-template<class T, class U = T>
+template <class T, class U = T>
 struct IsLessThanComparable
-        : std::is_convertible<decltype(std::declval<T>() < std::declval<U>()), bool> {};
-}  // namespace traits_detail_IsLessThanComparable
+    : std::is_convertible<
+          decltype(std::declval<T>() < std::declval<U>()),
+          bool> {};
+} // namespace traits_detail_IsLessThanComparable
 
-/* using override */ using traits_detail_IsLessThanComparable::IsLessThanComparable;
+/* using override */ using traits_detail_IsLessThanComparable::
+    IsLessThanComparable;
 
-template<class T>
+template <class T>
 struct IsRelocatable
-        : std::conditional<!require_sizeof<T> ||
-                                   is_detected_v<traits_detail::detect_IsRelocatable, T>,
-                           traits_detail::has_true_IsRelocatable<T>,
-#if defined(__cpp_lib_is_trivially_relocatable)  // P1144
-                           std::is_trivially_relocatable<T>
+    : std::conditional<
+          !require_sizeof<T> ||
+              is_detected_v<traits_detail::detect_IsRelocatable, T>,
+          traits_detail::has_true_IsRelocatable<T>,
+#if defined(__cpp_lib_is_trivially_relocatable) // P1144
+          std::is_trivially_relocatable<T>
 #else
-                           std::is_trivially_copyable<T>
+          std::is_trivially_copyable<T>
 #endif
-                           >::type {
+          >::type {
 };
 
-template<class T>
+template <class T>
 struct IsZeroInitializable
-        : std::conditional<!require_sizeof<T> ||
-                                   is_detected_v<traits_detail::detect_IsZeroInitializable, T>,
-                           traits_detail::has_true_IsZeroInitializable<T>,
-                           std::bool_constant<                                  //
-                                   !std::is_class<T>::value &&                  //
-                                   !std::is_union<T>::value &&                  //
-                                   !std::is_member_object_pointer<T>::value &&  // itanium
-                                   true>>::type {};
+    : std::conditional<
+          !require_sizeof<T> ||
+              is_detected_v<traits_detail::detect_IsZeroInitializable, T>,
+          traits_detail::has_true_IsZeroInitializable<T>,
+          std::bool_constant< //
+              !std::is_class<T>::value && //
+              !std::is_union<T>::value && //
+              !std::is_member_object_pointer<T>::value && // itanium
+              true>>::type {};
 
 namespace detail {
-template<bool>
+template <bool>
 struct conditional_;
-template<>
+template <>
 struct conditional_<false> {
-	template<typename, typename T>
-	using apply = T;
+  template <typename, typename T>
+  using apply = T;
 };
-template<>
+template <>
 struct conditional_<true> {
-	template<typename T, typename>
-	using apply = T;
+  template <typename T, typename>
+  using apply = T;
 };
-}  // namespace detail
+} // namespace detail
 
 /// conditional_t
 ///
@@ -792,44 +845,48 @@ struct conditional_<true> {
 ///
 /// As one effect, the result can be used in deducible contexts, allowing
 /// deduction of conditional_t<V, T, F> to work when T or F is a template param.
-template<bool V, typename T, typename F>
+template <bool V, typename T, typename F>
 using conditional_t = typename detail::conditional_<V>::template apply<T, F>;
 
-template<typename...>
+template <typename...>
 struct Conjunction : std::true_type {};
-template<typename T>
+template <typename T>
 struct Conjunction<T> : T {};
-template<typename T, typename... TList>
-struct Conjunction<T, TList...> : std::conditional<T::value, Conjunction<TList...>, T>::type {};
+template <typename T, typename... TList>
+struct Conjunction<T, TList...>
+    : std::conditional<T::value, Conjunction<TList...>, T>::type {};
 
-template<typename...>
+template <typename...>
 struct Disjunction : std::false_type {};
-template<typename T>
+template <typename T>
 struct Disjunction<T> : T {};
-template<typename T, typename... TList>
-struct Disjunction<T, TList...> : std::conditional<T::value, T, Disjunction<TList...>>::type {};
+template <typename T, typename... TList>
+struct Disjunction<T, TList...>
+    : std::conditional<T::value, T, Disjunction<TList...>>::type {};
 
-template<typename T>
+template <typename T>
 struct Negation : std::bool_constant<!T::value> {};
 
-template<bool... Bs>
+template <bool... Bs>
 struct Bools {
-	using valid_type = bool;
-	static constexpr std::size_t size() { return sizeof...(Bs); }
+  using valid_type = bool;
+  static constexpr std::size_t size() { return sizeof...(Bs); }
 };
 
 //  Lighter-weight than Conjunction, but evaluates all sub-conditions eagerly.
-template<class... Ts>
-struct StrictConjunction : std::is_same<Bools<Ts::value...>, Bools<(Ts::value || true)...>> {};
+template <class... Ts>
+struct StrictConjunction
+    : std::is_same<Bools<Ts::value...>, Bools<(Ts::value || true)...>> {};
 
-template<class... Ts>
+template <class... Ts>
 struct StrictDisjunction
-        : Negation<std::is_same<Bools<Ts::value...>, Bools<(Ts::value && false)...>>> {};
+    : Negation<
+          std::is_same<Bools<Ts::value...>, Bools<(Ts::value && false)...>>> {};
 
 namespace detail {
-template<typename T>
+template <typename T>
 using is_transparent_ = typename T::is_transparent;
-}  // namespace detail
+} // namespace detail
 
 /// is_transparent_v
 /// is_transparent
@@ -837,36 +894,39 @@ using is_transparent_ = typename T::is_transparent;
 /// A trait variable and type to test whether a less, equal-to, or hash type
 /// follows the is-transparent protocol used by containers with optional
 /// heterogeneous access.
-template<typename T>
-inline constexpr bool is_transparent_v = is_detected_v<detail::is_transparent_, T>;
-template<typename T>
+template <typename T>
+inline constexpr bool is_transparent_v =
+    is_detected_v<detail::is_transparent_, T>;
+template <typename T>
 struct is_transparent : std::bool_constant<is_transparent_v<T>> {};
 
 namespace detail {
 
-template<typename T, typename = void>
+template <typename T, typename = void>
 inline constexpr bool is_allocator_ = !require_sizeof<T>;
-template<typename T>
+template <typename T>
 inline constexpr bool is_allocator_<
-        T,
-        void_t<typename T::value_type,
-               decltype(std::declval<T&>().allocate(std::size_t{})),
-               decltype(std::declval<T&>().deallocate(static_cast<typename T::value_type*>(nullptr),
-                                                      std::size_t{}))>> = true;
+    T,
+    void_t<
+        typename T::value_type,
+        decltype(std::declval<T&>().allocate(std::size_t{})),
+        decltype(std::declval<T&>().deallocate(
+            static_cast<typename T::value_type*>(nullptr), std::size_t{}))>> =
+    true;
 
-}  // namespace detail
+} // namespace detail
 
 /// is_allocator_v
 /// is_allocator
 ///
 /// A trait variable and type to test whether a type is an allocator according
 /// to the minimum protocol required by std::allocator_traits.
-template<typename T>
+template <typename T>
 inline constexpr bool is_allocator_v = detail::is_allocator_<T>;
-template<typename T>
+template <typename T>
 struct is_allocator : std::bool_constant<is_allocator_v<T>> {};
 
-}  // namespace folly
+} // namespace folly
 
 /**
  * Use this macro ONLY inside namespace folly. When using it with a
@@ -882,7 +942,7 @@ struct is_allocator : std::bool_constant<is_allocator_v<T>> {};
  * FOLLY_ASSUME_RELOCATABLE(MyType<T1, T2>)
  */
 #define FOLLY_ASSUME_RELOCATABLE(...) \
-	struct IsRelocatable<__VA_ARGS__> : std::true_type {}
+  struct IsRelocatable<__VA_ARGS__> : std::true_type {}
 
 /**
  * The FOLLY_ASSUME_FBVECTOR_COMPATIBLE* macros below encode the
@@ -910,47 +970,47 @@ struct is_allocator : std::bool_constant<is_allocator_v<T>> {};
 
 // Use this macro ONLY at global level (no namespace)
 #define FOLLY_ASSUME_FBVECTOR_COMPATIBLE(...) \
-	namespace folly {                         \
-	template<>                                \
-	FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__);    \
-	}
+  namespace folly {                           \
+  template <>                                 \
+  FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__);      \
+  }
 // Use this macro ONLY at global level (no namespace)
 #define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_1(...) \
-	namespace folly {                           \
-	template<class T1>                          \
-	FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1>);  \
-	}
+  namespace folly {                             \
+  template <class T1>                           \
+  FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1>);    \
+  }
 // Use this macro ONLY at global level (no namespace)
-#define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_2(...)    \
-	namespace folly {                              \
-	template<class T1, class T2>                   \
-	FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1, T2>); \
-	}
+#define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_2(...)  \
+  namespace folly {                              \
+  template <class T1, class T2>                  \
+  FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1, T2>); \
+  }
 // Use this macro ONLY at global level (no namespace)
-#define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_3(...)        \
-	namespace folly {                                  \
-	template<class T1, class T2, class T3>             \
-	FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1, T2, T3>); \
-	}
+#define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_3(...)      \
+  namespace folly {                                  \
+  template <class T1, class T2, class T3>            \
+  FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1, T2, T3>); \
+  }
 // Use this macro ONLY at global level (no namespace)
-#define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_4(...)            \
-	namespace folly {                                      \
-	template<class T1, class T2, class T3, class T4>       \
-	FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1, T2, T3, T4>); \
-	}
+#define FOLLY_ASSUME_FBVECTOR_COMPATIBLE_4(...)          \
+  namespace folly {                                      \
+  template <class T1, class T2, class T3, class T4>      \
+  FOLLY_ASSUME_RELOCATABLE(__VA_ARGS__<T1, T2, T3, T4>); \
+  }
 
 namespace folly {
 
 // STL commonly-used types
-template<class T, class U>
+template <class T, class U>
 struct IsRelocatable<std::pair<T, U>>
-        : std::bool_constant<IsRelocatable<T>::value && IsRelocatable<U>::value> {};
+    : std::bool_constant<IsRelocatable<T>::value && IsRelocatable<U>::value> {};
 
 // Is T one of T1, T2, ..., Tn?
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 using IsOneOf = StrictDisjunction<std::is_same<T, Ts>...>;
 
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 inline constexpr bool is_one_of_v = IsOneOf<T, Ts...>::value;
 
 /*
@@ -961,27 +1021,27 @@ inline constexpr bool is_one_of_v = IsOneOf<T, Ts...>::value;
  */
 
 // same as `x < 0`
-template<typename T>
+template <typename T>
 constexpr bool is_negative(T x) {
-	return std::is_signed<T>::value && x < T(0);
+  return std::is_signed<T>::value && x < T(0);
 }
 
 // same as `x <= 0`
-template<typename T>
+template <typename T>
 constexpr bool is_non_positive(T x) {
-	return !x || folly::is_negative(x);
+  return !x || folly::is_negative(x);
 }
 
 // same as `x > 0`
-template<typename T>
+template <typename T>
 constexpr bool is_positive(T x) {
-	return !is_non_positive(x);
+  return !is_non_positive(x);
 }
 
 // same as `x >= 0`
-template<typename T>
+template <typename T>
 constexpr bool is_non_negative(T x) {
-	return !x || is_positive(x);
+  return !x || is_positive(x);
 }
 
 namespace detail {
@@ -993,13 +1053,13 @@ namespace detail {
 FOLLY_PUSH_WARNING
 FOLLY_GNU_DISABLE_WARNING("-Wsign-compare")
 FOLLY_GCC_DISABLE_WARNING("-Wbool-compare")
-FOLLY_MSVC_DISABLE_WARNING(4287)  // unsigned/negative constant mismatch
-FOLLY_MSVC_DISABLE_WARNING(4388)  // sign-compare
-FOLLY_MSVC_DISABLE_WARNING(4804)  // bool-compare
+FOLLY_MSVC_DISABLE_WARNING(4287) // unsigned/negative constant mismatch
+FOLLY_MSVC_DISABLE_WARNING(4388) // sign-compare
+FOLLY_MSVC_DISABLE_WARNING(4804) // bool-compare
 
-template<typename RHS, RHS rhs, typename LHS>
+template <typename RHS, RHS rhs, typename LHS>
 bool less_than_impl(LHS const lhs) {
-	// clang-format off
+  // clang-format off
   return
       // Ensure signed and unsigned values won't be compared directly.
       (!std::is_signed<RHS>::value && is_negative(lhs)) ? true :
@@ -1007,12 +1067,12 @@ bool less_than_impl(LHS const lhs) {
       rhs > std::numeric_limits<LHS>::max() ? true :
       rhs <= std::numeric_limits<LHS>::lowest() ? false :
       lhs < rhs;
-	// clang-format on
+  // clang-format on
 }
 
-template<typename RHS, RHS rhs, typename LHS>
+template <typename RHS, RHS rhs, typename LHS>
 bool greater_than_impl(LHS const lhs) {
-	// clang-format off
+  // clang-format off
   return
       // Ensure signed and unsigned values won't be compared directly.
       (!std::is_signed<RHS>::value && is_negative(lhs)) ? false :
@@ -1020,23 +1080,26 @@ bool greater_than_impl(LHS const lhs) {
       rhs > std::numeric_limits<LHS>::max() ? false :
       rhs < std::numeric_limits<LHS>::lowest() ? true :
       lhs > rhs;
-	// clang-format on
+  // clang-format on
 }
 
 FOLLY_POP_WARNING
 
-}  // namespace detail
+} // namespace detail
 
-template<typename RHS, RHS rhs, typename LHS>
+template <typename RHS, RHS rhs, typename LHS>
 bool less_than(LHS const lhs) {
-	return detail::less_than_impl<RHS, rhs, typename std::remove_reference<LHS>::type>(lhs);
+  return detail::
+      less_than_impl<RHS, rhs, typename std::remove_reference<LHS>::type>(lhs);
 }
 
-template<typename RHS, RHS rhs, typename LHS>
+template <typename RHS, RHS rhs, typename LHS>
 bool greater_than(LHS const lhs) {
-	return detail::greater_than_impl<RHS, rhs, typename std::remove_reference<LHS>::type>(lhs);
+  return detail::
+      greater_than_impl<RHS, rhs, typename std::remove_reference<LHS>::type>(
+          lhs);
 }
-}  // namespace folly
+} // namespace folly
 
 // Assume nothing when compiling with MSVC.
 #ifndef _MSC_VER
@@ -1049,13 +1112,13 @@ namespace folly {
 /// is_non_bool_integral_v
 ///
 /// A common need.
-template<typename Int>
+template <typename Int>
 inline constexpr bool is_non_bool_integral_v =
-        !std::is_same_v<bool, std::remove_cv_t<Int>> && std::is_integral_v<Int>;
+    !std::is_same_v<bool, std::remove_cv_t<Int>> && std::is_integral_v<Int>;
 
-template<typename Int>
-struct is_non_bool_integral  //
-        : std::bool_constant<is_non_bool_integral_v<Int>> {};
+template <typename Int>
+struct is_non_bool_integral //
+    : std::bool_constant<is_non_bool_integral_v<Int>> {};
 
 //  Some compilers have signed __int128 and unsigned __int128 types, and some
 //  libraries with some compilers have traits for those types. It's a mess.
@@ -1079,34 +1142,34 @@ struct is_non_bool_integral  //
 //    make_unsigned
 //    make_unsigned_t
 
-template<typename T>
+template <typename T>
 struct is_arithmetic : std::is_arithmetic<T> {};
-template<typename T>
+template <typename T>
 inline constexpr bool is_arithmetic_v = is_arithmetic<T>::value;
 
-template<typename T>
+template <typename T>
 struct is_integral : std::is_integral<T> {};
-template<typename T>
+template <typename T>
 inline constexpr bool is_integral_v = is_integral<T>::value;
 
-template<typename T>
+template <typename T>
 struct is_signed : std::is_signed<T> {};
-template<typename T>
+template <typename T>
 inline constexpr bool is_signed_v = is_signed<T>::value;
 
-template<typename T>
+template <typename T>
 struct is_unsigned : std::is_unsigned<T> {};
-template<typename T>
+template <typename T>
 inline constexpr bool is_unsigned_v = is_unsigned<T>::value;
 
-template<typename T>
+template <typename T>
 struct make_signed : std::make_signed<T> {};
-template<typename T>
+template <typename T>
 using make_signed_t = typename make_signed<T>::type;
 
-template<typename T>
+template <typename T>
 struct make_unsigned : std::make_unsigned<T> {};
-template<typename T>
+template <typename T>
 using make_unsigned_t = typename make_unsigned<T>::type;
 
 #if FOLLY_HAVE_INT128_T
@@ -1114,99 +1177,101 @@ using make_unsigned_t = typename make_unsigned<T>::type;
 using int128_t = signed __int128;
 using uint128_t = unsigned __int128;
 
-template<>
+template <>
 struct is_arithmetic<int128_t> : std::true_type {};
-template<>
+template <>
 struct is_arithmetic<uint128_t> : std::true_type {};
 
-template<>
+template <>
 struct is_integral<int128_t> : std::true_type {};
-template<>
+template <>
 struct is_integral<uint128_t> : std::true_type {};
 
-template<>
+template <>
 struct is_signed<int128_t> : std::true_type {};
-template<>
+template <>
 struct is_signed<uint128_t> : std::false_type {};
-template<>
+template <>
 struct is_unsigned<int128_t> : std::false_type {};
-template<>
+template <>
 struct is_unsigned<uint128_t> : std::true_type {};
 
-template<>
+template <>
 struct make_signed<int128_t> {
-	using type = int128_t;
+  using type = int128_t;
 };
-template<>
+template <>
 struct make_signed<uint128_t> {
-	using type = int128_t;
+  using type = int128_t;
 };
 
-template<>
+template <>
 struct make_unsigned<int128_t> {
-	using type = uint128_t;
+  using type = uint128_t;
 };
-template<>
+template <>
 struct make_unsigned<uint128_t> {
-	using type = uint128_t;
+  using type = uint128_t;
 };
-#endif  // FOLLY_HAVE_INT128_T
+#endif // FOLLY_HAVE_INT128_T
 
 namespace traits_detail {
-template<std::size_t>
+template <std::size_t>
 struct uint_bits_t_ {};
-template<>
+template <>
 struct uint_bits_t_<8> : type_t_<std::uint8_t> {};
-template<>
+template <>
 struct uint_bits_t_<16> : type_t_<std::uint16_t> {};
-template<>
+template <>
 struct uint_bits_t_<32> : type_t_<std::uint32_t> {};
-template<>
+template <>
 struct uint_bits_t_<64> : type_t_<std::uint64_t> {};
 #if FOLLY_HAVE_INT128_T
-template<>
+template <>
 struct uint_bits_t_<128> : type_t_<uint128_t> {};
-#endif  // FOLLY_HAVE_INT128_T
-}  // namespace traits_detail
+#endif // FOLLY_HAVE_INT128_T
+} // namespace traits_detail
 
-template<std::size_t bits>
+template <std::size_t bits>
 using uint_bits_t = _t<traits_detail::uint_bits_t_<bits>>;
 
-template<std::size_t lg_bits>
+template <std::size_t lg_bits>
 using uint_bits_lg_t = uint_bits_t<(1u << lg_bits)>;
 
-template<std::size_t bits>
+template <std::size_t bits>
 using int_bits_t = make_signed_t<uint_bits_t<bits>>;
 
-template<std::size_t lg_bits>
+template <std::size_t lg_bits>
 using int_bits_lg_t = make_signed_t<uint_bits_lg_t<lg_bits>>;
 
 namespace traits_detail {
 
-template<std::size_t I, typename T>
+template <std::size_t I, typename T>
 struct type_pack_element_indexed_type {
-	using type = T;
+  using type = T;
 };
 
-template<typename, typename...>
+template <typename, typename...>
 struct type_pack_element_set;
-template<std::size_t... I, typename... T>
+template <std::size_t... I, typename... T>
 struct type_pack_element_set<std::index_sequence<I...>, T...>
-        : type_pack_element_indexed_type<I, T>... {};
-template<typename... T>
-using type_pack_element_set_t = type_pack_element_set<std::index_sequence_for<T...>, T...>;
+    : type_pack_element_indexed_type<I, T>... {};
+template <typename... T>
+using type_pack_element_set_t =
+    type_pack_element_set<std::index_sequence_for<T...>, T...>;
 
-template<std::size_t I>
+template <std::size_t I>
 struct type_pack_element_test {
-	template<typename T>
-	static type_pack_element_indexed_type<I, T> impl(type_pack_element_indexed_type<I, T>*);
+  template <typename T>
+  static type_pack_element_indexed_type<I, T> impl(
+      type_pack_element_indexed_type<I, T>*);
 };
 
-template<std::size_t I, typename... Ts>
+template <std::size_t I, typename... Ts>
 using type_pack_element_fallback = _t<decltype(type_pack_element_test<I>::impl(
-        static_cast<type_pack_element_set_t<Ts...>*>(nullptr)))>;
+    static_cast<type_pack_element_set_t<Ts...>*>(nullptr)))>;
 
-}  // namespace traits_detail
+} // namespace traits_detail
 
 /// type_pack_element_t
 ///
@@ -1221,12 +1286,12 @@ using type_pack_element_fallback = _t<decltype(type_pack_element_test<I>::impl(
 
 #if FOLLY_HAS_BUILTIN(__type_pack_element)
 
-template<std::size_t I, typename... Ts>
+template <std::size_t I, typename... Ts>
 using type_pack_element_t = __type_pack_element<I, Ts...>;
 
 #else
 
-template<std::size_t I, typename... Ts>
+template <std::size_t I, typename... Ts>
 using type_pack_element_t = traits_detail::type_pack_element_fallback<I, Ts...>;
 
 #endif
@@ -1236,7 +1301,7 @@ using type_pack_element_t = traits_detail::type_pack_element_fallback<I, Ts...>;
 /// The size of a type pack.
 ///
 /// A metafunction around sizeof...(Ts).
-template<typename... Ts>
+template <typename... Ts>
 inline constexpr std::size_t type_pack_size_v = sizeof...(Ts);
 
 /// type_pack_size_t
@@ -1244,103 +1309,110 @@ inline constexpr std::size_t type_pack_size_v = sizeof...(Ts);
 /// The size of a type pack.
 ///
 /// A metafunction around index_constant<sizeof...(Ts)>.
-template<typename... Ts>
+template <typename... Ts>
 using type_pack_size_t = index_constant<sizeof...(Ts)>;
 
 namespace traits_detail {
 
-template<std::size_t I, template<typename...> class List, typename... T>
-type_identity<type_pack_element_t<I, T...>> type_list_element_(List<T...> const*);
+template <std::size_t I, template <typename...> class List, typename... T>
+type_identity<type_pack_element_t<I, T...>> type_list_element_(
+    List<T...> const*);
 
-template<template<typename...> class List, typename... T>
+template <template <typename...> class List, typename... T>
 index_constant<sizeof...(T)> type_list_size_(List<T...> const*);
 
-}  // namespace traits_detail
+} // namespace traits_detail
 
 /// type_list_element_t
 ///
 /// In the type list List<T...>, where List has kind template <typename...> and
 /// T... is a type-pack, equivalent to type_pack_element_t<I, T...>.
-template<std::size_t I, typename List>
-using type_list_element_t =
-        _t<decltype(traits_detail::type_list_element_<I>(static_cast<List const*>(nullptr)))>;
+template <std::size_t I, typename List>
+using type_list_element_t = _t<decltype(traits_detail::type_list_element_<I>(
+    static_cast<List const*>(nullptr)))>;
 
 /// type_list_size_v
 ///
 /// The size of a type list.
 ///
 /// For List<T...>, equivalent to type_pack_size_v<T...>.
-template<typename List>
+template <typename List>
 inline constexpr std::size_t type_list_size_v =
-        decltype(traits_detail::type_list_size_(static_cast<List const*>(nullptr)))::value;
+    decltype(traits_detail::type_list_size_(
+        static_cast<List const*>(nullptr)))::value;
 
 /// type_list_size_t
 ///
 /// The size of a type list.
 ///
 /// For List<T...>, equivalent to type_pack_size_t<T...>.
-template<typename List>
+template <typename List>
 using type_list_size_t =
-        decltype(traits_detail::type_list_size_(static_cast<List const*>(nullptr)));
+    decltype(traits_detail::type_list_size_(static_cast<List const*>(nullptr)));
 
 namespace detail {
 
 // The arguments to this "error" type help the user debug bad invocations.
 // It is purposely undefined to cause a compile error.
-template<typename...>
+template <typename...>
 struct error_list_concat_params_should_be_non_cvref;
 
 // The primary template is only invoked for invalid parameters.
-template<template<typename...> class Out, typename... T>
-inline constexpr auto type_list_concat_ = error_list_concat_params_should_be_non_cvref<T...>{};
+template <template <typename...> class Out, typename... T>
+inline constexpr auto type_list_concat_ =
+    error_list_concat_params_should_be_non_cvref<T...>{};
 
-template<template<typename...> class Out>
+template <template <typename...> class Out>
 inline constexpr type_identity<Out<>> type_list_concat_<Out>;
 
-template<template<typename...> class Out, template<typename...> class In, typename... T>
-inline constexpr auto type_list_concat_<Out, In<T...>> = type_identity<Out<T...>>{};
+template <
+    template <typename...> class Out,
+    template <typename...> class In,
+    typename... T>
+inline constexpr auto type_list_concat_<Out, In<T...>> =
+    type_identity<Out<T...>>{};
 
-template<template<typename...> class Out,
-         // Allow input lists to come from heterogeneous templates.
-         template<typename...>
-         class InA,
-         typename... A,
-         template<typename...>
-         class InB,
-         typename... B,
-         typename... Tail>
+template <
+    template <typename...> class Out,
+    // Allow input lists to come from heterogeneous templates.
+    template <typename...> class InA,
+    typename... A,
+    template <typename...> class InB,
+    typename... B,
+    typename... Tail>
 inline constexpr auto type_list_concat_<Out, InA<A...>, InB<B...>, Tail...> =
-        // Avoid instantiating the `In*` or `Out` types for the intermediate
-        // lists, since those types may be invalid, or expensive.  Per my tests
-        // on clang using `tag_t` for the intermediate list is no more expensive
-        // than using a dedicated incomplete list type.
-        type_list_concat_<Out, tag_t<A..., B...>, Tail...>;
+    // Avoid instantiating the `In*` or `Out` types for the intermediate
+    // lists, since those types may be invalid, or expensive.  Per my tests
+    // on clang using `tag_t` for the intermediate list is no more expensive
+    // than using a dedicated incomplete list type.
+    type_list_concat_<Out, tag_t<A..., B...>, Tail...>;
 
-}  // namespace detail
+} // namespace detail
 
 /// type_list_concat_t
 ///
 /// Each `List` is a type list of the form `InK<TypeK...>`, where the
 /// templates `InK` are potentially heterogeneous.  Concatenates these
 /// `List`s into a single type list `Out<Type1..., Type2..., ...>`.
-template<template<typename...> class Out, typename... List>
-using type_list_concat_t = typename decltype(detail::type_list_concat_<Out, List...>)::type;
+template <template <typename...> class Out, typename... List>
+using type_list_concat_t =
+    typename decltype(detail::type_list_concat_<Out, List...>)::type;
 
 namespace traits_detail {
 
-template<decltype(auto) V>
+template <decltype(auto) V>
 struct value_pack_constant {
-	inline static constexpr decltype(V) value = V;
+  inline static constexpr decltype(V) value = V;
 };
 
-}  // namespace traits_detail
+} // namespace traits_detail
 
 /// value_pack_size_v
 ///
 /// The size of a value pack.
 ///
 /// A metafunction around sizeof...(V).
-template<auto... V>
+template <auto... V>
 inline constexpr std::size_t value_pack_size_v = sizeof...(V);
 
 /// value_pack_size_t
@@ -1348,152 +1420,159 @@ inline constexpr std::size_t value_pack_size_v = sizeof...(V);
 /// The size of a value pack.
 ///
 /// A metafunction around index_constant<sizeof...(V)>.
-template<auto... V>
+template <auto... V>
 using value_pack_size_t = index_constant<sizeof...(V)>;
 
 /// value_pack_element_type_t
 ///
 /// In the value pack V..., the type of the Ith element.
-template<std::size_t I, auto... V>
+template <std::size_t I, auto... V>
 using value_pack_element_type_t = type_pack_element_t<I, decltype(V)...>;
 
 /// value_pack_element_type_t
 ///
 /// In the value pack V..., the Ith element.
-template<std::size_t I, auto... V>
+template <std::size_t I, auto... V>
 inline constexpr value_pack_element_type_t<I, V...> value_pack_element_v =
-        type_pack_element_t<I, traits_detail::value_pack_constant<V>...>::value;
+    type_pack_element_t<I, traits_detail::value_pack_constant<V>...>::value;
 
 namespace traits_detail {
 
-template<typename List>
+template <typename List>
 struct value_list_traits_;
-template<template<auto...> class List, auto... V>
+template <template <auto...> class List, auto... V>
 struct value_list_traits_<List<V...>> {
-	static constexpr std::size_t size = sizeof...(V);
-	template<std::size_t I>
-	using element_type = value_pack_element_type_t<I, V...>;
-	template<std::size_t I>
-	static constexpr value_pack_element_type_t<I, V...> element = value_pack_element_v<I, V...>;
+  static constexpr std::size_t size = sizeof...(V);
+  template <std::size_t I>
+  using element_type = value_pack_element_type_t<I, V...>;
+  template <std::size_t I>
+  static constexpr value_pack_element_type_t<I, V...> element =
+      value_pack_element_v<I, V...>;
 };
 
-}  // namespace traits_detail
+} // namespace traits_detail
 
 /// value_list_size_v
 ///
 /// The size of a value list.
 ///
 /// For List<V...>, equivalent to value_pack_size_v<V...>.
-template<typename List>
-inline constexpr std::size_t value_list_size_v = traits_detail::value_list_traits_<List>::size;
+template <typename List>
+inline constexpr std::size_t value_list_size_v =
+    traits_detail::value_list_traits_<List>::size;
 
 /// value_list_size_t
 ///
 /// The size of a value list.
 ///
 /// For List<V...>, equivalent to value_pack_size_t<V...>.
-template<typename List>
+template <typename List>
 using value_list_size_t = index_constant<value_list_size_v<List>>;
 
 /// value_list_element_type_t
 ///
 /// For List<V...>, the type of the Ith element.
-template<std::size_t I, typename List>
+template <std::size_t I, typename List>
 using value_list_element_type_t =
-        typename traits_detail::value_list_traits_<List>::template element_type<I>;
+    typename traits_detail::value_list_traits_<List>::template element_type<I>;
 
 /// value_list_element_v
 ///
 /// For List<V...>, the Ith element.
-template<std::size_t I, typename List>
+template <std::size_t I, typename List>
 inline constexpr value_list_element_type_t<I, List> value_list_element_v =
-        traits_detail::value_list_traits_<List>::template element<I>;
+    traits_detail::value_list_traits_<List>::template element<I>;
 
 namespace detail {
 
 // The primary template is only invoked for invalid parameters.
-template<template<auto...> class Out, typename... T>
-inline constexpr auto value_list_concat_ = error_list_concat_params_should_be_non_cvref<T...>{};
+template <template <auto...> class Out, typename... T>
+inline constexpr auto value_list_concat_ =
+    error_list_concat_params_should_be_non_cvref<T...>{};
 
-template<template<auto...> class Out>
+template <template <auto...> class Out>
 inline constexpr type_identity<Out<>> value_list_concat_<Out>;
 
-template<template<auto...> class Out, template<auto...> class In, auto... V>
-inline constexpr auto value_list_concat_<Out, In<V...>> = type_identity<Out<V...>>{};
+template <template <auto...> class Out, template <auto...> class In, auto... V>
+inline constexpr auto value_list_concat_<Out, In<V...>> =
+    type_identity<Out<V...>>{};
 
-template<template<auto...> class Out,
-         // Allow input lists to come from heterogeneous templates.
-         template<auto...>
-         class InA,
-         auto... A,
-         template<auto...>
-         class InB,
-         auto... B,
-         typename... Tail>
+template <
+    template <auto...> class Out,
+    // Allow input lists to come from heterogeneous templates.
+    template <auto...> class InA,
+    auto... A,
+    template <auto...> class InB,
+    auto... B,
+    typename... Tail>
 inline constexpr auto value_list_concat_<Out, InA<A...>, InB<B...>, Tail...> =
-        // The use of `vtag_t` is explained in the analogous `type_list_concat_.
-        value_list_concat_<Out, vtag_t<A..., B...>, Tail...>;
+    // The use of `vtag_t` is explained in the analogous `type_list_concat_.
+    value_list_concat_<Out, vtag_t<A..., B...>, Tail...>;
 
-}  // namespace detail
+} // namespace detail
 
 /// value_list_concat_t
 ///
 /// Each `List` is a value list of the form `InK<ValK...>`, where the
 /// templates `InK` are potentially heterogeneous.  Concatenates these
 /// `List`s into a single value list `Out<Val1..., Val2..., ...>`.
-template<template<auto...> class Out, typename... List>
-using value_list_concat_t = typename decltype(detail::value_list_concat_<Out, List...>)::type;
+template <template <auto...> class Out, typename... List>
+using value_list_concat_t =
+    typename decltype(detail::value_list_concat_<Out, List...>)::type;
 
 namespace detail {
 
-template<typename V, typename... T>
-constexpr bool type_pack_find_a_[sizeof...(T) + 1] = {std::is_same_v<V, T>..., true};
+template <typename V, typename... T>
+constexpr bool type_pack_find_a_[sizeof...(T) + 1] = {
+    std::is_same_v<V, T>..., true};
 
 constexpr std::size_t type_pack_find_(bool const* eq) {
-	size_t i = 0;
-	while(!eq[i]) {
-		++i;
-	}
-	return i;
+  size_t i = 0;
+  while (!eq[i]) {
+    ++i;
+  }
+  return i;
 }
 
-template<typename>
+template <typename>
 struct type_list_find_;
-template<template<typename...> class List, typename... T>
+template <template <typename...> class List, typename... T>
 struct type_list_find_<List<T...>> {
-	template<typename V>
-	static inline constexpr std::size_t apply = type_pack_find_(type_pack_find_a_<V, T...>);
+  template <typename V>
+  static inline constexpr std::size_t apply =
+      type_pack_find_(type_pack_find_a_<V, T...>);
 };
 
-}  // namespace detail
+} // namespace detail
 
 /// type_pack_find_v
 ///
 /// The index of the element of the type pack which is identical to the given
 /// type, or the size of the pack if there is no such element.
-template<typename V, typename... T>
+template <typename V, typename... T>
 inline constexpr std::size_t type_pack_find_v =
-        detail::type_pack_find_(detail::type_pack_find_a_<V, T...>);
+    detail::type_pack_find_(detail::type_pack_find_a_<V, T...>);
 
 /// type_pack_find_t
 ///
 /// The index of the element of the type pack which is identical to the given
 /// type, or the size of the pack if there is no such element.
-template<typename V, typename... T>
+template <typename V, typename... T>
 using type_pack_find_t = index_constant<type_pack_find_v<V, T...>>;
 
 /// type_list_find_v
 ///
 /// The index of the element of the type list which is identical to the given
 /// type, or the size of the list if there is no such element.
-template<typename V, typename List>
-inline constexpr std::size_t type_list_find_v = detail::type_list_find_<List>::template apply<V>;
+template <typename V, typename List>
+inline constexpr std::size_t type_list_find_v =
+    detail::type_list_find_<List>::template apply<V>;
 
 /// type_list_find_t
 ///
 /// The index of the element of the type list which is identical to the given
 /// type, or the size of the list if there is no such element.
-template<typename V, typename List>
+template <typename V, typename List>
 using type_list_find_t = index_constant<type_list_find_v<V, List>>;
 
-}  // namespace folly
+} // namespace folly

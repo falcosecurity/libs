@@ -19,8 +19,7 @@
 #include <atomic>
 #include <stack>
 
-#include <folly/CppAttributes.h>
-#include <folly/portability/GLog.h>
+#include <glog/logging.h>
 
 #include <folly/synchronization/Hazptr-fwd.h>
 #include <folly/synchronization/HazptrObj.h>
@@ -42,24 +41,24 @@ namespace folly {
  *
  *  Use example: Bucket heads in ConcurrentHashMap.
  */
-template<typename T, template<typename> class Atom>
+template <typename T, template <typename> class Atom>
 class hazptr_root {
-	Atom<T*> link_;
+  Atom<T*> link_;
 
-public:
-	explicit hazptr_root(T* p = nullptr) noexcept: link_(p) {}
+ public:
+  explicit hazptr_root(T* p = nullptr) noexcept : link_(p) {}
 
-	~hazptr_root() {
-		auto p = link_.load(std::memory_order_relaxed);
-		if(p) {
-			p->unlink();
-		}
-	}
+  ~hazptr_root() {
+    auto p = link_.load(std::memory_order_relaxed);
+    if (p) {
+      p->unlink();
+    }
+  }
 
-	const Atom<T*>& operator()() const noexcept { return link_; }
+  const Atom<T*>& operator()() const noexcept { return link_; }
 
-	Atom<T*>& operator()() noexcept { return link_; }
-};  // hazptr_root
+  Atom<T*>& operator()() noexcept { return link_; }
+}; // hazptr_root
 
 /**
  *  hazptr_obj_linked
@@ -85,101 +84,102 @@ public:
  *  decrement the counts explicitly. Counts are decremented implicitly
  *  as described in hazptr_obj_base_linked.
  */
-template<template<typename> class Atom>
+template <template <typename> class Atom>
 class hazptr_obj_linked : public hazptr_obj<Atom> {
-	using Count = uint64_t;
+  using Count = uint64_t;
 
-	static constexpr Count kRef = Count{1};
-	static constexpr Count kLink = Count{1} << 32;
-	static constexpr Count kRefMask = kLink - Count{1};
-	static constexpr Count kLinkMask = ~kRefMask;
+  static constexpr Count kRef = Count{1};
+  static constexpr Count kLink = Count{1} << 32;
+  static constexpr Count kRefMask = kLink - Count{1};
+  static constexpr Count kLinkMask = ~kRefMask;
 
-	Atom<Count> count_{0};
+  Atom<Count> count_{0};
 
-public:
-	void acquire_link() noexcept { count_inc(kLink); }
+ public:
+  void acquire_link() noexcept { count_inc(kLink); }
 
-	void acquire_link_safe() noexcept { count_inc_safe(kLink); }
+  void acquire_link_safe() noexcept { count_inc_safe(kLink); }
 
-	void acquire_ref() noexcept { count_inc(kRef); }
+  void acquire_ref() noexcept { count_inc(kRef); }
 
-	void acquire_ref_safe() noexcept { count_inc_safe(kRef); }
+  void acquire_ref_safe() noexcept { count_inc_safe(kRef); }
 
-private:
-	template<typename, template<typename> class, typename>
-	friend class hazptr_obj_base_linked;
+ private:
+  template <typename, template <typename> class, typename>
+  friend class hazptr_obj_base_linked;
 
-	Count count() const noexcept { return count_.load(std::memory_order_acquire); }
+  Count count() const noexcept {
+    return count_.load(std::memory_order_acquire);
+  }
 
-	void count_set(Count val) noexcept { count_.store(val, std::memory_order_release); }
+  void count_set(Count val) noexcept {
+    count_.store(val, std::memory_order_release);
+  }
 
-	void count_inc(Count add) noexcept {
-		[[FOLLY_ATTR_MAYBE_UNUSED_IF_NDEBUG]] auto oldval =
-		        count_.fetch_add(add, std::memory_order_acq_rel);
-		DCHECK_LT(oldval & kLinkMask, kLinkMask);
-		DCHECK_LT(oldval & kRefMask, kRefMask);
-	}
+  void count_inc(Count add) noexcept {
+    auto oldval = count_.fetch_add(add, std::memory_order_acq_rel);
+    DCHECK_LT(oldval & kLinkMask, kLinkMask);
+    DCHECK_LT(oldval & kRefMask, kRefMask);
+  }
 
-	void count_inc_safe(Count add) noexcept {
-		auto oldval = count();
-		count_set(oldval + add);
-		DCHECK_LT(oldval & kLinkMask, kLinkMask);
-		DCHECK_LT(oldval & kRefMask, kRefMask);
-	}
+  void count_inc_safe(Count add) noexcept {
+    auto oldval = count();
+    count_set(oldval + add);
+    DCHECK_LT(oldval & kLinkMask, kLinkMask);
+    DCHECK_LT(oldval & kRefMask, kRefMask);
+  }
 
-	bool count_cas(Count& oldval, Count newval) noexcept {
-		return count_.compare_exchange_weak(oldval,
-		                                    newval,
-		                                    std::memory_order_acq_rel,
-		                                    std::memory_order_acquire);
-	}
+  bool count_cas(Count& oldval, Count newval) noexcept {
+    return count_.compare_exchange_weak(
+        oldval, newval, std::memory_order_acq_rel, std::memory_order_acquire);
+  }
 
-	bool release_link() noexcept {
-		auto sub = kLink;
-		auto oldval = count();
-		while(true) {
-			DCHECK_GT(oldval & kLinkMask, 0u);
-			if(oldval == kLink) {
-				count_set(0u);
-				return true;
-			}
-			if(count_cas(oldval, oldval - sub)) {
-				return false;
-			}
-		}
-	}
+  bool release_link() noexcept {
+    auto sub = kLink;
+    auto oldval = count();
+    while (true) {
+      DCHECK_GT(oldval & kLinkMask, 0u);
+      if (oldval == kLink) {
+        count_set(0u);
+        return true;
+      }
+      if (count_cas(oldval, oldval - sub)) {
+        return false;
+      }
+    }
+  }
 
-	bool release_ref() noexcept {
-		auto sub = kRef;
-		auto oldval = count();
-		while(true) {
-			if(oldval == 0u) {
-				if(kIsDebug) {
-					count_set(kRefMask);
-				}
-				return true;
-			}
-			DCHECK_GT(oldval & kRefMask, 0u);
-			if(count_cas(oldval, oldval - sub)) {
-				return false;
-			}
-		}
-	}
+  bool release_ref() noexcept {
+    auto sub = kRef;
+    auto oldval = count();
+    while (true) {
+      if (oldval == 0u) {
+        if (kIsDebug) {
+          count_set(kRefMask);
+        }
+        return true;
+      }
+      DCHECK_GT(oldval & kRefMask, 0u);
+      if (count_cas(oldval, oldval - sub)) {
+        return false;
+      }
+    }
+  }
 
-	bool downgrade_link() noexcept {
-		auto oldval = count();
-		auto sub = kLink - kRef;
-		while(true) {
-			if(oldval == kLink) {
-				count_set(kRef);
-				return true;
-			}
-			if(count_cas(oldval, oldval - sub)) {
-				return (oldval & kLinkMask) == kLink;
-			}
-		}
-	}
-};  // hazptr_obj_linked
+  bool downgrade_link() noexcept {
+    auto oldval = count();
+    auto sub = kLink - kRef;
+    while (true) {
+      if (oldval == kLink) {
+        count_set(kRef);
+        return true;
+      }
+      if (count_cas(oldval, oldval - sub)) {
+        return (oldval & kLinkMask) == kLink;
+      }
+    }
+  }
+}; // hazptr_obj_linked
 
 /**
  *  hazptr_obj_base_linked
@@ -219,96 +219,98 @@ private:
  *   links. For example, UnboundedQueue Segment has an immutable
  *   link, and ConcurrentHashMap NodeT has a mutable link.
  */
-template<typename T, template<typename> class Atom, typename D>
-class hazptr_obj_base_linked : public hazptr_obj_linked<Atom>, public hazptr_deleter<T, D> {
-	using Stack = std::stack<hazptr_obj_base_linked<T, Atom, D>*>;
+template <typename T, template <typename> class Atom, typename D>
+class hazptr_obj_base_linked
+    : public hazptr_obj_linked<Atom>,
+      public hazptr_deleter<T, D> {
+  using Stack = std::stack<hazptr_obj_base_linked<T, Atom, D>*>;
 
-public:
-	void retire() {
-		this->pre_retire_check();  // defined in hazptr_obj
-		set_reclaim();
-		auto& domain = default_hazptr_domain<Atom>();
-		this->push_obj(domain);  // defined in hazptr_obj
-	}
+ public:
+  void retire() {
+    this->pre_retire_check(); // defined in hazptr_obj
+    set_reclaim();
+    auto& domain = default_hazptr_domain<Atom>();
+    this->push_obj(domain); // defined in hazptr_obj
+  }
 
-	/* unlink: Retire object if last link is released. */
-	void unlink() {
-		if(this->release_link()) {  // defined in hazptr_obj_linked
-			downgrade_retire_immutable_descendants();
-			retire();
-		}
-	}
+  /* unlink: Retire object if last link is released. */
+  void unlink() {
+    if (this->release_link()) { // defined in hazptr_obj_linked
+      downgrade_retire_immutable_descendants();
+      retire();
+    }
+  }
 
-	/* unlink_and_reclaim_unchecked: Reclaim object if the last link is
-	   released, without checking hazard pointers. To be called only
-	   when the object cannot possibly be protected by any hazard
-	   pointers. */
-	void unlink_and_reclaim_unchecked() {
-		if(this->release_link()) {  // defined in hazptr_obj_linked
-			DCHECK_EQ(this->count(), 0u);
-			delete_self();
-		}
-	}
+  /* unlink_and_reclaim_unchecked: Reclaim object if the last link is
+     released, without checking hazard pointers. To be called only
+     when the object cannot possibly be protected by any hazard
+     pointers. */
+  void unlink_and_reclaim_unchecked() {
+    if (this->release_link()) { // defined in hazptr_obj_linked
+      DCHECK_EQ(this->count(), 0u);
+      delete_self();
+    }
+  }
 
-private:
-	void set_reclaim() noexcept {
-		this->reclaim_ = [](hazptr_obj<Atom>* p, hazptr_obj_list<Atom>& l) {
-			auto obj = static_cast<hazptr_obj_base_linked<T, Atom, D>*>(p);
-			if(obj->release_ref()) {  // defined in hazptr_obj_linked
-				obj->release_delete_immutable_descendants();
-				obj->release_retire_mutable_children(l);
-				obj->delete_self();
-			}
-		};
-	}
+ private:
+  void set_reclaim() noexcept {
+    this->reclaim_ = [](hazptr_obj<Atom>* p, hazptr_obj_list<Atom>& l) {
+      auto obj = static_cast<hazptr_obj_base_linked<T, Atom, D>*>(p);
+      if (obj->release_ref()) { // defined in hazptr_obj_linked
+        obj->release_delete_immutable_descendants();
+        obj->release_retire_mutable_children(l);
+        obj->delete_self();
+      }
+    };
+  }
 
-	void downgrade_retire_immutable_descendants() {
-		Stack s;
-		call_push_links(false, s);
-		while(!s.empty()) {
-			auto p = s.top();
-			s.pop();
-			if(p && p->downgrade_link()) {
-				p->call_push_links(false, s);
-				p->retire();
-			}
-		}
-	}
+  void downgrade_retire_immutable_descendants() {
+    Stack s;
+    call_push_links(false, s);
+    while (!s.empty()) {
+      auto p = s.top();
+      s.pop();
+      if (p && p->downgrade_link()) {
+        p->call_push_links(false, s);
+        p->retire();
+      }
+    }
+  }
 
-	void release_delete_immutable_descendants() {
-		Stack s;
-		call_push_links(false, s);
-		while(!s.empty()) {
-			auto p = s.top();
-			s.pop();
-			if(p && p->release_ref()) {
-				p->call_push_links(false, s);
-				p->delete_self();
-			}
-		}
-	}
+  void release_delete_immutable_descendants() {
+    Stack s;
+    call_push_links(false, s);
+    while (!s.empty()) {
+      auto p = s.top();
+      s.pop();
+      if (p && p->release_ref()) {
+        p->call_push_links(false, s);
+        p->delete_self();
+      }
+    }
+  }
 
-	void release_retire_mutable_children(hazptr_obj_list<Atom>& l) {
-		Stack s;
-		call_push_links(true, s);
-		while(!s.empty()) {
-			auto p = s.top();
-			s.pop();
-			if(p->release_link()) {
-				p->pre_retire_check();  // defined in hazptr_obj
-				p->set_reclaim();
-				l.push(p);  // treated as if retired immediately
-			}
-		}
-	}
+  void release_retire_mutable_children(hazptr_obj_list<Atom>& l) {
+    Stack s;
+    call_push_links(true, s);
+    while (!s.empty()) {
+      auto p = s.top();
+      s.pop();
+      if (p->release_link()) {
+        p->pre_retire_check(); // defined in hazptr_obj
+        p->set_reclaim();
+        l.push(p); // treated as if retired immediately
+      }
+    }
+  }
 
-	void call_push_links(bool m, Stack& s) {
-		static_cast<T*>(this)->push_links(m, s);  // to be defined in T
-	}
+  void call_push_links(bool m, Stack& s) {
+    static_cast<T*>(this)->push_links(m, s); // to be defined in T
+  }
 
-	void delete_self() {
-		this->delete_obj(static_cast<T*>(this));  // defined in hazptr_deleter
-	}
-};  // hazptr_obj_base_linked
+  void delete_self() {
+    this->delete_obj(static_cast<T*>(this)); // defined in hazptr_deleter
+  }
+}; // hazptr_obj_base_linked
 
-}  // namespace folly
+} // namespace folly

@@ -24,23 +24,26 @@
 #include <folly/Preprocessor.h>
 #include <folly/lang/CArray.h>
 
-#define FOLLY_DETAIL_SAFE_CHECK_IMPL(d, p, u, expr, ...)                                      \
-	do {                                                                                      \
-		if((!d || ::folly::kIsDebug || ::folly::kIsSanitize) && !static_cast<bool>(expr)) {   \
-			static constexpr auto __folly_detail_safe_assert_fun = __func__;                  \
-			static constexpr ::folly::detail::safe_assert_arg __folly_detail_safe_assert_arg{ \
-			        u ? nullptr : #expr,                                                      \
-			        __FILE__,                                                                 \
-			        FOLLY_PP_CONSTINIT_LINE_UNSIGNED,                                         \
-			        __folly_detail_safe_assert_fun,                                           \
-			        ::folly::detail::safe_assert_msg_types<                                   \
-			                decltype(::folly::detail::safe_assert_msg_types_seq_of(           \
-			                        __VA_ARGS__))>::value.data};                              \
-			constexpr ::folly::detail::safe_assert_terminate_w<p>                             \
-			        __folly_detail_safe_assert_terminate_w{__folly_detail_safe_assert_arg};   \
-			__folly_detail_safe_assert_terminate_w(__VA_ARGS__);                              \
-		}                                                                                     \
-	} while(false)
+#define FOLLY_DETAIL_SAFE_CHECK_IMPL(d, p, u, expr, ...)                  \
+  do {                                                                    \
+    if ((!d || ::folly::kIsDebug || ::folly::kIsSanitize) &&              \
+        !static_cast<bool>(expr)) {                                       \
+      static constexpr auto __folly_detail_safe_assert_fun = __func__;    \
+      static constexpr ::folly::detail::safe_assert_arg                   \
+          __folly_detail_safe_assert_arg{                                 \
+              u ? nullptr : #expr,                                        \
+              __FILE__,                                                   \
+              FOLLY_PP_CONSTINIT_LINE_UNSIGNED,                           \
+              __folly_detail_safe_assert_fun,                             \
+              ::folly::detail::safe_assert_msg_types<                     \
+                  decltype(::folly::detail::safe_assert_msg_types_seq_of( \
+                      __VA_ARGS__))>::value.data};                        \
+      constexpr ::folly::detail::safe_assert_terminate_w<p>               \
+          __folly_detail_safe_assert_terminate_w{                         \
+              __folly_detail_safe_assert_arg};                            \
+      __folly_detail_safe_assert_terminate_w(__VA_ARGS__);                \
+    }                                                                     \
+  } while (false)
 
 //  FOLLY_SAFE_CHECK
 //
@@ -54,7 +57,8 @@
 //
 //  multi-thread-safe
 //  async-signal-safe
-#define FOLLY_SAFE_CHECK(expr, ...) FOLLY_DETAIL_SAFE_CHECK_IMPL(0, 0, 0, expr, __VA_ARGS__)
+#define FOLLY_SAFE_CHECK(expr, ...) \
+  FOLLY_DETAIL_SAFE_CHECK_IMPL(0, 0, 0, expr, __VA_ARGS__)
 
 //  FOLLY_SAFE_DCHECK
 //
@@ -64,7 +68,8 @@
 //
 //  multi-thread-safe
 //  async-signal-safe
-#define FOLLY_SAFE_DCHECK(expr, ...) FOLLY_DETAIL_SAFE_CHECK_IMPL(1, 0, 0, expr, __VA_ARGS__)
+#define FOLLY_SAFE_DCHECK(expr, ...) \
+  FOLLY_DETAIL_SAFE_CHECK_IMPL(1, 0, 0, expr, __VA_ARGS__)
 
 //  FOLLY_SAFE_PCHECK
 //
@@ -73,7 +78,8 @@
 //
 //  multi-thread-safe
 //  async-signal-safe
-#define FOLLY_SAFE_PCHECK(expr, ...) FOLLY_DETAIL_SAFE_CHECK_IMPL(0, 1, 0, expr, __VA_ARGS__)
+#define FOLLY_SAFE_PCHECK(expr, ...) \
+  FOLLY_DETAIL_SAFE_CHECK_IMPL(0, 1, 0, expr, __VA_ARGS__)
 
 //  FOLLY_SAFE_DPCHECK
 //
@@ -82,7 +88,8 @@
 //
 //  multi-thread-safe
 //  async-signal-safe
-#define FOLLY_SAFE_DPCHECK(expr, ...) FOLLY_DETAIL_SAFE_CHECK_IMPL(1, 1, 0, expr, __VA_ARGS__)
+#define FOLLY_SAFE_DPCHECK(expr, ...) \
+  FOLLY_DETAIL_SAFE_CHECK_IMPL(1, 1, 0, expr, __VA_ARGS__)
 
 //  FOLLY_SAFE_FATAL
 //
@@ -91,7 +98,8 @@
 //
 //  multi-thread-safe
 //  async-signal-safe
-#define FOLLY_SAFE_FATAL(...) FOLLY_DETAIL_SAFE_CHECK_IMPL(0, 0, 1, false, __VA_ARGS__)
+#define FOLLY_SAFE_FATAL(...) \
+  FOLLY_DETAIL_SAFE_CHECK_IMPL(0, 0, 1, false, __VA_ARGS__)
 
 //  FOLLY_SAFE_DFATAL
 //
@@ -100,70 +108,71 @@
 //
 //  multi-thread-safe
 //  async-signal-safe
-#define FOLLY_SAFE_DFATAL(...) FOLLY_DETAIL_SAFE_CHECK_IMPL(1, 0, 1, false, __VA_ARGS__)
+#define FOLLY_SAFE_DFATAL(...) \
+  FOLLY_DETAIL_SAFE_CHECK_IMPL(1, 0, 1, false, __VA_ARGS__)
 
 namespace folly {
 namespace detail {
 
 enum class safe_assert_msg_type : char { term, cstr, ui64 };
 
-template<safe_assert_msg_type... A>
+template <safe_assert_msg_type... A>
 struct safe_assert_msg_type_s {};
 
 struct safe_assert_msg_types_one_fn {
-	template<safe_assert_msg_type A>
-	using c = std::integral_constant<safe_assert_msg_type, A>;
-	// only used in unevaluated contexts:
-	c<safe_assert_msg_type::cstr> operator()(char const*) const;
-	c<safe_assert_msg_type::ui64> operator()(uint64_t) const;
+  template <safe_assert_msg_type A>
+  using c = std::integral_constant<safe_assert_msg_type, A>;
+  // only used in unevaluated contexts:
+  c<safe_assert_msg_type::cstr> operator()(char const*) const;
+  c<safe_assert_msg_type::ui64> operator()(uint64_t) const;
 };
 inline constexpr safe_assert_msg_types_one_fn
-        safe_assert_msg_types_one{};  // a function object to prevent extensions
+    safe_assert_msg_types_one{}; // a function object to prevent extensions
 
-template<typename... A>
+template <typename... A>
 safe_assert_msg_type_s<decltype(safe_assert_msg_types_one((A)A{}))::value...>
-safe_assert_msg_types_seq_of(A...);  // only used in unevaluated contexts
+    safe_assert_msg_types_seq_of(A...); // only used in unevaluated contexts
 
-template<typename>
+template <typename>
 struct safe_assert_msg_types;
-template<safe_assert_msg_type... A>
+template <safe_assert_msg_type... A>
 struct safe_assert_msg_types<safe_assert_msg_type_s<A...>> {
-	using value_type = c_array<safe_assert_msg_type, sizeof...(A) + 1>;
-	static constexpr value_type value = {{A..., safe_assert_msg_type::term}};
+  using value_type = c_array<safe_assert_msg_type, sizeof...(A) + 1>;
+  static constexpr value_type value = {{A..., safe_assert_msg_type::term}};
 };
 
 struct safe_assert_arg {
-	char const* expr;
-	char const* file;
-	unsigned int line;
-	char const* function;
-	safe_assert_msg_type const* msg_types;
+  char const* expr;
+  char const* file;
+  unsigned int line;
+  char const* function;
+  safe_assert_msg_type const* msg_types;
 };
 
 struct safe_assert_msg_cast_one_fn {
-	FOLLY_ERASE auto operator()(char const* const a) const { return a; }
-	FOLLY_ERASE auto operator()(uint64_t const a) const { return a; }
+  FOLLY_ERASE auto operator()(char const* const a) const { return a; }
+  FOLLY_ERASE auto operator()(uint64_t const a) const { return a; }
 };
 inline constexpr safe_assert_msg_cast_one_fn
-        safe_assert_msg_cast_one{};  // a function object to prevent extensions
+    safe_assert_msg_cast_one{}; // a function object to prevent extensions
 
-template<bool P>
+template <bool P>
 [[noreturn, FOLLY_ATTR_GNU_COLD]] FOLLY_NOINLINE void safe_assert_terminate(
-        safe_assert_arg const* arg,
-        ...) noexcept;  // the true backing function
+    safe_assert_arg const* arg, ...) noexcept; // the true backing function
 
-template<bool P>
+template <bool P>
 struct safe_assert_terminate_w {
-	safe_assert_arg const& arg;
+  safe_assert_arg const& arg;
 
-	FOLLY_ERASE constexpr safe_assert_terminate_w(safe_assert_arg const& arg_) noexcept:
-	        arg{arg_} {}
+  FOLLY_ERASE constexpr safe_assert_terminate_w(
+      safe_assert_arg const& arg_) noexcept
+      : arg{arg_} {}
 
-	template<typename... A>
-	[[noreturn]] FOLLY_ERASE void operator()(A... a) const noexcept {
-		safe_assert_terminate<P>(&arg, safe_assert_msg_cast_one(a)...);
-	}
+  template <typename... A>
+  [[noreturn]] FOLLY_ERASE void operator()(A... a) const noexcept {
+    safe_assert_terminate<P>(&arg, safe_assert_msg_cast_one(a)...);
+  }
 };
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

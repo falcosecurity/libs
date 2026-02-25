@@ -26,42 +26,43 @@ namespace folly {
 namespace detail {
 
 class UniqueInstance {
-public:
-	template<template<typename...> class Z, typename... Key, typename... Mapped>
-	FOLLY_EXPORT FOLLY_ALWAYS_INLINE explicit UniqueInstance(tag_t<Z<Key..., Mapped...>>,
-	                                                         tag_t<Key...>,
-	                                                         tag_t<Mapped...>) noexcept {
-		static constexpr Ptr const tmpl = FOLLY_TYPE_INFO_OF(key_t<Z>);
-		static constexpr Ptr const ptrs[] = {FOLLY_TYPE_INFO_OF(tag_t<Key>)...,
-		                                     FOLLY_TYPE_INFO_OF(tag_t<Mapped>)...};
-		static FOLLY_CONSTINIT Arg arg{{tmpl, ptrs, sizeof...(Key), sizeof...(Mapped)},
-		                               {tag<Value, key_t<Z, Key...>>}};
-		enforce(arg);
-	}
+ public:
+  template <template <typename...> class Z, typename... Key, typename... Mapped>
+  FOLLY_EXPORT FOLLY_ALWAYS_INLINE explicit UniqueInstance(
+      tag_t<Z<Key..., Mapped...>>, tag_t<Key...>, tag_t<Mapped...>) noexcept {
+    static constexpr Ptr const tmpl = FOLLY_TYPE_INFO_OF(key_t<Z>);
+    static constexpr Ptr const ptrs[] = {
+        FOLLY_TYPE_INFO_OF(tag_t<Key>)...,
+        FOLLY_TYPE_INFO_OF(tag_t<Mapped>)...};
+    static FOLLY_CONSTINIT Arg arg{
+        {tmpl, ptrs, sizeof...(Key), sizeof...(Mapped)},
+        {tag<Value, key_t<Z, Key...>>}};
+    enforce(arg);
+  }
 
-	UniqueInstance(UniqueInstance const&) = delete;
-	UniqueInstance(UniqueInstance&&) = delete;
-	UniqueInstance& operator=(UniqueInstance const&) = delete;
-	UniqueInstance& operator=(UniqueInstance&&) = delete;
+  UniqueInstance(UniqueInstance const&) = delete;
+  UniqueInstance(UniqueInstance&&) = delete;
+  UniqueInstance& operator=(UniqueInstance const&) = delete;
+  UniqueInstance& operator=(UniqueInstance&&) = delete;
 
-private:
-	template<template<typename...> class Z, typename... Key>
-	struct key_t {};
+ private:
+  template <template <typename...> class Z, typename... Key>
+  struct key_t {};
 
-	using Ptr = std::type_info const*;
-	struct Value {
-		Ptr tmpl;
-		Ptr const* ptrs;
-		std::uint32_t key_size;
-		std::uint32_t mapped_size;
-	};
-	struct Arg {
-		Value local;
-		StaticSingletonManager::ArgCreate<true> global;
-	};
+  using Ptr = std::type_info const*;
+  struct Value {
+    Ptr tmpl;
+    Ptr const* ptrs;
+    std::uint32_t key_size;
+    std::uint32_t mapped_size;
+  };
+  struct Arg {
+    Value local;
+    StaticSingletonManager::ArgCreate<true> global;
+  };
 
-	static void enforce(Arg& arg) noexcept;
+  static void enforce(Arg& arg) noexcept;
 };
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly

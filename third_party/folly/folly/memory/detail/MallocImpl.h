@@ -26,20 +26,23 @@ extern "C" {
 #if !defined(__FreeBSD__)
 void* mallocx(size_t, int) __attribute__((__nothrow__, __weak__));
 void* rallocx(void*, size_t, int) __attribute__((__nothrow__, __weak__));
-size_t xallocx(void*, size_t, size_t, int) __attribute__((__nothrow__, __weak__));
+size_t xallocx(void*, size_t, size_t, int)
+    __attribute__((__nothrow__, __weak__));
 size_t sallocx(const void*, int) __attribute__((__nothrow__, __weak__));
 void dallocx(void*, int) __attribute__((__nothrow__, __weak__));
 void sdallocx(void*, size_t, int) __attribute__((__nothrow__, __weak__));
 size_t nallocx(size_t, int) __attribute__((__nothrow__, __weak__));
-int mallctl(const char*, void*, size_t*, void*, size_t) __attribute__((__nothrow__, __weak__));
-int mallctlnametomib(const char*, size_t*, size_t*) __attribute__((__nothrow__, __weak__));
+int mallctl(const char*, void*, size_t*, void*, size_t)
+    __attribute__((__nothrow__, __weak__));
+int mallctlnametomib(const char*, size_t*, size_t*)
+    __attribute__((__nothrow__, __weak__));
 int mallctlbymib(const size_t*, size_t, void*, size_t*, void*, size_t)
-        __attribute__((__nothrow__, __weak__));
+    __attribute__((__nothrow__, __weak__));
 #endif
 bool MallocExtension_Internal_GetNumericProperty(const char*, size_t, size_t*)
-        __attribute__((__weak__));
+    __attribute__((__weak__));
 #else
-#if(!defined(USE_JEMALLOC) && !defined(FOLLY_USE_JEMALLOC)) || FOLLY_SANITIZE
+#if (!defined(USE_JEMALLOC) && !defined(FOLLY_USE_JEMALLOC)) || FOLLY_SANITIZE
 // we do not want to declare these if we have jemalloc support
 // to avoid redefinition errors
 extern void* (*mallocx)(size_t, int);
@@ -51,9 +54,11 @@ extern void (*sdallocx)(void*, size_t, int);
 extern size_t (*nallocx)(size_t, int);
 extern int (*mallctl)(const char*, void*, size_t*, void*, size_t);
 extern int (*mallctlnametomib)(const char*, size_t*, size_t*);
-extern int (*mallctlbymib)(const size_t*, size_t, void*, size_t*, void*, size_t);
+extern int (*mallctlbymib)(
+    const size_t*, size_t, void*, size_t*, void*, size_t);
 #endif
-extern bool (*MallocExtension_Internal_GetNumericProperty)(const char*, size_t, size_t*);
+extern bool (*MallocExtension_Internal_GetNumericProperty)(
+    const char*, size_t, size_t*);
 #ifdef _MSC_VER
 // We emulate weak linkage for MSVC. The symbols we're
 // aliasing to are hiding in MallocImpl.cpp
@@ -66,11 +71,12 @@ extern bool (*MallocExtension_Internal_GetNumericProperty)(const char*, size_t, 
 #pragma comment(linker, "/alternatename:_sdallocx=_sdallocxWeak")
 #pragma comment(linker, "/alternatename:_nallocx=_nallocxWeak")
 #pragma comment(linker, "/alternatename:_mallctl=_mallctlWeak")
-#pragma comment(linker, "/alternatename:_mallctlnametomib=_mallctlnametomibWeak")
+#pragma comment( \
+    linker, "/alternatename:_mallctlnametomib=_mallctlnametomibWeak")
 #pragma comment(linker, "/alternatename:_mallctlbymib=_mallctlbymibWeak")
 #pragma comment( \
-        linker,  \
-        "/alternatename:_MallocExtension_Internal_GetNumericProperty=_MallocExtension_Internal_GetNumericPropertyWeak")
+    linker,      \
+    "/alternatename:_MallocExtension_Internal_GetNumericProperty=_MallocExtension_Internal_GetNumericPropertyWeak")
 #else
 #pragma comment(linker, "/alternatename:mallocx=mallocxWeak")
 #pragma comment(linker, "/alternatename:rallocx=rallocxWeak")
@@ -83,8 +89,8 @@ extern bool (*MallocExtension_Internal_GetNumericProperty)(const char*, size_t, 
 #pragma comment(linker, "/alternatename:mallctlnametomib=mallctlnametomibWeak")
 #pragma comment(linker, "/alternatename:mallctlbymib=mallctlbymibWeak")
 #pragma comment( \
-        linker,  \
-        "/alternatename:MallocExtension_Internal_GetNumericProperty=MallocExtension_Internal_GetNumericPropertyWeak")
+    linker,      \
+    "/alternatename:MallocExtension_Internal_GetNumericProperty=MallocExtension_Internal_GetNumericPropertyWeak")
 #endif
 #endif
 #endif

@@ -27,12 +27,13 @@ namespace hash {
 
 namespace detail {
 
-FOLLY_ALWAYS_INLINE constexpr std::uint64_t murmurHash64ShiftMix(std::uint64_t v) {
-	constexpr std::uint64_t kShift = 47;
-	return v ^ (v >> kShift);
+FOLLY_ALWAYS_INLINE constexpr std::uint64_t murmurHash64ShiftMix(
+    std::uint64_t v) {
+  constexpr std::uint64_t kShift = 47;
+  return v ^ (v >> kShift);
 }
 
-}  // namespace detail
+} // namespace detail
 
 /*
  * Implementation of MurmurHash2 hashing algorithm for 64-bit
@@ -40,33 +41,33 @@ FOLLY_ALWAYS_INLINE constexpr std::uint64_t murmurHash64ShiftMix(std::uint64_t v
  *
  * https://en.wikipedia.org/wiki/MurmurHash
  */
-constexpr std::uint64_t murmurHash64(const char* key,
-                                     std::size_t len,
-                                     std::uint64_t seed) noexcept {
-	constexpr std::uint64_t kMul = 0xc6a4a7935bd1e995UL;
+constexpr std::uint64_t murmurHash64(
+    const char* key, std::size_t len, std::uint64_t seed) noexcept {
+  constexpr std::uint64_t kMul = 0xc6a4a7935bd1e995UL;
 
-	std::uint64_t hash = seed ^ (len * kMul);
+  std::uint64_t hash = seed ^ (len * kMul);
 
-	const char* beg = key;
-	const char* end = beg + (len & ~0x7);
-	const std::size_t tail = len & 0x7;
+  const char* beg = key;
+  const char* end = beg + (len & ~0x7);
+  const std::size_t tail = len & 0x7;
 
-	for(const char* p = beg; p != end; p += 8) {
-		const std::uint64_t k = constexprLoadUnaligned<std::uint64_t>(p);
-		hash = (hash ^ detail::murmurHash64ShiftMix(k * kMul) * kMul) * kMul;
-	}
+  for (const char* p = beg; p != end; p += 8) {
+    const std::uint64_t k = constexprLoadUnaligned<std::uint64_t>(p);
+    hash = (hash ^ detail::murmurHash64ShiftMix(k * kMul) * kMul) * kMul;
+  }
 
-	if(tail != 0) {
-		const std::uint64_t k = constexprPartialLoadUnaligned<std::uint64_t>(end, tail);
-		hash ^= k;
-		hash *= kMul;
-	}
+  if (tail != 0) {
+    const std::uint64_t k =
+        constexprPartialLoadUnaligned<std::uint64_t>(end, tail);
+    hash ^= k;
+    hash *= kMul;
+  }
 
-	hash = detail::murmurHash64ShiftMix(hash) * kMul;
-	hash = detail::murmurHash64ShiftMix(hash);
+  hash = detail::murmurHash64ShiftMix(hash) * kMul;
+  hash = detail::murmurHash64ShiftMix(hash);
 
-	return hash;
+  return hash;
 }
 
-}  // namespace hash
-}  // namespace folly
+} // namespace hash
+} // namespace folly

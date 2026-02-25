@@ -43,5 +43,5 @@ using external::rapidhashNano;
 // uint64_t rapidhashNano_with_seed(const char* key, size_t len, uint64_t seed)
 using external::rapidhashNano_with_seed;
 
-}  // namespace hash
-}  // namespace folly
+} // namespace hash
+} // namespace folly

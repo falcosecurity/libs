@@ -33,9 +33,9 @@ ssize_t pread64(int fd, void* buf, size_t count, off64_t offset);
 
 #include <cstdint>
 
-#include <process.h>  // @manual
+#include <process.h> // @manual
 
-#include <sys/locking.h>  // @manual
+#include <sys/locking.h> // @manual
 
 #include <folly/Portability.h>
 #include <folly/portability/SysTypes.h>
@@ -88,9 +88,9 @@ unsigned int sleep(unsigned int seconds);
 long sysconf(int tp);
 int truncate(const char* path, off_t len);
 int usleep(unsigned int ms);
-}  // namespace unistd
-}  // namespace portability
-}  // namespace folly
+} // namespace unistd
+} // namespace portability
+} // namespace folly
 
 FOLLY_PUSH_WARNING
 FOLLY_CLANG_DISABLE_WARNING("-Wheader-hygiene")
@@ -119,5 +119,5 @@ using ::pipe;
 using ::read;
 using ::write;
 #endif
-}  // namespace fileops
-}  // namespace folly
+} // namespace fileops
+} // namespace folly

@@ -22,5 +22,5 @@ namespace detail {
 int sysMembarrierPrivateExpedited();
 bool sysMembarrierPrivateExpeditedAvailable();
 
-}  // namespace detail
-}  // namespace folly
+} // namespace detail
+} // namespace folly
