@@ -625,19 +625,19 @@ static int32_t parse_ipv4_socket_table_line(const char *const line_start,
 		                      "memory allocation error in parse_ipv4_socket_table_line()");
 	}
 
-	fdinfo->info.ipv4info.sip = sip;
-	fdinfo->info.ipv4info.sport = sport;
-	fdinfo->info.ipv4info.dip = dip;
-	fdinfo->info.ipv4info.dport = dport;
 	fdinfo->ino = ino;
-	if(fdinfo->info.ipv4info.dip == 0) {
-		fdinfo->type = SCAP_FD_IPV4_SERVSOCK;
-		fdinfo->info.ipv4serverinfo.l4proto = l4proto;
-		fdinfo->info.ipv4serverinfo.port = fdinfo->info.ipv4info.sport;
-		fdinfo->info.ipv4serverinfo.ip = fdinfo->info.ipv4info.sip;
-	} else {
+	if(dip != 0) {
 		fdinfo->type = SCAP_FD_IPV4_SOCK;
+		fdinfo->info.ipv4info.sip = sip;
+		fdinfo->info.ipv4info.dip = dip;
+		fdinfo->info.ipv4info.sport = sport;
+		fdinfo->info.ipv4info.dport = dport;
 		fdinfo->info.ipv4info.l4proto = l4proto;
+	} else {
+		fdinfo->type = SCAP_FD_IPV4_SERVSOCK;
+		fdinfo->info.ipv4serverinfo.ip = sip;
+		fdinfo->info.ipv4serverinfo.port = sport;
+		fdinfo->info.ipv4serverinfo.l4proto = l4proto;
 	}
 
 	// Add to the table.
@@ -742,19 +742,19 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 		                      "memory allocation error in parse_ipv6_socket_table_line()");
 	}
 
-	memcpy(&fdinfo->info.ipv6info.sip, sip, sizeof(fdinfo->info.ipv6info.sip));
-	fdinfo->info.ipv6info.sport = sport;
-	memcpy(&fdinfo->info.ipv6info.dip, dip, sizeof(fdinfo->info.ipv6info.dip));
-	fdinfo->info.ipv6info.dport = dport;
 	fdinfo->ino = ino;
-	if(scap_fd_is_ipv6_server_socket(dip)) {
-		fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
-		fdinfo->info.ipv6serverinfo.l4proto = l4proto;
-		fdinfo->info.ipv6serverinfo.port = sport;
-		memcpy(fdinfo->info.ipv6serverinfo.ip, sip, sizeof(fdinfo->info.ipv6serverinfo.ip));
-	} else {
+	if(!scap_fd_is_ipv6_server_socket(dip)) {
 		fdinfo->type = SCAP_FD_IPV6_SOCK;
+		memcpy(&fdinfo->info.ipv6info.sip, sip, sizeof(fdinfo->info.ipv6info.sip));
+		memcpy(&fdinfo->info.ipv6info.dip, dip, sizeof(fdinfo->info.ipv6info.dip));
+		fdinfo->info.ipv6info.sport = sport;
+		fdinfo->info.ipv6info.dport = dport;
 		fdinfo->info.ipv6info.l4proto = l4proto;
+	} else {
+		fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
+		memcpy(fdinfo->info.ipv6serverinfo.ip, sip, sizeof(fdinfo->info.ipv6serverinfo.ip));
+		fdinfo->info.ipv6serverinfo.port = sport;
+		fdinfo->info.ipv6serverinfo.l4proto = l4proto;
 	}
 
 	// Add to the table.
