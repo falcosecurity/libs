@@ -32,7 +32,7 @@ namespace hash {
 //
 //  Discouraged for suboptimal performance in the smhasher suite.
 
-#define get16bits(d) folly::loadUnaligned<uint16_t>(d)
+#define folly_get16bits(d) folly::loadUnaligned<uint16_t>(d)
 
 /**
  * hsieh hash a byte-range.
@@ -57,8 +57,8 @@ inline constexpr uint32_t hsieh_hash32_buf_constexpr(
 
   /* Main loop */
   for (; len > 0; len--) {
-    hash += get16bits(s);
-    tmp = (get16bits(s + 2) << 11) ^ hash;
+    hash += folly_get16bits(s);
+    tmp = (folly_get16bits(s + 2) << 11) ^ hash;
     hash = (hash << 16) ^ tmp;
     s += 2 * sizeof(uint16_t);
     hash += hash >> 11;
@@ -67,13 +67,13 @@ inline constexpr uint32_t hsieh_hash32_buf_constexpr(
   /* Handle end cases */
   switch (rem) {
     case 3:
-      hash += get16bits(s);
+      hash += folly_get16bits(s);
       hash ^= hash << 16;
       hash ^= s[sizeof(uint16_t)] << 18;
       hash += hash >> 11;
       break;
     case 2:
-      hash += get16bits(s);
+      hash += folly_get16bits(s);
       hash ^= hash << 11;
       hash += hash >> 17;
       break;
@@ -97,7 +97,7 @@ inline constexpr uint32_t hsieh_hash32_buf_constexpr(
   return hash;
 }
 
-#undef get16bits
+#undef folly_get16bits
 
 /**
  * hsieh hash a void* byte-range.
