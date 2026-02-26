@@ -774,6 +774,21 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/*=============================== CHILD / VFORK CASE ================================*/
 
+	/*=============================== CHILD RECENTLY EXITED ===========================*/
+
+	/* Check if this child TID was recently removed by a procexit event.
+	 * This handles the non-vfork out-of-order case where the child's clone exit
+	 * and procexit are both processed before the parent's clone return arrives.
+	 * Without this check, the caller would re-add the child creating an orphaned
+	 * threadinfo entry that leaks memory until the next autopurge cycle.
+	 * See: https://github.com/falcosecurity/falco/issues/3643
+	 */
+	if(m_thread_manager->was_recently_exited(child_tid)) {
+		return;
+	}
+
+	/*=============================== CHILD RECENTLY EXITED ===========================*/
+
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* See if the child is already there, if yes and it is valid we return immediately */

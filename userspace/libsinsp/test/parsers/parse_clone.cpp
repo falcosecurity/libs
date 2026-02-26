@@ -654,4 +654,52 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_missing_both_clone_events_create_secon
 	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
 }
 
-/*=============================== CLONE CHILD EXIT EVENT ===========================*/
+TEST_F(sinsp_with_test_input, CLONE_CALLER_no_readd_after_child_procexit) {
+	/* Reproduce the non-vfork out-of-order memory leak scenario:
+	 * 1. Child's clone exit event arrives first (inverted clone)
+	 * 2. Child's procexit event removes it from the thread table
+	 * 3. Parent's clone return arrives late — should NOT re-add the child
+	 *
+	 * Without the recently-exited check, step 3 would create an orphaned
+	 * threadinfo entry that leaks memory until the next autopurge cycle.
+	 * See: https://github.com/falcosecurity/falco/issues/3643
+	 */
+	add_default_init_thread();
+	open_inspector();
+
+	/* Init creates a new process p1 (the parent) */
+	int64_t p1_t1_tid = 24;
+	int64_t p1_t1_pid = 24;
+	int64_t p1_t1_ptid = INIT_PID;
+
+	/* Parent clone exit event — creates p1 */
+	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID);
+	ASSERT_THREAD_INFO_PIDS(p1_t1_tid, p1_t1_pid, p1_t1_ptid)
+
+	/* Step 1: Child's clone exit arrives first (inverted clone) */
+	int64_t child_tid = 30;
+	int64_t child_pid = 30;
+	int64_t child_ptid = p1_t1_tid;
+
+	generate_clone_x_event(0, child_tid, child_pid, child_ptid);
+	ASSERT_THREAD_INFO_PIDS(child_tid, child_pid, child_ptid)
+
+	/* Step 2: Child exits — procexit + random event to trigger removal */
+	remove_thread(child_tid, 0);
+
+	/* Verify the child is gone from the thread table */
+	auto tinfo = m_inspector.m_thread_manager->find_thread(child_tid, true).get();
+	ASSERT_TRUE(tinfo == nullptr);
+
+	uint32_t thread_count_before = m_inspector.m_thread_manager->get_thread_count();
+
+	/* Step 3: Parent's clone return arrives late */
+	generate_clone_x_event(child_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid);
+
+	/* The child should NOT be re-added to the thread table */
+	tinfo = m_inspector.m_thread_manager->find_thread(child_tid, true).get();
+	ASSERT_TRUE(tinfo == nullptr);
+	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), thread_count_before);
+}
+
+/*=============================== CLONE CHILD EXIT EVENT (end of caller tests) ===========================*/
