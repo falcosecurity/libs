@@ -148,6 +148,8 @@ void sinsp_thread_manager::clear() {
 	m_last_tid = -1;
 	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
+	m_recently_exited_tids.fill({});
+	m_recently_exited_write_idx = 0;
 }
 
 /* This is called on the table after the `/proc` scan */
@@ -1057,14 +1059,20 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
 }
 
-void sinsp_thread_manager::record_recently_exited(int64_t tid) {
-	m_recently_exited_tids[m_recently_exited_write_idx % RECENTLY_EXITED_RING_SIZE] = tid;
-	m_recently_exited_write_idx++;
+void sinsp_thread_manager::record_recently_exited(int64_t tid, uint64_t ts) {
+	m_recently_exited_tids[m_recently_exited_write_idx] = {tid, ts};
+	m_recently_exited_write_idx = (m_recently_exited_write_idx + 1) % RECENTLY_EXITED_RING_SIZE;
 }
 
-bool sinsp_thread_manager::was_recently_exited(int64_t tid) const {
+bool sinsp_thread_manager::was_recently_exited(int64_t tid, uint64_t ts) const {
+	/* Only match entries within a 2-second window to avoid false positives
+	 * from TID recycling. This matches CLONE_STALE_TIME_NS used elsewhere
+	 * in the clone parsers.
+	 */
+	static constexpr uint64_t MAX_AGE_NS = 2ULL * 1000000000ULL;
 	for(size_t i = 0; i < RECENTLY_EXITED_RING_SIZE; i++) {
-		if(m_recently_exited_tids[i] == tid) {
+		if(m_recently_exited_tids[i].tid == tid && ts >= m_recently_exited_tids[i].ts &&
+		   (ts - m_recently_exited_tids[i].ts) < MAX_AGE_NS) {
 			return true;
 		}
 	}
