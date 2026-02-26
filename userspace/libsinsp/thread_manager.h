@@ -67,16 +67,21 @@ public:
 	  \brief Record a TID that was removed due to a procexit event.
 	  This is used to prevent the caller's clone exit handler from
 	  re-adding a child that has already exited.
+
+	  \param tid the thread ID being removed.
+	  \param ts the event timestamp of the removal.
 	*/
-	void record_recently_exited(int64_t tid);
+	void record_recently_exited(int64_t tid, uint64_t ts);
 
 	/*!
 	  \brief Check if a TID was recently removed due to a procexit event.
-	  Used by the clone exit caller parser to avoid creating orphaned
-	  threadinfo entries for children that ran and exited before the
-	  parent's clone return was processed.
+	  Only matches entries recorded within the last 2 seconds to avoid
+	  false positives from TID recycling.
+
+	  \param tid the thread ID to check.
+	  \param ts the current event timestamp.
 	*/
-	bool was_recently_exited(int64_t tid) const;
+	bool was_recently_exited(int64_t tid, uint64_t ts) const;
 
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
@@ -335,11 +340,15 @@ private:
 
 	// Ring buffer of recently-exited TIDs (from procexit events).
 	// Used to prevent the caller's clone exit handler from re-adding
-	// children that have already exited. The size is chosen to be large
-	// enough to cover the event processing window between a child's
-	// procexit and the parent's late clone return.
+	// children that have already exited. Each entry stores the TID and
+	// the timestamp of removal, so stale entries from TID recycling are
+	// not matched.
+	struct recently_exited_entry {
+		int64_t tid = 0;
+		uint64_t ts = 0;
+	};
 	static constexpr size_t RECENTLY_EXITED_RING_SIZE = 8192;
-	std::array<int64_t, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};
+	std::array<recently_exited_entry, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};
 	size_t m_recently_exited_write_idx = 0;
 
 	// Tables and fields names.

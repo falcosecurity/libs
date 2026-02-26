@@ -1421,7 +1421,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		//
 		if(m_parser_verdict.must_remove_tid()) {
 			const auto tid = m_parser_verdict.get_tid_to_remove();
-			m_thread_manager->record_recently_exited(tid);
+			m_thread_manager->record_recently_exited(tid, ts);
 			m_thread_manager->remove_thread(tid);
 			m_parser_verdict.clear_tid_to_remove();
 		}
