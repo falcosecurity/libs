@@ -222,6 +222,10 @@ if(NOT EMSCRIPTEN)
 	target_link_libraries(
 		unit-test-libsinsp sinsp GTest::gtest GTest::gtest_main "${TBB_LIB}" "${JSONCPP_LIB}"
 	)
+	# Suppress sign-compare warnings from glog when used inside Folly templates (same as sinsp)
+	if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+		target_compile_options(unit-test-libsinsp PRIVATE -Wno-sign-compare)
+	endif()
 else()
 	target_link_libraries(unit-test-libsinsp sinsp GTest::gtest GTest::gtest_main "${JSONCPP_LIB}")
 endif()

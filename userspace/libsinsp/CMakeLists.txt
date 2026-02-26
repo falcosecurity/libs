@@ -139,6 +139,10 @@ if(NOT EMSCRIPTEN)
 	# proposals/20260212-thread-safe-thread-manager.md and third_party/folly/)
 	target_link_libraries(sinsp PUBLIC folly_minimal)
 	target_compile_definitions(sinsp PUBLIC LIBSINSP_USE_FOLLY)
+	# Suppress sign-compare warnings from glog when used inside Folly templates
+	if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+		target_compile_options(sinsp PRIVATE -Wno-sign-compare)
+	endif()
 endif()
 
 if(USE_BUNDLED_VALIJSON)
