@@ -37,6 +37,8 @@ else()
 	FetchContent_MakeAvailable(double-conversion)
 endif()
 
-if(NOT TARGET double-conversion)
-	add_custom_target(double-conversion)
+# find_package(double-conversion) (e.g. vcpkg) provides double-conversion::double-conversion but not
+# a target named "double-conversion". Add an alias so linkees can use either name.
+if(TARGET double-conversion::double-conversion AND NOT TARGET double-conversion)
+	add_library(double-conversion ALIAS double-conversion::double-conversion)
 endif()
