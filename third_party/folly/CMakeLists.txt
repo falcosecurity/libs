@@ -46,5 +46,6 @@ add_dependencies(folly_minimal fmt)
 # subdirectory. double-conversion must be PUBLIC because folly/Conv.h (a public header) includes
 # <double-conversion/double-conversion.h>.
 find_package(Threads REQUIRED)
-target_link_libraries(folly_minimal PUBLIC double-conversion Threads::Threads ${CMAKE_DL_LIBS})
-target_link_libraries(folly_minimal PRIVATE glog::glog)
+target_link_libraries(
+	folly_minimal PUBLIC double-conversion glog::glog Threads::Threads ${CMAKE_DL_LIBS}
+)
