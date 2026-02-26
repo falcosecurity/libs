@@ -25,7 +25,7 @@ It includes:
   `ExceptionString`, `Malloc`, `ReentrantAllocator`, `F14Table`, `ThreadId`, `SysMembarrier`,
   `StaticSingletonManager`, `UniqueInstance`
 
-### Source files compiled (25 `.cpp` files)
+### Source files compiled (26 `.cpp` files)
 
 | File | Purpose |
 |------|---------|
@@ -52,6 +52,7 @@ It includes:
 | `folly/synchronization/Hazptr.cpp` | Hazard pointer executor |
 | `folly/synchronization/HazptrDomain.cpp` | Hazard pointer domain |
 | `folly/synchronization/ParkingLot.cpp` | Thread parking primitives |
+| `folly/synchronization/SanitizeThread.cpp` | Sanitizer thread hooks |
 | `folly/system/AtFork.cpp` | Fork handlers |
 | `folly/system/ThreadId.cpp` | Thread ID utilities |
 
@@ -59,10 +60,10 @@ It includes:
 
 | Dependency | How handled |
 |---|---|
-| **glog** | Replaced with a stub (`folly/portability/GLog.h`). `DCHECK`/`CHECK`/`LOG` macros are no-ops in release, `assert`-based in debug. A redirect header at `glog/logging.h` forwards to the stub. |
-| **gflags** | Not needed. `folly/portability/GFlags.h` (from upstream) provides fallback macros when `FOLLY_HAVE_LIBGFLAGS` is unset. |
+| **glog** | Bundled via `cmake/modules/glog.cmake` (FetchContent, v0.7.1). Linked PRIVATE to `folly_minimal`. Stub headers (`folly/portability/GLog.h`, `glog/logging.h` redirect) remain in tree for compatibility. |
+| **gflags** | Not needed. `folly/portability/GFlags.h` (from upstream) provides fallback macros when `FOLLY_HAVE_LIBGFLAGS` is unset. Bundled glog is built with `WITH_GFLAGS OFF`. |
 | **Boost.Preprocessor** | Replaced with hand-rolled C++17-compatible macros in `folly/functional/Invoke.h`. |
-| **double-conversion** | Dependency removed by patching `folly/Exception.h` (see below). |
+| **double-conversion** | Bundled via `cmake/modules/double-conversion.cmake` (FetchContent, v3.4.0). Linked PUBLIC to `folly_minimal` because `folly/Conv.h` (a public header) includes it. `folly/Exception.h` is patched so that it does not include `Conv.h`; other code still uses `Conv.h`. |
 | **fmt** | Bundled as a build dependency via `cmake/modules/fmt.cmake` (ExternalProject, version 10.2.1). |
 | **jemalloc / tcmalloc** | Not required. Weak symbols in `folly/memory/detail/MallocImpl.h` resolve to `nullptr` at link time when neither allocator is present. `folly/memory/Malloc.cpp` detects this at runtime. |
 
@@ -92,28 +93,29 @@ Provides stub implementations for glog macros used throughout Folly:
 
 ### `glog/logging.h` (new file, redirect header)
 
-A one-line redirect so that `#include <glog/logging.h>` (used by some Folly `.cpp` files)
-resolves to our `folly/portability/GLog.h` stub.
+A one-line redirect so that `#include <glog/logging.h>` resolves to our stub when the real glog is not in use; when glog is bundled, the build supplies the real glog headers.
 
 ### `folly/Exception.h` (modified)
 
-- **Removed** `#include <folly/Conv.h>` and `#include <folly/FBString.h>` -- these pull in
-  `double-conversion` transitively.
-- **Added** `#include <folly/lang/Exception.h>` -- provides `throw_exception` and
-  `FOLLY_SAFE_PCHECK` definitions needed by other vendored files.
-- **Changed** `makeSystemErrorExplicit(int err, Args&&... args)` to format the error message
-  using `std::ostringstream` with a C++17 fold expression instead of `folly::to<fbstring>(...)`.
+- **Removed** `#include <folly/Conv.h>` and `#include <folly/FBString.h>` so that this header does not pull in `double-conversion`; other vendored code and consumers still use `folly/Conv.h` and get `double-conversion` via the build.
+- **Added** `#include <folly/lang/Exception.h>` -- provides `throw_exception` and `FOLLY_SAFE_PCHECK` definitions needed by other vendored files.
+- **Changed** `makeSystemErrorExplicit(int err, Args&&... args)` to format the error message using `std::ostringstream` with a C++17 fold expression instead of `folly::to<fbstring>(...)`.
 
 ### `folly/functional/Invoke.h` (modified)
 
 - **Removed** `#include <boost/preprocessor/control/expr_iif.hpp>` and related Boost.Preprocessor
   headers.
-- **Added** hand-rolled preprocessor macros at the top of the file:
-  - `FOLLY_DETAIL_IS_EMPTY(...)` -- detects empty `__VA_ARGS__`
-  - `FOLLY_DETAIL_NOT`, `FOLLY_DETAIL_IIF` -- conditional macro expansion
-- **Replaced** `BOOST_PP_EXPR_IIF`/`BOOST_PP_NOT`/`BOOST_PP_IS_EMPTY` usage in
-  `FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING` with the hand-rolled equivalents.
-- Supports 0 or 1 namespace argument (sufficient for all usage in the vendored subset).
+- **Replaced** `FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING` macro body with a `__VA_OPT__`
+  implementation that supports 0 or 1 namespace argument (sufficient for all usage in the vendored
+  subset). Requires C++20 `__VA_OPT__` support (GCC 8+, Clang 12+).
+
+### `folly/Demangle.cpp` (modified)
+
+- **Guarded** libiberty-specific code with `#ifdef DMGL_PARAMS`. `DMGL_PARAMS` is defined only by libiberty’s `<demangle.h>`. When glog is included, its internal `demangle.h` can be found first; that header does not define `DMGL_PARAMS`, so we skip the libiberty path and use the fallback demangler instead of failing to compile.
+
+### `folly/hash/HsiehHash.h` (modified)
+
+- **Renamed** internal macro `get16bits` to `folly_get16bits` to avoid a redefinition warning when uthash is also included. Both macros implement Paul Hsieh’s 16-bit load but differently: uthash uses a direct `uint16_t*` cast while Folly uses `folly::loadUnaligned<uint16_t>` (safe `memcpy`-based unaligned load). Renaming avoids both the warning and any subtle semantic mismatch.
 
 ## CMake integration
 
@@ -121,23 +123,35 @@ resolves to our `folly/portability/GLog.h` stub.
 
 Defines the `folly_minimal` static library target:
 
-- Compiles the 25 `.cpp` files listed above
+- Compiles the 26 `.cpp` files listed above
 - `PUBLIC` include directory: `third_party/folly/` (so consumers see `<folly/...>` headers)
 - `PUBLIC` compile feature: `cxx_std_17`
 - `PRIVATE` dependency on `fmt` (include dir + static lib + build dependency)
+- `PUBLIC` dependency on `double-conversion` (required by public header `folly/Conv.h`); `double-conversion` and `glog` are made available by `cmake/modules/libsinsp.cmake` before this subdirectory
+- `PRIVATE` dependency on `glog::glog`
 - `PUBLIC` link: `Threads::Threads` (via `find_package(Threads)`), `${CMAKE_DL_LIBS}`
+
+### `cmake/modules/double-conversion.cmake` (new file)
+
+Provides `double-conversion` via `find_package` when `USE_BUNDLED_DOUBLE_CONVERSION` is OFF, or via FetchContent (v3.4.0) when bundled. Used by `folly_minimal` (included from `libsinsp.cmake` before the folly subdirectory).
+
+### `cmake/modules/glog.cmake` (new file)
+
+Provides `glog::glog` via `find_package` when `USE_BUNDLED_GLOG` is OFF, or via FetchContent (v0.7.1) when bundled; disables testing, gflags, gtest, and unwind. Used by `folly_minimal` (included from `libsinsp.cmake` before the folly subdirectory).
 
 ### `cmake/modules/fmt.cmake` (new file)
 
-Provides `fmt` 10.2.1 as a bundled `ExternalProject`. Exports `FMT_INCLUDE_DIR` and `FMT_LIB`
-variables consumed by the `folly_minimal` CMakeLists.
+Provides `fmt` 10.2.1 as a bundled `ExternalProject`. Exports `FMT_INCLUDE_DIR` and `FMT_LIB` variables consumed by the `folly_minimal` CMakeLists.
 
 ### `cmake/modules/libsinsp.cmake` (modified)
 
-Added before the `jsoncpp` include:
+Before the `jsoncpp` include (and only when not EMSCRIPTEN), includes folly’s dependencies and adds the folly subdirectory:
 
 ```cmake
+include(tbb)
 include(fmt)
+include(double-conversion)
+include(glog)
 add_subdirectory(${LIBS_DIR}/third_party/folly ${CMAKE_BINARY_DIR}/folly_minimal)
 ```
 
@@ -156,6 +170,6 @@ To update the vendored code:
 
 1. Clone/download the desired Folly release tag
 2. Copy updated headers and `.cpp` files into `third_party/folly/folly/`
-3. Re-apply the patches documented above (`folly-config.h`, `GLog.h`, `Exception.h`, `Invoke.h`)
+3. Re-apply the patches documented above (`folly-config.h`, `GLog.h`, `Exception.h`, `Invoke.h`, `Demangle.cpp`, `HsiehHash.h`)
 4. Build `folly_minimal` and resolve any new missing headers or linker errors
 5. Update the version reference in `NOTICES`

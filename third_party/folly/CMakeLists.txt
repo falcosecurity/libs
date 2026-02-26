@@ -42,5 +42,9 @@ target_include_directories(folly_minimal PRIVATE "${FMT_INCLUDE_DIR}")
 target_link_libraries(folly_minimal PRIVATE "${FMT_LIB}")
 add_dependencies(folly_minimal fmt)
 
+# double-conversion and glog are included from cmake/modules/libsinsp.cmake before this
+# subdirectory. double-conversion must be PUBLIC because folly/Conv.h (a public header) includes
+# <double-conversion/double-conversion.h>.
 find_package(Threads REQUIRED)
-target_link_libraries(folly_minimal PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+target_link_libraries(folly_minimal PUBLIC double-conversion Threads::Threads ${CMAKE_DL_LIBS})
+target_link_libraries(folly_minimal PRIVATE glog::glog)

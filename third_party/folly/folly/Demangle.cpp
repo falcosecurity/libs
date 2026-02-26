@@ -63,7 +63,9 @@ static constexpr auto cxxabi_demangle = static_cast<char* (*)(...)>(nullptr);
 //
 //  for rust_demangle_callback, detect its declaration in the header
 
-#if __has_include(<demangle.h>)
+// Use DMGL_PARAMS as a sentinel for libiberty's <demangle.h>.  Other headers
+// with the same filename (e.g. glog's internal demangle.h) do not define it.
+#ifdef DMGL_PARAMS
 
 namespace {
 struct poison {};
@@ -113,7 +115,7 @@ static constexpr auto liberty_demangle_options = //
     DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES | //
     liberty_demangle_options_no_recurse_limit;
 
-#else // __has_include(<demangle.h>)
+#else // DMGL_PARAMS
 
 using liberty_demangle_t = int(...);
 
@@ -121,7 +123,7 @@ static constexpr liberty_demangle_t* liberty_cplus_demangle = nullptr;
 static constexpr liberty_demangle_t* liberty_rust_demangle = nullptr;
 static constexpr auto liberty_demangle_options = 0;
 
-#endif // __has_include(<demangle.h>)
+#endif // DMGL_PARAMS
 
 //  implementations
 

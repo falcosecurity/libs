@@ -19,12 +19,6 @@
 #include <functional>
 #include <type_traits>
 
-#include <boost/preprocessor/control/expr_iif.hpp>
-#include <boost/preprocessor/facilities/is_empty_variadic.hpp>
-#include <boost/preprocessor/list/for_each.hpp>
-#include <boost/preprocessor/logical/not.hpp>
-#include <boost/preprocessor/tuple/to_list.hpp>
-
 #include <folly/CppAttributes.h>
 #include <folly/Portability.h>
 #include <folly/Preprocessor.h>
@@ -442,16 +436,11 @@ struct invoke_first_match : private Invoker... {
 
 } // namespace folly
 
-#define FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING_1(_, funcname, ns) \
-  using ns::funcname;
-
+// Simplified for vendored Folly: supports 0 or 1 namespace argument.
+// With 1 namespace (e.g., std): expands to `using std::funcname;`
+// With 0 namespaces: expands to nothing.
 #define FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING(_, funcname, ...) \
-  BOOST_PP_EXPR_IIF(                                                   \
-      BOOST_PP_NOT(BOOST_PP_IS_EMPTY(__VA_ARGS__)),                    \
-      BOOST_PP_LIST_FOR_EACH(                                          \
-          FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING_1,              \
-          funcname,                                                    \
-          BOOST_PP_TUPLE_TO_LIST((__VA_ARGS__))))
+  __VA_OPT__(using __VA_ARGS__::funcname;)
 
 /***
  *  FOLLY_CREATE_FREE_INVOKER
