@@ -25,7 +25,7 @@ limitations under the License.
 #include <libsinsp/sinsp_mode.h>
 
 // Forward declare sinsp_stats_v2 to avoid including metrics_collector.h here.
-struct sinsp_stats_v2;
+class sinsp_stats_v2;
 
 ///////////////////////////////////////////////////////////////////////////////
 // fd info table
