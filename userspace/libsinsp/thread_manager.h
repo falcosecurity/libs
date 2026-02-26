@@ -20,6 +20,7 @@ limitations under the License.
 
 #define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
 
+#include <array>
 #include <functional>
 #include <memory>
 #include <set>
@@ -61,6 +62,22 @@ public:
 
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
+
+	/*!
+	  \brief Record a TID that was removed due to a procexit event.
+	  This is used to prevent the caller's clone exit handler from
+	  re-adding a child that has already exited.
+	*/
+	void record_recently_exited(int64_t tid);
+
+	/*!
+	  \brief Check if a TID was recently removed due to a procexit event.
+	  Used by the clone exit caller parser to avoid creating orphaned
+	  threadinfo entries for children that ran and exited before the
+	  parent's clone return was processed.
+	*/
+	bool was_recently_exited(int64_t tid) const;
+
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
@@ -315,6 +332,15 @@ private:
 	        m_foreign_fields_accessors;
 	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
+
+	// Ring buffer of recently-exited TIDs (from procexit events).
+	// Used to prevent the caller's clone exit handler from re-adding
+	// children that have already exited. The size is chosen to be large
+	// enough to cover the event processing window between a child's
+	// procexit and the parent's late clone return.
+	static constexpr size_t RECENTLY_EXITED_RING_SIZE = 8192;
+	std::array<int64_t, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};
+	size_t m_recently_exited_write_idx = 0;
 
 	// Tables and fields names.
 	constexpr static auto s_thread_table_name = "threads";

@@ -1013,6 +1013,20 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
 }
 
+void sinsp_thread_manager::record_recently_exited(int64_t tid) {
+	m_recently_exited_tids[m_recently_exited_write_idx % RECENTLY_EXITED_RING_SIZE] = tid;
+	m_recently_exited_write_idx++;
+}
+
+bool sinsp_thread_manager::was_recently_exited(int64_t tid) const {
+	for(size_t i = 0; i < RECENTLY_EXITED_RING_SIZE; i++) {
+		if(m_recently_exited_tids[i] == tid) {
+			return true;
+		}
+	}
+	return false;
+}
+
 std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const {
 	return m_threadinfo_factory.create();
 }
