@@ -48,6 +48,14 @@ else()
 		GIT_TAG v0.7.1
 	)
 	FetchContent_MakeAvailable(glog)
+	# GCC (especially on arm64) can emit false-positive -Wstringop-overflow in glog's symbolize.cc
+	# (itoa_r/SafeAppendHexNumber). Suppress it for the bundled glog so the build succeeds with
+	# -Werror.
+	if(TARGET glog_internal AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID
+																		 MATCHES "Clang")
+	)
+		target_compile_options(glog_internal PRIVATE -Wno-stringop-overflow)
+	endif()
 endif()
 
 if(NOT TARGET glog AND NOT TARGET glog::glog)
