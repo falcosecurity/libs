@@ -45,7 +45,6 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate) {
 	constexpr int num_lookup_iters = 500;
 	constexpr int num_loop_iters = 100;
 
-	std::atomic<bool> stop{false};
 	std::thread adder([&]() {
 		for(int i = 0; i < num_adds; ++i) {
 			auto tinfo = factory.create();
