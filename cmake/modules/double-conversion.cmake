@@ -29,10 +29,11 @@ else()
 	)
 
 	include(FetchContent)
+	# Pin to v3.3.0: v3.4.0 requires CMake 3.29+ (project minimum is 3.24)
 	FetchContent_Declare(
 		double-conversion
 		GIT_REPOSITORY https://github.com/google/double-conversion.git
-		GIT_TAG v3.4.0
+		GIT_TAG v3.3.0
 	)
 	FetchContent_MakeAvailable(double-conversion)
 endif()
