@@ -32,8 +32,8 @@ else()
 	# Pin to v3.3.0: v3.4.0 requires CMake 3.29+ (project minimum is 3.24)
 	FetchContent_Declare(
 		double-conversion
-		GIT_REPOSITORY https://github.com/google/double-conversion.git
-		GIT_TAG v3.3.0
+		URL https://github.com/google/double-conversion/archive/refs/tags/v3.3.1.tar.gz
+		URL_HASH SHA256=fe54901055c71302dcdc5c3ccbe265a6c191978f3761ce1414d0895d6b0ea90e
 	)
 	FetchContent_MakeAvailable(double-conversion)
 endif()

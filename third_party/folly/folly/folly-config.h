@@ -39,10 +39,14 @@
 #define FOLLY_HAVE_IFUNC 1
 #define FOLLY_HAVE_UNALIGNED_ACCESS 1
 #define FOLLY_HAVE_VLA 1
+/* macOS ld64 does not resolve undefined weak symbols to zero; use pointer stubs instead */
+#if defined(__APPLE__)
+#define FOLLY_HAVE_WEAK_SYMBOLS 0
+#else
 #define FOLLY_HAVE_WEAK_SYMBOLS 1
+#endif
 #define FOLLY_HAVE_LINUX_VDSO 1
 #define FOLLY_HAVE_MALLOC_USABLE_SIZE 1
-#define FOLLY_HAVE_INT128_T 1
 #define FOLLY_HAVE_WCHAR_SUPPORT 1
 #define HAVE_VSNPRINTF_ERRORS 1
 
