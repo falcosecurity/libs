@@ -271,6 +271,10 @@ class PthreadKeyUnregister {
 
 StaticMetaBase::StaticMetaBase(ThreadEntry* (*threadEntry)(), bool strict)
     : nextId_(1), threadEntry_(threadEntry), strict_(strict) {
+  // Force creation of the dying key before our key so it gets a lower index; on
+  // musl, destructors run in key order, so its dtor will run first and set
+  // thread_is_dying() before SingletonThreadLocal's LocalLifetime runs.
+  (void)folly::detail::thread_is_dying();
   int ret = pthread_key_create(&pthreadKey_, &onThreadExit);
   checkPosixError(ret, "pthread_key_create failed");
   PthreadKeyUnregister::registerKey(pthreadKey_);
