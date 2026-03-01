@@ -44,8 +44,8 @@ else()
 	include(FetchContent)
 	FetchContent_Declare(
 		glog
-		GIT_REPOSITORY https://github.com/google/glog.git
-		GIT_TAG v0.7.1
+		URL https://github.com/google/glog/archive/refs/tags/v0.7.1.tar.gz
+		URL_HASH SHA256=00e4a87e87b7e7612f519a41e491f16623b12423620006f59f5688bfd8d13b08
 	)
 	FetchContent_MakeAvailable(glog)
 	# GCC (especially on arm64) can emit false-positive -Wstringop-overflow in glog's symbolize.cc

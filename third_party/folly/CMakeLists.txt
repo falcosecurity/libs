@@ -20,6 +20,7 @@ add_library(
 	folly/lang/SafeAssert.cpp
 	folly/lang/ToAscii.cpp
 	folly/memory/Malloc.cpp
+	folly/memory/detail/MallocImpl.cpp
 	folly/memory/ReentrantAllocator.cpp
 	folly/portability/SysMembarrier.cpp
 	folly/ScopeGuard.cpp
@@ -33,6 +34,30 @@ add_library(
 	folly/system/AtFork.cpp
 	folly/system/ThreadId.cpp
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  # Check target architecture
+  if (NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "Folly requires a 64bit target architecture.")
+  endif()
+
+  if (MSVC_VERSION LESS 1900)
+    message(
+      FATAL_ERROR
+      "This build script only supports building Folly on 64-bit Windows with "
+      "at least Visual Studio 2017. "
+      "MSVC version '${MSVC_VERSION}' is not supported."
+    )
+  endif()
+endif()
+
+if(NOT DEFINED FOLLY_HAVE_INT128_T)
+  include(CheckTypeSize)
+  check_type_size("__int128_t" FOLLY_INT128_T_SIZE)
+  if(HAVE_FOLLY_INT128_T_SIZE)
+    set(FOLLY_HAVE_INT128_T TRUE)
+  endif()
+endif()
 
 target_include_directories(folly_minimal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(folly_minimal PUBLIC cxx_std_17)
