@@ -62,11 +62,11 @@ echo "=== Downloading BS_thread_pool.h (4.1.0) ==="
 wget -P "/usr/include" "https://github.com/bshoshany/thread-pool/raw/v4.1.0/include/BS_thread_pool.hpp"
 
 # === double-conversion ===
-echo "=== Building and installing double-conversion (v3.4.0) ==="
+echo "=== Building and installing double-conversion (v3.3.1) ==="
 
-wget "https://github.com/google/double-conversion/archive/refs/tags/v3.4.0.tar.gz"
-tar xzf v3.4.0.tar.gz
-pushd double-conversion-3.4.0
+wget "https://github.com/google/double-conversion/archive/refs/tags/v3.3.1.tar.gz"
+tar xzf v3.3.1.tar.gz
+pushd double-conversion-3.3.1
 cmake -B build -S . \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_TESTING=OFF \
