@@ -120,6 +120,10 @@ class sinsp_buffer {
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
 
+	// Per-buffer event count and first-event timestamp (avoids contended atomics).
+	uint64_t m_nevts{0};
+	uint64_t m_firstevent_ts{0};
+
 	// An instance of scap_evt to be used during the next call to sinsp::next().
 	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
 	// After using this event, sinsp::next() will set this back to NULL.

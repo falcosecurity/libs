@@ -908,16 +908,17 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
 			RETURN_EXTRACT_STRING(m_strstorage);
 
-		case 'r':
-			m_strstorage +=
-			        to_string((evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS);
+		case 'r': {
+			const uint64_t first_ts = m_inspector->get_firstevent_ts();
+			m_strstorage += to_string((evt->get_ts() - first_ts) / ONE_SECOND_IN_NS);
 			m_strstorage += ".";
 			snprintf(timebuffer,
 			         sizeof(timebuffer),
 			         "%09llu",
-			         (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
+			         (evt->get_ts() - first_ts) % ONE_SECOND_IN_NS);
 			m_strstorage += string(timebuffer);
 			RETURN_EXTRACT_STRING(m_strstorage);
+		}
 
 		case 'd': {
 			m_strstorage = "0.000000000";
