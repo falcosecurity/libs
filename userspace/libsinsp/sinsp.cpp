@@ -162,6 +162,7 @@ void on_proc_table_refresh_end(void* context);
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 std::atomic<int> sinsp::instance_count{0};
+thread_local uint64_t sinsp::s_firstevent_ts{0};
 
 sinsp::sinsp(bool with_metrics):
         m_external_event_processor(),
@@ -355,12 +356,13 @@ void sinsp::init() {
 	// Basic inits
 	//
 
-	m_nevts = 0;
+	m_nevts_base = 0;
 	for(auto& buffer : m_buffers) {
 		buffer.m_parser_verdict.clear();
+		buffer.m_nevts = 0;
+		buffer.m_firstevent_ts = 0;
 	}
 	m_timestamper.reset();
-	m_firstevent_ts = 0;
 
 	//
 	// If we're reading from file, we try to pre-parse all initial state-building events before
@@ -1235,8 +1237,11 @@ void sinsp::refresh_ifaddr_list() {
 // configurations and reuses the same underlying scap event source.
 //
 void sinsp::restart_capture() {
-	// Save state info that could be lost during de-initialization
-	uint64_t nevts = m_nevts;
+	// Save total event count across all buffers (lost during de-initialization)
+	uint64_t total_nevts = 0;
+	for(const auto& buffer : m_buffers) {
+		total_nevts += buffer.m_nevts;
+	}
 
 	// De-initialize the insternal state
 	deinit_state();
@@ -1250,8 +1255,8 @@ void sinsp::restart_capture() {
 	// Re-initialize the internal state
 	init();
 
-	// Restore the saved state info
-	m_nevts = nevts;
+	// Restore event numbering base so next events continue from previous count
+	m_nevts_base = total_nevts;
 }
 
 uint64_t sinsp::max_buf_used() const {
@@ -1440,11 +1445,11 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 
 	const uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts.load() == 0 &&
+	if(buffer.m_firstevent_ts == 0 &&
 	   !libsinsp::events::is_metaevent((ppm_event_code)evt->get_type())) {
-		uint64_t zero = 0;
-		m_firstevent_ts.compare_exchange_strong(zero, ts);
+		buffer.m_firstevent_ts = ts;
 	}
+	s_firstevent_ts = buffer.m_firstevent_ts;
 
 	// If required, retrieve the processes cpu from the kernel
 	// (default buffer only)
@@ -1454,9 +1459,9 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 
 	// Store a couple of values that we'll need later inside the event.
 	// These are potentially used both for parsing the event for internal
-	// state management.
-	m_nevts.fetch_add(1);
-	evt->set_num(m_nevts.load());
+	// state management. Per-buffer counts avoid contended atomics.
+	buffer.m_nevts++;
+	evt->set_num(buffer.m_nevts + m_nevts_base);
 	set_lastevent_ts(ts);
 
 	if(/*IS_DEFAULT_SINSP_BUFFER(buffer) &&*/ m_auto_threads_purging) {
@@ -1622,6 +1627,10 @@ uint64_t sinsp::get_num_events() const {
 	} else {
 		return 0;
 	}
+}
+
+uint64_t sinsp::get_firstevent_ts() const {
+	return s_firstevent_ts;
 }
 
 bool sinsp::suppress_events_comm(const std::string& comm) {

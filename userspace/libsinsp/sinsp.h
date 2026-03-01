@@ -222,6 +222,12 @@ public:
 	uint64_t get_num_events() const;
 
 	/*!
+	  \brief First-event timestamp for the current thread's buffer (for evt.time / evt.reltime).
+	  Thread-local so filter/format can read it without storing on every event.
+	*/
+	uint64_t get_firstevent_ts() const;
+
+	/*!
 	  \brief Set the capture snaplen, i.e. the maximum size an event
 	  parameter can reach before the driver starts truncating it.
 
@@ -899,7 +905,8 @@ private:
 	scap_t* m_h;
 	struct scap_platform* m_platform{};
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
-	std::atomic<uint64_t> m_nevts;
+	// Base added to buffer.m_nevts for event numbering (used by restart_capture only).
+	uint64_t m_nevts_base{0};
 	int64_t m_filesize;
 	sinsp_mode m_mode = SINSP_MODE_NONE;
 
@@ -968,7 +975,6 @@ public:
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
-	std::atomic<uint64_t> m_firstevent_ts;
 	std::unique_ptr<sinsp_filter> m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
@@ -1080,6 +1086,9 @@ public:
 
 	// The following mutex is used in next().
 	std::mutex m_global_next_mutex;
+
+	// First-event timestamp per thread; set in next() from current buffer, read by filter/format.
+	static thread_local uint64_t s_firstevent_ts;
 };
 
 /*@}*/
