@@ -1,24 +1,44 @@
 # libscap fuzz harnesses
 
-This directory contains libFuzzer harnesses for `libscap`.
+This directory contains libFuzzer harness sources for `libscap`.
 
-The initial harness (`fuzz_scap_event_decode.cc`) targets:
+Current harness:
 
-1. `scap_event_getinfo`
-2. `scap_event_decode_params`
+1. `fuzz_scap_event_decode.cc`
+2. Calls `scap_event_getinfo` and `scap_event_decode_params`
+3. Uses one raw `scap_evt`-shaped byte buffer as input
 
-using a raw `scap_evt`-shaped byte buffer input.
+## `libscap` in Falco
+
+`libscap` is Falco's low-level event decode layer.
+
+1. Kernel capture drivers (or `.scap` files) provide raw event bytes.
+2. `libscap` parses those bytes into event fields.
+3. Upper layers (`libsinsp` and Falco's rule engine) consume that decoded data.
+
+Because this is the byte parser boundary, it is a good fuzz target.
+
+## What "parameter" means here
+
+A parameter is one event argument/field inside a `scap_evt`.
+
+Event layout:
+
+1. Event header (`type`, `nparams`, etc.).
+2. Parameter length table.
+3. Parameter payload bytes.
+
+`type` selects the event schema (which parameters exist and how they are read).
+
+## What this harness exercises
+
+1. Event metadata lookup (`scap_event_getinfo`).
+2. Parameter-boundary decode (`scap_event_decode_params`).
+3. Basic payload-byte access for decoded parameters (with bounds checks).
 
 ## Example event buffer
 
-The harness input is treated as raw bytes and interpreted as:
-
-1. `struct ppm_evt_hdr` (packed)
-2. parameter length table (`nparams` entries, usually `uint16_t`)
-3. parameter payload bytes
-
-Concrete little-endian example (observed from a real Falco savefile event) with
-2 params:
+Little-endian example from a real savefile event:
 
 ```text
 49 69 57 42 7e bc 4b 15   # ts      = 1534527348514711881
@@ -31,8 +51,7 @@ Concrete little-endian example (observed from a real Falco savefile event) with
 0a 00                     # param[1] bytes
 ```
 
-This matches one deterministic seed file generated as
-`real_curl_google_type1_len34.bin`.
+This matches generated seed `real_curl_google_type1_len34.bin`.
 
 ## Recreate local seed corpus
 
@@ -42,18 +61,18 @@ From the libs repository root:
 ./test/libscap/fuzz/tools/recreate_seed_corpus.sh
 ```
 
-This creates a deterministic `fuzz_scap_event_decode` seed subset under:
+Output directory:
 
 `test/libscap/fuzz/corpus/fuzz_scap_event_decode/`
 
-Supported environment overrides:
+Environment overrides:
 
 1. `CORPUS_DIR` (default: `test/libscap/fuzz/corpus/fuzz_scap_event_decode`)
 2. `WORK_DIR` (default: `/tmp/falco-libs-corpus-rebuild`)
 3. `MAX_EVENTS` (default: `500`)
 4. `MAX_LEN` (default: `4096`)
 
-Quick verification command (after running the script above):
+Quick check:
 
 ```bash
 SEED=./test/libscap/fuzz/corpus/fuzz_scap_event_decode/real_curl_google_type1_len34.bin
@@ -77,15 +96,7 @@ size=34 len=34 type=1 nparams=2
 ts=1534527348514711881 tid=17497 param_lens=[2,2]
 ```
 
-Notes:
-
-1. `len` is the full event size, including header + lengths + payload.
-2. `type` drives metadata lookup in `scap_event_getinfo` and influences decode behavior.
-3. Some events can use 32-bit length entries (`EF_LARGE_PAYLOAD`), so fuzzing both styles is useful.
-4. The sample byte order reflects a little-endian capture source host.
-
 ## Build model
 
-These files are intended to be consumed by external fuzzing integrations
-(for example, OSS-Fuzz project build scripts) and are not wired into the
-default `libs` CMake targets in this first pass.
+These harness files are for external integrations (for example OSS-Fuzz).
+They are not wired into the default `libs` CMake test targets in this pass.

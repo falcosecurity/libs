@@ -6,75 +6,86 @@
 #include <driver/ppm_events_public.h>
 #include <libscap/scap.h>
 
-// Fuzzes libscap parameter decoding from a raw scap_evt-shaped byte buffer.
-//
-// Design goals:
-// 1. Keep harness behavior deterministic and bounded.
-// 2. Avoid harness-induced out-of-bounds reads that hide target bugs.
-// 3. Still allow malformed layouts so parser error paths are exercised.
+// `data`/`size` is one libFuzzer input.
+// We treat it as one `scap_evt` record:
+// header + parameter-length table + parameter payload bytes.
+// A "parameter" is one event argument/field. We:
+// 1) decode parameter boundaries, and
+// 2) read payload bytes for decoded parameters (with bounds checks).
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-	// Need at least the event header to do meaningful work.
-	if(size < sizeof(scap_evt)) {
-		return 0;
-	}
+  // Need at least an event header.
+  if (size < sizeof(scap_evt)) {
+    return 0;
+  }
 
-	// Keep per-exec work bounded while still allowing reasonably large events.
-	if(size > (1U << 16)) {
-		size = (1U << 16);
-	}
+  // Keep each run bounded.
+  const size_t max_input_size = (1U << 16);
+  if (size > max_input_size) {
+    size = max_input_size;
+  }
 
-	std::vector<uint8_t> evbuf(data, data + size);
-	auto* ev = reinterpret_cast<scap_evt*>(evbuf.data());
+  // Copy input so we can normalize header fields.
+  std::vector<uint8_t> event_bytes(data, data + size);
+  auto* event = reinterpret_cast<scap_evt*>(event_bytes.data());
 
-	// Constrain key header fields so libscap decoders read within our input.
-	// - len must match the actual buffer length.
-	// - type must map to a valid event metadata entry.
-	ev->len = static_cast<uint32_t>(size);
-	ev->type = static_cast<uint16_t>(ev->type % PPM_EVENT_MAX);
+  // Normalize header fields.
+  event->len = static_cast<uint32_t>(size);
+  event->type = static_cast<uint16_t>(event->type % PPM_EVENT_MAX);
 
-	const ppm_event_info* info = scap_event_getinfo(ev);
-	// Some events use 16-bit length entries, others 32-bit for large payloads.
-	const uint32_t len_size =
-	        (info->flags & EF_LARGE_PAYLOAD) ? sizeof(uint32_t) : sizeof(uint16_t);
+  // Some events use 2-byte parameter lengths, others use 4-byte lengths.
+  const ppm_event_info* event_info = scap_event_getinfo(event);
+  const uint32_t parameter_length_entry_size =
+      (event_info->flags & EF_LARGE_PAYLOAD) ? sizeof(uint32_t) : sizeof(uint16_t);
 
-	// nparams drives length-table parsing; clamp it to both schema and buffer limits.
-	uint32_t max_nparams = 0;
-	if(size > sizeof(scap_evt) && len_size > 0) {
-		// Max number of length entries we can read without leaving the input buffer.
-		max_nparams = static_cast<uint32_t>((size - sizeof(scap_evt)) / len_size);
-	}
-	// Clamp fuzzer-controlled nparams against:
-	// 1) declared metadata for this event type, and
-	// 2) physically possible entries in the current buffer.
-	ev->nparams = std::min(ev->nparams, std::min<uint32_t>(info->nparams, max_nparams));
+  // Compute how many length entries fit in this input.
+  uint32_t max_length_entries_in_buffer = 0;
+  if (size > sizeof(scap_evt) && parameter_length_entry_size > 0) {
+    max_length_entries_in_buffer =
+        static_cast<uint32_t>((size - sizeof(scap_evt)) / parameter_length_entry_size);
+  }
 
-	if(ev->nparams == 0) {
-		// No parameters to decode for this testcase after clamping.
-		return 0;
-	}
+  // Clamp nparams to schema + buffer limits.
+  event->nparams = std::min(event->nparams,
+                            std::min<uint32_t>(event_info->nparams,
+                                               max_length_entries_in_buffer));
+  if (event->nparams == 0) {
+    return 0;
+  }
 
-	std::vector<scap_sized_buffer> params(ev->nparams);
-	// Target API under test.
-	const uint32_t decoded = scap_event_decode_params(ev, params.data());
+  // Decode parameter pointers and sizes.
+  std::vector<scap_sized_buffer> decoded_parameters(event->nparams);
+  const uint32_t decoded_parameter_count =
+      scap_event_decode_params(event, decoded_parameters.data());
 
-	// Touch decoded parameter boundaries when they still point within our buffer.
-	// This prevents aggressive optimization from discarding decode results and helps
-	// keep boundary-sensitive paths observable to the fuzzer.
-	size_t cur = sizeof(scap_evt) + static_cast<size_t>(len_size) * ev->nparams;
-	for(uint32_t i = 0; i < decoded && i < params.size(); ++i) {
-		// Stop once a decoded param range would exceed input boundaries.
-		if(params[i].size > size || cur > size - params[i].size) {
-			break;
-		}
-		if(params[i].size > 0) {
-			volatile uint8_t sink = 0;
-			const auto* p = reinterpret_cast<const uint8_t*>(params[i].buf);
-			sink ^= p[0];
-			sink ^= p[params[i].size - 1];
-			(void)sink;
-		}
-		cur += params[i].size;
-	}
+  // Touch payload bytes for decoded parameters.
+  const uint32_t parameters_to_visit =
+      std::min(decoded_parameter_count,
+               static_cast<uint32_t>(decoded_parameters.size()));
 
-	return 0;
+  size_t payload_cursor =
+      sizeof(scap_evt) +
+      static_cast<size_t>(parameter_length_entry_size) * event->nparams;
+
+  volatile uint8_t sink = 0;
+  for (uint32_t i = 0; i < parameters_to_visit; ++i) {
+    const size_t parameter_size = decoded_parameters[i].size;
+
+    if (parameter_size == 0) {
+      continue;
+    }
+
+    // Stop if this parameter would run past input bounds.
+    if (payload_cursor > size || parameter_size > size - payload_cursor) {
+      break;
+    }
+
+    const uint8_t* parameter_bytes = event_bytes.data() + payload_cursor;
+    sink ^= parameter_bytes[0];
+    sink ^= parameter_bytes[parameter_size - 1];
+
+    payload_cursor += parameter_size;
+  }
+  (void)sink;
+
+  return 0;
 }
