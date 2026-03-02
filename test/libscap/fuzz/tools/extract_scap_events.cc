@@ -9,6 +9,17 @@ You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
 */
 
+/**
+ * extract_scap_events - Extract raw scap events from a capture file for fuzz corpus.
+ *
+ * Reads a .scap savefile and writes individual events as binary files into an
+ * output directory. Events are filtered by max_len (skipped if too small or too
+ * large). Used to build seed corpora for fuzz_scap_event_decode and similar
+ * fuzzers that consume raw scap_evt buffers.
+ *
+ * Usage: extract_scap_events <input.scap> <output_dir> <max_events> <max_len>
+ */
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -26,6 +37,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // Parse arguments: input capture file, output directory, cap on events to write, max event size
   const std::string input = argv[1];
   const std::filesystem::path outdir = argv[2];
   const int max_events = std::stoi(argv[3]);
@@ -38,6 +50,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // Set up savefile engine: platform with empty proc callbacks (no live process table needed)
   scap_proc_callbacks callbacks = {};
   auto* platform = scap_savefile_alloc_platform(callbacks);
   if (platform == nullptr) {
@@ -68,6 +81,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // Read events until we've written max_events or hit EOF
   int written = 0;
   int seen = 0;
   while (written < max_events) {
@@ -90,10 +104,12 @@ int main(int argc, char** argv) {
     }
 
     ++seen;
+    // Skip events that are invalid or outside the fuzzer's accepted size range
     if (ev == nullptr || ev->len < sizeof(scap_evt) || ev->len > max_len) {
       continue;
     }
 
+    // Write one binary file per event: evt_<index>_type<type>_len<len>.bin
     std::ostringstream name;
     name << "evt_" << written << "_type" << ev->type << "_len" << ev->len << ".bin";
     const auto outpath = outdir / name.str();

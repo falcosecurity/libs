@@ -25,9 +25,19 @@ In-tree `libscap` fuzz harness sources live under:
 
 - `test/libscap/fuzz/`
 
-They are intended for external fuzzing integrations (for example OSS-Fuzz) and
-are not part of default CMake test targets in this first pass.
+Fuzz targets are opt-in via:
+
+- `-DENABLE_LIBSCAP_FUZZERS=ON`
+
+When enabled, the current target is:
+
+- `fuzz_scap_event_decode`
 
 Deterministic local seed-corpus regeneration helpers live under:
 
 - `test/libscap/fuzz/tools/`
+
+Checked-in seed corpus and dictionary live under:
+
+- `test/libscap/fuzz/corpus/fuzz_scap_event_decode/`
+- `test/libscap/fuzz/fuzz_scap_event_decode.dict`

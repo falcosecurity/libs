@@ -34,11 +34,11 @@ Event layout:
 
 1. Event metadata lookup (`scap_event_getinfo`).
 2. Parameter-boundary decode (`scap_event_decode_params`).
-3. Basic payload-byte access for decoded parameters (with bounds checks).
+3. Basic payload-byte access through decoder-returned parameter pointers (with bounds checks).
 
 ## Example event buffer
 
-Little-endian example from a real savefile event:
+Example from a real savefile event:
 
 ```text
 49 69 57 42 7e bc 4b 15   # ts      = 1534527348514711881
@@ -55,6 +55,10 @@ This matches generated seed `real_curl_google_type1_len34.bin`.
 
 ## Recreate local seed corpus
 
+Checked-in seeds live under:
+
+`test/libscap/fuzz/corpus/fuzz_scap_event_decode/`
+
 From the libs repository root:
 
 ```bash
@@ -65,12 +69,37 @@ Output directory:
 
 `test/libscap/fuzz/corpus/fuzz_scap_event_decode/`
 
-Environment overrides:
+## Build and run locally
 
-1. `CORPUS_DIR` (default: `test/libscap/fuzz/corpus/fuzz_scap_event_decode`)
-2. `WORK_DIR` (default: `/tmp/falco-libs-corpus-rebuild`)
-3. `MAX_EVENTS` (default: `500`)
-4. `MAX_LEN` (default: `4096`)
+Build from a separate directory:
+
+```bash
+cmake -S . -B build-fuzz \
+  -DUSE_BUNDLED_DEPS=ON \
+  -DCREATE_TEST_TARGETS=ON \
+  -DENABLE_LIBSCAP_TESTS=OFF \
+  -DENABLE_LIBSCAP_FUZZERS=ON \
+  -DUSE_ASAN=ON \
+  -DCMAKE_C_COMPILER=clang \
+  -DCMAKE_CXX_COMPILER=clang++
+cmake --build build-fuzz --target fuzz_scap_event_decode -j
+```
+
+Run with checked-in corpus and dictionary (using temporary run dirs so checked-in seeds stay unchanged):
+
+```bash
+cp -R ./test/libscap/fuzz/corpus/fuzz_scap_event_decode /tmp/fuzz_scap_event_decode.in
+mkdir -p /tmp/fuzz_scap_event_decode.out
+./build-fuzz/test/libscap/fuzz/fuzz_scap_event_decode \
+  /tmp/fuzz_scap_event_decode.in \
+  /tmp/fuzz_scap_event_decode.out \
+  -dict=./test/libscap/fuzz/fuzz_scap_event_decode.dict \
+  -max_total_time=60
+```
+
+`ENABLE_LIBSCAP_FUZZERS` requires a clang toolchain with libFuzzer runtime.
+On macOS, if Apple Command Line Tools clang does not provide libFuzzer,
+use Homebrew LLVM clang/clang++.
 
 Quick check:
 
@@ -98,5 +127,5 @@ ts=1534527348514711881 tid=17497 param_lens=[2,2]
 
 ## Build model
 
-These harness files are for external integrations (for example OSS-Fuzz).
-They are not wired into the default `libs` CMake test targets in this pass.
+Fuzz targets are opt-in and only built when `-DENABLE_LIBSCAP_FUZZERS=ON`.
+They are not built by default test configurations.
