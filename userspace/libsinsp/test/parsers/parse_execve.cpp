@@ -195,7 +195,7 @@ TEST_F(sinsp_with_test_input, EXECVE_check_pgid_population) {
 
 	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
-	ASSERT_EQ(init_tinfo->m_pgid, random_pgid);
+	ASSERT_EQ(init_tinfo->get_pgid(), random_pgid);
 }
 
 /*=============================== EXECVE ===========================*/

@@ -25,6 +25,7 @@ limitations under the License.
 typedef uint16_t sinsp_buffer_t;
 class sinsp_parser;
 class sinsp_parser_shared_params;
+class sinsp_filter;
 
 extern sinsp_buffer_t SINSP_INVALID_BUFFER_HANDLE;
 
@@ -52,6 +53,8 @@ class sinsp_buffer {
 	std::unique_ptr<sinsp_parser> m_parser;
 
 	sinsp_parser_verdict m_parser_verdict;
+
+	std::unique_ptr<sinsp_filter> m_filter;
 
 	// TODO: compare_evt_timestamps is copied from sinsp... Avoid duplication
 	// regulates the logic behind event timestamp ordering.

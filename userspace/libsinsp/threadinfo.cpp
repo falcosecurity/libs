@@ -134,13 +134,13 @@ void sinsp_threadinfo::init() {
 	set_lastevent_data_validity(false);
 	m_reaper_tid = -1;
 	m_not_expired_children = 0;
-	m_lastevent_type = -1;
-	m_lastevent_ts = 0;
-	m_prevevent_ts = 0;
-	m_lastaccess_ts = 0;
-	m_clone_ts = 0;
-	m_lastexec_ts = 0;
-	m_lastevent_category.m_category = EC_UNKNOWN;
+	set_lastevent_type((uint16_t)-1);
+	set_lastevent_ts(0);
+	set_prevevent_ts(0);
+	set_lastaccess_ts(0);
+	set_clone_ts(0);
+	set_lastexec_ts(0);
+	get_lastevent_category().m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
 	m_fdlimit = -1;
 	m_vmsize_kb = 0;
@@ -151,8 +151,8 @@ void sinsp_threadinfo::init() {
 	m_vtid = -1;
 	m_vpid = -1;
 	m_pidns_init_start_ts = 0;
-	m_lastevent_fd = 0;
-	m_lastevent_data = NULL;
+	set_lastevent_fd(0);
+	set_last_event_data(nullptr);
 	m_parent_loop_detected = false;
 	m_tty = 0;
 	m_cap_inheritable = 0;
@@ -372,8 +372,8 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_en
 	m_vtid = pinfo.vtid;
 	m_vpid = pinfo.vpid;
 	m_pidns_init_start_ts = pinfo.pidns_init_start_ts;
-	m_clone_ts = pinfo.clone_ts;
-	m_lastexec_ts = 0;
+	set_clone_ts(pinfo.clone_ts);
+	set_lastexec_ts(0);
 	m_tty = pinfo.tty;
 
 	set_cgroups(pinfo.cgroups.path, pinfo.cgroups.len);
@@ -388,16 +388,149 @@ const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
 	return m_cgroups;
 }
 
+sinsp_threadinfo::cgroups_t sinsp_threadinfo::get_cgroups() const {
+	std::shared_lock l(m_state_mutex);
+	return m_cgroups;
+}
+
 std::string sinsp_threadinfo::get_comm() const {
+	std::shared_lock l(m_state_mutex);
 	return m_comm;
 }
 
+void sinsp_threadinfo::set_comm(std::string v) {
+	std::unique_lock l(m_state_mutex);
+	m_comm = std::move(v);
+}
+
 std::string sinsp_threadinfo::get_exe() const {
+	std::shared_lock l(m_state_mutex);
 	return m_exe;
 }
 
+void sinsp_threadinfo::set_exe(std::string v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe = std::move(v);
+}
+
 std::string sinsp_threadinfo::get_exepath() const {
+	std::shared_lock l(m_state_mutex);
 	return m_exepath;
+}
+
+bool sinsp_threadinfo::get_exe_writable() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_writable;
+}
+
+void sinsp_threadinfo::set_exe_writable(bool v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_writable = v;
+}
+
+bool sinsp_threadinfo::get_exe_upper_layer() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_upper_layer;
+}
+
+void sinsp_threadinfo::set_exe_upper_layer(bool v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_upper_layer = v;
+}
+
+bool sinsp_threadinfo::get_exe_lower_layer() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_lower_layer;
+}
+
+void sinsp_threadinfo::set_exe_lower_layer(bool v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_lower_layer = v;
+}
+
+bool sinsp_threadinfo::get_exe_from_memfd() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_from_memfd;
+}
+
+void sinsp_threadinfo::set_exe_from_memfd(bool v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_from_memfd = v;
+}
+
+std::vector<std::string> sinsp_threadinfo::get_args() const {
+	std::shared_lock l(m_state_mutex);
+	return m_args;
+}
+
+std::string sinsp_threadinfo::get_cmd_line() const {
+	std::shared_lock l(m_state_mutex);
+	return m_cmd_line;
+}
+
+std::string sinsp_threadinfo::get_root() const {
+	std::shared_lock l(m_state_mutex);
+	return m_root;
+}
+
+void sinsp_threadinfo::set_root(std::string v) {
+	std::unique_lock l(m_state_mutex);
+	m_root = std::move(v);
+}
+
+uint64_t sinsp_threadinfo::get_exe_ino() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_ino;
+}
+
+void sinsp_threadinfo::set_exe_ino(uint64_t v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_ino = v;
+}
+
+uint64_t sinsp_threadinfo::get_exe_ino_ctime() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_ino_ctime;
+}
+
+void sinsp_threadinfo::set_exe_ino_ctime(uint64_t v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_ino_ctime = v;
+}
+
+uint64_t sinsp_threadinfo::get_exe_ino_mtime() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_ino_mtime;
+}
+
+void sinsp_threadinfo::set_exe_ino_mtime(uint64_t v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_ino_mtime = v;
+}
+
+uint64_t sinsp_threadinfo::get_exe_ino_ctime_duration_clone_ts() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_ino_ctime_duration_clone_ts;
+}
+
+void sinsp_threadinfo::set_exe_ino_ctime_duration_clone_ts(uint64_t v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_ino_ctime_duration_clone_ts = v;
+}
+
+uint64_t sinsp_threadinfo::get_exe_ino_ctime_duration_pidns_start() const {
+	std::shared_lock l(m_state_mutex);
+	return m_exe_ino_ctime_duration_pidns_start;
+}
+
+void sinsp_threadinfo::set_exe_ino_ctime_duration_pidns_start(uint64_t v) {
+	std::unique_lock l(m_state_mutex);
+	m_exe_ino_ctime_duration_pidns_start = v;
+}
+
+void sinsp_threadinfo::set_env(const std::vector<std::string>& env) {
+	std::unique_lock l(m_state_mutex);
+	m_env = env;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len) {
@@ -409,8 +542,9 @@ void sinsp_threadinfo::set_args(const char* args, size_t len) {
 }
 
 void sinsp_threadinfo::set_args(const std::vector<std::string>& args) {
+	std::unique_lock l(m_state_mutex);
 	m_args = args;
-	m_cmd_line = get_comm();
+	m_cmd_line = m_comm;
 	if(!m_cmd_line.empty()) {
 		for(const auto& arg : m_args) {
 			m_cmd_line += " ";
@@ -557,10 +691,12 @@ void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
 		tmp_cgroups.emplace_back(subsys, cgroup);
 	}
 
+	std::unique_lock l(m_state_mutex);
 	m_cgroups = tmp_cgroups;
 }
 
 void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
+	std::unique_lock l(m_state_mutex);
 	m_cgroups = cgroups;
 }
 
@@ -574,7 +710,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>
 	//
 	// Update the last event fd. It's needed by the filtering engine
 	//
-	m_lastevent_fd = fd;
+	set_lastevent_fd(fd);
 
 	return res;
 }
@@ -645,7 +781,7 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number) const {
 }
 
 bool sinsp_threadinfo::is_lastevent_data_valid() const {
-	return (m_lastevent_cpuid != (uint16_t)-1);
+	return (get_lastevent_cpuid() != (uint16_t)-1);
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_cwd_root() {
@@ -729,7 +865,7 @@ uint64_t sinsp_threadinfo::get_fd_limit() {
 	if(main_thread == nullptr) {
 		return 0;
 	}
-	return main_thread->m_fdlimit;
+	return main_thread->get_fdlimit();
 }
 
 const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const {
@@ -771,7 +907,8 @@ void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread
  * if we want to save some clock cycles
  */
 void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
-	/* We have no children to reparent. */
+	std::unique_lock lock(m_children_mutex);
+
 	if(m_children.size() == 0) {
 		return;
 	}
@@ -782,30 +919,23 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 
 	auto child = m_children.begin();
 	while(child != m_children.end()) {
-		/* If the child is not expired we move it to the reaper
-		 * and we change its `ptid`.
-		 */
 		if(!child->expired()) {
 			if(reaper == nullptr) {
-				/* we set `0` as the parent for all children */
-				child->lock()->m_ptid = 0;
+				child->lock()->set_ptid(0);
 			} else {
-				/* Add the child to the reaper list */
 				reaper->add_child(child->lock());
 			}
 		}
 
-		/* In any case (expired or not) we remove the child
-		 * from the list.
-		 */
 		child = m_children.erase(child);
 	}
 	m_not_expired_children = 0;
 }
 
 void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo) {
+	std::shared_lock l(tinfo->m_state_mutex);
 	if(tinfo->m_cmd_line.empty()) {
-		cmdline = tinfo->get_comm();
+		cmdline = tinfo->m_comm;
 		for(const auto& arg : tinfo->m_args) {
 			cmdline += " ";
 			cmdline += arg;
@@ -816,10 +946,10 @@ void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_thread
 }
 
 void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* tinfo) {
-	uint32_t j;
+	std::shared_lock l(tinfo->m_state_mutex);
 	uint32_t nargs = (uint32_t)tinfo->m_args.size();
 
-	for(j = 0; j < nargs; j++) {
+	for(uint32_t j = 0; j < nargs; j++) {
 		args += tinfo->m_args[j];
 		if(j < nargs - 1) {
 			args += ' ';
@@ -968,9 +1098,10 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
 
 void sinsp_threadinfo::set_exepath(std::string&& exepath) {
 	constexpr char suffix[] = " (deleted)";
-	constexpr size_t suffix_len = sizeof(suffix) - 1;  // Exclude null terminator
+	constexpr size_t suffix_len = sizeof(suffix) - 1;
 
-	m_exepath = exepath;
+	std::unique_lock l(m_state_mutex);
+	m_exepath = std::move(exepath);
 	if(m_exepath.size() > suffix_len &&
 	   m_exepath.compare(m_exepath.size() - suffix_len, suffix_len, suffix) == 0) {
 		m_exepath.resize(m_exepath.size() - suffix_len);

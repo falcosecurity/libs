@@ -108,24 +108,24 @@ uint8_t *sinsp_filter_check_user::extract_single(sinsp_evt *evt,
 	auto *mgr = m_inspector->m_usergroup_manager.get();
 	switch(m_field_id) {
 	case TYPE_UID:
-		m_val.u32 = tinfo->m_uid;
+		m_val.u32 = tinfo->get_uid();
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_NAME:
-		if(!mgr->with_user(container_id, tinfo->m_uid, [this](const scap_userinfo &u) {
+		if(!mgr->with_user(container_id, tinfo->get_uid(), [this](const scap_userinfo &u) {
 			   m_strval = u.name;
 		   })) {
-			m_strval = (tinfo->m_uid == 0) ? "root" : "<NA>";
+			m_strval = (tinfo->get_uid() == 0) ? "root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_HOMEDIR:
-		if(!mgr->with_user(container_id, tinfo->m_uid, [this](const scap_userinfo &u) {
+		if(!mgr->with_user(container_id, tinfo->get_uid(), [this](const scap_userinfo &u) {
 			   m_strval = u.homedir;
 		   })) {
-			m_strval = (tinfo->m_uid == 0) ? "/root" : "<NA>";
+			m_strval = (tinfo->get_uid() == 0) ? "/root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_SHELL:
-		if(!mgr->with_user(container_id, tinfo->m_uid, [this](const scap_userinfo &u) {
+		if(!mgr->with_user(container_id, tinfo->get_uid(), [this](const scap_userinfo &u) {
 			   m_strval = u.shell;
 		   })) {
 			m_strval = "<NA>";
@@ -133,15 +133,15 @@ uint8_t *sinsp_filter_check_user::extract_single(sinsp_evt *evt,
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_LOGINUID:
 		m_val.s64 = (int64_t)-1;
-		if(tinfo->m_loginuid < UINT32_MAX) {
-			m_val.s64 = (int64_t)tinfo->m_loginuid;
+		if(tinfo->get_loginuid() < UINT32_MAX) {
+			m_val.s64 = (int64_t)tinfo->get_loginuid();
 		}
 		RETURN_EXTRACT_VAR(m_val.s64);
 	case TYPE_LOGINNAME:
-		if(!mgr->with_user(container_id, tinfo->m_loginuid, [this](const scap_userinfo &u) {
+		if(!mgr->with_user(container_id, tinfo->get_loginuid(), [this](const scap_userinfo &u) {
 			   m_strval = u.name;
 		   })) {
-			m_strval = (tinfo->m_loginuid == 0) ? "root" : "<NA>";
+			m_strval = (tinfo->get_loginuid() == 0) ? "root" : "<NA>";
 		}
 		RETURN_EXTRACT_STRING(m_strval);
 	default:

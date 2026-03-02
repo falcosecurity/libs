@@ -84,8 +84,8 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	/* See the `reset` logic for enter events with `EF_USES_FD` flag */
 	auto* tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_NE(tinfo, nullptr);
-	ASSERT_EQ(tinfo->m_lastevent_fd, sinsp_test_input::socket_params::default_fd);
-	ASSERT_EQ(tinfo->m_lastevent_ts, evt_ts);
+	ASSERT_EQ(tinfo->get_lastevent_fd(), sinsp_test_input::socket_params::default_fd);
+	ASSERT_EQ(tinfo->get_lastevent_ts(), evt_ts);
 
 	/* Here we should recover the fdinfo from the thread info since the socket call has already
 	 * added the fdinfo into the thread. See `reset` logic, the fdinfo is recovered from the

@@ -50,8 +50,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate) {
 			auto tinfo = factory.create();
 			const int64_t tid = tid_start + i;
 			tinfo->m_tid = tid;
-			tinfo->m_pid = tid;
-			tinfo->m_ptid = 0;
+			tinfo->set_pid(tid);
+			tinfo->set_ptid(0);
 			manager->add_thread(std::move(tinfo), false);
 		}
 	});
@@ -98,8 +98,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_add_lookup_iterate_remove)
 			auto tinfo = factory.create();
 			const int64_t tid = tid_start + round * 1000 + i;
 			tinfo->m_tid = tid;
-			tinfo->m_pid = tid;
-			tinfo->m_ptid = 0;
+			tinfo->set_pid(tid);
+			tinfo->set_ptid(0);
 			manager->add_thread(std::move(tinfo), false);
 		}
 
@@ -155,8 +155,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_thread_groups) {
 				auto tinfo = factory.create();
 				const int64_t tid = pid * 10 + t;
 				tinfo->m_tid = tid;
-				tinfo->m_pid = pid;
-				tinfo->m_ptid = (t == 0) ? 0 : (pid * 10);
+				tinfo->set_pid(pid);
+				tinfo->set_ptid((t == 0) ? 0 : (pid * 10));
 				manager->add_thread(std::move(tinfo), false);
 			}
 		}
@@ -205,8 +205,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_concurrent_flush_and_counters) {
 	for(int i = 0; i < num_threads; ++i) {
 		auto tinfo = factory.create();
 		tinfo->m_tid = tid_start + i;
-		tinfo->m_pid = tid_start + i;
-		tinfo->m_ptid = 0;
+		tinfo->set_pid(tid_start + i);
+		tinfo->set_ptid(0);
 		manager->add_thread(std::move(tinfo), false);
 	}
 

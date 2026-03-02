@@ -23,9 +23,9 @@ TEST(sinsp_threadinfo, get_main_thread) {
 	const auto& threadinfo_factory = inspector.get_threadinfo_factory();
 	const auto tinfo = threadinfo_factory.create_shared();
 	tinfo->m_tid = 23;
-	tinfo->m_pid = 23;
+	tinfo->set_pid(23);
 
-	auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
+	auto tginfo = std::make_shared<thread_group_info>(tinfo->get_pid(), false, tinfo);
 
 	/* We are the main thread so here we don't use the thread group info */
 	ASSERT_EQ(tinfo->get_main_thread(), tinfo.get());
@@ -38,19 +38,19 @@ TEST(sinsp_threadinfo, get_main_thread) {
 
 	/* We should still obtain a nullptr since the first tinfo in the thread group info is not a main
 	 * thread. */
-	tinfo->m_tginfo = tginfo;
+	tinfo->set_tginfo(tginfo);
 	ASSERT_EQ(tinfo->get_main_thread(), nullptr);
 
 	const auto main_tinfo = threadinfo_factory.create_shared();
 	main_tinfo->m_tid = 23;
-	main_tinfo->m_pid = 23;
+	main_tinfo->set_pid(23);
 
 	/* We should still obtain a nullptr since we put the main thread as the last element of the
 	 * list. */
-	tinfo->m_tginfo->add_thread_to_group(main_tinfo, false);
+	tinfo->get_tginfo()->add_thread_to_group(main_tinfo, false);
 	ASSERT_EQ(tinfo->get_main_thread(), nullptr);
 
-	tinfo->m_tginfo->add_thread_to_group(main_tinfo, true);
+	tinfo->get_tginfo()->add_thread_to_group(main_tinfo, true);
 	ASSERT_EQ(tinfo->get_main_thread(), main_tinfo.get());
 }
 
@@ -59,23 +59,23 @@ TEST(sinsp_threadinfo, get_num_threads) {
 	const auto& threadinfo_factory = inspector.get_threadinfo_factory();
 	const auto tinfo = threadinfo_factory.create_shared();
 	tinfo->m_tid = 25;
-	tinfo->m_pid = 23;
+	tinfo->set_pid(23);
 
-	auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
+	auto tginfo = std::make_shared<thread_group_info>(tinfo->get_pid(), false, tinfo);
 
 	/* Thread info doesn't have an associated thread group info */
 	ASSERT_EQ(tinfo->get_num_threads(), 0);
 	ASSERT_EQ(tinfo->get_num_not_leader_threads(), 0);
 
-	tinfo->m_tginfo = tginfo;
+	tinfo->set_tginfo(tginfo);
 	ASSERT_EQ(tinfo->get_num_threads(), 1);
 	ASSERT_EQ(tinfo->get_num_not_leader_threads(), 1);
 
 	const auto main_tinfo = threadinfo_factory.create_shared();
 	main_tinfo->m_tid = 23;
-	main_tinfo->m_pid = 23;
+	main_tinfo->set_pid(23);
 
-	tinfo->m_tginfo->add_thread_to_group(main_tinfo, true);
+	tinfo->get_tginfo()->add_thread_to_group(main_tinfo, true);
 	ASSERT_EQ(tinfo->get_num_threads(), 2);
 	/* 1 thread is the main thread so we should return just 1 */
 	ASSERT_EQ(tinfo->get_num_not_leader_threads(), 1);

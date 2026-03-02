@@ -31,6 +31,9 @@ struct iovec {
 
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <libsinsp/atomic_helpers.h>
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/thread_group_info.h>
@@ -86,21 +89,6 @@ public:
 	libsinsp::state::extensible_struct::field_infos static_fields() const override;
 
 	/*!
-	  \brief Return the name of the process containing this thread, e.g. "top".
-	*/
-	std::string get_comm() const;
-
-	/*!
-	  \brief Return the name of the process containing this thread from argv[0], e.g. "/bin/top".
-	*/
-	std::string get_exe() const;
-
-	/*!
-	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
-	*/
-	std::string get_exepath() const;
-
-	/*!
 	  \brief Return the working directory of the process containing this thread.
 	*/
 	std::string get_cwd();
@@ -129,32 +117,31 @@ public:
 	  \brief Return true if this is a process' main thread.
 	*/
 	inline bool is_main_thread() const {
-		return (m_tid == m_pid) || m_flags & PPM_CL_IS_MAIN_THREAD;
+		return (m_tid == get_pid()) || get_flags() & PPM_CL_IS_MAIN_THREAD;
 	}
 
 	/*!
 	  \brief Return true if this thread belongs to a pid namespace.
 	*/
 	inline bool is_in_pid_namespace() const {
-		// m_tid should be always valid because we read it from the scap event header
-		return (m_flags & PPM_CL_CHILD_IN_PIDNS || (m_tid != m_vtid && m_vtid >= 0));
+		return (get_flags() & PPM_CL_CHILD_IN_PIDNS || (m_tid != get_vtid() && get_vtid() >= 0));
 	}
 
 	/*!
 	  \brief Return true if the thread is invalid. Sometimes we create some
 	  invalid thread info, if we are not able to scan proc.
 	*/
-	inline bool is_invalid() const { return m_tid < 0 || m_pid < 0 || m_ptid < 0; }
+	inline bool is_invalid() const { return m_tid < 0 || get_pid() < 0 || get_ptid() < 0; }
 
 	/*!
 	  \brief Return true if the thread is dead.
 	*/
-	inline bool is_dead() const { return m_flags & PPM_CL_CLOSED; }
+	inline bool is_dead() const { return get_flags() & PPM_CL_CLOSED; }
 
 	/*!
 	  \brief Mark thread as dead.
 	*/
-	inline void set_dead() { m_flags |= PPM_CL_CLOSED; }
+	inline void set_dead() { or_flags(PPM_CL_CLOSED); }
 
 	/*!
 	  \brief In some corner cases is possible that a dead main thread could
@@ -162,21 +149,16 @@ public:
 	  thread and the main thread is already dead
 	*/
 	inline void resurrect_thread() {
-		/* If the thread is not dead we do nothing.
-		 * It should never happen
-		 */
 		if(!is_dead()) {
 			return;
 		}
 
-		m_flags &= ~PPM_CL_CLOSED;
-		if(!m_tginfo) {
+		clear_flags(PPM_CL_CLOSED);
+		auto tgi = get_tginfo();
+		if(!tgi) {
 			return;
 		}
-		/* we increment again the threadcount since we
-		 * decremented it during the proc_exit event.
-		 */
-		m_tginfo->increment_thread_count();
+		tgi->increment_thread_count();
 	}
 
 	/*!
@@ -216,13 +198,12 @@ public:
 			return this;
 		}
 
-		// This is possible when we have invalid threads
-		if(m_tginfo == nullptr) {
+		auto tgi = get_tginfo();
+		if(tgi == nullptr) {
 			return nullptr;
 		}
 
-		// If we have the main thread in the group, it is always the first one
-		auto possible_main = m_tginfo->get_first_thread();
+		auto possible_main = tgi->get_first_thread();
 		if(possible_main == nullptr || !possible_main->is_main_thread()) {
 			return nullptr;
 		}
@@ -315,43 +296,52 @@ public:
 	void assign_children_to_reaper(sinsp_threadinfo* reaper);
 
 	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child) {
+		std::unique_lock lock(m_children_mutex);
 		m_children.push_front(child);
-		/* Set current thread as parent */
-		child->m_ptid = m_tid;
-		/* Increment the number of not expired children */
+		child->set_ptid(m_tid);
 		m_not_expired_children++;
 	}
 
-	/* Remove a specific child from the list immediately (e.g. when using
-	 * concurrent map with deferred reclamation, so weak_ptrs may not expire
-	 * in time for clean_expired_children to remove them).
-	 */
 	inline void remove_child_from_list(const std::shared_ptr<sinsp_threadinfo>& child) {
-		for(auto it = m_children.begin(); it != m_children.end(); ++it) {
-			auto locked = it->lock();
-			if(locked.get() == child.get()) {
-				m_children.erase(it);
-				if(m_not_expired_children > 0) {
-					m_not_expired_children--;
-				}
-				return;
-			}
+		std::unique_lock lock(m_children_mutex);
+		remove_child_from_list_unlocked(child);
+	}
+
+	inline void remove_child_and_maybe_clean(const std::shared_ptr<sinsp_threadinfo>& child) {
+		std::unique_lock lock(m_children_mutex);
+		remove_child_from_list_unlocked(child);
+		if((m_children.size() - m_not_expired_children) >= DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
+			clean_expired_children_unlocked();
 		}
 	}
 
 	inline void clean_expired_children() {
-		auto child = m_children.begin();
-		while(child != m_children.end()) {
-			/* This child is expired */
-			if(child->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
-				child = m_children.erase(child);
-				continue;
+		std::unique_lock lock(m_children_mutex);
+		clean_expired_children_unlocked();
+	}
+
+	inline bool has_children() const {
+		std::unique_lock lock(m_children_mutex);
+		return !m_children.empty();
+	}
+
+	template<typename F>
+	inline void for_each_child(F&& fn) {
+		std::unique_lock lock(m_children_mutex);
+		for(auto& child : m_children) {
+			if(auto ptr = child.lock()) {
+				fn(ptr);
 			}
-			child++;
 		}
+	}
+
+	inline void set_not_expired_children(uint64_t v) { m_not_expired_children = v; }
+
+	inline uint64_t get_not_expired_children() const { return m_not_expired_children; }
+
+	inline size_t get_children_count() const {
+		std::unique_lock lock(m_children_mutex);
+		return m_children.size();
 	}
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
@@ -365,75 +355,126 @@ public:
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
+	cgroups_t get_cgroups() const;
 	const cgroups_t& cgroups() const;
 
 	//
-	// Core state
+	// Immutable identity (safe without synchronization after table insertion)
 	//
-	int64_t m_tid;   ///< The id of this thread
-	int64_t m_pid;   ///< The id of the process containing this thread. In single thread threads,
-	                 ///< this is equal to tid.
-	int64_t m_ptid;  ///< The id of the process that started this thread.
-	int64_t m_reaper_tid;   ///< The id of the reaper for this thread
-	int64_t m_sid;          ///< The session id of the process containing this thread.
-	std::string m_comm;     ///< Command name (e.g. "top")
-	std::string m_exe;      ///< argv[0] (e.g. "sshd: user@pts/4")
-	std::string m_exepath;  ///< full executable path
-	bool m_exe_writable;
-	bool m_exe_upper_layer;  ///< True if the executable file belongs to upper layer in overlayfs
-	bool m_exe_lower_layer;  ///< True if the executable file belongs to lower layer in overlayfs
-	bool m_exe_from_memfd;   ///< True if the executable is stored in fileless memory referenced by
-	                         ///< memfd
-	std::vector<std::string> m_args;  ///< Command line arguments (e.g. "-d1")
-	std::vector<std::string> m_env;   ///< Environment variables
-	cgroups_t m_cgroups;              ///< subsystem-cgroup pairs
-	uint32_t m_flags;   ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
-	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
-	uint32_t m_uid;     ///< uid
-	uint32_t m_gid;     ///< gid
-	uint32_t m_loginuid;         ///< loginuid
-	uint64_t m_cap_permitted;    ///< permitted capabilities
-	uint64_t m_cap_effective;    ///< effective capabilities
-	uint64_t m_cap_inheritable;  ///< inheritable capabilities
-	uint64_t m_exe_ino;          ///< executable inode ino
-	uint64_t m_exe_ino_ctime;    ///< executable inode ctime (last status change time)
-	uint64_t m_exe_ino_mtime;    ///< executable inode mtime (last modification time)
-	uint64_t m_exe_ino_ctime_duration_clone_ts;  ///< duration in ns between executable inode ctime
-	                                             ///< (last status change time) and clone_ts
-	uint64_t m_exe_ino_ctime_duration_pidns_start;  ///< duration in ns between pidns start ts and
-	                                                ///< executable inode ctime (last status change
-	                                                ///< time) if pidns start predates ctime
-	uint32_t m_vmsize_kb;                           ///< total virtual memory (as kb).
-	uint32_t m_vmrss_kb;                            ///< resident non-swapped memory (as kb).
-	uint32_t m_vmswap_kb;                           ///< swapped memory (as kb).
-	uint64_t m_pfmajor;                             ///< number of major page faults since start.
-	uint64_t m_pfminor;                             ///< number of minor page faults since start.
-	int64_t m_vtid;                                 ///< The virtual id of this thread.
-	int64_t m_vpid;   ///< The virtual id of the process containing this thread. In single thread
-	                  ///< threads, this is equal to vtid.
-	int64_t m_vpgid;  // The virtual process group id, as seen from its pid namespace
-	int64_t m_pgid;   // Process group id, as seen from the host pid namespace
+	int64_t m_tid;                   ///< The id of this thread
 	uint64_t m_pidns_init_start_ts;  ///< The pid_namespace init task (child_reaper) start_time ts.
-	std::string m_root;
 
-	uint32_t m_tty;  ///< Number of controlling terminal
-	std::shared_ptr<thread_group_info> m_tginfo;
-	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
-	uint64_t m_not_expired_children;
-	std::string m_cmd_line;
-	bool m_filtered_out;  ///< True if this thread is filtered out by the inspector filter from
-	                      ///< saving to a capture
+	// --- Atomic identity getters/setters ---
+	inline int64_t get_pid() const { return load_relaxed(m_pid); }
+	inline void set_pid(int64_t v) { store_relaxed(m_pid, v); }
+	inline int64_t get_ptid() const { return load_relaxed(m_ptid); }
+	inline void set_ptid(int64_t v) { store_relaxed(m_ptid, v); }
+	inline int64_t get_reaper_tid() const { return load_relaxed(m_reaper_tid); }
+	inline void set_reaper_tid(int64_t v) { store_relaxed(m_reaper_tid, v); }
+	inline int64_t get_sid() const { return load_relaxed(m_sid); }
+	inline void set_sid(int64_t v) { store_relaxed(m_sid, v); }
+	inline int64_t get_vtid() const { return load_relaxed(m_vtid); }
+	inline void set_vtid(int64_t v) { store_relaxed(m_vtid, v); }
+	inline int64_t get_vpid() const { return load_relaxed(m_vpid); }
+	inline void set_vpid(int64_t v) { store_relaxed(m_vpid, v); }
+	inline int64_t get_vpgid() const { return load_relaxed(m_vpgid); }
+	inline void set_vpgid(int64_t v) { store_relaxed(m_vpgid, v); }
+	inline int64_t get_pgid() const { return load_relaxed(m_pgid); }
+	inline void set_pgid(int64_t v) { store_relaxed(m_pgid, v); }
 
-	//
-	// State for multi-event processing
-	//
-	int64_t m_lastevent_fd;    ///< The FD os the last event used by this thread.
-	uint64_t m_lastevent_ts;   ///< timestamp of the last event for this thread.
-	uint64_t m_prevevent_ts;   ///< timestamp of the event before the last for this thread.
-	uint64_t m_lastaccess_ts;  ///< The last time this thread was looked up. Used when cleaning up
-	                           ///< the table.
-	uint64_t m_clone_ts;       ///< When the clone that started this process happened.
-	uint64_t m_lastexec_ts;    ///< The last time exec was called
+	// --- Atomic flags ---
+	inline uint32_t get_flags() const { return load_relaxed(m_flags); }
+	inline void set_flags(uint32_t v) { store_relaxed(m_flags, v); }
+	inline void or_flags(uint32_t v) { fetch_or_relaxed(m_flags, v); }
+	inline void clear_flags(uint32_t mask) { fetch_and_relaxed(m_flags, ~mask); }
+
+	// --- Atomic credential/resource getters/setters ---
+	inline int64_t get_fdlimit() const { return load_relaxed(m_fdlimit); }
+	inline void set_fdlimit(int64_t v) { store_relaxed(m_fdlimit, v); }
+	inline uint32_t get_uid() const { return load_relaxed(m_uid); }
+	inline void set_uid(uint32_t v) { store_relaxed(m_uid, v); }
+	inline uint32_t get_gid() const { return load_relaxed(m_gid); }
+	inline void set_gid(uint32_t v) { store_relaxed(m_gid, v); }
+	inline uint32_t get_loginuid() const { return load_relaxed(m_loginuid); }
+	inline void set_loginuid(uint32_t v) { store_relaxed(m_loginuid, v); }
+	inline uint64_t get_cap_permitted() const { return load_relaxed(m_cap_permitted); }
+	inline void set_cap_permitted(uint64_t v) { store_relaxed(m_cap_permitted, v); }
+	inline uint64_t get_cap_effective() const { return load_relaxed(m_cap_effective); }
+	inline void set_cap_effective(uint64_t v) { store_relaxed(m_cap_effective, v); }
+	inline uint64_t get_cap_inheritable() const { return load_relaxed(m_cap_inheritable); }
+	inline void set_cap_inheritable(uint64_t v) { store_relaxed(m_cap_inheritable, v); }
+	inline uint32_t get_tty() const { return load_relaxed(m_tty); }
+	inline void set_tty(uint32_t v) { store_relaxed(m_tty, v); }
+	inline bool get_filtered_out() const { return load_relaxed(m_filtered_out); }
+	inline void set_filtered_out(bool v) { store_relaxed(m_filtered_out, v); }
+
+	inline uint32_t get_vmsize_kb() const { return load_relaxed(m_vmsize_kb); }
+	inline void set_vmsize_kb(uint32_t v) { store_relaxed(m_vmsize_kb, v); }
+	inline uint32_t get_vmrss_kb() const { return load_relaxed(m_vmrss_kb); }
+	inline void set_vmrss_kb(uint32_t v) { store_relaxed(m_vmrss_kb, v); }
+	inline uint32_t get_vmswap_kb() const { return load_relaxed(m_vmswap_kb); }
+	inline void set_vmswap_kb(uint32_t v) { store_relaxed(m_vmswap_kb, v); }
+	inline uint64_t get_pfmajor() const { return load_relaxed(m_pfmajor); }
+	inline void set_pfmajor(uint64_t v) { store_relaxed(m_pfmajor, v); }
+	inline uint64_t get_pfminor() const { return load_relaxed(m_pfminor); }
+	inline void set_pfminor(uint64_t v) { store_relaxed(m_pfminor, v); }
+
+	// --- Mutex-protected exec-info getters/setters ---
+	std::string get_comm() const;
+	void set_comm(std::string v);
+	std::string get_exe() const;
+	void set_exe(std::string v);
+	std::string get_exepath() const;
+	bool get_exe_writable() const;
+	void set_exe_writable(bool v);
+	bool get_exe_upper_layer() const;
+	void set_exe_upper_layer(bool v);
+	bool get_exe_lower_layer() const;
+	void set_exe_lower_layer(bool v);
+	bool get_exe_from_memfd() const;
+	void set_exe_from_memfd(bool v);
+	std::vector<std::string> get_args() const;
+	std::string get_cmd_line() const;
+	std::string get_root() const;
+	void set_root(std::string v);
+	uint64_t get_exe_ino() const;
+	void set_exe_ino(uint64_t v);
+	uint64_t get_exe_ino_ctime() const;
+	void set_exe_ino_ctime(uint64_t v);
+	uint64_t get_exe_ino_mtime() const;
+	void set_exe_ino_mtime(uint64_t v);
+	uint64_t get_exe_ino_ctime_duration_clone_ts() const;
+	void set_exe_ino_ctime_duration_clone_ts(uint64_t v);
+	uint64_t get_exe_ino_ctime_duration_pidns_start() const;
+	void set_exe_ino_ctime_duration_pidns_start(uint64_t v);
+	void set_env(const std::vector<std::string>& env);
+
+	// --- Atomic tginfo getter/setter ---
+	inline std::shared_ptr<thread_group_info> get_tginfo() const {
+		return std::atomic_load(&m_tginfo);
+	}
+	inline void set_tginfo(std::shared_ptr<thread_group_info> v) {
+		std::atomic_store(&m_tginfo, std::move(v));
+	}
+
+	// Multi-event processing state accessors (private fields, synchronized via relaxed atomics)
+	inline int64_t get_lastevent_fd() const { return load_relaxed(m_lastevent_fd); }
+	inline void set_lastevent_fd(int64_t v) { store_relaxed(m_lastevent_fd, v); }
+
+	inline uint64_t get_lastevent_ts() const { return load_relaxed(m_lastevent_ts); }
+	inline void set_lastevent_ts(uint64_t v) { store_relaxed(m_lastevent_ts, v); }
+
+	inline uint64_t get_prevevent_ts() const { return load_relaxed(m_prevevent_ts); }
+	inline void set_prevevent_ts(uint64_t v) { store_relaxed(m_prevevent_ts, v); }
+
+	inline uint64_t get_lastaccess_ts() const { return load_relaxed(m_lastaccess_ts); }
+	inline void set_lastaccess_ts(uint64_t v) { store_relaxed(m_lastaccess_ts, v); }
+
+	inline uint64_t get_clone_ts() const { return load_relaxed(m_clone_ts); }
+	inline void set_clone_ts(uint64_t v) { store_relaxed(m_clone_ts, v); }
+
+	inline uint64_t get_lastexec_ts() const { return load_relaxed(m_lastexec_ts); }
+	inline void set_lastexec_ts(uint64_t v) { store_relaxed(m_lastexec_ts, v); }
 
 	size_t args_len() const;
 	size_t env_len() const;
@@ -451,7 +492,7 @@ public:
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
 	inline sinsp_fdtable* get_fd_table() {
-		if(!(m_flags & PPM_CL_CLONE_FILES)) {
+		if(!(load_relaxed(m_flags) & PPM_CL_CLONE_FILES)) {
 			return &m_fdtable;
 		} else {
 			sinsp_threadinfo* root = get_main_thread();
@@ -479,30 +520,26 @@ public:
 	void set_cgroups(const cgroups_t& cgroups);
 	bool is_lastevent_data_valid() const;
 	inline void set_lastevent_data_validity(bool isvalid) {
-		if(isvalid) {
-			m_lastevent_cpuid = (uint16_t)1;
-		} else {
-			m_lastevent_cpuid = (uint16_t)-1;
-		}
+		store_relaxed(m_lastevent_cpuid, isvalid ? (uint16_t)1 : (uint16_t)-1);
 	}
 
 	inline const uint8_t* get_last_event_data() const { return m_lastevent_data; }
 
 	inline uint8_t* get_last_event_data() { return m_lastevent_data; }
 
-	inline void set_last_event_data(uint8_t* v) { m_lastevent_data = v; }
+	inline void set_last_event_data(uint8_t* v) { store_relaxed(m_lastevent_data, v); }
 
 	inline const sinsp_fdtable& get_fdtable() const { return m_fdtable; }
 
 	inline sinsp_fdtable& get_fdtable() { return m_fdtable; }
 
-	inline uint16_t get_lastevent_type() const { return m_lastevent_type; }
+	inline uint16_t get_lastevent_type() const { return load_relaxed(m_lastevent_type); }
 
-	inline void set_lastevent_type(uint16_t v) { m_lastevent_type = v; }
+	inline void set_lastevent_type(uint16_t v) { store_relaxed(m_lastevent_type, v); }
 
-	inline uint16_t get_lastevent_cpuid() const { return m_lastevent_cpuid; }
+	inline uint16_t get_lastevent_cpuid() const { return load_relaxed(m_lastevent_cpuid); }
 
-	inline void set_lastevent_cpuid(uint16_t v) { m_lastevent_cpuid = v; }
+	inline void set_lastevent_cpuid(uint16_t v) { store_relaxed(m_lastevent_cpuid, v); }
 
 	inline const sinsp_evt::category& get_lastevent_category() const {
 		return m_lastevent_category;
@@ -512,9 +549,9 @@ public:
 
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();
-		m_main_fdtable =
-		        !fdtable ? nullptr
-		                 : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+		auto val = !fdtable ? nullptr
+		                    : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+		store_relaxed(m_main_fdtable, val);
 	}
 
 	void set_exepath(std::string&& exepath);
@@ -533,6 +570,30 @@ protected:
 	// ctor_params object in sinsp constructor.
 	const std::shared_ptr<ctor_params> m_params;
 
+	inline void remove_child_from_list_unlocked(const std::shared_ptr<sinsp_threadinfo>& child) {
+		for(auto it = m_children.begin(); it != m_children.end(); ++it) {
+			auto locked = it->lock();
+			if(locked.get() == child.get()) {
+				m_children.erase(it);
+				if(m_not_expired_children > 0) {
+					m_not_expired_children--;
+				}
+				return;
+			}
+		}
+	}
+
+	inline void clean_expired_children_unlocked() {
+		auto child = m_children.begin();
+		while(child != m_children.end()) {
+			if(child->expired()) {
+				child = m_children.erase(child);
+				continue;
+			}
+			child++;
+		}
+	}
+
 private:
 	sinsp_threadinfo* get_cwd_root();
 	bool set_env_from_proc();
@@ -548,20 +609,82 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
-	//
-	// Parameters that can't be accessed directly because they could be in the
-	// parent thread info
-	//
-	sinsp_fdtable m_fdtable;  // The fd table of this thread
-	const libsinsp::state::base_table*
-	        m_main_fdtable;     // Points to the base fd table of the current main thread
-	std::string m_cwd;          // current working directory
-	uint8_t* m_lastevent_data;  // Used by some event parsers to store the last enter event
+	// Mutex protecting exec-info group (strings, vectors, and related fields)
+	mutable std::shared_mutex m_state_mutex;
 
+	// Atomic identity fields
+	int64_t m_pid;
+	int64_t m_ptid;
+	int64_t m_reaper_tid;
+	int64_t m_sid;
+	int64_t m_vtid;
+	int64_t m_vpid;
+	int64_t m_vpgid;
+	int64_t m_pgid;
+
+	// Atomic flags/credentials/stats
+	uint32_t m_flags;
+	int64_t m_fdlimit;
+	uint32_t m_uid;
+	uint32_t m_gid;
+	uint32_t m_loginuid;
+	uint64_t m_cap_permitted;
+	uint64_t m_cap_effective;
+	uint64_t m_cap_inheritable;
+	uint32_t m_vmsize_kb;
+	uint32_t m_vmrss_kb;
+	uint32_t m_vmswap_kb;
+	uint64_t m_pfmajor;
+	uint64_t m_pfminor;
+	uint32_t m_tty;
+	bool m_filtered_out;
+
+	// Mutex-protected exec-info group (guarded by m_state_mutex)
+	std::string m_comm;
+	std::string m_exe;
+	std::string m_exepath;
+	bool m_exe_writable;
+	bool m_exe_upper_layer;
+	bool m_exe_lower_layer;
+	bool m_exe_from_memfd;
+	uint64_t m_exe_ino;
+	uint64_t m_exe_ino_ctime;
+	uint64_t m_exe_ino_mtime;
+	uint64_t m_exe_ino_ctime_duration_clone_ts;
+	uint64_t m_exe_ino_ctime_duration_pidns_start;
+	std::string m_root;
+	std::string m_cmd_line;
+	std::vector<std::string> m_args;
+	std::vector<std::string> m_env;
+	cgroups_t m_cgroups;
+
+	// Thread group info (synchronized via std::atomic_load/store)
+	std::shared_ptr<thread_group_info> m_tginfo;
+
+	// Children (synchronized via m_children_mutex)
+	mutable std::mutex m_children_mutex;
+	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
+	uint64_t m_not_expired_children;
+
+	// Internal state
+	sinsp_fdtable m_fdtable;
+	const libsinsp::state::base_table* m_main_fdtable;
+	std::string m_cwd;
+	uint8_t* m_lastevent_data;
+
+	// Multi-event processing state (synchronized via relaxed atomics in getters/setters)
+	int64_t m_lastevent_fd;
+	uint64_t m_lastevent_ts;
+	uint64_t m_prevevent_ts;
+	uint64_t m_lastaccess_ts;
+	uint64_t m_clone_ts;
+	uint64_t m_lastexec_ts;
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
+
+	// State framework table adapters (must come after m_args, m_env, m_cgroups)
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
 	libsinsp::state::stl_container_table_adapter<

@@ -31,9 +31,9 @@ TEST(thread_group_info, create_thread_group_info) {
 
 	tinfo = threadinfo_factory.create_shared();
 	tinfo->m_tid = 23;
-	tinfo->m_pid = 23;
+	tinfo->set_pid(23);
 
-	thread_group_info tginfo(tinfo->m_pid, true, tinfo);
+	thread_group_info tginfo(tinfo->get_pid(), true, tinfo);
 	EXPECT_EQ(tginfo.get_thread_count(), 1);
 	EXPECT_TRUE(tginfo.is_reaper());
 	EXPECT_EQ(tginfo.get_tgroup_pid(), 23);
@@ -57,9 +57,9 @@ TEST(thread_group_info, populate_thread_group_info) {
 	const auto& threadinfo_factory = inspector.get_threadinfo_factory();
 	const auto tinfo = threadinfo_factory.create_shared();
 	tinfo->m_tid = 23;
-	tinfo->m_pid = 23;
+	tinfo->set_pid(23);
 
-	thread_group_info tginfo(tinfo->m_pid, false, tinfo);
+	thread_group_info tginfo(tinfo->get_pid(), false, tinfo);
 	EXPECT_FALSE(tginfo.is_reaper());
 
 	tginfo.increment_thread_count();

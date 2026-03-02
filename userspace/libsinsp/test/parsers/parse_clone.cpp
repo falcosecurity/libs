@@ -33,8 +33,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_failed) {
 	 */
 	ASSERT_TRUE(evt->get_thread_info());
 	ASSERT_EQ(evt->get_thread_info()->m_tid, INIT_TID);
-	ASSERT_EQ(evt->get_thread_info()->m_pid, INIT_PID);
-	ASSERT_EQ(evt->get_thread_info()->m_ptid, INIT_PTID);
+	ASSERT_EQ(evt->get_thread_info()->get_pid(), INIT_PID);
+	ASSERT_EQ(evt->get_thread_info()->get_ptid(), INIT_PTID);
 
 	/* We should have a NULL pointer here so no thread-info for the new process */
 	sinsp_threadinfo* p1_t1_tinfo =
@@ -87,10 +87,10 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision) {
 
 	sinsp_threadinfo* p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
-	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
+	ASSERT_EQ(p1_t1_tinfo->get_comm(), "old_bash");
 
 	/* Remove the `PPM_CL_CLONE_INVERTED` flag */
-	p1_t1_tinfo->m_flags = p1_t1_tinfo->m_flags & ~PPM_CL_CLONE_INVERTED;
+	p1_t1_tinfo->clear_flags(PPM_CL_CLONE_INVERTED);
 
 	/* Parent clone exit event */
 	/* The parent considers the existing child entry stale and removes it.
@@ -108,7 +108,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision) {
 	p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	/* We should find the new name now since this should be a fresh thread info */
-	ASSERT_EQ(p1_t1_tinfo->m_comm, "new_bash");
+	ASSERT_EQ(p1_t1_tinfo->get_comm(), "new_bash");
 }
 
 TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child) {
@@ -136,7 +136,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child) {
 
 	sinsp_threadinfo* p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
-	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
+	ASSERT_EQ(p1_t1_tinfo->get_comm(), "old_bash");
 
 	/* Parent clone exit event */
 	generate_clone_x_event(p1_t1_tid,
@@ -150,7 +150,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child) {
 
 	p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
-	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
+	ASSERT_EQ(p1_t1_tinfo->get_comm(), "old_bash");
 }
 
 TEST_F(sinsp_with_test_input, CLONE_CALLER_new_main_thread) {
@@ -459,7 +459,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_already_there) {
 	 */
 	ASSERT_TRUE(evt);
 	ASSERT_TRUE(evt->get_thread_info());
-	ASSERT_EQ(evt->get_thread_info()->m_pid, p1_t1_pid);
+	ASSERT_EQ(evt->get_thread_info()->get_pid(), p1_t1_pid);
 }
 
 TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision) {
@@ -481,7 +481,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision) {
 	 */
 	tinfo = m_inspector.m_thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(tinfo);
-	tinfo->m_clone_ts = tinfo->m_clone_ts - (CLONE_STALE_TIME_NS + 1);
+	tinfo->set_clone_ts(tinfo->get_clone_ts() - (CLONE_STALE_TIME_NS + 1));
 
 	/* Now we try to create a child with a different pid but
 	 * same tid with a clone exit child event. We use a child
@@ -496,7 +496,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision) {
 	 */
 	ASSERT_TRUE(evt);
 	ASSERT_TRUE(evt->get_thread_info());
-	ASSERT_EQ(evt->get_thread_info()->m_pid, new_pid);
+	ASSERT_EQ(evt->get_thread_info()->get_pid(), new_pid);
 }
 
 TEST_F(sinsp_with_test_input, CLONE_CHILD_new_main_thread) {
