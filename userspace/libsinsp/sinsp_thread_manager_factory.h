@@ -23,11 +23,8 @@ limitations under the License.
   \brief Factory hiding sinsp_thread_manager creation details.
 */
 class sinsp_thread_manager_factory {
-	const sinsp_mode& m_sinsp_mode;
 	const sinsp_threadinfo_factory& m_threadinfo_factory;
 	sinsp_observer* const& m_observer;
-	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
-	const bool& m_large_envs_enabled;
 	const timestamper& m_timestamper;
 	const int64_t& m_sinsp_pid;
 	const uint64_t& m_threads_purging_scan_time_ns;
@@ -37,15 +34,11 @@ class sinsp_thread_manager_factory {
 	scap_t* const& m_scap_handle;
 	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& m_thread_manager_dyn_fields;
 	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& m_fdtable_dyn_fields;
-	const std::shared_ptr<sinsp_usergroup_manager>& m_usergroup_manager;
 
 public:
 	sinsp_thread_manager_factory(
-	        const sinsp_mode& sinsp_mode,
 	        const sinsp_threadinfo_factory& threadinfo_factory,
 	        sinsp_observer* const& observer,
-	        const std::shared_ptr<const sinsp_plugin>& input_plugin,
-	        const bool& large_envs_enabled,
 	        const timestamper& timestamper,
 	        const int64_t& sinsp_pid,
 	        const uint64_t& threads_purging_scan_time_ns,
@@ -54,13 +47,9 @@ public:
 	        scap_platform* const& scap_platform,
 	        scap_t* const& scap_handle,
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
-	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
-	        m_sinsp_mode{sinsp_mode},
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields):
 	        m_threadinfo_factory{threadinfo_factory},
 	        m_observer{observer},
-	        m_input_plugin{input_plugin},
-	        m_large_envs_enabled{large_envs_enabled},
 	        m_timestamper{timestamper},
 	        m_sinsp_pid{sinsp_pid},
 	        m_threads_purging_scan_time_ns{threads_purging_scan_time_ns},
@@ -69,15 +58,11 @@ public:
 	        m_scap_platform{scap_platform},
 	        m_scap_handle{scap_handle},
 	        m_thread_manager_dyn_fields{thread_manager_dyn_fields},
-	        m_fdtable_dyn_fields{fdtable_dyn_fields},
-	        m_usergroup_manager(usergroup_manager) {}
+	        m_fdtable_dyn_fields{fdtable_dyn_fields} {}
 
 	std::shared_ptr<sinsp_thread_manager> create() const {
-		return std::make_unique<sinsp_thread_manager>(m_sinsp_mode,
-		                                              m_threadinfo_factory,
+		return std::make_unique<sinsp_thread_manager>(m_threadinfo_factory,
 		                                              m_observer,
-		                                              m_input_plugin,
-		                                              m_large_envs_enabled,
 		                                              m_timestamper,
 		                                              m_sinsp_pid,
 		                                              m_threads_purging_scan_time_ns,
@@ -86,7 +71,6 @@ public:
 		                                              m_scap_platform,
 		                                              m_scap_handle,
 		                                              m_thread_manager_dyn_fields,
-		                                              m_fdtable_dyn_fields,
-		                                              m_usergroup_manager);
+		                                              m_fdtable_dyn_fields);
 	}
 };

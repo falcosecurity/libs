@@ -107,11 +107,8 @@ static void fd_to_scap(scap_fdinfo& dst, const sinsp_fdinfo& src) {
 static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
 sinsp_thread_manager::sinsp_thread_manager(
-        const sinsp_mode& sinsp_mode,
         const sinsp_threadinfo_factory& threadinfo_factory,
         sinsp_observer* const& observer,
-        const std::shared_ptr<const sinsp_plugin>& input_plugin,
-        const bool& large_envs_enabled,
         const timestamper& timestamper,
         const int64_t& sinsp_pid,
         const uint64_t& threads_purging_scan_time_ns,
@@ -120,14 +117,10 @@ sinsp_thread_manager::sinsp_thread_manager(
         scap_platform* const& scap_platform,
         scap_t* const& scap_handle,
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
-        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
-        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager):
+        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields):
         built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
-        m_sinsp_mode{sinsp_mode},
         m_threadinfo_factory{threadinfo_factory},
         m_observer{observer},
-        m_input_plugin{input_plugin},
-        m_large_envs_enabled{large_envs_enabled},
         m_timestamper{timestamper},
         m_sinsp_pid{sinsp_pid},
         m_threads_purging_scan_time_ns{threads_purging_scan_time_ns},
@@ -137,8 +130,7 @@ sinsp_thread_manager::sinsp_thread_manager(
         m_scap_handle{scap_handle},
         m_fdtable_dyn_fields{fdtable_dyn_fields},
         m_max_thread_table_size(m_thread_table_default_size),
-        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()),
-        m_usergroup_manager{usergroup_manager} {
+        m_last_proc_lookup_period_start(sinsp_utils::get_current_time_ns()) {
 	clear();
 }
 
