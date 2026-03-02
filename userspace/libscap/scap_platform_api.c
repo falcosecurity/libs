@@ -56,12 +56,9 @@ uint32_t scap_get_device_by_mount_id(struct scap_platform* platform,
 	return 0;
 }
 
-int32_t scap_proc_get(struct scap_platform* platform,
-                      int64_t tid,
-                      struct scap_threadinfo* tinfo,
-                      bool scan_sockets) {
+int32_t scap_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets) {
 	if(platform && platform->m_vtable->get_proc) {
-		return platform->m_vtable->get_proc(platform, tid, tinfo, scan_sockets);
+		return platform->m_vtable->get_proc(platform, tid, scan_sockets);
 	}
 
 	return SCAP_FAILURE;

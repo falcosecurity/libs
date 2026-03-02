@@ -606,17 +606,15 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
+		auto* platform = param.m_inspector->get_scap_platform();
 
 		if(type == PPME_SYSCALL_NANOSLEEP_X) {
 			if(callnum == 0) {
-				scap_threadinfo scap_proc;
-
-				auto rc =
-				        scap_proc_get(param.m_inspector->get_scap_platform(), 0, &scap_proc, false);
+				auto rc = scap_proc_get(platform, 0, false);
 				EXPECT_NE(SCAP_SUCCESS, rc);
 
 				int64_t tid = e->get_tid();
-				rc = scap_proc_get(param.m_inspector->get_scap_platform(), tid, &scap_proc, false);
+				rc = scap_proc_get(platform, tid, false);
 				EXPECT_EQ(SCAP_SUCCESS, rc);
 			} else {
 				scap_threadinfo scap_proc;
@@ -628,10 +626,7 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 				//
 				// try with scan_sockets=true
 				//
-				auto rc = scap_proc_get(param.m_inspector->get_scap_platform(),
-				                        tid,
-				                        &scap_proc,
-				                        false);
+				auto rc = scap_proc_get(platform, tid, false);
 				EXPECT_EQ(SCAP_SUCCESS, rc);
 
 				HASH_ITER(hh, scap_proc.fdlist, fdi, tfdi) {
@@ -645,7 +640,7 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 				//
 				// try with scan_sockets=false
 				//
-				rc = scap_proc_get(param.m_inspector->get_scap_platform(), tid, &scap_proc, true);
+				rc = scap_proc_get(platform, tid, true);
 				EXPECT_EQ(SCAP_SUCCESS, rc);
 
 				HASH_ITER(hh, scap_proc.fdlist, fdi, tfdi) {

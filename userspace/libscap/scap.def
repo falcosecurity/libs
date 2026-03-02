@@ -30,7 +30,6 @@ EXPORTS
 		scap_get_event_category_from_event
 		scap_get_ppm_sc_name
 		scap_proc_get
-		scap_proc_free
 		scap_start_capture
 		scap_get_machine_info
 		scap_get_agent_info

@@ -1804,16 +1804,15 @@ TEST_F(sys_call_test32, fs_preadv) {
 
 extern "C" {
 int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
+                              struct scap_proclist* proclist,
                               char* procdirname,
                               uint64_t tid,
-                              struct scap_threadinfo* tinfo,
                               char* error,
                               bool scan_sockets);
 }
 
 TEST_F(sys_call_test, thread_lookup_static) {
 	char err_buf[SCAP_LASTERR_SIZE];
-	scap_threadinfo scap_tinfo;
 	char proc[] = LIBSINSP_TEST_RESOURCES_PATH "/_proc";
 	struct stat s = {};
 	if(stat(proc, &s) != 0) {
@@ -1826,28 +1825,33 @@ TEST_F(sys_call_test, thread_lookup_static) {
 	};
 	run_callback_t test = [&](sinsp* inspector) { return; };
 	captured_event_callback_t callback = [&](const callback_param& param) {
-		auto* platform = (scap_linux_platform*)param.m_inspector->get_scap_platform();
+		auto* platform = param.m_inspector->get_scap_platform();
+		auto* linux_platform = reinterpret_cast<struct scap_linux_platform*>(platform);
+		auto* proclist = &platform->m_proclist;
 		ASSERT_EQ(SCAP_SUCCESS,
-		          scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
+		          scap_proc_read_thread(linux_platform, proclist, proc, 1, err_buf, false));
+		auto tinfo = param.m_inspector->m_thread_manager->find_thread(1, true);
 
-		EXPECT_EQ(1, scap_tinfo.tid);
-		EXPECT_EQ(1, scap_tinfo.pid);
-		EXPECT_EQ(1, scap_tinfo.vtid);
-		EXPECT_EQ(0, scap_tinfo.ptid);
-
-		ASSERT_EQ(SCAP_SUCCESS,
-		          scap_proc_read_thread(platform, proc, 62725, &scap_tinfo, err_buf, false));
-		EXPECT_EQ(62725, scap_tinfo.tid);
-		EXPECT_EQ(62725, scap_tinfo.pid);
-		EXPECT_EQ(62725, scap_tinfo.vtid);
-		EXPECT_EQ(1, scap_tinfo.ptid);
+		EXPECT_EQ(1, tinfo->m_tid);
+		EXPECT_EQ(1, tinfo->m_pid);
+		EXPECT_EQ(1, tinfo->m_vtid);
+		EXPECT_EQ(0, tinfo->m_ptid);
 
 		ASSERT_EQ(SCAP_SUCCESS,
-		          scap_proc_read_thread(platform, proc, 62727, &scap_tinfo, err_buf, false));
-		EXPECT_EQ(62727, scap_tinfo.tid);
-		EXPECT_EQ(62725, scap_tinfo.pid);
-		EXPECT_EQ(62727, scap_tinfo.vtid);
-		EXPECT_EQ(1, scap_tinfo.ptid);
+		          scap_proc_read_thread(linux_platform, proclist, proc, 62725, err_buf, false));
+		tinfo = param.m_inspector->m_thread_manager->find_thread(62725, true);
+		EXPECT_EQ(62725, tinfo->m_tid);
+		EXPECT_EQ(62725, tinfo->m_pid);
+		EXPECT_EQ(62725, tinfo->m_vtid);
+		EXPECT_EQ(1, tinfo->m_ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS,
+		          scap_proc_read_thread(linux_platform, proclist, proc, 62727, err_buf, false));
+		tinfo = param.m_inspector->m_thread_manager->find_thread(62727, true);
+		EXPECT_EQ(62727, tinfo->m_tid);
+		EXPECT_EQ(62725, tinfo->m_pid);
+		EXPECT_EQ(62727, tinfo->m_vtid);
+		EXPECT_EQ(1, tinfo->m_ptid);
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
@@ -1855,7 +1859,6 @@ TEST_F(sys_call_test, thread_lookup_static) {
 
 TEST_F(sys_call_test, thread_lookup_live) {
 	char err_buf[SCAP_LASTERR_SIZE];
-	scap_threadinfo scap_tinfo;
 	char proc[] = "/proc";
 
 	std::unordered_set<int64_t> seen_tids;
@@ -1877,44 +1880,61 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		fprintf(stderr, "looking up tid %ld in /proc\n", tid);
 		// In some cases scap_proc_read_thread can return SCAP_SUCCESS without
 		// filling in scap_tinfo
-		if(scap_proc_read_thread((scap_linux_platform*)param.m_inspector->get_scap_platform(),
-		                         proc,
-		                         tid,
-		                         &scap_tinfo,
-		                         err_buf,
-		                         false) == SCAP_SUCCESS) {
-			auto tinfo = e->get_thread_info();
+		auto* platform = param.m_inspector->get_scap_platform();
+		auto* linux_platform = reinterpret_cast<struct scap_linux_platform*>(platform);
+		auto* proclist = &platform->m_proclist;
+
+		// note: the memory pointed by the event thread pointer will be invalidated by the call to
+		// `sinsp_thread_manager::add_thread()` performed by `sinsp::on_new_entry_from_proc()`, as a
+		// result of calling `scap_proc_read_thread()`. For this reason, make a copy of all the
+		// parameters we are going to check before calling `scap_proc_read_thread()`.
+		const auto evt_tinfo = e->get_thread_info();
+		if(!evt_tinfo) {
+			return;
+		}
+
+		const auto evt_thread_tid = evt_tinfo->m_tid;
+		const auto evt_thread_pid = evt_tinfo->m_pid;
+		const auto evt_thread_vtid = evt_tinfo->m_vtid;
+
+		if(scap_proc_read_thread(linux_platform, proclist, proc, tid, err_buf, false) ==
+		   SCAP_SUCCESS) {
+			const auto tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
 			if(!tinfo) {
 				return;
 			}
-			EXPECT_NE(0, scap_tinfo.tid);
-			EXPECT_NE(0, scap_tinfo.pid);
-			EXPECT_NE(0, scap_tinfo.vtid);
-			EXPECT_EQ(tinfo->m_tid, scap_tinfo.tid);
-			EXPECT_EQ(tinfo->m_pid, scap_tinfo.pid);
-			EXPECT_EQ(tinfo->m_vtid, scap_tinfo.vtid);
-			// Not testing scap_tinfo.ptid because it can change in between event and lookup
+			EXPECT_NE(0, tinfo->m_tid);
+			EXPECT_NE(0, tinfo->m_pid);
+			EXPECT_NE(0, tinfo->m_vtid);
+			EXPECT_EQ(evt_thread_tid, tinfo->m_tid);
+			EXPECT_EQ(evt_thread_pid, tinfo->m_pid);
+			EXPECT_EQ(evt_thread_vtid, tinfo->m_vtid);
+			// Do not test tinfo->m_ptid because it can change in between event and lookup.
 		}
 	};
 
 	after_capture_t after_capture = [&](sinsp* inspector) {
 		// close scap to maintain the num_consumers at exit == 0 assertion
 		// close_capture(scap, platform);
-		auto platform = (scap_linux_platform*)inspector->get_scap_platform();
+		auto* platform = inspector->get_scap_platform();
+		auto* linux_platform = reinterpret_cast<struct scap_linux_platform*>(platform);
+		auto* proclist = &platform->m_proclist;
 
 		ASSERT_EQ(SCAP_SUCCESS,
-		          scap_proc_read_thread(platform, proc, getpid(), &scap_tinfo, err_buf, false));
-		EXPECT_EQ(getpid(), scap_tinfo.tid);
-		EXPECT_EQ(getpid(), scap_tinfo.pid);
-		EXPECT_EQ(getpid(), scap_tinfo.vtid);
-		EXPECT_EQ(getppid(), scap_tinfo.ptid);
+		          scap_proc_read_thread(linux_platform, proclist, proc, getpid(), err_buf, false));
+		auto tinfo = inspector->m_thread_manager->find_thread(getpid(), true);
+		EXPECT_EQ(getpid(), tinfo->m_tid);
+		EXPECT_EQ(getpid(), tinfo->m_pid);
+		EXPECT_EQ(getpid(), tinfo->m_vtid);
+		EXPECT_EQ(getppid(), tinfo->m_ptid);
 
 		ASSERT_EQ(SCAP_SUCCESS,
-		          scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
-		EXPECT_EQ(1, scap_tinfo.tid);
-		EXPECT_EQ(1, scap_tinfo.pid);
-		EXPECT_EQ(1, scap_tinfo.vtid);
-		EXPECT_EQ(0, scap_tinfo.ptid);
+		          scap_proc_read_thread(linux_platform, proclist, proc, 1, err_buf, false));
+		tinfo = inspector->m_thread_manager->find_thread(1, true);
+		EXPECT_EQ(1, tinfo->m_tid);
+		EXPECT_EQ(1, tinfo->m_pid);
+		EXPECT_EQ(1, tinfo->m_vtid);
+		EXPECT_EQ(0, tinfo->m_ptid);
 	};
 
 	ASSERT_NO_FATAL_FAILURE({

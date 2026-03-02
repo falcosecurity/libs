@@ -58,10 +58,7 @@ struct scap_platform_vtable {
 	                                   const char* procdir,
 	                                   unsigned long requested_mount_id);
 
-	int32_t (*get_proc)(struct scap_platform*,
-	                    int64_t tid,
-	                    struct scap_threadinfo* tinfo,
-	                    bool scan_sockets);
+	int32_t (*get_proc)(struct scap_platform*, int64_t tid, bool scan_sockets);
 
 	int32_t (*refresh_proc_table)(struct scap_platform*, struct scap_proclist* proclist);
 	bool (*is_thread_alive)(struct scap_platform*, int64_t pid, int64_t tid, const char* comm);
