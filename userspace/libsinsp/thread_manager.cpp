@@ -908,19 +908,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 			return m_nullptr_tinfo_ret;
 		}
 
-		scap_threadinfo scap_proc{};
-		bool have_scap_proc = false;
-
-		// leaving scap_proc uninitialized could lead to undefined behaviour.
-		// to be safe we should initialized to zero.
-		memset(&scap_proc, 0, sizeof(scap_threadinfo));
-
-		scap_proc.tid = -1;
-		scap_proc.pid = -1;
-		scap_proc.ptid = -1;
-
-		// unfortunately, sinsp owns the threade factory
-		auto newti = m_threadinfo_factory.create();
+		bool thread_fetched = false;
 
 		if(main_thread) {
 			m_n_main_thread_lookups++;
@@ -933,9 +921,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 			}
 
 			const uint64_t ts_start = sinsp_utils::get_current_time_ns();
-			if(scap_proc_get(m_scap_platform, tid, &scap_proc, scan_sockets) == SCAP_SUCCESS) {
-				have_scap_proc = true;
-			}
+			thread_fetched = scap_proc_get(m_scap_platform, tid, scan_sockets) == SCAP_SUCCESS;
 			const uint64_t ts_end = sinsp_utils::get_current_time_ns();
 
 			m_n_proc_lookups_duration_ns += (ts_end - ts_start);
@@ -951,39 +937,22 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 			}
 		}
 
-		if(have_scap_proc) {
-			newti->init(scap_proc, is_large_envs_enabled());
-			// we haven't run container detection yet, so use an empty container_id
-			// and hope the usergroup_updater fixes it later
-			m_usergroup_manager->add_user("",
-			                              newti->m_pid,
-			                              newti->m_uid,
-			                              newti->m_gid,
-			                              must_notify_thread_user_update());
-			m_usergroup_manager->add_group("",
-			                               newti->m_pid,
-			                               newti->m_gid,
-			                               must_notify_thread_user_update());
-		} else {
-			//
-			// Add a fake entry to avoid a continuous lookup
-			//
-			newti->m_tid = tid;
-			newti->m_pid = -1;
-			newti->m_ptid = -1;
-			newti->m_reaper_tid = -1;
-			newti->m_not_expired_children = 0;
-			newti->m_comm = "<NA>";
-			newti->m_exe = "<NA>";
-			newti->m_uid = 0xffffffff;
-			newti->m_gid = 0xffffffff;
-			newti->m_loginuid = 0xffffffff;
+		// Add a fake entry to avoid a continuous lookup.
+		if(!thread_fetched) {
+			auto fake_tinfo = m_threadinfo_factory.create();
+			fake_tinfo->m_tid = tid;
+			fake_tinfo->m_pid = -1;
+			fake_tinfo->m_ptid = -1;
+			fake_tinfo->m_reaper_tid = -1;
+			fake_tinfo->m_not_expired_children = 0;
+			fake_tinfo->m_comm = "<NA>";
+			fake_tinfo->m_exe = "<NA>";
+			fake_tinfo->m_uid = 0xffffffff;
+			fake_tinfo->m_gid = 0xffffffff;
+			fake_tinfo->m_loginuid = 0xffffffff;
+			add_thread(std::move(fake_tinfo), true);
 		}
 
-		//
-		// Done. Add the new thread to the list.
-		//
-		add_thread(std::move(newti), true);
 		return find_thread(tid, lookup_only);
 	}
 

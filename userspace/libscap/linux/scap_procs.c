@@ -1043,54 +1043,28 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	return res;
 }
 
-static int32_t single_thread_proc_callback(void* context,
-                                           char* error,
-                                           int64_t tid,
-                                           scap_threadinfo* tinfo,
-                                           scap_fdinfo* fdinfo,
-                                           scap_threadinfo** new_tinfo) {
-	scap_threadinfo* out_proc = (scap_threadinfo*)context;
-
-	*out_proc = *tinfo;
-	if(new_tinfo) {
-		*new_tinfo = out_proc;
-	}
-	return SCAP_SUCCESS;
-}
-
-//
-// Read a single thread info from /proc
-//
+// Read a single thread from the provided proc dir.
 int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
+                              struct scap_proclist* proclist,
                               char* procdirname,
                               uint64_t tid,
-                              struct scap_threadinfo* tinfo,
                               char* error,
                               bool scan_sockets) {
-	struct scap_proclist single_thread_proclist;
-
-	init_proclist(&single_thread_proclist,
-	              (scap_proc_callbacks){default_refresh_start_end_callback,
-	                                    default_refresh_start_end_callback,
-	                                    single_thread_proc_callback,
-	                                    tinfo});
-
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
-	int32_t res;
 	char add_error[SCAP_LASTERR_SIZE];
 
 	if(!scan_sockets) {
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(linux_platform,
-	                              &single_thread_proclist,
-	                              tid,
-	                              procdirname,
-	                              &sockets_by_ns,
-	                              NULL,
-	                              add_error);
+	const int32_t res = scap_proc_add_from_proc(linux_platform,
+	                                            proclist,
+	                                            tid,
+	                                            procdirname,
+	                                            &sockets_by_ns,
+	                                            NULL,
+	                                            add_error);
 	if(res != SCAP_SUCCESS) {
 		scap_errprintf(error,
 		               0,
@@ -1361,19 +1335,16 @@ int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t* pid, c
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_linux_proc_get(struct scap_platform* platform,
-                            int64_t tid,
-                            struct scap_threadinfo* tinfo,
-                            bool scan_sockets) {
+int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets) {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 
 	return scap_proc_read_thread(linux_platform,
+	                             &platform->m_proclist,
 	                             filename,
 	                             tid,
-	                             tinfo,
 	                             linux_platform->m_lasterr,
 	                             scan_sockets);
 }
