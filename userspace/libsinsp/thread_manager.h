@@ -62,7 +62,7 @@ public:
 	void clear();
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
-	                                          bool from_scap_proctable);
+	                                          bool must_create_thread_dependencies);
 
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
@@ -193,7 +193,7 @@ public:
 		}
 		entry.release();
 		tinfo->m_tid = key;
-		return add_thread(std::unique_ptr<sinsp_threadinfo>(tinfo), false);
+		return add_thread(std::unique_ptr<sinsp_threadinfo>(tinfo), true);
 	}
 
 	bool erase_entry(const int64_t& key) override {

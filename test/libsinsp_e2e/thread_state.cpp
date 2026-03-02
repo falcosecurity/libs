@@ -42,7 +42,7 @@ protected:
 			thr->m_tid = pid;
 			thr->m_ptid = ppid;
 
-			thread_manager->add_thread(std::move(thr), false);
+			thread_manager->add_thread(std::move(thr), true);
 			sinsp_threadinfo* tinfo = thread_manager->find_thread(pid, true).get();
 
 			m_threads.push_back(tinfo);

@@ -230,14 +230,9 @@ void sinsp_thread_manager::create_thread_dependencies(
 	parent_thread->add_child(tinfo);
 }
 
-/* Can be called when:
- * 1. We crafted a new event to create in clone parsers. (`from_scap_proctable==false`)
- * 2. We are doing a proc scan with a callback or without. (`from_scap_proctable==true`)
- * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
- */
 const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
         std::unique_ptr<sinsp_threadinfo> threadinfo,
-        bool from_scap_proctable) {
+        const bool must_create_thread_dependencies) {
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size && threadinfo->m_pid != m_sinsp_pid) {
 		if(m_sinsp_stats_v2 != nullptr) {
@@ -258,7 +253,7 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 
 	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(std::move(threadinfo));
 
-	if(!from_scap_proctable) {
+	if(must_create_thread_dependencies) {
 		create_thread_dependencies(tinfo_shared_ptr);
 	}
 
@@ -988,7 +983,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 		//
 		// Done. Add the new thread to the list.
 		//
-		add_thread(std::move(newti), false);
+		add_thread(std::move(newti), true);
 		return find_thread(tid, lookup_only);
 	}
 
