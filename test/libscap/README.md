@@ -18,3 +18,12 @@ From the build directory:
 ```bash
 sudo ./test/libscap/libscap_test
 ```
+
+## Fuzz harnesses
+
+In-tree `libscap` fuzz harness sources live under:
+
+- `test/libscap/fuzz/`
+
+They are intended for external fuzzing integrations (for example OSS-Fuzz) and
+are not part of default CMake test targets in this first pass.
