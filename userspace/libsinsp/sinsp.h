@@ -900,6 +900,8 @@ private:
 
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
+	bool m_is_full_procfs_scan_in_progress = false;
+
 	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source

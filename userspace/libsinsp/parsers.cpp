@@ -1012,7 +1012,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 
 	/* Until we use the shared pointer we need it here, after we can move it at the end */
-	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), false);
+	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), true);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		return;
@@ -1377,7 +1377,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
 	/* Add the new thread to the table */
-	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), false);
+	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), true);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		evt.set_tinfo(nullptr);

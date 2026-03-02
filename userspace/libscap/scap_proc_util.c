@@ -30,6 +30,7 @@ int32_t scap_proc_scan_vtable(char *error,
 	uint32_t res = SCAP_SUCCESS;
 	uint64_t i;
 
+	proclist->m_callbacks.m_refresh_start_cb(proclist->m_callbacks.m_callback_context);
 	for(i = 0; i < n_tinfos; i++) {
 		// we need a copy because tinfos is const
 		// note: we drop the copy, so we lose the filtering information (tinfo->filtered_out)
@@ -70,6 +71,7 @@ int32_t scap_proc_scan_vtable(char *error,
 			                                      NULL);
 		}
 	}
+	proclist->m_callbacks.m_refresh_end_cb(proclist->m_callbacks.m_callback_context);
 
 	return SCAP_SUCCESS;
 }
