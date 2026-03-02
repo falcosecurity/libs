@@ -56,7 +56,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_no_children) {
 	/* The reaper of p5_t1_tinfo should be always -1, p5_t1 has no children so we don't set it */
 	auto p5_t1_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t1_tinfo);
-	ASSERT_EQ(p5_t1_tinfo->m_reaper_tid, -1);
+	ASSERT_EQ(p5_t1_tinfo->get_reaper_tid(), -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t1_tid, PPM_CL_CLOSED, true);
 
 	/* p5_t1 should be in `m_tid_to_remove` */
@@ -80,7 +80,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_reaper_0) {
 
 	auto p5_t2_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t2_tinfo);
-	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, 0);
+	ASSERT_EQ(p5_t2_tinfo->get_reaper_tid(), 0);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
 
 	/* p5_t1 should be in `m_tid_to_remove` */
@@ -104,7 +104,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_negative_reaper) {
 
 	auto p5_t2_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t2_tinfo);
-	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, -1);
+	ASSERT_EQ(p5_t2_tinfo->get_reaper_tid(), -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
@@ -137,7 +137,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread) {
 
 	p5_t2_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t2_tinfo);
-	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, -1);
+	ASSERT_EQ(p5_t2_tinfo->get_reaper_tid(), -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
@@ -159,7 +159,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper) {
 
 	auto p5_t2_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t2_tinfo);
-	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, 8000);
+	ASSERT_EQ(p5_t2_tinfo->get_reaper_tid(), 8000);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
@@ -188,7 +188,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_no_reaper) {
 
 	auto p5_t2_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t2_tinfo);
-	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, -1);
+	ASSERT_EQ(p5_t2_tinfo->get_reaper_tid(), -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }

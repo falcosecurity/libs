@@ -63,20 +63,20 @@ sinsp_buffer_t SINSP_INVALID_BUFFER_HANDLE = 0;
 struct sinsp_evt_filter {
 	bool do_filter_later;
 	sinsp_evt* evt;
+	sinsp_filter* filter;
 
-	explicit sinsp_evt_filter(sinsp_evt* e): do_filter_later(false), evt(e) {
-		//
-		// Filtering
-		//
+	static bool run_filter(sinsp_filter* f, sinsp_evt* e) { return f && f->run(e); }
+
+	sinsp_evt_filter(sinsp_evt* e, sinsp_filter* buf_filter):
+	        do_filter_later(false),
+	        evt(e),
+	        filter(buf_filter) {
 		const auto inspector = evt->get_inspector();
 		const bool is_live = inspector->is_live() || inspector->is_syscall_plugin();
 		const uint16_t etype = evt->get_type();
 
 		evt->set_filtered_out(false);
 
-		//
-		// When debug mode is not enabled, filter out events about itself
-		//
 		if(is_live && !inspector->is_debug_enabled()) {
 			if(evt->get_tid() == inspector->m_self_pid && etype != PPME_SCHEDSWITCH_6_E &&
 			   etype != PPME_DROP_E && etype != PPME_DROP_X && etype != PPME_SCAPEVENT_E &&
@@ -86,12 +86,12 @@ struct sinsp_evt_filter {
 			}
 		}
 
-		if(inspector->m_filter) {
+		if(filter) {
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_MODIFIES_STATE) {
 				do_filter_later = true;
 			} else {
-				if(!inspector->run_filters_on_evt(evt)) {
+				if(!run_filter(filter, evt)) {
 					if(evt->get_tinfo() != nullptr) {
 						if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E)) {
 							evt->get_tinfo()->set_lastevent_type(PPM_EVENT_MAX);
@@ -104,16 +104,12 @@ struct sinsp_evt_filter {
 	}
 
 	~sinsp_evt_filter() {
-		// Some syscall enter events are still used by the parser for different purposes. At this
-		// point, these events have been already used, and can safely be dropped.
 		switch(evt->get_type()) {
-			// Enter events for TOCTOU mitigation.
 		case PPME_SYSCALL_OPEN_E:
 		case PPME_SYSCALL_OPENAT_2_E:
 		case PPME_SYSCALL_OPENAT2_E:
 		case PPME_SYSCALL_CREAT_E:
 		case PPME_SOCKET_CONNECT_E:
-			// Enter events providing a fallback mechanism for exit events' empty parameters.
 		case PPME_SYSCALL_EXECVE_19_E:
 		case PPME_SYSCALL_EXECVEAT_E:
 			evt->set_filtered_out(true);
@@ -122,24 +118,15 @@ struct sinsp_evt_filter {
 			break;
 		}
 
-		//
-		// With some state-changing events like clone, execve and open, we do the
-		// filtering after having updated the state
-		//
-		const auto inspector = evt->get_inspector();
 		if(do_filter_later) {
-			if(!inspector->run_filters_on_evt(evt)) {
+			if(!run_filter(filter, evt)) {
 				evt->set_filtered_out(true);
 				return;
 			}
 			evt->set_filtered_out(false);
 		}
 
-		//
-		// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
-		// supposed to go through the engine, but they must be filtered out before
-		// reaching the user.
-		//
+		const auto inspector = evt->get_inspector();
 		if(inspector->is_capture()) {
 			if(evt->get_dump_flags() & SCAP_DF_STATE_ONLY) {
 				evt->set_filtered_out(true);
@@ -985,7 +972,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 		                               must_notify_thread_user_update());
 		if(is_nodriver()) {
 			auto existing_tinfo = find_thread(tid, true);
-			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts) {
+			if(existing_tinfo == nullptr ||
+			   newti->get_clone_ts() > existing_tinfo->get_clone_ts()) {
 				sinsp_tinfo = m_thread_manager->add_thread(std::move(newti),
 				                                           must_create_thread_dependencies);
 			}
@@ -1009,7 +997,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 			// we have no guarantee that an event referencing them will actually
 			// ever occur, so we simulate an internal event right away and
 			// see if it gets filtered out or not.
-			sinsp_tinfo->m_filtered_out = false;
+			sinsp_tinfo->set_filtered_out(false);
 			if(m_filter != nullptr && is_capture()) {
 				// note: the choice of PPME_SCAPEVENT_E is opinionated as by
 				// nature it will always pass filters using "evt.type=scapevent".
@@ -1056,10 +1044,10 @@ void sinsp::on_new_entry_from_proc(void* context,
 				tevt.set_tinfo(sinsp_tinfo.get());
 				tevt.set_fdinfo_ref(nullptr);
 				tevt.set_fd_info(nullptr);
-				sinsp_tinfo->m_lastevent_fd = -1;
+				sinsp_tinfo->set_lastevent_fd((int64_t)-1);
 				sinsp_tinfo->set_last_event_data(nullptr);
 
-				sinsp_tinfo->m_filtered_out = !m_filter->run(&tevt);
+				sinsp_tinfo->set_filtered_out(!m_filter->run(&tevt));
 			}
 
 			// we shouldn't see any fds yet
@@ -1127,13 +1115,13 @@ void sinsp::on_new_entry_from_proc(void* context,
 			tevt.set_tinfo(sinsp_tinfo.get());
 			tevt.set_fdinfo_ref(nullptr);
 			tevt.set_fd_info(added_fdinfo);
-			int64_t tlefd = sinsp_tinfo->m_lastevent_fd;
-			sinsp_tinfo->m_lastevent_fd = fdinfo->fd;
+			int64_t tlefd = sinsp_tinfo->get_lastevent_fd();
+			sinsp_tinfo->set_lastevent_fd(fdinfo->fd);
 
 			if(m_filter->run(&tevt)) {
 				// we mark the thread info as non-filterable due to one event
 				// using one of its file descriptor has passed the filter
-				sinsp_tinfo->m_filtered_out = false;
+				sinsp_tinfo->set_filtered_out(false);
 			} else {
 				// we can't say if the thread info for this fd is filterable or not,
 				// but we can mark the given file descriptor as filterable. This flag
@@ -1141,7 +1129,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 				fdinfo->type = SCAP_FD_UNINITIALIZED;
 			}
 
-			sinsp_tinfo->m_lastevent_fd = tlefd;
+			sinsp_tinfo->set_lastevent_fd(tlefd);
 			sinsp_tinfo->set_last_event_data(nullptr);
 		}
 	}
@@ -1391,56 +1379,54 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer) {
 //   check m_next_flush_time_ns and m_last_procrequest_tod
 // TODO(ekoops): m_auto_threads_purging doesn't seem to be mutated after the inspector is opened.
 int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
-	std::unique_lock ul{m_global_next_mutex};
 	*puevt = nullptr;
 
 	auto& buffer = m_buffers.at(buffer_h);
 	sinsp_evt* evt = &buffer.m_evt;
+	const bool is_default_buffer = IS_DEFAULT_SINSP_BUFFER(buffer);
 
-	// fetch the next event
 	int32_t res = fetch_next_event(evt, buffer);
 
-	// if we fetched an event successfully, check if we need to suppress
-	// it from userspace and update the result status
 	if(res == SCAP_SUCCESS) {
 		res = m_suppress.process_event(evt->get_scap_evt());
 	}
 
-	// in case we don't succeed, handle each scenario and return
 	if(res != SCAP_SUCCESS) {
-		if(res == SCAP_TIMEOUT) {
-			if(m_external_event_processor) {
-				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_TIMEOUT);
-			}
-		} else if(res == SCAP_EOF) {
-			if(m_external_event_processor) {
-				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_EOF);
-			}
-			*puevt = evt;
-		} else if(res == SCAP_UNEXPECTED_BLOCK) {
-			// This mostly happens in concatenated scap files, where an unexpected block
-			// represents the end of a file and the start of the next appended one.
-			// In this case, we restart the capture so that the internal states gets reset
-			// and the blocks coming from the next appended file get consumed.
-			restart_capture();
-			res = SCAP_TIMEOUT;
-		} else if(res == SCAP_FILTERED_EVENT) {
-			// This will happen if SCAP has filtered the event in userspace (tid suppression or scap
-			// converter internal dropping logic). A valid event was read from the driver, but we
-			// are choosing to not report it to the client at the client's request. However, we
-			// still need to return here so that the client doesn't time out the request.
-			if(m_external_event_processor) {
-				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_FILTERED);
+		if(is_default_buffer) {
+			if(res == SCAP_TIMEOUT) {
+				if(m_external_event_processor) {
+					m_external_event_processor->process_event(nullptr,
+					                                          libsinsp::EVENT_RETURN_TIMEOUT);
+				}
+			} else if(res == SCAP_EOF) {
+				if(m_external_event_processor) {
+					m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_EOF);
+				}
+				*puevt = evt;
+			} else if(res == SCAP_UNEXPECTED_BLOCK) {
+				restart_capture();
+				res = SCAP_TIMEOUT;
+			} else if(res == SCAP_FILTERED_EVENT) {
+				if(m_external_event_processor) {
+					m_external_event_processor->process_event(nullptr,
+					                                          libsinsp::EVENT_RETURN_FILTERED);
+				}
+			} else {
+				buffer.m_lasterr = scap_getlasterr(m_h);
 			}
 		} else {
-			// TODO: expose scap_getlasterr_per_buffer
-			buffer.m_lasterr = scap_getlasterr(m_h);
+			if(res == SCAP_EOF) {
+				*puevt = evt;
+			} else if(res == SCAP_UNEXPECTED_BLOCK) {
+				res = SCAP_TIMEOUT;
+			} else if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT) {
+				buffer.m_lasterr = scap_getlasterr(m_h);
+			}
 		}
 
 		return res;
 	}
 
-	/* Here we shouldn't receive unknown events */
 	ASSERT(!libsinsp::events::is_unknown_event((ppm_event_code)evt->get_type()));
 
 	const uint64_t ts = evt->get_ts();
@@ -1451,44 +1437,33 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 	}
 	s_firstevent_ts = buffer.m_firstevent_ts;
 
-	// If required, retrieve the processes cpu from the kernel
-	// (default buffer only)
-	if(/*IS_DEFAULT_SINSP_BUFFER(buffer) &&*/ m_get_procs_cpu_from_driver && is_live()) {
+	if(is_default_buffer && m_get_procs_cpu_from_driver && is_live()) {
 		get_procs_cpu_from_driver(ts);
 	}
 
-	// Store a couple of values that we'll need later inside the event.
-	// These are potentially used both for parsing the event for internal
-	// state management. Per-buffer counts avoid contended atomics.
 	buffer.m_nevts++;
 	evt->set_num(buffer.m_nevts + m_nevts_base);
 	set_lastevent_ts(ts);
 
-	if(/*IS_DEFAULT_SINSP_BUFFER(buffer) &&*/ m_auto_threads_purging) {
-		//
-		// Delayed removal of threads from the thread table, so that
-		// things like exit() or close() can be parsed.
-		//
+	if(m_auto_threads_purging) {
 		if(buffer.m_parser_verdict.must_remove_tid()) {
 			const auto tid = buffer.m_parser_verdict.get_tid_to_remove();
 			int64_t ptid = -1;
 			// TODO: handle m_thread_manager concurrent accesses.
 			const auto& tinfo_ptr = m_thread_manager->find_thread(tid, true);
 			if(tinfo_ptr) {
-				ptid = tinfo_ptr->m_ptid;
+				ptid = tinfo_ptr->get_ptid();
 			}
 			m_thread_manager->record_recently_exited(tid, ptid, ts);
 			m_thread_manager->remove_thread(tid);
 			buffer.m_parser_verdict.clear_tid_to_remove();
 		}
-		// TODO: should this only be executed by the default buffer?
-		if(!is_offline()) {
+		if(is_default_buffer && !is_offline()) {
 			m_thread_manager->remove_inactive_threads();
 		}
 	}
 
-	if(/*IS_DEFAULT_SINSP_BUFFER(buffer) &&*/ m_auto_stats_print && is_debug_enabled() &&
-	   is_live()) {
+	if(is_default_buffer && m_auto_stats_print && is_debug_enabled() && is_live()) {
 		if(ts > m_next_stats_print_time_ns) {
 			if(m_next_stats_print_time_ns) {
 				print_capture_stats(sinsp_logger::SEV_DEBUG);
@@ -1498,15 +1473,7 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 		}
 	}
 
-	//
-	// TODO(ekoops): using this queue breaks analyzer assumptions.
-	//   broken assumption: Delayed removal of the fd, so that
-	//						 things like exit() or close() can be parsed.
-	//
 	if(buffer.m_parser_verdict.must_remove_fds()) {
-		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread
-		 * to remove we are fine.
-		 */
 		const auto tid_of_fds_to_remove = buffer.m_parser_verdict.get_tid_of_fds_to_remove();
 		const auto& fds_to_remove = buffer.m_parser_verdict.get_fds_to_remove();
 		if(sinsp_threadinfo* ptinfo =
@@ -1518,28 +1485,17 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 		buffer.m_parser_verdict.clear_fds_to_remove();
 	}
 
-	//
-	// Cleanup the event-related state
-	//
 	buffer.m_parser->reset(*evt);
 
-	// Since evt_filter object below uses RAII, create a new scope.
 	{
-		// Object that uses RAII to enable event filtered out flag
-		sinsp_evt_filter evt_filter(evt);
-		// Object that uses RAII to automatically update user/group associated with a threadinfo
-		// upon threadinfo's container_id changes.
-		// Since the threadinfo state might get changed from a plugin parser,
-		// evaluate this one after all parsers get run.
+		sinsp_filter* active_filter = buffer.m_filter ? buffer.m_filter.get() : m_filter.get();
+		sinsp_evt_filter evt_filter(evt, active_filter);
 		user_group_updater usr_grp_updater(evt,
 		                                   m_plugin_tables,
 		                                   must_notify_thread_user_update(),
 		                                   must_notify_thread_group_update());
 
 		if(!evt->is_filtered_out()) {
-			//
-			// Run the state engine
-			//
 			buffer.m_parser->process_event(*evt, buffer.m_parser_verdict);
 		}
 
@@ -1564,41 +1520,27 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 		}
 	}
 
-	// Finally set output evt;
-	// From now on, any return must have the correct output being set.
 	*puevt = evt;
 
-	//
-	// Run the analysis engine
-	//
-	if(m_external_event_processor && !evt->is_filtered_out()) {
+	if(is_default_buffer && m_external_event_processor && !evt->is_filtered_out()) {
 		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
 	}
 
-	// Clean parse related event data after analyzer did its parsing too
 	sinsp_parser::event_cleanup(*evt);
 
-	//
-	// Update the last event time for this thread
-	//
 	if(evt->get_tinfo() && evt->get_type() != PPME_SCHEDSWITCH_6_E) {
-		evt->get_tinfo()->m_prevevent_ts = evt->get_tinfo()->m_lastevent_ts;
-		evt->get_tinfo()->m_lastevent_ts = m_timestamper.get_cached_ts();
+		evt->get_tinfo()->set_prevevent_ts(evt->get_tinfo()->get_lastevent_ts());
+		evt->get_tinfo()->set_lastevent_ts(m_timestamper.get_cached_ts());
 	}
 
 	if(evt->is_filtered_out()) {
 		ppm_event_category cat = evt->get_category();
 
-		// Skip the event, unless we're in internal events
-		// mode and the category of this event is internal.
 		if(!(m_isinternal_events_enabled && (cat & EC_INTERNAL))) {
 			return SCAP_FILTERED_EVENT;
 		}
 	}
 
-	//
-	// Done
-	//
 	return res;
 }
 
@@ -1615,6 +1557,10 @@ sinsp_buffer_t sinsp::reserve_buffer_handle() {
 		                                                         next,
 		                                                         std::memory_order_acquire,
 		                                                         std::memory_order_relaxed)) {
+			if(!m_filterstring.empty() && !m_buffers[current].m_filter) {
+				sinsp_filter_compiler compiler(this, m_filterstring);
+				m_buffers[current].m_filter = compiler.compile();
+			}
 			return current;
 		}
 	}
@@ -1842,6 +1788,8 @@ void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& 
 
 	m_filter = std::move(filter);
 	m_filterstring = filterstring;
+
+	compile_per_buffer_filters();
 }
 
 void sinsp::set_filter(const std::string& filter) {
@@ -1854,6 +1802,18 @@ void sinsp::set_filter(const std::string& filter) {
 	m_filter = compiler.compile();
 	m_filterstring = filter;
 	m_internal_flt_ast = compiler.get_filter_ast();
+
+	compile_per_buffer_filters();
+}
+
+void sinsp::compile_per_buffer_filters() {
+	if(m_filterstring.empty()) {
+		return;
+	}
+	for(size_t i = 1; i < m_buffers.size(); i++) {
+		sinsp_filter_compiler compiler(this, m_filterstring);
+		m_buffers[i].m_filter = compiler.compile();
+	}
 }
 
 std::string sinsp::get_filter() const {
@@ -2098,11 +2058,11 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 	// 2. Threads that we are not using and that are no more alive in /proc.
 	std::unordered_set<int64_t> to_delete;
 	loop_threads([&to_delete, last_event_ts, this](const sinsp_threadinfo& tinfo) {
-		if(tinfo.is_invalid() || (last_event_ts > tinfo.m_lastaccess_ts + m_thread_timeout_ns &&
+		if(tinfo.is_invalid() || (last_event_ts > tinfo.get_lastaccess_ts() + m_thread_timeout_ns &&
 		                          !scap_is_thread_alive(m_scap_platform,
-		                                                tinfo.m_pid,
+		                                                tinfo.get_pid(),
 		                                                tinfo.m_tid,
-		                                                tinfo.m_comm.c_str()))) {
+		                                                tinfo.get_comm().c_str()))) {
 			to_delete.insert(tinfo.m_tid);
 		}
 		return true;

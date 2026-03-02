@@ -17,6 +17,8 @@ limitations under the License.
 */
 
 #include <cstring>
+#include <mutex>
+#include <shared_mutex>
 
 #include <libsinsp/sinsp_suppress.h>
 #include <libsinsp/sinsp_exception.h>
@@ -26,43 +28,46 @@ limitations under the License.
 #include <libscap/scap_assert.h>
 
 void libsinsp::sinsp_suppress::suppress_comm(const std::string &comm) {
+	std::unique_lock lock(m_mutex);
 	m_suppressed_comms.emplace(comm);
 }
 
 void libsinsp::sinsp_suppress::suppress_tid(uint64_t tid) {
+	std::unique_lock lock(m_mutex);
 	m_suppressed_tids.emplace(tid);
 }
 
 void libsinsp::sinsp_suppress::clear_suppress_comm() {
+	std::unique_lock lock(m_mutex);
 	m_suppressed_comms.clear();
 }
 
 void libsinsp::sinsp_suppress::clear_suppress_tid() {
+	std::unique_lock lock(m_mutex);
 	m_suppressed_tids.clear();
 }
 
 bool libsinsp::sinsp_suppress::check_suppressed_comm(uint64_t tid,
                                                      uint64_t parent_tid,
                                                      const std::string &comm) {
+	std::unique_lock lock(m_mutex);
 	handle_thread(tid, parent_tid, comm);
 
 	if(m_suppressed_comms.find(comm) != m_suppressed_comms.end()) {
 		m_suppressed_tids.insert(tid);
-		m_num_suppressed_events++;
+		m_num_suppressed_events.fetch_add(1, std::memory_order_relaxed);
 		return true;
 	}
 	return false;
 }
 
 int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
-	if(m_suppressed_tids.empty() && m_suppressed_comms.empty()) {
-		// nothing to suppress
-		return SCAP_SUCCESS;
+	{
+		std::shared_lock lock(m_mutex);
+		if(m_suppressed_tids.empty() && m_suppressed_comms.empty()) {
+			return SCAP_SUCCESS;
+		}
 	}
-
-	// For events that can create a new tid (fork, vfork, clone),
-	// we need to check the comm, which might also update the set
-	// of suppressed tids.
 
 	uint64_t tid;
 	memcpy(&tid, &e->tid, sizeof(uint64_t));
@@ -84,13 +89,9 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 
 		ASSERT(e->nparams >= 14);
 		if(e->nparams < 14) {
-			// SCAP_SUCCESS means "do not suppress this event"
 			return SCAP_SUCCESS;
 		}
 
-		// For all of these events, the comm is argument 14,
-		// so we need to walk the list of params that far to
-		// find the comm.
 		for(j = 0; j < 13; j++) {
 			if(j == 5) {
 				ptid_ptr = valptr;
@@ -102,7 +103,6 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 
 		ASSERT(ptid_ptr != nullptr);
 		if(ptid_ptr == nullptr) {
-			// SCAP_SUCCESS means "do not suppress this event"
 			return SCAP_SUCCESS;
 		}
 
@@ -110,10 +110,14 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 
 		uint64_t ptid;
 		memcpy(&ptid, ptid_ptr, sizeof(uint64_t));
-		if(is_suppressed_tid(ptid)) {
-			m_suppressed_tids.insert(tid);
-			m_num_suppressed_events++;
-			return SCAP_FILTERED_EVENT;
+
+		{
+			std::unique_lock lock(m_mutex);
+			if(is_suppressed_tid_unlocked(ptid)) {
+				m_suppressed_tids.insert(tid);
+				m_num_suppressed_events.fetch_add(1, std::memory_order_relaxed);
+				return SCAP_FILTERED_EVENT;
+			}
 		}
 
 		if(check_suppressed_comm(tid, ptid, comm)) {
@@ -123,34 +127,38 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 		return SCAP_SUCCESS;
 	}
 	case PPME_PROCEXIT_1_E: {
+		std::unique_lock lock(m_mutex);
 		if(const auto it = m_suppressed_tids.find(tid); it != m_suppressed_tids.cend()) {
-			// Given that the process is exiting, we remove the
-			// tid from the suppressed tids.
 			m_suppressed_tids.erase(it);
 		}
-		// We don't filter out procexit event otherwise
-		// we'll keep stale threadinfo in the threadtable.
 		return SCAP_SUCCESS;
 	}
 
-	default:
-		if(is_suppressed_tid(tid)) {
-			m_num_suppressed_events++;
+	default: {
+		std::shared_lock lock(m_mutex);
+		if(is_suppressed_tid_unlocked(tid)) {
+			m_num_suppressed_events.fetch_add(1, std::memory_order_relaxed);
 			return SCAP_FILTERED_EVENT;
 		} else {
 			return SCAP_SUCCESS;
 		}
 	}
+	}
 }
 
 bool libsinsp::sinsp_suppress::is_suppressed_tid(uint64_t tid) const {
+	std::shared_lock lock(m_mutex);
+	return is_suppressed_tid_unlocked(tid);
+}
+
+bool libsinsp::sinsp_suppress::is_suppressed_tid_unlocked(uint64_t tid) const {
 	if(tid == 0) {
 		return false;
 	}
 	return m_suppressed_tids.find(tid) != m_suppressed_tids.end();
 }
 void libsinsp::sinsp_suppress::initialize() {
-	// Defensive check — we expect m_tids_tree to be a nullptr
+	std::unique_lock lock(m_mutex);
 	if(m_tids_tree == nullptr) {
 		m_tids_tree = std::make_unique<std::map<uint64_t, tid_tree_node>>();
 	} else {
@@ -179,19 +187,16 @@ void libsinsp::sinsp_suppress::handle_thread(uint64_t tid,
 }
 
 void libsinsp::sinsp_suppress::finalize() {
-	// We generate the suppressed tids from the tid tree.
-	// The tree is built during the /proc scan, so we can
-	// use it to find all the children of a given tid.
+	std::unique_lock lock(m_mutex);
 
 	for(auto it = m_tids_tree->begin(); it != m_tids_tree->end(); it++) {
 		auto &[_, node] = *it;
 
-		if(is_suppressed_tid(node.m_tid)) {
+		if(is_suppressed_tid_unlocked(node.m_tid)) {
 			for(auto child_tid : node.m_children) {
-				suppress_tid(child_tid);
+				m_suppressed_tids.emplace(child_tid);
 			}
 		}
 	}
-	// delete the map. We don't need it anymore.
 	m_tids_tree.reset(nullptr);
 }

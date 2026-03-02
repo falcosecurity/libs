@@ -306,6 +306,8 @@ public:
 	*/
 	void set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& filterstring = "");
 
+	void compile_per_buffer_filters();
+
 	/*!
 	  \brief Return the filter set for this capture.
 

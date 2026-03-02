@@ -290,16 +290,16 @@ struct user_group_updater {
 			if(container_id != m_container_id) {
 				// Refresh user/group
 				usergroup_manager->add_group(container_id,
-				                             tinfo->m_pid,
-				                             tinfo->m_gid,
+				                             tinfo->get_pid(),
+				                             tinfo->get_gid(),
 				                             m_must_notify_group_update);
 				usergroup_manager->add_user(container_id,
-				                            tinfo->m_pid,
-				                            tinfo->m_uid,
-				                            tinfo->m_gid,
+				                            tinfo->get_pid(),
+				                            tinfo->get_uid(),
+				                            tinfo->get_gid(),
 				                            m_must_notify_user_update);
 			} else if(m_check_cleanup && !container_id.empty()) {
-				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
+				if(tinfo->get_vtid() == tinfo->get_vpid() && tinfo->get_vpid() == 1) {
 					// main container process left, clean up user and groups for the container
 					if(inspector->m_usergroup_manager->m_import_users &&
 					   (inspector->is_live() || inspector->is_syscall_plugin())) {

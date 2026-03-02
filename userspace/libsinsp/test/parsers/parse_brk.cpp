@@ -37,9 +37,9 @@ TEST_F(sinsp_with_test_input, parse_brk_updated_prog_break) {
 
 	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
-	ASSERT_EQ(init_tinfo->m_vmsize_kb, vm_size);
-	ASSERT_EQ(init_tinfo->m_vmrss_kb, vm_rss);
-	ASSERT_EQ(init_tinfo->m_vmswap_kb, vm_swap);
+	ASSERT_EQ(init_tinfo->get_vmsize_kb(), vm_size);
+	ASSERT_EQ(init_tinfo->get_vmrss_kb(), vm_rss);
+	ASSERT_EQ(init_tinfo->get_vmswap_kb(), vm_swap);
 
 	assert_return_value(evt, res);
 
@@ -80,9 +80,9 @@ TEST_F(sinsp_with_test_input, parse_brk_no_update) {
 	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
 	// We should always update the info
-	ASSERT_EQ(init_tinfo->m_vmsize_kb, vm_size);
-	ASSERT_EQ(init_tinfo->m_vmrss_kb, vm_rss);
-	ASSERT_EQ(init_tinfo->m_vmswap_kb, vm_swap);
+	ASSERT_EQ(init_tinfo->get_vmsize_kb(), vm_size);
+	ASSERT_EQ(init_tinfo->get_vmrss_kb(), vm_rss);
+	ASSERT_EQ(init_tinfo->get_vmswap_kb(), vm_swap);
 
 	// BRK can update or not update the program break according to the value we provide. Today we
 	// don't consider a failure if the program break in not updated, we consider a failure only if

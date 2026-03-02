@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <shared_mutex>
 #include <libsinsp/state/table.h>
 #include <libsinsp/fdinfo.h>
 #include <libsinsp/plugin.h>
@@ -61,6 +62,7 @@ public:
 	sinsp_fdinfo* add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
+		std::shared_lock lock(m_mutex);
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
@@ -70,6 +72,7 @@ public:
 	}
 
 	inline bool loop(const fdtable_visitor_t callback) {
+		std::shared_lock lock(m_mutex);
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
@@ -122,6 +125,8 @@ public:
 
 	bool erase_entry(const int64_t& key) override { return erase(key); }
 
+	mutable std::shared_mutex m_mutex;
+
 private:
 	// Parameters provided at fdtable construction phase.
 	// Notice: the struct instance is shared among all fdtable instances.
@@ -138,14 +143,12 @@ private:
 	int64_t m_last_accessed_fd;
 	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
-	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
 
 	bool is_syscall_plugin_enabled() const {
 		return m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin->id() == 0;
 	}
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
-	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);
-	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd,
-	                                             std::shared_ptr<sinsp_fdinfo>&& fdinfo);
+	std::shared_ptr<sinsp_fdinfo> find_ref(int64_t fd);
+	std::shared_ptr<sinsp_fdinfo> add_ref(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 };

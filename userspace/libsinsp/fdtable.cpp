@@ -34,10 +34,9 @@ sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
 	reset_cache();
 }
 
-inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) {
-	//
-	// Try looking up in our simple cache
-	//
+inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
+	std::unique_lock lock(m_mutex);
+
 	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd) {
 		if(m_params->m_sinsp_stats_v2) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_cached_fd_lookups++;
@@ -45,16 +44,13 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 		return m_last_accessed_fdinfo;
 	}
 
-	//
-	// Caching failed, do a real lookup
-	//
 	auto fdit = m_table.find(fd);
 
 	if(fdit == m_table.end()) {
 		if(m_params->m_sinsp_stats_v2) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_failed_fd_lookups++;
 		}
-		return m_nullptr_ret;
+		return nullptr;
 	} else {
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_noncached_fd_lookups++;
@@ -67,24 +63,24 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 	}
 }
 
-inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
+inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
         int64_t fd,
         std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
+	std::unique_lock lock(m_mutex);
+
+	if(fdinfo->dynamic_fields() != dynamic_fields()) {
+		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
+	}
+
 	fdinfo->m_fd = fd;
 
 	const auto it = m_table.find(fd);
 
-	// Three possible exits here:
-	// 1. fd is not on the table
-	//   a. the table size is under the limit so create a new entry
-	//   b. table size is over the limit, discard the fd
-	// 2. fd is already in the table, replace it
 	if(it == m_table.end()) {
 		if(m_table.size() == m_params->m_max_table_size) {
-			return m_nullptr_ret;
+			return nullptr;
 		}
 
-		// No entry in the table, this is the normal case.
 		m_last_accessed_fd = -1;
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_added_fds++;
@@ -93,25 +89,14 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 		return m_table.emplace(fd, std::move(fdinfo)).first->second;
 	}
 
-	// the fd is already in the table. This can happen if:
-	//  - the event is a dup2 or dup3 that overwrites an existing FD (perfectly legal)
-	//  - a close() has been dropped when capturing
-	//  - an fd has been closed by clone() or execve() (it happens when the fd is opened
-	//  with the FD_CLOEXEC flag,
-	//    which we don't currently parse.
-	// In either case, removing the old fd, replacing it with the new one and keeping going
-	// is a reasonable choice. We include an assertion to catch the situation.
-	//
-	// XXX Can't have this enabled until the FD_CLOEXEC flag is supported
-	// ASSERT(false);
-
-	// Replace the fd as a struct copy.
 	m_last_accessed_fd = -1;
 	it->second = std::move(fdinfo);
 	return it->second;
 }
 
 bool sinsp_fdtable::erase(int64_t fd) {
+	std::unique_lock lock(m_mutex);
+
 	auto fdit = m_table.find(fd);
 
 	if(fd == m_last_accessed_fd) {
@@ -119,12 +104,6 @@ bool sinsp_fdtable::erase(int64_t fd) {
 	}
 
 	if(fdit == m_table.end()) {
-		//
-		// Looks like there's no fd to remove.
-		// Either the fd creation event was dropped or (more likely) our logic doesn't support the
-		// call that created this fd. The assertion will detect it, while in release mode we just
-		// keep going.
-		//
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_failed_fd_lookups++;
 		}
@@ -141,14 +120,18 @@ bool sinsp_fdtable::erase(int64_t fd) {
 }
 
 void sinsp_fdtable::clear() {
+	std::unique_lock lock(m_mutex);
 	m_table.clear();
+	m_last_accessed_fd = -1;
 }
 
 size_t sinsp_fdtable::size() const {
+	std::shared_lock lock(m_mutex);
 	return m_table.size();
 }
 
 void sinsp_fdtable::reset_cache() {
+	std::unique_lock lock(m_mutex);
 	m_last_accessed_fd = -1;
 }
 

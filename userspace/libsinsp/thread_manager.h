@@ -333,6 +333,7 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_platform* const& m_scap_platform;
 	scap_t* const& m_scap_handle;
+	std::mutex m_scap_proc_mutex;
 	const std::shared_ptr<libsinsp::state::dynamic_field_infos> m_fdtable_dyn_fields;
 
 	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info.
