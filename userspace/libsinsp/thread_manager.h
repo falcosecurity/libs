@@ -35,7 +35,6 @@ limitations under the License.
 #include <libsinsp/timestamper.h>
 
 class sinsp_observer;
-class sinsp_usergroup_manager;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
@@ -44,11 +43,8 @@ class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table
                                           public libsinsp::state::sinsp_table_owner {
 public:
 	sinsp_thread_manager(
-	        const sinsp_mode& sinsp_mode,
 	        const sinsp_threadinfo_factory& threadinfo_factory,
 	        sinsp_observer* const& observer,
-	        const std::shared_ptr<const sinsp_plugin>& input_plugin,
-	        const bool& large_envs_enabled,
 	        const timestamper& timestamper,
 	        const int64_t& sinsp_pid,
 	        const uint64_t& threads_purging_scan_time_ns,
@@ -57,8 +53,7 @@ public:
 	        scap_platform* const& scap_platform,
 	        scap_t* const& scap_handle,
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields,
-	        const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager);
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields);
 	void clear();
 
 	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
@@ -276,28 +271,9 @@ private:
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const;
 
-	bool is_syscall_plugin_enabled() const {
-		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
-	}
-
-	bool is_large_envs_enabled() const {
-		return (m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) && m_large_envs_enabled;
-	}
-
-	bool must_notify_thread_user_update() const {
-		return m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
-	}
-
-	bool must_notify_thread_group_update() const {
-		return m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
-	}
-
 	// The following fields are externally provided and access to them is expected to be read-only.
-	const sinsp_mode& m_sinsp_mode;
 	const sinsp_threadinfo_factory& m_threadinfo_factory;
 	sinsp_observer* const& m_observer;
-	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
-	const bool& m_large_envs_enabled;
 	const timestamper& m_timestamper;
 	const int64_t& m_sinsp_pid;
 	const uint64_t& m_threads_purging_scan_time_ns;
@@ -333,8 +309,6 @@ private:
 	        m_nullptr_tinfo_ret;  // needed for returning a reference
 	const std::shared_ptr<thread_group_info>
 	        m_nullptr_tginfo_ret;  // needed for returning a reference
-
-	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	// State table API field accessors to foreign keys written by plugins.
 	std::map<std::string, libsinsp::state::dynamic_field_accessor<std::string>>
