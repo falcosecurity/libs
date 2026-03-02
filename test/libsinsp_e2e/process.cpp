@@ -617,39 +617,51 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 				rc = scap_proc_get(platform, tid, false);
 				EXPECT_EQ(SCAP_SUCCESS, rc);
 			} else {
-				scap_threadinfo scap_proc;
-				scap_fdinfo* fdi;
-				scap_fdinfo* tfdi;
 				uint32_t nsocks = 0;
 				int64_t tid = e->get_tid();
 
 				//
-				// try with scan_sockets=true
+				// try with scan_sockets=false (no socket scanning)
 				//
 				auto rc = scap_proc_get(platform, tid, false);
 				EXPECT_EQ(SCAP_SUCCESS, rc);
 
-				HASH_ITER(hh, scap_proc.fdlist, fdi, tfdi) {
-					if(fdi->type == SCAP_FD_IPV4_SOCK) {
-						nsocks++;
+				auto tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
+				if(tinfo) {
+					auto* fdtable = tinfo->get_fd_table();
+					if(fdtable) {
+						fdtable->const_loop([&](int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
+							if(fdinfo.m_type == SCAP_FD_IPV4_SOCK) {
+								nsocks++;
+							}
+							return true;
+						});
 					}
 				}
 
 				EXPECT_EQ(0U, nsocks);
 
 				//
-				// try with scan_sockets=false
+				// try with scan_sockets=true (socket scanning enabled)
 				//
 				rc = scap_proc_get(platform, tid, true);
 				EXPECT_EQ(SCAP_SUCCESS, rc);
 
-				HASH_ITER(hh, scap_proc.fdlist, fdi, tfdi) {
-					if(fdi->type == SCAP_FD_IPV4_SOCK) {
-						nsocks++;
+				nsocks = 0;
+				tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
+				if(tinfo) {
+					auto* fdtable = tinfo->get_fd_table();
+					if(fdtable) {
+						fdtable->const_loop([&](int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
+							if(fdinfo.m_type == SCAP_FD_IPV4_SOCK) {
+								nsocks++;
+							}
+							return true;
+						});
 					}
 				}
 
-				EXPECT_EQ(0U, nsocks);
+				EXPECT_EQ(2U, nsocks);
 			}
 
 			callnum++;
