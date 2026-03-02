@@ -58,6 +58,21 @@ jobs:
               process.exit();
             }
             var issue_number = Number(fs.readFileSync('./NR'));
+
+            // Validate artifact PR number against the workflow_run context
+            // to prevent artifact poisoning (cross-issue comment injection).
+            const head_sha = context.payload.workflow_run.head_sha;
+            const {data: associated_prs} = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: head_sha,
+            });
+            const valid_pr_numbers = associated_prs.map(pr => pr.number);
+            if (!valid_pr_numbers.includes(issue_number)) {
+              core.setFailed(`Artifact PR number ${issue_number} does not match any PR for commit ${head_sha}. Aborting to prevent artifact poisoning.`);
+              return;
+            }
+
             var comment_body = fs.readFileSync('./COMMENT');
 
             // Get the existing comments.
