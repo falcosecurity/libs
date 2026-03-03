@@ -9,14 +9,7 @@
 #
 # Well-known basis for these suppressions:
 #
-# 1) TSan and thread-local storage (TLS): TSan is known to report false
-#    positives involving dynamic TLS and the TLS registry (see e.g. dynamic
-#    TLS / DTLS and shadow cleanup: https://github.com/google/sanitizers/issues/547).
-#    Code that registers or accesses per-thread state from multiple threads
-#    can trigger apparent data races on the registry even when each thread
-#    only touches its own TLS.
-#
-# 2) Folly ThreadLocal and hazptr: Folly's ThreadLocal (folly/detail/ThreadLocalDetail.h)
+# 1) Folly ThreadLocal and hazptr: Folly's ThreadLocal (folly/detail/ThreadLocalDetail.h)
 #    uses a global registry of per-thread entries (ThreadEntrySet, allId2ThreadEntrySets_);
 #    the file documents TSAN and lock ordering for this machinery. Folly's hazard
 #    pointer implementation (HazptrThrLocal.h) uses a thread-local cache (hazptr_tc,
@@ -24,12 +17,6 @@
 #    tests that use it hit this TLS path. TSAN reports races on these Folly internals
 #    despite the design being per-thread and properly synchronized.
 #
-# 3) sinsp_threadinfo in-place updates: Internal synchronization of sinsp_threadinfo
-#    (e.g. get_fd_table, set_dead) is out of scope for the thread-safe thread manager
-#    proposal. Concurrent tests that lookup (find_thread) while another thread removes
-#    (remove_thread) can trigger races on the same threadinfo object.
-race:sinsp_threadinfo::
-race:threadinfo.h
 
 # The patterns below match only these Folly TLS/registry internals, not application code.
 race:folly::threadlocal_detail
