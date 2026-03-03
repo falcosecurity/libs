@@ -619,7 +619,8 @@ uint64_t scap_event_get_num(scap_t* handle);
 
   \param e pointer to an event returned by \ref scap_next.
 
-  \return The pointer to the the event table entry for the given event.
+  \return The pointer to the the event table entry for the given event,
+    or NULL if the event type is invalid (>= PPM_EVENT_MAX).
 */
 const struct ppm_event_info* scap_event_getinfo(const scap_evt* e);
 

@@ -19,6 +19,8 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <gtest/gtest.h>
 
+extern "C" uint32_t scap_event_has_large_payload(const scap_evt *e);
+
 // fills the buffer with ASCII data to catch bugs
 static void fill_buffer(scap_sized_buffer buf) {
 	char *cbuf = static_cast<char *>(buf.buf);
@@ -218,4 +220,46 @@ TEST(scap_event, test_scap_create_event) {
 	memcpy(&ino_param, val, sizeof(ino_param));
 	ASSERT_EQ(ino_param, ino);
 	free(evt);
+}
+
+TEST(scap_event, decode_params_invalid_type) {
+	// Craft a minimal event with an out-of-range type
+	struct ppm_evt_hdr hdr = {};
+	hdr.type = PPM_EVENT_MAX + 1;  // invalid type
+	hdr.len = sizeof(struct ppm_evt_hdr);
+	hdr.nparams = 0;
+
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(reinterpret_cast<scap_evt *>(&hdr), decoded_params);
+	EXPECT_EQ(n, 0u);
+}
+
+TEST(scap_event, decode_params_nparams_exceeds_buffer) {
+	// Craft an event with valid type but nparams too large for the buffer size.
+	// The event header claims 100 params but len only covers the header itself.
+	struct ppm_evt_hdr hdr = {};
+	hdr.type = PPME_SYSCALL_OPEN_X;  // valid type, not large payload
+	hdr.len = sizeof(struct ppm_evt_hdr);
+	hdr.nparams = 100;  // way more than can fit
+
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(reinterpret_cast<scap_evt *>(&hdr), decoded_params);
+	EXPECT_EQ(n, 0u);
+}
+
+TEST(scap_event, getinfo_invalid_type) {
+	struct ppm_evt_hdr hdr = {};
+	hdr.type = PPM_EVENT_MAX;
+
+	const struct ppm_event_info *info =
+	        scap_event_getinfo(reinterpret_cast<const scap_evt *>(&hdr));
+	EXPECT_EQ(info, nullptr);
+}
+
+TEST(scap_event, has_large_payload_invalid_type) {
+	struct ppm_evt_hdr hdr = {};
+	hdr.type = PPM_EVENT_MAX;
+
+	uint32_t result = scap_event_has_large_payload(reinterpret_cast<const scap_evt *>(&hdr));
+	EXPECT_EQ(result, 0u);
 }

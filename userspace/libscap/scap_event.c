@@ -82,17 +82,34 @@ uint32_t scap_event_get_sentinel_begin(scap_evt *e) {
 #endif
 
 const struct ppm_event_info *scap_event_getinfo(const scap_evt *e) {
+	if(e->type >= PPM_EVENT_MAX) {
+		return NULL;
+	}
 	return &(g_event_info[e->type]);
 }
 
 uint32_t scap_event_has_large_payload(const scap_evt *e) {
+	if(e->type >= PPM_EVENT_MAX) {
+		return 0;
+	}
 	return (g_event_info[e->type].flags & EF_LARGE_PAYLOAD) != 0;
 }
 
 uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params) {
+	if(e->type >= PPM_EVENT_MAX) {
+		return 0;
+	}
+
+	uint32_t is_large = scap_event_has_large_payload(e);
+	uint32_t len_size = is_large ? sizeof(uint32_t) : sizeof(uint16_t);
+
+	// Validate that the param length array fits within the event buffer
+	if(sizeof(struct ppm_evt_hdr) + (uint64_t)len_size * e->nparams > e->len) {
+		return 0;
+	}
+
 	char *len_buf = (char *)e + sizeof(struct ppm_evt_hdr);
 	char *param_buf = len_buf;
-	uint32_t is_large = scap_event_has_large_payload(e);
 	uint32_t param_size_32;
 	uint16_t param_size_16;
 
@@ -401,6 +418,9 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 // event. Currently, it returns 4 or 2, depending on the fact that the provided event has large
 // payload or not.
 static size_t get_param_len_size(const scap_evt *evt) {
+	if(evt->type >= PPM_EVENT_MAX) {
+		return sizeof(uint16_t);
+	}
 	return scap_get_event_info_table()[evt->type].flags & EF_LARGE_PAYLOAD ? sizeof(uint32_t)
 	                                                                       : sizeof(uint16_t);
 }
