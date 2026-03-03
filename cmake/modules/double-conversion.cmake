@@ -29,7 +29,13 @@ else()
 	)
 
 	include(FetchContent)
-	# Pin to v3.3.0: v3.4.0 requires CMake 3.29+ (project minimum is 3.24)
+	# Allow configuring bundled double-conversion (v3.3.1 uses cmake_minimum_required 3.0). Newer
+	# CMake removed compatibility with projects requiring < 3.5; this restores it.
+	set(CMAKE_POLICY_VERSION_MINIMUM
+		3.5
+		CACHE STRING "Min CMake version for subprojects (e.g. bundled double-conversion)"
+	)
+	# Pin to v3.3.1: v3.4.0 requires CMake 3.29+ (project minimum is 3.24)
 	FetchContent_Declare(
 		double-conversion
 		URL https://github.com/google/double-conversion/archive/refs/tags/v3.3.1.tar.gz
