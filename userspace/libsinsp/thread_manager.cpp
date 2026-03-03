@@ -131,8 +131,7 @@ sinsp_thread_manager::sinsp_thread_manager(
         m_scap_platform{scap_platform},
         m_scap_handle{scap_handle},
         m_fdtable_dyn_fields{fdtable_dyn_fields},
-        m_max_thread_table_size(m_thread_table_default_size),
-        m_usergroup_manager{usergroup_manager} {
+        m_max_thread_table_size(m_thread_table_default_size) {
 	m_last_proc_lookup_period_start.store(sinsp_utils::get_current_time_ns());
 	clear();
 }
@@ -967,15 +966,15 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
 		if(!thread_fetched) {
 			auto fake_tinfo = m_threadinfo_factory.create();
 			fake_tinfo->m_tid = tid;
-			fake_tinfo->m_pid = -1;
-			fake_tinfo->m_ptid = -1;
-			fake_tinfo->m_reaper_tid = -1;
-			fake_tinfo->m_not_expired_children = 0;
-			fake_tinfo->m_comm = "<NA>";
-			fake_tinfo->m_exe = "<NA>";
-			fake_tinfo->m_uid = 0xffffffff;
-			fake_tinfo->m_gid = 0xffffffff;
-			fake_tinfo->m_loginuid = 0xffffffff;
+			fake_tinfo->set_pid(-1);
+			fake_tinfo->set_ptid(-1);
+			fake_tinfo->set_reaper_tid(-1);
+			fake_tinfo->set_not_expired_children(0);
+			fake_tinfo->set_comm("<NA>");
+			fake_tinfo->set_exe("<NA>");
+			fake_tinfo->set_uid(0xffffffff);
+			fake_tinfo->set_gid(0xffffffff);
+			fake_tinfo->set_loginuid(0xffffffff);
 			add_thread(std::move(fake_tinfo), true);
 		}
 
