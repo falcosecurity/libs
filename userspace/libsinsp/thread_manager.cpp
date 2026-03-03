@@ -254,7 +254,7 @@ void sinsp_thread_manager::create_thread_dependencies(
  * 2. We are doing a proc scan with a callback or without. (`must_create_thread_dependencies==true`)
  * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
  */
-const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
+threadinfo_map_t::ptr_t sinsp_thread_manager::add_thread(
         std::unique_ptr<sinsp_threadinfo> threadinfo,
         const bool must_create_thread_dependencies) {
 	/* We have no more space */

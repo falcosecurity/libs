@@ -903,8 +903,6 @@ void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread
  * if we want to save some clock cycles
  */
 void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
-	std::unique_lock lock(m_children_mutex);
-
 	if(m_children.size() == 0) {
 		return;
 	}
@@ -913,17 +911,36 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 		throw sinsp_exception("the current process is reaper of itself, this should never happen!");
 	}
 
-	auto child = m_children.begin();
-	while(child != m_children.end()) {
-		if(!child->expired()) {
-			if(reaper == nullptr) {
-				child->lock()->set_ptid(0);
-			} else {
-				reaper->add_child(child->lock());
+	if(reaper == nullptr) {
+		std::unique_lock lock(m_children_mutex);
+		auto it = m_children.begin();
+		while(it != m_children.end()) {
+			if(!it->expired()) {
+				it->lock()->set_ptid(0);
 			}
+			it = m_children.erase(it);
 		}
+		m_not_expired_children = 0;
+		return;
+	}
 
-		child = m_children.erase(child);
+	/* Lock both mutexes in canonical order (by tid) to prevent lock-order inversion
+	 * when different events reparent in opposite order (e.g. A→reaper B and B→reaper A).
+	 */
+	sinsp_threadinfo* first = (m_tid < reaper->m_tid) ? this : reaper;
+	sinsp_threadinfo* second = (m_tid < reaper->m_tid) ? reaper : this;
+	std::unique_lock lock1(first->m_children_mutex);
+	std::unique_lock lock2(second->m_children_mutex);
+
+	auto it = m_children.begin();
+	while(it != m_children.end()) {
+		if(!it->expired()) {
+			std::shared_ptr<sinsp_threadinfo> c = it->lock();
+			reaper->m_children.push_front(c);
+			c->set_ptid(reaper->m_tid);
+			reaper->m_not_expired_children++;
+		}
+		it = m_children.erase(it);
 	}
 	m_not_expired_children = 0;
 }
