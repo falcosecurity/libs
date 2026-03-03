@@ -247,6 +247,25 @@ TEST(scap_event, decode_params_nparams_exceeds_buffer) {
 	EXPECT_EQ(n, 0u);
 }
 
+TEST(scap_event, decode_params_param_length_exceeds_buffer) {
+	// Craft an event with 1 param whose length array fits, but the param
+	// length value itself points past the end of the event buffer.
+	// Layout: [hdr][len_array: 1 x uint16_t][no payload]
+	// The length entry claims 999 bytes of data, but there is no payload.
+	struct {
+		struct ppm_evt_hdr hdr;
+		uint16_t param_len;
+	} __attribute__((packed)) evt = {};
+	evt.hdr.type = PPME_GENERIC_E;  // valid type, not large payload, nparams >= 1
+	evt.hdr.nparams = 1;
+	evt.hdr.len = sizeof(evt);
+	evt.param_len = 999;  // claims 999 bytes of data that don't exist
+
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(reinterpret_cast<scap_evt *>(&evt), decoded_params);
+	EXPECT_EQ(n, 0u);
+}
+
 TEST(scap_event, getinfo_invalid_type) {
 	struct ppm_evt_hdr hdr = {};
 	hdr.type = PPM_EVENT_MAX;

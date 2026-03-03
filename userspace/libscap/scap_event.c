@@ -127,6 +127,8 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
 		param_buf += sizeof(uint16_t) * e->nparams;
 	}
 
+	const char *evt_end = (const char *)e + e->len;
+
 	for(size_t i = 0; i < n; i++) {
 		if(is_large) {
 			memcpy(&param_size_32, len_buf, sizeof(uint32_t));
@@ -136,6 +138,11 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
 			memcpy(&param_size_16, len_buf, sizeof(uint16_t));
 			params[i].size = param_size_16;
 			len_buf += sizeof(uint16_t);
+		}
+
+		// Validate that the parameter data fits within the event buffer
+		if(param_buf + params[i].size > evt_end) {
+			return 0;
 		}
 
 		params[i].buf = param_buf;
