@@ -133,13 +133,6 @@ int open_engine(int argc, char** argv) {
 	                                       {VERBOSE_OPTION, required_argument, 0, 'v'},
 	                                       {0, 0, 0, 0}};
 
-	/* Remove kmod if injected, we remove it always even if we use another engine
-	 * in this way we are sure the unique driver in the system is the one we will use.
-	 */
-	if(remove_kmod()) {
-		return EXIT_FAILURE;
-	}
-
 	/* Get current cwd as a base directory for the driver path */
 	char driver_path[FILENAME_MAX];
 	if(!getcwd(driver_path, FILENAME_MAX)) {
@@ -163,6 +156,10 @@ int open_engine(int argc, char** argv) {
 
 		case 'k':
 #ifdef HAS_ENGINE_KMOD
+			/* Remove kmod if already loaded so we use a clean driver. */
+			if(remove_kmod()) {
+				return EXIT_FAILURE;
+			}
 			insert_kmod(LIBSINSP_TEST_KERNEL_MODULE_PATH);
 			event_capture::set_engine(KMOD_ENGINE, LIBSINSP_TEST_KERNEL_MODULE_PATH);
 #else

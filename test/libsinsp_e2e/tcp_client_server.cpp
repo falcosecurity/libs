@@ -96,11 +96,11 @@ void runtest(iotype iot,
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto tinfo = evt->get_thread_info();
-		if(tinfo && tinfo->m_exe == helper_exe) {
-			if(tinfo->m_pid == server_pid) {
+		if(tinfo && tinfo->get_exe() == helper_exe) {
+			if(tinfo->get_pid() == server_pid) {
 				return server_started_filter(evt);
 			}
-			if(tinfo->m_pid == client_pid) {
+			if(tinfo->get_pid() == client_pid) {
 				return client_started_filter(evt);
 			}
 		}

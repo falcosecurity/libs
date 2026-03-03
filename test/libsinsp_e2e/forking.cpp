@@ -687,7 +687,7 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* ti = evt->get_thread_info();
 		if(ti) {
-			return ti->m_pid == cpid;
+			return ti->get_pid() == cpid;
 		} else {
 			return false;
 		}
