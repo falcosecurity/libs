@@ -22,23 +22,59 @@ limitations under the License.
 // without requiring std::atomic (which would break the state framework's
 // typeinfo system). These use GCC/Clang __atomic builtins that TSAN
 // understands natively.
+//
+// GCC may emit false-positive -Wstringop-overflow ("region of size 0") when
+// these templates are inlined through multiple layers (e.g. into thread_manager
+// or threadinfo). The referent is always a properly-sized scalar; suppress
+// the warning only around the builtin calls.
 
 template<typename T>
 inline T load_relaxed(const T& val) {
-	return __atomic_load_n(const_cast<T*>(&val), __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	T r = __atomic_load_n(const_cast<T*>(&val), __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+	return r;
 }
 
 template<typename T>
 inline void store_relaxed(T& dest, T val) {
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	__atomic_store_n(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 template<typename T>
 inline T fetch_or_relaxed(T& dest, T val) {
-	return __atomic_fetch_or(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	T r = __atomic_fetch_or(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+	return r;
 }
 
 template<typename T>
 inline T fetch_and_relaxed(T& dest, T val) {
-	return __atomic_fetch_and(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	T r = __atomic_fetch_and(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+	return r;
 }

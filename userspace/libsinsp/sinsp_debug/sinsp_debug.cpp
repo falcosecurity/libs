@@ -22,17 +22,17 @@ std::string thread_info_to_string(sinsp_threadinfo* tinfo) {
 	}
 
 	/* if it is a reaper add (R)*/
-	if(tinfo->m_tginfo && tinfo->m_tginfo->is_reaper()) {
+	if(tinfo->get_tginfo() && tinfo->get_tginfo()->is_reaper()) {
 		out << "💀";
 	}
 
 	out << " t: " << tinfo->m_tid;
-	out << ", p: " << tinfo->m_pid;
-	out << ", rpt: " << tinfo->m_ptid;  // rpt (real parent tid)
-	out << ", vt: " << tinfo->m_vtid;
-	out << ", vp: " << tinfo->m_vpid;
-	out << ", vs: " << tinfo->m_sid;  // vs (we call it sid but it is a vsid)
-	out << ", vpg: " << tinfo->m_vpgid;
+	out << ", p: " << tinfo->get_pid();
+	out << ", rpt: " << tinfo->get_ptid();  // rpt (real parent tid)
+	out << ", vt: " << tinfo->get_vtid();
+	out << ", vp: " << tinfo->get_vpid();
+	out << ", vs: " << tinfo->get_sid();  // vs (we call it sid but it is a vsid)
+	out << ", vpg: " << tinfo->get_vpgid();
 	out << ", ct: " << tinfo->is_in_pid_namespace();
 	out << ", e: " << tinfo->get_exepath();
 
@@ -48,7 +48,7 @@ void display_thread_lineage(sinsp_thread_manager& thread_manager, sinsp_threadin
 		printf("⬇️ %s\n", thread_info_to_string(pt).c_str());
 
 		/* The parent could be 0 when we don't find the real parent */
-		if(pt->m_tid == 1 || pt->m_ptid == 0 || pt->is_invalid()) {
+		if(pt->m_tid == 1 || pt->get_ptid() == 0 || pt->is_invalid()) {
 			printf("END\n\n");
 			return false;
 		}
@@ -59,7 +59,7 @@ void display_thread_lineage(sinsp_thread_manager& thread_manager, sinsp_threadin
 	printf("⬇️ %s\n", thread_info_to_string(tinfo).c_str());
 
 	/* If the thread is invalid it has no parent */
-	if(tinfo->is_invalid() || tinfo->m_ptid == 0) {
+	if(tinfo->is_invalid() || tinfo->get_ptid() == 0) {
 		printf("END\n\n");
 		return;
 	}
@@ -142,15 +142,12 @@ int main(int argc, char** argv) {
 
 		case PPME_PROCEXIT_1_E:
 			printf("💥 THREAD EXIT: evt_num(%" PRIu64 ")\n", ev->get_num());
-			for(const auto& child : tinfo->m_children) {
-				if(!child.expired()) {
-					auto child_shr = child.lock().get();
-					printf("- move child, tid: %" PRId64 ", ptid: %" PRId64
-					       " (dead) to a new reaper.\n",
-					       child_shr->m_tid,
-					       child_shr->m_ptid);
-				}
-			}
+			tinfo->for_each_child([&](const std::shared_ptr<sinsp_threadinfo>& child_shr) {
+				printf("- move child, tid: %" PRId64 ", ptid: %" PRId64
+				       " (dead) to a new reaper.\n",
+				       child_shr->m_tid,
+				       child_shr->get_ptid());
+			});
 			display_thread_lineage(*inspector.m_thread_manager, tinfo);
 			break;
 
