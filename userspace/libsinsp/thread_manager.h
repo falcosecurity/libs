@@ -356,8 +356,6 @@ private:
 	uint64_t m_proc_lookup_period = 0;
 	std::atomic<uint64_t> m_last_proc_lookup_period_start{0};
 
-	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
-
 	// State table API: field accessors and tables for plugin-provided (foreign) state.
 	// Populated only during single-threaded init (plugin load / inspector init) and
 	// read-only thereafter during concurrent use. No mutex required for reads.
