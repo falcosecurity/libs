@@ -165,7 +165,8 @@ bool event_capture::handle_event(sinsp_evt* event) {
 		}
 	}
 	if(!res || ::testing::Test::HasNonfatalFailure()) {
-		std::cerr << "failed on event " << event->get_num() << '\n';
+		std::cerr << "failed on event " << event->get_num() << " with type " << event->get_type()
+		          << '\n';
 	}
 	return res;
 }
