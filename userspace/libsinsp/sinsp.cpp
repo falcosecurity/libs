@@ -30,6 +30,7 @@ limitations under the License.
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libscap/strl.h>
+#include <libscap/strerror.h>
 #include <libscap/scap-int.h>
 
 #ifndef _WIN32
@@ -1383,6 +1384,13 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 	sinsp_evt* evt = &buffer.m_evt;
 	const bool is_default_buffer = IS_DEFAULT_SINSP_BUFFER(buffer);
 
+	// Use this buffer's error buffer for scap so parallel buffers don't race on the handle's
+	// m_lasterr.
+	scap_set_thread_lasterr(buffer.m_lasterr_buf);
+	struct tls_lasterr_guard {
+		~tls_lasterr_guard() { scap_clear_thread_lasterr(); }
+	} guard;
+
 	int32_t res = fetch_next_event(evt, buffer);
 
 	if(res == SCAP_SUCCESS) {
@@ -1410,7 +1418,7 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 					                                          libsinsp::EVENT_RETURN_FILTERED);
 				}
 			} else {
-				buffer.m_lasterr = scap_getlasterr(m_h);
+				// Error was written to buffer.m_lasterr_buf via thread-local in scap
 			}
 		} else {
 			if(res == SCAP_EOF) {
@@ -1418,7 +1426,7 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 			} else if(res == SCAP_UNEXPECTED_BLOCK) {
 				res = SCAP_TIMEOUT;
 			} else if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT) {
-				buffer.m_lasterr = scap_getlasterr(m_h);
+				// Error was written to buffer.m_lasterr_buf via thread-local in scap
 			}
 		}
 

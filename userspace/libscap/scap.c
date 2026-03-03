@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <libscap/compat/misc.h>
 #include <libscap/scap.h>
@@ -46,6 +47,10 @@ struct scap_platform* scap_linux_hostinfo_alloc_platform() {
 #endif
 
 const char* scap_getlasterr(scap_t* handle) {
+	const char* tls = scap_get_thread_lasterr();
+	if(tls != NULL) {
+		return tls;
+	}
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
@@ -75,6 +80,23 @@ int32_t scap_init_engine(scap_t* handle, scap_open_args* oargs, const struct sca
 	rc = check_api_compatibility(handle->m_vtable, handle->m_engine, handle->m_lasterr);
 	if(rc != SCAP_SUCCESS) {
 		return rc;
+	}
+
+	// Allocate per-buffer event counters only when multi-buffer (multi-threading) is used
+	{
+		uint16_t n_buffers = handle->m_vtable->get_n_allocated_buffer_handles(handle->m_engine);
+		handle->m_n_buffer_handles = n_buffers;
+		if(n_buffers > 0) {
+			handle->m_evtcnt_per_buffer =
+			        (atomic_uint_fast64_t*)calloc((size_t)n_buffers, sizeof(atomic_uint_fast64_t));
+			if(!handle->m_evtcnt_per_buffer) {
+				return scap_errprintf(handle->m_lasterr,
+				                      0,
+				                      "error allocating per-buffer event counters");
+			}
+		} else {
+			handle->m_evtcnt_per_buffer = NULL;
+		}
 	}
 
 	scap_stop_dropping_mode(handle);
@@ -149,6 +171,8 @@ void scap_deinit(scap_t* handle) {
 		handle->m_vtable->close(handle->m_engine);
 		handle->m_vtable->free_handle(handle->m_engine);
 	}
+	free(handle->m_evtcnt_per_buffer);
+	handle->m_evtcnt_per_buffer = NULL;
 }
 
 void scap_free(scap_t* handle) {
@@ -205,7 +229,7 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
 	}
 
 	if(res == SCAP_SUCCESS) {
-		atomic_fetch_add(&handle->m_evtcnt, 1);
+		handle->m_evtcnt++;
 	}
 
 	return res;
@@ -220,8 +244,13 @@ int32_t scap_buffer_next(scap_t* handle,
 		res = handle->m_vtable->next_from_buffer(handle->m_engine, buffer_h, pevent, pflags);
 	}
 
-	if(res == SCAP_SUCCESS) {
-		atomic_fetch_add(&handle->m_evtcnt, 1);
+	if(res == SCAP_SUCCESS && handle->m_evtcnt_per_buffer &&
+	   buffer_h < handle->m_n_buffer_handles) {
+#ifdef _MSC_VER
+		atomic_fetch_add(handle->m_evtcnt_per_buffer + buffer_h, 1);
+#else
+		atomic_fetch_add_explicit(handle->m_evtcnt_per_buffer + buffer_h, 1, memory_order_relaxed);
+#endif
 	}
 
 	return res;

@@ -483,7 +483,7 @@ public:
 	  \brief get last library error.
 	*/
 	std::string getlasterr(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
-		return m_buffers.at(buffer_h).m_lasterr;
+		return std::string(m_buffers.at(buffer_h).m_lasterr_buf);
 	}
 
 	/*!
