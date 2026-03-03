@@ -574,101 +574,147 @@ public:
 	int64_t m_tid;
 };
 
+int create_inet_listening_socket() {
+	const int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if(fd < 0) {
+		return -1;
+	}
+
+	struct sockaddr_in addr1 = {};
+	addr1.sin_family = AF_INET;
+	addr1.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	addr1.sin_port = 0;
+	if(bind(fd, reinterpret_cast<struct sockaddr*>(&addr1), sizeof(addr1)) != 0) {
+		close(fd);
+		return -1;
+	}
+
+	if(listen(fd, 1) != 0) {
+		close(fd);
+		return -1;
+	}
+
+	return fd;
+}
+
 TEST_F(sys_call_test, process_scap_proc_get) {
 	int callnum = 0;
+	int num_sockets_before = 0;
+	int num_sockets_after_no_scan_sockets = 0;
+	int num_sockets_after_with_scan_sockets = 0;
+
+	int sock_fd1 = -1, sock_fd2 = -1;
+
+	auto is_sleep_evt = [](sinsp_evt* evt) -> bool {
+		return evt->get_type() == PPME_SYSCALL_NANOSLEEP_X ||
+		       (evt->get_type() == PPME_GENERIC_X &&
+		        evt->get_param(0)->as<uint16_t>() == PPM_SC_CLOCK_NANOSLEEP);
+	};
 
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt) && is_sleep_evt(evt); };
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [](sinsp* inspector) {
+	run_callback_t test = [&sock_fd1, &sock_fd2](sinsp* /*inspector*/) {
 		usleep(1000);
 
-		int s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-		EXPECT_LT(0, s);
+		// Sockets must be in listening or in connected state to be discoverable through a proc
+		// lookup.
+		sock_fd1 = create_inet_listening_socket();
+		EXPECT_GT(sock_fd1, 0);
 
-		int s1 = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-		EXPECT_LT(0, s);
+		sock_fd2 = create_inet_listening_socket();
+		EXPECT_GT(sock_fd2, 0);
 
-		usleep(1000000);
-
-		close(s);
-		close(s1);
+		usleep(1000);
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		uint16_t type = e->get_type();
+		const int64_t tid = e->get_tid();
 		auto* platform = param.m_inspector->get_scap_platform();
 
-		if(type == PPME_SYSCALL_NANOSLEEP_X) {
-			if(callnum == 0) {
-				auto rc = scap_proc_get(platform, 0, false);
-				EXPECT_NE(SCAP_SUCCESS, rc);
+		if(!is_sleep_evt(e)) {
+			return;
+		}
 
-				int64_t tid = e->get_tid();
-				rc = scap_proc_get(platform, tid, false);
-				EXPECT_EQ(SCAP_SUCCESS, rc);
-			} else {
-				uint32_t nsocks = 0;
-				int64_t tid = e->get_tid();
+		callnum++;
+		if(callnum == 1) {
+			auto rc = scap_proc_get(platform, 0, false);
+			EXPECT_NE(SCAP_SUCCESS, rc);
 
-				//
-				// try with scan_sockets=false (no socket scanning)
-				//
-				auto rc = scap_proc_get(platform, tid, false);
-				EXPECT_EQ(SCAP_SUCCESS, rc);
+			rc = scap_proc_get(platform, tid, false);
+			EXPECT_EQ(SCAP_SUCCESS, rc);
 
-				auto tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
-				if(tinfo) {
-					auto* fdtable = tinfo->get_fd_table();
-					if(fdtable) {
-						fdtable->const_loop([&](int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
-							if(fdinfo.m_type == SCAP_FD_IPV4_SOCK) {
-								nsocks++;
-							}
-							return true;
-						});
-					}
+			const auto tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
+			ASSERT_TRUE(tinfo);
+			const auto* fd_table = tinfo->get_fd_table();
+			ASSERT_TRUE(fd_table);
+			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& /*fdinfo*/) -> bool {
+				if(fd == sock_fd1 || fd == sock_fd2) {
+					num_sockets_before++;
 				}
+				return true;
+			});
+		} else if(callnum == 2) {
+			// Try with scan_sockets=false.
+			auto rc = scap_proc_get(platform, tid, false);
+			EXPECT_EQ(SCAP_SUCCESS, rc);
 
-				EXPECT_EQ(0U, nsocks);
-
-				//
-				// try with scan_sockets=true (socket scanning enabled)
-				//
-				rc = scap_proc_get(platform, tid, true);
-				EXPECT_EQ(SCAP_SUCCESS, rc);
-
-				nsocks = 0;
-				tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
-				if(tinfo) {
-					auto* fdtable = tinfo->get_fd_table();
-					if(fdtable) {
-						fdtable->const_loop([&](int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
-							if(fdinfo.m_type == SCAP_FD_IPV4_SOCK) {
-								nsocks++;
-							}
-							return true;
-						});
-					}
+			auto tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
+			ASSERT_TRUE(tinfo);
+			const auto* fd_table = tinfo->get_fd_table();
+			ASSERT_TRUE(fd_table);
+			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& /*fdinfo*/) -> bool {
+				if(fd == sock_fd1 || fd == sock_fd2) {
+					num_sockets_after_no_scan_sockets++;
 				}
+				return true;
+			});
 
-				EXPECT_EQ(2U, nsocks);
-			}
+			// Try with scan_sockets=true.
+			rc = scap_proc_get(platform, tid, true);
+			EXPECT_EQ(SCAP_SUCCESS, rc);
 
-			callnum++;
+			// Re-fetch pointers as they could have been invalidated by `scap_proc_get()`.
+
+			tinfo = param.m_inspector->m_thread_manager->find_thread(tid, true);
+			ASSERT_TRUE(tinfo);
+			fd_table = tinfo->get_fd_table();
+			ASSERT_TRUE(fd_table);
+			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& /*fdinfo*/) -> bool {
+				if(fd == sock_fd1 || fd == sock_fd2) {
+					num_sockets_after_with_scan_sockets++;
+				}
+				return true;
+			});
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	const after_capture_t cleanup = [&](sinsp* /*inspector*/) {
+		close(sock_fd1);
+		close(sock_fd2);
+		ASSERT_EQ(callnum, 2);
+		ASSERT_EQ(num_sockets_before, 0);
+		ASSERT_EQ(num_sockets_after_no_scan_sockets, 0);
+		ASSERT_EQ(num_sockets_after_with_scan_sockets, 2);
+	};
+
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   cleanup);
+	});
 }
 
 TEST_F(sys_call_test, procinfo_processchild_cpuload) {
