@@ -62,10 +62,11 @@ public:
 
 	/*!
 	  \brief Add a thread to the table.
-	  \return shared_ptr to the inserted (or existing) thread. Safe for concurrent use.
+	  \return shared_ptr to the inserted (or existing) thread, or empty if table full. Safe for
+	  concurrent use.
 	*/
-	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
-	                                          bool must_create_thread_dependencies);
+	threadinfo_map_t::ptr_t add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
+	                                   bool must_create_thread_dependencies);
 
 	/*!
 	  \brief Find the new reaper for a thread being removed (e.g. for reparenting children).
