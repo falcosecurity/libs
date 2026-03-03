@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <libscap/scap.h>
+#include <libscap/scap_const.h>
 #include <libsinsp/event.h>
 #include <libsinsp/sinsp_parser_verdict.h>
 
@@ -45,7 +46,9 @@ class sinsp_buffer {
 
 	sinsp_evt m_evt;
 
-	std::string m_lasterr;
+	/** Per-buffer error buffer for scap; when set as thread-local, scap writes here. getlasterr()
+	 * returns this as std::string. */
+	char m_lasterr_buf[SCAP_LASTERR_SIZE];
 
 	// temporary storage for the parser event to avoid memory allocation
 	sinsp_evt m_parser_tmp_evt;
