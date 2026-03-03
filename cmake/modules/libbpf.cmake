@@ -66,9 +66,10 @@ else()
 		BUILD_COMMAND
 			${LIBBPF_EXTERNAL_PROJECT_ENV} make BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build
 			DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1
-			"EXTRA_CFLAGS=-fPIC ${LIBELF_COMPILER_STRING} -I${ZLIB_INCLUDE}" "LDFLAGS=-Wl,-Bstatic"
-			"EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C ${LIBBPF_SRC}/libbpf/src
-			install install_uapi_headers
+			# -Wno-error=discarded-qualifiers can be removed once we update to libbpf 1.7.0 or later
+			"EXTRA_CFLAGS=-fPIC ${LIBELF_COMPILER_STRING} -I${ZLIB_INCLUDE} -Wno-error=discarded-qualifiers"
+			"LDFLAGS=-Wl,-Bstatic" "EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C
+			${LIBBPF_SRC}/libbpf/src install install_uapi_headers
 		INSTALL_COMMAND ""
 		UPDATE_COMMAND ""
 		BUILD_BYPRODUCTS ${LIBBPF_LIB}
