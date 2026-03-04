@@ -656,13 +656,12 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len) {
 	set_cgroups(sinsp_split({cgroups, len}, '\0'));
 }
 
-void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
-	cgroups_t tmp_cgroups;
-
-	for(const auto& def : cgroups) {
+sinsp_threadinfo::cgroups_t sinsp_threadinfo::parse_cgroups(const std::vector<std::string>& defs) {
+	cgroups_t result;
+	for(const auto& def : defs) {
 		std::string::size_type eq_pos = def.find("=");
 		if(eq_pos == std::string::npos) {
-			return;
+			return result;
 		}
 
 		std::string subsys = def.substr(0, eq_pos);
@@ -678,22 +677,107 @@ void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
 		} else if(subsys == "mem") {
 			subsys = "memory";
 		} else if(subsys == "io") {
-			// blkio has been renamed just `io`
-			// in kernel space:
-			// https://github.com/torvalds/linux/commit/c165b3e3c7bb68c2ed55a5ac2623f030d01d9567
+			// blkio has been renamed just `io` in kernel space
 			subsys = "blkio";
 		}
 
-		tmp_cgroups.emplace_back(subsys, cgroup);
+		result.emplace_back(subsys, cgroup);
 	}
+	return result;
+}
 
+void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
 	std::unique_lock l(m_state_mutex);
-	m_cgroups = tmp_cgroups;
+	m_cgroups = parse_cgroups(cgroups);
 }
 
 void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 	std::unique_lock l(m_state_mutex);
 	m_cgroups = cgroups;
+}
+
+uint64_t sinsp_threadinfo::get_lastexec_ts() const {
+	std::shared_lock l(m_state_mutex);
+	return m_lastexec_ts;
+}
+
+void sinsp_threadinfo::set_lastexec_ts(uint64_t v) {
+	std::unique_lock l(m_state_mutex);
+	m_lastexec_ts = v;
+}
+
+void sinsp_threadinfo::apply_exec_state(const exec_state_t& state) {
+	std::unique_lock l(m_state_mutex);
+
+	// Mutex-protected exec-info only. Caller must set m_pid before this if using
+	// load_env_from_proc.
+	m_exe = state.exe;
+	m_lastexec_ts = state.lastexec_ts;
+	m_comm = state.comm;
+	m_args = state.args;
+	m_cmd_line = m_comm;
+	if(!m_cmd_line.empty()) {
+		for(const auto& arg : m_args) {
+			m_cmd_line += " ";
+			m_cmd_line += arg;
+		}
+	}
+	if(state.exepath.has_value()) {
+		m_exepath = *state.exepath;
+		constexpr char suffix[] = " (deleted)";
+		constexpr size_t suffix_len = sizeof(suffix) - 1;
+		if(m_exepath.size() > suffix_len &&
+		   m_exepath.compare(m_exepath.size() - suffix_len, suffix_len, suffix) == 0) {
+			m_exepath.resize(m_exepath.size() - suffix_len);
+		}
+	}
+	if(state.exe_writable.has_value()) {
+		m_exe_writable = *state.exe_writable;
+	}
+	if(state.exe_upper_layer.has_value()) {
+		m_exe_upper_layer = *state.exe_upper_layer;
+	}
+	if(state.exe_lower_layer.has_value()) {
+		m_exe_lower_layer = *state.exe_lower_layer;
+	}
+	if(state.exe_from_memfd.has_value()) {
+		m_exe_from_memfd = *state.exe_from_memfd;
+	}
+	if(state.exe_ino.has_value()) {
+		m_exe_ino = *state.exe_ino;
+	}
+	if(state.exe_ino_ctime.has_value()) {
+		m_exe_ino_ctime = *state.exe_ino_ctime;
+	}
+	if(state.exe_ino_mtime.has_value()) {
+		m_exe_ino_mtime = *state.exe_ino_mtime;
+	}
+	if(state.exe_ino_ctime_duration_clone_ts.has_value()) {
+		m_exe_ino_ctime_duration_clone_ts = *state.exe_ino_ctime_duration_clone_ts;
+	}
+	if(state.exe_ino_ctime_duration_pidns_start.has_value()) {
+		m_exe_ino_ctime_duration_pidns_start = *state.exe_ino_ctime_duration_pidns_start;
+	}
+	if(state.cgroups.has_value()) {
+		m_cgroups = *state.cgroups;
+	}
+	if(state.env.has_value()) {
+		m_env = *state.env;
+	} else if(state.load_env_from_proc) {
+		if(set_env_from_proc()) {
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+			                          "Large environment for process %lu [%s], loaded from /proc",
+			                          m_pid,
+			                          m_comm.c_str());
+		} else {
+			libsinsp_logger()->format(sinsp_logger::SEV_INFO,
+			                          "Failed to load environment for process %lu [%s] from /proc, "
+			                          "using first %d bytes",
+			                          m_pid,
+			                          m_comm.c_str(),
+			                          SCAP_MAX_ENV_SIZE);
+		}
+	}
 }
 
 sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
