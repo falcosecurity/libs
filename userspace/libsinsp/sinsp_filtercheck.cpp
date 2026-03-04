@@ -27,6 +27,8 @@ limitations under the License.
 
 #include <re2/re2.h>
 
+#include <libscap/scap_likely.h>
+
 #define STRPROPERTY_STORAGE_SIZE 1024
 
 std::string std::to_string(boolop b) {
@@ -633,6 +635,9 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		ensure_unique_ptr_allocated_deleter(m_val_regex,
 		                                    re2::StringPiece((const char*)item.first),
 		                                    re2::RE2::POSIX);
+		if(scap_unlikely(!m_val_regex->ok())) {
+			throw sinsp_exception("invalid regex pattern: " + m_val_regex->error());
+		}
 	}
 }
 
