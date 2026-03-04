@@ -39,7 +39,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
 
 	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd) {
 		if(m_params->m_sinsp_stats_v2) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_cached_fd_lookups++;
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_cached_fd_lookups();
 		}
 		return m_last_accessed_fdinfo;
 	}
@@ -48,12 +48,12 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
 
 	if(fdit == m_table.end()) {
 		if(m_params->m_sinsp_stats_v2) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_failed_fd_lookups++;
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
 		}
 		return nullptr;
 	} else {
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_noncached_fd_lookups++;
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_noncached_fd_lookups();
 		}
 
 		m_last_accessed_fd = fd;
@@ -83,7 +83,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 
 		m_last_accessed_fd = -1;
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_added_fds++;
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_added_fds();
 		}
 
 		return m_table.emplace(fd, std::move(fdinfo)).first->second;
@@ -105,15 +105,15 @@ bool sinsp_fdtable::erase(int64_t fd) {
 
 	if(fdit == m_table.end()) {
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().m_n_failed_fd_lookups++;
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
 		}
 		return false;
 	} else {
 		m_table.erase(fdit);
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
 			auto& c = m_params->m_sinsp_stats_v2->get_thread_counters();
-			c.m_n_noncached_fd_lookups++;
-			c.m_n_removed_fds++;
+			c.inc_n_noncached_fd_lookups();
+			c.inc_n_removed_fds();
 		}
 		return true;
 	}

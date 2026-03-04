@@ -39,26 +39,24 @@ sinsp_stats_v2_thread_counters& sinsp_stats_v2::get_thread_counters() {
 }
 
 sinsp_stats_v2_snapshot sinsp_stats_v2::get_snapshot() const {
-	using std::memory_order_relaxed;
 	sinsp_stats_v2_snapshot s = {};
 	std::lock_guard<std::mutex> g(m_mutex);
 	for(const auto& c : m_thread_counters) {
-		s.m_n_noncached_fd_lookups += c->m_n_noncached_fd_lookups.load(memory_order_relaxed);
-		s.m_n_cached_fd_lookups += c->m_n_cached_fd_lookups.load(memory_order_relaxed);
-		s.m_n_failed_fd_lookups += c->m_n_failed_fd_lookups.load(memory_order_relaxed);
-		s.m_n_added_fds += c->m_n_added_fds.load(memory_order_relaxed);
-		s.m_n_removed_fds += c->m_n_removed_fds.load(memory_order_relaxed);
-		s.m_n_stored_evts += c->m_n_stored_evts.load(memory_order_relaxed);
-		s.m_n_store_evts_drops += c->m_n_store_evts_drops.load(memory_order_relaxed);
-		s.m_n_retrieved_evts += c->m_n_retrieved_evts.load(memory_order_relaxed);
-		s.m_n_retrieve_evts_drops += c->m_n_retrieve_evts_drops.load(memory_order_relaxed);
-		s.m_n_noncached_thread_lookups +=
-		        c->m_n_noncached_thread_lookups.load(memory_order_relaxed);
-		s.m_n_cached_thread_lookups += c->m_n_cached_thread_lookups.load(memory_order_relaxed);
-		s.m_n_failed_thread_lookups += c->m_n_failed_thread_lookups.load(memory_order_relaxed);
-		s.m_n_added_threads += c->m_n_added_threads.load(memory_order_relaxed);
-		s.m_n_removed_threads += c->m_n_removed_threads.load(memory_order_relaxed);
-		s.m_n_drops_full_threadtable += c->m_n_drops_full_threadtable.load(memory_order_relaxed);
+		s.m_n_noncached_fd_lookups += c->get_n_noncached_fd_lookups();
+		s.m_n_cached_fd_lookups += c->get_n_cached_fd_lookups();
+		s.m_n_failed_fd_lookups += c->get_n_failed_fd_lookups();
+		s.m_n_added_fds += c->get_n_added_fds();
+		s.m_n_removed_fds += c->get_n_removed_fds();
+		s.m_n_stored_evts += c->get_n_stored_evts();
+		s.m_n_store_evts_drops += c->get_n_store_evts_drops();
+		s.m_n_retrieved_evts += c->get_n_retrieved_evts();
+		s.m_n_retrieve_evts_drops += c->get_n_retrieve_evts_drops();
+		s.m_n_noncached_thread_lookups += c->get_n_noncached_thread_lookups();
+		s.m_n_cached_thread_lookups += c->get_n_cached_thread_lookups();
+		s.m_n_failed_thread_lookups += c->get_n_failed_thread_lookups();
+		s.m_n_added_threads += c->get_n_added_threads();
+		s.m_n_removed_threads += c->get_n_removed_threads();
+		s.m_n_drops_full_threadtable += c->get_n_drops_full_threadtable();
 	}
 	return s;
 }

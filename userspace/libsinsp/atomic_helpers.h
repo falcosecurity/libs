@@ -78,3 +78,29 @@ inline T fetch_and_relaxed(T& dest, T val) {
 #endif
 	return r;
 }
+
+template<typename T>
+inline T fetch_add_relaxed(T& dest, T val) {
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	T r = __atomic_fetch_add(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+	return r;
+}
+
+template<typename T>
+inline T fetch_sub_relaxed(T& dest, T val) {
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	T r = __atomic_fetch_sub(&dest, val, __ATOMIC_RELAXED);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+	return r;
+}
