@@ -3187,6 +3187,14 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
 		// Found SCM_RIGHTS control message. Process it.
 		size_t cmsg_len;
 		PPM_CMSG_UNALIGNED_READ(cmsg, cmsg_len, cmsg_len);
+		// Validate cmsg_len: must be at least the header size, and the entire
+		// message must fit within the control buffer. This mirrors the
+		// bounds-checking in ppm_cmsg_nxthdr() but covers the first header too.
+		if(scap_unlikely(cmsg_len < PPM_CMSG_LEN(0) ||
+		                 reinterpret_cast<const char *>(cmsg) + cmsg_len >
+		                         msg_ctrl + msg_ctrllen)) {
+			break;
+		}
 		unsigned long const data_size = cmsg_len - PPM_CMSG_LEN(0);
 		unsigned long const fds_len = data_size / sizeof(int);
 #define SCM_MAX_FD 253  // Taken from kernel.
