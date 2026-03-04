@@ -13,6 +13,7 @@ limitations under the License.
 */
 #pragma once
 #include <libscap/scap.h>
+#include <libscap/scap_print.h>
 #include <gtest/gtest.h>
 #include <cstdarg>
 #include <memory>

@@ -939,12 +939,6 @@ scap_evt* scap_create_event_v(char* error,
                               const scap_empty_params_set* empty_params_set,
                               uint32_t n,
                               va_list args);
-typedef enum scap_print_info {
-	PRINT_HEADER = 0,
-	PRINT_HEADER_LENGTHS,
-	PRINT_FULL,
-} scap_print_info;
-void scap_print_event(scap_evt* ev, scap_print_info i);
 int get_enter_event_fd_location(ppm_event_code etype);
 int get_exit_event_fd_location(ppm_event_code etype);
 /*@}*/

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2024 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,20 +15,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#pragma once
 
+#pragma once
 #include <libscap/scap.h>
 
-#define CONVERSION_DEBUGGING 0
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#if CONVERSION_DEBUGGING
-#include <libscap/scap_print.h>
-#define PRINT_MESSAGE(...) printf("[DEBUG]: " __VA_ARGS__)
-#define PRINT_EVENT(ev, i)   \
-	printf("\n");            \
-	scap_print_event(ev, i); \
-	printf("\n");
-#else
-#define PRINT_MESSAGE(...)
-#define PRINT_EVENT(ev, i)
+typedef enum scap_print_evt_info {
+	PRINT_HEADER = 0,
+	PRINT_HEADER_LENGTHS,
+	PRINT_FULL,
+} scap_print_evt_info;
+void scap_print_event(scap_evt *ev, scap_print_evt_info i);
+
+#ifdef __cplusplus
+}
 #endif
