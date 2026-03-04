@@ -434,10 +434,10 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
 			fdi->type = SCAP_FD_USERFAULTFD;
 		}
 		// anon_inode:bpf-map
-		// anon_inode:bpf_link
+		// anon_inode:bpf-link
 		// anon_inode:bpf-prog
 		// anon_inode:bpf_iter
-		else if(0 == strncmp(link_name, "anon_inode:[bpf", strlen("anon_inode:[bpf"))) {
+		else if(0 == strncmp(link_name, "anon_inode:bpf", strlen("anon_inode:bpf"))) {
 			fdi->type = SCAP_FD_BPF;
 		} else if(0 == strcmp(link_name, "anon_inode:[pidfd]")) {
 			fdi->type = SCAP_FD_PIDFD;
