@@ -1773,6 +1773,10 @@ bool sinsp_utils::is_sockaddr_valid(const sinsp_evt_param& param) {
 	case PPM_AF_INET6:
 		// family(1) + ip(16) + port(2)
 		return param.len() >= 19;
+	case PPM_AF_UNIX:
+		// family(1) + path(>=1 null terminator)
+		// The path is used as a C string, so it must be null-terminated within the buffer.
+		return param.len() >= 2 && param.data()[param.len() - 1] == '\0';
 	default:
 		return true;
 	}
@@ -1792,8 +1796,9 @@ bool sinsp_utils::is_socktuple_valid(const sinsp_evt_param& param) {
 		// family(1) + sip(16) + sport(2) + dip(16) + dport(2)
 		return param.len() >= 37;
 	case PPM_AF_UNIX:
-		// family(1) + source(8) + dest(8) + dpath(1 null terminator)
-		return param.len() >= 18;
+		// family(1) + source(8) + dest(8) + dpath(>=1 null terminator)
+		// The path is used as a C string, so it must be null-terminated within the buffer.
+		return param.len() >= 18 && param.data()[param.len() - 1] == '\0';
 	default:
 		return true;
 	}

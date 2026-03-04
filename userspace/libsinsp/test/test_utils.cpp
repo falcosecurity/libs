@@ -244,6 +244,7 @@ std::vector<uint8_t> pack_unix_socktuple(uint64_t scr_pointer,
 	}
 
 	res.insert(res.end(), unix_path.begin(), unix_path.end());
+	res.push_back('\0');
 	return res;
 }
 #endif  //_WIN32 __EMSCRIPTEN__
