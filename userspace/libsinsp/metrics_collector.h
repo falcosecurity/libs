@@ -20,35 +20,98 @@ limitations under the License.
 
 #include <libscap/metrics_v2.h>
 #include <libscap/scap_machine_info.h>
+#include <libsinsp/atomic_helpers.h>
 #include <libsinsp/thread_manager.h>
 #include <libscap/strl.h>
 #include <cmath>
 #include <memory>
-#include <optional>
 #include <string_view>
 #include <map>
 #include <mutex>
 #include <vector>
 #include <atomic>
 
-/** Per-thread counter block; atomics so get_snapshot() can read safely while other threads write.
- */
-struct sinsp_stats_v2_thread_counters {
-	std::atomic<uint64_t> m_n_noncached_fd_lookups{0};
-	std::atomic<uint64_t> m_n_cached_fd_lookups{0};
-	std::atomic<uint64_t> m_n_failed_fd_lookups{0};
-	std::atomic<uint64_t> m_n_added_fds{0};
-	std::atomic<uint64_t> m_n_removed_fds{0};
-	std::atomic<uint64_t> m_n_stored_evts{0};
-	std::atomic<uint64_t> m_n_store_evts_drops{0};
-	std::atomic<uint64_t> m_n_retrieved_evts{0};
-	std::atomic<uint64_t> m_n_retrieve_evts_drops{0};
-	std::atomic<uint64_t> m_n_noncached_thread_lookups{0};
-	std::atomic<uint64_t> m_n_cached_thread_lookups{0};
-	std::atomic<uint64_t> m_n_failed_thread_lookups{0};
-	std::atomic<uint64_t> m_n_added_threads{0};
-	std::atomic<uint64_t> m_n_removed_threads{0};
-	std::atomic<uint32_t> m_n_drops_full_threadtable{0};
+/** Per-thread counter block; use inc/dec/get methods for relaxed-atomic access. */
+class sinsp_stats_v2_thread_counters {
+public:
+	// Increment helpers (cast so template deduction matches counter type)
+	inline void inc_n_noncached_fd_lookups() {
+		fetch_add_relaxed(m_n_noncached_fd_lookups, uint64_t(1));
+	}
+	inline void inc_n_cached_fd_lookups() { fetch_add_relaxed(m_n_cached_fd_lookups, uint64_t(1)); }
+	inline void inc_n_failed_fd_lookups() { fetch_add_relaxed(m_n_failed_fd_lookups, uint64_t(1)); }
+	inline void dec_n_failed_fd_lookups() { fetch_sub_relaxed(m_n_failed_fd_lookups, uint64_t(1)); }
+	inline void inc_n_added_fds() { fetch_add_relaxed(m_n_added_fds, uint64_t(1)); }
+	inline void inc_n_removed_fds() { fetch_add_relaxed(m_n_removed_fds, uint64_t(1)); }
+	inline void inc_n_stored_evts() { fetch_add_relaxed(m_n_stored_evts, uint64_t(1)); }
+	inline void inc_n_store_evts_drops() { fetch_add_relaxed(m_n_store_evts_drops, uint64_t(1)); }
+	inline void inc_n_retrieved_evts() { fetch_add_relaxed(m_n_retrieved_evts, uint64_t(1)); }
+	inline void inc_n_retrieve_evts_drops() {
+		fetch_add_relaxed(m_n_retrieve_evts_drops, uint64_t(1));
+	}
+	inline void inc_n_noncached_thread_lookups() {
+		fetch_add_relaxed(m_n_noncached_thread_lookups, uint64_t(1));
+	}
+	inline void inc_n_cached_thread_lookups() {
+		fetch_add_relaxed(m_n_cached_thread_lookups, uint64_t(1));
+	}
+	inline void inc_n_failed_thread_lookups() {
+		fetch_add_relaxed(m_n_failed_thread_lookups, uint64_t(1));
+	}
+	inline void dec_n_failed_thread_lookups() {
+		fetch_sub_relaxed(m_n_failed_thread_lookups, uint64_t(1));
+	}
+	inline void inc_n_added_threads() { fetch_add_relaxed(m_n_added_threads, uint64_t(1)); }
+	inline void inc_n_removed_threads() { fetch_add_relaxed(m_n_removed_threads, uint64_t(1)); }
+	inline void inc_n_drops_full_threadtable() {
+		fetch_add_relaxed(m_n_drops_full_threadtable, uint32_t(1));
+	}
+
+	// Getters (for get_snapshot and rate-limiting)
+	inline uint64_t get_n_noncached_fd_lookups() const {
+		return load_relaxed(m_n_noncached_fd_lookups);
+	}
+	inline uint64_t get_n_cached_fd_lookups() const { return load_relaxed(m_n_cached_fd_lookups); }
+	inline uint64_t get_n_failed_fd_lookups() const { return load_relaxed(m_n_failed_fd_lookups); }
+	inline uint64_t get_n_added_fds() const { return load_relaxed(m_n_added_fds); }
+	inline uint64_t get_n_removed_fds() const { return load_relaxed(m_n_removed_fds); }
+	inline uint64_t get_n_stored_evts() const { return load_relaxed(m_n_stored_evts); }
+	inline uint64_t get_n_store_evts_drops() const { return load_relaxed(m_n_store_evts_drops); }
+	inline uint64_t get_n_retrieved_evts() const { return load_relaxed(m_n_retrieved_evts); }
+	inline uint64_t get_n_retrieve_evts_drops() const {
+		return load_relaxed(m_n_retrieve_evts_drops);
+	}
+	inline uint64_t get_n_noncached_thread_lookups() const {
+		return load_relaxed(m_n_noncached_thread_lookups);
+	}
+	inline uint64_t get_n_cached_thread_lookups() const {
+		return load_relaxed(m_n_cached_thread_lookups);
+	}
+	inline uint64_t get_n_failed_thread_lookups() const {
+		return load_relaxed(m_n_failed_thread_lookups);
+	}
+	inline uint64_t get_n_added_threads() const { return load_relaxed(m_n_added_threads); }
+	inline uint64_t get_n_removed_threads() const { return load_relaxed(m_n_removed_threads); }
+	inline uint32_t get_n_drops_full_threadtable() const {
+		return load_relaxed(m_n_drops_full_threadtable);
+	}
+
+private:
+	uint64_t m_n_noncached_fd_lookups{0};
+	uint64_t m_n_cached_fd_lookups{0};
+	uint64_t m_n_failed_fd_lookups{0};
+	uint64_t m_n_added_fds{0};
+	uint64_t m_n_removed_fds{0};
+	uint64_t m_n_stored_evts{0};
+	uint64_t m_n_store_evts_drops{0};
+	uint64_t m_n_retrieved_evts{0};
+	uint64_t m_n_retrieve_evts_drops{0};
+	uint64_t m_n_noncached_thread_lookups{0};
+	uint64_t m_n_cached_thread_lookups{0};
+	uint64_t m_n_failed_thread_lookups{0};
+	uint64_t m_n_added_threads{0};
+	uint64_t m_n_removed_threads{0};
+	uint32_t m_n_drops_full_threadtable{0};
 };
 
 /** Aggregated snapshot for metrics (sum of all threads' counters). */
