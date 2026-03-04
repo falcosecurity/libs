@@ -24,6 +24,7 @@ limitations under the License.
 #include <libsinsp/filter_check_list.h>
 #include <libsinsp/filterchecks.h>
 #include <libscap/strl.h>
+#include <libsinsp/packed_data.h>
 
 #ifndef _WIN32
 #include <climits>
@@ -1757,4 +1758,43 @@ std::string buffer_to_multiline_hex(const char* buf, size_t size) {
 	}
 
 	return ss.str();
+}
+
+bool sinsp_utils::is_sockaddr_valid(const sinsp_evt_param& param) {
+	if(param.empty()) {
+		return false;
+	}
+	const auto family =
+	        *packed::generic_sockaddr::family(reinterpret_cast<const uint8_t*>(param.data()));
+	switch(family) {
+	case PPM_AF_INET:
+		// family(1) + ip(4) + port(2)
+		return param.len() >= 7;
+	case PPM_AF_INET6:
+		// family(1) + ip(16) + port(2)
+		return param.len() >= 19;
+	default:
+		return true;
+	}
+}
+
+bool sinsp_utils::is_socktuple_valid(const sinsp_evt_param& param) {
+	if(param.empty()) {
+		return false;
+	}
+	const auto family =
+	        *packed::generic_tuple::family(reinterpret_cast<const uint8_t*>(param.data()));
+	switch(family) {
+	case PPM_AF_INET:
+		// family(1) + sip(4) + sport(2) + dip(4) + dport(2)
+		return param.len() >= 13;
+	case PPM_AF_INET6:
+		// family(1) + sip(16) + sport(2) + dip(16) + dport(2)
+		return param.len() >= 37;
+	case PPM_AF_UNIX:
+		// family(1) + source(8) + dest(8) + dpath(1 null terminator)
+		return param.len() >= 18;
+	default:
+		return true;
+	}
 }

@@ -38,6 +38,7 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libsinsp/plugin_manager.h>
 #include <libsinsp/sinsp_observer.h>
+#include <libscap/scap_likely.h>
 #include <libsinsp/user.h>
 #include <libsinsp/packed_data.h>
 
@@ -2223,8 +2224,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	}
 
 	const auto *addr_param = evt.get_param(1);
-	if(addr_param->empty()) {
-		// No address, there's nothing we can really do with this.
+	if(!sinsp_utils::is_sockaddr_valid(*addr_param)) {
 		return;
 	}
 
@@ -2557,7 +2557,8 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	const bool enter_evt_retrieved = retrieve_enter_event(enter_evt, evt);
 	const uint8_t *enter_addr_data = nullptr;
 	if(enter_evt_retrieved) {
-		if(const auto *enter_addr_param = enter_evt.get_param(1); !enter_addr_param->empty()) {
+		if(const auto *enter_addr_param = enter_evt.get_param(1);
+		   sinsp_utils::is_sockaddr_valid(*enter_addr_param)) {
 			enter_addr_data = reinterpret_cast<const uint8_t *>(enter_addr_param->data());
 		}
 	}
@@ -2585,8 +2586,12 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 
 	// Extract exit event address parameter. This is used to detect TOCTOU attacks.
 	const uint8_t *addr_data = nullptr;
-	if(const auto *addr_param = evt.get_param(3); !addr_param->empty()) {
+	if(const auto *addr_param = evt.get_param(3); sinsp_utils::is_sockaddr_valid(*addr_param)) {
 		addr_data = reinterpret_cast<const uint8_t *>(addr_param->data());
+	}
+
+	if(!sinsp_utils::is_socktuple_valid(*tuple_param)) {
+		return;
 	}
 
 	const auto tuple_data = reinterpret_cast<const uint8_t *>(tuple_param->data());
@@ -2628,10 +2633,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 
 	// Extract the address.
 	const sinsp_evt_param *parinfo = evt.get_param(1);
-	if(parinfo->empty()) {
-		// No address, there's nothing we can really do with this.
-		// This happens for socket types that we don't support, so we have the assertion
-		// to make sure that this is not a type of socket that we support.
+	if(!sinsp_utils::is_socktuple_valid(*parinfo)) {
 		return;
 	}
 
@@ -2986,7 +2988,7 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo &fdinfo,
 
 // Return false if the update didn't happen (for example because the tuple is nullptr)
 bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) const {
-	if(parinfo.empty()) {
+	if(!sinsp_utils::is_socktuple_valid(parinfo)) {
 		return false;
 	}
 

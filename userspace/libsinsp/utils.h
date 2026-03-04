@@ -57,6 +57,8 @@ public:
 	sinsp_initializer();
 };
 
+class sinsp_evt_param;
+
 ///////////////////////////////////////////////////////////////////////////////
 // A collection of useful functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -157,6 +159,14 @@ public:
 	static std::string caps_to_string(const uint64_t caps);
 
 	static uint64_t get_max_caps();
+
+	/// Validate that a sockaddr parameter has sufficient size for its address family.
+	/// Returns false if the param is empty or too small for a known family.
+	static bool is_sockaddr_valid(const sinsp_evt_param& param);
+
+	/// Validate that a socktuple parameter has sufficient size for its address family.
+	/// Returns false if the param is empty or too small for a known family.
+	static bool is_socktuple_valid(const sinsp_evt_param& param);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
