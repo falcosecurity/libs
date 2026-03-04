@@ -1462,82 +1462,59 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->resurrect_thread();
 	}
 
-	// Set the exe.
-	auto parinfo = evt.get_param(1);
-	evt.get_tinfo()->set_exe(parinfo->as<std::string>());
-	evt.get_tinfo()->set_lastexec_ts(evt.get_ts());
-
-	// Set the comm.
-	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-		evt.get_tinfo()->set_comm(comm_param->as<std::string>());
-	} else {
-		// Old trace files didn't have comm, so just set it to exe.
-		evt.get_tinfo()->set_comm(evt.get_tinfo()->get_exe());
-	}
-
-	// Set the command arguments.
-	evt.get_tinfo()->set_args(evt.get_param(2)->as<std::vector<std::string>>());
-
-	// Set the pid.
-	evt.get_tinfo()->set_pid(evt.get_param(4)->as<uint64_t>());
-
 	//
 	// In case this thread is a fake entry,
 	// try to at least patch the parent, since
 	// we have it from the execve event
 	//
-	if(evt.get_tinfo()->is_invalid()) {
-		evt.get_tinfo()->set_ptid(evt.get_param(5)->as<uint64_t>());
+	const bool invalid_thread = evt.get_tinfo()->is_invalid();
 
-		/* We are not in a namespace we recover also vtid and vpid */
-		if((evt.get_tinfo()->get_flags() & PPM_CL_CHILD_IN_PIDNS) == 0) {
-			evt.get_tinfo()->set_vtid(evt.get_tinfo()->m_tid);
-			evt.get_tinfo()->set_vpid(evt.get_tinfo()->get_pid());
-		}
+	// Set the pid (before apply_exec_state so set_env_from_proc can build /proc/pid/environ path).
+	evt.get_tinfo()->set_pid(evt.get_param(4)->as<uint64_t>());
 
-		auto tinfo = m_params->m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
-		/* Create thread groups and parenting relationships */
-		m_params->m_thread_manager->create_thread_dependencies(tinfo);
+	// Build mutex-protected exec state, then apply under one lock.
+	sinsp_threadinfo_exec_state state;
+
+	// Set the exe.
+	auto parinfo = evt.get_param(1);
+	state.exe = parinfo->as<std::string>();
+	state.lastexec_ts = evt.get_ts();
+
+	// Set the comm.
+	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
+		state.comm = comm_param->as<std::string>();
+	} else {
+		// Old trace files didn't have comm, so just set it to exe.
+		state.comm = state.exe;
 	}
 
-	// Set the fdlimit.
-	evt.get_tinfo()->set_fdlimit(evt.get_param(7)->as<int64_t>());
-
-	// If one the following parameters is present, so is for the other ones, so just check the
-	// presence of one of them.
-	const auto pgft_maj_param = evt.get_param(8);
-	const auto pgft_min_param = evt.get_param(9);
-	const auto vm_size_param = evt.get_param(10);
-	const auto vm_rss_param = evt.get_param(11);
-	const auto vm_swap_param = evt.get_param(12);
-	if(!vm_swap_param->empty()) {
-		evt.get_tinfo()->set_pfmajor(pgft_maj_param->as<uint64_t>());
-		evt.get_tinfo()->set_pfminor(pgft_min_param->as<uint64_t>());
-		evt.get_tinfo()->set_vmsize_kb(vm_size_param->as<uint32_t>());
-		evt.get_tinfo()->set_vmrss_kb(vm_rss_param->as<uint32_t>());
-		evt.get_tinfo()->set_vmswap_kb(vm_swap_param->as<uint32_t>());
-	}
+	// Set the command arguments.
+	state.args = evt.get_param(2)->as<std::vector<std::string>>();
 
 	// Set the proc env.
 	if(const auto env_param = evt.get_param(15); !env_param->empty()) {
 		const auto can_load_env_from_proc = is_large_envs_enabled();
-		evt.get_tinfo()->set_env(env_param->data(), env_param->len(), can_load_env_from_proc);
+		if(env_param->len() == SCAP_MAX_ENV_SIZE && can_load_env_from_proc) {
+			state.load_env_from_proc = true;
+		} else {
+			size_t len = env_param->len();
+			if(len > 0 && env_param->data()[len - 1] == '\0') {
+				len--;
+			}
+			state.env = sinsp_split({env_param->data(), len}, '\0');
+		}
 	}
 
 	// Set cgroups.
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
-		evt.get_tinfo()->set_cgroups(cgroups_param->as<std::vector<std::string>>());
-	}
-
-	// Set tty.
-	if(const auto tty_param = evt.get_param(16); !tty_param->empty()) {
-		evt.get_tinfo()->set_tty(tty_param->as<uint32_t>());
+		state.cgroups =
+		        sinsp_threadinfo::parse_cgroups(cgroups_param->as<std::vector<std::string>>());
 	}
 
 	// Set the exepath.
 	if(!evt.get_param(27)->empty()) {
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-		evt.get_tinfo()->set_exepath(evt.get_param(27)->as<std::string>());
+		state.exepath = evt.get_param(27)->as<std::string>();
 	} else {
 		/* ONLY VALID FOR OLD SCAP-FILES:
 		 * In older event versions we can only rely on our userspace reconstruction
@@ -1622,7 +1599,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 					 * concatenate_paths takes care of resolving the path
 					 */
 					fullpath = sinsp_utils::concatenate_paths("", sdir);
-
 				}
 				/* (2)/(1) If it is relative or absolute we craft the `fullpath` as usual:
 				 * - `sdir` + `pathname`
@@ -1631,8 +1607,63 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 					fullpath = sinsp_utils::concatenate_paths(sdir, pathname);
 				}
 			}
-			evt.get_tinfo()->set_exepath(std::move(fullpath));
+			state.exepath = std::move(fullpath);
 		}
+	}
+
+	// Set execve/execveat flags.
+	if(const auto flags_param = evt.get_param(19); !flags_param->empty()) {
+		const auto flags = flags_param->as<uint32_t>();
+		state.exe_writable = (flags & PPM_EXE_WRITABLE) != 0;
+		state.exe_upper_layer = (flags & PPM_EXE_UPPER_LAYER) != 0;
+		state.exe_from_memfd = (flags & PPM_EXE_FROM_MEMFD) != 0;
+		state.exe_lower_layer = (flags & PPM_EXE_LOWER_LAYER) != 0;
+	}
+
+	// Set exe ino fields.
+	const auto exe_ino_param = evt.get_param(23);
+	const auto exe_ino_ctime_param = evt.get_param(24);
+	const auto exe_ino_mtime_param = evt.get_param(25);
+	// If one of these parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	if(!exe_ino_mtime_param->empty()) {
+		state.exe_ino = exe_ino_param->as<uint64_t>();
+		state.exe_ino_ctime = exe_ino_ctime_param->as<uint64_t>();
+		state.exe_ino_mtime = exe_ino_mtime_param->as<uint64_t>();
+		if(evt.get_tinfo()->get_clone_ts() != 0) {
+			state.exe_ino_ctime_duration_clone_ts =
+			        evt.get_tinfo()->get_clone_ts() - *state.exe_ino_ctime;
+		}
+		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
+		   *state.exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts) {
+			state.exe_ino_ctime_duration_pidns_start =
+			        *state.exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
+		}
+	}
+
+	evt.get_tinfo()->apply_exec_state(state);
+
+	// Set the fdlimit.
+	evt.get_tinfo()->set_fdlimit(evt.get_param(7)->as<int64_t>());
+
+	// If one the following parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	const auto pgft_maj_param = evt.get_param(8);
+	const auto pgft_min_param = evt.get_param(9);
+	const auto vm_size_param = evt.get_param(10);
+	const auto vm_rss_param = evt.get_param(11);
+	const auto vm_swap_param = evt.get_param(12);
+	if(!vm_swap_param->empty()) {
+		evt.get_tinfo()->set_pfmajor(pgft_maj_param->as<uint64_t>());
+		evt.get_tinfo()->set_pfminor(pgft_min_param->as<uint64_t>());
+		evt.get_tinfo()->set_vmsize_kb(vm_size_param->as<uint32_t>());
+		evt.get_tinfo()->set_vmrss_kb(vm_rss_param->as<uint32_t>());
+		evt.get_tinfo()->set_vmswap_kb(vm_swap_param->as<uint32_t>());
+	}
+
+	// Set tty.
+	if(const auto tty_param = evt.get_param(16); !tty_param->empty()) {
+		evt.get_tinfo()->set_tty(tty_param->as<uint32_t>());
 	}
 
 	// Set the vpgid.
@@ -1647,15 +1678,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->set_loginuid(loginuid_param->as<uint32_t>());
 	}
 
-	// Set execve/execveat flags.
-	if(const auto flags_param = evt.get_param(19); !flags_param->empty()) {
-		const auto flags = flags_param->as<uint32_t>();
-		evt.get_tinfo()->set_exe_writable((flags & PPM_EXE_WRITABLE) != 0);
-		evt.get_tinfo()->set_exe_upper_layer((flags & PPM_EXE_UPPER_LAYER) != 0);
-		evt.get_tinfo()->set_exe_from_memfd((flags & PPM_EXE_FROM_MEMFD) != 0);
-		evt.get_tinfo()->set_exe_lower_layer((flags & PPM_EXE_LOWER_LAYER) != 0);
-	}
-
 	// Set capabilities.
 	const auto cap_inheritable_param = evt.get_param(20);
 	const auto cap_permitted_param = evt.get_param(21);
@@ -1666,27 +1688,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->set_cap_inheritable(cap_inheritable_param->as<uint64_t>());
 		evt.get_tinfo()->set_cap_permitted(cap_permitted_param->as<uint64_t>());
 		evt.get_tinfo()->set_cap_effective(cap_effective_param->as<uint64_t>());
-	}
-
-	// Set exe ino fields.
-	const auto exe_ino_param = evt.get_param(23);
-	const auto exe_ino_ctime_param = evt.get_param(24);
-	const auto exe_ino_mtime_param = evt.get_param(25);
-	// If one of these parameters is present, so is for the other ones, so just check the
-	// presence of one of them.
-	if(!exe_ino_mtime_param->empty()) {
-		evt.get_tinfo()->set_exe_ino(exe_ino_param->as<uint64_t>());
-		evt.get_tinfo()->set_exe_ino_ctime(exe_ino_ctime_param->as<uint64_t>());
-		evt.get_tinfo()->set_exe_ino_mtime(exe_ino_mtime_param->as<uint64_t>());
-		if(evt.get_tinfo()->get_clone_ts() != 0) {
-			evt.get_tinfo()->set_exe_ino_ctime_duration_clone_ts(
-			        evt.get_tinfo()->get_clone_ts() - evt.get_tinfo()->get_exe_ino_ctime());
-		}
-		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
-		   (evt.get_tinfo()->get_exe_ino_ctime() > evt.get_tinfo()->m_pidns_init_start_ts)) {
-			evt.get_tinfo()->set_exe_ino_ctime_duration_pidns_start(
-			        evt.get_tinfo()->get_exe_ino_ctime() - evt.get_tinfo()->m_pidns_init_start_ts);
-		}
 	}
 
 	// Set uid.
@@ -1708,16 +1709,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->set_gid(gid_param->as<uint32_t>());
 	}
 
-	std::string container_id = m_params->m_plugin_tables.get_container_id(*evt.get_tinfo());
-	m_params->m_usergroup_manager->add_user(container_id,
-	                                        evt.get_tinfo()->get_pid(),
-	                                        evt.get_tinfo()->get_uid(),
-	                                        evt.get_tinfo()->get_gid(),
-	                                        must_notify_thread_user_update());
-	m_params->m_usergroup_manager->add_group(container_id,
-	                                         evt.get_tinfo()->get_pid(),
-	                                         evt.get_tinfo()->get_gid(),
-	                                         must_notify_thread_group_update());
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -1740,9 +1731,31 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	}
 	evt.get_tinfo()->set_flags(new_flags);
 
-	//
-	// If there's a listener, add a callback to later invoke it.
-	//
+	if(invalid_thread) {
+		evt.get_tinfo()->set_ptid(evt.get_param(5)->as<uint64_t>());
+
+		/* We are not in a namespace we recover also vtid and vpid */
+		if((evt.get_tinfo()->get_flags() & PPM_CL_CHILD_IN_PIDNS) == 0) {
+			evt.get_tinfo()->set_vtid(evt.get_tinfo()->m_tid);
+			evt.get_tinfo()->set_vpid(evt.get_tinfo()->get_pid());
+		}
+
+		auto tinfo = m_params->m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
+		/* Create thread groups and parenting relationships */
+		m_params->m_thread_manager->create_thread_dependencies(tinfo);
+	}
+
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*evt.get_tinfo());
+	m_params->m_usergroup_manager->add_user(container_id,
+	                                        evt.get_tinfo()->get_pid(),
+	                                        evt.get_tinfo()->get_uid(),
+	                                        evt.get_tinfo()->get_gid(),
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group(container_id,
+	                                         evt.get_tinfo()->get_pid(),
+	                                         evt.get_tinfo()->get_gid(),
+	                                         must_notify_thread_group_update());
+
 	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_execve(evt); });

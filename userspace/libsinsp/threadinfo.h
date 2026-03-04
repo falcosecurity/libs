@@ -43,6 +43,7 @@ struct iovec {
 #include <libsinsp/filter.h>
 #include <libsinsp/ifinfo.h>
 #include <libscap/scap_savefile_api.h>
+#include <optional>
 
 struct erase_fd_params {
 	bool m_remove_from_table;
@@ -79,9 +80,37 @@ struct sinsp_threadinfo_ctor_params {
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
+
+/*!
+  \brief Parameter object for applying execve/execveat exit state (mutex-protected fields only).
+  Used by parse_execve_exit to update thread state under a single lock so concurrent
+  readers never see a half-updated exec-info group. Atomic-backed fields (pid, flags,
+  uid, gid, etc.) are updated by the parser via individual accessors.
+*/
+struct SINSP_PUBLIC sinsp_threadinfo_exec_state {
+	std::string exe;
+	uint64_t lastexec_ts{0};
+	std::string comm;
+	std::vector<std::string> args;
+	std::optional<std::vector<std::string>> env;
+	bool load_env_from_proc{false};
+	std::optional<std::vector<std::pair<std::string, std::string>>> cgroups;
+	std::optional<std::string> exepath;
+	std::optional<bool> exe_writable;
+	std::optional<bool> exe_upper_layer;
+	std::optional<bool> exe_from_memfd;
+	std::optional<bool> exe_lower_layer;
+	std::optional<uint64_t> exe_ino;
+	std::optional<uint64_t> exe_ino_ctime;
+	std::optional<uint64_t> exe_ino_mtime;
+	std::optional<uint64_t> exe_ino_ctime_duration_clone_ts;
+	std::optional<uint64_t> exe_ino_ctime_duration_pidns_start;
+};
+
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
+	using exec_state_t = sinsp_threadinfo_exec_state;
 
 	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
 	~sinsp_threadinfo() override;
@@ -473,8 +502,8 @@ public:
 	inline uint64_t get_clone_ts() const { return load_relaxed(m_clone_ts); }
 	inline void set_clone_ts(uint64_t v) { store_relaxed(m_clone_ts, v); }
 
-	inline uint64_t get_lastexec_ts() const { return load_relaxed(m_lastexec_ts); }
-	inline void set_lastexec_ts(uint64_t v) { store_relaxed(m_lastexec_ts, v); }
+	uint64_t get_lastexec_ts() const;
+	void set_lastexec_ts(uint64_t v);
 
 	size_t args_len() const;
 	size_t env_len() const;
@@ -555,6 +584,17 @@ public:
 	}
 
 	void set_exepath(std::string&& exepath);
+
+	/*!
+	  \brief Apply execve/execveat exit state (mutex-protected fields only) under a single lock.
+	  \param state The new mutex-protected state built from the execve exit event.
+	  */
+	void apply_exec_state(const exec_state_t& state);
+
+	/*!
+	  \brief Parse cgroup definitions (e.g. from execve exit param) into cgroups_t.
+	  */
+	static cgroups_t parse_cgroups(const std::vector<std::string>& defs);
 
 	/*!
 	  \brief A static version of static_fields()
@@ -657,6 +697,7 @@ private:
 	std::vector<std::string> m_args;
 	std::vector<std::string> m_env;
 	cgroups_t m_cgroups;
+	uint64_t m_lastexec_ts{0};
 
 	// Thread group info (synchronized via std::atomic_load/store)
 	std::shared_ptr<thread_group_info> m_tginfo;
@@ -678,7 +719,6 @@ private:
 	uint64_t m_prevevent_ts;
 	uint64_t m_lastaccess_ts;
 	uint64_t m_clone_ts;
-	uint64_t m_lastexec_ts;
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
