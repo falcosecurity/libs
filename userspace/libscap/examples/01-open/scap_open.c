@@ -25,6 +25,7 @@ limitations under the License.
 #include <sys/time.h>
 #include <libscap/strl.h>
 #include <libscap/scap_engines.h>
+#include <libscap/scap_print.h>
 
 #define SYSCALL_NAME_MAX_LEN 40
 

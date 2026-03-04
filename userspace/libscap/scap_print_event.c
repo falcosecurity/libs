@@ -17,6 +17,7 @@ limitations under the License.
 #include <stdio.h>
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>
+#include <libscap/scap_print.h>
 #if defined(_WIN32)
 #include <Ws2tcpip.h>
 #else
@@ -274,7 +275,7 @@ static void scap_print_params(scap_evt *ev) {
 	printf("-----------------------\n");
 }
 
-void scap_print_event(scap_evt *ev, scap_print_info i) {
+void scap_print_event(scap_evt *ev, scap_print_evt_info i) {
 	switch(i) {
 	case PRINT_HEADER:
 		scap_print_event_header(ev);
