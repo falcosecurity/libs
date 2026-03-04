@@ -30,6 +30,7 @@ typedef enum scap_print_evt_info {
 } scap_print_evt_info;
 void scap_print_event(scap_evt *ev, scap_print_evt_info i);
 void scap_print_threadinfo(const scap_threadinfo *tinfo);
+void scap_print_fdinfo(const scap_fdinfo *fdinfo);
 
 #ifdef __cplusplus
 }

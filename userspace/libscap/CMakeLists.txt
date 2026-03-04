@@ -98,6 +98,7 @@ add_library(
 	ppm_sc_names.c
 	scap_print_event.c
 	scap_print_threadinfo.c
+	scap_print_fdinfo.c
 	scap_empty_params_set.c
 	${LIBS_DIR}/driver/dynamic_params_table.c
 	${LIBS_DIR}/driver/event_table.c
