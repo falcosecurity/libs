@@ -1041,7 +1041,6 @@ void sinsp::on_new_entry_from_proc(void* context,
 				tevt.set_num(0);
 				tevt.set_inspector(this);
 				tevt.set_tinfo(sinsp_tinfo.get());
-				tevt.set_fdinfo_ref(nullptr);
 				tevt.set_fd_info(nullptr);
 				sinsp_tinfo->set_lastevent_fd((int64_t)-1);
 				sinsp_tinfo->set_last_event_data(nullptr);
@@ -1112,7 +1111,6 @@ void sinsp::on_new_entry_from_proc(void* context,
 			tevt.set_cpuid(0);
 			tevt.set_num(0);
 			tevt.set_tinfo(sinsp_tinfo.get());
-			tevt.set_fdinfo_ref(nullptr);
 			tevt.set_fd_info(added_fdinfo);
 			int64_t tlefd = sinsp_tinfo->get_lastevent_fd();
 			sinsp_tinfo->set_lastevent_fd(fdinfo->fd);

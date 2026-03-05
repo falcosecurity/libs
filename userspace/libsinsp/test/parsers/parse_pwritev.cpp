@@ -59,6 +59,6 @@ TEST_F(sinsp_with_test_input, PWRITEV_success) {
 	// Check that fd info associated with the thread are as expected.
 	const auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
-	fdinfo = init_tinfo->get_fd(opn_params.fd);
-	ASSERT_TRUE(fdinfo);
+	auto fdinfo_tinfo = init_tinfo->get_fd(opn_params.fd);
+	ASSERT_TRUE(fdinfo_tinfo);
 }

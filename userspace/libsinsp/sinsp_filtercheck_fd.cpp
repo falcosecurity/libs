@@ -1598,13 +1598,13 @@ bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt) {
 		}
 
 		if(m_argid != -1) {
-			m_fdinfo = m_tinfo->get_fd(m_argid);
+			m_fdinfo = m_tinfo->get_fd(m_argid).get();
 		} else {
 			m_fdinfo = evt->get_fd_info();
 
 			auto cached_fd = m_tinfo->get_lastevent_fd();
 			if(m_fdinfo == NULL && cached_fd != -1) {
-				m_fdinfo = m_tinfo->get_fd(cached_fd);
+				m_fdinfo = m_tinfo->get_fd(cached_fd).get();
 			}
 		}
 		// We'll check if fd is null below

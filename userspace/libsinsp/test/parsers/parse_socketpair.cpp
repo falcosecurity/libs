@@ -77,20 +77,20 @@ TEST_F(sinsp_with_test_input, SOCKETPAIR_success) {
 	ASSERT_TRUE(init_tinfo);
 
 	// Checks that fdinfo associated with the thread are as expected for fd1.
-	fdinfo = init_tinfo->get_fd(fd1);
-	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->get_name(), "");
-	ASSERT_TRUE(fdinfo->is_unix_socket());
-	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
-	ASSERT_TRUE(fdinfo->is_role_none());
-	ASSERT_FALSE(fdinfo->is_socket_connected());
+	auto fdinfo_tinfo = init_tinfo->get_fd(fd1);
+	ASSERT_TRUE(fdinfo_tinfo);
+	ASSERT_EQ(fdinfo_tinfo->get_name(), "");
+	ASSERT_TRUE(fdinfo_tinfo->is_unix_socket());
+	ASSERT_EQ(fdinfo_tinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
+	ASSERT_TRUE(fdinfo_tinfo->is_role_none());
+	ASSERT_FALSE(fdinfo_tinfo->is_socket_connected());
 
 	// Checks that fdinfo associated with the thread are as expected for fd2.
-	fdinfo = init_tinfo->get_fd(fd2);
-	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->get_name(), "");
-	ASSERT_TRUE(fdinfo->is_unix_socket());
-	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
-	ASSERT_TRUE(fdinfo->is_role_none());
-	ASSERT_FALSE(fdinfo->is_socket_connected());
+	fdinfo_tinfo = init_tinfo->get_fd(fd2);
+	ASSERT_TRUE(fdinfo_tinfo);
+	ASSERT_EQ(fdinfo_tinfo->get_name(), "");
+	ASSERT_TRUE(fdinfo_tinfo->is_unix_socket());
+	ASSERT_EQ(fdinfo_tinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
+	ASSERT_TRUE(fdinfo_tinfo->is_role_none());
+	ASSERT_FALSE(fdinfo_tinfo->is_socket_connected());
 }

@@ -425,7 +425,7 @@ TEST_F(sinsp_with_test_input, pipe) {
 	 * `fdinfo` pointer. */
 
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	sinsp_fdinfo* fdinfo1 = evt->get_thread_info()->get_fd(fd1);
+	auto fdinfo1 = evt->get_thread_info()->get_fd(fd1);
 	ASSERT_NE(fdinfo1, nullptr);
 	ASSERT_STREQ(fdinfo1->get_typestring(), "pipe");
 	ASSERT_EQ(fdinfo1->get_typechar(), 'p');
@@ -480,7 +480,7 @@ TEST_F(sinsp_with_test_input, pipe2) {
 	/* Now we get the first file descriptor (`3`) and we assert some fields directly through the
 	 * `fdinfo` pointer. */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	sinsp_fdinfo* fdinfo1 = evt->get_thread_info()->get_fd(fd1);
+	auto fdinfo1 = evt->get_thread_info()->get_fd(fd1);
 	ASSERT_NE(fdinfo1, nullptr);
 	ASSERT_STREQ(fdinfo1->get_typestring(), "pipe");
 	ASSERT_EQ(fdinfo1->get_typechar(), 'p');

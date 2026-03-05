@@ -631,10 +631,11 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 	sctinfo->filtered_out = tinfo.get_filtered_out();
 }
 
-sinsp_fdinfo* sinsp_thread_manager::add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
-                                                            const scap_fdinfo& fdinfo,
-                                                            const bool resolve_hostname_and_port) {
-	const auto newfdinfo = tinfo.add_fd_from_scap(fdinfo, resolve_hostname_and_port);
+std::shared_ptr<sinsp_fdinfo> sinsp_thread_manager::add_thread_fd_from_scap(
+        sinsp_threadinfo& tinfo,
+        const scap_fdinfo& fdinfo,
+        const bool resolve_hostname_and_port) {
+	auto newfdinfo = tinfo.add_fd_from_scap(fdinfo, resolve_hostname_and_port);
 	if(!newfdinfo) {
 		return nullptr;
 	}

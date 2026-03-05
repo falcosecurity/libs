@@ -369,7 +369,6 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	evt.init();
 
 	set_event_source(evt);
-	evt.set_fdinfo_ref(nullptr);
 	evt.set_fd_info(nullptr);
 	evt.set_errorcode(0);
 
@@ -3579,11 +3578,11 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 	//  - dup2(): fd number of an existing fd that we pass to the dup2() as the "newfd". dup2() will
 	//    close the existing one. So we need to clean it up / overwrite;
 	//  - dup3(): same as dup2().
-	if(auto *old_fdinfo = tinfo->get_fd(retval); old_fdinfo != nullptr) {
+	if(auto old_fdinfo = tinfo->get_fd(retval); old_fdinfo != nullptr) {
 		erase_fd_params eparams;
 
 		eparams.m_fd = retval;
-		eparams.m_fdinfo = old_fdinfo;
+		eparams.m_fdinfo = old_fdinfo.get();
 		eparams.m_remove_from_table = false;
 		eparams.m_tinfo = tinfo;
 		erase_fd(eparams, verdict);

@@ -199,8 +199,9 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ip
 	});
 }
 
-sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
-                                                 const bool resolve_hostname_and_port) {
+std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo::add_fd_from_scap(
+        const scap_fdinfo& fdi,
+        const bool resolve_hostname_and_port) {
 	auto newfdi = m_params->fdinfo_factory.create();
 
 	newfdi->m_type = fdi.type;
@@ -779,16 +780,14 @@ void sinsp_threadinfo::apply_exec_state(const exec_state_t& state) {
 	}
 }
 
-sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
+std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo::add_fd(int64_t fd,
+                                                       std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
-		return NULL;
+		return nullptr;
 	}
-	auto* res = fd_table_ptr->add(fd, std::move(fdinfo));
+	auto res = fd_table_ptr->add(fd, std::move(fdinfo));
 
-	//
-	// Update the last event fd. It's needed by the filtering engine
-	//
 	set_lastevent_fd(fd);
 
 	return res;
@@ -1045,7 +1044,7 @@ void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* 
 }
 
 std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
-	sinsp_fdinfo* dir_fdinfo = get_fd(dir_fd);
+	auto dir_fdinfo = get_fd(dir_fd);
 	auto dir_name = dir_fdinfo ? dir_fdinfo->get_name() : std::string{};
 	if(!dir_fdinfo || dir_name.empty()) {
 #ifndef _WIN32  // we will have to implement this for Windows

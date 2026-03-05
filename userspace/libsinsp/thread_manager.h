@@ -309,9 +309,9 @@ public:
 
 	  \note tinfo must be a reference to a thread that is already present in the thread table.
 	*/
-	sinsp_fdinfo* add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
-	                                      const scap_fdinfo& fdinfo,
-	                                      bool resolve_hostname_and_port);
+	std::shared_ptr<sinsp_fdinfo> add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
+	                                                      const scap_fdinfo& fdinfo,
+	                                                      bool resolve_hostname_and_port);
 
 private:
 	/* We call it immediately before removing the thread from the thread table. */
