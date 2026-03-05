@@ -91,7 +91,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	 * added the fdinfo into the thread. See `reset` logic, the fdinfo is recovered from the
 	 * `client_fd` (first parameter).
 	 */
-	auto* fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
+	auto fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket()); /* in `parse_connect_enter` we set `SCAP_FD_IPV4_SOCK` as
 	                                          type */
@@ -127,16 +127,17 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	        sinsp_test_input::socket_params::default_fd,
 	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
-	fdinfo = evt->get_fd_info();
-	ASSERT_NE(fdinfo, nullptr);
-	ASSERT_TRUE(fdinfo->is_ipv4_socket());
+	sinsp_fdinfo* fdinfo_evt = evt->get_fd_info();
+	ASSERT_NE(fdinfo_evt, nullptr);
+	ASSERT_TRUE(fdinfo_evt->is_ipv4_socket());
 	ASSERT_TRUE(
-	        fdinfo->is_socket_connected()); /* in the parse exit we set the socket as connected */
-	ASSERT_TRUE(fdinfo->is_role_client());  /* The connect exit set the client role */
+	        fdinfo_evt
+	                ->is_socket_connected()); /* in the parse exit we set the socket as connected */
+	ASSERT_TRUE(fdinfo_evt->is_role_client()); /* The connect exit set the client role */
 
 	/* Check that ip and port are saved from the server socktuple */
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
-	auto si = fdinfo->get_sockinfo();
+	auto si = fdinfo_evt->get_sockinfo();
 	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
 	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_dip, ipv4_string, 100);

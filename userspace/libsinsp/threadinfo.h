@@ -29,7 +29,6 @@ struct iovec {
 #include <sys/uio.h>
 #endif
 
-#include <functional>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
@@ -254,22 +253,22 @@ public:
 	  \return Pointer to the FD information, or NULL if the given FD doesn't
 	   exist
 	*/
-	inline sinsp_fdinfo* get_fd(int64_t fd) {
+	inline std::shared_ptr<sinsp_fdinfo> get_fd(int64_t fd) {
 		if(fd < 0) {
-			return NULL;
+			return nullptr;
 		}
 
 		sinsp_fdtable* fdt = get_fd_table();
 
 		if(fdt) {
-			sinsp_fdinfo* fdinfo = fdt->find(fd);
+			auto fdinfo = fdt->find(fd);
 			if(fdinfo) {
 				fdinfo->snapshot_oldname();
 				return fdinfo;
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	/*!
@@ -537,8 +536,9 @@ public:
 	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
 	void fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
 	                                  bool resolve_hostname_and_port);
-	sinsp_fdinfo* add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
-	sinsp_fdinfo* add_fd_from_scap(const scap_fdinfo& fdi, bool resolve_hostname_and_port);
+	std::shared_ptr<sinsp_fdinfo> add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
+	std::shared_ptr<sinsp_fdinfo> add_fd_from_scap(const scap_fdinfo& fdi,
+	                                               bool resolve_hostname_and_port);
 	void remove_fd(int64_t fd);
 	void update_cwd(std::string_view cwd);
 	void set_args(const char* args, size_t len);

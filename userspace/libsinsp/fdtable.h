@@ -57,9 +57,9 @@ public:
 
 	explicit sinsp_fdtable(const std::shared_ptr<ctor_params>& params);
 
-	sinsp_fdinfo* find(int64_t fd);
+	std::shared_ptr<sinsp_fdinfo> find(int64_t fd);
 
-	sinsp_fdinfo* add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
+	std::shared_ptr<sinsp_fdinfo> add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
 		std::shared_lock lock(m_mutex);

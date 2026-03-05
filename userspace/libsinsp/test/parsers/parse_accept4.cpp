@@ -68,12 +68,12 @@ TEST_F(sinsp_with_test_input, ACCEPT4_success) {
 	// Check that fd info associated with the thread are as expected.
 	const auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
-	fdinfo = init_tinfo->get_fd(fd);
-	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->get_name(), DEFAULT_IPV4_FDNAME);
-	ASSERT_TRUE(fdinfo->is_ipv4_socket());
-	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_TCP);
-	ASSERT_TRUE(fdinfo->is_role_server());
-	ASSERT_TRUE(fdinfo->is_socket_connected());
+	auto fdinfo_tinfo = init_tinfo->get_fd(fd);
+	ASSERT_TRUE(fdinfo_tinfo);
+	ASSERT_EQ(fdinfo_tinfo->get_name(), DEFAULT_IPV4_FDNAME);
+	ASSERT_TRUE(fdinfo_tinfo->is_ipv4_socket());
+	ASSERT_EQ(fdinfo_tinfo->get_l4proto(), scap_l4_proto::SCAP_L4_TCP);
+	ASSERT_TRUE(fdinfo_tinfo->is_role_server());
+	ASSERT_TRUE(fdinfo_tinfo->is_socket_connected());
 }
 #endif

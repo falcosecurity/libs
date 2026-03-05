@@ -43,13 +43,13 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	/* FDINFO associated with the thread */
 	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_TRUE(init_tinfo);
-	fdinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
-	ASSERT_TRUE(fdinfo);
-	ASSERT_TRUE(fdinfo->is_unix_socket());
-	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
-	ASSERT_TRUE(fdinfo->is_role_none());
-	ASSERT_FALSE(fdinfo->is_socket_connected());
-	ASSERT_EQ(fdinfo->get_name(), "");
+	auto fdinfo_tinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
+	ASSERT_TRUE(fdinfo_tinfo);
+	ASSERT_TRUE(fdinfo_tinfo->is_unix_socket());
+	ASSERT_EQ(fdinfo_tinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
+	ASSERT_TRUE(fdinfo_tinfo->is_role_none());
+	ASSERT_FALSE(fdinfo_tinfo->is_socket_connected());
+	ASSERT_EQ(fdinfo_tinfo->get_name(), "");
 
 	// We don't need the enter event!
 	const std::string sun_path{"/tmp/stream.sock"};
@@ -92,14 +92,14 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_EQ(fdinfo->get_name_raw(), "");
 
 	/* FDINFO associated with the thread */
-	fdinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
-	ASSERT_TRUE(fdinfo);
-	ASSERT_TRUE(fdinfo->is_unix_socket());
-	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
-	ASSERT_TRUE(fdinfo->is_role_client());
-	ASSERT_TRUE(fdinfo->is_socket_connected());
-	ASSERT_EQ(fdinfo->get_name(), expected_unix_tuple);
-	ASSERT_EQ(fdinfo->get_name_raw(), "");
+	fdinfo_tinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
+	ASSERT_TRUE(fdinfo_tinfo);
+	ASSERT_TRUE(fdinfo_tinfo->is_unix_socket());
+	ASSERT_EQ(fdinfo_tinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
+	ASSERT_TRUE(fdinfo_tinfo->is_role_client());
+	ASSERT_TRUE(fdinfo_tinfo->is_socket_connected());
+	ASSERT_EQ(fdinfo_tinfo->get_name(), expected_unix_tuple);
+	ASSERT_EQ(fdinfo_tinfo->get_name_raw(), "");
 }
 
 TEST_F(sinsp_with_test_input, BIND_parse_unix_socket) {

@@ -119,7 +119,7 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		bool add_comma = true;
 		int64_t fd = *(int64_t *)(payload + pos);
 
-		sinsp_fdinfo *fdinfo = tinfo ? tinfo->get_fd(fd) : NULL;
+		auto fdinfo = tinfo ? tinfo->get_fd(fd) : nullptr;
 
 		switch(m_field_id) {
 		case TYPE_FDNUMS: {

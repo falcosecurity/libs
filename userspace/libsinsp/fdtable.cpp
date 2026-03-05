@@ -152,12 +152,13 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #endif  // _WIN32
 }
 
-sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) {
-	return find_ref(fd).get();
+std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find(const int64_t fd) {
+	return find_ref(fd);
 }
 
-sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
-	return add_ref(fd, std::move(fdinfo)).get();
+std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add(const int64_t fd,
+                                                 std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
+	return add_ref(fd, std::move(fdinfo));
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
