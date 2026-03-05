@@ -125,6 +125,9 @@ public:
 
 	bool erase_entry(const int64_t& key) override { return erase(key); }
 
+	// Lock order: when both fdtable (m_mutex) and fdinfo (sinsp_fdinfo::m_mutex) are needed,
+	// always take fdtable first, then fdinfo. Violating this can cause lock-order inversion
+	// and deadlock (see set_net_role_by_guessing in fdinfo.cpp).
 	mutable std::shared_mutex m_mutex;
 
 private:

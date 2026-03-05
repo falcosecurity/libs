@@ -235,17 +235,28 @@ void sinsp_fdinfo::add_filename(std::string_view fullpath) {
 }
 
 void sinsp_fdinfo::set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, const bool incoming) {
+	// Read port numbers under shared lock, then release. Do not hold fdinfo lock
+	// while calling ptinfo.is_bound_to_port/uses_client_port — they take the
+	// fdtable lock, and find_ref() elsewhere takes fdtable then fdinfo, so
+	// holding fdinfo here would create lock-order inversion (potential deadlock).
+	uint16_t dport, sport;
+	{
+		std::shared_lock l(m_mutex.m);
+		dport = m_sockinfo.m_ipv4info.m_fields.m_dport;
+		sport = m_sockinfo.m_ipv4info.m_fields.m_sport;
+	}
+	const bool bound = ptinfo.is_bound_to_port(dport);
+	const bool uses_client = ptinfo.uses_client_port(sport);
+
 	std::unique_lock l(m_mutex.m);
-	if(!ptinfo.is_bound_to_port(m_sockinfo.m_ipv4info.m_fields.m_dport)) {
+	if(!bound) {
 		m_flags |= FLAGS_ROLE_CLIENT;
 		return;
 	}
-
-	if(!ptinfo.uses_client_port(m_sockinfo.m_ipv4info.m_fields.m_sport)) {
+	if(!uses_client) {
 		m_flags |= FLAGS_ROLE_SERVER;
 		return;
 	}
-
 	if(!(m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER))) {
 		if(incoming) {
 			m_flags |= FLAGS_ROLE_SERVER;
