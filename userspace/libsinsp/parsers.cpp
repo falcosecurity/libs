@@ -374,11 +374,11 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	// Ignore events with EF_SKIPPARSERESET flag.
 	if(const auto eflags = evt.get_info_flags(); eflags & EF_SKIPPARSERESET) {
-		sinsp_threadinfo *tinfo = nullptr;
 		if(etype == PPME_PROCINFO_E) {
-			tinfo = m_params->m_thread_manager->find_thread(evt.get_scap_evt()->tid, false).get();
+			evt.set_tinfo(m_params->m_thread_manager->find_thread(evt.get_scap_evt()->tid, false));
+		} else {
+			evt.set_tinfo(nullptr);
 		}
-		evt.set_tinfo(tinfo);
 		return false;
 	}
 
@@ -386,18 +386,15 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	if(etype == PPME_CONTAINER_JSON_2_E || etype == PPME_USER_ADDED_E ||
 	   etype == PPME_USER_DELETED_E || etype == PPME_GROUP_ADDED_E ||
 	   etype == PPME_GROUP_DELETED_E || etype == PPME_PLUGINEVENT_E || etype == PPME_ASYNCEVENT_E) {
-		// Note: still managing container events cases. They might still be present in existing scap
-		// files, even if they are then parsed by the container plugin.
 		evt.set_tinfo(nullptr);
 		return true;
 	}
 
 	const auto tid = evt.get_scap_evt()->tid;
 	const bool query_os = can_query_os_for_thread_info(etype);
-	const auto tinfo = query_os ? m_params->m_thread_manager->get_thread(tid, false).get()
-	                            : m_params->m_thread_manager->find_thread(tid, false).get();
-
-	evt.set_tinfo(tinfo);
+	evt.set_tinfo(query_os ? m_params->m_thread_manager->get_thread(tid, false)
+	                       : m_params->m_thread_manager->find_thread(tid, false));
+	auto *tinfo = evt.get_tinfo();
 
 	if(is_schedswitch_event(etype)) {
 		return false;
@@ -662,7 +659,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	}
 
 	/* Update the evt.get_tinfo() of the caller. */
-	evt.set_tinfo(caller_tinfo.get());
+	evt.set_tinfo(caller_tinfo);
 
 	/// todo(@Andreagit97): here we could update `comm` `exe` and `args` with fresh info from the
 	/// event
@@ -1381,7 +1378,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 * We update it here, in this way the `on_clone`
 	 * callback will use updated info.
 	 */
-	evt.set_tinfo(new_child.get());
+	evt.set_tinfo(new_child);
 
 	//
 	// If there's a listener, add a callback to later invoke it.
