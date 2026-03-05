@@ -31,10 +31,8 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/syscall.h>
 
-#include <algorithm>
 #include <cassert>
 #include <condition_variable>
-#include <list>
 #include <mutex>
 
 #define FILENAME "test_tmpfile"
@@ -414,7 +412,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 			int64_t res = std::stoll(e->get_param_value_str("res", false));
 
 			if(ti->m_tid == ptid) {
-				sinsp_fdinfo* fdi = ti->get_fd(prfd);
+				auto fdi = ti->get_fd(prfd);
 				if(fdi && fdi->tostring_clean().find(FILENAME) != std::string::npos) {
 					EXPECT_EQ(parent_res, res) << "filename: " << fdi->tostring_clean() << std::endl
 					                           << "res: " << res << std::endl
