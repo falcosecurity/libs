@@ -1046,7 +1046,8 @@ void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* 
 
 std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 	sinsp_fdinfo* dir_fdinfo = get_fd(dir_fd);
-	if(!dir_fdinfo || dir_fdinfo->m_name.empty()) {
+	auto dir_name = dir_fdinfo ? dir_fdinfo->get_name() : std::string{};
+	if(!dir_fdinfo || dir_name.empty()) {
 #ifndef _WIN32  // we will have to implement this for Windows
 		// Sad day; we don't have the directory in the tinfo's fd cache.
 		// Must manually look it up so we can resolve filenames correctly.
@@ -1074,7 +1075,7 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 		return rel_path_base;
 #endif  // _WIN32
 	}
-	return dir_fdinfo->m_name;
+	return dir_name;
 }
 
 size_t sinsp_threadinfo::args_len() const {

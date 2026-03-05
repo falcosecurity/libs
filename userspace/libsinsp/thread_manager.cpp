@@ -639,12 +639,13 @@ sinsp_fdinfo* sinsp_thread_manager::add_thread_fd_from_scap(sinsp_threadinfo& ti
 	// We keep note of all the host bound server ports. We'll need them later when patching
 	// connections direction.
 	uint16_t server_port;
-	switch(newfdinfo->m_type) {
+	auto si = newfdinfo->get_sockinfo();
+	switch(newfdinfo->get_type()) {
 	case SCAP_FD_IPV4_SERVSOCK:
-		server_port = newfdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+		server_port = si.m_ipv4serverinfo.m_port;
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		server_port = newfdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+		server_port = si.m_ipv6serverinfo.m_port;
 		break;
 	default:
 		return newfdinfo;
