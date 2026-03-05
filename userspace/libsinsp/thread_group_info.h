@@ -132,12 +132,12 @@ public:
 		}
 	}
 
-	inline sinsp_threadinfo* get_first_thread() const {
+	inline std::shared_ptr<sinsp_threadinfo> get_first_thread() const {
 		std::shared_lock lock(m_mutex);
 		if(m_threads.empty()) {
 			return nullptr;
 		}
-		return m_threads.front().lock().get();
+		return m_threads.front().lock();
 	}
 
 private:

@@ -122,13 +122,16 @@ public:
 	*/
 	std::string get_cwd();
 
-	inline void set_cwd(const std::string& v) { m_cwd = v; }
+	inline void set_cwd(const std::string& v) {
+		std::unique_lock l(m_state_mutex);
+		m_cwd = v;
+	}
 
 	/*!
 	  \brief Return the values of all environment variables for the process
 	  containing this thread.
 	*/
-	const std::vector<std::string>& get_env();
+	std::vector<std::string> get_env();
 
 	/*!
 	  \brief Return the value of the specified environment variable for the process
@@ -222,9 +225,9 @@ public:
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
-	inline sinsp_threadinfo* get_main_thread() {
+	inline std::shared_ptr<sinsp_threadinfo> get_main_thread() {
 		if(is_main_thread()) {
-			return this;
+			return std::shared_ptr<sinsp_threadinfo>(std::shared_ptr<void>{}, this);
 		}
 
 		auto tgi = get_tginfo();
@@ -233,13 +236,13 @@ public:
 		}
 
 		auto possible_main = tgi->get_first_thread();
-		if(possible_main == nullptr || !possible_main->is_main_thread()) {
+		if(!possible_main || !possible_main->is_main_thread()) {
 			return nullptr;
 		}
 		return possible_main;
 	}
 
-	inline const sinsp_threadinfo* get_main_thread() const {
+	inline std::shared_ptr<const sinsp_threadinfo> get_main_thread() const {
 		return const_cast<sinsp_threadinfo*>(this)->get_main_thread();
 	}
 
@@ -261,10 +264,7 @@ public:
 		if(fdt) {
 			sinsp_fdinfo* fdinfo = fdt->find(fd);
 			if(fdinfo) {
-				// Its current name is now its old
-				// name. The name might change as a
-				// result of parsing.
-				fdinfo->m_oldname = fdinfo->m_name;
+				fdinfo->snapshot_oldname();
 				return fdinfo;
 			}
 		}
@@ -524,7 +524,7 @@ public:
 		if(!(load_relaxed(m_flags) & PPM_CL_CLONE_FILES)) {
 			return &m_fdtable;
 		} else {
-			sinsp_threadinfo* root = get_main_thread();
+			auto root = get_main_thread();
 			return (root == nullptr) ? nullptr : &(root->get_fdtable());
 		}
 	}

@@ -513,7 +513,8 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * We remove the main thread if there are no other threads in the group
 	 */
 	if((thread_to_remove->get_tginfo()->get_thread_count() == 0)) {
-		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
+		auto main_thread_holder = thread_to_remove->get_main_thread();
+		remove_main_thread_fdtable(main_thread_holder.get());
 
 		/* we remove the main thread and the thread group */
 		/* even if thread_to_remove is not the main thread the parent will be
@@ -1010,10 +1011,10 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 
 threadinfo_map_t::ptr_t sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo,
                                                                    uint32_t n) {
-	sinsp_threadinfo* mt = tinfo.get_main_thread();
+	auto mt = tinfo.get_main_thread();
 
 	for(uint32_t i = 0; i < n; i++) {
-		if(mt == nullptr) {
+		if(!mt) {
 			return {};
 		}
 		auto parent = find_thread(mt->get_ptid(), true);
@@ -1023,7 +1024,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_ancestor_process(sinsp_threadi
 		mt = parent->get_main_thread();
 	}
 
-	if(mt != nullptr) {
+	if(mt) {
 		return find_thread(mt->m_tid, true);
 	}
 	return {};
