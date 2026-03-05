@@ -274,11 +274,12 @@ static inline std::string format_dirfd(sinsp_evt* evt) {
 		return "<UNKNOWN>";
 	}
 
-	if(fd_info_dirfd->m_name.empty() || fd_info_dirfd->m_name.back() == '/') {
-		return fd_info_dirfd->m_name;
+	auto fd_name = fd_info_dirfd->get_name();
+	if(fd_name.empty() || fd_name.back() == '/') {
+		return fd_name;
 	}
 
-	return fd_info_dirfd->m_name + '/';
+	return fd_name + '/';
 }
 
 uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
@@ -341,7 +342,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 				sdir = "";
 				auto fdinfo = evt->get_fd_info();
 				if(fdinfo != nullptr) {
-					m_tstr = evt->get_fd_info()->m_name;
+					m_tstr = fdinfo->get_name();
 				} else {
 					m_tstr = "<UNKNOWN>";
 				}

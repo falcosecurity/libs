@@ -99,6 +99,7 @@ private:
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo* m_fdinfo;
+	sinsp_sockinfo m_sockinfo_cache;
 	std::string m_tstr;
 	uint8_t m_tcstr[2];
 	int64_t m_argid;
