@@ -36,9 +36,9 @@ limitations under the License.
 	ASSERT_EQ(get_field_as_string(evt, "fd.nameraw"), "");
 
 #define ASSERT_FD_GETTERS_NOT_FILE(x)    \
-	ASSERT_EQ(x->m_name, "");            \
-	ASSERT_EQ(x->m_name_raw, "");        \
-	ASSERT_EQ(x->m_oldname, "");         \
+	ASSERT_EQ(x->get_name(), "");        \
+	ASSERT_EQ(x->get_name_raw(), "");    \
+	ASSERT_EQ(x->get_oldname(), "");     \
 	ASSERT_EQ(x->get_device(), 0);       \
 	ASSERT_EQ(x->tostring_clean(), "");  \
 	ASSERT_EQ(x->get_device_major(), 0); \
@@ -418,7 +418,7 @@ TEST_F(sinsp_with_test_input, pipe) {
 	/* Here we check the `openflags` field of the fdinfo2, it should be 0 since pipe has no flags */
 	sinsp_fdinfo* fdinfo2 = evt->get_fd_info();
 	ASSERT_NE(fdinfo2, nullptr);
-	ASSERT_EQ(fdinfo2->m_openflags, 0);
+	ASSERT_EQ(fdinfo2->get_openflags(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo2)
 
 	/* Now we get the first file descriptor (`3`) and we assert some fields directly through the
@@ -429,7 +429,7 @@ TEST_F(sinsp_with_test_input, pipe) {
 	ASSERT_NE(fdinfo1, nullptr);
 	ASSERT_STREQ(fdinfo1->get_typestring(), "pipe");
 	ASSERT_EQ(fdinfo1->get_typechar(), 'p');
-	ASSERT_EQ(fdinfo1->m_openflags, 0);
+	ASSERT_EQ(fdinfo1->get_openflags(), 0);
 	ASSERT_TRUE(fdinfo1->is_pipe());
 	ASSERT_EQ(fdinfo1->get_ino(), ino);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo1)
@@ -474,7 +474,7 @@ TEST_F(sinsp_with_test_input, pipe2) {
 	 * field */
 	sinsp_fdinfo* fdinfo2 = evt->get_fd_info();
 	ASSERT_NE(fdinfo2, nullptr);
-	ASSERT_EQ(fdinfo2->m_openflags, flags);
+	ASSERT_EQ(fdinfo2->get_openflags(), flags);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo2)
 
 	/* Now we get the first file descriptor (`3`) and we assert some fields directly through the
@@ -484,7 +484,7 @@ TEST_F(sinsp_with_test_input, pipe2) {
 	ASSERT_NE(fdinfo1, nullptr);
 	ASSERT_STREQ(fdinfo1->get_typestring(), "pipe");
 	ASSERT_EQ(fdinfo1->get_typechar(), 'p');
-	ASSERT_EQ(fdinfo1->m_openflags, flags);
+	ASSERT_EQ(fdinfo1->get_openflags(), flags);
 	ASSERT_TRUE(fdinfo1->is_pipe());
 	ASSERT_EQ(fdinfo1->get_ino(), ino);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo1)
@@ -512,7 +512,7 @@ TEST_F(sinsp_with_test_input, inotify_init) {
 	ASSERT_STREQ(fdinfo->get_typestring(), "inotify");
 	ASSERT_EQ(fdinfo->get_typechar(), 'i');
 	/* In the parsers we don't set any flags in the fdinfo */
-	ASSERT_EQ(fdinfo->m_openflags, 0);
+	ASSERT_EQ(fdinfo->get_openflags(), 0);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -538,7 +538,7 @@ TEST_F(sinsp_with_test_input, inotify_init1) {
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "inotify");
 	ASSERT_EQ(fdinfo->get_typechar(), 'i');
-	ASSERT_EQ(fdinfo->m_openflags, flags);
+	ASSERT_EQ(fdinfo->get_openflags(), flags);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -566,7 +566,7 @@ TEST_F(sinsp_with_test_input, eventfd) {
 	ASSERT_STREQ(fdinfo->get_typestring(), "event");
 	ASSERT_EQ(fdinfo->get_typechar(), 'e');
 	/* In the parsers we don't set any flags in the fdinfo */
-	ASSERT_EQ(fdinfo->m_openflags, 0);
+	ASSERT_EQ(fdinfo->get_openflags(), 0);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -593,7 +593,7 @@ TEST_F(sinsp_with_test_input, eventfd2) {
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "event");
 	ASSERT_EQ(fdinfo->get_typechar(), 'e');
-	ASSERT_EQ(fdinfo->m_openflags, flags);
+	ASSERT_EQ(fdinfo->get_openflags(), flags);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -628,7 +628,7 @@ TEST_F(sinsp_with_test_input, signalfd) {
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "signalfd");
 	ASSERT_EQ(fdinfo->get_typechar(), 's');
-	ASSERT_EQ(fdinfo->m_openflags, 0);
+	ASSERT_EQ(fdinfo->get_openflags(), 0);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -663,7 +663,7 @@ TEST_F(sinsp_with_test_input, signalfd4) {
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "signalfd");
 	ASSERT_EQ(fdinfo->get_typechar(), 's');
-	ASSERT_EQ(fdinfo->m_openflags, flags);
+	ASSERT_EQ(fdinfo->get_openflags(), flags);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }

@@ -39,7 +39,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "true");
 	ASSERT_TRUE(evt->get_fd_info());
 
-	ASSERT_EQ(evt->get_fd_info()->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
+	ASSERT_EQ(evt->get_fd_info()->get_openflags(), PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer) {

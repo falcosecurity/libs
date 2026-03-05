@@ -502,28 +502,27 @@ public:
 	 */
 	static libsinsp::state::static_field_infos get_static_fields();
 
-	// Fields are public for backward compat during migration (PRs 4b-4d).
-	// They will be made private in PR 4e once all callers use getters/setters.
-	scap_fd_type m_type =
-	        SCAP_FD_UNINITIALIZED;  ///< The fd type, e.g. file, directory, IPv4 socket...
-	uint32_t m_openflags = 0;  ///< If this FD is a file, the flags that were used when opening it.
-	                           ///< See the PPM_O_* definitions in driver/ppm_events_public.h.
-	sinsp_sockinfo m_sockinfo =
-	        {};  ///< Socket-specific state. This is uninitialized (zero) for non-socket FDs.
-	std::string m_name;  ///< Human readable rendering of this FD. For files, this is the full file
-	                     ///< name. For sockets, this is the tuple. And so on.
-	std::string m_name_raw;  // Human readable rendering of this FD. See m_name, only used if fd is
-	                         // a file path. Path is kept "raw" with limited sanitization and
-	                         // without absolute path derivation.
-	std::string m_oldname;  // The name of this fd at the beginning of event parsing. Used to detect
-	                        // name changes that result from parsing an event.
+	friend class sinsp_parser;
+	friend class sinsp_fdtable;
+	friend class sinsp_threadinfo;
+	friend class sinsp_thread_manager;
+	friend class sinsp_network_interfaces;
+
+private:
+	scap_fd_type m_type = SCAP_FD_UNINITIALIZED;
+	uint32_t m_openflags = 0;
+	sinsp_sockinfo m_sockinfo = {};
+	std::string m_name;
+	std::string m_name_raw;
+	std::string m_oldname;
 	uint32_t m_flags = FLAGS_NONE;
 	uint32_t m_dev = 0;
 	uint32_t m_mount_id = 0;
 	uint64_t m_ino = 0;
-	int64_t m_pid = 0;  // only if fd is a pidfd
+	int64_t m_pid = 0;
 	int64_t m_fd = -1;
 
+public:
 	// Per-fdinfo mutex for thread-safe access. Mutable so const methods can lock.
 	// Wrapped in a struct with no-op copy/move so default copy/move constructors
 	// and assignments of sinsp_fdinfo work (each copy gets a fresh mutex).

@@ -67,7 +67,7 @@ TEST_F(sinsp_with_test_input, RECVMSG_success) {
 	// Check that fd info associated with the event are as expected.
 	auto fdinfo = evt->get_fd_info();
 	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->m_name, DEFAULT_IPV4_FDNAME);
+	ASSERT_EQ(fdinfo->get_name(), DEFAULT_IPV4_FDNAME);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket());
 	// The following information are inferred from the socket event we generated before the recvmsg
 	// event.
@@ -80,7 +80,7 @@ TEST_F(sinsp_with_test_input, RECVMSG_success) {
 	ASSERT_TRUE(init_tinfo);
 	fdinfo = init_tinfo->get_fd(sock_params.fd);
 	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->m_name, DEFAULT_IPV4_FDNAME);
+	ASSERT_EQ(fdinfo->get_name(), DEFAULT_IPV4_FDNAME);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket());
 	// The following information are inferred from the socket event we generated before the recvmsg
 	// event.
