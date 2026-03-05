@@ -28,7 +28,7 @@ TEST(sinsp_threadinfo, get_main_thread) {
 	auto tginfo = std::make_shared<thread_group_info>(tinfo->get_pid(), false, tinfo);
 
 	/* We are the main thread so here we don't use the thread group info */
-	ASSERT_EQ(tinfo->get_main_thread(), tinfo.get());
+	ASSERT_EQ(tinfo->get_main_thread().get(), tinfo.get());
 
 	/* Now we change the tid so we are no more a main thread and we use the thread group info
 	 * we should obtain a nullptr since tinfo doesn't have any thread group info associated.
@@ -51,7 +51,7 @@ TEST(sinsp_threadinfo, get_main_thread) {
 	ASSERT_EQ(tinfo->get_main_thread(), nullptr);
 
 	tinfo->get_tginfo()->add_thread_to_group(main_tinfo, true);
-	ASSERT_EQ(tinfo->get_main_thread(), main_tinfo.get());
+	ASSERT_EQ(tinfo->get_main_thread().get(), main_tinfo.get());
 }
 
 TEST(sinsp_threadinfo, get_num_threads) {

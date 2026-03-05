@@ -1228,15 +1228,10 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
-		// get current tinfo / init for subsequent parent lineage traversal
-		sinsp_threadinfo* mt = NULL;
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-			if(mt == NULL) {
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
+		auto mt_holder = tinfo->get_main_thread();
+		sinsp_threadinfo* mt = mt_holder.get();
+		if(mt == NULL) {
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		if(!m_argname.empty())  // extract a specific ENV_NAME value
@@ -1508,17 +1503,11 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_LOGINSHELLID: {
-		sinsp_threadinfo* mt = NULL;
+		auto mt_holder = tinfo->get_main_thread();
 		int64_t* res = NULL;
 
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
+		if(!mt_holder) {
+			return NULL;
 		}
 
 		sinsp_thread_manager::visitor_func_t check_thread_for_shell = [this,
@@ -1534,11 +1523,9 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			return true;
 		};
 
-		// First call the visitor on the main thread.
-		check_thread_for_shell(mt);
+		check_thread_for_shell(mt_holder.get());
 
-		// Then check all its parents to see if they are shells
-		m_inspector->m_thread_manager->traverse_parent_state(*mt, check_thread_for_shell);
+		m_inspector->m_thread_manager->traverse_parent_state(*mt_holder, check_thread_for_shell);
 
 		RETURN_EXTRACT_PTR(res);
 	}
@@ -1858,21 +1845,11 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
+	auto mt = tinfo->get_main_thread();
+	if(!mt) {
+		return false;
 	}
 
-	//
-	// No id specified, search in all of the ancestors
-	//
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		auto pid = pt->get_pid();
@@ -1880,8 +1857,6 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 
 		if(res == true) {
 			found = true;
-
-			// Can stop traversing parent state
 			return false;
 		}
 
@@ -1900,21 +1875,11 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
+	auto mt = tinfo->get_main_thread();
+	if(!mt) {
+		return false;
 	}
 
-	//
-	// No id specified, search in all of the ancestors
-	//
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		auto comm = pt->get_comm();
@@ -1922,8 +1887,6 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt* evt) {
 
 		if(res == true) {
 			found = true;
-
-			// Can stop traversing parent state
 			return false;
 		}
 
@@ -1942,21 +1905,11 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
+	auto mt = tinfo->get_main_thread();
+	if(!mt) {
+		return false;
 	}
 
-	//
-	// No id specified, search in all of the ancestors
-	//
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		auto exe = pt->get_exe();
@@ -1964,8 +1917,6 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt* evt) {
 
 		if(res == true) {
 			found = true;
-
-			// Can stop traversing parent state
 			return false;
 		}
 
@@ -1984,21 +1935,11 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
+	auto mt = tinfo->get_main_thread();
+	if(!mt) {
+		return false;
 	}
 
-	//
-	// No id specified, search in all of the ancestors
-	//
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		auto exepath = pt->get_exepath();
@@ -2006,8 +1947,6 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt* evt) {
 
 		if(res == true) {
 			found = true;
-
-			// Can stop traversing parent state
 			return false;
 		}
 
@@ -2026,21 +1965,11 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
+	auto mt = tinfo->get_main_thread();
+	if(!mt) {
+		return false;
 	}
 
-	//
-	// No id specified, search in all of the ancestors
-	//
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
@@ -2051,8 +1980,6 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt* evt) {
 
 		if(res == true) {
 			found = true;
-
-			// Can stop traversing parent state
 			return false;
 		}
 
@@ -2071,21 +1998,11 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
+	auto mt = tinfo->get_main_thread();
+	if(!mt) {
+		return false;
 	}
 
-	//
-	// No id specified, search in all of the ancestors
-	//
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		std::string full_env = pt->concatenate_all_env();
@@ -2093,8 +2010,6 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt* evt) {
 
 		if(res == true) {
 			found = true;
-
-			// Can stop traversing parent state
 			return false;
 		}
 

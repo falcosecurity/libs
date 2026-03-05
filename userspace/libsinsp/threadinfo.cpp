@@ -551,8 +551,6 @@ void sinsp_threadinfo::set_args(const std::vector<std::string>& args) {
 
 void sinsp_threadinfo::set_env(const char* const env, size_t len, const bool can_load_from_proc) {
 	if(len == SCAP_MAX_ENV_SIZE && can_load_from_proc) {
-		// the environment is possibly truncated, try to read from /proc
-		// this may fail for short-lived processes
 		if(set_env_from_proc()) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Large environment for process %lu [%s], loaded from /proc",
@@ -573,7 +571,9 @@ void sinsp_threadinfo::set_env(const char* const env, size_t len, const bool can
 		len--;
 	}
 
-	m_env = sinsp_split({env, len}, '\0');
+	auto new_env = sinsp_split({env, len}, '\0');
+	std::unique_lock l(m_state_mutex);
+	m_env = std::move(new_env);
 }
 
 bool sinsp_threadinfo::set_env_from_proc() {
@@ -582,35 +582,34 @@ bool sinsp_threadinfo::set_env_from_proc() {
 
 	std::ifstream environment(environ_path);
 	if(!environment) {
-		// failed to read the environment from /proc, work with what we have
 		return false;
 	}
 
-	m_env.clear();
+	std::vector<std::string> new_env;
 	while(environment) {
 		std::string env;
 		getline(environment, env, '\0');
 		if(!env.empty()) {
-			m_env.emplace_back(env);
+			new_env.emplace_back(env);
 		}
 	}
 
+	std::unique_lock l(m_state_mutex);
+	m_env = std::move(new_env);
 	return true;
 }
 
-const std::vector<std::string>& sinsp_threadinfo::get_env() {
+std::vector<std::string> sinsp_threadinfo::get_env() {
 	if(is_main_thread()) {
+		std::shared_lock l(m_state_mutex);
 		return m_env;
-	} else {
-		auto mtinfo = get_main_thread();
-		if(mtinfo != nullptr) {
-			return mtinfo->get_env();
-		} else {
-			// it should never happen but provide a safe fallback just in case
-			// except during sinsp::scap_open() (see sinsp::get_thread()).
-			return m_env;
-		}
 	}
+	auto mtinfo = get_main_thread();
+	if(mtinfo) {
+		return mtinfo->get_env();
+	}
+	std::shared_lock l(m_state_mutex);
+	return m_env;
 }
 
 // Return value string for the exact environment variable name given
@@ -868,35 +867,26 @@ sinsp_threadinfo* sinsp_threadinfo::get_cwd_root() {
 	if(!(m_flags & PPM_CL_CLONE_FS)) {
 		return this;
 	} else {
-		return get_main_thread();
+		return get_main_thread().get();
 	}
 }
 
 std::string sinsp_threadinfo::get_cwd() {
-	// Ideally we should use get_cwd_root()
-	// but scap does not read CLONE_FS from /proc
-	// Also glibc and muslc use always
-	// CLONE_THREAD|CLONE_FS so let's use
-	// get_main_thread() for now
-	sinsp_threadinfo* tinfo = get_main_thread();
-
+	auto tinfo = get_main_thread();
 	if(tinfo) {
+		std::shared_lock l(tinfo->m_state_mutex);
 		return tinfo->m_cwd;
-	} else {
-		/// todo(@Andreagit97) not sure we want to return "./" it seems like a valid path
-		return "./";
 	}
+	return "./";
 }
 
 void sinsp_threadinfo::update_cwd(std::string_view cwd) {
-	sinsp_threadinfo* tinfo = get_main_thread();
-
-	if(tinfo == nullptr) {
+	auto tinfo = get_main_thread();
+	if(!tinfo) {
 		return;
 	}
-
-	tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, cwd);
-
+	std::unique_lock l(tinfo->m_state_mutex);
+	tinfo->m_cwd = sinsp_utils::concatenate_paths(tinfo->m_cwd, cwd);
 	if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/') {
 		tinfo->m_cwd += '/';
 	}

@@ -3709,7 +3709,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 	}
 
 	// Update the process fdlimit.
-	auto *const main_thread = ptinfo->get_main_thread();
+	auto const main_thread = ptinfo->get_main_thread();
 	if(main_thread == nullptr) {
 		return;
 	}
