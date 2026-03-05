@@ -520,6 +520,10 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		return (uint8_t *)&m_val.u64;
 	}
 
+	if(m_fdinfo != NULL) {
+		m_sockinfo_cache = m_fdinfo->get_sockinfo();
+	}
+
 	std::string container_id;
 	if(m_tinfo != NULL) {
 		container_id = m_inspector->m_plugin_tables.get_container_id(*m_tinfo);
@@ -532,7 +536,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 				return NULL;
 			}
 		} else {
-			m_tstr = m_fdinfo->m_name;
+			m_tstr = m_fdinfo->get_name();
 		}
 
 		if(m_field_id == TYPE_CONTAINERNAME) {
@@ -563,7 +567,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		} else if(!(m_fdinfo->is_file() || m_fdinfo->is_directory())) {
 			return NULL;
 		} else {
-			m_tstr = m_fdinfo->m_name;
+			m_tstr = m_fdinfo->get_name();
 		}
 
 		if(sanitize_strings) {
@@ -604,7 +608,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		m_tstr = m_fdinfo->m_name;
+		m_tstr = m_fdinfo->get_name();
 		if(sanitize_strings) {
 			sanitize_string(m_tstr);
 		}
@@ -639,11 +643,11 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_sip);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_sip);
 		}
 	} break;
 	case TYPE_CLIENTIP_NAME: {
@@ -656,16 +660,15 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_tstr.clear();
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			m_tstr = sinsp_dns_manager::get().name_of(
-			        AF_INET,
-			        &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
-			        evt->get_ts());
+			m_tstr = sinsp_dns_manager::get().name_of(AF_INET,
+			                                          &m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
+			                                          evt->get_ts());
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
 			m_tstr = sinsp_dns_manager::get().name_of(
 			        AF_INET6,
-			        &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0],
+			        &m_sockinfo_cache.m_ipv6info.m_fields.m_sip.m_b[0],
 			        evt->get_ts());
 		}
 
@@ -683,15 +686,15 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_dip);
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4serverinfo.m_ip);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_dip);
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6serverinfo.m_ip);
 		}
 	} break;
 	case TYPE_SERVERIP_NAME: {
@@ -704,26 +707,25 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_tstr.clear();
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			m_tstr = sinsp_dns_manager::get().name_of(
-			        AF_INET,
-			        &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
-			        evt->get_ts());
+			m_tstr = sinsp_dns_manager::get().name_of(AF_INET,
+			                                          &m_sockinfo_cache.m_ipv4info.m_fields.m_dip,
+			                                          evt->get_ts());
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
 			m_tstr = sinsp_dns_manager::get().name_of(AF_INET,
-			                                          &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip,
+			                                          &m_sockinfo_cache.m_ipv4serverinfo.m_ip,
 			                                          evt->get_ts());
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
 			m_tstr = sinsp_dns_manager::get().name_of(
 			        AF_INET6,
-			        &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0],
+			        &m_sockinfo_cache.m_ipv6info.m_fields.m_dip.m_b[0],
 			        evt->get_ts());
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			m_tstr = sinsp_dns_manager::get().name_of(
-			        AF_INET6,
-			        &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip.m_b[0],
-			        evt->get_ts());
+			m_tstr =
+			        sinsp_dns_manager::get().name_of(AF_INET6,
+			                                         &m_sockinfo_cache.m_ipv6serverinfo.m_ip.m_b[0],
+			                                         evt->get_ts());
 		}
 
 		if(!m_tstr.empty()) {
@@ -740,7 +742,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type != SCAP_FD_IPV4_SOCK && evt_type != SCAP_FD_IPV6_SOCK) {
 			return NULL;
 		}
@@ -754,12 +756,12 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
 			is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+			        m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		} else {
 			is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+			        m_sockinfo_cache.m_ipv6info.m_fields.m_sip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		}
@@ -768,29 +770,29 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			if(is_local) {
 				if(m_field_id == TYPE_LIP || m_field_id == TYPE_LNET) {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_sip);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_sip);
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_dip);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_dip);
 					}
 				}
 			} else {
 				if(m_field_id == TYPE_LIP || m_field_id == TYPE_LNET) {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_dip);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_dip);
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_sip);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+						RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_sip);
 					}
 				}
 			}
@@ -801,24 +803,24 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET,
-						        &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+						        &m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 						        evt->get_ts());
 					} else {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET6,
-						        &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0],
+						        &m_sockinfo_cache.m_ipv6info.m_fields.m_sip.m_b[0],
 						        evt->get_ts());
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET,
-						        &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+						        &m_sockinfo_cache.m_ipv4info.m_fields.m_dip,
 						        evt->get_ts());
 					} else {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET6,
-						        &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0],
+						        &m_sockinfo_cache.m_ipv6info.m_fields.m_dip.m_b[0],
 						        evt->get_ts());
 					}
 				}
@@ -827,24 +829,24 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET,
-						        &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+						        &m_sockinfo_cache.m_ipv4info.m_fields.m_dip,
 						        evt->get_ts());
 					} else {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET6,
-						        &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0],
+						        &m_sockinfo_cache.m_ipv6info.m_fields.m_dip.m_b[0],
 						        evt->get_ts());
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET,
-						        &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+						        &m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 						        evt->get_ts());
 					} else {
 						m_tstr = sinsp_dns_manager::get().name_of(
 						        AF_INET6,
-						        &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0],
+						        &m_sockinfo_cache.m_ipv6info.m_fields.m_sip.m_b[0],
 						        evt->get_ts());
 					}
 				}
@@ -862,16 +864,16 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 
 		if(m_fdinfo->is_role_none()) {
 			return NULL;
 		}
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_sport);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_sport);
 		}
 	} break;
 	case TYPE_CLIENTPROTO: {
@@ -879,7 +881,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 
 		if(m_fdinfo->is_role_none()) {
 			return NULL;
@@ -887,11 +889,11 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		m_tstr = "";
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport,
+			m_tstr = port_to_string(m_sockinfo_cache.m_ipv4info.m_fields.m_sport,
 			                        this->m_fdinfo->get_l4proto(),
 			                        m_inspector->is_hostname_and_port_resolution_enabled());
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport,
+			m_tstr = port_to_string(m_sockinfo_cache.m_ipv6info.m_fields.m_sport,
 			                        this->m_fdinfo->get_l4proto(),
 			                        m_inspector->is_hostname_and_port_resolution_enabled());
 		}
@@ -903,24 +905,24 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
 			if(m_fdinfo->is_role_none()) {
 				return NULL;
 			}
 
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_dport);
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4serverinfo.m_port);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
 			if(m_fdinfo->is_role_none()) {
 				return NULL;
 			}
 
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_dport);
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port);
+			RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6serverinfo.m_port);
 		} else {
 			return NULL;
 		}
@@ -932,22 +934,22 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		uint16_t nport = 0;
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
 			if(m_fdinfo->is_role_none()) {
 				return NULL;
 			}
-			nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+			nport = m_sockinfo_cache.m_ipv4info.m_fields.m_dport;
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			nport = m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+			nport = m_sockinfo_cache.m_ipv4serverinfo.m_port;
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
 			if(m_fdinfo->is_role_none()) {
 				return NULL;
 			}
-			nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
+			nport = m_sockinfo_cache.m_ipv6info.m_fields.m_dport;
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			nport = m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+			nport = m_sockinfo_cache.m_ipv6serverinfo.m_port;
 		} else {
 			return NULL;
 		}
@@ -971,7 +973,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type != SCAP_FD_IPV4_SOCK && evt_type != SCAP_FD_IPV6_SOCK) {
 			return NULL;
 		}
@@ -984,12 +986,12 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
 			is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+			        m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		} else {
 			is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+			        m_sockinfo_cache.m_ipv6info.m_fields.m_sip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		}
@@ -997,29 +999,29 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(is_local) {
 			if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO) {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_sport);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_sport);
 				}
 			} else {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_dport);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_dport);
 				}
 			}
 		} else {
 			if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO) {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_dport);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_dport);
 				}
 			} else {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv4info.m_fields.m_sport);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+					RETURN_EXTRACT_VAR(m_sockinfo_cache.m_ipv6info.m_fields.m_sport);
 				}
 			}
 		}
@@ -1031,7 +1033,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type != SCAP_FD_IPV4_SOCK && evt_type != SCAP_FD_IPV6_SOCK) {
 			return NULL;
 		}
@@ -1046,12 +1048,12 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
 			is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+			        m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		} else {
 			is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+			        m_sockinfo_cache.m_ipv6info.m_fields.m_sip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		}
@@ -1059,29 +1061,29 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(is_local) {
 			if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO) {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+					nport = m_sockinfo_cache.m_ipv4info.m_fields.m_sport;
 				} else {
-					nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
+					nport = m_sockinfo_cache.m_ipv6info.m_fields.m_sport;
 				}
 			} else {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+					nport = m_sockinfo_cache.m_ipv4info.m_fields.m_dport;
 				} else {
-					nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
+					nport = m_sockinfo_cache.m_ipv6info.m_fields.m_dport;
 				}
 			}
 		} else {
 			if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO) {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+					nport = m_sockinfo_cache.m_ipv4info.m_fields.m_dport;
 				} else {
-					nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
+					nport = m_sockinfo_cache.m_ipv6info.m_fields.m_dport;
 				}
 			} else {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+					nport = m_sockinfo_cache.m_ipv4info.m_fields.m_sport;
 				} else {
-					nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
+					nport = m_sockinfo_cache.m_ipv6info.m_fields.m_sport;
 				}
 			}
 		}
@@ -1124,16 +1126,17 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		if(m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+		scap_fd_type ftype = m_fdinfo->get_type();
+		if(ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK) {
 			m_val.u32 = true;
-		} else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+		} else if(ftype == SCAP_FD_IPV4_SOCK) {
 			m_val.u32 = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+			        m_sockinfo_cache.m_ipv4info.m_fields.m_dip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
-		} else if(m_fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
+		} else if(ftype == SCAP_FD_IPV6_SOCK) {
 			m_val.u32 = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(
-			        m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip,
+			        m_sockinfo_cache.m_ipv6info.m_fields.m_dip,
 			        m_inspector->m_plugin_tables,
 			        m_tinfo);
 		} else {
@@ -1147,11 +1150,12 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		}
 
-		if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-		   m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+		scap_fd_type ftype = m_fdinfo->get_type();
+		if(ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+		   ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK) {
 			m_tstr = "ip";
 			RETURN_EXTRACT_STRING(m_tstr);
-		} else if(m_fdinfo->m_type == SCAP_FD_UNIX_SOCK) {
+		} else if(ftype == SCAP_FD_UNIX_SOCK) {
 			m_tstr = "unix";
 			RETURN_EXTRACT_STRING(m_tstr);
 		} else {
@@ -1225,7 +1229,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 				return NULL;
 			}
 		} else {
-			m_tstr = m_fdinfo->m_name_raw;
+			m_tstr = m_fdinfo->get_name_raw();
 		}
 		remove_duplicate_path_separators(m_tstr);
 		RETURN_EXTRACT_STRING(m_tstr);
@@ -1259,28 +1263,21 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt) {
 	}
 
 	if(m_fdinfo != NULL) {
+		m_sockinfo_cache = m_fdinfo->get_sockinfo();
 		if(m_cmpop == CO_EXISTS) {
 			return true;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
 			if(m_cmpop == CO_EQ || m_cmpop == CO_IN) {
-				if(compare_rhs(m_cmpop,
-				               PT_IPV4ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) ||
-				   compare_rhs(m_cmpop,
-				               PT_IPV4ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip)) {
+				if(compare_rhs(m_cmpop, PT_IPV4ADDR, &m_sockinfo_cache.m_ipv4info.m_fields.m_sip) ||
+				   compare_rhs(m_cmpop, PT_IPV4ADDR, &m_sockinfo_cache.m_ipv4info.m_fields.m_dip)) {
 					return true;
 				}
 			} else if(m_cmpop == CO_NE) {
-				if(compare_rhs(m_cmpop,
-				               PT_IPV4ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) &&
-				   compare_rhs(m_cmpop,
-				               PT_IPV4ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip)) {
+				if(compare_rhs(m_cmpop, PT_IPV4ADDR, &m_sockinfo_cache.m_ipv4info.m_fields.m_sip) &&
+				   compare_rhs(m_cmpop, PT_IPV4ADDR, &m_sockinfo_cache.m_ipv4info.m_fields.m_dip)) {
 					return true;
 				}
 			} else {
@@ -1289,30 +1286,20 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt) {
 			}
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
 			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN) {
-				return compare_rhs(m_cmpop,
-				                   PT_IPV4ADDR,
-				                   &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+				return compare_rhs(m_cmpop, PT_IPV4ADDR, &m_sockinfo_cache.m_ipv4serverinfo.m_ip);
 			} else {
 				throw sinsp_exception(
 				        "filter error: IP filter only supports '=' and '!=' operators");
 			}
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
 			if(m_cmpop == CO_EQ || m_cmpop == CO_IN) {
-				if(compare_rhs(m_cmpop,
-				               PT_IPV6ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) ||
-				   compare_rhs(m_cmpop,
-				               PT_IPV6ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip)) {
+				if(compare_rhs(m_cmpop, PT_IPV6ADDR, &m_sockinfo_cache.m_ipv6info.m_fields.m_sip) ||
+				   compare_rhs(m_cmpop, PT_IPV6ADDR, &m_sockinfo_cache.m_ipv6info.m_fields.m_dip)) {
 					return true;
 				}
 			} else if(m_cmpop == CO_NE) {
-				if(compare_rhs(m_cmpop,
-				               PT_IPV6ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) &&
-				   compare_rhs(m_cmpop,
-				               PT_IPV6ADDR,
-				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip)) {
+				if(compare_rhs(m_cmpop, PT_IPV6ADDR, &m_sockinfo_cache.m_ipv6info.m_fields.m_sip) &&
+				   compare_rhs(m_cmpop, PT_IPV6ADDR, &m_sockinfo_cache.m_ipv6info.m_fields.m_dip)) {
 					return true;
 				}
 			} else {
@@ -1321,9 +1308,7 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt) {
 			}
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
 			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN) {
-				return compare_rhs(m_cmpop,
-				                   PT_IPV6ADDR,
-				                   &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
+				return compare_rhs(m_cmpop, PT_IPV6ADDR, &m_sockinfo_cache.m_ipv6serverinfo.m_ip);
 			} else {
 				throw sinsp_exception(
 				        "filter error: IP filter only supports '=' and '!=' operators");
@@ -1339,6 +1324,9 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 		return false;
 	}
 
+	m_sockinfo_cache = m_fdinfo->get_sockinfo();
+	scap_fd_type fd_type = m_fdinfo->get_type();
+
 	if(m_cmpop == CO_EXISTS) {
 		return true;
 	}
@@ -1346,13 +1334,13 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 	bool sip_cmp = false;
 	bool dip_cmp = false;
 
-	switch(m_fdinfo->m_type) {
+	switch(fd_type) {
 	case SCAP_FD_IPV4_SERVSOCK:
 		if(filter_value_len() != sizeof(ipv4net)) {
 			return m_cmpop == CO_NE;
 		}
 		return flt_compare_ipv4net(m_cmpop,
-		                           m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip,
+		                           m_sockinfo_cache.m_ipv4serverinfo.m_ip,
 		                           (ipv4net *)filter_value_p());
 
 	case SCAP_FD_IPV6_SERVSOCK:
@@ -1360,7 +1348,7 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 			return m_cmpop == CO_NE;
 		}
 		return flt_compare_ipv6net(m_cmpop,
-		                           &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip,
+		                           &m_sockinfo_cache.m_ipv6serverinfo.m_ip,
 		                           (ipv6net *)filter_value_p());
 
 	case SCAP_FD_IPV4_SOCK:
@@ -1368,10 +1356,10 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 			return m_cmpop == CO_NE;
 		}
 		sip_cmp = flt_compare_ipv4net(m_cmpop,
-		                              m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+		                              m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 		                              (ipv4net *)filter_value_p());
 		dip_cmp = flt_compare_ipv4net(m_cmpop,
-		                              m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+		                              m_sockinfo_cache.m_ipv4info.m_fields.m_dip,
 		                              (ipv4net *)filter_value_p());
 		break;
 
@@ -1380,10 +1368,10 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 			return m_cmpop == CO_NE;
 		}
 		sip_cmp = flt_compare_ipv6net(m_cmpop,
-		                              &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+		                              &m_sockinfo_cache.m_ipv6info.m_fields.m_sip,
 		                              (ipv6net *)filter_value_p());
 		dip_cmp = flt_compare_ipv6net(m_cmpop,
-		                              &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip,
+		                              &m_sockinfo_cache.m_ipv6info.m_fields.m_dip,
 		                              (ipv6net *)filter_value_p());
 		break;
 
@@ -1408,26 +1396,28 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt) {
 	}
 
 	if(m_fdinfo != NULL) {
+		m_sockinfo_cache = m_fdinfo->get_sockinfo();
+
 		if(m_cmpop == CO_EXISTS) {
 			return true;
 		}
 
 		uint16_t *sport;
 		uint16_t *dport;
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			sport = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
-			dport = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+			sport = &m_sockinfo_cache.m_ipv4info.m_fields.m_sport;
+			dport = &m_sockinfo_cache.m_ipv4info.m_fields.m_dport;
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			sport = &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
-			dport = &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+			sport = &m_sockinfo_cache.m_ipv4serverinfo.m_port;
+			dport = &m_sockinfo_cache.m_ipv4serverinfo.m_port;
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			sport = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
-			dport = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
+			sport = &m_sockinfo_cache.m_ipv6info.m_fields.m_sport;
+			dport = &m_sockinfo_cache.m_ipv6info.m_fields.m_dport;
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			sport = &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
-			dport = &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+			sport = &m_sockinfo_cache.m_ipv6serverinfo.m_port;
+			dport = &m_sockinfo_cache.m_ipv6serverinfo.m_port;
 		} else {
 			return false;
 		}
@@ -1484,11 +1474,13 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 	}
 
 	if(m_fdinfo != NULL) {
+		m_sockinfo_cache = m_fdinfo->get_sockinfo();
+
 		if(m_cmpop == CO_EXISTS) {
 			return true;
 		}
 
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		scap_fd_type evt_type = m_fdinfo->get_type();
 		if(evt_type != SCAP_FD_IPV4_SOCK && evt_type != SCAP_FD_IPV6_SOCK) {
 			return false;
 		}
@@ -1500,26 +1492,26 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 		uint32_t *addr;
 		if(m_field_id == TYPE_CLIENTIP_NAME) {
 			if(evt_type == SCAP_FD_IPV4_SOCK) {
-				addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+				addr = &m_sockinfo_cache.m_ipv4info.m_fields.m_sip;
 			} else {
-				addr = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0];
+				addr = &m_sockinfo_cache.m_ipv6info.m_fields.m_sip.m_b[0];
 			}
 		} else if(m_field_id == TYPE_SERVERIP_NAME) {
 			if(evt_type == SCAP_FD_IPV4_SOCK) {
-				addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
+				addr = &m_sockinfo_cache.m_ipv4info.m_fields.m_dip;
 			} else {
-				addr = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0];
+				addr = &m_sockinfo_cache.m_ipv6info.m_fields.m_dip.m_b[0];
 			}
 		} else {
 			bool is_local;
 			if(evt_type == SCAP_FD_IPV4_SOCK) {
 				is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(
-				        m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+				        m_sockinfo_cache.m_ipv4info.m_fields.m_sip,
 				        m_inspector->m_plugin_tables,
 				        m_tinfo);
 			} else {
 				is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(
-				        m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+				        m_sockinfo_cache.m_ipv6info.m_fields.m_sip,
 				        m_inspector->m_plugin_tables,
 				        m_tinfo);
 			}
@@ -1527,29 +1519,29 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 			if(is_local) {
 				if(m_field_id == TYPE_LIP_NAME) {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+						addr = &m_sockinfo_cache.m_ipv4info.m_fields.m_sip;
 					} else {
-						addr = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0];
+						addr = &m_sockinfo_cache.m_ipv6info.m_fields.m_sip.m_b[0];
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
+						addr = &m_sockinfo_cache.m_ipv4info.m_fields.m_dip;
 					} else {
-						addr = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0];
+						addr = &m_sockinfo_cache.m_ipv6info.m_fields.m_dip.m_b[0];
 					}
 				}
 			} else {
 				if(m_field_id == TYPE_LIP_NAME) {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
+						addr = &m_sockinfo_cache.m_ipv4info.m_fields.m_dip;
 					} else {
-						addr = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0];
+						addr = &m_sockinfo_cache.m_ipv6info.m_fields.m_dip.m_b[0];
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+						addr = &m_sockinfo_cache.m_ipv4info.m_fields.m_sip;
 					} else {
-						addr = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0];
+						addr = &m_sockinfo_cache.m_ipv6info.m_fields.m_sip.m_b[0];
 					}
 				}
 			}

@@ -1805,7 +1805,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		if(fdinfo == nullptr) {
 			return NULL;
 		}
-		m_tstr = fdinfo->m_name.c_str();
+		m_tstr = fdinfo->get_name();
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PGID:
