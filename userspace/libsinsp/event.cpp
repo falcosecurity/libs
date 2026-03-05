@@ -514,8 +514,9 @@ int sinsp_evt::render_fd_json(Json::Value *ret,
 			char tch = fdinfo->get_typechar();
 			char ipprotoch = 0;
 
-			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK || fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-			   fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+			auto ftype = fdinfo->get_type();
+			if(ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+			   ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK) {
 				scap_l4_proto l4p = fdinfo->get_l4proto();
 
 				switch(l4p) {
@@ -541,7 +542,7 @@ int sinsp_evt::render_fd_json(Json::Value *ret,
 			//
 			// Make sure we remove invalid characters from the resolved name
 			//
-			std::string sanitized_str = fdinfo->m_name;
+			std::string sanitized_str = fdinfo->get_name();
 
 			sanitize_string(sanitized_str);
 
@@ -587,8 +588,9 @@ char *sinsp_evt::render_fd(int64_t fd, const char **resolved_str, sinsp_evt::par
 			char tch = fdinfo->get_typechar();
 			char ipprotoch = 0;
 
-			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK || fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-			   fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+			auto ftype = fdinfo->get_type();
+			if(ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+			   ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK) {
 				scap_l4_proto l4p = fdinfo->get_l4proto();
 
 				switch(l4p) {
@@ -614,7 +616,7 @@ char *sinsp_evt::render_fd(int64_t fd, const char **resolved_str, sinsp_evt::par
 			//
 			// Make sure we remove invalid characters from the resolved name
 			//
-			std::string sanitized_str = fdinfo->m_name;
+			std::string sanitized_str = fdinfo->get_name();
 
 			sanitize_string(sanitized_str);
 
@@ -1619,7 +1621,7 @@ void sinsp_evt::get_category(sinsp_evt::category *cat) const {
 			cat->m_subcategory = SC_UNKNOWN;
 			return;
 		} else {
-			switch(m_fdinfo->m_type) {
+			switch(m_fdinfo->get_type()) {
 			case SCAP_FD_FILE:
 			case SCAP_FD_FILE_V2:
 			case SCAP_FD_DIRECTORY:
@@ -1715,12 +1717,13 @@ bool sinsp_evt::is_file_open_error() const {
 bool sinsp_evt::is_file_error() const {
 	return is_file_open_error() ||
 	       ((m_fdinfo != nullptr) &&
-	        ((m_fdinfo->m_type == SCAP_FD_FILE) || (m_fdinfo->m_type == SCAP_FD_FILE_V2)));
+	        ((m_fdinfo->get_type() == SCAP_FD_FILE) || (m_fdinfo->get_type() == SCAP_FD_FILE_V2)));
 }
 
 bool sinsp_evt::is_network_error() const {
 	if(m_fdinfo != nullptr) {
-		return m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK;
+		auto ftype = m_fdinfo->get_type();
+		return ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK;
 	}
 	return m_pevt->type == PPME_SOCKET_ACCEPT_5_X || m_pevt->type == PPME_SOCKET_ACCEPT4_6_X ||
 	       m_pevt->type == PPME_SOCKET_CONNECT_X || m_pevt->type == PPME_SOCKET_BIND_X;
