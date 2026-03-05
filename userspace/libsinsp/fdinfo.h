@@ -117,6 +117,10 @@ public:
 		return std::make_unique<sinsp_fdinfo>(*this);
 	}
 
+	inline std::unique_lock<std::shared_mutex> exclusive_lock() const {
+		return std::unique_lock(m_mutex.m);
+	}
+
 	inline void snapshot_oldname() {
 		std::unique_lock lock(m_mutex.m);
 		m_oldname = m_name;
