@@ -976,7 +976,7 @@ void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread
  * if we want to save some clock cycles
  */
 void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
-	if(m_children.size() == 0) {
+	if(get_children_count() == 0) {
 		return;
 	}
 
