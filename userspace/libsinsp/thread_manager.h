@@ -74,19 +74,21 @@ public:
 	  re-adding a child that has already exited.
 
 	  \param tid the thread ID being removed.
+	  \param ptid the parent thread ID of the removed thread.
 	  \param ts the event timestamp of the removal.
 	*/
-	void record_recently_exited(int64_t tid, uint64_t ts);
+	void record_recently_exited(int64_t tid, int64_t ptid, uint64_t ts);
 
 	/*!
 	  \brief Check if a TID was recently removed due to a procexit event.
-	  Only matches entries recorded within the last 2 seconds to avoid
-	  false positives from TID recycling.
+	  Uses a composite (ptid, tid) key to avoid false positives from TID
+	  recycling. Only matches entries recorded within the last 2 seconds.
 
 	  \param tid the thread ID to check.
+	  \param ptid the expected parent thread ID of the child.
 	  \param ts the current event timestamp.
 	*/
-	bool was_recently_exited(int64_t tid, uint64_t ts) const;
+	bool has_recently_exited(int64_t tid, int64_t ptid, uint64_t ts) const;
 
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
@@ -366,12 +368,15 @@ private:
 
 	// Ring buffer of recently-exited TIDs (from procexit events).
 	// Used to prevent the caller's clone exit handler from re-adding
-	// children that have already exited. Each entry stores the TID and
-	// the timestamp of removal, so stale entries from TID recycling are
-	// not matched.
+	// children that have already exited. Each entry stores a composite
+	// key of (ptid, tid) packed into a uint64_t (upper 32 bits = ptid,
+	// lower 32 bits = tid) alongside a timestamp for stale-entry
+	// detection. The composite key avoids false positives from TID
+	// recycling — both parent and child TIDs would need to be recycled
+	// simultaneously for a collision to occur.
 	struct recently_exited_entry {
-		int64_t tid = 0;
-		uint64_t ts = 0;
+		uint64_t key = 0;  // ((uint32_t)ptid << 32) | (uint32_t)tid
+		uint64_t ts  = 0;
 	};
 	static constexpr size_t RECENTLY_EXITED_RING_SIZE = 8192;
 	std::array<recently_exited_entry, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};
