@@ -38,7 +38,7 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_TRUE(fdinfo->is_role_none());
 	ASSERT_FALSE(fdinfo->is_socket_connected());
 	// The socket syscall doesn't populate the name of the socket
-	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->get_name(), "");
 
 	/* FDINFO associated with the thread */
 	auto init_tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
@@ -49,7 +49,7 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_none());
 	ASSERT_FALSE(fdinfo->is_socket_connected());
-	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->get_name(), "");
 
 	// We don't need the enter event!
 	const std::string sun_path{"/tmp/stream.sock"};
@@ -87,9 +87,9 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	expected_unix_tuple = "f8d759c00000000->a8d759c00000000 /tmp/stream.sock";
 #endif
 
-	ASSERT_EQ(fdinfo->m_name, expected_unix_tuple);
+	ASSERT_EQ(fdinfo->get_name(), expected_unix_tuple);
 	// we don't have code to populate this `m_name_raw` for sockets.
-	ASSERT_EQ(fdinfo->m_name_raw, "");
+	ASSERT_EQ(fdinfo->get_name_raw(), "");
 
 	/* FDINFO associated with the thread */
 	fdinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
@@ -98,8 +98,8 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_client());
 	ASSERT_TRUE(fdinfo->is_socket_connected());
-	ASSERT_EQ(fdinfo->m_name, expected_unix_tuple);
-	ASSERT_EQ(fdinfo->m_name_raw, "");
+	ASSERT_EQ(fdinfo->get_name(), expected_unix_tuple);
+	ASSERT_EQ(fdinfo->get_name_raw(), "");
 }
 
 TEST_F(sinsp_with_test_input, BIND_parse_unix_socket) {

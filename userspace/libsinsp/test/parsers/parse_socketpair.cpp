@@ -67,7 +67,7 @@ TEST_F(sinsp_with_test_input, SOCKETPAIR_success) {
 	// Check that fd info (fd1) associated with the event are as expected.
 	auto fdinfo = evt->get_fd_info();
 	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->get_name(), "");
 	ASSERT_TRUE(fdinfo->is_unix_socket());
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_none());
@@ -79,7 +79,7 @@ TEST_F(sinsp_with_test_input, SOCKETPAIR_success) {
 	// Checks that fdinfo associated with the thread are as expected for fd1.
 	fdinfo = init_tinfo->get_fd(fd1);
 	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->get_name(), "");
 	ASSERT_TRUE(fdinfo->is_unix_socket());
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_none());
@@ -88,7 +88,7 @@ TEST_F(sinsp_with_test_input, SOCKETPAIR_success) {
 	// Checks that fdinfo associated with the thread are as expected for fd2.
 	fdinfo = init_tinfo->get_fd(fd2);
 	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->get_name(), "");
 	ASSERT_TRUE(fdinfo->is_unix_socket());
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_none());
