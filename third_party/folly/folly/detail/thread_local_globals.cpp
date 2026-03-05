@@ -40,27 +40,11 @@ namespace {
 /// thread.
 ///
 /// https://github.com/bminor/glibc/blob/glibc-2.39/nptl/pthread_create.c#L451-L455
-///
-/// On musl, __pthread_tsd_run_dtors runs destructors in key index order. C++
-/// thread_local destructors (e.g. SingletonThreadLocal's LocalLifetime) can run
-/// from one of those destructors (atexit) before Folly's key destructor runs,
-/// so thread_is_dying_mark() from onThreadExit is not yet set. We give this key
-/// a destructor that sets the "dying" state when it runs. If this key is
-/// created before Folly's ThreadLocal key and its value is set for every thread
-/// that uses ThreadLocal, its destructor runs first on thread exit and sets
-/// dying() so LocalLifetime can skip calling getWrapper().
 struct thread_is_dying_global {
   pthread_key_t key{};
 
-  static void key_dtor(void* p) {
-    if (p) {
-      auto* g = static_cast<thread_is_dying_global*>(p);
-      pthread_setspecific(g->key, &g->key);
-    }
-  }
-
   thread_is_dying_global() {
-    int ret = pthread_key_create(&key, &key_dtor);
+    int ret = pthread_key_create(&key, nullptr);
     if (ret != 0) {
       throw_exception<std::system_error>(
           ret, std::generic_category(), "pthread_key_create failed");
@@ -80,17 +64,6 @@ void thread_is_dying_mark() {
   if (!pthread_getspecific(global.key)) {
     pthread_setspecific(global.key, &global.key);
   }
-}
-
-void thread_dying_key_set_for_thread() {
-  auto& global = createGlobal<thread_is_dying_global, void>();
-  if (!pthread_getspecific(global.key)) {
-    pthread_setspecific(global.key, &global);
-  }
-}
-
-__attribute__((constructor)) static void ensure_dying_key_created() {
-  (void)thread_is_dying();
 }
 
 } // namespace folly::detail

@@ -126,15 +126,7 @@ class SingletonThreadLocal {
   using WrapperTL = ThreadLocal<Wrapper, TLTag>;
 
   struct LocalLifetime : State::LocalLifetime {
-    ~LocalLifetime() {
-      // On musl, pthread_key destructors can run before C++ thread_local destructors
-      // (or in an order where Folly's onThreadExit has already freed ThreadEntry). Calling
-      // getWrapper() then would use freed memory. When dying(), the wrapper was already
-      // disposed in onThreadExit; skip to avoid use-after-free and double-dispose.
-      if (!threadlocal_detail::StaticMetaBase::dying()) {
-        destroy(getWrapper());
-      }
-    }
+    ~LocalLifetime() { destroy(getWrapper()); }
   };
 
   SingletonThreadLocal() = delete;

@@ -40,7 +40,6 @@
 #include <folly/container/Foreach.h>
 #include <folly/detail/StaticSingletonManager.h>
 #include <folly/detail/UniqueInstance.h>
-#include <folly/detail/thread_local_globals.h>
 #include <folly/lang/Exception.h>
 #include <folly/memory/Malloc.h>
 #include <folly/portability/PThread.h>
@@ -668,7 +667,6 @@ struct FOLLY_EXPORT StaticMeta final : StaticMetaBase {
     ThreadEntry* threadEntry =
         static_cast<ThreadEntry*>(pthread_getspecific(key));
     if (!threadEntry) {
-      folly::detail::thread_dying_key_set_for_thread();
       threadEntry = meta.allocateNewThreadEntry();
       int ret = pthread_setspecific(key, threadEntry);
       checkPosixError(ret, "pthread_setspecific failed");
