@@ -19,6 +19,7 @@ limitations under the License.
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+#include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -1081,6 +1082,19 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
 	return res;
 }
 
+// Return true if `str` stores the numeric directory name for a process/task under procfs.
+static bool is_xid_filename(const char* str) {
+	if(str == NULL || *str == '\0') {
+		return false;
+	}
+	for(; *str != '\0'; str++) {
+		if(!isdigit((unsigned char)*str)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 //
 // Scan a directory containing multiple processes under /proc
 //
@@ -1135,7 +1149,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 			break;
 		}
 
-		if(strspn(dir_entry_p->d_name, "0123456789") != strlen(dir_entry_p->d_name)) {
+		if(!is_xid_filename(dir_entry_p->d_name)) {
 			continue;
 		}
 
@@ -1445,7 +1459,7 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform,
 		struct dirent* taskdir_entry_p;
 		DIR* taskdir_p;
 
-		if(strspn(dir_entry_p->d_name, "0123456789") != strlen(dir_entry_p->d_name)) {
+		if(!is_xid_filename(dir_entry_p->d_name)) {
 			continue;
 		}
 
@@ -1467,7 +1481,7 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform,
 			unsigned long stime;
 			int tid;
 
-			if(strspn(taskdir_entry_p->d_name, "0123456789") != strlen(taskdir_entry_p->d_name)) {
+			if(!is_xid_filename(taskdir_entry_p->d_name)) {
 				continue;
 			}
 
