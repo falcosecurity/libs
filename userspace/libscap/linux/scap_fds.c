@@ -74,6 +74,7 @@ void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list **sockets) {
 
 int32_t scap_fd_handle_pipe(struct scap_proclist *proclist,
                             char *fname,
+                            uint32_t tid,
                             scap_threadinfo *tinfo,
                             scap_fdinfo *fdi,
                             char *error) {
@@ -100,7 +101,7 @@ int32_t scap_fd_handle_pipe(struct scap_proclist *proclist,
 	fdi->ino = ino;
 	proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
 	                                      error,
-	                                      tinfo->tid,
+	                                      (int64_t)tid,
 	                                      tinfo,
 	                                      fdi,
 	                                      NULL);
@@ -402,6 +403,7 @@ void scap_fd_flags_file(scap_fdinfo *fdi, const char *procdir) {
 
 int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
                                     char *fname,
+                                    uint32_t tid,
                                     scap_threadinfo *tinfo,
                                     scap_fdinfo *fdi,
                                     const char *procdir,
@@ -462,7 +464,7 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
 
 	proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
 	                                      error,
-	                                      tinfo->tid,
+	                                      (int64_t)tid,
 	                                      tinfo,
 	                                      fdi,
 	                                      NULL);
@@ -471,6 +473,7 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
 
 int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
                               char *fname,
+                              uint32_t tid,
                               scap_threadinfo *tinfo,
                               scap_fdinfo *fdi,
                               char *procdir,
@@ -525,7 +528,7 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 		fdi->type = SCAP_FD_UNSUPPORTED;
 		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
 		                                      error,
-		                                      tinfo->tid,
+		                                      (int64_t)tid,
 		                                      tinfo,
 		                                      fdi,
 		                                      NULL);
@@ -542,7 +545,7 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist,
 		fdi->type = tfdi->type;
 		proclist->m_callbacks.m_proc_entry_cb(proclist->m_callbacks.m_callback_context,
 		                                      error,
-		                                      tinfo->tid,
+		                                      (int64_t)tid,
 		                                      tinfo,
 		                                      fdi,
 		                                      NULL);
@@ -1159,6 +1162,7 @@ char *decode_st_mode(struct stat *sb) {
 
 static int32_t handle_file(struct scap_proclist *proclist,
                            char *f_name,
+                           uint32_t tid,
                            scap_threadinfo *tinfo,
                            scap_fdinfo *fdi,
                            char *procdir,
@@ -1169,22 +1173,23 @@ static int32_t handle_file(struct scap_proclist *proclist,
 	switch(sb->st_mode & S_IFMT) {
 	case S_IFIFO:
 		fdi->type = SCAP_FD_FIFO;
-		return scap_fd_handle_pipe(proclist, f_name, tinfo, fdi, error);
+		return scap_fd_handle_pipe(proclist, f_name, tid, tinfo, fdi, error);
 	case S_IFREG:
 	case S_IFBLK:
 	case S_IFCHR:
 	case S_IFLNK:
 		fdi->type = SCAP_FD_FILE_V2;
 		fdi->ino = sb->st_ino;
-		return scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+		return scap_fd_handle_regular_file(proclist, f_name, tid, tinfo, fdi, procdir, error);
 	case S_IFDIR:
 		fdi->type = SCAP_FD_DIRECTORY;
 		fdi->ino = sb->st_ino;
-		return scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+		return scap_fd_handle_regular_file(proclist, f_name, tid, tinfo, fdi, procdir, error);
 	case S_IFSOCK:
 		fdi->type = SCAP_FD_UNKNOWN;
 		return scap_fd_handle_socket(proclist,
 		                             f_name,
+		                             tid,
 		                             tinfo,
 		                             fdi,
 		                             procdir,
@@ -1194,7 +1199,7 @@ static int32_t handle_file(struct scap_proclist *proclist,
 	default:
 		fdi->type = SCAP_FD_UNSUPPORTED;
 		fdi->ino = sb->st_ino;
-		return scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+		return scap_fd_handle_regular_file(proclist, f_name, tid, tinfo, fdi, procdir, error);
 	}
 }
 
@@ -1204,6 +1209,7 @@ static int32_t handle_file(struct scap_proclist *proclist,
 int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
                             struct scap_proclist *proclist,
                             char *procdir,
+                            uint32_t tid,
                             scap_threadinfo *tinfo,
                             struct scap_ns_socket_list **sockets_by_ns,
                             uint64_t *num_fds_ret,
@@ -1255,8 +1261,16 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
 			continue;
 		}
 
-		if(handle_file(proclist, f_name, tinfo, &fdi, procdir, &sb, net_ns, sockets_by_ns, error) !=
-		   SCAP_SUCCESS) {
+		if(handle_file(proclist,
+		               f_name,
+		               tid,
+		               tinfo,
+		               &fdi,
+		               procdir,
+		               &sb,
+		               net_ns,
+		               sockets_by_ns,
+		               error) != SCAP_SUCCESS) {
 			break;
 		}
 
@@ -1278,6 +1292,10 @@ int32_t scap_fd_get_fdinfo(struct scap_linux_platform const *const linux_platfor
                            int const fd,
                            struct scap_ns_socket_list **sockets_by_ns,
                            char *error) {
+	if(!tinfo) {
+		return scap_errprintf(error, 0, "tinfo must be non-NULL");
+	}
+
 	char f_name[SCAP_MAX_PATH_SIZE];
 	struct stat sb;
 	uint64_t net_ns;
@@ -1306,5 +1324,14 @@ int32_t scap_fd_get_fdinfo(struct scap_linux_platform const *const linux_platfor
 		return SCAP_SUCCESS;
 	}
 
-	return handle_file(proclist, f_name, tinfo, &fdi, procdir, &sb, net_ns, sockets_by_ns, error);
+	return handle_file(proclist,
+	                   f_name,
+	                   tinfo->pid,
+	                   tinfo,
+	                   &fdi,
+	                   procdir,
+	                   &sb,
+	                   net_ns,
+	                   sockets_by_ns,
+	                   error);
 }

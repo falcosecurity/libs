@@ -1035,6 +1035,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		res = scap_fd_scan_fd_dir(linux_platform,
 		                          proclist,
 		                          dir_name,
+		                          new_tinfo->pid,
 		                          new_tinfo,
 		                          sockets_by_ns,
 		                          num_fds_ret,
@@ -1539,6 +1540,10 @@ error:
 int32_t scap_linux_get_fdlist(struct scap_platform* platform,
                               struct scap_threadinfo* tinfo,
                               char* lasterr) {
+	if(!tinfo) {
+		return scap_errprintf(lasterr, 0, "tinfo must be non-NULL");
+	}
+
 	int res = SCAP_SUCCESS;
 	uint64_t num_fds_ret = 0;
 	char proc_dir[SCAP_MAX_PATH_SIZE];
@@ -1551,6 +1556,7 @@ int32_t scap_linux_get_fdlist(struct scap_platform* platform,
 	res = scap_fd_scan_fd_dir(linux_platform,
 	                          &platform->m_proclist,
 	                          proc_dir,
+	                          tinfo->pid,
 	                          tinfo,
 	                          &sockets_by_ns,
 	                          &num_fds_ret,
@@ -1565,6 +1571,10 @@ int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
                               struct scap_threadinfo* tinfo,
                               int const fd,
                               char* lasterr) {
+	if(!tinfo) {
+		return scap_errprintf(lasterr, 0, "tinfo must be non-NULL");
+	}
+
 	int res = SCAP_SUCCESS;
 	char proc_dir[SCAP_MAX_PATH_SIZE];
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
