@@ -74,6 +74,7 @@ void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list** sockets);
 int32_t scap_fd_scan_fd_dir(struct scap_linux_platform* linux_platform,
                             struct scap_proclist* proclist,
                             char* procdir,
+                            uint32_t tid,
                             scap_threadinfo* pi,
                             struct scap_ns_socket_list** sockets_by_ns,
                             uint64_t* num_fds_ret,
