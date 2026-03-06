@@ -1082,9 +1082,6 @@ public:
 	// can be called from multiple threads (e.g. parallel event processing).
 	std::atomic<sinsp_buffer_t> m_next_reservable_buffer_handle;
 
-	// The following mutex is used in next().
-	std::mutex m_global_next_mutex;
-
 	// First-event timestamp per thread; set in next() from current buffer, read by filter/format.
 	static thread_local uint64_t s_firstevent_ts;
 };
