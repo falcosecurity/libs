@@ -1059,12 +1059,13 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
 }
 
-static inline uint64_t recently_exited_make_key(int64_t ptid, int64_t tid) {
-	return ((uint64_t)(uint32_t)ptid << 32) | (uint64_t)(uint32_t)tid;
+static constexpr uint64_t make_key(uint64_t ptid, uint64_t tid) {
+	constexpr uint64_t mask32 = 0xFFFFFFFFULL;
+	return ((ptid & mask32) << 32) | (tid & mask32);
 }
 
 void sinsp_thread_manager::record_recently_exited(int64_t tid, int64_t ptid, uint64_t ts) {
-	m_recently_exited_tids[m_recently_exited_write_idx] = {recently_exited_make_key(ptid, tid), ts};
+	m_recently_exited_tids[m_recently_exited_write_idx] = {make_key(ptid, tid), ts};
 	m_recently_exited_write_idx = (m_recently_exited_write_idx + 1) % RECENTLY_EXITED_RING_SIZE;
 }
 
@@ -1076,7 +1077,7 @@ bool sinsp_thread_manager::has_recently_exited(int64_t tid, int64_t ptid, uint64
 	 * for a false positive to occur.
 	 */
 	static constexpr uint64_t MAX_AGE_NS = 2ULL * 1000000000ULL;
-	const uint64_t key = recently_exited_make_key(ptid, tid);
+	const uint64_t key = make_key(ptid, tid);
 	for(size_t i = 0; i < RECENTLY_EXITED_RING_SIZE; i++) {
 		if(m_recently_exited_tids[i].key == key && ts >= m_recently_exited_tids[i].ts &&
 		   (ts - m_recently_exited_tids[i].ts) < MAX_AGE_NS) {
