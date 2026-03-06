@@ -1076,7 +1076,7 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
 		               add_error);
 	}
 
-	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1) {
+	if(scan_sockets && sockets_by_ns != NULL) {
 		scap_fd_free_ns_sockets_list(&sockets_by_ns);
 	}
 
@@ -1302,7 +1302,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 	}
 
 	closedir(dir_p);
-	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1) {
+	if(sockets_by_ns != NULL) {
 		scap_fd_free_ns_sockets_list(&sockets_by_ns);
 	}
 	return res;
@@ -1561,7 +1561,7 @@ int32_t scap_linux_get_fdlist(struct scap_platform* platform,
 	                          &sockets_by_ns,
 	                          &num_fds_ret,
 	                          lasterr);
-	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1) {
+	if(sockets_by_ns != NULL) {
 		scap_fd_free_ns_sockets_list(&sockets_by_ns);
 	}
 	return res;
@@ -1590,7 +1590,7 @@ int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
 	                         fd,
 	                         &sockets_by_ns,
 	                         lasterr);
-	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1) {
+	if(sockets_by_ns != NULL) {
 		scap_fd_free_ns_sockets_list(&sockets_by_ns);
 	}
 	return res;
