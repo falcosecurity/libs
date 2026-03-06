@@ -151,12 +151,14 @@ plugin_handle_t* plugin_load_api(const plugin_api* api, char* err) {
 	uint32_t major, minor, patch;
 	const char* ver;
 	if(api->get_required_api_version == NULL) {
+		free(ret);
 		strlcpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN);
 		return NULL;
 	}
 
 	ver = api->get_required_api_version();
 	if(sscanf(ver, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &major, &minor, &patch) != 3) {
+		free(ret);
 		snprintf(err,
 		         PLUGIN_MAX_ERRLEN,
 		         "plugin provided an invalid required API version: '%s'",
