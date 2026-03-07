@@ -350,7 +350,7 @@ private:
 	// simultaneously for a collision to occur.
 	struct recently_exited_entry {
 		uint64_t key = 0;  // ((uint32_t)ptid << 32) | (uint32_t)tid
-		uint64_t ts  = 0;
+		uint64_t ts = 0;
 	};
 	static constexpr size_t RECENTLY_EXITED_RING_SIZE = 8192;
 	std::array<recently_exited_entry, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};

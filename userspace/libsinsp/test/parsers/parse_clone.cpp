@@ -702,4 +702,5 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_no_readd_after_child_procexit) {
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), thread_count_before);
 }
 
-/*=============================== CLONE CHILD EXIT EVENT (end of caller tests) ===========================*/
+/*=============================== CLONE CHILD EXIT EVENT (end of caller tests)
+ * ===========================*/
