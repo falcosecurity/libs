@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,6 +45,9 @@ limitations under the License.
 
 #ifdef HAVE_PWD_H
 static struct passwd *__getpwuid(uint32_t uid, const std::string &host_root) {
+	if(uid == (uint32_t)-1) {
+		return nullptr;
+	}
 	if(host_root.empty()) {
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -75,6 +78,9 @@ static struct passwd *__getpwuid(uint32_t uid, const std::string &host_root) {
 
 #ifdef HAVE_GRP_H
 static struct group *__getgrgid(uint32_t gid, const std::string &host_root) {
+	if(gid == (uint32_t)-1) {
+		return nullptr;
+	}
 	if(host_root.empty()) {
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -251,6 +257,9 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const std::string &container_
                                                    int64_t pid,
                                                    uint32_t gid,
                                                    bool notify) {
+	if(gid == (uint32_t)-1) {
+		return nullptr;
+	}
 	if(auto gr = get_group(container_id, gid); gr != nullptr) {
 		return gr;
 	}
@@ -522,6 +531,9 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
                                                  uint32_t uid,
                                                  uint32_t gid,
                                                  bool notify) {
+	if(uid == (uint32_t)-1) {
+		return nullptr;
+	}
 	if(auto usr = get_user(container_id, uid); usr != nullptr) {
 		return usr;
 	}
