@@ -816,6 +816,104 @@ static int32_t read_procfs_proc_pid_root(const char* const procfs_proc_dir,
 	return SCAP_SUCCESS;
 }
 
+// Creates callbacks for linux vtable's `fetch_*` APIs.
+__attribute__((unused)) static struct scap_fetch_callbacks linux_vtable_fetch_callbacks(
+        const struct scap_proclist* proclist) {
+	const struct scap_fetch_callbacks callbacks = {
+	        .proc_entry_cb = proclist->m_callbacks.m_proc_entry_cb,
+	        .ctx = proclist->m_callbacks.m_callback_context};
+	return callbacks;
+}
+
+// Wrapper making calls to linux vtable's `.fetch_thread()` API ergonomic.
+__attribute__((unused)) static int32_t linux_vtable_fetch_thread(
+        const struct scap_linux_platform* linux_platform,
+        const struct scap_proclist* proclist,
+        const int64_t tid,
+        scap_threadinfo** tinfo_out,
+        char* error) {
+	if(!linux_platform->m_linux_vtable || !linux_platform->m_linux_vtable->fetch_thread) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	const struct scap_fetch_callbacks callbacks = linux_vtable_fetch_callbacks(proclist);
+	return linux_platform->m_linux_vtable->fetch_thread(linux_platform->m_engine,
+	                                                    &callbacks,
+	                                                    tid,
+	                                                    tinfo_out,
+	                                                    error);
+}
+
+// Wrapper making calls to linux vtable's `.fetch_threads()` API ergonomic.
+__attribute__((unused)) static int32_t linux_vtable_fetch_threads(
+        const struct scap_linux_platform* linux_platform,
+        const struct scap_proclist* proclist,
+        char* error) {
+	if(!linux_platform->m_linux_vtable || !linux_platform->m_linux_vtable->fetch_threads) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	const struct scap_fetch_callbacks callbacks = linux_vtable_fetch_callbacks(proclist);
+	return linux_platform->m_linux_vtable->fetch_threads(linux_platform->m_engine,
+	                                                     &callbacks,
+	                                                     error);
+}
+
+// Wrapper making calls to linux vtable's `.fetch_proc_file()` API ergonomic.
+__attribute__((unused)) static int32_t linux_vtable_fetch_proc_file(
+        const struct scap_linux_platform* linux_platform,
+        const struct scap_proclist* proclist,
+        const uint32_t pid,
+        const uint32_t fd,
+        char* error) {
+	if(!linux_platform->m_linux_vtable || !linux_platform->m_linux_vtable->fetch_proc_file) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	const struct scap_fetch_callbacks callbacks = linux_vtable_fetch_callbacks(proclist);
+	return linux_platform->m_linux_vtable->fetch_proc_file(linux_platform->m_engine,
+	                                                       &callbacks,
+	                                                       pid,
+	                                                       fd,
+	                                                       error);
+}
+
+// Wrapper making calls to linux vtable's `.fetch_proc_files()` API ergonomic.
+__attribute__((unused)) static int32_t linux_vtable_fetch_proc_files(
+        const struct scap_linux_platform* linux_platform,
+        const struct scap_proclist* proclist,
+        const scap_threadinfo* tinfo,
+        const bool must_fetch_sockets,
+        uint64_t* num_files_fetched,
+        char* error) {
+	if(!linux_platform->m_linux_vtable || !linux_platform->m_linux_vtable->fetch_proc_files) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	const struct scap_fetch_callbacks callbacks = linux_vtable_fetch_callbacks(proclist);
+	return linux_platform->m_linux_vtable->fetch_proc_files(linux_platform->m_engine,
+	                                                        &callbacks,
+	                                                        tinfo->pid,
+	                                                        must_fetch_sockets,
+	                                                        num_files_fetched,
+	                                                        error);
+}
+
+// Wrapper making calls to linux vtable's `.fetch_procs_files()` API ergonomic.
+__attribute__((unused)) static int32_t linux_vtable_fetch_procs_files(
+        const struct scap_linux_platform* linux_platform,
+        const struct scap_proclist* proclist,
+        char* error) {
+	if(!linux_platform->m_linux_vtable || !linux_platform->m_linux_vtable->fetch_procs_files) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	const struct scap_fetch_callbacks callbacks = linux_vtable_fetch_callbacks(proclist);
+	return linux_platform->m_linux_vtable->fetch_procs_files(linux_platform->m_engine,
+	                                                         &callbacks,
+	                                                         error);
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
