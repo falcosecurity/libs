@@ -29,6 +29,12 @@ extern "C" {
 
 struct scap_mountinfo;
 
+/* Fetch APIs callbacks and related context. */
+struct scap_fetch_callbacks {
+	proc_entry_callback proc_entry_cb;
+	void* ctx;
+};
+
 struct scap_linux_vtable {
 	/**
 	 * @brief get the vpid of a process
@@ -77,6 +83,84 @@ struct scap_linux_vtable {
 	int32_t (*get_threadlist)(struct scap_engine_handle engine,
 	                          struct ppm_proclist_info** procinfo_p,
 	                          char* lasterr);
+
+	/**
+	 * @brief Fetches a single thread and passes it to the proper callback.
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param callbacks pointer to fetch APIs callbacks
+	 * @param tid the thread id
+	 * @param tinfo pointer to a pointer that is updated, on success, to point to the fetched thread
+	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
+	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported, or any
+	 * other SCAP_* failure code
+	 */
+	int32_t (*fetch_thread)(struct scap_engine_handle engine,
+	                        const struct scap_fetch_callbacks* callbacks,
+	                        uint32_t tid,
+	                        scap_threadinfo** tinfo,
+	                        char* error);
+
+	/**
+	 * @brief Fetches all threads and passes them to the proper callback.
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param callbacks pointer to fetch APIs callbacks
+	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
+	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported, or any
+	 * other SCAP_* failure code
+	 */
+	int32_t (*fetch_threads)(struct scap_engine_handle engine,
+	                         const struct scap_fetch_callbacks* callbacks,
+	                         char* error);
+
+	/**
+	 * @brief Fetches a single file from the main file table of single process and passes it to the
+	 * proper callback.
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param callbacks pointer to fetch APIs callbacks
+	 * @param pid the process id the file to be fetched belongs to
+	 * @param fd the file descriptor of the file to be fetched
+	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
+	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported, or any
+	 * other SCAP_* failure code
+	 */
+	int32_t (*fetch_proc_file)(struct scap_engine_handle engine,
+	                           const struct scap_fetch_callbacks* callbacks,
+	                           uint32_t pid,
+	                           uint32_t fd,
+	                           char* error);
+
+	/**
+	 * @brief Fetches all files from the main file table of a single process and passes them to the
+	 * proper callback.
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param callbacks pointer to fetch APIs callbacks
+	 * @param pid the process id the file to be fetched belongs to
+	 * @param must_fetch_sockets a boolean indicating if sockets must be fetched or not
+	 * @param num_files_fetched a pointer to the location where the number of fetched files is
+	 * stored on success. A `NULL` pointer instructs the API to avoid returning the number
+	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
+	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported, or any
+	 * other SCAP_* failure code
+	 */
+	int32_t (*fetch_proc_files)(struct scap_engine_handle engine,
+	                            const struct scap_fetch_callbacks* callbacks,
+	                            uint32_t pid,
+	                            bool must_fetch_sockets,
+	                            uint64_t* num_files_fetched,
+	                            char* error);
+
+	/**
+	 * @brief Fetches all files from the main file tables of all processes and passes them to the
+	 * proper callback.
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param callbacks pointer to fetch APIs callbacks
+	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
+	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported, or any
+	 * other SCAP_* failure code
+	 */
+	int32_t (*fetch_procs_files)(struct scap_engine_handle engine,
+	                             const struct scap_fetch_callbacks* callbacks,
+	                             char* error);
 };
 
 struct scap_linux_platform {
