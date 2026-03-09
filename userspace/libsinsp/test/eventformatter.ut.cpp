@@ -47,10 +47,11 @@ public:
 	void format(
 	        const std::string& fmt,
 	        sinsp_evt_formatter::output_format of = sinsp_evt_formatter::output_format::OF_NORMAL,
-	        bool resolve_transformers = true) {
+	        bool resolve_transformers = true,
+	        int64_t tid_caller = INIT_TID) {
 		sinsp_evt_formatter f(&m_inspector, fmt, m_filter_list);
 		f.set_resolve_transformed_fields(resolve_transformers);
-		auto evt = generate_getcwd_failed_entry_event();
+		auto evt = generate_getcwd_failed_entry_event(tid_caller);
 		f.get_field_names(m_last_field_names);
 		auto r1 = f.resolve_tokens(evt, m_last_field_values);
 		auto r2 = f.tostring_withformat(evt, m_last_output, of);
@@ -424,4 +425,159 @@ TEST_F(sinsp_formatter_test, nested_concat_and_join) {
 	EXPECT_EQ(m_last_field_values["concat(proc.name,evt.arg.path)"], "init/test/dir");
 	EXPECT_EQ(m_last_field_values["toupper(join(->,(concat(proc.name,evt.arg.path),proc.name)))"],
 	          "INIT/TEST/DIR->INIT");
+}
+
+// Tests for proc.a* fields without arguments in output (issue #2229).
+// These verify that ancestor fields produce meaningful output when used
+// without an explicit [index] argument.
+
+TEST_F(sinsp_formatter_test, ancestor_fields_no_arg_no_ancestors) {
+	// init (tid=1) has ptid=0 which doesn't exist, so no ancestors.
+	// With '*' prefix to continue on null, we expect <NA>.
+	format("*start %proc.aname end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start <NA> end");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_aname_no_arg) {
+	// Create: init(1) <- bash(2) <- child(3) via clone events
+	generate_clone_x_event(0,
+	                       2,
+	                       2,
+	                       1,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "bash");
+	generate_clone_x_event(0,
+	                       3,
+	                       3,
+	                       2,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "child");
+	format("*start %proc.aname end", sinsp_evt_formatter::output_format::OF_NORMAL, true, 3);
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start bash init end");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_aname_no_arg_middle_of_output) {
+	// Regression test: proc.aname without arg in the middle of the output
+	// string previously caused undefined behavior (issue #2229).
+	generate_clone_x_event(0,
+	                       2,
+	                       2,
+	                       1,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "bash");
+	generate_clone_x_event(0,
+	                       3,
+	                       3,
+	                       2,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "child");
+	format("hello |%proc.name| |%proc.aname| end",
+	       sinsp_evt_formatter::output_format::OF_NORMAL,
+	       true,
+	       3);
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "hello |child| |bash init| end");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_aexe_no_arg) {
+	generate_clone_x_event(0,
+	                       2,
+	                       2,
+	                       1,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "bash");
+	generate_clone_x_event(0,
+	                       3,
+	                       3,
+	                       2,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "child");
+	format("*%proc.aexe", sinsp_evt_formatter::output_format::OF_NORMAL, true, 3);
+	EXPECT_EQ(m_last_res, true);
+	// clone event sets exe to the clone's name for the child
+	EXPECT_EQ(m_last_output, "bash /sbin/init");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_aexepath_no_arg) {
+	generate_clone_x_event(0,
+	                       2,
+	                       2,
+	                       1,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "bash");
+	generate_clone_x_event(0,
+	                       3,
+	                       3,
+	                       2,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "child");
+	// Use proc.aname instead since exepath depends on clone internals
+	// and is harder to predict. Just verify it doesn't crash or return <NA>.
+	format("*%proc.aexepath", sinsp_evt_formatter::output_format::OF_NORMAL, true, 3);
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_FALSE(m_last_output.empty());
+	EXPECT_NE(m_last_output, "<NA>");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_acmdline_no_arg) {
+	generate_clone_x_event(0,
+	                       2,
+	                       2,
+	                       1,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "bash");
+	generate_clone_x_event(0,
+	                       3,
+	                       3,
+	                       2,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "child");
+	format("*%proc.acmdline", sinsp_evt_formatter::output_format::OF_NORMAL, true, 3);
+	EXPECT_EQ(m_last_res, true);
+	// clone child has no args so cmdline=name; init has args
+	EXPECT_EQ(m_last_output, "bash init context ls --format {{json .}}");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_apid_no_arg_defaults_to_self) {
+	// proc.apid without argument defaults to proc.apid[0] (current process pid)
+	generate_clone_x_event(0,
+	                       2,
+	                       2,
+	                       1,
+	                       PPM_CL_CLONE_CHILD_CLEARTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "bash");
+	format("*%proc.apid", sinsp_evt_formatter::output_format::OF_NORMAL, true, 2);
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "2");
+}
+
+TEST_F(sinsp_formatter_test, ancestor_aname_with_arg_still_works) {
+	// Regression: proc.aname[0] must still work as before
+	format("start %proc.aname[0] end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start init end");
 }
