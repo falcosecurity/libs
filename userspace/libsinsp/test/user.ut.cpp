@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -77,6 +77,23 @@ TEST_F(usergroup_manager_test, add_rm) {
 	ASSERT_EQ(mgr.get_user(container_id, 0), nullptr);
 	mgr.rm_group(container_id, 0);
 	ASSERT_EQ(mgr.get_group(container_id, 0), nullptr);
+}
+
+TEST_F(usergroup_manager_test, invalid_sentinel_uid_gid) {
+	const std::string container_id{""};
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
+
+	// (uint32_t)-1 is the unresolved sentinel from threadinfo init.
+	// Passing it to add_user/add_group must not trigger NSS lookups
+	// (which can crash with third-party NSS modules like libnss_oslogin).
+	auto* usr = mgr.add_user(container_id, -1, (uint32_t)-1, 0, true);
+	ASSERT_EQ(usr, nullptr);
+	ASSERT_EQ(mgr.get_user(container_id, (uint32_t)-1), nullptr);
+
+	auto* grp = mgr.add_group(container_id, -1, (uint32_t)-1, true);
+	ASSERT_EQ(grp, nullptr);
+	ASSERT_EQ(mgr.get_group(container_id, (uint32_t)-1), nullptr);
 }
 
 // note(jasondellaluce): emscripten has issues with getpwuid
