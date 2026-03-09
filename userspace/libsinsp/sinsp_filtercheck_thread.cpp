@@ -72,9 +72,10 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "can access different levels of ancestors by using indices. For example, proc.aexe[1] "
          "retrieves the proc.exe of the parent process, proc.aexe[2] retrieves the proc.exe of the "
          "grandparent process, and so on. The current process's proc.exe line can be obtained "
-         "using proc.aexe[0]. When used without any arguments, proc.aexe is applicable only in "
-         "filters and matches any of the process ancestors. For instance, you can use `proc.aexe "
-         "endswith java` to match any process ancestor whose proc.exe ends with the term `java`."},
+         "using proc.aexe[0]. When used without any arguments in filters, proc.aexe matches any "
+         "of the process ancestors. For instance, you can use `proc.aexe endswith java` to match "
+         "any process ancestor whose proc.exe ends with the term `java`. In output, proc.aexe "
+         "without arguments returns the space-separated list of proc.exe values of all ancestors."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
@@ -99,10 +100,11 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "different levels of ancestors by using indices. For example, proc.aexepath[1] retrieves "
          "the proc.exepath of the parent process, proc.aexepath[2] retrieves the proc.exepath of "
          "the grandparent process, and so on. The current process's proc.exepath line can be "
-         "obtained using proc.aexepath[0]. When used without any arguments, proc.aexepath is "
-         "applicable only in filters and matches any of the process ancestors. For instance, you "
-         "can use `proc.aexepath endswith java` to match any process ancestor whose path ends with "
-         "the term `java`."},
+         "obtained using proc.aexepath[0]. When used without any arguments in filters, "
+         "proc.aexepath matches any of the process ancestors. For instance, you can use "
+         "`proc.aexepath endswith java` to match any process ancestor whose path ends with "
+         "the term `java`. In output, proc.aexepath without arguments returns the space-separated "
+         "list of proc.exepath values of all ancestors."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
@@ -129,9 +131,10 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "access different levels of ancestors by using indices. For example, proc.aname[1] "
          "retrieves the proc.name of the parent process, proc.aname[2] retrieves the proc.name of "
          "the grandparent process, and so on. The current process's proc.name line can be obtained "
-         "using proc.aname[0]. When used without any arguments, proc.aname is applicable only in "
-         "filters and matches any of the process ancestors. For instance, you can use "
-         "`proc.aname=bash` to match any process ancestor whose name is `bash`."},
+         "using proc.aname[0]. When used without any arguments in filters, proc.aname matches any "
+         "of the process ancestors. For instance, you can use `proc.aname=bash` to match any "
+         "process ancestor whose name is `bash`. In output, proc.aname without arguments returns "
+         "the space-separated list of proc.name values of all ancestors."},
         {PT_CHARBUF,
          EPF_ARG_ALLOWED,
          PF_NA,
@@ -153,10 +156,11 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "indices. For example, proc.aargs[1] retrieves the arguments passed on the command line "
          "of the parent process, proc.aargs[2] retrieves the proc.args of the grandparent process, "
          "and so on. The current process's arguments passed on the command line can be obtained "
-         "using proc.aargs[0]. When used without any arguments, proc.aargs is applicable only in "
-         "filters and matches any of the process ancestors. For instance, you can use `proc.aargs "
-         "contains base64` to match any process ancestor whose arguments passed on the command "
-         "line contains the term base64."},
+         "using proc.aargs[0]. When used without any arguments in filters, proc.aargs matches any "
+         "of the process ancestors. For instance, you can use `proc.aargs contains base64` to "
+         "match any process ancestor whose arguments contain the term base64. In output, "
+         "proc.aargs without arguments returns the space-separated list of proc.args values of "
+         "all ancestors."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
@@ -179,10 +183,11 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "access different levels of ancestors by using indices. For example, proc.acmdline[1] "
          "retrieves the full command line of the parent process, proc.acmdline[2] retrieves the "
          "proc.cmdline of the grandparent process, and so on. The current process's full command "
-         "line can be obtained using proc.acmdline[0]. When used without any arguments, "
-         "proc.acmdline is applicable only in filters and matches any of the process ancestors. "
-         "For instance, you can use `proc.acmdline contains base64` to match any process ancestor "
-         "whose command line contains the term base64."},
+         "line can be obtained using proc.acmdline[0]. When used without any arguments in filters, "
+         "proc.acmdline matches any of the process ancestors. For instance, you can use "
+         "`proc.acmdline contains base64` to match any process ancestor whose command line "
+         "contains the term base64. In output, proc.acmdline without arguments returns the "
+         "space-separated list of proc.cmdline values of all ancestors."},
         {PT_UINT64,
          EPF_NONE,
          PF_DEC,
@@ -262,10 +267,10 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "The pid for a specific process ancestor. You can access different levels of ancestors by "
          "using indices. For example, proc.apid[1] retrieves the pid of the parent process, "
          "proc.apid[2] retrieves the pid of the grandparent process, and so on. The current "
-         "process's pid can be obtained using proc.apid[0]. When used without any arguments, "
-         "proc.apid is applicable only in filters and matches any of the process ancestors. For "
-         "instance, you can use `proc.apid=1337` to match any process ancestor whose pid is equal "
-         "to 1337."},
+         "process's pid can be obtained using proc.apid[0]. When used without any arguments in "
+         "filters, proc.apid matches any of the process ancestors. For instance, you can use "
+         "`proc.apid=1337` to match any process ancestor whose pid is equal to 1337. In output, "
+         "proc.apid without arguments defaults to proc.apid[0] (the current process's pid)."},
         {PT_INT64,
          EPF_NONE,
          PF_ID,
@@ -725,7 +730,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "the event."},
 };
 
-sinsp_filter_check_thread::sinsp_filter_check_thread() {
+sinsp_filter_check_thread::sinsp_filter_check_thread(): m_argid(-1) {
 	static const filter_check_info s_field_infos = {
 	        "process",
 	        "",
@@ -1165,6 +1170,27 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 	case TYPE_AARGS: {
 		m_tstr.clear();
 
+		if(m_argid == -1) {
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+			if(!mt) {
+				return NULL;
+			}
+			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
+				if(!m_tstr.empty()) {
+					m_tstr += ' ';
+				}
+				std::string args;
+				sinsp_threadinfo::populate_args(args, pt);
+				m_tstr += args;
+				return true;
+			};
+			m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
+			if(m_tstr.empty()) {
+				return NULL;
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+
 		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
@@ -1327,6 +1353,27 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_ACMDLINE: {
+		if(m_argid == -1) {
+			m_tstr.clear();
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+			if(!mt) {
+				return NULL;
+			}
+			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
+				if(!m_tstr.empty()) {
+					m_tstr += ' ';
+				}
+				std::string cmdline;
+				sinsp_threadinfo::populate_cmdline(cmdline, pt);
+				m_tstr += cmdline;
+				return true;
+			};
+			m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
+			if(m_tstr.empty()) {
+				return NULL;
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
@@ -1336,7 +1383,9 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_APID: {
-		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
+		sinsp_threadinfo* mt =
+		        m_inspector->m_thread_manager->get_ancestor_process(*tinfo,
+		                                                            m_argid == -1 ? 0 : m_argid);
 		if(!mt) {
 			return NULL;
 		}
@@ -1347,6 +1396,25 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(mt->m_pid);
 	}
 	case TYPE_ANAME: {
+		if(m_argid == -1) {
+			m_tstr.clear();
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+			if(!mt) {
+				return NULL;
+			}
+			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
+				if(!m_tstr.empty()) {
+					m_tstr += ' ';
+				}
+				m_tstr += pt->get_comm();
+				return true;
+			};
+			m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
+			if(m_tstr.empty()) {
+				return NULL;
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
@@ -1365,6 +1433,25 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_AEXE: {
+		if(m_argid == -1) {
+			m_tstr.clear();
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+			if(!mt) {
+				return NULL;
+			}
+			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
+				if(!m_tstr.empty()) {
+					m_tstr += ' ';
+				}
+				m_tstr += pt->get_exe();
+				return true;
+			};
+			m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
+			if(m_tstr.empty()) {
+				return NULL;
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
@@ -1383,6 +1470,25 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_AEXEPATH: {
+		if(m_argid == -1) {
+			m_tstr.clear();
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+			if(!mt) {
+				return NULL;
+			}
+			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
+				if(!m_tstr.empty()) {
+					m_tstr += ' ';
+				}
+				m_tstr += pt->get_exepath();
+				return true;
+			};
+			m_inspector->m_thread_manager->traverse_parent_state(*mt, visitor);
+			if(m_tstr.empty()) {
+				return NULL;
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 		sinsp_threadinfo* mt = m_inspector->m_thread_manager->get_ancestor_process(*tinfo, m_argid);
 		if(!mt) {
 			return NULL;
