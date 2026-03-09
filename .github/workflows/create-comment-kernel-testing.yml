@@ -61,15 +61,30 @@ jobs:
 
             // Validate artifact PR number against the workflow_run context
             // to prevent artifact poisoning (cross-issue comment injection).
-            const head_sha = context.payload.workflow_run.head_sha;
-            const {data: associated_prs} = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: head_sha,
-            });
-            const valid_pr_numbers = associated_prs.map(pr => pr.number);
+            //
+            // For same-repo PRs, workflow_run.pull_requests is populated.
+            // For fork PRs, pull_requests is always empty, so we fall back
+            // to searching for PRs by head repo owner and branch name.
+            const run_prs = context.payload.workflow_run.pull_requests;
+            let valid_pr_numbers = run_prs.map(pr => pr.number);
+
+            if (valid_pr_numbers.length === 0) {
+              // Fork PR: search using the head repo owner and branch from the
+              // workflow_run payload (these fields are set by GitHub, not the fork).
+              const head_owner = context.payload.workflow_run.head_repository.owner.login;
+              const head_branch = context.payload.workflow_run.head_branch;
+              const {data: matching_prs} = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'all',
+                head: `${head_owner}:${head_branch}`,
+                per_page: 10,
+              });
+              valid_pr_numbers = matching_prs.map(pr => pr.number);
+            }
+
             if (!valid_pr_numbers.includes(issue_number)) {
-              core.setFailed(`Artifact PR number ${issue_number} does not match any PR for commit ${head_sha}. Aborting to prevent artifact poisoning.`);
+              core.setFailed(`Artifact PR number ${issue_number} does not match any PR for head ${context.payload.workflow_run.head_repository.owner.login}:${context.payload.workflow_run.head_branch}. Aborting to prevent artifact poisoning.`);
               return;
             }
 
