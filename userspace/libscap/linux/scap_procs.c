@@ -1096,6 +1096,162 @@ static bool is_xid_filename(const char* str) {
 	return true;
 }
 
+// Scan all files in the main file table for all processes under /proc.
+__attribute__((unused)) static int32_t fetch_procfs_procs_files(
+        struct scap_linux_platform* linux_platform,
+        struct scap_proclist* proclist,
+        char* procfs_dir_path,
+        char* error) {
+	DIR* procfs_dir = opendir(procfs_dir_path);
+	if(procfs_dir == NULL) {
+		scap_errprintf(error, errno, "error opening the %s directory", procfs_dir_path);
+		return SCAP_NOTFOUND;
+	}
+
+	// Do timing tracking only if one or both of the timing parameters is configured to non-zero.
+	const bool do_timing = linux_platform->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE ||
+	                       linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE;
+	uint64_t monotonic_ts_context = SCAP_GET_CUR_TS_MS_CONTEXT_INIT;
+	uint64_t start_ts_ms = 0;
+	uint64_t last_log_ts_ms = 0;
+	uint64_t last_proc_ts_ms = 0;
+	uint64_t cur_ts_ms = 0;
+	uint64_t min_proc_time_ms = UINT64_MAX;
+	uint64_t max_proc_time_ms = 0;
+	if(do_timing) {
+		start_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+		last_log_ts_ms = start_ts_ms;
+		last_proc_ts_ms = start_ts_ms;
+	}
+
+	uint64_t num_procs_processed = 0;
+	uint64_t total_num_fds = 0;
+	uint32_t last_pid_processed = 0;
+
+	char procfs_proc_dir[SCAP_MAX_PATH_SIZE];
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
+	bool timeout_expired = false;
+
+	while(!timeout_expired) {
+		const struct dirent* procfs_dir_entry = readdir(procfs_dir);
+		if(procfs_dir_entry == NULL) {
+			break;
+		}
+
+		if(!is_xid_filename(procfs_dir_entry->d_name)) {
+			continue;
+		}
+
+		// Gather the process PID, which is the directory name.
+		const uint32_t pid = (uint32_t)atoi(procfs_dir_entry->d_name);
+
+		snprintf(procfs_proc_dir, sizeof(procfs_proc_dir), "%s/%u", procfs_dir_path, pid);
+
+		// Gather all files for this process.
+		uint64_t num_fds_this_proc;
+		const int32_t res = scap_fd_scan_fd_dir(linux_platform,
+		                                        proclist,
+		                                        procfs_proc_dir,
+		                                        pid,
+		                                        NULL,
+		                                        &sockets_by_ns,
+		                                        &num_fds_this_proc,
+		                                        error);
+		if(res != SCAP_SUCCESS) {
+			continue;
+		}
+
+		// Process files successfully processed.
+		last_pid_processed = pid;
+		num_procs_processed++;
+		total_num_fds += num_fds_this_proc;
+
+		// After successful processing of a process, perform timing processing if configured.
+		if(!do_timing) {
+			continue;
+		}
+
+		cur_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+		const uint64_t total_elapsed_time_ms = cur_ts_ms - start_ts_ms;
+
+		const uint64_t this_proc_elapsed_time_ms = cur_ts_ms - last_proc_ts_ms;
+		last_proc_ts_ms = cur_ts_ms;
+
+		if(this_proc_elapsed_time_ms < min_proc_time_ms) {
+			min_proc_time_ms = this_proc_elapsed_time_ms;
+		}
+		if(this_proc_elapsed_time_ms > max_proc_time_ms) {
+			max_proc_time_ms = this_proc_elapsed_time_ms;
+		}
+
+		if(linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) {
+			const uint64_t log_elapsed_time_ms = cur_ts_ms - last_log_ts_ms;
+			if(log_elapsed_time_ms >= linux_platform->m_proc_scan_log_interval_ms) {
+				scap_debug_log(linux_platform,
+				               "proc_files_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, "
+				               "last pid %ld, num_fds %ld",
+				               num_procs_processed,
+				               total_elapsed_time_ms,
+				               total_elapsed_time_ms / num_procs_processed,
+				               min_proc_time_ms,
+				               max_proc_time_ms,
+				               last_pid_processed,
+				               total_num_fds);
+				last_log_ts_ms = cur_ts_ms;
+			}
+		}
+
+		if(linux_platform->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) {
+			if(total_elapsed_time_ms >= linux_platform->m_proc_scan_timeout_ms) {
+				timeout_expired = true;
+			}
+		}
+	}
+
+	closedir(procfs_dir);
+	if(sockets_by_ns != NULL) {
+		scap_fd_free_ns_sockets_list(&sockets_by_ns);
+	}
+
+	// Perform timing processing if configured.
+	if(!do_timing) {
+		return SCAP_SUCCESS;
+	}
+
+	cur_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+	const uint64_t total_elapsed_time_ms = cur_ts_ms - start_ts_ms;
+	const uint64_t avg_proc_time_ms =
+	        num_procs_processed != 0 ? total_elapsed_time_ms / num_procs_processed : 0;
+
+	if(timeout_expired) {
+		scap_debug_log(linux_platform,
+		               "proc_files_scan TIMEOUT (%ld ms): %ld proc in %ld ms, "
+		               "avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
+		               linux_platform->m_proc_scan_timeout_ms,
+		               num_procs_processed,
+		               total_elapsed_time_ms,
+		               avg_proc_time_ms,
+		               min_proc_time_ms,
+		               max_proc_time_ms,
+		               last_pid_processed,
+		               total_num_fds);
+	} else if(linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE &&
+	          num_procs_processed != 0) {
+		scap_debug_log(linux_platform,
+		               "proc_files_scan DONE: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, "
+		               "last pid %ld, num_fds %ld",
+		               num_procs_processed,
+		               total_elapsed_time_ms,
+		               avg_proc_time_ms,
+		               min_proc_time_ms,
+		               max_proc_time_ms,
+		               last_pid_processed,
+		               total_num_fds);
+	}
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Scan a directory containing multiple processes under /proc
 //
