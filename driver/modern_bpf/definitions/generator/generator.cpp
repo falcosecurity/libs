@@ -111,6 +111,7 @@ std::map<long long, char *> type_to_size_expr{
         {PT_ENUMFLAGS8, SIZE_OF_EXPR(uint8_t)},
         {PT_ENUMFLAGS16, SIZE_OF_EXPR(uint16_t)},
         {PT_ENUMFLAGS32, SIZE_OF_EXPR(uint32_t)},
+        {PT_FD32, SIZE_OF_EXPR(int32_t)},
 };
 
 // is_fixed_size_event determines if the provided event has a fixed size or not.

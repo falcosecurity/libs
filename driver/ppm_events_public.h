@@ -2123,7 +2123,8 @@ enum ppm_param_type {
 	                        contiguous values flag. */
 	PT_ENUMFLAGS32 = 46, /* this is an UINT32, but will be interpreted as an enum flag, ie:
 	                        contiguous values flag. */
-	PT_MAX = 47          /* array size */
+	PT_FD32 = 47,        /* A file descriptor, encoded using 32 bits. */
+	PT_MAX = 48          /* array size */
 };
 
 enum ppm_print_format {

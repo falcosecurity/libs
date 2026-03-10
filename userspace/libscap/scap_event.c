@@ -278,6 +278,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 		case PT_SIGSET:
 		case PT_MODE:
 		case PT_ENUMFLAGS32:
+		case PT_FD32:
 			u32_arg = va_arg(args, uint32_t);
 			param.buf = &u32_arg;
 			param.size = sizeof(uint32_t);
