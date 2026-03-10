@@ -116,7 +116,8 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 
 	case PT_INT32:
 	case PT_FD:
-	case PT_FD32: {
+	case PT_FD32:
+	case PT_PID32: {
 		int32_t val;
 		memcpy(&val, valptr, sizeof(val));
 		printf("PARAM %d: %d\n", num_param, val);
