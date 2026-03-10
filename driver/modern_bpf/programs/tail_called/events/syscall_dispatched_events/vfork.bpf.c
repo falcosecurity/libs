@@ -81,8 +81,8 @@ int BPF_PROG(vfork_x, struct pt_regs *regs, long ret) {
 	auxmap__store_s64_param(auxmap, tgid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	int64_t ptid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PGID);
-	auxmap__store_s64_param(auxmap, ptid);
+	pid_t ppid = extract__task_ppid_nr(task);
+	auxmap__store_s64_param(auxmap, (int64_t)ppid);
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
 	/// TODO: right now we leave the current working directory empty like in the old probe.

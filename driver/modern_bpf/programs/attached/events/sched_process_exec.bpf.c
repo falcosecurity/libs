@@ -123,9 +123,8 @@ int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_bi
 	auxmap__store_s64_param(auxmap, tgid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	/* this is called `ptid` but it is the `pgid`. */
-	int64_t pgid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PGID);
-	auxmap__store_s64_param(auxmap, pgid);
+	pid_t ppid = extract__task_ppid_nr(task);
+	auxmap__store_s64_param(auxmap, (int64_t)ppid);
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
 	/// TODO: right now we leave the current working directory empty like in the old probe.
@@ -277,7 +276,8 @@ int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret, struct linux_binpr
 	auxmap__store_task_exe_file_path(auxmap, task);
 
 	/* Parameter 29: pgid (type: PT_PID) */
-	auxmap__store_pgid(auxmap, task);
+	pid_t pgid = extract__task_xid_nr(task, PIDTYPE_PGID);
+	auxmap__store_s64_param(auxmap, (int64_t)pgid);
 
 	/* Parameter 30: egid (type: PT_GID) */
 	uint32_t egid = extract__egid(task);
