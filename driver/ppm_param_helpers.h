@@ -46,6 +46,7 @@ inline int ppm_param_min_len_from_type(const ppm_param_type t, uint32_t *min_len
 	case PT_GID:
 	case PT_MODE:
 	case PT_SIGSET:
+	case PT_FD32:
 		*min_len = 4;
 		return 0;
 
@@ -115,6 +116,7 @@ inline int ppm_param_max_len_from_type(const ppm_param_type t,
 	case PT_GID:
 	case PT_MODE:
 	case PT_SIGSET:
+	case PT_FD32:
 		*max_len = 4;
 		return 0;
 
