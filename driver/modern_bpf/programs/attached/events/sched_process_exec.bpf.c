@@ -272,14 +272,9 @@ int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret, struct linux_binpr
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	struct task_struct *task = get_current_task();
-	struct file *exe_file = extract__exe_file_from_task(task);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	if(exe_file != NULL) {
-		auxmap__store_d_path_approx(auxmap, &(exe_file->f_path));
-	} else {
-		auxmap__store_empty_param(auxmap);
-	}
+	auxmap__store_task_exe_file_path(auxmap, task);
 
 	/* Parameter 29: pgid (type: PT_PID) */
 	auxmap__store_pgid(auxmap, task);

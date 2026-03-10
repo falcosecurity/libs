@@ -72,11 +72,7 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	if(ret > 0) {
 		/* Parameter 4: path (type: PT_FSPATH) */
 		struct file *f = extract__file_struct_from_fd(ret);
-		if(f != NULL) {
-			auxmap__store_d_path_approx(auxmap, &(f->f_path));
-		} else {
-			auxmap__store_empty_param(auxmap);
-		}
+		auxmap__store_file_path(auxmap, f);
 	} else {
 		auxmap__store_empty_param(auxmap);
 	}
