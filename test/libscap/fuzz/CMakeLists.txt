@@ -14,13 +14,16 @@
 #
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	message(FATAL_ERROR "ENABLE_LIBSCAP_FUZZERS requires clang/libFuzzer (set CMAKE_CXX_COMPILER=clang++).")
+	message(
+		FATAL_ERROR
+			"ENABLE_LIBSCAP_FUZZERS requires clang/libFuzzer (set CMAKE_CXX_COMPILER=clang++)."
+	)
 endif()
 
 add_executable(fuzz_scap_event_decode fuzz_scap_event_decode.cc)
 target_include_directories(
-	fuzz_scap_event_decode
-	PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/userspace" "${PROJECT_BINARY_DIR}"
+	fuzz_scap_event_decode PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/userspace"
+								   "${PROJECT_BINARY_DIR}"
 )
 target_link_libraries(fuzz_scap_event_decode PRIVATE scap)
 add_dependencies(fuzz_scap_event_decode scap)
@@ -28,10 +31,9 @@ target_compile_definitions(fuzz_scap_event_decode PRIVATE -D_GNU_SOURCE)
 
 # Build a standalone libFuzzer binary for local runs.
 target_compile_options(
-	fuzz_scap_event_decode
-	PRIVATE ${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS} -fsanitize=fuzzer-no-link
+	fuzz_scap_event_decode PRIVATE ${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS}
+								   -fsanitize=fuzzer-no-link
 )
 target_link_options(
-	fuzz_scap_event_decode
-	PRIVATE ${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS} -fsanitize=fuzzer
+	fuzz_scap_event_decode PRIVATE ${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS} -fsanitize=fuzzer
 )
