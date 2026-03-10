@@ -1940,3 +1940,30 @@ static __always_inline void auxmap__store_pgid(struct auxiliary_map *auxmap,
 	BPF_CORE_READ_INTO(&pgid, pid_struct, numbers[0].nr);
 	auxmap__store_s64_param(auxmap, (int64_t)pgid);
 }
+
+/**
+ * @brief This helper stores the file's path as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param file pointer to the file whose path must be stored.
+ */
+static __always_inline void auxmap__store_file_path(struct auxiliary_map *auxmap,
+                                                    struct file *file) {
+	if(file) {
+		auxmap__store_d_path_approx(auxmap, &file->f_path);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
+}
+
+/**
+ * @brief This helper stores the task's exe file path as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param task pointer to the task whose exe file path must be stored.
+ */
+static __always_inline void auxmap__store_task_exe_file_path(struct auxiliary_map *auxmap,
+                                                             struct task_struct *task) {
+	struct file *exe_file = extract__exe_file_from_task(task);
+	auxmap__store_file_path(auxmap, exe_file);
+}
