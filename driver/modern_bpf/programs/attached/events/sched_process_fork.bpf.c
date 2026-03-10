@@ -116,9 +116,8 @@ int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child
 	auxmap__store_s64_param(auxmap, tgid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	/* this is called `ptid` but it is the `pgid`. */
-	int64_t pgid = (int64_t)extract__task_xid_nr(child, PIDTYPE_PGID);
-	auxmap__store_s64_param(auxmap, pgid);
+	pid_t ppid = extract__task_ppid_nr(child);
+	auxmap__store_s64_param(auxmap, (int64_t)ppid);
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
 	/// TODO: right now we leave the current working directory empty like in the old probe.

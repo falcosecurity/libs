@@ -1932,15 +1932,6 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 	                            KERNEL);
 }
 
-static __always_inline void auxmap__store_pgid(struct auxiliary_map *auxmap,
-                                               struct task_struct *task) {
-	pid_t pgid = 0;
-	struct pid *pid_struct = NULL;
-	READ_TASK_FIELD_INTO(&pid_struct, task, signal, pids[PIDTYPE_PGID]);
-	BPF_CORE_READ_INTO(&pgid, pid_struct, numbers[0].nr);
-	auxmap__store_s64_param(auxmap, (int64_t)pgid);
-}
-
 /**
  * @brief This helper stores the file's path as a charbuf into the auxmap.
  *

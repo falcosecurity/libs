@@ -564,8 +564,6 @@ static __always_inline pid_t extract__task_xid_nr(struct task_struct *task, enum
 		return READ_TASK_FIELD(task, tgid);
 
 	case PIDTYPE_PGID:
-		return READ_TASK_FIELD(task, real_parent, pid);
-
 	case PIDTYPE_SID: {
 		struct pid *pid_struct = extract__task_pid_struct(task, type);
 		if(!pid_struct) {
@@ -577,6 +575,16 @@ static __always_inline pid_t extract__task_xid_nr(struct task_struct *task, enum
 	default:
 		return 0;
 	}
+}
+
+/**
+ * @brief Return the `ppid` seen from the init namespace.
+ *
+ * @param task pointer to task struct.
+ * @return `ppid` seen from the init namespace.
+ */
+static __always_inline pid_t extract__task_ppid_nr(struct task_struct *task) {
+	return READ_TASK_FIELD(task, real_parent, pid);
 }
 
 /**
