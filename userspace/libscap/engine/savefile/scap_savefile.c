@@ -1637,16 +1637,13 @@ static int32_t scap_read_section_header(scap_reader_t *r,
 	return SCAP_SUCCESS;
 }
 
-//
-// Parse the headers of a trace file and load the tables
-//
-static int32_t scap_read_init(struct savefile_engine *handle,
-                              scap_reader_t *r,
-                              scap_machine_info *machine_info_p,
-                              struct scap_proclist *proclist_p,
-                              scap_addrlist **addrlist_p,
-                              scap_userlist **userlist_p,
-                              char *error) {
+static int32_t _scap_read_init(struct savefile_engine *handle,
+                               scap_reader_t *r,
+                               scap_machine_info *machine_info_p,
+                               struct scap_proclist *proclist_p,
+                               scap_addrlist **addrlist_p,
+                               scap_userlist **userlist_p,
+                               char *error) {
 	block_header bh;
 	uint32_t bt;
 	size_t readsize;
@@ -1811,6 +1808,23 @@ static int32_t scap_read_init(struct savefile_engine *handle,
 	//
 
 	return SCAP_SUCCESS;
+}
+
+//
+// Parse the headers of a trace file and load the tables
+//
+static int32_t scap_read_init(struct savefile_engine *handle,
+                              scap_reader_t *r,
+                              scap_machine_info *machine_info_p,
+                              struct scap_proclist *proclist_p,
+                              scap_addrlist **addrlist_p,
+                              scap_userlist **userlist_p,
+                              char *error) {
+	proclist_p->m_callbacks.m_refresh_start_cb(proclist_p->m_callbacks.m_callback_context);
+	int32_t rc =
+	        _scap_read_init(handle, r, machine_info_p, proclist_p, addrlist_p, userlist_p, error);
+	proclist_p->m_callbacks.m_refresh_end_cb(proclist_p->m_callbacks.m_callback_context);
+	return rc;
 }
 
 static int32_t next_event_from_file(struct savefile_engine *handle,
