@@ -88,8 +88,8 @@ int pman_prepare_ringbuf_array_before_loading() {
 	 * associated entry.
 	 */
 	const int16_t buffers_num = pman_is_cpus_to_ringbufs_mapping_disabled()
-									? g_state.n_required_buffers
-									: g_state.n_possible_cpus;
+	                                    ? g_state.n_required_buffers
+	                                    : g_state.n_possible_cpus;
 	err = err ?: ringbuf_array_set_max_entries(g_state.skel, buffers_num);
 	/* Allocate consumer positions and producer positions for the ringbuffer. */
 	err = err ?: allocate_consumer_producer_positions();
