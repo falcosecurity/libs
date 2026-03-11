@@ -1480,8 +1480,9 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 	if(buffer.m_parser_verdict.must_remove_fds()) {
 		const auto tid_of_fds_to_remove = buffer.m_parser_verdict.get_tid_of_fds_to_remove();
 		const auto& fds_to_remove = buffer.m_parser_verdict.get_fds_to_remove();
-		if(sinsp_threadinfo* ptinfo =
-		           m_thread_manager->find_thread(tid_of_fds_to_remove, true).get()) {
+		threadinfo_map_t::ptr_t ptinfo_ptr =
+		        m_thread_manager->find_thread(tid_of_fds_to_remove, true);
+		if(sinsp_threadinfo* ptinfo = ptinfo_ptr.get()) {
 			for(const auto fd : fds_to_remove) {
 				ptinfo->remove_fd(fd);
 			}

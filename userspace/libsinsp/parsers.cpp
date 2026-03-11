@@ -758,16 +758,19 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
-	/* See if the child is already there, if yes and it is valid we return immediately */
-	sinsp_threadinfo *existing_child_tinfo =
-	        m_params->m_thread_manager->find_thread(child_tid, true).get();
-	if(existing_child_tinfo != nullptr) {
+	/* See if the child is already there, if yes and it is valid we return immediately.
+	 * Hold shared_ptr for the duration of use so the threadinfo is not destroyed by
+	 * another thread (e.g. insert_or_assign) while we read it.
+	 */
+	threadinfo_map_t::ptr_t existing_child =
+	        m_params->m_thread_manager->find_thread(child_tid, true);
+	if(existing_child) {
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
 		 * Otherwise, we assume that the entry is there because we missed the proc exit event
 		 * for a previous thread and we replace the tinfo.
 		 */
-		if(existing_child_tinfo->get_flags() & PPM_CL_CLONE_INVERTED) {
+		if(existing_child->get_flags() & PPM_CL_CLONE_INVERTED) {
 			return;
 		} else {
 			m_params->m_thread_manager->remove_thread(child_tid);

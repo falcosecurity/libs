@@ -164,8 +164,11 @@ void sinsp_thread_manager::clear() {
 		m_thread_groups.clear();
 	}
 	m_last_flush_time_ns.store(0);
-	m_recently_exited_tids.fill({});
-	m_recently_exited_write_idx = 0;
+	{
+		std::unique_lock lock(m_recently_exited_mutex);
+		m_recently_exited_tids.fill({});
+		m_recently_exited_write_idx = 0;
+	}
 }
 
 bool sinsp_thread_manager::foreach_entry(
@@ -300,8 +303,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::add_thread(
 void sinsp_thread_manager::remove_child_from_parent(
         int64_t ptid,
         const std::shared_ptr<sinsp_threadinfo>& child) {
-	auto parent = find_thread(ptid, true).get();
-	if(parent == nullptr) {
+	threadinfo_map_t::ptr_t parent = find_thread(ptid, true);
+	if(!parent) {
 		return;
 	}
 
@@ -1042,6 +1045,7 @@ static constexpr uint64_t make_key(uint64_t ptid, uint64_t tid) {
 }
 
 void sinsp_thread_manager::record_recently_exited(int64_t tid, int64_t ptid, uint64_t ts) {
+	std::unique_lock lock(m_recently_exited_mutex);
 	m_recently_exited_tids[m_recently_exited_write_idx] = {make_key(ptid, tid), ts};
 	m_recently_exited_write_idx = (m_recently_exited_write_idx + 1) % RECENTLY_EXITED_RING_SIZE;
 }
@@ -1055,6 +1059,7 @@ bool sinsp_thread_manager::has_recently_exited(int64_t tid, int64_t ptid, uint64
 	 */
 	static constexpr uint64_t MAX_AGE_NS = 2ULL * 1000000000ULL;
 	const uint64_t key = make_key(ptid, tid);
+	std::shared_lock lock(m_recently_exited_mutex);
 	for(size_t i = 0; i < RECENTLY_EXITED_RING_SIZE; i++) {
 		if(m_recently_exited_tids[i].key == key && ts >= m_recently_exited_tids[i].ts &&
 		   (ts - m_recently_exited_tids[i].ts) < MAX_AGE_NS) {
