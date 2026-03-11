@@ -115,7 +115,8 @@ void print_all_tables(sinsp& inspector) {
 	std::cout << "Available tables (" << tables.size() << "):\n\n";
 	for(const auto& [table_name, table] : tables) {
 		std::cout << "Table: " << table_name << "\n";
-		std::cout << "  Key type: " << table->key_info().name() << std::endl;
+		std::string name = libsinsp::state::type_name(table->key_type());
+		std::cout << "  Key type: " << name << std::endl;
 
 		// Create a temporary owner to call list_fields
 		libsinsp::state::sinsp_table_owner owner;
