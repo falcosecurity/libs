@@ -109,6 +109,12 @@ or GPL2.txt for full copies of the license.
 #define CAPTURE_PAGE_FAULTS
 #endif
 
+///////////////////////////////
+// BPF_ITERATOR_SUPPORT
+///////////////////////////////
+
+#define BPF_ITERATOR_SUPPORT
+
 #else /* Userspace */
 
 /* Please note: the userspace loads the filler table for the bpf probe
@@ -150,6 +156,12 @@ or GPL2.txt for full copies of the license.
 #if defined(__aarch64__) || defined(__s390x__) || defined(__riscv) || defined(__loongarch64)
 #define CAPTURE_SCHED_PROC_FORK
 #endif
+
+///////////////////////////////
+// BPF_ITERATOR_SUPPORT
+///////////////////////////////
+
+#define BPF_ITERATOR_SUPPORT
 
 #endif /* __KERNEL__ */
 
