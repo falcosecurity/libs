@@ -35,6 +35,7 @@ inline int ppm_param_min_len_from_type(const ppm_param_type t, uint32_t *min_len
 	case PT_FLAGS16:
 	case PT_ENUMFLAGS16:
 	case PT_SYSCALLID:
+	case PT_PORT:
 		*min_len = 2;
 		return 0;
 
@@ -48,6 +49,7 @@ inline int ppm_param_min_len_from_type(const ppm_param_type t, uint32_t *min_len
 	case PT_SIGSET:
 	case PT_FD32:
 	case PT_PID32:
+	case PT_IPV4ADDR:
 		*min_len = 4;
 		return 0;
 
@@ -59,6 +61,10 @@ inline int ppm_param_min_len_from_type(const ppm_param_type t, uint32_t *min_len
 	case PT_FD:
 	case PT_PID:
 		*min_len = 8;
+		return 0;
+
+	case PT_IPV6ADDR:
+		*min_len = 16;
 		return 0;
 
 	case PT_BYTEBUF:
@@ -106,6 +112,7 @@ inline int ppm_param_max_len_from_type(const ppm_param_type t,
 	case PT_FLAGS16:
 	case PT_ENUMFLAGS16:
 	case PT_SYSCALLID:
+	case PT_PORT:
 		*max_len = 2;
 		return 0;
 
@@ -119,6 +126,7 @@ inline int ppm_param_max_len_from_type(const ppm_param_type t,
 	case PT_SIGSET:
 	case PT_FD32:
 	case PT_PID32:
+	case PT_IPV4ADDR:
 		*max_len = 4;
 		return 0;
 
@@ -130,6 +138,10 @@ inline int ppm_param_max_len_from_type(const ppm_param_type t,
 	case PT_FD:
 	case PT_PID:
 		*max_len = 8;
+		return 0;
+
+	case PT_IPV6ADDR:
+		*max_len = 16;
 		return 0;
 
 	case PT_BYTEBUF:

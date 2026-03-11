@@ -24,6 +24,10 @@ limitations under the License.
 #include <arpa/inet.h>
 #endif
 
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
+
 static void print_ipv4(int starting_index, char *valptr) {
 	char ipv4_string[50];
 	uint8_t ipv4[4];
@@ -49,6 +53,33 @@ static void print_port(int starting_index, char *valptr) {
 	uint16_t port;
 	memcpy(&port, valptr + starting_index, sizeof(port));
 	printf("- port: %d\n", port);
+}
+
+static void print_ipv4_addr_param(const int16_t num_param, const char *valptr) {
+	uint8_t ipv4[4];
+	memcpy(ipv4, valptr, sizeof(ipv4));
+	printf("PARAM %" PRIi16 ": %" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "\n",
+	       num_param,
+	       ipv4[0],
+	       ipv4[1],
+	       ipv4[2],
+	       ipv4[3]);
+}
+
+static void print_ipv6_addr_param(const int16_t num_param, const char *valptr) {
+	uint32_t ipv6[4];
+	memcpy(ipv6, valptr, sizeof(ipv6));
+	char ipv6_string[INET6_ADDRSTRLEN];
+	if(!inet_ntop(AF_INET6, ipv6, ipv6_string, sizeof(ipv6_string))) {
+		snprintf(ipv6_string, sizeof(ipv6_string), "<INVALID ADDRESS>");
+	}
+	printf("PARAM %" PRIi16 ": %s\n", num_param, ipv6_string);
+}
+
+static void print_port_param(const int16_t num_param, const char *valptr) {
+	uint16_t port;
+	memcpy(&port, valptr, sizeof(port));
+	printf("PARAM %" PRIi16 ": %" PRIu16 "\n", num_param, port);
 }
 
 static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
@@ -93,6 +124,18 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 		printf("PARAM %d: %X\n", num_param, val);
 		break;
 	}
+
+	case PT_PORT:
+		print_port_param(num_param, valptr);
+		break;
+
+	case PT_IPV4ADDR:
+		print_ipv4_addr_param(num_param, valptr);
+		break;
+
+	case PT_IPV6ADDR:
+		print_ipv6_addr_param(num_param, valptr);
+		break;
 
 	case PT_UINT64:
 	case PT_RELTIME:

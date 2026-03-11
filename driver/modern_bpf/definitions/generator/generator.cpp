@@ -58,6 +58,8 @@ SIZE_OF_EXPR_DECL_LIST_GEN(SIZE_OF_EXPR_DECL)
 #undef SIZE_OF_EXPR_DECL
 #undef SIZE_OF_EXPR_DECL_LIST_GEN
 
+char SIZE_OF_PT_IPV6ADDR[] = "16";
+
 // Special expressions denoting variable size or unused parameter types.
 char SIZE_OF_EXPR_VARIABLE_SIZE[] = "<variable_size>", SIZE_OF_EXPR_UNUSED[] = "<unused>";
 
@@ -86,11 +88,11 @@ std::map<long long, char *> type_to_size_expr{
         {PT_SIGTYPE, SIZE_OF_EXPR(uint8_t)},
         {PT_RELTIME, SIZE_OF_EXPR(uint64_t)},
         {PT_ABSTIME, SIZE_OF_EXPR(uint64_t)},
-        {PT_PORT, SIZE_OF_EXPR_UNUSED},
+        {PT_PORT, SIZE_OF_EXPR(uint16_t)},
         {PT_L4PROTO, SIZE_OF_EXPR_UNUSED},
         {PT_SOCKFAMILY, SIZE_OF_EXPR_UNUSED},
         {PT_BOOL, SIZE_OF_EXPR_UNUSED},
-        {PT_IPV4ADDR, SIZE_OF_EXPR_UNUSED},
+        {PT_IPV4ADDR, SIZE_OF_EXPR(uint32_t)},
         {PT_DYN, SIZE_OF_EXPR_VARIABLE_SIZE},
         {PT_FLAGS8, SIZE_OF_EXPR(uint8_t)},
         {PT_FLAGS16, SIZE_OF_EXPR(uint16_t)},
@@ -102,7 +104,7 @@ std::map<long long, char *> type_to_size_expr{
         {PT_CHARBUFARRAY, SIZE_OF_EXPR_VARIABLE_SIZE},
         {PT_CHARBUF_PAIR_ARRAY, SIZE_OF_EXPR_VARIABLE_SIZE},
         {PT_IPV4NET, SIZE_OF_EXPR_UNUSED},
-        {PT_IPV6ADDR, SIZE_OF_EXPR_UNUSED},
+        {PT_IPV6ADDR, SIZE_OF_PT_IPV6ADDR},
         {PT_IPV6NET, SIZE_OF_EXPR_UNUSED},
         {PT_IPADDR, SIZE_OF_EXPR_UNUSED},
         {PT_IPNET, SIZE_OF_EXPR_UNUSED},
