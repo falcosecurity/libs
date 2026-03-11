@@ -33,6 +33,7 @@ add_library(
 	src/sc_set.c
 	src/events_prog_table.c
 	src/iterators.c
+	src/support_probing.c
 )
 
 target_include_directories(

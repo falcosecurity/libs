@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <stdint.h>
 #include "events_prog_table.h"
+#include "support_probing.h"
 #include <libscap/scap.h>
 
 /* Some exit events can require more than one bpf program to collect all the data. */
@@ -348,19 +349,17 @@ int pman_mark_single_64bit_syscall(int syscall_id, bool interesting) {
 	return 0;
 }
 
-static int size_auxiliary_maps() {
-	/* We always allocate auxiliary maps from all the CPUs, even if some of them are not online. */
-	if(bpf_map__set_max_entries(g_state.skel->maps.auxiliary_maps, g_state.n_possible_cpus)) {
-		pman_print_errorf("unable to set max entries for 'auxiliary_maps'");
+static int size_auxiliary_maps(const struct bpf_probe* probe, const uint32_t max_entries) {
+	if(bpf_map__set_max_entries(probe->maps.auxiliary_maps, max_entries)) {
+		pman_print_errorf("unable to set max entries for 'auxiliary_maps' to %d", max_entries);
 		return errno;
 	}
 	return 0;
 }
 
-static int size_counter_maps() {
-	/* We always allocate counter maps from all the CPUs, even if some of them are not online. */
-	if(bpf_map__set_max_entries(g_state.skel->maps.counter_maps, g_state.n_possible_cpus)) {
-		pman_print_errorf("unable to set max entries for 'counter_maps'");
+static int size_counter_maps(const struct bpf_probe* probe, const uint32_t max_entries) {
+	if(bpf_map__set_max_entries(probe->maps.counter_maps, max_entries)) {
+		pman_print_errorf("unable to set max entries for 'counter_maps' to %d", max_entries);
 		return errno;
 	}
 	return 0;
@@ -372,21 +371,28 @@ static int size_counter_maps() {
  */
 
 int pman_prepare_maps_before_loading() {
-	int err;
-
 	/* Read-only global variables must be set before loading phase. */
 	fill_event_params_table();
 	fill_ppm_sc_table();
 	pman_fill_ia32_to_64_table();
 	pman_fill_syscall_sampling_table();
 
-	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY
-	 * The number of entries will be always equal to the CPUs number.
+	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY. The number of entries will be
+	 * always equal to the CPUs number, even if some of them are not online.
 	 */
-	err = size_auxiliary_maps();
-	err = err ?: size_counter_maps();
+	int err = size_auxiliary_maps(g_state.skel, g_state.n_possible_cpus);
+	err = err ?: size_counter_maps(g_state.skel, g_state.n_possible_cpus);
 	return err;
 }
+
+#ifdef BPF_ITERATOR_SUPPORT
+// Variant of `pman_prepare_maps_before_loading()` used for testing BPF iterator programs support.
+int iter_support_probing__prepare_maps_before_loading(struct iter_support_probing_ctx* ctx) {
+	int err = size_auxiliary_maps(ctx->probe, 1);
+	err = err ?: size_counter_maps(ctx->probe, 1);
+	return err;
+}
+#endif  // BPF_ITERATOR_SUPPORT
 
 int pman_finalize_maps_after_loading() {
 	int err;

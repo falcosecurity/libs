@@ -26,23 +26,26 @@ limitations under the License.
 #include <driver/ppm_events_public.h>
 
 #include "ringbuffer_definitions.h"
+#include "support_probing.h"
 
 /* Utility functions object loading */
 
 /* This must be done to please the verifier! At load-time, the verifier must know the
  * size of a map inside the array.
  */
-static int ringbuf_array_set_inner_map() {
-	int err = 0;
-	int inner_map_fd =
-	        bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, g_state.buffer_bytes_dim, NULL);
+static int ringbuf_array_set_inner_map(const struct bpf_probe *probe,
+                                       const unsigned long buffer_bytes_dim,
+                                       int32_t *inner_ringbuf_map_fd) {
+	const int inner_map_fd =
+	        bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, buffer_bytes_dim, NULL);
 	if(inner_map_fd < 0) {
-		pman_print_errorf("failed to create the dummy inner map");
+		pman_print_errorf("failed to create the dummy inner map with buffer bytes dim %lu",
+		                  buffer_bytes_dim);
 		return errno;
 	}
 
 	/* Set the inner map file descriptor into the outer map. */
-	err = bpf_map__set_inner_map_fd(g_state.skel->maps.ringbuf_maps, inner_map_fd);
+	const int err = bpf_map__set_inner_map_fd(probe->maps.ringbuf_maps, inner_map_fd);
 	if(err) {
 		pman_print_errorf("failed to set the dummy inner map inside the ringbuf array");
 		close(inner_map_fd);
@@ -50,17 +53,14 @@ static int ringbuf_array_set_inner_map() {
 	}
 
 	/* Save to close it after the loading phase. */
-	g_state.inner_ringbuf_map_fd = inner_map_fd;
+	*inner_ringbuf_map_fd = inner_map_fd;
 	return 0;
 }
 
-static int ringbuf_array_set_max_entries() {
-	/* We always allocate a number of entries equal to the available CPUs.
-	 * This doesn't mean that we allocate a ring buffer for every available CPU,
-	 * it means only that every CPU will have an associated entry.
-	 */
-	if(bpf_map__set_max_entries(g_state.skel->maps.ringbuf_maps, g_state.n_possible_cpus)) {
-		pman_print_errorf("unable to set max entries for the ringbuf_array");
+static int ringbuf_array_set_max_entries(const struct bpf_probe *probe,
+                                         const uint32_t max_entries) {
+	if(bpf_map__set_max_entries(probe->maps.ringbuf_maps, max_entries)) {
+		pman_print_errorf("unable to set max entries to %u for the ringbuf_array", max_entries);
 		return errno;
 	}
 	return 0;
@@ -79,13 +79,30 @@ static int allocate_consumer_producer_positions() {
 
 /* Before loading */
 int pman_prepare_ringbuf_array_before_loading() {
-	int err;
-	err = ringbuf_array_set_inner_map();
-	err = err ?: ringbuf_array_set_max_entries();
+	int err = ringbuf_array_set_inner_map(g_state.skel,
+	                                      g_state.buffer_bytes_dim,
+	                                      &g_state.inner_ringbuf_map_fd);
+	/* We always allocate a number of entries equal to the available CPUs. This doesn't mean that we
+	 * allocate a ring buffer for every available CPU, it means only that every CPU will have an
+	 * associated entry.
+	 */
+	err = err ?: ringbuf_array_set_max_entries(g_state.skel, g_state.n_possible_cpus);
 	/* Allocate consumer positions and producer positions for the ringbuffer. */
 	err = err ?: allocate_consumer_producer_positions();
 	return err;
 }
+
+#ifdef BPF_ITERATOR_SUPPORT
+// Variant of `pman_prepare_ringbuf_array_before_loading()` used for testing BPF iterator programs
+// support.
+int iter_support_probing__prepare_ringbuf_array_before_loading(
+        struct iter_support_probing_ctx *ctx) {
+	const unsigned long page_size = sysconf(_SC_PAGESIZE);
+	int err = ringbuf_array_set_inner_map(ctx->probe, page_size, &ctx->inner_ringbuf_map_fd);
+	err = err ?: ringbuf_array_set_max_entries(ctx->probe, 1);
+	return err;
+}
+#endif  // BPF_ITERATOR_SUPPORT
 
 static bool is_cpu_online(uint16_t cpu_id) {
 	/* CPU 0 is always online */
