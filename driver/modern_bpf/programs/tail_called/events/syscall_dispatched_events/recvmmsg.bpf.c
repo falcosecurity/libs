@@ -54,7 +54,7 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	        .mm_args = data->args,
 	};
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(NULL, &snaplen, &snaplen_args);
+	apply_dynamic_snaplen_noinline(NULL, &snaplen, &snaplen_args);
 	if(snaplen > mmh.msg_len) {
 		snaplen = mmh.msg_len;
 	}
@@ -66,10 +66,10 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	                               snaplen);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
-	auxmap__store_socktuple_param(auxmap,
-	                              data->fd,
-	                              INBOUND,
-	                              (struct sockaddr *)mmh.msg_hdr.msg_name);
+	auxmap__store_socktuple_param_noinline(auxmap,
+	                                       data->fd,
+	                                       INBOUND,
+	                                       (struct sockaddr *)mmh.msg_hdr.msg_name);
 
 	/* Parameter 6: msg_control (type: PT_BYTEBUF) */
 	/* We are limited to UINT16_MAX bytes of control data due to the size parameter in

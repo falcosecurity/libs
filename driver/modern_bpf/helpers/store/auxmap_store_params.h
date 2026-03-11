@@ -1797,6 +1797,29 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	}
 }
 
+/* __noinline wrappers for use inside bpf_loop() callbacks.
+ *
+ * Kernel 6.19 commit f597664 introduced aggressive SCC analysis for implicit
+ * loops in bpf_loop() callbacks, causing the verifier to explore far more
+ * states. Inlining large helpers into these callbacks exceeds the 1M verified
+ * instruction limit. These __noinline wrappers are verified once as BPF
+ * subprograms and reused at each call site, keeping the callback complexity
+ * under the limit. Only bpf_loop() callbacks should use these; all other
+ * callers should use the __always_inline originals directly.
+ */
+static __noinline void auxmap__store_socktuple_param_noinline(struct auxiliary_map *auxmap,
+                                                              uint32_t socket_fd,
+                                                              int direction,
+                                                              struct sockaddr *usrsockaddr) {
+	auxmap__store_socktuple_param(auxmap, socket_fd, direction, usrsockaddr);
+}
+
+static __noinline void apply_dynamic_snaplen_noinline(struct pt_regs *regs,
+                                                      uint16_t *snaplen,
+                                                      const dynamic_snaplen_args *input_args) {
+	apply_dynamic_snaplen(regs, snaplen, input_args);
+}
+
 /* We must always leave at least 4096 bytes free in our tmp scratch space
  * to please the verifier since we set the max component len to 4096 bytes.
  * The difference with the old probe is that here we don't have a dedicated map
