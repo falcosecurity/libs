@@ -348,6 +348,51 @@ uint64_t scap_modern_bpf__get_schema_version(struct scap_engine_handle engine) {
 	return HANDLE(engine)->m_schema_version;
 }
 
+int32_t scap_modern_bpf__fetch_task(struct scap_engine_handle engine,
+                                    const struct scap_fetch_callbacks* callbacks,
+                                    const uint32_t tid,
+                                    scap_threadinfo** tinfo,
+                                    char* error) {
+	return pman_iter_fetch_task(callbacks, tid, tinfo, error);
+}
+
+int32_t scap_modern_bpf__fetch_tasks(struct scap_engine_handle engine,
+                                     const struct scap_fetch_callbacks* callbacks,
+                                     char* error) {
+	return pman_iter_fetch_tasks(callbacks, error);
+}
+
+int32_t scap_modern_bpf__fetch_proc_file(struct scap_engine_handle engine,
+                                         const struct scap_fetch_callbacks* callbacks,
+                                         const uint32_t pid,
+                                         const uint32_t fd,
+                                         char* error) {
+	return pman_iter_fetch_proc_file(callbacks, pid, fd, error);
+}
+
+int32_t scap_modern_bpf__fetch_proc_files(struct scap_engine_handle engine,
+                                          const struct scap_fetch_callbacks* callbacks,
+                                          const uint32_t pid,
+                                          const bool must_fetch_sockets,
+                                          uint64_t* num_files_fetched,
+                                          char* error) {
+	return pman_iter_fetch_proc_files(callbacks, pid, must_fetch_sockets, num_files_fetched, error);
+}
+
+int32_t scap_modern_bpf__fetch_procs_files(struct scap_engine_handle engine,
+                                           const struct scap_fetch_callbacks* callbacks,
+                                           char* error) {
+	return pman_iter_fetch_procs_files(callbacks, error);
+}
+
+const struct scap_linux_vtable scap_modern_bpf_linux_vtable = {
+        .fetch_thread = scap_modern_bpf__fetch_task,
+        .fetch_threads = scap_modern_bpf__fetch_tasks,
+        .fetch_proc_file = scap_modern_bpf__fetch_proc_file,
+        .fetch_proc_files = scap_modern_bpf__fetch_proc_files,
+        .fetch_procs_files = scap_modern_bpf__fetch_procs_files,
+};
+
 struct scap_vtable scap_modern_bpf_engine = {
         .name = MODERN_BPF_ENGINE,
         .savefile_ops = NULL,

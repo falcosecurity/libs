@@ -39,6 +39,8 @@ struct scap_modern_bpf_engine_params {
 	                           ///< userspace-side, so pay attention to its size.
 };
 
+extern const struct scap_linux_vtable scap_modern_bpf_linux_vtable;
+
 #ifdef __cplusplus
 };
 #endif
