@@ -719,6 +719,11 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 	                                                     ::on_proc_table_refresh_end,
 	                                                     ::on_new_entry_from_proc,
 	                                                     this});
+	if(platform) {
+		auto* const linux_platform = reinterpret_cast<scap_linux_platform*>(platform);
+		linux_platform->m_linux_vtable = &scap_modern_bpf_linux_vtable;
+	}
+
 	try_open_common(&oargs, &scap_modern_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("MODERN_BPF engine is not supported in this build");
