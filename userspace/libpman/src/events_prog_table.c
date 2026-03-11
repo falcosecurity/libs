@@ -200,3 +200,10 @@ ttm_progs_t ttm_progs_table[TTM_MAX] = {
                          {{"ia32_compat_openat2_e", "__ia32_compat_sys_openat2"},
                           {"ia32_openat2_e", "__ia32_sys_openat2"}}},
 };
+
+#ifdef BPF_ITERATOR_SUPPORT
+iter_prog_t iter_progs_table[ITER_PROG_MAX_TMP] = {
+        // todo(ekoops): delete this and add a proper entry as we add the first program.
+        [0] = {"dummy_entry", NULL},
+};
+#endif /* BPF_ITERATOR_SUPPORT */
