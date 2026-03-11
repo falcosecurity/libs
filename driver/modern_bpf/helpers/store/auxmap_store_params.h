@@ -224,6 +224,7 @@ static __always_inline void auxmap__store_u8_param(struct auxiliary_map *auxmap,
  * @brief This helper should be used to store unsigned 16 bit params.
  * The following types are compatible with this helper:
  * - PT_UINT16
+ * - PT_PORT
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
@@ -243,6 +244,7 @@ static __always_inline void auxmap__store_u16_param(struct auxiliary_map *auxmap
  * - PT_MODE
  * - PT_FLAGS32
  * - PT_ENUMFLAGS32
+ * - PT_IPV4ADDR
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
@@ -265,6 +267,20 @@ static __always_inline void auxmap__store_u32_param(struct auxiliary_map *auxmap
 static __always_inline void auxmap__store_u64_param(struct auxiliary_map *auxmap, uint64_t param) {
 	push__u64(auxmap->data, &auxmap->payload_pos, param);
 	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint64_t));
+}
+
+/**
+ * @brief This helper should be used to store IPv6 address params.
+ * The following types are compatible with this helper:
+ * - PT_IPV6ADDR
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param addr IPv6 address to store
+ */
+static __always_inline void auxmap__store_ipv6_addr_param(struct auxiliary_map *auxmap,
+                                                          uint32_t addr[4]) {
+	push__ipv6(auxmap->data, &auxmap->payload_pos, addr);
+	push__param_len(auxmap->data, &auxmap->lengths_pos, IPV6_SIZE);
 }
 
 /**
