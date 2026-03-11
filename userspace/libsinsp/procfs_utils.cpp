@@ -50,10 +50,17 @@ int libsinsp::procfs_utils::get_userns_root_uid(std::istream& uid_map) {
 libsinsp::procfs_utils::ns_helper::ns_helper(const std::string& host_root): m_host_root(host_root) {
 	struct stat rootlink;
 	if(-1 == stat((m_host_root + "/proc/1/root").c_str(), &rootlink)) {
-		libsinsp_logger()->format(sinsp_logger::SEV_WARNING,
-		                          "Cannot read host init process proc root: %d",
-		                          errno);
-		m_cannot_read_host_init_ns_mnt = true;
+		// Fallback: when we run directly on the host (empty host_root)
+		// and /proc/1/root is not accessible (e.g., Proxmox PVE kernel),
+		// use our own process root as the baseline since it is the host root.
+		if(!m_host_root.empty() || -1 == stat("/proc/self/root", &rootlink)) {
+			libsinsp_logger()->format(sinsp_logger::SEV_WARNING,
+			                          "Cannot read host init process proc root: %d",
+			                          errno);
+			m_cannot_read_host_init_ns_mnt = true;
+		} else {
+			m_host_init_root_inode = rootlink.st_ino;
+		}
 	} else {
 		m_host_init_root_inode = rootlink.st_ino;
 	}
