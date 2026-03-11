@@ -753,7 +753,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * threadinfo entry that leaks memory until the next autopurge cycle.
 	 * See: https://github.com/falcosecurity/falco/issues/3643
 	 */
-	if(m_thread_manager->has_recently_exited(child_tid, caller_tid, evt.get_ts())) {
+	if(m_params->m_thread_manager->has_recently_exited(child_tid, caller_tid, evt.get_ts())) {
 		return;
 	}
 
