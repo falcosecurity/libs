@@ -17,6 +17,10 @@ add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
 add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 include(libbpf)
 
+option(BPF_ITERATOR_DEBUG "Enable debug logging for BPF iterator event parsing" OFF)
+option(BPF_ITERATOR_DEBUG_RAW "Enable printing raw events (requires BPF_ITERATOR_DEBUG)" ON)
+option(BPF_ITERATOR_DEBUG_PARSED "Enable printing parsed data (requires BPF_ITERATOR_DEBUG)" ON)
+
 add_library(
 	pman
 	src/stats.c
@@ -42,6 +46,16 @@ target_include_directories(
 )
 
 target_link_libraries(pman PUBLIC scap_event_schema scap_platform lbpf ${ZLIB_LIB})
+
+if(BPF_ITERATOR_DEBUG)
+	target_compile_definitions(pman PRIVATE BPF_ITERATOR_DEBUG=1)
+	if(BPF_ITERATOR_DEBUG_RAW)
+		target_compile_definitions(pman PRIVATE BPF_ITERATOR_DEBUG_RAW=1)
+	endif()
+	if(BPF_ITERATOR_DEBUG_PARSED)
+		target_compile_definitions(pman PRIVATE BPF_ITERATOR_DEBUG_PARSED=1)
+	endif()
+endif()
 
 if(TARGET ProbeSkeleton)
 	add_dependencies(pman ProbeSkeleton)
