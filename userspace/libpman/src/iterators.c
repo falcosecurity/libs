@@ -55,18 +55,33 @@ int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
                              const uint32_t tid,
                              scap_threadinfo **tinfo,
                              char *error) {
+#ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
+#else
+	// todo(ekoops): add support here.
+	return SCAP_NOT_SUPPORTED;
+#endif
 }
 
 int32_t pman_iter_fetch_tasks(const struct scap_fetch_callbacks *callbacks, char *error) {
+#ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
+#else
+	// todo(ekoops): add support here.
+	return SCAP_NOT_SUPPORTED;
+#endif
 }
 
 int32_t pman_iter_fetch_proc_file(const struct scap_fetch_callbacks *callbacks,
                                   const uint32_t pid,
                                   const uint32_t fd,
                                   char *error) {
+#ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
+#else
+	// todo(ekoops): add support here.
+	return SCAP_NOT_SUPPORTED;
+#endif
 }
 
 int32_t pman_iter_fetch_proc_files(const struct scap_fetch_callbacks *callbacks,
@@ -74,9 +89,19 @@ int32_t pman_iter_fetch_proc_files(const struct scap_fetch_callbacks *callbacks,
                                    const bool must_fetch_sockets,
                                    uint64_t *num_files_fetched,
                                    char *error) {
+#ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
+#else
+	// todo(ekoops): add support here.
+	return SCAP_NOT_SUPPORTED;
+#endif
 }
 
 int32_t pman_iter_fetch_procs_files(const struct scap_fetch_callbacks *callbacks, char *error) {
+#ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
+#else
+	// todo(ekoops): add support here.
+	return SCAP_NOT_SUPPORTED;
+#endif
 }
