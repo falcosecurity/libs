@@ -378,6 +378,7 @@ private:
 	static constexpr size_t RECENTLY_EXITED_RING_SIZE = 8192;
 	std::array<recently_exited_entry, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};
 	size_t m_recently_exited_write_idx = 0;
+	mutable std::shared_mutex m_recently_exited_mutex;
 
 	// Tables and fields names.
 	constexpr static auto s_thread_table_name = "threads";

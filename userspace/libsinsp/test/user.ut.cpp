@@ -91,11 +91,11 @@ TEST_F(usergroup_manager_test, invalid_sentinel_uid_gid) {
 	// (which can crash with third-party NSS modules like libnss_oslogin).
 	auto* usr = mgr.add_user(container_id, -1, (uint32_t)-1, 0, true);
 	ASSERT_EQ(usr, nullptr);
-	ASSERT_EQ(mgr.get_user(container_id, (uint32_t)-1), nullptr);
+	ASSERT_FALSE(mgr.get_user(container_id, (uint32_t)-1).has_value());
 
 	auto* grp = mgr.add_group(container_id, -1, (uint32_t)-1, true);
 	ASSERT_EQ(grp, nullptr);
-	ASSERT_EQ(mgr.get_group(container_id, (uint32_t)-1), nullptr);
+	ASSERT_FALSE(mgr.get_group(container_id, (uint32_t)-1).has_value());
 }
 
 // note(jasondellaluce): emscripten has issues with getpwuid
