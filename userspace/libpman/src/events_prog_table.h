@@ -22,6 +22,8 @@ limitations under the License.
 #include <driver/feature_gates.h>
 #include <bpf/libbpf.h>
 
+#include <stdbool.h>
+
 typedef struct {
 	char *name;
 	enum bpf_func_id feat;
@@ -58,3 +60,21 @@ enum ttm_sc_code { TTM_CONNECT, TTM_CREAT, TTM_OPEN, TTM_OPENAT, TTM_OPENAT2, TT
 
 // Defined in events_prog_table.c
 extern ttm_progs_t ttm_progs_table[TTM_MAX];
+
+#ifdef BPF_ITERATOR_SUPPORT
+typedef struct {
+	// The eBPF program name.
+	char *name;
+	// Pointer to the boolean flag, in `g_state`, that must be set to indicate if the current
+	// machine provides support for this program.
+	bool *feature_flag;
+} iter_prog_t;
+
+enum iter_prog_code { ITER_PROG_MAX };
+
+// todo(ekoops): delete this and use `ITER_PROG_MAX` after we add the first program to the table.
+#define ITER_PROG_MAX_TMP 1
+
+// Defined in events_prog_table.c
+extern iter_prog_t iter_progs_table[ITER_PROG_MAX_TMP];
+#endif  // BPF_ITERATOR_SUPPORT

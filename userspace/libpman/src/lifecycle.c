@@ -19,6 +19,7 @@ limitations under the License.
 #include "state.h"
 #include <driver/feature_gates.h>
 #include "events_prog_table.h"
+#include "support_probing.h"
 
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
@@ -52,6 +53,26 @@ static bool is_kernel_symbol_available(const char *symbol) {
 	libbpf_set_print(old_log_handler);
 	return is_available;
 }
+
+#ifdef BPF_ITERATOR_SUPPORT
+static void prepare_iter_progs_before_loading() {
+	// Disable autoloading for unsupported iterator programs.
+	for(int i = 0; i < ITER_PROG_MAX; i++) {
+		const iter_prog_t *iter_prog = &iter_progs_table[i];
+		const char *prog_name = iter_prog->name;
+		const bool is_prog_supported = iter_support_probing__probe(prog_name) == 0;
+		if(!is_prog_supported) {
+			pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "unsupported BPF program '%s'", prog_name);
+			disable_prog_autoloading(prog_name);
+		} else {
+			pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "supported BPF program '%s'", prog_name);
+		}
+
+		// Update the corresponding feature flag in `g_state`.
+		*iter_prog->feature_flag = is_prog_supported;
+	}
+}
+#endif
 
 int pman_prepare_progs_before_loading() {
 	/*
@@ -148,6 +169,10 @@ int pman_prepare_progs_before_loading() {
 			}
 		}
 	}
+
+#ifdef BPF_ITERATOR_SUPPORT
+	prepare_iter_progs_before_loading();
+#endif
 
 	return 0;
 }
