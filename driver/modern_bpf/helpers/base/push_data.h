@@ -281,3 +281,44 @@ static __always_inline uint16_t push__bytebuf(uint8_t *data,
 	*payload_pos += len_to_read;
 	return len_to_read;
 }
+
+/**
+ * NOTE: the usage of this helper will cause the verifier to reject the program in case any of the
+ * following conditions is not met:
+ * - the kernel must support the `bpf_d_path()` eBPF helper
+ * - the kernel must support calling `bpf_d_path()` eBPF helper from the calling program type since
+ *   the helper introduction.
+ * Valid program types:
+ * - `iter/task`
+ * - `iter/task_file`
+ *
+ * @brief Take a path pointer and try to push the pointed path into the buffer as a charbuf.
+ * The maximum length of the path can be at most `limit`. On success, the pushed path is always
+ * NUL-terminated.
+ *
+ * @param data pointer to the buffer where the event is stored.
+ * @param payload_pos pointer to the first empty byte after the last "push" operation.
+ * @param path pointer to the path to push.
+ * @param limit maximum number of bytes that we read in case we don't find a `\0`
+ * @return (uint16_t) the number of bytes written in the buffer, including the trailing NUL
+ * character. Returns '0' if the passed pointer is not valid or the operation fails.
+ */
+static __always_inline uint16_t push__d_path(uint8_t *data,
+                                             uint64_t *payload_pos,
+                                             struct path *path,
+                                             uint16_t limit) {
+	// Make the verifier reject the program if the `bpf_d_path()` eBPF helper is not available or
+	// there's an ID mismatch.
+	if(!bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_d_path) ||
+	   bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_d_path) != BPF_FUNC_d_path) {
+		return *(volatile uint16_t *)0;
+	}
+
+	long written_bytes = bpf_d_path(path, (char *)&data[SAFE_ACCESS(*payload_pos)], limit);
+	if(written_bytes < 0) {
+		return 0;
+	}
+
+	*payload_pos += written_bytes;
+	return (uint16_t)written_bytes;
+}
