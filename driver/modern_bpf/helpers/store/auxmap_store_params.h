@@ -1949,6 +1949,71 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 }
 
 /**
+ * NOTE: the usage of this helper will cause the verifier to reject the program in case any of the
+ * following conditions is not met:
+ * - the kernel must support the `bpf_d_path()` eBPF helper
+ * - the kernel must support calling `bpf_d_path()` eBPF helper from the calling program type since
+ *   the helper introduction.
+ * Valid program types:
+ * - `iter/task`
+ * - `iter/task_file`
+ * Use the `auxmap__store_d_path_exact_sleepable()` sleepable variant in case of a sleepable
+ * program that meets the aforementioned preconditions.
+ *
+ * @brief This helper stores a path as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param path pointer to the path to be stored.
+ */
+static __always_inline void auxmap__store_d_path_exact(struct auxiliary_map *auxmap,
+                                                       struct path *path) {
+	uint16_t written_bytes =
+	        push__d_path(auxmap->data, &auxmap->payload_pos, path, MAX_COMPONENT_LEN);
+	push__param_len(auxmap->data, &auxmap->lengths_pos, written_bytes);
+}
+
+/**
+ * NOTE: the usage of this helper will cause the verifier to reject the program under the same
+ * circumstances under which any program using `auxmap__store_d_path_exact()` is rejected.
+ * Additionally, it must be called from sleepable programs and after entering an RCU critical
+ * section, or the verifier will complain about the untrustedness of `path`.
+ * Valid program types:
+ * - `iter.s/task`
+ * - `iter.s/task_file`
+ *
+ * @brief This helper stores a path as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param path pointer to the path to be stored.
+ */
+static __always_inline void auxmap__store_d_path_exact_sleepable(struct auxiliary_map *auxmap,
+                                                                 struct path *path) {
+	auxmap__store_d_path_exact(auxmap, path);
+}
+
+/**
+ * NOTE: this helper is limited to programs whose type supports calling `bpf_d_path()` eBPF helper
+ * since the helper introduction. In will call `auxmap__store_d_path_exact()` if the helper is
+ * available, `auxmap__store_d_path_approx()` otherwise.
+ * Valid program types:
+ * - `iter/task`
+ * - `iter/task_file`
+ *
+ * @brief This helper stores a path as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param path pointer to the path to be stored.
+ */
+static __always_inline void auxmap__store_d_path(struct auxiliary_map *auxmap, struct path *path) {
+	if(!bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_d_path) ||
+	   bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_d_path) != BPF_FUNC_d_path) {
+		auxmap__store_d_path_approx(auxmap, path);
+		return;
+	}
+	auxmap__store_d_path_exact(auxmap, path);
+}
+
+/**
  * @brief This helper stores the file's path as a charbuf into the auxmap.
  *
  * @param auxmap pointer to the auxmap in which we are storing the path.
