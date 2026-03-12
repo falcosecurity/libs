@@ -54,7 +54,10 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	        .mm_args = data->args,
 	};
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen_noinline(NULL, &snaplen, &snaplen_args);
+	/* Pass (struct pt_regs *)ctx so the verifier sees a valid pointer; RECVMMSG path
+	 * uses only mm_args and never reads regs, so the value is unused at runtime.
+	 */
+	apply_dynamic_snaplen_noinline((struct pt_regs *)ctx, &snaplen, &snaplen_args);
 	if(snaplen > mmh.msg_len) {
 		snaplen = mmh.msg_len;
 	}
