@@ -15,6 +15,8 @@
 
 option(USE_BUNDLED_LIBBPF "Enable building of the bundled libbpf" ${USE_BUNDLED_DEPS})
 
+include(ExternalProjectToolchain)
+
 if(TARGET lbpf)
 	# we already have libbpf
 elseif(NOT USE_BUNDLED_LIBBPF)
@@ -46,6 +48,8 @@ else()
 		string(APPEND LIBELF_COMPILER_STRING "-I${dir} ")
 	endforeach()
 
+	falcosecurity_external_project_env(LIBBPF_EXTERNAL_PROJECT_ENV)
+
 	ExternalProject_Add(
 		libbpf
 		PREFIX "${PROJECT_BINARY_DIR}/libbpf-prefix"
@@ -53,8 +57,8 @@ else()
 		URL "https://github.com/libbpf/libbpf/archive/refs/tags/v1.3.0.tar.gz"
 		URL_HASH "SHA256=11db86acd627e468bc48b7258c1130aba41a12c4d364f78e184fd2f5a913d861"
 		CONFIGURE_COMMAND mkdir -p build root
-		BUILD_COMMAND
-			make BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build
+		BUILD_COMMAND ${LIBBPF_EXTERNAL_PROJECT_ENV} make BUILD_STATIC_ONLY=y
+			OBJDIR=${LIBBPF_BUILD_DIR}/build
 			DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1
 			"EXTRA_CFLAGS=-fPIC ${LIBELF_COMPILER_STRING} -I${ZLIB_INCLUDE}" "LDFLAGS=-Wl,-Bstatic"
 			"EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C ${LIBBPF_SRC}/libbpf/src

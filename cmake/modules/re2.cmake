@@ -15,6 +15,8 @@
 
 option(USE_BUNDLED_RE2 "Enable building of the bundled RE2" ${USE_BUNDLED_DEPS})
 
+include(ExternalProjectToolchain)
+
 if(RE2_INCLUDE)
 	message(STATUS "Using re2: include: ${RE2_INCLUDE}, lib: ${RE2_LIB}")
 elseif(NOT USE_BUNDLED_RE2)
@@ -38,6 +40,7 @@ else()
 	endif()
 
 	message(STATUS "Using bundled re2 in '${RE2_SRC}'")
+	falcosecurity_external_project_cmake_args(RE2_EXTERNAL_PROJECT_CMAKE_ARGS)
 
 	if(NOT WIN32)
 		set(RE2_LIB "${RE2_SRC}/lib/libre2${RE2_LIB_SUFFIX}")
@@ -56,6 +59,7 @@ else()
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
 						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+						   ${RE2_EXTERNAL_PROJECT_CMAKE_ARGS}
 			)
 		else()
 			# CMake 3.29.1 removed the support for the `PACKAGE_PREFIX_DIR` variable. The patch
@@ -76,6 +80,7 @@ else()
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
 						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+						   ${RE2_EXTERNAL_PROJECT_CMAKE_ARGS}
 			)
 		endif()
 	else()
@@ -98,6 +103,7 @@ else()
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
 						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+						   ${RE2_EXTERNAL_PROJECT_CMAKE_ARGS}
 			)
 		else()
 			ExternalProject_Add(
@@ -115,6 +121,7 @@ else()
 						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
 						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
 						   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+						   ${RE2_EXTERNAL_PROJECT_CMAKE_ARGS}
 			)
 		endif()
 	endif()
