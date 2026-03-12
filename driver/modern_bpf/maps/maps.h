@@ -131,6 +131,17 @@ struct {
 	__type(value, struct capture_settings);
 } capture_settings __weak SEC(".maps");
 
+/**
+ * @brief Global iterator auxiliary map where the iterator event is temporally saved before being
+ * pushed to userspace.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, uint32_t);
+	__type(value, struct auxiliary_map);
+} iter_auxiliary_map __weak SEC(".maps");
+
 /* These maps have one entry for each CPU.
  *
  * PLEASE NOTE:

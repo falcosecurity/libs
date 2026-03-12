@@ -181,6 +181,15 @@ static __always_inline uint16_t maps__get_ppm_sc(uint16_t syscall_id) {
 
 /*=============================== PPM_SC TABLE ===========================*/
 
+/*=============================== ITER AUXILIARY MAP ===========================*/
+
+static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
+	uint32_t key = 0;
+	return bpf_map_lookup_elem(&iter_auxiliary_map, &key);
+}
+
+/*=============================== ITER AUXILIARY MAP ===========================*/
+
 /*=============================== AUXILIARY MAPS ===========================*/
 
 static __always_inline struct auxiliary_map *maps__get_auxiliary_map() {

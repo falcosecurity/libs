@@ -68,6 +68,10 @@ static __always_inline struct auxiliary_map *auxmap__get() {
 	return maps__get_auxiliary_map();
 }
 
+static __always_inline struct auxiliary_map *auxmap_iter__get() {
+	return maps__get_iter_auxiliary_map();
+}
+
 /////////////////////////////////
 // STORE EVENT HEADER INTO THE AUXILIARY MAP
 ////////////////////////////////
@@ -98,7 +102,34 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 }
 
 /**
- * @brief Finalize the header writing the overall event len.
+ * @brief Push the iterator event header inside the auxiliary map.
+ *
+ * Please note: we call this method `preload` since we cannot completely fill the event header. When
+ * we call this method we don't know yet the overall size of the event, we discover it only at the
+ * end of the collection phase. We have to use the `auxmap__finalize_event_header` to "finalize" the
+ * header, inserting also the total event length.
+ *
+ * @param auxmap pointer to the auxmap in which we are writing our iterator event header.
+ * @param tgid_pid This is `tgid << 32 | pid`, where `tgid` and `pid` are the thread group id and
+ * the thread id of the task the iterator event is related to.
+ * @param event_type This is the type of the iterator event that we are writing into the map.
+ */
+static __always_inline void auxmap_iter__preload_event_header(struct auxiliary_map *auxmap,
+                                                              uint64_t tgid_pid,
+                                                              uint16_t event_type) {
+	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)auxmap->data;
+	uint8_t nparams = maps__get_event_num_params(event_type);
+	hdr->ts = 0;  // The timestamp field is currently not used.
+	hdr->tid = tgid_pid;
+	hdr->type = event_type;
+	hdr->nparams = nparams;
+	auxmap->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
+	auxmap->lengths_pos = sizeof(struct ppm_evt_hdr);
+	auxmap->event_type = event_type;
+}
+
+/**
+ * @brief Finalize the event header writing the overall event len.
  *
  * @param auxmap pointer to the auxmap in which we are writing our event header.
  */
@@ -107,8 +138,17 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
 	hdr->len = auxmap->payload_pos;
 }
 
+/**
+ * @brief Finalize the iterator event header writing the overall event len.
+ *
+ * @param auxmap pointer to the auxmap in which we are writing our iterator event header.
+ */
+static __always_inline void auxmap_iter__finalize_event_header(struct auxiliary_map *auxmap) {
+	auxmap__finalize_event_header(auxmap);
+}
+
 /////////////////////////////////
-// COPY EVENT FROM AUXMAP TO RINGBUF
+// COPY EVENT FROM AUXMAP TO RINGBUF/SEQ FILE
 ////////////////////////////////
 
 /**
@@ -149,6 +189,24 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 		counter->n_drops_buffer++;
 		compute_event_types_stats(auxmap->event_type, counter);
 	}
+}
+
+/**
+ * @brief Copy the entire event from the auxiliary map to the seq file.
+ * If the event is correctly copied in the seq file we increment the number of events sent to
+ * userspace, otherwise we increment the dropped events.
+ *
+ * @param auxmap pointer to the auxmap in which we have already written the entire event.
+ */
+static __always_inline void auxmap_iter__submit_event(struct auxiliary_map *auxmap,
+                                                      struct seq_file *seq) {
+	// todo(ekoops): implement counter mechanism to account for event drops.
+	// todo(ekoops): handle possible errors.
+	if(auxmap->payload_pos > MAX_ITER_EVENT_SIZE) {
+		return;
+	}
+
+	bpf_seq_write(seq, auxmap->data, auxmap->payload_pos);
 }
 
 /////////////////////////////////
@@ -2064,7 +2122,7 @@ static __always_inline void auxmap__store_d_path_exact_sleepable(struct auxiliar
 
 /**
  * NOTE: this helper is limited to programs whose type supports calling `bpf_d_path()` eBPF helper
- * since the helper introduction. In will call `auxmap__store_d_path_exact()` if the helper is
+ * since the helper introduction. It will call `auxmap__store_d_path_exact()` if the helper is
  * available, `auxmap__store_d_path_approx()` otherwise.
  * Valid program types:
  * - `iter/task`
