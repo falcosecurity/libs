@@ -1583,9 +1583,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 *  - writev
 	 *  - pwritev
 	 *  - recvmsg
-	 *  - recvmmsg
 	 *  - sendmsg
-	 *  - sendmmsg
 	 *  - send
 	 *  - recv
 	 *  - recvfrom
@@ -1605,9 +1603,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 *  - writev
 	 *  - pwritev
 	 *  - recvmsg
-	 *  - recvmmsg
 	 *  - sendmsg
-	 *  - sendmmsg
 	 */
 	unsigned long args[5] = {0};
 	struct sockaddr *sockaddr = NULL;
@@ -1639,31 +1635,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		}
 		if(extract__msghdr(&msg_mh.mh, args[1]) == 0) {
 			sockaddr = (struct sockaddr *)msg_mh.mh.msg_name;
-		}
-	} break;
-
-	case PPME_SOCKET_RECVMMSG_X:
-	case PPME_SOCKET_SENDMMSG_X: {
-		// To avoid verifier stack size issues, sendmmsg and recvmmsg directly pass args
-		// in dynamic_snaplen_args.
-		// This also gives a small perf boost while using `bpf_loop` because we don't need
-		// to re-fetch first 3 syscall args at every iteration.
-		__builtin_memcpy(args, input_args->mm_args, 3 * sizeof(unsigned long));
-		if(bpf_in_ia32_syscall()) {
-			struct compat_mmsghdr *mmh_ptr = (struct compat_mmsghdr *)args[1];
-			if(likely(bpf_probe_read_user(&msg_mh.compat_mmh,
-			                              bpf_core_type_size(struct compat_mmsghdr),
-			                              (void *)(mmh_ptr + input_args->mmsg_index)) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mmh.msg_hdr.msg_name);
-			}
-			// in any case we break the switch.
-			break;
-		}
-		struct mmsghdr *mmh_ptr = (struct mmsghdr *)args[1];
-		if(bpf_probe_read_user(&msg_mh.mmh,
-		                       bpf_core_type_size(struct mmsghdr),
-		                       (void *)(mmh_ptr + input_args->mmsg_index)) == 0) {
-			sockaddr = (struct sockaddr *)msg_mh.mmh.msg_hdr.msg_name;
 		}
 	} break;
 
