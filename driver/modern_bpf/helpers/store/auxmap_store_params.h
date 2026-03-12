@@ -353,6 +353,41 @@ static __always_inline uint16_t auxmap__store_bytebuf_param(struct auxiliary_map
 }
 
 /**
+ * NOTE: this helper relies on specific features and doesn't implement any fallback mechanism for
+ * them. See `push__user_task_bytebuf()` for more information.
+ *
+ * @brief This helper stores the bytebuf pointed by `bytebuf_pointer` into the auxmap.
+ * `bytebuf_pointer` must be a pointer in the user space memory of the provided task. The bytebuf
+ * has a fixed len `len_to_read`. If we are not able to read exactly `len_to_read` bytes we will
+ * push an empty param in the map, so param_len=0.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param bytebuf_pointer pointer to the bytebuf in the user space memory of `task`.
+ * @param len_to_read bytes that we need to read from the pointer.
+ * @param task task from which user space memory we need to read.
+ * @return number of bytes read.
+ */
+static __always_inline uint16_t auxmap__store_user_task_bytebuf_param(struct auxiliary_map *auxmap,
+                                                                      unsigned long bytebuf_pointer,
+                                                                      uint16_t len_to_read,
+                                                                      struct task_struct *task) {
+	uint16_t bytebuf_len = 0;
+	/* This check is just for performance reasons. */
+	if(bytebuf_pointer && len_to_read > 0) {
+		bytebuf_len = push__user_task_bytebuf(auxmap->data,
+		                                      &auxmap->payload_pos,
+		                                      bytebuf_pointer,
+		                                      len_to_read,
+		                                      task);
+	}
+	/* If we are not able to push anything with `push__user_task_bytebuf`. `bytebuf_len` will be
+	 * equal to `0` so we will send an empty param to userspace.
+	 */
+	push__param_len(auxmap->data, &auxmap->lengths_pos, bytebuf_len);
+	return bytebuf_len;
+}
+
+/**
  * @brief This helper stores a char buffer array as a byte buffer into the auxmap.
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
@@ -380,6 +415,42 @@ static __always_inline void auxmap__store_charbufarray_as_bytebuf(struct auxilia
 	 */
 	if(auxmap__store_bytebuf_param(auxmap, start_pointer, len_to_read, USER) > 0) {
 		// maybe we read only part of the last argument so we need to put a `\0` at the end.
+		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
+	}
+}
+
+/**
+ * NOTE: this helper relies on specific features and doesn't implement any fallback mechanism for
+ * them. See `auxmap__store_user_task_bytebuf_param()` for more information.
+ *
+ * @brief This helper stores a char buffer array from the user memory of the provided task into the
+ * auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param start_pointer pointer where we start to read.
+ * @param len_to_read len that we can ideally read.
+ * @param max_len max len that we can read.
+ * @param task task from which user space memory we need to read.
+ */
+static __always_inline void auxmap__store_user_task_charbufarray_param(struct auxiliary_map *auxmap,
+                                                                       unsigned long start_pointer,
+                                                                       uint16_t len_to_read,
+                                                                       uint16_t max_len,
+                                                                       struct task_struct *task) {
+	/* Here we read an array of charbufs starting from a pointer. We could also read the array
+	 * element per element but since we know the total len we read it as a `bytebuf`. Since this is
+	 * an array of charbufs, the `\0` after every argument are preserved. We just need to add a
+	 * final `\0` in case data are too long and we have a partial read.
+	 */
+	if(len_to_read >= max_len) {
+		len_to_read = max_len;
+	}
+
+	/* If `auxmap__store_user_task_bytebuf_param()` returns 0 we will send an empty param. We don't
+	 * need the final `\0`.
+	 */
+	if(auxmap__store_user_task_bytebuf_param(auxmap, start_pointer, len_to_read, task) > 0) {
+		/* Ensure there is a final `\0` at the end of the pushed data. */
 		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
 	}
 }
