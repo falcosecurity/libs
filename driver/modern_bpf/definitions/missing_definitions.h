@@ -1425,6 +1425,17 @@
 
 /*=============================== UNIX SOCKET PATH ===========================*/
 
+/*=============================== FILE SYSTEM MAGICS ===========================*/
+
+/* `/include/uapi/linux/magic.h` from kernel source tree. */
+
+#define PIPEFS_MAGIC 0x50495045
+#define ANON_INODE_FS_MAGIC 0x09041934
+#define DMA_BUF_MAGIC 0x444d4142
+#define PID_FS_MAGIC 0x50494446
+
+/*=============================== FILE SYSTEM MAGICS ===========================*/
+
 /*=============================== QUOTACTL SYSCALL ===========================*/
 
 /* `/include/linux/quota.h` from kernel source tree. */
