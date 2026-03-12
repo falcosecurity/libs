@@ -15,6 +15,8 @@
 
 option(USE_BUNDLED_TBB "Enable building of the bundled tbb" ${USE_BUNDLED_DEPS})
 
+include(ExternalProjectToolchain)
+
 if(TBB_INCLUDE_DIR)
 	# we already have tbb
 elseif(NOT USE_BUNDLED_TBB)
@@ -72,6 +74,7 @@ else()
 			set(TBB_FLAGS "${TBB_FLAGS} -Wno-unused-command-line-argument")
 			set(TBB_EMSCRIPTEN "ON")
 		endif()
+		falcosecurity_external_project_cache_args(TBB_EXTERNAL_PROJECT_CACHE_ARGS)
 
 		if(NOT WIN32)
 			ExternalProject_Add(
@@ -86,11 +89,10 @@ else()
 						   -DTBB_OUTPUT_DIR_BASE=lib
 						   -DCMAKE_CXX_FLAGS=${TBB_FLAGS}
 						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-						   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-						   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
 						   -DEMSCRIPTEN=${TBB_EMSCRIPTEN}
 						   -DTBB_FILE_TRIM=Off
 						   -DTBB_INSTALL=Off
+				CMAKE_CACHE_ARGS ${TBB_EXTERNAL_PROJECT_CACHE_ARGS}
 				BUILD_BYPRODUCTS ${TBB_LIB}
 				INSTALL_COMMAND ""
 			)
@@ -114,6 +116,7 @@ else()
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
 							   -DTBB_FILE_TRIM=Off
 							   -DTBB_INSTALL=Off
+					CMAKE_CACHE_ARGS ${TBB_EXTERNAL_PROJECT_CACHE_ARGS}
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND ""
 				)
@@ -135,6 +138,7 @@ else()
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
 							   -DTBB_FILE_TRIM=Off
 							   -DTBB_INSTALL=Off
+					CMAKE_CACHE_ARGS ${TBB_EXTERNAL_PROJECT_CACHE_ARGS}
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND ""
 				)
