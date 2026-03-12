@@ -18,17 +18,35 @@ typedef struct {
 
 static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	recvmmsg_data_t *data = (recvmmsg_data_t *)ctx;
-	struct mmsghdr *mmh_ptr = data->mmh + index;
 
-	/* Read individual fields instead of the full 64-byte struct mmsghdr
-	 * to keep frame 1 stack small enough for the 512-byte 3-frame limit.
+	/* Read individual fields instead of the full struct mmsghdr to keep
+	 * frame 1 stack small enough for the 512-byte 3-frame limit.
+	 * Handle both native and compat (ia32) layouts.
 	 */
-	unsigned int msg_len = BPF_CORE_READ_USER(mmh_ptr, msg_len);
-	unsigned long msg_iov = (unsigned long)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_iov);
-	unsigned long msg_iovlen = BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_iovlen);
-	struct sockaddr *msg_name = (struct sockaddr *)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_name);
-	unsigned long msg_control = (unsigned long)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_control);
-	unsigned long msg_controllen = BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_controllen);
+	unsigned int msg_len;
+	unsigned long msg_iov;
+	unsigned long msg_iovlen;
+	struct sockaddr *msg_name;
+	unsigned long msg_control;
+	unsigned long msg_controllen;
+
+	if(bpf_in_ia32_syscall()) {
+		struct compat_mmsghdr *cmmh_ptr = (struct compat_mmsghdr *)data->mmh + index;
+		msg_len = BPF_CORE_READ_USER(cmmh_ptr, msg_len);
+		msg_iov = (unsigned long)BPF_CORE_READ_USER(cmmh_ptr, msg_hdr.msg_iov);
+		msg_iovlen = BPF_CORE_READ_USER(cmmh_ptr, msg_hdr.msg_iovlen);
+		msg_name = (struct sockaddr *)(unsigned long)BPF_CORE_READ_USER(cmmh_ptr, msg_hdr.msg_name);
+		msg_control = (unsigned long)BPF_CORE_READ_USER(cmmh_ptr, msg_hdr.msg_control);
+		msg_controllen = BPF_CORE_READ_USER(cmmh_ptr, msg_hdr.msg_controllen);
+	} else {
+		struct mmsghdr *mmh_ptr = data->mmh + index;
+		msg_len = BPF_CORE_READ_USER(mmh_ptr, msg_len);
+		msg_iov = (unsigned long)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_iov);
+		msg_iovlen = BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_iovlen);
+		msg_name = (struct sockaddr *)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_name);
+		msg_control = (unsigned long)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_control);
+		msg_controllen = BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_controllen);
+	}
 
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {
