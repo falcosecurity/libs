@@ -1621,18 +1621,12 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	switch(input_args->evt_type) {
 	case PPME_SOCKET_SENDTO_X:
 	case PPME_SOCKET_RECVFROM_X:
-		if(!regs) {
-			return;
-		}
 		extract__network_args(args, 5, regs);
 		sockaddr = (struct sockaddr *)args[4];
 		break;
 
 	case PPME_SOCKET_RECVMSG_X:
 	case PPME_SOCKET_SENDMSG_X: {
-		if(!regs) {
-			return;
-		}
 		extract__network_args(args, 3, regs);
 		if(bpf_in_ia32_syscall()) {
 			if(likely(bpf_probe_read_user(&msg_mh.compat_mh,
@@ -1674,9 +1668,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	} break;
 
 	default:
-		if(!regs) {
-			return;
-		}
 		extract__network_args(args, 3, regs);
 		break;
 	}
@@ -1823,10 +1814,61 @@ static __noinline void auxmap__store_socktuple_param_noinline(struct auxiliary_m
 	auxmap__store_socktuple_param(auxmap, socket_fd, direction, usrsockaddr);
 }
 
-static __noinline void apply_dynamic_snaplen_noinline(struct pt_regs *regs,
-                                                      uint16_t *snaplen,
-                                                      const dynamic_snaplen_args *input_args) {
-	apply_dynamic_snaplen(regs, snaplen, input_args);
+/* Slim port-range-only variant of apply_dynamic_snaplen for sendmmsg/recvmmsg
+ * bpf_loop callbacks. The full apply_dynamic_snaplen carries large locals
+ * (msg_mh union, DPI buf, multi-event switch) whose stack allocation pushes
+ * the 3-frame combined stack (program -> bpf_loop callback -> noinline callee)
+ * over the 512-byte verifier limit. This version only contains the code paths
+ * reachable when only_port_range is true, keeping the frame small enough.
+ *
+ * @param snaplen   pointer to the current snaplen value (may be increased)
+ * @param socket_fd the socket file descriptor (first syscall arg)
+ */
+static __noinline void apply_dynamic_snaplen_port_range(uint16_t *snaplen, int32_t socket_fd) {
+	if(!maps__get_do_dynamic_snaplen()) {
+		return;
+	}
+
+	if(socket_fd < 0) {
+		return;
+	}
+
+	struct file *file = extract__file_struct_from_fd(socket_fd);
+	struct socket *socket = extract__socket_from_file(file);
+	if(socket == NULL) {
+		return;
+	}
+	struct sock *sk = BPF_CORE_READ(socket, sk);
+	if(sk == NULL) {
+		return;
+	}
+
+	uint16_t port_local = 0;
+	uint16_t port_remote = 0;
+
+	uint16_t socket_family = BPF_CORE_READ(sk, __sk_common.skc_family);
+	if(socket_family == AF_INET || socket_family == AF_INET6) {
+		struct inet_sock *inet = (struct inet_sock *)sk;
+		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
+		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
+		port_local = ntohs(port_local);
+		port_remote = ntohs(port_remote);
+	}
+
+	uint16_t min_port = maps__get_fullcapture_port_range_start();
+	uint16_t max_port = maps__get_fullcapture_port_range_end();
+
+	if(max_port > 0 && ((port_local >= min_port && port_local <= max_port) ||
+	                    (port_remote >= min_port && port_remote <= max_port))) {
+		*snaplen = *snaplen > SNAPLEN_FULLCAPTURE_PORT ? *snaplen : SNAPLEN_FULLCAPTURE_PORT;
+		return;
+	} else if(port_remote == maps__get_statsd_port()) {
+		*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		return;
+	} else if(port_remote == PPM_PORT_DNS) {
+		*snaplen = *snaplen > SNAPLEN_DNS_UDP ? *snaplen : SNAPLEN_DNS_UDP;
+		return;
+	}
 }
 
 /* We must always leave at least 4096 bytes free in our tmp scratch space

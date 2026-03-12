@@ -14,18 +14,19 @@
 typedef struct {
 	uint32_t fd;
 	struct mmsghdr *mmh;
-	unsigned long *args;
 } sendmmsg_exit_t;
 
 static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	sendmmsg_exit_t *data = (sendmmsg_exit_t *)ctx;
-	struct mmsghdr mmh = {0};
+	struct mmsghdr *mmh_ptr = data->mmh + index;
 
-	if(bpf_probe_read_user((void *)&mmh,
-	                       bpf_core_type_size(struct mmsghdr),
-	                       (void *)(data->mmh + index)) != 0) {
-		return 0;
-	}
+	/* Read individual fields instead of the full 64-byte struct mmsghdr
+	 * to keep frame 1 stack small enough for the 512-byte 3-frame limit.
+	 */
+	unsigned int msg_len = BPF_CORE_READ_USER(mmh_ptr, msg_len);
+	unsigned long msg_iov = (unsigned long)BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_iov);
+	unsigned long msg_iovlen = BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_iovlen);
+	struct sockaddr *msg_name = BPF_CORE_READ_USER(mmh_ptr, msg_hdr.msg_name);
 
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {
@@ -37,41 +38,25 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	auxmap__store_s64_param(auxmap, mmh.msg_len);
+	auxmap__store_s64_param(auxmap, msg_len);
 
 	/* Parameter 2: fd (type: PT_FD) */
 	auxmap__store_s64_param(auxmap, (int64_t)data->fd);
 
 	/* Parameter 3: size (type: PT_UINT32) */
-	auxmap__store_iovec_size_param(auxmap,
-	                               (unsigned long)mmh.msg_hdr.msg_iov,
-	                               mmh.msg_hdr.msg_iovlen);
+	auxmap__store_iovec_size_param(auxmap, msg_iov, msg_iovlen);
 
-	/* In case of failure `bytes_to_read` could be also lower than `snaplen`
-	 * but we will discover it directly into `auxmap__store_iovec_data_param`
-	 * otherwise we need to extract it now and it has a cost. Here we check just
-	 * the return value if the syscall is successful.
-	 */
-	dynamic_snaplen_args snaplen_args = {
-	        .only_port_range = true,
-	        .evt_type = PPME_SOCKET_SENDMMSG_X,
-	        .mmsg_index = index,
-	        .mm_args = data->args,
-	};
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen_noinline(NULL, &snaplen, &snaplen_args);
-	if(mmh.msg_len > 0 && snaplen > mmh.msg_len) {
-		snaplen = mmh.msg_len;
+	apply_dynamic_snaplen_port_range(&snaplen, (int32_t)data->fd);
+	if(msg_len > 0 && snaplen > msg_len) {
+		snaplen = msg_len;
 	}
 
 	/* Parameter 4: data (type: PT_BYTEBUF) */
-	auxmap__store_iovec_data_param(auxmap,
-	                               (unsigned long)mmh.msg_hdr.msg_iov,
-	                               mmh.msg_hdr.msg_iovlen,
-	                               snaplen);
+	auxmap__store_iovec_data_param(auxmap, msg_iov, msg_iovlen, snaplen);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE)*/
-	auxmap__store_socktuple_param_noinline(auxmap, data->fd, OUTBOUND, mmh.msg_hdr.msg_name);
+	auxmap__store_socktuple_param_noinline(auxmap, data->fd, OUTBOUND, msg_name);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -115,12 +100,11 @@ int BPF_PROG(sendmmsg_x, struct pt_regs *regs, long ret) {
 	}
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
-	extract__network_args(args, 3, regs);
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
 	sendmmsg_exit_t data = {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
-	        .args = args,
 	};
 
 	uint32_t nr_loops = ret < MAX_SENDMMSG_RECVMMSG_SIZE ? ret : MAX_SENDMMSG_RECVMMSG_SIZE;
@@ -163,12 +147,11 @@ int BPF_PROG(sendmmsg_old_x, struct pt_regs *regs, long ret) {
 	}
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
-	extract__network_args(args, 3, regs);
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
 	sendmmsg_exit_t data = {
 	        .fd = args[0],
 	        .mmh = (struct mmsghdr *)args[1],
-	        .args = args,
 	};
 
 	// Only first message
