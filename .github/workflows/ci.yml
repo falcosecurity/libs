@@ -89,8 +89,8 @@ jobs:
             exit 1
           fi
 
-  build-libs-linux-cross-arm64:
-    name: build-libs-linux-cross-arm64 🧭 (bundled_deps)
+  build-libs-linux-amd64-cross-arm64:
+    name: build-libs-linux-amd64-cross-arm64 🧭 (bundled_deps)
     runs-on: ubuntu-24.04
     container:
       image: debian:buster
@@ -127,7 +127,7 @@ jobs:
             -DUSE_BUNDLED_DEPS=True \
             -DCREATE_TEST_TARGETS=Off \
             -DENABLE_THREAD_POOL=ON \
-            -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchains/linux-aarch64.cmake
+            -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchains/linux-cross-aarch64.cmake
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build-cross-arm64 --target scap-open --parallel $(nproc)
 
       - name: Verify arm64 artifact 📦
