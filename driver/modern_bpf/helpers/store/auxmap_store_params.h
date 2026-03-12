@@ -1571,14 +1571,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		return;
 	}
 
-	/* When regs is NULL we are in a bpf_loop callback (recvmmsg/sendmmsg). Only those
-	 * two event types pass NULL and use mm_args; for any other type we must not run.
-	 */
-	if(!regs && input_args->evt_type != PPME_SOCKET_RECVMMSG_X &&
-	   input_args->evt_type != PPME_SOCKET_SENDMMSG_X) {
-		return;
-	}
-
 	/* Please note that we can use this helper also for syscalls not related to the network.
 	 * The advantage of using it is that we can handle also socketcalls!
 	 * The syscalls involved in this logic are:
@@ -1629,12 +1621,18 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	switch(input_args->evt_type) {
 	case PPME_SOCKET_SENDTO_X:
 	case PPME_SOCKET_RECVFROM_X:
+		if(!regs) {
+			return;
+		}
 		extract__network_args(args, 5, regs);
 		sockaddr = (struct sockaddr *)args[4];
 		break;
 
 	case PPME_SOCKET_RECVMSG_X:
 	case PPME_SOCKET_SENDMSG_X: {
+		if(!regs) {
+			return;
+		}
 		extract__network_args(args, 3, regs);
 		if(bpf_in_ia32_syscall()) {
 			if(likely(bpf_probe_read_user(&msg_mh.compat_mh,
@@ -1676,6 +1674,9 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	} break;
 
 	default:
+		if(!regs) {
+			return;
+		}
 		extract__network_args(args, 3, regs);
 		break;
 	}
