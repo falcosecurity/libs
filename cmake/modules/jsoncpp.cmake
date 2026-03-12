@@ -45,7 +45,7 @@ else()
 
 	if(NOT TARGET jsoncpp)
 		message(STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
-		falcosecurity_external_project_cmake_args(JSONCPP_EXTERNAL_PROJECT_CMAKE_ARGS)
+		falcosecurity_external_project_cache_args(JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS)
 		if(NOT WIN32)
 			ExternalProject_Add(
 				jsoncpp
@@ -60,7 +60,7 @@ else()
 						   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
 						   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
 						   -DCMAKE_INSTALL_LIBDIR=lib
-						   ${JSONCPP_EXTERNAL_PROJECT_CMAKE_ARGS}
+					CMAKE_CACHE_ARGS ${JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS}
 				BUILD_BYPRODUCTS ${JSONCPP_LIB}
 			)
 		else()
@@ -82,7 +82,7 @@ else()
 							   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
 							   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
 							   -DCMAKE_INSTALL_LIBDIR=lib
-							   ${JSONCPP_EXTERNAL_PROJECT_CMAKE_ARGS}
+						CMAKE_CACHE_ARGS ${JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS}
 				)
 			else()
 				ExternalProject_Add(
@@ -100,7 +100,7 @@ else()
 							   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
 							   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
 							   -DCMAKE_INSTALL_LIBDIR=lib
-							   ${JSONCPP_EXTERNAL_PROJECT_CMAKE_ARGS}
+						CMAKE_CACHE_ARGS ${JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS}
 				)
 			endif()
 		endif()

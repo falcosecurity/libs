@@ -1,44 +1,37 @@
 include_guard()
 
-function(falcosecurity_gnu_target_triplet out_var)
-	set(triplet "")
-	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-			set(triplet "x86_64-linux-gnu")
-		elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
-			set(triplet "aarch64-linux-gnu")
-		endif()
+function(falcosecurity_external_project_append_cache_arg args_var var type)
+	if(DEFINED ${var} AND NOT "${${var}}" STREQUAL "")
+		list(APPEND ${args_var} "-D${var}:${type}=${${var}}")
+		set(${args_var} "${${args_var}}" PARENT_SCOPE)
 	endif()
-
-	set(${out_var} "${triplet}" PARENT_SCOPE)
 endfunction()
 
-function(falcosecurity_external_project_cmake_args out_var)
-	set(args
-		-DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}
-		-DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
-		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-	)
+function(falcosecurity_external_project_cache_args out_var)
+	set(args)
 
-	foreach(
-		var
-		CMAKE_TOOLCHAIN_FILE
-		CMAKE_C_COMPILER
-		CMAKE_CXX_COMPILER
-		CMAKE_ASM_COMPILER
-		CMAKE_AR
-		CMAKE_RANLIB
-		CMAKE_STRIP
-		CMAKE_FIND_ROOT_PATH
-		CMAKE_FIND_ROOT_PATH_MODE_PROGRAM
-		CMAKE_FIND_ROOT_PATH_MODE_LIBRARY
-		CMAKE_FIND_ROOT_PATH_MODE_INCLUDE
-		CMAKE_FIND_ROOT_PATH_MODE_PACKAGE
-	)
-		if(DEFINED ${var} AND NOT "${${var}}" STREQUAL "")
-			list(APPEND args "-D${var}=${${var}}")
-		endif()
-	endforeach()
+	falcosecurity_external_project_append_cache_arg(args CMAKE_SYSTEM_NAME STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_SYSTEM_PROCESSOR STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_BUILD_TYPE STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_TOOLCHAIN_FILE FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_SYSROOT PATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_C_COMPILER FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_CXX_COMPILER FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_ASM_COMPILER FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_C_COMPILER_TARGET STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_CXX_COMPILER_TARGET STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_AR FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_RANLIB FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_STRIP FILEPATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_FIND_ROOT_PATH PATH)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_FIND_ROOT_PATH_MODE_PROGRAM STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_FIND_ROOT_PATH_MODE_LIBRARY STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_FIND_ROOT_PATH_MODE_INCLUDE STRING)
+	falcosecurity_external_project_append_cache_arg(args CMAKE_FIND_ROOT_PATH_MODE_PACKAGE STRING)
+
+	if(DEFINED FALCOSECURITY_EXTERNAL_PROJECT_CMAKE_CACHE_ARGS)
+		list(APPEND args ${FALCOSECURITY_EXTERNAL_PROJECT_CMAKE_CACHE_ARGS})
+	endif()
 
 	set(${out_var} ${args} PARENT_SCOPE)
 endfunction()
@@ -61,10 +54,15 @@ function(falcosecurity_external_project_env out_var)
 	if(DEFINED CMAKE_STRIP AND NOT "${CMAKE_STRIP}" STREQUAL "")
 		list(APPEND args "STRIP=${CMAKE_STRIP}")
 	endif()
+	if(DEFINED CMAKE_NM AND NOT "${CMAKE_NM}" STREQUAL "")
+		list(APPEND args "NM=${CMAKE_NM}")
+	endif()
+	if(DEFINED CMAKE_LINKER AND NOT "${CMAKE_LINKER}" STREQUAL "")
+		list(APPEND args "LD=${CMAKE_LINKER}")
+	endif()
 
-	falcosecurity_gnu_target_triplet(target_triplet)
-	if(NOT "${target_triplet}" STREQUAL "")
-		list(APPEND args "CHOST=${target_triplet}")
+	if(DEFINED FALCOSECURITY_EXTERNAL_PROJECT_ENV)
+		list(APPEND args ${FALCOSECURITY_EXTERNAL_PROJECT_ENV})
 	endif()
 
 	set(${out_var} ${args} PARENT_SCOPE)
