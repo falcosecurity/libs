@@ -285,6 +285,53 @@ static __always_inline uint16_t push__bytebuf(uint8_t *data,
 /**
  * NOTE: the usage of this helper will cause the verifier to reject the program in case any of the
  * following conditions is not met:
+ * - the kernel must support the `bpf_copy_from_user_task()` eBPF helper
+ * - the kernel must support calling `bpf_copy_from_user_task()` eBPF helper from the calling
+ *   program type since the helper introduction.
+ * Valid program types:
+ * - `iter.s/task`
+ * - `iter.s/task_file`
+ *
+ * @brief The difference between `push__user_task_bytebuf()` and `push__bytebuf()` is that with
+ * `push__bytebuf()` we try to read from the kernel space memory or from the user space memory of
+ * the current task, while with `push__user_task_bytebuf()` we read from the user space memory of
+ * the provided task.
+ *
+ * @param data pointer to the buffer where the data is stored.
+ * @param payload_pos pointer to the first empty byte after the last "push" operation.
+ * @param bytebuf_pointer pointer to the bytebuf in the user space memory of `task`.
+ * @param len_to_read bytes that we need to read from the pointer.
+ * @param task task from which user space memory we need to read.
+ * @return (uint16_t) the number of bytes written in the buffer. Could be '0' in case of error.
+ */
+static __always_inline uint16_t push__user_task_bytebuf(uint8_t *data,
+                                                        uint64_t *payload_pos,
+                                                        unsigned long bytebuf_pointer,
+                                                        uint16_t len_to_read,
+                                                        struct task_struct *task) {
+	// Make the verifier reject the program if the `bpf_copy_from_user_task()` eBPF helper is not
+	// available or there's an ID mismatch.
+	if(!bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_copy_from_user_task) ||
+	   bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_copy_from_user_task) !=
+	           BPF_FUNC_copy_from_user_task) {
+		return *(volatile uint16_t *)0;
+	}
+
+	if(bpf_copy_from_user_task(&data[SAFE_ACCESS(*payload_pos)],
+	                           len_to_read,
+	                           (void *)bytebuf_pointer,
+	                           task,
+	                           0) != 0) {
+		return 0;
+	}
+
+	*payload_pos += len_to_read;
+	return len_to_read;
+}
+
+/**
+ * NOTE: the usage of this helper will cause the verifier to reject the program in case any of the
+ * following conditions is not met:
  * - the kernel must support the `bpf_d_path()` eBPF helper
  * - the kernel must support calling `bpf_d_path()` eBPF helper from the calling program type since
  *   the helper introduction.
