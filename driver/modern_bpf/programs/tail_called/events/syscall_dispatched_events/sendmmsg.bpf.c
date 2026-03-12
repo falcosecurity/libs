@@ -67,7 +67,7 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	}
 
 	/* Parameter 4: data (type: PT_BYTEBUF) */
-	auxmap__store_iovec_data_param(auxmap, msg_iov, msg_iovlen, snaplen);
+	auxmap__store_iovec_data_param_noinline(auxmap, msg_iov, msg_iovlen, snaplen);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE)*/
 	auxmap__store_socktuple_param_noinline(auxmap, data->fd, OUTBOUND, msg_name);
@@ -76,7 +76,7 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap);
+	auxmap__submit_event_noinline(auxmap);
 	return 0;
 }
 

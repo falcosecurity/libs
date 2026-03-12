@@ -73,14 +73,16 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	}
 
 	/* Parameter 4: data (type: PT_BYTEBUF) */
-	auxmap__store_iovec_data_param(auxmap, msg_iov, msg_iovlen, snaplen);
+	auxmap__store_iovec_data_param_noinline(auxmap, msg_iov, msg_iovlen, snaplen);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
 	auxmap__store_socktuple_param_noinline(auxmap, data->fd, INBOUND, msg_name);
 
 	/* Parameter 6: msg_control (type: PT_BYTEBUF) */
-	if(msg_control != 0 && msg_controllen > 0 && msg_controllen <= 0xFFFF) {
-		auxmap__store_bytebuf_param(auxmap, msg_control, msg_controllen, USER);
+	msg_controllen &= 0xFFFF;
+	asm volatile("" : "+r"(msg_controllen));
+	if(msg_control != 0 && msg_controllen > 0) {
+		auxmap__store_bytebuf_param(auxmap, msg_control, (uint16_t)msg_controllen, USER);
 	} else {
 		auxmap__store_empty_param(auxmap);
 	}
@@ -89,7 +91,7 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap);
+	auxmap__submit_event_noinline(auxmap);
 	return 0;
 }
 

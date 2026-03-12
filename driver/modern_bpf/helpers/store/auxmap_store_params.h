@@ -1785,6 +1785,17 @@ static __noinline void auxmap__store_socktuple_param_noinline(struct auxiliary_m
 	auxmap__store_socktuple_param(auxmap, socket_fd, direction, usrsockaddr);
 }
 
+static __noinline void auxmap__submit_event_noinline(struct auxiliary_map *auxmap) {
+	auxmap__submit_event(auxmap);
+}
+
+static __noinline void auxmap__store_iovec_data_param_noinline(struct auxiliary_map *auxmap,
+                                                               unsigned long iov_pointer,
+                                                               unsigned long iov_cnt,
+                                                               unsigned long len_to_read) {
+	auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, len_to_read);
+}
+
 /* Slim port-range-only variant of apply_dynamic_snaplen for sendmmsg/recvmmsg
  * bpf_loop callbacks. The full apply_dynamic_snaplen carries large locals
  * (msg_mh union, DPI buf, multi-event switch) whose stack allocation pushes
