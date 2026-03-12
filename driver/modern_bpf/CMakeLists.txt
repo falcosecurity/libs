@@ -270,33 +270,41 @@ file(GLOB_RECURSE BPF_C_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.bp
 # Generate the events dimensions file generator executable.
 # ##################################################################################################
 
-set(EVENTS_DIMENSIONS_GENERATOR ${CMAKE_CURRENT_BINARY_DIR}/events_dimensions_generator)
-if(CMAKE_CROSSCOMPILING)
-	find_program(HOST_CC NAMES cc gcc clang REQUIRED)
-	find_program(HOST_CXX NAMES c++ g++ clang++ REQUIRED)
+set(
+	MODERN_BPF_EVENTS_DIMENSIONS_GENERATOR
+	""
+	CACHE FILEPATH
+	"Path to a host executable used to generate modern_bpf/definitions/events_dimensions.h"
+)
 
+set(EVENTS_DIMENSIONS_GENERATOR_DEPENDS)
+if(MODERN_BPF_EVENTS_DIMENSIONS_GENERATOR)
+	set(EVENTS_DIMENSIONS_GENERATOR ${MODERN_BPF_EVENTS_DIMENSIONS_GENERATOR})
+	set(EVENTS_DIMENSIONS_GENERATOR_DEPENDS ${MODERN_BPF_EVENTS_DIMENSIONS_GENERATOR})
+elseif(CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
 	set(EVENTS_DIMENSIONS_GENERATOR_DIR
 		${CMAKE_CURRENT_BINARY_DIR}/events_dimensions_generator_host
+	)
+	set(EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR
+		${EVENTS_DIMENSIONS_GENERATOR_DIR}/build
+	)
+	set(EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR
+		${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator
 	)
 	set(EVENTS_DIMENSIONS_GENERATOR ${EVENTS_DIMENSIONS_GENERATOR_DIR}/events_dimensions_generator)
 
 	add_custom_command(
 		OUTPUT ${EVENTS_DIMENSIONS_GENERATOR}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${EVENTS_DIMENSIONS_GENERATOR_DIR}
-		COMMAND ${HOST_CC} -I${LIBS_DIR} -c ${LIBS_DIR}/driver/event_table.c -o
-				${EVENTS_DIMENSIONS_GENERATOR_DIR}/event_table.o
-		COMMAND ${HOST_CC} -I${LIBS_DIR} -c ${LIBS_DIR}/driver/flags_table.c -o
-				${EVENTS_DIMENSIONS_GENERATOR_DIR}/flags_table.o
-		COMMAND ${HOST_CC} -I${LIBS_DIR} -c ${LIBS_DIR}/driver/dynamic_params_table.c -o
-				${EVENTS_DIMENSIONS_GENERATOR_DIR}/dynamic_params_table.o
-		COMMAND
-			${HOST_CXX} -I${LIBS_DIR}
-			${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
-			${EVENTS_DIMENSIONS_GENERATOR_DIR}/event_table.o
-			${EVENTS_DIMENSIONS_GENERATOR_DIR}/flags_table.o
-			${EVENTS_DIMENSIONS_GENERATOR_DIR}/dynamic_params_table.o -o
-			${EVENTS_DIMENSIONS_GENERATOR}
-		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
+		COMMAND ${CMAKE_COMMAND} -S ${EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR} -B
+				${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR} -DLIBS_DIR=${LIBS_DIR}
+		COMMAND ${CMAKE_COMMAND} --build ${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR} --target
+				events_dimensions_generator
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR}/events_dimensions_generator
+				${EVENTS_DIMENSIONS_GENERATOR}
+		DEPENDS ${EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR}/CMakeLists.txt
+				${EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR}/generator.cpp
 				${LIBS_DIR}/driver/event_table.c
 				${LIBS_DIR}/driver/flags_table.c
 				${LIBS_DIR}/driver/dynamic_params_table.c
@@ -304,12 +312,15 @@ if(CMAKE_CROSSCOMPILING)
 		VERBATIM
 	)
 	add_custom_target(events_dimensions_generator DEPENDS ${EVENTS_DIMENSIONS_GENERATOR})
+	list(APPEND EVENTS_DIMENSIONS_GENERATOR_DEPENDS events_dimensions_generator)
 else()
 	add_executable(
 		events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
 	)
 	target_link_libraries(events_dimensions_generator PRIVATE scap_event_schema)
 	add_dependencies(events_dimensions_generator scap_event_schema)
+	set(EVENTS_DIMENSIONS_GENERATOR $<TARGET_FILE:events_dimensions_generator>)
+	list(APPEND EVENTS_DIMENSIONS_GENERATOR_DEPENDS events_dimensions_generator)
 endif()
 
 # ##################################################################################################
@@ -321,7 +332,7 @@ add_custom_command(
 	OUTPUT ${BPF_EVENTS_DIMENSIONS_FILE}
 	COMMAND ${EVENTS_DIMENSIONS_GENERATOR} ${BPF_EVENTS_DIMENSIONS_FILE}
 	VERBATIM
-	DEPENDS events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/../event_table.c
+	DEPENDS ${EVENTS_DIMENSIONS_GENERATOR_DEPENDS} ${CMAKE_CURRENT_SOURCE_DIR}/../event_table.c
 	COMMENT
 		"${MODERN_BPF_LOG_PREFIX} Building events dimensions file: ${BPF_EVENTS_DIMENSIONS_FILE}"
 )
