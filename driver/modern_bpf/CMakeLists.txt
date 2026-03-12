@@ -188,28 +188,38 @@ endif()
 # Get target arch
 # ##################################################################################################
 
-execute_process(
-	COMMAND uname -m
-	COMMAND sed "s/x86_64/x86/"
-	COMMAND sed "s/aarch64/arm64/"
-	COMMAND sed "s/ppc64le/powerpc/"
-	COMMAND sed "s/mips.*/mips/"
-	COMMAND sed "s/s390x/s390/"
-	OUTPUT_VARIABLE ARCH_output
-	ERROR_VARIABLE ARCH_error
-	RESULT_VARIABLE ARCH_result
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-if(${ARCH_result} EQUAL 0)
-	set(ARCH ${ARCH_output})
-	message(STATUS "${MODERN_BPF_LOG_PREFIX} Target arch: ${ARCH}")
-else()
-	message(
-		FATAL_ERROR
-			"${MODERN_BPF_LOG_PREFIX} Failed to determine target architecture: ${ARCH_error}"
+set(MODERN_BPF_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+if(NOT MODERN_BPF_TARGET_ARCH)
+	execute_process(
+		COMMAND uname -m
+		OUTPUT_VARIABLE MODERN_BPF_TARGET_ARCH
+		ERROR_VARIABLE ARCH_error
+		RESULT_VARIABLE ARCH_result
+		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
+	if(NOT ${ARCH_result} EQUAL 0)
+		message(
+			FATAL_ERROR
+				"${MODERN_BPF_LOG_PREFIX} Failed to determine target architecture: ${ARCH_error}"
+		)
+	endif()
 endif()
+
+string(TOLOWER "${MODERN_BPF_TARGET_ARCH}" MODERN_BPF_TARGET_ARCH)
+if(MODERN_BPF_TARGET_ARCH STREQUAL "x86_64")
+	set(ARCH x86)
+elseif(MODERN_BPF_TARGET_ARCH STREQUAL "aarch64")
+	set(ARCH arm64)
+elseif(MODERN_BPF_TARGET_ARCH STREQUAL "ppc64le")
+	set(ARCH powerpc)
+elseif(MODERN_BPF_TARGET_ARCH MATCHES "^mips")
+	set(ARCH mips)
+elseif(MODERN_BPF_TARGET_ARCH STREQUAL "s390x")
+	set(ARCH s390)
+else()
+	set(ARCH "${MODERN_BPF_TARGET_ARCH}")
+endif()
+message(STATUS "${MODERN_BPF_LOG_PREFIX} Target arch: ${ARCH}")
 
 # ##################################################################################################
 # Set includes and compilation flags
@@ -260,11 +270,47 @@ file(GLOB_RECURSE BPF_C_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.bp
 # Generate the events dimensions file generator executable.
 # ##################################################################################################
 
-add_executable(
-	events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
-)
-target_link_libraries(events_dimensions_generator PRIVATE scap_event_schema)
-add_dependencies(events_dimensions_generator scap_event_schema)
+set(EVENTS_DIMENSIONS_GENERATOR ${CMAKE_CURRENT_BINARY_DIR}/events_dimensions_generator)
+if(CMAKE_CROSSCOMPILING)
+	find_program(HOST_CC NAMES cc gcc clang REQUIRED)
+	find_program(HOST_CXX NAMES c++ g++ clang++ REQUIRED)
+
+	set(EVENTS_DIMENSIONS_GENERATOR_DIR
+		${CMAKE_CURRENT_BINARY_DIR}/events_dimensions_generator_host
+	)
+	set(EVENTS_DIMENSIONS_GENERATOR ${EVENTS_DIMENSIONS_GENERATOR_DIR}/events_dimensions_generator)
+
+	add_custom_command(
+		OUTPUT ${EVENTS_DIMENSIONS_GENERATOR}
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${EVENTS_DIMENSIONS_GENERATOR_DIR}
+		COMMAND ${HOST_CC} -I${LIBS_DIR} -c ${LIBS_DIR}/driver/event_table.c -o
+				${EVENTS_DIMENSIONS_GENERATOR_DIR}/event_table.o
+		COMMAND ${HOST_CC} -I${LIBS_DIR} -c ${LIBS_DIR}/driver/flags_table.c -o
+				${EVENTS_DIMENSIONS_GENERATOR_DIR}/flags_table.o
+		COMMAND ${HOST_CC} -I${LIBS_DIR} -c ${LIBS_DIR}/driver/dynamic_params_table.c -o
+				${EVENTS_DIMENSIONS_GENERATOR_DIR}/dynamic_params_table.o
+		COMMAND
+			${HOST_CXX} -I${LIBS_DIR}
+			${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
+			${EVENTS_DIMENSIONS_GENERATOR_DIR}/event_table.o
+			${EVENTS_DIMENSIONS_GENERATOR_DIR}/flags_table.o
+			${EVENTS_DIMENSIONS_GENERATOR_DIR}/dynamic_params_table.o -o
+			${EVENTS_DIMENSIONS_GENERATOR}
+		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
+				${LIBS_DIR}/driver/event_table.c
+				${LIBS_DIR}/driver/flags_table.c
+				${LIBS_DIR}/driver/dynamic_params_table.c
+				${LIBS_DIR}/driver/ppm_events_public.h
+		VERBATIM
+	)
+	add_custom_target(events_dimensions_generator DEPENDS ${EVENTS_DIMENSIONS_GENERATOR})
+else()
+	add_executable(
+		events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
+	)
+	target_link_libraries(events_dimensions_generator PRIVATE scap_event_schema)
+	add_dependencies(events_dimensions_generator scap_event_schema)
+endif()
 
 # ##################################################################################################
 # Generate the events dimensions file.
@@ -273,7 +319,7 @@ add_dependencies(events_dimensions_generator scap_event_schema)
 set(BPF_EVENTS_DIMENSIONS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/definitions/events_dimensions.h)
 add_custom_command(
 	OUTPUT ${BPF_EVENTS_DIMENSIONS_FILE}
-	COMMAND events_dimensions_generator ${BPF_EVENTS_DIMENSIONS_FILE}
+	COMMAND ${EVENTS_DIMENSIONS_GENERATOR} ${BPF_EVENTS_DIMENSIONS_FILE}
 	VERBATIM
 	DEPENDS events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/../event_table.c
 	COMMENT

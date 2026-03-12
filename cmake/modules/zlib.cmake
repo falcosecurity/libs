@@ -15,6 +15,8 @@
 
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
+include(ExternalProjectToolchain)
+
 if(ZLIB_INCLUDE)
 	# we already have zlib
 elseif(NOT USE_BUNDLED_ZLIB)
@@ -65,14 +67,15 @@ else()
 				set(ZLIB_CONFIGURE_FLAGS "--static")
 			endif()
 			set(ZLIB_LIB "${ZLIB_SRC}/libz${ZLIB_LIB_SUFFIX}")
+			falcosecurity_external_project_env(ZLIB_EXTERNAL_PROJECT_ENV)
 			ExternalProject_Add(
 				zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
 				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
 				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
-				CONFIGURE_COMMAND env "CFLAGS=${ZLIB_CFLAGS}" ./configure --prefix=${ZLIB_SRC}
-								  ${ZLIB_CONFIGURE_FLAGS}
-				BUILD_COMMAND make
+				CONFIGURE_COMMAND ${ZLIB_EXTERNAL_PROJECT_ENV} "CFLAGS=${ZLIB_CFLAGS}" ./configure
+								  --prefix=${ZLIB_SRC} ${ZLIB_CONFIGURE_FLAGS}
+				BUILD_COMMAND ${ZLIB_EXTERNAL_PROJECT_ENV} make
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
 				INSTALL_COMMAND ""

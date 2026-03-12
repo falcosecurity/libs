@@ -15,6 +15,8 @@
 
 option(USE_BUNDLED_TBB "Enable building of the bundled tbb" ${USE_BUNDLED_DEPS})
 
+include(ExternalProjectToolchain)
+
 if(TBB_INCLUDE_DIR)
 	# we already have tbb
 elseif(NOT USE_BUNDLED_TBB)
@@ -68,10 +70,14 @@ else()
 			# https://github.com/oneapi-src/oneTBB/issues/843#issuecomment-1152646035
 			set(TBB_FLAGS "-Wno-error=stringop-overflow")
 		endif()
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+			set(TBB_FLAGS "${TBB_FLAGS} -mrtm -mwaitpkg")
+		endif()
 		if(EMSCRIPTEN)
 			set(TBB_FLAGS "${TBB_FLAGS} -Wno-unused-command-line-argument")
 			set(TBB_EMSCRIPTEN "ON")
 		endif()
+		falcosecurity_external_project_cmake_args(TBB_EXTERNAL_PROJECT_CMAKE_ARGS)
 
 		if(NOT WIN32)
 			ExternalProject_Add(
@@ -86,11 +92,10 @@ else()
 						   -DTBB_OUTPUT_DIR_BASE=lib
 						   -DCMAKE_CXX_FLAGS=${TBB_FLAGS}
 						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-						   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-						   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
 						   -DEMSCRIPTEN=${TBB_EMSCRIPTEN}
 						   -DTBB_FILE_TRIM=Off
 						   -DTBB_INSTALL=Off
+						   ${TBB_EXTERNAL_PROJECT_CMAKE_ARGS}
 				BUILD_BYPRODUCTS ${TBB_LIB}
 				INSTALL_COMMAND ""
 			)
@@ -114,6 +119,7 @@ else()
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
 							   -DTBB_FILE_TRIM=Off
 							   -DTBB_INSTALL=Off
+							   ${TBB_EXTERNAL_PROJECT_CMAKE_ARGS}
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND ""
 				)
@@ -135,6 +141,7 @@ else()
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
 							   -DTBB_FILE_TRIM=Off
 							   -DTBB_INSTALL=Off
+							   ${TBB_EXTERNAL_PROJECT_CMAKE_ARGS}
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND ""
 				)
