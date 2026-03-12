@@ -47,7 +47,7 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	auxmap__store_iovec_size_param(auxmap, msg_iov, msg_iovlen);
 
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen_port_range(&snaplen, (int32_t)data->fd);
+	apply_dynamic_snaplen_port_range(&snaplen, (int32_t)data->fd, msg_name);
 	if(msg_len > 0 && snaplen > msg_len) {
 		snaplen = msg_len;
 	}

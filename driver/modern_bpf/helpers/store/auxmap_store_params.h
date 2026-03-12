@@ -1821,10 +1821,14 @@ static __noinline void auxmap__store_socktuple_param_noinline(struct auxiliary_m
  * over the 512-byte verifier limit. This version only contains the code paths
  * reachable when only_port_range is true, keeping the frame small enough.
  *
- * @param snaplen   pointer to the current snaplen value (may be increased)
- * @param socket_fd the socket file descriptor (first syscall arg)
+ * @param snaplen    pointer to the current snaplen value (may be increased)
+ * @param socket_fd  the socket file descriptor (first syscall arg)
+ * @param sockaddr   userspace sockaddr from the message header (may be NULL);
+ *                   used as fallback for port_remote on unconnected sockets
  */
-static __noinline void apply_dynamic_snaplen_port_range(uint16_t *snaplen, int32_t socket_fd) {
+static __noinline void apply_dynamic_snaplen_port_range(uint16_t *snaplen,
+                                                        int32_t socket_fd,
+                                                        struct sockaddr *sockaddr) {
 	if(!maps__get_do_dynamic_snaplen()) {
 		return;
 	}
@@ -1853,6 +1857,18 @@ static __noinline void apply_dynamic_snaplen_port_range(uint16_t *snaplen, int32
 		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
 		port_local = ntohs(port_local);
 		port_remote = ntohs(port_remote);
+
+		/* For unconnected sockets (e.g. UDP sendto) skc_dport is 0;
+		 * fall back to the per-message sockaddr. sin_port / sin6_port
+		 * are both at offset 2 so a single 2-byte read suffices.
+		 */
+		if(port_remote == 0 && sockaddr != NULL) {
+			__be16 sa_port = 0;
+			bpf_probe_read_user(&sa_port,
+			                    sizeof(sa_port),
+			                    (void *)sockaddr + offsetof(struct sockaddr_in, sin_port));
+			port_remote = ntohs(sa_port);
+		}
 	}
 
 	uint16_t min_port = maps__get_fullcapture_port_range_start();
