@@ -270,11 +270,10 @@ file(GLOB_RECURSE BPF_C_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.bp
 # Generate the events dimensions file generator executable.
 # ##################################################################################################
 
-set(
-	MODERN_BPF_EVENTS_DIMENSIONS_GENERATOR
+set(MODERN_BPF_EVENTS_DIMENSIONS_GENERATOR
 	""
 	CACHE FILEPATH
-	"Path to a host executable used to generate modern_bpf/definitions/events_dimensions.h"
+		  "Path to a host executable used to generate modern_bpf/definitions/events_dimensions.h"
 )
 
 set(EVENTS_DIMENSIONS_GENERATOR_DEPENDS)
@@ -285,12 +284,8 @@ elseif(CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
 	set(EVENTS_DIMENSIONS_GENERATOR_DIR
 		${CMAKE_CURRENT_BINARY_DIR}/events_dimensions_generator_host
 	)
-	set(EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR
-		${EVENTS_DIMENSIONS_GENERATOR_DIR}/build
-	)
-	set(EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR
-		${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator
-	)
+	set(EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR ${EVENTS_DIMENSIONS_GENERATOR_DIR}/build)
+	set(EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator)
 	set(EVENTS_DIMENSIONS_GENERATOR ${EVENTS_DIMENSIONS_GENERATOR_DIR}/events_dimensions_generator)
 
 	add_custom_command(
@@ -300,9 +295,10 @@ elseif(CMAKE_CROSSCOMPILING AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
 				${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR} -DLIBS_DIR=${LIBS_DIR}
 		COMMAND ${CMAKE_COMMAND} --build ${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR} --target
 				events_dimensions_generator
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR}/events_dimensions_generator
-				${EVENTS_DIMENSIONS_GENERATOR}
+		COMMAND
+			${CMAKE_COMMAND} -E copy_if_different
+			${EVENTS_DIMENSIONS_GENERATOR_BUILD_DIR}/events_dimensions_generator
+			${EVENTS_DIMENSIONS_GENERATOR}
 		DEPENDS ${EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR}/CMakeLists.txt
 				${EVENTS_DIMENSIONS_GENERATOR_SOURCE_DIR}/generator.cpp
 				${LIBS_DIR}/driver/event_table.c
