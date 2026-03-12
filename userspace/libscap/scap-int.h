@@ -29,6 +29,19 @@ limitations under the License.
 #include <libscap/scap_assert.h>
 #include <libscap/scap_log.h>
 
+/* TODO: the following ifdef must be replaced with a solution that doesn't use the entire std
+ *   namespace for C++ */
+#ifdef __cplusplus
+#include <atomic>
+using namespace std;
+#elif defined(_MSC_VER)
+/* MSVC C: C11 atomics are not enabled in all toolchains; use intrinsics fallback so we never
+ * pull in <stdatomic.h> and hit "C atomic support is not enabled". */
+#include <libscap/scap_stdatomic.h>
+#else
+#include <stdatomic.h>
+#endif
+
 #ifdef __linux__
 #include <libscap/linux/scap_cgroup.h>
 #endif  // __linux__
@@ -46,7 +59,7 @@ struct scap {
 
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
-	uint64_t m_evtcnt;
+	atomic_uint_fast64_t m_evtcnt;
 
 	// Function which may be called to log an event
 	falcosecurity_log_fn m_log_fn;
