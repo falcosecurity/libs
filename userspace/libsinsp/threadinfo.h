@@ -76,14 +76,12 @@ struct sinsp_threadinfo_ctor_params {
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry {
+class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct {
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
 
 	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
 	~sinsp_threadinfo() override;
-
-	libsinsp::state::extensible_struct::field_infos static_fields() const override;
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -506,7 +504,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static extensible_struct::field_infos get_static_fields();
+	static libsinsp::state::static_field_infos get_static_fields();
 
 protected:
 	// Parameters provided at thread info construction phase.

@@ -118,7 +118,9 @@ sinsp_thread_manager::sinsp_thread_manager(
         scap_t* const& scap_handle,
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields,
         const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields):
-        built_in_table{s_thread_table_name, &s_threadinfo_static_fields, thread_manager_dyn_fields},
+        extensible_table{s_thread_table_name,
+                         &s_threadinfo_static_fields,
+                         thread_manager_dyn_fields},
         m_threadinfo_factory{threadinfo_factory},
         m_observer{observer},
         m_timestamper{timestamper},
@@ -249,10 +251,6 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 
 	if(must_create_thread_dependencies) {
 		create_thread_dependencies(tinfo_shared_ptr);
-	}
-
-	if(tinfo_shared_ptr->dynamic_fields() != dynamic_fields()) {
-		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
 	}
 
 	if(tinfo_shared_ptr->get_fdtable().dynamic_fields() != m_fdtable_dyn_fields) {

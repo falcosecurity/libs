@@ -36,7 +36,7 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 }
 
 sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
-        table_entry(params->thread_manager_dyn_fields),
+        extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
         m_fdtable{params->fdtable_factory.create()},
         m_main_fdtable(m_fdtable.table_ptr()),
@@ -46,18 +46,14 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
 	init();
 }
 
-libsinsp::state::extensible_struct::field_infos sinsp_threadinfo::static_fields() const {
-	return get_static_fields();
-}
-
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
-libsinsp::state::extensible_struct::field_infos
+libsinsp::state::static_field_infos
 sinsp_threadinfo::get_static_fields() {
 	using self = sinsp_threadinfo;
 
-	libsinsp::state::extensible_struct::field_infos ret;
+	libsinsp::state::static_field_infos ret;
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
 	DEFINE_STATIC_FIELD(ret, self, m_tid, "tid");
 	DEFINE_STATIC_FIELD(ret, self, m_pid, "pid");
@@ -71,7 +67,7 @@ sinsp_threadinfo::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
-	const auto table_ptr_offset = libsinsp::state::built_in_table<uint64_t>::table_ptr_offset();
+	const auto table_ptr_offset = libsinsp::state::extensible_table<uint64_t>::table_ptr_offset();
 	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
 	        OFFSETOF_STATIC_FIELD(self, m_args_table_adapter) + table_ptr_offset,

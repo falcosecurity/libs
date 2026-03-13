@@ -120,20 +120,16 @@ const char* sinsp_fdinfo::get_typestring() const {
 }
 
 sinsp_fdinfo::sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields):
-        table_entry(dyn_fields) {}
-
-libsinsp::state::extensible_struct::field_infos sinsp_fdinfo::static_fields() const {
-	return get_static_fields();
-}
+        extensible_struct(dyn_fields) {}
 
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
-libsinsp::state::extensible_struct::field_infos
+libsinsp::state::static_field_infos
 sinsp_fdinfo::get_static_fields() {
 	using self = sinsp_fdinfo;
 
-	libsinsp::state::extensible_struct::field_infos ret;
+	libsinsp::state::static_field_infos ret;
 
 	// the m_type is weird because it's a C-defined non-scoped enum, meaning that it
 	// should be represented by default as an integer of word-size (e.g. uint32_t in

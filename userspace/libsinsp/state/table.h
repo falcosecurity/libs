@@ -30,14 +30,6 @@ namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
 
-/**
- * @brief Base class for entries of a state table.
- */
-struct table_entry : public extensible_struct {
-	explicit table_entry(const std::shared_ptr<dynamic_field_infos>& dyn_fields):
-	        extensible_struct(dyn_fields) {}
-};
-
 template<typename KeyType>
 class table;
 
@@ -192,21 +184,10 @@ public:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
-	inline built_in_table(
-	        const std::string& name,
-	        const extensible_struct::field_infos* static_fields,
-	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name),
-	        m_static_fields(static_fields),
-	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
-	                                                   : std::make_shared<dynamic_field_infos>()) {}
 	inline built_in_table(const std::string& name):
 	        table<KeyType>::table(),
 	        m_this_ptr(this),
-	        m_name(name),
-	        m_dynamic_fields(std::make_shared<dynamic_field_infos>()) {}
+	        m_name(name) {}
 
 	/**
 	 * @brief Returns a pointer to the area of memory in which this table
@@ -229,11 +210,31 @@ public:
 	const char* name() const override { return m_name.c_str(); }
 
 	/**
-	 * @brief Returns the fields metadata list for the static fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table.
+	 * @brief Returns a list of the fields present in the table, with their
+	 * name and type.
+	 *
+	 * @param out Output vector to be filled with the field info of all the
+	 * fields present in the table.
 	 */
-	virtual const extensible_struct::field_infos* static_fields() const { return m_static_fields; }
+	virtual void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) = 0;
+
+	/**
+	 * @brief Returns an accessor for the field with the given name and type.
+	 *
+	 * @param name Name of the field to be retrieved.
+	 * @param data_type Type of the field to be retrieved.
+	 * @return The accessor for * the requested field.
+	 */
+	virtual std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type) = 0;
+
+	/**
+	 * @brief Adds a new field to the table with the given name and type.
+	 *
+	 * @param name Name of the field to be added.
+	 * @param data_type Type of the field to be added.
+	 * @return The accessor for the newly-added field.
+	 */
+	virtual std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type) = 0;
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -300,31 +301,6 @@ public:
 	 */
 	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
-	/**
-	 * @brief Returns the fields metadata list for the dynamic fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table. The returned metadata list can
-	 * be expended at runtime by adding new dynamic fields, which will then
-	 * be allocated and accessible for all the present and future entries
-	 * present in the table.
-	 */
-	virtual const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
-		return m_dynamic_fields;
-	}
-
-	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& dynf) {
-		if(m_dynamic_fields.get() == dynf.get()) {
-			return;
-		}
-		if(!dynf) {
-			throw sinsp_exception("null definitions passed to set_dynamic_fields");
-		}
-		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
-			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
-		}
-		m_dynamic_fields = dynf;
-	}
-
 	uint64_t get_size(sinsp_table_owner* owner) override;
 
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
@@ -372,9 +348,69 @@ public:
 private:
 	const base_table* m_this_ptr;
 	std::string m_name;
-	const extensible_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, accessor*> m_field_accessors;
+};
+
+template<typename KeyType>
+class extensible_table : public built_in_table<KeyType> {
+public:
+	inline extensible_table(
+	        const std::string& name,
+	        const static_field_infos* static_fields,
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
+	        built_in_table<KeyType>(name),
+	        m_static_fields(static_fields),
+	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
+	                                                   : std::make_shared<dynamic_field_infos>()) {}
+
+	inline extensible_table(const std::string& name):
+	        built_in_table<KeyType>(name),
+	        m_dynamic_fields(std::make_shared<dynamic_field_infos>()) {}
+
+	/**
+	 * @brief Returns the fields metadata list for the static fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table.
+	 */
+	virtual const static_field_infos* static_fields() const { return m_static_fields; }
+
+	/**
+	 * @brief Returns the fields metadata list for the dynamic fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table. The returned metadata list can
+	 * be expended at runtime by adding new dynamic fields, which will then
+	 * be allocated and accessible for all the present and future entries
+	 * present in the table.
+	 */
+	virtual const std::shared_ptr<dynamic_field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
+
+	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_field_infos>& dynf) {
+		if(m_dynamic_fields.get() == dynf.get()) {
+			return;
+		}
+		if(!dynf) {
+			throw sinsp_exception("null definitions passed to set_dynamic_fields");
+		}
+		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
+			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
+		}
+		m_dynamic_fields = dynf;
+	}
+
+	using built_in_table<KeyType>::list_fields;
+	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override;
+
+	using built_in_table<KeyType>::get_field;
+	std::unique_ptr<accessor> get_field(const char* name, const typeinfo& data_type) override;
+
+	using built_in_table<KeyType>::add_field;
+	std::unique_ptr<accessor> add_field(const char* name, const typeinfo& data_type) override;
+
+private:
+	const static_field_infos* m_static_fields;
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 };
 

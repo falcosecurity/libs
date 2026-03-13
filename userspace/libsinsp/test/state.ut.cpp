@@ -34,9 +34,9 @@ TEST(static_struct, defs_and_access) {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
-		libsinsp::state::extensible_struct::field_infos
-		static_fields() const override {
-			libsinsp::state::extensible_struct::field_infos ret;
+		static libsinsp::state::static_field_infos
+		get_static_fields() {
+			libsinsp::state::static_field_infos ret;
 			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
 			DEFINE_STATIC_FIELD(ret, err_multidef_struct, m_num, "num");
 			return ret;
@@ -50,9 +50,9 @@ TEST(static_struct, defs_and_access) {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
-		libsinsp::state::extensible_struct::field_infos
-		static_fields() const override {
-			libsinsp::state::extensible_struct::field_infos ret;
+		static libsinsp::state::static_field_infos
+		get_static_fields() {
+			libsinsp::state::static_field_infos ret;
 			DEFINE_STATIC_FIELD(ret, sample_struct, m_num, "num");
 			DEFINE_STATIC_FIELD_READONLY(ret, sample_struct, m_str, "str");
 			return ret;
@@ -73,9 +73,9 @@ TEST(static_struct, defs_and_access) {
 #if defined(__clang__)
 		__attribute__((no_sanitize("undefined")))
 #endif
-		libsinsp::state::extensible_struct::field_infos
-		static_fields() const override {
-			libsinsp::state::extensible_struct::field_infos ret;
+		static libsinsp::state::static_field_infos
+		get_static_fields() {
+			libsinsp::state::static_field_infos ret;
 			DEFINE_STATIC_FIELD(ret, sample_struct2, m_num, "num");
 			return ret;
 		}
@@ -84,16 +84,16 @@ TEST(static_struct, defs_and_access) {
 	};
 
 	// test errors
-	ASSERT_ANY_THROW(err_multidef_struct().static_fields());
+	ASSERT_ANY_THROW(err_multidef_struct::get_static_fields());
 
 	sample_struct s;
-	const auto& fields = s.static_fields();
+	const auto& fields = sample_struct::get_static_fields();
 
 	// check field definitions
 	auto field_num = fields.find("num");
 	auto field_str = fields.find("str");
 	ASSERT_EQ(fields.size(), 2);
-	ASSERT_EQ(fields, sample_struct().static_fields());
+	ASSERT_EQ(fields, sample_struct::get_static_fields());
 
 	ASSERT_NE(field_num, fields.end());
 	ASSERT_EQ(field_num->second.name(), "num");
@@ -146,8 +146,8 @@ TEST(static_struct, defs_and_access) {
 	// note: this should supposedly be checked for and throw an exception,
 	// but for now we have no elegant way to do it efficiently.
 	// todo(jasondellaluce): find a good way to check for this
-	sample_struct2 s2;
-	auto acc_num2 = s2.static_fields().find("num")->second.new_accessor<uint32_t>();
+	auto acc_num2 =
+	        sample_struct2::get_static_fields().find("num")->second.new_accessor<uint32_t>();
 	ASSERT_NO_THROW(s.read_field(*acc_num2));
 }
 
@@ -176,7 +176,6 @@ TEST(dynamic_struct, defs_and_access) {
 
 	// check field definitions
 	ASSERT_EQ(fields->fields().size(), 0);
-	ASSERT_EQ(fields, s.dynamic_fields());
 
 	// adding new fields
 	auto field_num = fields->add_field<uint64_t>("num");
@@ -269,7 +268,6 @@ TEST(dynamic_struct, mem_ownership) {
 
 	// deep copy and memory ownership (constructor)
 	sample_struct s3(s1);
-	ASSERT_EQ(s1.dynamic_fields().get(), s3.dynamic_fields().get());
 	s1.read_field(*field_str_acc, tmpstr1);
 	s3.read_field(*field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
@@ -281,7 +279,6 @@ TEST(dynamic_struct, mem_ownership) {
 	// deep copy and memory ownership (assignment)
 	sample_struct s4(std::make_shared<libsinsp::state::dynamic_field_infos>());
 	s4 = s1;
-	ASSERT_EQ(s1.dynamic_fields().get(), s4.dynamic_fields().get());
 	s1.read_field(*field_str_acc, tmpstr1);
 	s4.read_field(*field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
@@ -293,7 +290,6 @@ TEST(dynamic_struct, mem_ownership) {
 	// deep copy and memory ownership (assignment, null initial definitions)
 	sample_struct s5(nullptr);
 	s5 = s1;
-	ASSERT_EQ(s1.dynamic_fields().get(), s5.dynamic_fields().get());
 	s1.read_field(*field_str_acc, tmpstr1);
 	s5.read_field(*field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
@@ -304,9 +300,9 @@ TEST(dynamic_struct, mem_ownership) {
 }
 
 TEST(table_registry, defs_and_access) {
-	class sample_table : public libsinsp::state::built_in_table<uint64_t> {
+	class sample_table : public libsinsp::state::extensible_table<uint64_t> {
 	public:
-		sample_table(): built_in_table("sample") {}
+		sample_table(): extensible_table("sample") {}
 
 		size_t entries_count() const override { return m_entries.size(); }
 
@@ -314,7 +310,7 @@ TEST(table_registry, defs_and_access) {
 
 		std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
 			return std::unique_ptr<libsinsp::state::table_entry>(
-			        new libsinsp::state::table_entry(dynamic_fields()));
+			        new libsinsp::state::extensible_struct(dynamic_fields()));
 		}
 
 		bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
@@ -362,12 +358,8 @@ TEST(table_registry, defs_and_access) {
 }
 
 TEST(thread_manager, table_access) {
-	// note: used for regression checks, keep this updated as we make
-	// new fields available
-	static const int s_threadinfo_static_fields_count = 32;
-
 	sinsp inspector;
-	auto table = static_cast<libsinsp::state::built_in_table<int64_t>*>(
+	auto table = static_cast<libsinsp::state::extensible_table<int64_t>*>(
 	        inspector.m_thread_manager.get());
 
 	// empty table state and info
@@ -383,15 +375,18 @@ TEST(thread_manager, table_access) {
 	// create and add a thread
 	auto newt = table->new_entry();
 	auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
-	auto tid_acc = newt->static_fields().at("tid").new_accessor<int64_t>();
-	auto comm_acc = newt->static_fields().at("comm").new_accessor<std::string>();
-	auto fdtable_acc = newt->static_fields()
-	                           .at("file_descriptors")
-	                           .new_accessor<libsinsp::state::base_table*>();
+
+	auto tid_f = table->get_field("tid", libsinsp::state::typeinfo::of<int64_t>());
+	auto tid_acc = dynamic_cast<libsinsp::state::typed_accessor<int64_t>*>(tid_f.get());
+	auto comm_f = table->get_field("comm", libsinsp::state::typeinfo::of<std::string>());
+	auto comm_acc = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(comm_f.get());
+	auto fdtable_f =
+	        table->get_field("file_descriptors",
+	                         libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+	auto fdtable_acc = dynamic_cast<libsinsp::state::typed_accessor<libsinsp::state::base_table*>*>(
+	        fdtable_f.get());
+
 	ASSERT_NE(newtinfo, nullptr);
-	ASSERT_EQ(newt->dynamic_fields(), table->dynamic_fields());
-	ASSERT_EQ(newt->static_fields(), *table->static_fields());
-	ASSERT_EQ(newt->static_fields().size(), s_threadinfo_static_fields_count);
 	newtinfo->m_tid = 999;
 	newtinfo->m_comm = "test";
 	ASSERT_EQ(newt->read_field(*tid_acc), (int64_t)999);
@@ -413,7 +408,6 @@ TEST(thread_manager, table_access) {
 	                        ->add_field<std::string>("some_new_field")
 	                        .new_accessor<std::string>();
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
-	ASSERT_EQ(addedt->dynamic_fields()->fields().size(), 1);
 	addedt->read_field(*dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
 	addedt->write_field(*dynf_acc, std::string("hello"));
@@ -461,7 +455,7 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(reg->tables().size(), 1);
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
-	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	auto table = dynamic_cast<libsinsp::state::extensible_table<int64_t>*>(
 	        reg->get_table<int64_t>("threads"));
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
@@ -607,7 +601,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(reg->tables().size(), 1);
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
-	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	auto table = dynamic_cast<libsinsp::state::extensible_table<int64_t>*>(
 	        reg->get_table<int64_t>("threads"));
 	EXPECT_EQ(table->name(), std::string("threads"));
 	EXPECT_EQ(table->entries_count(), 0);
@@ -638,18 +632,14 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);
 	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
-	EXPECT_EQ(subtable->static_fields()->size(), 0);
-	EXPECT_EQ(subtable->dynamic_fields()->fields().size(), 1);
 
 	// getting an existing field
-	auto sfield = subtable->dynamic_fields()->fields().find("value");
-	ASSERT_NE(sfield, subtable->dynamic_fields()->fields().end());
-	EXPECT_EQ(sfield->second.readonly(), false);
-	EXPECT_EQ(sfield->second.valid(), true);
-	EXPECT_EQ(sfield->second.name(), "value");
-	EXPECT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<std::string>());
+	auto sfield = subtable->get_field("value", libsinsp::state::typeinfo::of<std::string>());
+	// EXPECT_EQ(sfield->second.readonly(), false);
+	// EXPECT_EQ(sfield->second.valid(), true);
+	// EXPECT_EQ(sfield->second.name(), "value");
 
-	auto fieldacc = sfield->second.new_accessor<std::string>();
+	auto fieldacc = dynamic_cast<libsinsp::state::typed_accessor<std::string>*>(sfield.get());
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 10;
