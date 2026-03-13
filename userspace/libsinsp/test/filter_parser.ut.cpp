@@ -104,7 +104,7 @@ TEST(parser, supported_operators) {
 TEST(parser, supported_field_transformers) {
 	std::string expected_val = "val";
 	std::vector<std::string> expected =
-	        {"tolower", "toupper", "b64", "basename", "len", "join", "concat"};
+	        {"tolower", "toupper", "b64", "basename", "len", "join", "concat", "getopt"};
 
 	auto actual = parser::supported_field_transformers();
 	ASSERT_EQ(actual.size(), expected.size());

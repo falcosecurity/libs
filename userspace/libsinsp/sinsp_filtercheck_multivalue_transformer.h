@@ -116,3 +116,21 @@ public:
 private:
 	std::string m_res;
 };
+
+// getopt
+class sinsp_filter_multivalue_transformer_getopt : public sinsp_filter_multivalue_transformer {
+public:
+	sinsp_filter_multivalue_transformer_getopt(
+	        std::vector<std::unique_ptr<sinsp_filter_check>> args);
+	virtual ~sinsp_filter_multivalue_transformer_getopt();
+
+	std::string name() const;
+
+	virtual bool extract(sinsp_evt* evt,
+	                     std::vector<extract_value_t>& values,
+	                     bool sanitize_strings = true);
+
+private:
+	std::vector<std::string> m_result_storage;
+	storage_t m_storage;
+};
