@@ -35,14 +35,7 @@ sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
 }
 
 inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
-	std::unique_lock lock(m_mutex);
-
-	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd) {
-		if(m_params->m_sinsp_stats_v2) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_cached_fd_lookups();
-		}
-		return m_last_accessed_fdinfo;
-	}
+	std::shared_lock lock(m_mutex);
 
 	auto fdit = m_table.find(fd);
 
@@ -51,16 +44,13 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
 		}
 		return nullptr;
-	} else {
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
-			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_noncached_fd_lookups();
-		}
-
-		m_last_accessed_fd = fd;
-		m_last_accessed_fdinfo = fdit->second;
-		lookup_device(*m_last_accessed_fdinfo);
-		return m_last_accessed_fdinfo;
 	}
+
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_noncached_fd_lookups();
+	}
+
+	return fdit->second;
 }
 
 inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
@@ -86,11 +76,14 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_added_fds();
 		}
 
-		return m_table.emplace(fd, std::move(fdinfo)).first->second;
+		auto& ref = m_table.emplace(fd, std::move(fdinfo)).first->second;
+		lookup_device(*ref);
+		return ref;
 	}
 
 	m_last_accessed_fd = -1;
 	it->second = std::move(fdinfo);
+	lookup_device(*it->second);
 	return it->second;
 }
 
