@@ -25,6 +25,10 @@ limitations under the License.
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_mode.h>
 
+#ifdef LIBSINSP_USE_FOLLY
+#include <folly/concurrency/ConcurrentHashMap.h>
+#endif
+
 // Forward declare sinsp_stats_v2 to avoid including metrics_collector.h here.
 class sinsp_stats_v2;
 
@@ -62,22 +66,38 @@ public:
 	std::shared_ptr<sinsp_fdinfo> add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_table.cbegin(); it != m_table.cend(); ++it) {
+			if(!callback(it->first, *it->second)) {
+				return false;
+			}
+		}
+#else
 		std::shared_lock lock(m_mutex);
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
 			}
 		}
+#endif
 		return true;
 	}
 
 	inline bool loop(const fdtable_visitor_t callback) {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
+			if(!callback(it->first, *it->second)) {
+				return false;
+			}
+		}
+#else
 		std::shared_lock lock(m_mutex);
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
 			}
 		}
+#endif
 		return true;
 	}
 
@@ -125,10 +145,12 @@ public:
 
 	bool erase_entry(const int64_t& key) override { return erase(key); }
 
+#ifndef LIBSINSP_USE_FOLLY
 	// Lock order: when both fdtable (m_mutex) and fdinfo (sinsp_fdinfo::m_mutex) are needed,
 	// always take fdtable first, then fdinfo. Violating this can cause lock-order inversion
 	// and deadlock (see set_net_role_by_guessing in fdinfo.cpp).
 	mutable std::shared_mutex m_mutex;
+#endif
 
 private:
 	// Parameters provided at fdtable construction phase.
@@ -138,7 +160,11 @@ private:
 	// ctor_params object in sinsp constructor.
 	const std::shared_ptr<ctor_params> m_params;
 
+#ifdef LIBSINSP_USE_FOLLY
+	folly::ConcurrentHashMap<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+#else
 	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+#endif
 
 	//
 	// Simple fd cache

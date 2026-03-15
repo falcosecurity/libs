@@ -35,7 +35,9 @@ sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
 }
 
 inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
+#ifndef LIBSINSP_USE_FOLLY
 	std::shared_lock lock(m_mutex);
+#endif
 
 	auto fdit = m_table.find(fd);
 
@@ -56,14 +58,33 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
 inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
         int64_t fd,
         std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
+#ifndef LIBSINSP_USE_FOLLY
 	std::unique_lock lock(m_mutex);
+#endif
 
 	if(fdinfo->dynamic_fields() != dynamic_fields()) {
 		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
 	}
 
 	fdinfo->m_fd = fd;
+	lookup_device(*fdinfo);
 
+#ifdef LIBSINSP_USE_FOLLY
+	if(m_table.size() >= m_params->m_max_table_size) {
+		auto it = m_table.find(fd);
+		if(it == m_table.end()) {
+			return nullptr;
+		}
+	}
+
+	m_last_accessed_fd = -1;
+
+	auto [it, inserted] = m_table.insert_or_assign(fd, std::move(fdinfo));
+	if(inserted && m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_added_fds();
+	}
+	return it->second;
+#else
 	const auto it = m_table.find(fd);
 
 	if(it == m_table.end()) {
@@ -77,24 +98,40 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 		}
 
 		auto& ref = m_table.emplace(fd, std::move(fdinfo)).first->second;
-		lookup_device(*ref);
 		return ref;
 	}
 
 	m_last_accessed_fd = -1;
 	it->second = std::move(fdinfo);
-	lookup_device(*it->second);
 	return it->second;
+#endif
 }
 
 bool sinsp_fdtable::erase(int64_t fd) {
+#ifndef LIBSINSP_USE_FOLLY
 	std::unique_lock lock(m_mutex);
-
-	auto fdit = m_table.find(fd);
+#endif
 
 	if(fd == m_last_accessed_fd) {
 		m_last_accessed_fd = -1;
 	}
+
+#ifdef LIBSINSP_USE_FOLLY
+	auto erased = m_table.erase(fd);
+	if(erased == 0) {
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
+		}
+		return false;
+	}
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		auto& c = m_params->m_sinsp_stats_v2->get_thread_counters();
+		c.inc_n_noncached_fd_lookups();
+		c.inc_n_removed_fds();
+	}
+	return true;
+#else
+	auto fdit = m_table.find(fd);
 
 	if(fdit == m_table.end()) {
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
@@ -110,21 +147,25 @@ bool sinsp_fdtable::erase(int64_t fd) {
 		}
 		return true;
 	}
+#endif
 }
 
 void sinsp_fdtable::clear() {
+#ifndef LIBSINSP_USE_FOLLY
 	std::unique_lock lock(m_mutex);
+#endif
 	m_table.clear();
 	m_last_accessed_fd = -1;
 }
 
 size_t sinsp_fdtable::size() const {
+#ifndef LIBSINSP_USE_FOLLY
 	std::shared_lock lock(m_mutex);
+#endif
 	return m_table.size();
 }
 
 void sinsp_fdtable::reset_cache() {
-	std::unique_lock lock(m_mutex);
 	m_last_accessed_fd = -1;
 }
 
