@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ bool sinsp_dumper::is_open() const {
 	return (m_dumper != NULL);
 }
 
-bool sinsp_dumper::written_events() const {
+uint64_t sinsp_dumper::written_events() const {
 	return m_nevts;
 }
 
