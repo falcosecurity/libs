@@ -17,6 +17,8 @@ limitations under the License.
 */
 
 #include "events_prog_table.h"
+#include "state.h"
+
 /*
  * For every exit event here we have the name of the corresponding bpf program.
  * We can have multiple names in case we need to check the right program
@@ -202,8 +204,7 @@ ttm_progs_t ttm_progs_table[TTM_MAX] = {
 };
 
 #ifdef BPF_ITERATOR_SUPPORT
-iter_prog_t iter_progs_table[ITER_PROG_MAX_TMP] = {
-        // todo(ekoops): delete this and add a proper entry as we add the first program.
-        [0] = {"dummy_entry", NULL},
+iter_prog_t iter_progs_table[ITER_PROG_MAX] = {
+        [ITER_PROG_DUMP_TASK] = {"dump_task", &g_state.is_tasks_dumping_supported},
 };
 #endif /* BPF_ITERATOR_SUPPORT */

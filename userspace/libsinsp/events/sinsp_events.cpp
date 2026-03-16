@@ -48,6 +48,12 @@ bool libsinsp::events::is_metaevent(ppm_event_code event_type) {
 	return (category & EC_METAEVENT);
 }
 
+bool libsinsp::events::is_iter_event(ppm_event_code event_type) {
+	ASSERT(event_type < PPM_EVENT_MAX);
+	ppm_event_category category = g_infotables.m_event_info[event_type].category;
+	return (category & EC_ITER);
+}
+
 bool libsinsp::events::is_unknown_event(ppm_event_code event_type) {
 	ASSERT(event_type < PPM_EVENT_MAX);
 	ppm_event_category category = g_infotables.m_event_info[event_type].category;

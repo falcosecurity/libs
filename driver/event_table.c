@@ -18,6 +18,7 @@ or GPL2.txt for full copies of the license.
  *   	- `EC_TRACEPOINT
  *   	- `EC_PLUGIN`
  *   	- `EC_METAEVENT`
+ *   	- `EC_ITER`
  *
  *    2. The lowest bits represent the syscall category to which the specific event belongs.
  *
@@ -2797,6 +2798,43 @@ const struct ppm_event_info g_event_info[] = {
                                      {{"res", PT_ERRNO, PF_DEC},
                                       {"rgid", PT_UID, PF_DEC},
                                       {"egid", PT_UID, PF_DEC}}},
+        [PPME_ITER_TASK_E] = {"task",
+                              EC_ITER | EC_PROCESS,
+                              EF_MODIFIES_STATE,
+                              32,
+                              {{"ppid", PT_PID32, PF_DEC},
+                               {"pgid", PT_PID32, PF_DEC},
+                               {"vpgid", PT_PID32, PF_DEC},
+                               {"sid", PT_PID32, PF_DEC},
+                               {"comm", PT_CHARBUF, PF_NA},
+                               {"argv", PT_CHARBUFARRAY, PF_NA},
+                               {"exepath", PT_FSPATH, PF_NA},
+                               {"flags", PT_FLAGS32, PF_HEX, execve_flags},
+                               {"env", PT_CHARBUFARRAY, PF_NA},
+                               {"cwd", PT_CHARBUF, PF_NA},
+                               {"fdlimit", PT_UINT64, PF_DEC},
+                               {"euid", PT_UID, PF_DEC},
+                               {"egid", PT_GID, PF_DEC},
+                               {"cap_permitted", PT_UINT64, PF_HEX},
+                               {"cap_effective", PT_UINT64, PF_HEX},
+                               {"cap_inheritable", PT_UINT64, PF_HEX},
+                               {"exe_ino_num", PT_UINT64, PF_DEC},
+                               {"exe_ino_ctime", PT_ABSTIME, PF_DEC},
+                               {"exe_ino_mtime", PT_ABSTIME, PF_DEC},
+                               {"vm_size", PT_UINT32, PF_DEC},
+                               {"vm_rss", PT_UINT32, PF_DEC},
+                               {"vm_swap", PT_UINT32, PF_DEC},
+                               {"pgft_maj", PT_UINT64, PF_DEC},
+                               {"pgft_min", PT_UINT64, PF_DEC},
+                               {"vtgid", PT_PID32, PF_DEC},
+                               {"vpid", PT_PID32, PF_DEC},
+                               {"pidns_init_start_ts", PT_UINT64, PF_DEC},
+                               {"cgroups", PT_CHARBUFARRAY, PF_NA},
+                               {"root", PT_FSPATH, PF_NA},
+                               {"start_time", PT_ABSTIME, PF_DEC},
+                               {"tty", PT_UINT32, PF_DEC},
+                               {"loginuid", PT_UID, PF_DEC}}},
+        [PPME_ITER_TASK_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
 };
 #pragma GCC diagnostic pop
 

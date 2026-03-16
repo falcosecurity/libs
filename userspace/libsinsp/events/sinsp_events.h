@@ -95,6 +95,14 @@ bool is_tracepoint_event(ppm_event_code event_type);
 bool is_metaevent(ppm_event_code event_type);
 
 /**
+ * @brief Return true if the event belongs to the `EC_ITER` category
+ *
+ * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
+ * @return true if the event type has the `EC_ITER` category.
+ */
+bool is_iter_event(ppm_event_code event_type);
+
+/**
  * @brief Return true if the event belongs to the `EC_UNKNOWN` category
  *
  * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)

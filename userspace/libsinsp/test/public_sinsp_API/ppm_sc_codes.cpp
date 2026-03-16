@@ -251,7 +251,7 @@ const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
         PPME_TRACER_X,        PPME_CPU_HOTPLUG_X,
         PPME_PROCINFO_X,      PPME_SIGNALDELIVER_X,
         PPME_CONTAINER_X,     PPME_ASYNCEVENT_X,
-        PPME_SCAPEVENT_X,
+        PPME_SCAPEVENT_X,     PPME_ITER_TASK_X,
 };
 
 /// todo(@Andreagit97): here we miss static sets for io, proc, net groups
@@ -523,18 +523,19 @@ TEST(ppm_sc_API, AES_sc_set_AES) {
 	auto all_ppm_sc = libsinsp::events::event_set_to_sc_set(all_events);
 	ASSERT_PPM_SC_CODES_EQ(all_ppm_sc, libsinsp::events::all_sc_set());
 
-	/* We cannot recover events not related to tracepoints or syscalls like meta events or unused
-	 * ones */
+	/* We cannot recover events not related to tracepoints or syscalls like meta events, unused or
+	 * iter ones.  */
 	const auto partial_events = libsinsp::events::sc_set_to_event_set(all_ppm_sc);
 	for(int i = 0; i < PPM_EVENT_MAX; i++) {
-		if(libsinsp::events::is_unused_event((ppm_event_code)i) ||
-		   libsinsp::events::is_plugin_event((ppm_event_code)i) ||
-		   libsinsp::events::is_unknown_event((ppm_event_code)i) ||
-		   libsinsp::events::is_metaevent((ppm_event_code)i)) {
+		const auto evt_type = static_cast<ppm_event_code>(i);
+		if(libsinsp::events::is_unused_event(evt_type) ||
+		   libsinsp::events::is_plugin_event(evt_type) ||
+		   libsinsp::events::is_unknown_event(evt_type) ||
+		   libsinsp::events::is_metaevent(evt_type) || libsinsp::events::is_iter_event(evt_type)) {
 			continue;
 		}
 
-		ASSERT_TRUE(partial_events.contains((ppm_event_code)i))
+		ASSERT_TRUE(partial_events.contains(evt_type))
 		        << "\n- The event '" << g_infotables.m_event_info[i].name
 		        << "' is not present inside the event set" << std::endl;
 	}
@@ -905,14 +906,15 @@ TEST(ppm_sc_API, ASS_event_set_ASS) {
 
 	const auto all_events = libsinsp::events::sc_set_to_event_set(all_sc);
 	for(int i = 0; i < PPM_EVENT_MAX; i++) {
-		if(libsinsp::events::is_unused_event((ppm_event_code)i) ||
-		   libsinsp::events::is_plugin_event((ppm_event_code)i) ||
-		   libsinsp::events::is_unknown_event((ppm_event_code)i) ||
-		   libsinsp::events::is_metaevent((ppm_event_code)i)) {
+		const auto evt_type = static_cast<ppm_event_code>(i);
+		if(libsinsp::events::is_unused_event(evt_type) ||
+		   libsinsp::events::is_plugin_event(evt_type) ||
+		   libsinsp::events::is_unknown_event(evt_type) ||
+		   libsinsp::events::is_metaevent(evt_type) || libsinsp::events::is_iter_event(evt_type)) {
 			continue;
 		}
 
-		ASSERT_TRUE(all_events.contains((ppm_event_code)i))
+		ASSERT_TRUE(all_events.contains(evt_type))
 		        << "\n- The event '" << g_infotables.m_event_info[i].name
 		        << "' is not present inside the event set" << std::endl;
 	}

@@ -53,11 +53,12 @@ struct testdata_event_set {
 struct testdata_event_set_converted : testdata_event_set {
 	set_t all_set() const override {
 		return libsinsp::events::all_event_set().filter([](ppm_event_code e) {
-			// the following categories are expected to have information loss
-			// loss as they are not mappable through the PPM_SC enumerative,
-			// due to them not being related to actual linux kernel events.
+			// The following categories are expected to have information loss as they are not
+			// mappable through the PPM_SC enumerative, due to them not being related to actual
+			// linux kernel events (note: iterator events are kernel events, but they are not
+			// mappable to any PPM_SC code)
 			return !libsinsp::events::is_unused_event(e) && !libsinsp::events::is_metaevent(e) &&
-			       !libsinsp::events::is_plugin_event(e);
+			       !libsinsp::events::is_plugin_event(e) && !libsinsp::events::is_iter_event(e);
 		});
 	};
 

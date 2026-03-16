@@ -70,11 +70,8 @@ typedef struct {
 	bool *feature_flag;
 } iter_prog_t;
 
-enum iter_prog_code { ITER_PROG_MAX };
-
-// todo(ekoops): delete this and use `ITER_PROG_MAX` after we add the first program to the table.
-#define ITER_PROG_MAX_TMP 1
+enum iter_prog_code { ITER_PROG_DUMP_TASK, ITER_PROG_MAX };
 
 // Defined in events_prog_table.c
-extern iter_prog_t iter_progs_table[ITER_PROG_MAX_TMP];
+extern iter_prog_t iter_progs_table[ITER_PROG_MAX];
 #endif  // BPF_ITERATOR_SUPPORT
