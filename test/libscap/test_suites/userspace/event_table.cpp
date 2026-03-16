@@ -29,6 +29,7 @@ TEST(event_table, check_events_category) {
 	int num_tracepoint_events = 0;
 	int num_metaevents = 0;
 	int num_plugin_events = 0;
+	int num_iter_events = 0;
 	int num_unknown_events = 0;
 	int overlaps = 0;
 	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++) {
@@ -53,6 +54,11 @@ TEST(event_table, check_events_category) {
 			num_plugin_events++;
 		}
 
+		if(cat & EC_ITER) {
+			overlaps++;
+			num_iter_events++;
+		}
+
 		/* Please note this is not an `&` but an `==` if one event has
 		 * the `EC_UNKNOWN` category, it must have only this category!
 		 */
@@ -68,12 +74,13 @@ TEST(event_table, check_events_category) {
 	}
 
 	auto num_total_events = num_syscall_events + num_tracepoint_events + num_metaevents +
-	                        num_plugin_events + num_unknown_events - overlaps;
+	                        num_plugin_events + num_iter_events + num_unknown_events - overlaps;
 	ASSERT_EQ(overlaps, 0);  // for now, we want events to have 1 category only
 	ASSERT_EQ(num_syscall_events, SYSCALL_EVENTS_NUM);
 	ASSERT_EQ(num_tracepoint_events, TRACEPOINT_EVENTS_NUM);
 	ASSERT_EQ(num_metaevents, METAEVENTS_NUM);
 	ASSERT_EQ(num_plugin_events, PLUGIN_EVENTS_NUM);
+	ASSERT_EQ(num_iter_events, ITER_EVENTS_NUM);
 	ASSERT_EQ(num_unknown_events, UNKNOWN_EVENTS_NUM);
 	ASSERT_EQ(num_total_events, PPM_EVENT_MAX);
 }
@@ -84,6 +91,7 @@ TEST(event_table, check_events_category) {
  *   - `EC_TRACEPOINT
  *   - `EC_PLUGIN`
  *   - `EC_METAEVENT`
+ *   - `EC_ITER`
  *
  * 2. The lowest bits represent the syscall category
  * to which the specific event belongs.

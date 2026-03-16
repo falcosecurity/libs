@@ -217,6 +217,9 @@ static void pman_save_attached_progs() {
 	g_state.attached_progs_fds[21] =
 	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_openat2_e);
 	g_state.attached_progs_fds[22] = bpf_prog_fd_or_default(g_state.skel->progs.ia32_openat2_e);
+#ifdef BPF_ITERATOR_SUPPORT
+	g_state.attached_progs_fds[23] = bpf_prog_fd_or_default(g_state.skel->progs.dump_task);
+#endif
 }
 
 int pman_load_probe() {
