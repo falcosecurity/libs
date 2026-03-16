@@ -115,5 +115,8 @@
 #define PIDFD_OPEN_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define SETREUID_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 2 + PARAM_LEN * 3
 #define SETREGID_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 2 + PARAM_LEN * 3
+#define TASK_FILE_SOCKET_INET_E_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(uint16_t) * 4 + sizeof(uint32_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 8
+#define TASK_FILE_SOCKET_INET6_E_SIZE HEADER_LEN + 16 * 2 + sizeof(int32_t) + sizeof(uint16_t) * 4 + sizeof(uint64_t) + PARAM_LEN * 8
+#define TASK_FILE_SOCKET_NETLINK_E_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(uint16_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 4
 
 #endif /* __EVENT_DIMENSIONS_H__ */

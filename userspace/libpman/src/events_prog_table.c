@@ -206,5 +206,6 @@ ttm_progs_t ttm_progs_table[TTM_MAX] = {
 #ifdef BPF_ITERATOR_SUPPORT
 iter_prog_t iter_progs_table[ITER_PROG_MAX] = {
         [ITER_PROG_DUMP_TASK] = {"dump_task", &g_state.is_tasks_dumping_supported},
+        [ITER_PROG_DUMP_TASK_FILE] = {"dump_task_file", &g_state.is_task_files_dumping_supported},
 };
 #endif /* BPF_ITERATOR_SUPPORT */

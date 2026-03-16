@@ -293,6 +293,17 @@ static __always_inline struct inode *extract__inode_from_file(struct file *file)
 }
 
 /**
+ * @brief Return the mount namespace associated with `file`.
+ *
+ * @param file pointer to file struct.
+ * @return the mount namespace associated with `file`.
+ */
+static __always_inline struct mount *extract__mount_from_file(struct file *file) {
+	struct vfsmount *vfs_mnt = BPF_CORE_READ(file, f_path.mnt);
+	return (struct mount *)container_of(vfs_mnt, struct mount, mnt);
+}
+
+/**
  * @brief Return the dentry associated with `file`.
  *
  * @param file pointer to file struct.
@@ -365,6 +376,13 @@ static __always_inline void extract__mtime_from_inode(struct inode *f_inode,
 	struct inode___v6_11 *f_inode_v6_11 = (void *)f_inode;
 	BPF_CORE_READ_INTO(&time->tv_sec, f_inode_v6_11, i_mtime_sec);
 	BPF_CORE_READ_INTO(&time->tv_nsec, f_inode_v6_11, i_mtime_nsec);
+}
+
+/**
+ * @brief Return the magic number of the file system to which `f_inode` belong.
+ */
+static __always_inline unsigned long extract__fs_magic_from_inode(struct inode *f_inode) {
+	return BPF_CORE_READ(f_inode, i_sb, s_magic);
 }
 
 /**

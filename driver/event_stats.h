@@ -14,5 +14,5 @@ or GPL2.txt for full copies of the license.
 #define TRACEPOINT_EVENTS_NUM 6
 #define METAEVENTS_NUM 18
 #define PLUGIN_EVENTS_NUM 1
-#define ITER_EVENTS_NUM 1
-#define UNKNOWN_EVENTS_NUM 24
+#define ITER_EVENTS_NUM 10
+#define UNKNOWN_EVENTS_NUM 33

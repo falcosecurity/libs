@@ -70,7 +70,7 @@ typedef struct {
 	bool *feature_flag;
 } iter_prog_t;
 
-enum iter_prog_code { ITER_PROG_DUMP_TASK, ITER_PROG_MAX };
+enum iter_prog_code { ITER_PROG_DUMP_TASK, ITER_PROG_DUMP_TASK_FILE, ITER_PROG_MAX };
 
 // Defined in events_prog_table.c
 extern iter_prog_t iter_progs_table[ITER_PROG_MAX];

@@ -76,6 +76,20 @@ __weak bool is_dropping;
  */
 __weak void *socket_file_ops = NULL;
 
+/**
+ * @brief An integer used by the `dump_task_file` BPF iterator program which specific file to dump
+ * based on its file descriptor. If set to -1, the filter-by-fd logic is not applied.
+ */
+
+__weak int64_t dump_task_file__fd_filter = -1;
+
+/**
+ * @brief A boolean used by the `dump_task_file` BPF iterator program to determine if socket files
+ * info must be sent to userspace or skipped.
+ */
+
+__weak bool dump_task_file__must_dump_sockets = true;
+
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
