@@ -32,7 +32,7 @@ limitations under the License.
 
 /* Pay attention this need to be bumped every time we add a new bpf program that is directly
  * attached into the kernel */
-#define MODERN_BPF_PROG_ATTACHED_MAX 24
+#define MODERN_BPF_PROG_ATTACHED_MAX 25
 
 #define BPF_LOG_BIG_BUF_SIZE \
 	(UINT32_MAX >> 8) /* Recommended log buffer size, taken from libbpf. Used for verifier logs */
@@ -72,8 +72,10 @@ struct internal_state {
 #ifdef BPF_ITERATOR_SUPPORT
 
 	/* BPF iterator section */
-	bool is_tasks_dumping_supported; /* If true, use the corresponding BPF iterator program to
-	                                    gather tasks information */
+	bool is_tasks_dumping_supported;      /* If true, use the corresponding BPF iterator program to
+	                                         gather tasks information */
+	bool is_task_files_dumping_supported; /* If true, use the corresponding BPF iterator program to
+	                                    gather task files information */
 
 #endif /* BPF_ITERATOR_SUPPORT */
 };

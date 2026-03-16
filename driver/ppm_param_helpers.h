@@ -20,7 +20,7 @@ or GPL2.txt for full copies of the license.
 
 // Stores the minimum parameter length for a parameter of type `t` in `min_len`. Returns 0 on
 // success, a negative number otherwise.
-inline int ppm_param_min_len_from_type(const ppm_param_type t, uint32_t *min_len) {
+inline int ppm_param_min_len_from_type(const enum ppm_param_type t, uint32_t *min_len) {
 	switch(t) {
 	case PT_INT8:
 	case PT_UINT8:
@@ -90,7 +90,7 @@ inline int ppm_param_min_len_from_type(const ppm_param_type t, uint32_t *min_len
 // Stores the maximum parameter length for a parameter of type `t` in `max_len`. The maximum length
 // depends on the length size, which could be 2 or 4 bytes. Returns 0 on success, a negative number
 // otherwise.
-inline int ppm_param_max_len_from_type(const ppm_param_type t,
+inline int ppm_param_max_len_from_type(const enum ppm_param_type t,
                                        const size_t len_size,
                                        uint32_t *max_len) {
 	if(len_size != sizeof(uint16_t) && len_size != sizeof(uint32_t)) {
