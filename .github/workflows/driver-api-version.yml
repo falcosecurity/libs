@@ -34,7 +34,7 @@ jobs:
     if: needs.paths-filter.outputs.driver_api_changed == 'false'
     steps:
       - name: Check driver API_VERSION
-        uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
+        uses: mshick/add-pr-comment@ffd016c7e151d97d69d21a843022fd4cd5b96fe5 # v3.9.0.8.3.9.0
         with:
           message: |
             Please double check **driver/API_VERSION** file. See [versioning](https://github.com/falcosecurity/libs/blob/master/driver/README.VERSION.md#api-version-number).
