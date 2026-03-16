@@ -16,6 +16,9 @@ limitations under the License.
 
 */
 
+#include <algorithm>
+#include <string_view>
+
 #include <libsinsp/sinsp_filtercheck_fd.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
@@ -494,6 +497,16 @@ bool sinsp_filter_check_fd::extract_nocache(sinsp_evt *evt,
 		};
 
 		m_tinfo->loop_fds(fd_type_gather);
+
+		// Sort so fd.types output is deterministic (iteration order of fd table is unspecified with
+		// ConcurrentHashMap).
+		std::sort(values.begin(),
+		          values.end(),
+		          [](const extract_value_t &a, const extract_value_t &b) {
+			          std::string_view sa(reinterpret_cast<const char *>(a.ptr), a.len);
+			          std::string_view sb(reinterpret_cast<const char *>(b.ptr), b.len);
+			          return sa < sb;
+		          });
 
 		return true;
 	}

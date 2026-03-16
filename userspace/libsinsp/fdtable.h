@@ -174,7 +174,8 @@ private:
 	uint64_t m_tid;
 
 	bool is_syscall_plugin_enabled() const {
-		return m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin->id() == 0;
+		return m_params && m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin &&
+		       m_params->m_input_plugin->id() == 0;
 	}
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;

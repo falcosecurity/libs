@@ -391,9 +391,20 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	}
 
 	const auto tid = evt.get_scap_evt()->tid;
-	const bool query_os = can_query_os_for_thread_info(etype);
-	evt.set_tinfo(query_os ? m_params->m_thread_manager->get_thread(tid, false)
-	                       : m_params->m_thread_manager->find_thread(tid, false));
+	// In plugin mode, do not query host /proc (get_thread); only look up or create an
+	// in-memory thread so plugin-sourced syscall events can be parsed without /proc or
+	// Folly/concurrent-table issues on some platforms.
+	const bool query_os =
+	        can_query_os_for_thread_info(etype) && !m_params->m_sinsp_mode.is_plugin();
+	if(query_os) {
+		evt.set_tinfo(m_params->m_thread_manager->get_thread(tid, false));
+	} else {
+		auto tptr = m_params->m_thread_manager->find_thread(tid, false);
+		if(!tptr && m_params->m_sinsp_mode.is_plugin()) {
+			tptr = m_params->m_thread_manager->get_or_create_fake_thread(tid);
+		}
+		evt.set_tinfo(std::move(tptr));
+	}
 	auto *tinfo = evt.get_tinfo();
 
 	if(is_schedswitch_event(etype)) {
@@ -1910,7 +1921,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			}
 		}
 
-		sdir = evt.get_tinfo()->get_cwd();
+		sdir = evt.get_tinfo() != nullptr ? evt.get_tinfo()->get_cwd() : "";
 	} else if(etype == PPME_SYSCALL_CREAT_X) {
 		name = evt.get_param(1)->as<std::string_view>();
 
@@ -1945,7 +1956,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			}
 		}
 
-		sdir = evt.get_tinfo()->get_cwd();
+		sdir = evt.get_tinfo() != nullptr ? evt.get_tinfo()->get_cwd() : "";
 	} else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X) {
 		sdir = "";
 		name = "<NA>";
