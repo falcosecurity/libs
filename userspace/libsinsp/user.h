@@ -19,9 +19,13 @@ limitations under the License.
 #ifndef FALCOSECURITY_LIBS_USER_H
 #define FALCOSECURITY_LIBS_USER_H
 
-#include <unordered_map>
-#include <string>
+#include <atomic>
+#include <functional>
 #include <memory>
+#include <optional>
+#include <shared_mutex>
+#include <string>
+#include <unordered_map>
 #include <libsinsp/procfs_utils.h>
 #include <libsinsp/sinsp.h>
 
@@ -67,53 +71,62 @@ public:
 	void dump_users_groups(sinsp_dumper &dumper);
 
 	/*!
-	  \brief Return the table with all the machine users.
+	  \brief Return a copy of the user table for the given container.
 
-	  \return a hash table with the user ID (UID) as the key and the user information as the data.
-
-	  \note this call works with file captures as well, because the user
-	   table is stored in the trace files. In that case, the returned
-	   user list is the one of the machine where the capture happened.
+	  \return optional with the map (uid -> scap_userinfo) if container exists, nullopt otherwise.
 	*/
-	const std::unordered_map<uint32_t, scap_userinfo> *get_userlist(
+	std::optional<std::unordered_map<uint32_t, scap_userinfo>> get_userlist(
 	        const std::string &container_id);
 
 	/*!
-	  \brief Lookup for user in the user table.
-
-	  \return the \ref scap_userinfo object containing full user information,
-	   if user not found, returns NULL.
-
-	  \note this call works with file captures as well, because the user
-	   table is stored in the trace files. In that case, the returned
-	   user list is the one of the machine where the capture happened.
+	  \brief Invoke visitor with the user entry if found (no copy, no allocation).
+	  \return true if found and visitor was invoked, false otherwise.
 	*/
-	scap_userinfo *get_user(const std::string &container_id, uint32_t uid);
+	template<typename Visitor>
+	bool with_user(const std::string &container_id, uint32_t uid, Visitor &&visitor) {
+		std::shared_lock lock(m_mutex);
+		scap_userinfo *p = get_user_assuming_lock_held(container_id, uid);
+		if(!p) {
+			return false;
+		}
+		visitor(*p);
+		return true;
+	}
 
 	/*!
-	  \brief Return the table with all the machine user groups.
-
-	  \return a hash table with the group ID (GID) as the key and the group
-	   information as the data.
-
-	  \note this call works with file captures as well, because the group
-	   table is stored in the trace files. In that case, the returned
-	   user table is the one of the machine where the capture happened.
+	  \brief Lookup for user in the user table (returns a copy for tests/convenience).
+	  \return optional with user info if found, nullopt otherwise.
 	*/
-	const std::unordered_map<uint32_t, scap_groupinfo> *get_grouplist(
+	std::optional<scap_userinfo> get_user(const std::string &container_id, uint32_t uid);
+
+	/*!
+	  \brief Return a copy of the group table for the given container.
+
+	  \return optional with the map (gid -> scap_groupinfo) if container exists, nullopt otherwise.
+	*/
+	std::optional<std::unordered_map<uint32_t, scap_groupinfo>> get_grouplist(
 	        const std::string &container_id);
 
 	/*!
-	  \brief Lookup for group in the group table for a container.
-
-	  \return the \ref scap_groupinfo object containing full group information,
-	   if group not found, returns NULL.
-
-	  \note this call works with file captures as well, because the group
-	   table is stored in the trace files. In that case, the returned
-	   group list is the one of the machine where the capture happened.
+	  \brief Invoke visitor with the group entry if found (no copy, no allocation).
+	  \return true if found and visitor was invoked, false otherwise.
 	*/
-	scap_groupinfo *get_group(const std::string &container_id, uint32_t gid);
+	template<typename Visitor>
+	bool with_group(const std::string &container_id, uint32_t gid, Visitor &&visitor) {
+		std::shared_lock lock(m_mutex);
+		scap_groupinfo *p = get_group_assuming_lock_held(container_id, gid);
+		if(!p) {
+			return false;
+		}
+		visitor(*p);
+		return true;
+	}
+
+	/*!
+	  \brief Lookup for group in the group table (returns a copy for tests/convenience).
+	  \return optional with group info if found, nullopt otherwise.
+	*/
+	std::optional<scap_groupinfo> get_group(const std::string &container_id, uint32_t gid);
 
 	// Note: pid is an unused parameter when container_id is an empty string
 	// ie: it is only used when adding users/groups from containers.
@@ -148,9 +161,35 @@ public:
 	//
 	// User and group tables
 	//
-	bool m_import_users;
+	std::atomic<bool> m_import_users;
 
 private:
+	// Lookups that assume the caller holds m_mutex (unique or shared as appropriate).
+	// Used only from add_*, rm_*, delete_container (which hold unique lock).
+	scap_userinfo *get_user_assuming_lock_held(const std::string &container_id, uint32_t uid);
+	scap_groupinfo *get_group_assuming_lock_held(const std::string &container_id, uint32_t gid);
+	const std::unordered_map<uint32_t, scap_userinfo> *get_userlist_assuming_lock_held(
+	        const std::string &container_id);
+	const std::unordered_map<uint32_t, scap_groupinfo> *get_grouplist_assuming_lock_held(
+	        const std::string &container_id);
+
+	mutable std::shared_mutex m_mutex;
+
+private:
+	scap_userinfo *add_user_impl(const std::string &container_id,
+	                             int64_t pid,
+	                             uint32_t uid,
+	                             uint32_t gid,
+	                             std::string_view name,
+	                             std::string_view home,
+	                             std::string_view shell,
+	                             bool notify);
+	scap_groupinfo *add_group_impl(const std::string &container_id,
+	                               int64_t pid,
+	                               uint32_t gid,
+	                               std::string_view name,
+	                               bool notify);
+
 	scap_userinfo *add_host_user(uint32_t uid,
 	                             uint32_t gid,
 	                             std::string_view name,
@@ -251,16 +290,16 @@ struct user_group_updater {
 			if(container_id != m_container_id) {
 				// Refresh user/group
 				usergroup_manager->add_group(container_id,
-				                             tinfo->m_pid,
-				                             tinfo->m_gid,
+				                             tinfo->get_pid(),
+				                             tinfo->get_gid(),
 				                             m_must_notify_group_update);
 				usergroup_manager->add_user(container_id,
-				                            tinfo->m_pid,
-				                            tinfo->m_uid,
-				                            tinfo->m_gid,
+				                            tinfo->get_pid(),
+				                            tinfo->get_uid(),
+				                            tinfo->get_gid(),
 				                            m_must_notify_user_update);
 			} else if(m_check_cleanup && !container_id.empty()) {
-				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
+				if(tinfo->get_vtid() == tinfo->get_vpid() && tinfo->get_vpid() == 1) {
 					// main container process left, clean up user and groups for the container
 					if(inspector->m_usergroup_manager->m_import_users &&
 					   (inspector->is_live() || inspector->is_syscall_plugin())) {

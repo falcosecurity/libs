@@ -799,29 +799,24 @@ bool sinsp_utils::glob_match(const char* pattern,
 
 static int32_t gmt2local(time_t t) {
 	int dt, dir;
-	struct tm *gmt, *tmp_gmt, *loc;
-	struct tm sgmt;
+	struct tm sgmt, sloc;
 
 	if(t == 0) {
 		t = time(NULL);
 	}
 
-	gmt = &sgmt;
-	tmp_gmt = gmtime(&t);
-	if(tmp_gmt == NULL) {
+	if(gmtime_r(&t, &sgmt) == NULL) {
 		throw sinsp_exception("cannot get gmtime");
 	}
-	*gmt = *tmp_gmt;
-	loc = localtime(&t);
-	if(loc == NULL) {
+	if(localtime_r(&t, &sloc) == NULL) {
 		throw sinsp_exception("cannot get localtime");
 	}
 
-	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
+	dt = (sloc.tm_hour - sgmt.tm_hour) * 60 * 60 + (sloc.tm_min - sgmt.tm_min) * 60;
 
-	dir = loc->tm_year - gmt->tm_year;
+	dir = sloc.tm_year - sgmt.tm_year;
 	if(dir == 0) {
-		dir = loc->tm_yday - gmt->tm_yday;
+		dir = sloc.tm_yday - sgmt.tm_yday;
 	}
 
 	dt += dir * 24 * 60 * 60;
@@ -830,6 +825,7 @@ static int32_t gmt2local(time_t t) {
 }
 
 void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns) {
+	struct tm tm_buf;
 	struct tm* tm;
 	time_t Time;
 	uint64_t sec = ts / ONE_SECOND_IN_NS;
@@ -841,7 +837,7 @@ void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns
 
 	if(date) {
 		Time = (sec + thiszone) - s;
-		tm = gmtime(&Time);
+		tm = gmtime_r(&Time, &tm_buf);
 		if(!tm) {
 			bufsize = sprintf(buf, "<date error> ");
 		} else {

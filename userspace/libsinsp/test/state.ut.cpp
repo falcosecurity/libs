@@ -393,7 +393,7 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(newt->static_fields(), *table->static_fields());
 	ASSERT_EQ(newt->static_fields().size(), s_threadinfo_static_fields_count);
 	newtinfo->m_tid = 999;
-	newtinfo->m_comm = "test";
+	newtinfo->set_comm("test");
 	ASSERT_EQ(newt->read_field(*tid_acc), (int64_t)999);
 	ASSERT_EQ(newt->read_field(*comm_acc), "test");
 	ASSERT_NE(newt->read_field(*fdtable_acc), nullptr);
@@ -705,8 +705,8 @@ TEST(thread_manager, env_vars_access) {
 	auto tinfo = inspector.m_thread_manager->find_thread(1, true);
 	ASSERT_NE(tinfo, nullptr);
 
-	ASSERT_EQ(tinfo->m_env.size(), max_iterations - 1);
-	for(const auto& v : tinfo->m_env) {
+	ASSERT_EQ(tinfo->get_env().size(), max_iterations - 1);
+	for(const auto& v : tinfo->get_env()) {
 		EXPECT_EQ(v, "hello");
 	}
 
@@ -737,5 +737,5 @@ TEST(thread_manager, env_vars_access) {
 	// clear all
 	ASSERT_NO_THROW(subtable->clear_entries());
 	EXPECT_EQ(subtable->entries_count(), 0);
-	EXPECT_EQ(tinfo->m_env.size(), 0);
+	EXPECT_EQ(tinfo->get_env().size(), 0);
 }

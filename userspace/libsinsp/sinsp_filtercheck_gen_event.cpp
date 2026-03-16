@@ -236,15 +236,21 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 	case TYPE_RAWTS_NS:
 		m_val.u64 = evt->get_ts() % ONE_SECOND_IN_NS;
 		RETURN_EXTRACT_VAR(m_val.u64);
-	case TYPE_RELTS:
-		m_val.u64 = evt->get_ts() - m_inspector->m_firstevent_ts;
+	case TYPE_RELTS: {
+		const uint64_t first_ts = m_inspector->get_firstevent_ts();
+		m_val.u64 = evt->get_ts() - first_ts;
 		RETURN_EXTRACT_VAR(m_val.u64);
-	case TYPE_RELTS_S:
-		m_val.u64 = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
+	}
+	case TYPE_RELTS_S: {
+		const uint64_t first_ts = m_inspector->get_firstevent_ts();
+		m_val.u64 = (evt->get_ts() - first_ts) / ONE_SECOND_IN_NS;
 		RETURN_EXTRACT_VAR(m_val.u64);
-	case TYPE_RELTS_NS:
-		m_val.u64 = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
+	}
+	case TYPE_RELTS_NS: {
+		const uint64_t first_ts = m_inspector->get_firstevent_ts();
+		m_val.u64 = (evt->get_ts() - first_ts) % ONE_SECOND_IN_NS;
 		RETURN_EXTRACT_VAR(m_val.u64);
+	}
 	case TYPE_NUMBER:
 		m_val.u64 = evt->get_num();
 		RETURN_EXTRACT_VAR(m_val.u64);

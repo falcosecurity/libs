@@ -42,42 +42,10 @@ limitations under the License.
 #include <libsinsp/user.h>
 #include <libsinsp/packed_data.h>
 
-sinsp_parser::sinsp_parser(const sinsp_mode &sinsp_mode,
-                           const scap_machine_info *const &machine_info,
-                           const std::vector<std::string> &event_sources,
-                           const size_t syscall_event_source_idx,
-                           const sinsp_network_interfaces &network_interfaces,
-                           const bool &hostname_and_port_resolution_enabled,
-                           const sinsp_threadinfo_factory &threadinfo_factory,
-                           const sinsp_fdinfo_factory &fdinfo_factory,
-                           const std::shared_ptr<const sinsp_plugin> &input_plugin,
-                           const plugin_tables &plugin_tables,
-                           const bool &large_envs_enabled,
-                           const std::shared_ptr<sinsp_plugin_manager> &plugin_manager,
-                           const std::shared_ptr<sinsp_thread_manager> &thread_manager,
-                           const std::shared_ptr<sinsp_usergroup_manager> &usergroup_manager,
-                           const std::shared_ptr<sinsp_stats_v2> &sinsp_stats_v2,
-                           sinsp_observer *const &observer,
-                           sinsp_evt &tmp_evt,
-                           scap_platform *const &scap_platform):
-        m_sinsp_mode{sinsp_mode},
-        m_machine_info{machine_info},
-        m_event_sources{event_sources},
-        m_syscall_event_source_idx{syscall_event_source_idx},
-        m_network_interfaces{network_interfaces},
-        m_hostname_and_port_resolution_enabled{hostname_and_port_resolution_enabled},
-        m_threadinfo_factory{threadinfo_factory},
-        m_fdinfo_factory{fdinfo_factory},
-        m_input_plugin{input_plugin},
-        m_plugin_tables{plugin_tables},
-        m_large_envs_enabled{large_envs_enabled},
-        m_plugin_manager{plugin_manager},
-        m_thread_manager{thread_manager},
-        m_usergroup_manager{usergroup_manager},
-        m_sinsp_stats_v2{sinsp_stats_v2},
-        m_observer{observer},
-        m_tmp_evt{tmp_evt},
-        m_scap_platform{scap_platform} {}
+sinsp_parser::sinsp_parser(const std::shared_ptr<sinsp_parser_shared_params> &shared_params,
+                           sinsp_evt &tmp_evt_storage):
+        m_params{shared_params},
+        m_tmp_evt_storage{tmp_evt_storage} {}
 
 sinsp_parser::~sinsp_parser() {}
 
@@ -308,7 +276,8 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	// Check to see if the name changed as a side effect of parsing this event. Try to avoid the
 	// overhead of a string compare for every event.
 	if(evt.get_fd_info()) {
-		evt.set_fdinfo_name_changed(evt.get_fd_info()->m_name != evt.get_fd_info()->m_oldname);
+		evt.set_fdinfo_name_changed(evt.get_fd_info()->get_name() !=
+		                            evt.get_fd_info()->get_oldname());
 	}
 }
 
@@ -372,18 +341,19 @@ void sinsp_parser::set_event_source(sinsp_evt &evt) const {
 
 	if(plugin_id != 0) {
 		bool plugin_found = false;
-		const auto src_idx = m_plugin_manager->source_idx_by_plugin_id(plugin_id, plugin_found);
+		const auto src_idx =
+		        m_params->m_plugin_manager->source_idx_by_plugin_id(plugin_id, plugin_found);
 		if(!plugin_found) {
 			evt.set_source_idx(sinsp_no_event_source_idx);
 			evt.set_source_name(sinsp_no_event_source_name);
 		} else {
 			evt.set_source_idx(src_idx);
-			evt.set_source_name(m_event_sources[src_idx].c_str());
+			evt.set_source_name(m_params->m_event_sources[src_idx].c_str());
 		}
 	} else {
 		// Every other event falls under the "syscall" event source umbrella.
-		evt.set_source_idx(m_syscall_event_source_idx);
-		evt.set_source_name(m_syscall_event_source_idx != sinsp_no_event_source_idx
+		evt.set_source_idx(m_params->m_syscall_event_source_idx);
+		evt.set_source_name(m_params->m_syscall_event_source_idx != sinsp_no_event_source_idx
 		                            ? sinsp_syscall_event_source_name
 		                            : sinsp_no_event_source_name);
 	}
@@ -399,17 +369,16 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	evt.init();
 
 	set_event_source(evt);
-	evt.set_fdinfo_ref(nullptr);
 	evt.set_fd_info(nullptr);
 	evt.set_errorcode(0);
 
 	// Ignore events with EF_SKIPPARSERESET flag.
 	if(const auto eflags = evt.get_info_flags(); eflags & EF_SKIPPARSERESET) {
-		sinsp_threadinfo *tinfo = nullptr;
 		if(etype == PPME_PROCINFO_E) {
-			tinfo = m_thread_manager->find_thread(evt.get_scap_evt()->tid, false).get();
+			evt.set_tinfo(m_params->m_thread_manager->find_thread(evt.get_scap_evt()->tid, false));
+		} else {
+			evt.set_tinfo(nullptr);
 		}
-		evt.set_tinfo(tinfo);
 		return false;
 	}
 
@@ -417,18 +386,26 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	if(etype == PPME_CONTAINER_JSON_2_E || etype == PPME_USER_ADDED_E ||
 	   etype == PPME_USER_DELETED_E || etype == PPME_GROUP_ADDED_E ||
 	   etype == PPME_GROUP_DELETED_E || etype == PPME_PLUGINEVENT_E || etype == PPME_ASYNCEVENT_E) {
-		// Note: still managing container events cases. They might still be present in existing scap
-		// files, even if they are then parsed by the container plugin.
 		evt.set_tinfo(nullptr);
 		return true;
 	}
 
 	const auto tid = evt.get_scap_evt()->tid;
-	const bool query_os = can_query_os_for_thread_info(etype);
-	const auto tinfo = query_os ? m_thread_manager->get_thread(tid, false).get()
-	                            : m_thread_manager->find_thread(tid, false).get();
-
-	evt.set_tinfo(tinfo);
+	// In plugin mode, do not query host /proc (get_thread); only look up or create an
+	// in-memory thread so plugin-sourced syscall events can be parsed without /proc or
+	// Folly/concurrent-table issues on some platforms.
+	const bool query_os =
+	        can_query_os_for_thread_info(etype) && !m_params->m_sinsp_mode.is_plugin();
+	if(query_os) {
+		evt.set_tinfo(m_params->m_thread_manager->get_thread(tid, false));
+	} else {
+		auto tptr = m_params->m_thread_manager->find_thread(tid, false);
+		if(!tptr && m_params->m_sinsp_mode.is_plugin()) {
+			tptr = m_params->m_thread_manager->get_or_create_fake_thread(tid);
+		}
+		evt.set_tinfo(std::move(tptr));
+	}
+	auto *tinfo = evt.get_tinfo();
 
 	if(is_schedswitch_event(etype)) {
 		return false;
@@ -436,28 +413,29 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 
 	if(!tinfo) {
 		if(is_clone_exit_event(etype) || is_fork_exit_event(etype)) {
-			if(m_sinsp_stats_v2 != nullptr) {
-				m_sinsp_stats_v2->m_n_failed_thread_lookups--;
+			if(m_params->m_sinsp_stats_v2 != nullptr) {
+				m_params->m_sinsp_stats_v2->get_thread_counters().dec_n_failed_thread_lookups();
 			}
 		}
 		return false;
 	}
 
 	if(query_os) {
-		tinfo->m_flags |= PPM_CL_ACTIVE;
+		tinfo->or_flags((uint32_t)PPM_CL_ACTIVE);
 	}
 
 	// todo!: at the end of we work we should remove the enter/exit distinction and ideally we
 	//   should set the fdinfos directly here and return if they are not present.
 	if(PPME_IS_ENTER(etype)) {
-		tinfo->m_lastevent_fd = -1;
+		tinfo->set_lastevent_fd(-1);
 		tinfo->set_lastevent_type(etype);
 
 		if(evt.uses_fd()) {
 			const int fd_location = get_enter_event_fd_location(static_cast<ppm_event_code>(etype));
 			ASSERT(evt.get_param_info(fd_location)->type == PT_FD);
-			tinfo->m_lastevent_fd = evt.get_param(fd_location)->as<int64_t>();
-			evt.set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
+			auto fd_val = evt.get_param(fd_location)->as<int64_t>();
+			tinfo->set_lastevent_fd(fd_val);
+			evt.set_fd_info(tinfo->get_fd(fd_val));
 		}
 		return true;
 	}
@@ -474,7 +452,7 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 		// We cannot be sure that the lastevent_fd is something valid, it could be the socket of
 		// the previous `socket` syscall, or it could be something completely unrelated, for now
 		// we don't trust it in any case.
-		tinfo->m_lastevent_fd = -1;
+		tinfo->set_lastevent_fd(-1);
 	}
 
 	//
@@ -495,24 +473,23 @@ bool sinsp_parser::reset(sinsp_evt &evt) const {
 	//
 
 	// todo!: this should become the unique logic when we'll disable the enter events.
-	if(tinfo->m_lastevent_fd == -1) {
+	if(tinfo->get_lastevent_fd() == -1) {
 		if(const int fd_location = get_exit_event_fd_location(static_cast<ppm_event_code>(etype));
 		   fd_location != -1 && static_cast<uint32_t>(fd_location) < evt.get_num_params()) {
-			// It is possible that the fd_param is empty.
 			if(const auto fd_param = evt.get_param(fd_location); !fd_param->empty()) {
-				tinfo->m_lastevent_fd = fd_param->as<int64_t>();
+				tinfo->set_lastevent_fd(fd_param->as<int64_t>());
 			}
 		}
 	}
 
-	const auto fdinfo = tinfo->get_fd(tinfo->m_lastevent_fd);
+	const auto fdinfo = tinfo->get_fd(tinfo->get_lastevent_fd());
 	evt.set_fd_info(fdinfo);
 	if(fdinfo == nullptr) {
 		return false;
 	}
 
-	if(evt.get_errorcode() != 0 && m_observer) {
-		m_observer->on_error(&evt);
+	if(evt.get_errorcode() != 0 && m_params->m_observer) {
+		m_params->m_observer->on_error(&evt);
 	}
 
 	return true;
@@ -522,8 +499,8 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 	if(evt.get_tinfo() == nullptr) {
 		// No thread in the table. We won't store this event, which mean that we could not be able
 		// to parse the corresponding exit event, and we'll have to drop the information it carries.
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_store_evts_drops++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_store_evts_drops();
 		}
 		return;
 	}
@@ -551,8 +528,8 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 	memcpy(tinfo->get_last_event_data(), evt.get_scap_evt(), evt_len);
 	tinfo->set_lastevent_cpuid(evt.get_cpuid());
 
-	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_stored_evts++;
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_stored_evts();
 	}
 }
 
@@ -573,8 +550,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 		// This happen especially at the beginning of trace files, where events
 		// can be truncated
 		//
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_retrieve_evts_drops();
 		}
 		return false;
 	}
@@ -593,8 +570,8 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	 */
 	if(exit_evt.get_type() == PPME_SYSCALL_EXECVE_19_X &&
 	   enter_evt.get_type() == PPME_SYSCALL_EXECVEAT_E) {
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_retrieved_evts++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_retrieved_evts();
 		}
 		return true;
 	}
@@ -606,13 +583,13 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 	if(enter_evt.get_type() != (exit_evt.get_type() - 1)) {
 		// ASSERT(false);
 		exit_evt.get_tinfo()->set_lastevent_data_validity(false);
-		if(m_sinsp_stats_v2 != nullptr) {
-			m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
+		if(m_params->m_sinsp_stats_v2 != nullptr) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_retrieve_evts_drops();
 		}
 		return false;
 	}
-	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_retrieved_evts++;
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_retrieved_evts();
 	}
 
 	return true;
@@ -648,7 +625,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * ===========================*/
 
 	/* Let's see if we have some info regarding the caller */
-	auto caller_tinfo = m_thread_manager->get_thread(caller_tid);
+	auto caller_tinfo = m_params->m_thread_manager->get_thread(caller_tid);
 
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
@@ -670,10 +647,10 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		valid_caller = false;
 
 		/* pid. */
-		caller_tinfo->m_pid = evt.get_param(4)->as<int64_t>();
+		caller_tinfo->set_pid(evt.get_param(4)->as<int64_t>());
 
 		/* ptid */
-		caller_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
+		caller_tinfo->set_ptid(evt.get_param(5)->as<int64_t>());
 
 		/* vtid & vpid */
 		// If one of these parameters is present, so is for the other ones, so just check the
@@ -681,19 +658,19 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		const auto vtid_param = evt.get_param(18);
 		const auto vpid_param = evt.get_param(19);
 		if(!vpid_param->empty()) {
-			caller_tinfo->m_vtid = vtid_param->as<int64_t>();
-			caller_tinfo->m_vpid = vpid_param->as<int64_t>();
+			caller_tinfo->set_vtid(vtid_param->as<int64_t>());
+			caller_tinfo->set_vpid(vpid_param->as<int64_t>());
 		} else {
-			caller_tinfo->m_vtid = caller_tid;
-			caller_tinfo->m_vpid = -1;
+			caller_tinfo->set_vtid(caller_tid);
+			caller_tinfo->set_vpid((int64_t)-1);
 		}
 
 		/* Create thread groups and parenting relationships */
-		m_thread_manager->create_thread_dependencies(caller_tinfo);
+		m_params->m_thread_manager->create_thread_dependencies(caller_tinfo);
 	}
 
 	/* Update the evt.get_tinfo() of the caller. */
-	evt.set_tinfo(caller_tinfo.get());
+	evt.set_tinfo(caller_tinfo);
 
 	/// todo(@Andreagit97): here we could update `comm` `exe` and `args` with fresh info from the
 	/// event
@@ -727,13 +704,13 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * Moreover when `PPM_CL_CLONE_PARENT` is set `PPM_CL_CLONE_NEWPID` cannot
 	 * be set according to the clone manual.
 	 *
-	 * When `caller_tid != caller_tinfo->m_vtid` is true we are for
+	 * When `caller_tid != caller_tinfo->get_vtid()` is true we are for
 	 * sure in a container, and so is the child.
 	 * This is not a strict requirement (leave it here for compatibility with old
 	 * scap-files)
 	 */
 	if(flags & PPM_CL_CHILD_IN_PIDNS || flags & PPM_CL_CLONE_NEWPID ||
-	   flags & PPM_CL_CLONE_PARENT || caller_tid != caller_tinfo->m_vtid) {
+	   flags & PPM_CL_CLONE_PARENT || caller_tid != caller_tinfo->get_vtid()) {
 		return;
 	}
 
@@ -784,7 +761,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * threadinfo entry that leaks memory until the next autopurge cycle.
 	 * See: https://github.com/falcosecurity/falco/issues/3643
 	 */
-	if(m_thread_manager->has_recently_exited(child_tid, caller_tid, evt.get_ts())) {
+	if(m_params->m_thread_manager->has_recently_exited(child_tid, caller_tid, evt.get_ts())) {
 		return;
 	}
 
@@ -792,18 +769,22 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
-	/* See if the child is already there, if yes and it is valid we return immediately */
-	sinsp_threadinfo *existing_child_tinfo = m_thread_manager->find_thread(child_tid, true).get();
-	if(existing_child_tinfo != nullptr) {
+	/* See if the child is already there, if yes and it is valid we return immediately.
+	 * Hold shared_ptr for the duration of use so the threadinfo is not destroyed by
+	 * another thread (e.g. insert_or_assign) while we read it.
+	 */
+	threadinfo_map_t::ptr_t existing_child =
+	        m_params->m_thread_manager->find_thread(child_tid, true);
+	if(existing_child) {
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
 		 * Otherwise, we assume that the entry is there because we missed the proc exit event
 		 * for a previous thread and we replace the tinfo.
 		 */
-		if(existing_child_tinfo->m_flags & PPM_CL_CLONE_INVERTED) {
+		if(existing_child->get_flags() & PPM_CL_CLONE_INVERTED) {
 			return;
 		} else {
-			m_thread_manager->remove_thread(child_tid);
+			m_params->m_thread_manager->remove_thread(child_tid);
 			tid_collision = child_tid;
 		}
 	}
@@ -817,21 +798,21 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/* Allocate the new thread info and initialize it.
 	 * We avoid `malloc` here and get the item from a preallocated list.
 	 */
-	auto child_tinfo = m_threadinfo_factory.create();
+	auto child_tinfo = m_params->m_threadinfo_factory.create();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
 	 */
-	child_tinfo->m_lastexec_ts = 0;
+	child_tinfo->set_lastexec_ts(0);
 
 	/* flags */
-	child_tinfo->m_flags = flags;
+	child_tinfo->set_flags(flags);
 
 	/* tid */
 	child_tinfo->m_tid = child_tid;
 
 	/* Thread-leader case */
-	if(!(child_tinfo->m_flags & PPM_CL_CLONE_THREAD)) {
+	if(!(child_tinfo->get_flags() & PPM_CL_CLONE_THREAD)) {
 		/* We populate fdtable, cwd and env only if we are
 		 * a new leader thread, all not leader threads will use the same information
 		 * of the main thread.
@@ -871,24 +852,24 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 			child_tinfo->set_cwd(caller_tinfo->get_cwd());
 
 			/* Not a thread, copy env */
-			child_tinfo->m_env = caller_tinfo->m_env;
+			child_tinfo->set_env(caller_tinfo->get_env());
 		}
 
 		/* Create info about the thread group */
 
 		/* pid */
-		child_tinfo->m_pid = child_tinfo->m_tid;
+		child_tinfo->set_pid(child_tinfo->m_tid);
 
 		/* The child parent is the calling process */
-		child_tinfo->m_ptid = caller_tinfo->m_tid;
+		child_tinfo->set_ptid(caller_tinfo->m_tid);
 	} else /* Simple thread case */
 	{
 		/* pid */
-		child_tinfo->m_pid = caller_tinfo->m_pid;
+		child_tinfo->set_pid(caller_tinfo->get_pid());
 
 		/* ptid */
 		/* The parent is the parent of the calling process */
-		child_tinfo->m_ptid = caller_tinfo->m_ptid;
+		child_tinfo->set_ptid(caller_tinfo->get_ptid());
 
 		/* Please note this is not the right behavior, it is something we do to be compliant with
 		 * `/proc` scan.
@@ -897,12 +878,12 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		 * thread one, for this reason, we keep the main thread alive until we have some threads in
 		 * the group.
 		 */
-		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
+		child_tinfo->or_flags(PPM_CL_CLONE_FILES);
 
 		/* If we are a new thread we keep the same lastexec time of the main thread
 		 * If the caller is invalid we are re-initializing this value to 0 again.
 		 */
-		child_tinfo->m_lastexec_ts = caller_tinfo->m_lastexec_ts;
+		child_tinfo->set_lastexec_ts(caller_tinfo->get_lastexec_ts());
 	}
 
 	/* We are not in a container otherwise we should never reach this point.
@@ -910,26 +891,26 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 */
 
 	/* vtid */
-	child_tinfo->m_vtid = child_tinfo->m_tid;
+	child_tinfo->set_vtid(child_tinfo->m_tid);
 
 	/* vpid */
-	child_tinfo->m_vpid = child_tinfo->m_pid;
+	child_tinfo->set_vpid(child_tinfo->get_pid());
 
 	/* exe */
-	child_tinfo->m_exe = evt.get_param(1)->as<std::string>();
+	child_tinfo->set_exe(evt.get_param(1)->as<std::string>());
 
 	/* args */
 	child_tinfo->set_args(evt.get_param(2)->as<std::vector<std::string>>());
 
 	/* comm */
 	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-		child_tinfo->m_comm = comm_param->as<std::string>();
+		child_tinfo->set_comm(comm_param->as<std::string>());
 	} else {
-		child_tinfo->m_comm = child_tinfo->m_exe;
+		child_tinfo->set_comm(child_tinfo->get_exe());
 	}
 
 	/* fdlimit */
-	child_tinfo->m_fdlimit = evt.get_param(7)->as<int64_t>();
+	child_tinfo->set_fdlimit(evt.get_param(7)->as<int64_t>());
 
 	/* Generic memory info */
 	// If one of these parameters is present, so is for the other ones, so just check the
@@ -940,27 +921,30 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	const auto vm_rss_param = evt.get_param(11);
 	const auto vm_swap_param = evt.get_param(12);
 	if(!vm_swap_param->empty()) {
-		child_tinfo->m_pfmajor = pgft_maj_param->as<uint64_t>();
-		child_tinfo->m_pfminor = pgft_min_param->as<uint64_t>();
-		child_tinfo->m_vmsize_kb = vm_size_param->as<uint32_t>();
-		child_tinfo->m_vmrss_kb = vm_rss_param->as<uint32_t>();
-		child_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+		child_tinfo->set_pfmajor(pgft_maj_param->as<uint64_t>());
+		child_tinfo->set_pfminor(pgft_min_param->as<uint64_t>());
+		child_tinfo->set_vmsize_kb(vm_size_param->as<uint32_t>());
+		child_tinfo->set_vmrss_kb(vm_rss_param->as<uint32_t>());
+		child_tinfo->set_vmswap_kb(vm_swap_param->as<uint32_t>());
 	}
 
 	/* uid */
 	const auto uid = evt.get_param(16)->as<int32_t>();
-	child_tinfo->m_uid = uid;
+	child_tinfo->set_uid(uid);
 
 	/* gid */
 	const auto gid = evt.get_param(17)->as<int32_t>();
-	child_tinfo->m_gid = gid;
+	child_tinfo->set_gid(gid);
 
-	m_usergroup_manager->add_user("",
-	                              child_tinfo->m_pid,
-	                              uid,
-	                              gid,
-	                              must_notify_thread_user_update());
-	m_usergroup_manager->add_group("", child_tinfo->m_pid, gid, must_notify_thread_group_update());
+	m_params->m_usergroup_manager->add_user("",
+	                                        child_tinfo->get_pid(),
+	                                        uid,
+	                                        gid,
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group("",
+	                                         child_tinfo->get_pid(),
+	                                         gid,
+	                                         must_notify_thread_group_update());
 
 	// Set cgroups
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -968,56 +952,56 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	}
 
 	/* Initialize the thread clone time */
-	child_tinfo->m_clone_ts = evt.get_ts();
+	child_tinfo->set_clone_ts(evt.get_ts());
 
 	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
-	child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
+	child_tinfo->m_pidns_init_start_ts = m_params->m_machine_info->boot_ts_epoch;
 
 	/* Take some further info from the caller */
 	if(valid_caller) {
 		/* We should trust the info we obtain from the caller, if it is valid */
-		child_tinfo->set_exepath(std::string(caller_tinfo->m_exepath));
+		child_tinfo->set_exepath(std::string(caller_tinfo->get_exepath()));
 
-		child_tinfo->m_exe_writable = caller_tinfo->m_exe_writable;
+		child_tinfo->set_exe_writable(caller_tinfo->get_exe_writable());
 
-		child_tinfo->m_exe_upper_layer = caller_tinfo->m_exe_upper_layer;
+		child_tinfo->set_exe_upper_layer(caller_tinfo->get_exe_upper_layer());
 
-		child_tinfo->m_exe_lower_layer = caller_tinfo->m_exe_lower_layer;
+		child_tinfo->set_exe_lower_layer(caller_tinfo->get_exe_lower_layer());
 
-		child_tinfo->m_exe_from_memfd = caller_tinfo->m_exe_from_memfd;
+		child_tinfo->set_exe_from_memfd(caller_tinfo->get_exe_from_memfd());
 
-		child_tinfo->m_root = caller_tinfo->m_root;
+		child_tinfo->set_root(caller_tinfo->get_root());
 
-		child_tinfo->m_sid = caller_tinfo->m_sid;
+		child_tinfo->set_sid(caller_tinfo->get_sid());
 
-		child_tinfo->m_vpgid = caller_tinfo->m_vpgid;
+		child_tinfo->set_vpgid(caller_tinfo->get_vpgid());
 
-		child_tinfo->m_pgid = caller_tinfo->m_pgid;
+		child_tinfo->set_pgid(caller_tinfo->get_pgid());
 
-		child_tinfo->m_tty = caller_tinfo->m_tty;
+		child_tinfo->set_tty(caller_tinfo->get_tty());
 
-		child_tinfo->m_loginuid = caller_tinfo->m_loginuid;
+		child_tinfo->set_loginuid(caller_tinfo->get_loginuid());
 
-		child_tinfo->m_cap_permitted = caller_tinfo->m_cap_permitted;
+		child_tinfo->set_cap_permitted(caller_tinfo->get_cap_permitted());
 
-		child_tinfo->m_cap_inheritable = caller_tinfo->m_cap_inheritable;
+		child_tinfo->set_cap_inheritable(caller_tinfo->get_cap_inheritable());
 
-		child_tinfo->m_cap_effective = caller_tinfo->m_cap_effective;
+		child_tinfo->set_cap_effective(caller_tinfo->get_cap_effective());
 
-		child_tinfo->m_exe_ino = caller_tinfo->m_exe_ino;
+		child_tinfo->set_exe_ino(caller_tinfo->get_exe_ino());
 
-		child_tinfo->m_exe_ino_ctime = caller_tinfo->m_exe_ino_ctime;
+		child_tinfo->set_exe_ino_ctime(caller_tinfo->get_exe_ino_ctime());
 
-		child_tinfo->m_exe_ino_mtime = caller_tinfo->m_exe_ino_mtime;
+		child_tinfo->set_exe_ino_mtime(caller_tinfo->get_exe_ino_mtime());
 
-		child_tinfo->m_exe_ino_ctime_duration_clone_ts =
-		        caller_tinfo->m_exe_ino_ctime_duration_clone_ts;
+		child_tinfo->set_exe_ino_ctime_duration_clone_ts(
+		        caller_tinfo->get_exe_ino_ctime_duration_clone_ts());
 	} else {
 		/* exe */
-		caller_tinfo->m_exe = child_tinfo->m_exe;
+		caller_tinfo->set_exe(child_tinfo->get_exe());
 
 		/* comm */
-		caller_tinfo->m_comm = child_tinfo->m_comm;
+		caller_tinfo->set_comm(child_tinfo->get_comm());
 
 		/* args */
 		caller_tinfo->set_args(evt.get_param(2)->as<std::vector<std::string>>());
@@ -1028,7 +1012,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 
 	/* Until we use the shared pointer we need it here, after we can move it at the end */
-	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), true);
+	auto new_child = m_params->m_thread_manager->add_thread(std::move(child_tinfo), true);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		return;
@@ -1037,7 +1021,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
@@ -1052,7 +1036,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		reset(evt);
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
-		               new_child->m_comm.c_str());
+		               new_child->get_comm().c_str());
 	}
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 }
@@ -1072,8 +1056,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 * Please note that the thread info is associated with the event
 	 * in `sinsp_parser::reset` method.
 	 */
-	if(evt.get_tinfo() != nullptr && evt.get_tinfo()->m_clone_ts != 0) {
-		if(evt.get_ts() - evt.get_tinfo()->m_clone_ts < CLONE_STALE_TIME_NS) {
+	if(evt.get_tinfo() != nullptr && evt.get_tinfo()->get_clone_ts() != 0) {
+		if(evt.get_ts() - evt.get_tinfo()->get_clone_ts() < CLONE_STALE_TIME_NS) {
 			/* This is a valid thread-info, the caller populated it so we
 			 * have nothing to do here. Note that if we are in a container the caller
 			 * will never generate the child thread-info because it doesn't have
@@ -1084,7 +1068,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		}
 
 		/* The info is too old, we remove it and create a new one */
-		m_thread_manager->remove_thread(child_tid);
+		m_params->m_thread_manager->remove_thread(child_tid);
 		tid_collision = child_tid;
 		evt.set_tinfo(nullptr);
 	}
@@ -1105,21 +1089,21 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	/* Allocate the new thread info and initialize it.
 	 * We must avoid `malloc` here and get the item from a preallocated list.
 	 */
-	auto child_tinfo = m_threadinfo_factory.create();
+	auto child_tinfo = m_params->m_threadinfo_factory.create();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
 	 */
-	child_tinfo->m_lastexec_ts = 0;
+	child_tinfo->set_lastexec_ts(0);
 
 	/* tid */
 	child_tinfo->m_tid = child_tid;
 
 	/* pid */
-	child_tinfo->m_pid = evt.get_param(4)->as<int64_t>();
+	child_tinfo->set_pid(evt.get_param(4)->as<int64_t>());
 
 	/* ptid. */
-	child_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
+	child_tinfo->set_ptid(evt.get_param(5)->as<int64_t>());
 
 	/* `vtid` and `vpid` */
 	// If one of these parameters is present, so is for the other ones, so just check the
@@ -1127,22 +1111,22 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	const auto vtid_param = evt.get_param(18);
 	const auto vpid_param = evt.get_param(19);
 	if(!vpid_param->empty()) {
-		child_tinfo->m_vtid = vtid_param->as<int64_t>();
-		child_tinfo->m_vpid = vpid_param->as<int64_t>();
+		child_tinfo->set_vtid(vtid_param->as<int64_t>());
+		child_tinfo->set_vpid(vpid_param->as<int64_t>());
 	} else {
-		child_tinfo->m_vtid = child_tinfo->m_tid;
-		child_tinfo->m_vpid = -1;
+		child_tinfo->set_vtid(child_tinfo->m_tid);
+		child_tinfo->set_vpid(-1);
 	}
 
 	/* flags */
-	child_tinfo->m_flags = evt.get_param(15)->as<uint32_t>();
+	child_tinfo->set_flags(evt.get_param(15)->as<uint32_t>());
 
 	/* We add this custom `PPM_CL_CLONE_INVERTED` flag.
 	 * It means that we received the child event before the caller one and
 	 * it will notify the caller that it has to do nothing because we already
 	 * populated the thread info in the child.
 	 */
-	child_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
+	child_tinfo->or_flags(PPM_CL_CLONE_INVERTED);
 
 	/* Lookup the thread info of the leader thread if we are a new thread while if we are
 	 * a new process we copy it from the parent.
@@ -1154,13 +1138,13 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 */
 	int64_t lookup_tid;
 
-	bool is_thread_leader = !(child_tinfo->m_flags & PPM_CL_CLONE_THREAD);
+	bool is_thread_leader = !(child_tinfo->get_flags() & PPM_CL_CLONE_THREAD);
 	if(is_thread_leader) {
 		/* We need to copy data from the parent */
-		lookup_tid = child_tinfo->m_ptid;
+		lookup_tid = child_tinfo->get_ptid();
 	} else {
 		/* We need to copy data from the thread leader */
-		lookup_tid = child_tinfo->m_pid;
+		lookup_tid = child_tinfo->get_pid();
 
 		/* Please note this is not the right behavior, it is something we do to be compliant with
 		 * `/proc` scan.
@@ -1169,10 +1153,10 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		 * thread one, for this reason, we keep the main thread alive until we have some threads in
 		 * the group.
 		 */
-		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
+		child_tinfo->or_flags(PPM_CL_CLONE_FILES);
 	}
 
-	auto lookup_tinfo = m_thread_manager->get_thread(lookup_tid);
+	auto lookup_tinfo = m_params->m_thread_manager->get_thread(lookup_tid);
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new
 	 * fresh empty thread info to populate even if we are not able to recover any information! If
 	 * `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
@@ -1191,22 +1175,22 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 			/* pid. */
 			/* the new thread pid is the same of the main thread */
-			lookup_tinfo->m_pid = child_tinfo->m_pid;
+			lookup_tinfo->set_pid(child_tinfo->get_pid());
 
 			/* ptid */
 			/* the new thread ptid is the same of the main thread */
-			lookup_tinfo->m_ptid = child_tinfo->m_ptid;
+			lookup_tinfo->set_ptid(child_tinfo->get_ptid());
 
 			/* vpid */
 			/* we are in the same thread group, the vpid is the same of the child */
-			lookup_tinfo->m_vpid = child_tinfo->m_vpid;
+			lookup_tinfo->set_vpid(child_tinfo->get_vpid());
 
 			/* vtid */
 			/* we are a main thread so vtid==vpid */
-			lookup_tinfo->m_vtid = lookup_tinfo->m_vpid;
+			lookup_tinfo->set_vtid(lookup_tinfo->get_vpid());
 
 			/* Create thread groups and parenting relationships */
-			m_thread_manager->create_thread_dependencies(lookup_tinfo);
+			m_params->m_thread_manager->create_thread_dependencies(lookup_tinfo);
 		}
 	}
 
@@ -1215,13 +1199,13 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 */
 
 	/* exe */
-	child_tinfo->m_exe = evt.get_param(1)->as<std::string>();
+	child_tinfo->set_exe(evt.get_param(1)->as<std::string>());
 
 	/* comm */
 	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-		child_tinfo->m_comm = comm_param->as<std::string>();
+		child_tinfo->set_comm(comm_param->as<std::string>());
 	} else {
-		child_tinfo->m_comm = child_tinfo->m_exe;
+		child_tinfo->set_comm(child_tinfo->get_exe());
 	}
 
 	/* args */
@@ -1235,42 +1219,42 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		 * enrichment...
 		 */
 
-		child_tinfo->set_exepath(std::string(lookup_tinfo->m_exepath));
+		child_tinfo->set_exepath(std::string(lookup_tinfo->get_exepath()));
 
-		child_tinfo->m_exe_writable = lookup_tinfo->m_exe_writable;
+		child_tinfo->set_exe_writable(lookup_tinfo->get_exe_writable());
 
-		child_tinfo->m_exe_upper_layer = lookup_tinfo->m_exe_upper_layer;
+		child_tinfo->set_exe_upper_layer(lookup_tinfo->get_exe_upper_layer());
 
-		child_tinfo->m_exe_lower_layer = lookup_tinfo->m_exe_lower_layer;
+		child_tinfo->set_exe_lower_layer(lookup_tinfo->get_exe_lower_layer());
 
-		child_tinfo->m_exe_from_memfd = lookup_tinfo->m_exe_from_memfd;
+		child_tinfo->set_exe_from_memfd(lookup_tinfo->get_exe_from_memfd());
 
-		child_tinfo->m_root = lookup_tinfo->m_root;
+		child_tinfo->set_root(lookup_tinfo->get_root());
 
-		child_tinfo->m_sid = lookup_tinfo->m_sid;
+		child_tinfo->set_sid(lookup_tinfo->get_sid());
 
-		child_tinfo->m_vpgid = lookup_tinfo->m_vpgid;
+		child_tinfo->set_vpgid(lookup_tinfo->get_vpgid());
 
-		child_tinfo->m_pgid = lookup_tinfo->m_pgid;
+		child_tinfo->set_pgid(lookup_tinfo->get_pgid());
 
-		child_tinfo->m_tty = lookup_tinfo->m_tty;
+		child_tinfo->set_tty(lookup_tinfo->get_tty());
 
-		child_tinfo->m_loginuid = lookup_tinfo->m_loginuid;
+		child_tinfo->set_loginuid(lookup_tinfo->get_loginuid());
 
-		child_tinfo->m_cap_permitted = lookup_tinfo->m_cap_permitted;
+		child_tinfo->set_cap_permitted(lookup_tinfo->get_cap_permitted());
 
-		child_tinfo->m_cap_inheritable = lookup_tinfo->m_cap_inheritable;
+		child_tinfo->set_cap_inheritable(lookup_tinfo->get_cap_inheritable());
 
-		child_tinfo->m_cap_effective = lookup_tinfo->m_cap_effective;
+		child_tinfo->set_cap_effective(lookup_tinfo->get_cap_effective());
 
-		child_tinfo->m_exe_ino = lookup_tinfo->m_exe_ino;
+		child_tinfo->set_exe_ino(lookup_tinfo->get_exe_ino());
 
-		child_tinfo->m_exe_ino_ctime = lookup_tinfo->m_exe_ino_ctime;
+		child_tinfo->set_exe_ino_ctime(lookup_tinfo->get_exe_ino_ctime());
 
-		child_tinfo->m_exe_ino_mtime = lookup_tinfo->m_exe_ino_mtime;
+		child_tinfo->set_exe_ino_mtime(lookup_tinfo->get_exe_ino_mtime());
 
-		child_tinfo->m_exe_ino_ctime_duration_clone_ts =
-		        lookup_tinfo->m_exe_ino_ctime_duration_clone_ts;
+		child_tinfo->set_exe_ino_ctime_duration_clone_ts(
+		        lookup_tinfo->get_exe_ino_ctime_duration_clone_ts());
 
 		/* We are a new thread leader */
 		if(is_thread_leader) {
@@ -1315,20 +1299,20 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			child_tinfo->set_cwd(lookup_tinfo->get_cwd());
 
 			/* Not a thread, copy env */
-			child_tinfo->m_env = lookup_tinfo->m_env;
+			child_tinfo->set_env(lookup_tinfo->get_env());
 		} else {
 			/* If we are a new thread we keep the same lastexec time of the main thread */
-			child_tinfo->m_lastexec_ts = lookup_tinfo->m_lastexec_ts;
+			child_tinfo->set_lastexec_ts(lookup_tinfo->get_lastexec_ts());
 		}
 	} else {
 		/* Please note that here `comm`, `exe`, ... could be different from our thread, so this is
 		 * an approximation */
 		if(!is_thread_leader) {
 			/* exe */
-			lookup_tinfo->m_exe = child_tinfo->m_exe;
+			lookup_tinfo->set_exe(child_tinfo->get_exe());
 
 			/* comm */
-			lookup_tinfo->m_comm = child_tinfo->m_comm;
+			lookup_tinfo->set_comm(child_tinfo->get_comm());
 
 			/* args */
 			lookup_tinfo->set_args(evt.get_param(2)->as<std::vector<std::string>>());
@@ -1336,7 +1320,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	}
 
 	/* fdlimit */
-	child_tinfo->m_fdlimit = evt.get_param(7)->as<int64_t>();
+	child_tinfo->set_fdlimit(evt.get_param(7)->as<int64_t>());
 
 	/* Generic memory info */
 	// If one of these parameters is present, so is for the other ones, so just check the
@@ -1347,27 +1331,30 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	const auto vm_rss_param = evt.get_param(11);
 	const auto vm_swap_param = evt.get_param(12);
 	if(!vm_swap_param->empty()) {
-		child_tinfo->m_pfmajor = pgft_maj_param->as<uint64_t>();
-		child_tinfo->m_pfminor = pgft_min_param->as<uint64_t>();
-		child_tinfo->m_vmsize_kb = vm_size_param->as<uint32_t>();
-		child_tinfo->m_vmrss_kb = vm_rss_param->as<uint32_t>();
-		child_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+		child_tinfo->set_pfmajor(pgft_maj_param->as<uint64_t>());
+		child_tinfo->set_pfminor(pgft_min_param->as<uint64_t>());
+		child_tinfo->set_vmsize_kb(vm_size_param->as<uint32_t>());
+		child_tinfo->set_vmrss_kb(vm_rss_param->as<uint32_t>());
+		child_tinfo->set_vmswap_kb(vm_swap_param->as<uint32_t>());
 	}
 
 	/* uid */
 	const auto uid = evt.get_param(16)->as<int32_t>();
-	child_tinfo->m_uid = uid;
+	child_tinfo->set_uid(uid);
 
 	/* gid */
 	const auto gid = evt.get_param(17)->as<int32_t>();
-	child_tinfo->m_gid = gid;
+	child_tinfo->set_gid(gid);
 
-	m_usergroup_manager->add_user("",
-	                              child_tinfo->m_pid,
-	                              uid,
-	                              gid,
-	                              must_notify_thread_user_update());
-	m_usergroup_manager->add_group("", child_tinfo->m_pid, gid, must_notify_thread_group_update());
+	m_params->m_usergroup_manager->add_user("",
+	                                        child_tinfo->get_pid(),
+	                                        uid,
+	                                        gid,
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group("",
+	                                         child_tinfo->get_pid(),
+	                                         gid,
+	                                         must_notify_thread_group_update());
 
 	// Set cgroups
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
@@ -1375,25 +1362,26 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	}
 
 	/* Initialize the thread clone time */
-	child_tinfo->m_clone_ts = evt.get_ts();
+	child_tinfo->set_clone_ts(evt.get_ts());
 
 	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
 	/* If we are in container! */
-	if(child_tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS || child_tinfo->m_flags & PPM_CL_CLONE_NEWPID ||
-	   child_tinfo->m_tid != child_tinfo->m_vtid) {
+	if(child_tinfo->get_flags() & PPM_CL_CHILD_IN_PIDNS ||
+	   child_tinfo->get_flags() & PPM_CL_CLONE_NEWPID ||
+	   child_tinfo->m_tid != child_tinfo->get_vtid()) {
 		if(const auto pidns_init_start_ts_param = evt.get_param(20);
 		   !pidns_init_start_ts_param->empty()) {
-			child_tinfo->m_pidns_init_start_ts =
-			        pidns_init_start_ts_param->as<uint64_t>() + m_machine_info->boot_ts_epoch;
+			child_tinfo->m_pidns_init_start_ts = pidns_init_start_ts_param->as<uint64_t>() +
+			                                     m_params->m_machine_info->boot_ts_epoch;
 		}
 	} else {
-		child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
+		child_tinfo->m_pidns_init_start_ts = m_params->m_machine_info->boot_ts_epoch;
 	}
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
 	/* Add the new thread to the table */
-	auto new_child = m_thread_manager->add_thread(std::move(child_tinfo), true);
+	auto new_child = m_params->m_thread_manager->add_thread(std::move(child_tinfo), true);
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		evt.set_tinfo(nullptr);
@@ -1404,12 +1392,12 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	 * We update it here, in this way the `on_clone`
 	 * callback will use updated info.
 	 */
-	evt.set_tinfo(new_child.get());
+	evt.set_tinfo(new_child);
 
 	//
 	// If there's a listener, add a callback to later invoke it.
 	//
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
@@ -1425,7 +1413,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 		/* Right now we have collisions only on the clone() caller */
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
-		               new_child->m_comm.c_str());
+		               new_child->get_comm().c_str());
 	}
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
@@ -1485,89 +1473,66 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		evt.get_tinfo()->resurrect_thread();
 	}
 
-	// Set the exe.
-	auto parinfo = evt.get_param(1);
-	evt.get_tinfo()->m_exe = parinfo->as<std::string>();
-	evt.get_tinfo()->m_lastexec_ts = evt.get_ts();
-
-	// Set the comm.
-	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-		evt.get_tinfo()->m_comm = comm_param->as<std::string>();
-	} else {
-		// Old trace files didn't have comm, so just set it to exe.
-		evt.get_tinfo()->m_comm = evt.get_tinfo()->m_exe;
-	}
-
-	// Set the command arguments.
-	evt.get_tinfo()->set_args(evt.get_param(2)->as<std::vector<std::string>>());
-
-	// Set the pid.
-	evt.get_tinfo()->m_pid = evt.get_param(4)->as<uint64_t>();
-
 	//
 	// In case this thread is a fake entry,
 	// try to at least patch the parent, since
 	// we have it from the execve event
 	//
-	if(evt.get_tinfo()->is_invalid()) {
-		evt.get_tinfo()->m_ptid = evt.get_param(5)->as<uint64_t>();
+	const bool invalid_thread = evt.get_tinfo()->is_invalid();
 
-		/* We are not in a namespace we recover also vtid and vpid */
-		if((evt.get_tinfo()->m_flags & PPM_CL_CHILD_IN_PIDNS) == 0) {
-			evt.get_tinfo()->m_vtid = evt.get_tinfo()->m_tid;
-			evt.get_tinfo()->m_vpid = evt.get_tinfo()->m_pid;
-		}
+	// Set the pid (before apply_exec_state so set_env_from_proc can build /proc/pid/environ path).
+	evt.get_tinfo()->set_pid(evt.get_param(4)->as<uint64_t>());
 
-		auto tinfo = m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
-		/* Create thread groups and parenting relationships */
-		m_thread_manager->create_thread_dependencies(tinfo);
+	// Build mutex-protected exec state, then apply under one lock.
+	sinsp_threadinfo_exec_state state;
+
+	// Set the exe.
+	auto parinfo = evt.get_param(1);
+	state.exe = parinfo->as<std::string>();
+	state.lastexec_ts = evt.get_ts();
+
+	// Set the comm.
+	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
+		state.comm = comm_param->as<std::string>();
+	} else {
+		// Old trace files didn't have comm, so just set it to exe.
+		state.comm = state.exe;
 	}
 
-	// Set the fdlimit.
-	evt.get_tinfo()->m_fdlimit = evt.get_param(7)->as<int64_t>();
-
-	// If one the following parameters is present, so is for the other ones, so just check the
-	// presence of one of them.
-	const auto pgft_maj_param = evt.get_param(8);
-	const auto pgft_min_param = evt.get_param(9);
-	const auto vm_size_param = evt.get_param(10);
-	const auto vm_rss_param = evt.get_param(11);
-	const auto vm_swap_param = evt.get_param(12);
-	if(!vm_swap_param->empty()) {
-		evt.get_tinfo()->m_pfmajor = pgft_maj_param->as<uint64_t>();
-		evt.get_tinfo()->m_pfminor = pgft_min_param->as<uint64_t>();
-		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
-		evt.get_tinfo()->m_vmrss_kb = vm_rss_param->as<uint32_t>();
-		evt.get_tinfo()->m_vmswap_kb = vm_swap_param->as<uint32_t>();
-	}
+	// Set the command arguments.
+	state.args = evt.get_param(2)->as<std::vector<std::string>>();
 
 	// Set the proc env.
 	if(const auto env_param = evt.get_param(15); !env_param->empty()) {
 		const auto can_load_env_from_proc = is_large_envs_enabled();
-		evt.get_tinfo()->set_env(env_param->data(), env_param->len(), can_load_env_from_proc);
+		if(env_param->len() == SCAP_MAX_ENV_SIZE && can_load_env_from_proc) {
+			state.load_env_from_proc = true;
+		} else {
+			size_t len = env_param->len();
+			if(len > 0 && env_param->data()[len - 1] == '\0') {
+				len--;
+			}
+			state.env = sinsp_split({env_param->data(), len}, '\0');
+		}
 	}
 
 	// Set cgroups.
 	if(const auto cgroups_param = evt.get_param(14); !cgroups_param->empty()) {
-		evt.get_tinfo()->set_cgroups(cgroups_param->as<std::vector<std::string>>());
-	}
-
-	// Set tty.
-	if(const auto tty_param = evt.get_param(16); !tty_param->empty()) {
-		evt.get_tinfo()->m_tty = tty_param->as<uint32_t>();
+		state.cgroups =
+		        sinsp_threadinfo::parse_cgroups(cgroups_param->as<std::vector<std::string>>());
 	}
 
 	// Set the exepath.
 	if(!evt.get_param(27)->empty()) {
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-		evt.get_tinfo()->set_exepath(evt.get_param(27)->as<std::string>());
+		state.exepath = evt.get_param(27)->as<std::string>();
 	} else {
 		/* ONLY VALID FOR OLD SCAP-FILES:
 		 * In older event versions we can only rely on our userspace reconstruction
 		 */
 
 		// If we are not able to retrieve the enter event we can do nothing.
-		sinsp_evt *enter_evt = &m_tmp_evt;
+		sinsp_evt *enter_evt = &m_tmp_evt_storage;
 		if(retrieve_enter_event(*enter_evt, evt)) {
 			std::string fullpath;
 
@@ -1645,7 +1610,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 					 * concatenate_paths takes care of resolving the path
 					 */
 					fullpath = sinsp_utils::concatenate_paths("", sdir);
-
 				}
 				/* (2)/(1) If it is relative or absolute we craft the `fullpath` as usual:
 				 * - `sdir` + `pathname`
@@ -1654,41 +1618,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 					fullpath = sinsp_utils::concatenate_paths(sdir, pathname);
 				}
 			}
-			evt.get_tinfo()->set_exepath(std::move(fullpath));
+			state.exepath = std::move(fullpath);
 		}
-	}
-
-	// Set the vpgid.
-	if(const auto vpgid_param = evt.get_param(17); !vpgid_param->empty()) {
-		evt.get_tinfo()->m_vpgid = vpgid_param->as<int64_t>();
-	}
-
-	// Set the loginuid.
-	if(const auto loginuid_param = evt.get_param(18); !loginuid_param->empty()) {
-		// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an
-		// uid invalid value.
-		evt.get_tinfo()->m_loginuid = loginuid_param->as<uint32_t>();
 	}
 
 	// Set execve/execveat flags.
 	if(const auto flags_param = evt.get_param(19); !flags_param->empty()) {
 		const auto flags = flags_param->as<uint32_t>();
-		evt.get_tinfo()->m_exe_writable = (flags & PPM_EXE_WRITABLE) != 0;
-		evt.get_tinfo()->m_exe_upper_layer = (flags & PPM_EXE_UPPER_LAYER) != 0;
-		evt.get_tinfo()->m_exe_from_memfd = (flags & PPM_EXE_FROM_MEMFD) != 0;
-		evt.get_tinfo()->m_exe_lower_layer = (flags & PPM_EXE_LOWER_LAYER) != 0;
-	}
-
-	// Set capabilities.
-	const auto cap_inheritable_param = evt.get_param(20);
-	const auto cap_permitted_param = evt.get_param(21);
-	const auto cap_effective_param = evt.get_param(22);
-	// If one capability set is present, so is for the other ones, so just check the
-	// presence of one of them.
-	if(!cap_effective_param->empty()) {
-		evt.get_tinfo()->m_cap_inheritable = cap_inheritable_param->as<uint64_t>();
-		evt.get_tinfo()->m_cap_permitted = cap_permitted_param->as<uint64_t>();
-		evt.get_tinfo()->m_cap_effective = cap_effective_param->as<uint64_t>();
+		state.exe_writable = (flags & PPM_EXE_WRITABLE) != 0;
+		state.exe_upper_layer = (flags & PPM_EXE_UPPER_LAYER) != 0;
+		state.exe_from_memfd = (flags & PPM_EXE_FROM_MEMFD) != 0;
+		state.exe_lower_layer = (flags & PPM_EXE_LOWER_LAYER) != 0;
 	}
 
 	// Set exe ino fields.
@@ -1698,25 +1638,74 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	// If one of these parameters is present, so is for the other ones, so just check the
 	// presence of one of them.
 	if(!exe_ino_mtime_param->empty()) {
-		evt.get_tinfo()->m_exe_ino = exe_ino_param->as<uint64_t>();
-		evt.get_tinfo()->m_exe_ino_ctime = exe_ino_ctime_param->as<uint64_t>();
-		evt.get_tinfo()->m_exe_ino_mtime = exe_ino_mtime_param->as<uint64_t>();
-		if(evt.get_tinfo()->m_clone_ts != 0) {
-			evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
-			        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
+		state.exe_ino = exe_ino_param->as<uint64_t>();
+		state.exe_ino_ctime = exe_ino_ctime_param->as<uint64_t>();
+		state.exe_ino_mtime = exe_ino_mtime_param->as<uint64_t>();
+		if(evt.get_tinfo()->get_clone_ts() != 0) {
+			state.exe_ino_ctime_duration_clone_ts =
+			        evt.get_tinfo()->get_clone_ts() - *state.exe_ino_ctime;
 		}
 		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
-		   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
-			evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
-			        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
+		   *state.exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts) {
+			state.exe_ino_ctime_duration_pidns_start =
+			        *state.exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
 		}
+	}
+
+	evt.get_tinfo()->apply_exec_state(state);
+
+	// Set the fdlimit.
+	evt.get_tinfo()->set_fdlimit(evt.get_param(7)->as<int64_t>());
+
+	// If one the following parameters is present, so is for the other ones, so just check the
+	// presence of one of them.
+	const auto pgft_maj_param = evt.get_param(8);
+	const auto pgft_min_param = evt.get_param(9);
+	const auto vm_size_param = evt.get_param(10);
+	const auto vm_rss_param = evt.get_param(11);
+	const auto vm_swap_param = evt.get_param(12);
+	if(!vm_swap_param->empty()) {
+		evt.get_tinfo()->set_pfmajor(pgft_maj_param->as<uint64_t>());
+		evt.get_tinfo()->set_pfminor(pgft_min_param->as<uint64_t>());
+		evt.get_tinfo()->set_vmsize_kb(vm_size_param->as<uint32_t>());
+		evt.get_tinfo()->set_vmrss_kb(vm_rss_param->as<uint32_t>());
+		evt.get_tinfo()->set_vmswap_kb(vm_swap_param->as<uint32_t>());
+	}
+
+	// Set tty.
+	if(const auto tty_param = evt.get_param(16); !tty_param->empty()) {
+		evt.get_tinfo()->set_tty(tty_param->as<uint32_t>());
+	}
+
+	// Set the vpgid.
+	if(const auto vpgid_param = evt.get_param(17); !vpgid_param->empty()) {
+		evt.get_tinfo()->set_vpgid(vpgid_param->as<int64_t>());
+	}
+
+	// Set the loginuid.
+	if(const auto loginuid_param = evt.get_param(18); !loginuid_param->empty()) {
+		// Notice: this can potentially set loginuid to UINT32_MAX, which is used to denote an
+		// uid invalid value.
+		evt.get_tinfo()->set_loginuid(loginuid_param->as<uint32_t>());
+	}
+
+	// Set capabilities.
+	const auto cap_inheritable_param = evt.get_param(20);
+	const auto cap_permitted_param = evt.get_param(21);
+	const auto cap_effective_param = evt.get_param(22);
+	// If one capability set is present, so is for the other ones, so just check the
+	// presence of one of them.
+	if(!cap_effective_param->empty()) {
+		evt.get_tinfo()->set_cap_inheritable(cap_inheritable_param->as<uint64_t>());
+		evt.get_tinfo()->set_cap_permitted(cap_permitted_param->as<uint64_t>());
+		evt.get_tinfo()->set_cap_effective(cap_effective_param->as<uint64_t>());
 	}
 
 	// Set uid.
 	if(const auto uid_param = evt.get_param(26); !uid_param->empty()) {
 		// Notice: this can potentially set uid to UINT32_MAX, which is used to denote an uid
 		// invalid value.
-		evt.get_tinfo()->m_uid = uid_param->as<uint32_t>();
+		evt.get_tinfo()->set_uid(uid_param->as<uint32_t>());
 	}
 
 	// Set pgid.
@@ -1724,23 +1713,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	if(const auto pgid_param = evt.get_param(28); !pgid_param->empty()) {
 		pgid = pgid_param->as<int64_t>();
 	}
-	evt.get_tinfo()->m_pgid = pgid;
+	evt.get_tinfo()->set_pgid(pgid);
 
 	// Set gid.
 	if(const auto gid_param = evt.get_param(29); !gid_param->empty()) {
-		evt.get_tinfo()->m_gid = gid_param->as<uint32_t>();
+		evt.get_tinfo()->set_gid(gid_param->as<uint32_t>());
 	}
 
-	std::string container_id = m_plugin_tables.get_container_id(*evt.get_tinfo());
-	m_usergroup_manager->add_user(container_id,
-	                              evt.get_tinfo()->m_pid,
-	                              evt.get_tinfo()->m_uid,
-	                              evt.get_tinfo()->m_gid,
-	                              must_notify_thread_user_update());
-	m_usergroup_manager->add_group(container_id,
-	                               evt.get_tinfo()->m_pid,
-	                               evt.get_tinfo()->m_gid,
-	                               must_notify_thread_group_update());
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -1753,26 +1732,42 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	// and shell pipe flags
 	//
 
-	auto spf =
-	        evt.get_tinfo()->m_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST | PPM_CL_IS_MAIN_THREAD);
-	bool inverted = ((evt.get_tinfo()->m_flags & PPM_CL_CLONE_INVERTED) != 0);
+	auto old_flags = evt.get_tinfo()->get_flags();
+	auto spf = old_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST | PPM_CL_IS_MAIN_THREAD);
+	bool inverted = ((old_flags & PPM_CL_CLONE_INVERTED) != 0);
 
-	evt.get_tinfo()->m_flags = PPM_CL_ACTIVE;
-
-	evt.get_tinfo()->m_flags |= spf;
+	uint32_t new_flags = PPM_CL_ACTIVE | spf | PPM_CL_NAME_CHANGED;
 	if(inverted) {
-		evt.get_tinfo()->m_flags |= PPM_CL_CLONE_INVERTED;
+		new_flags |= PPM_CL_CLONE_INVERTED;
+	}
+	evt.get_tinfo()->set_flags(new_flags);
+
+	if(invalid_thread) {
+		evt.get_tinfo()->set_ptid(evt.get_param(5)->as<uint64_t>());
+
+		/* We are not in a namespace we recover also vtid and vpid */
+		if((evt.get_tinfo()->get_flags() & PPM_CL_CHILD_IN_PIDNS) == 0) {
+			evt.get_tinfo()->set_vtid(evt.get_tinfo()->m_tid);
+			evt.get_tinfo()->set_vpid(evt.get_tinfo()->get_pid());
+		}
+
+		auto tinfo = m_params->m_thread_manager->find_thread(evt.get_tinfo()->m_tid, true);
+		/* Create thread groups and parenting relationships */
+		m_params->m_thread_manager->create_thread_dependencies(tinfo);
 	}
 
-	//
-	// This process' name changed, so we need to include it in the protocol again
-	//
-	evt.get_tinfo()->m_flags |= PPM_CL_NAME_CHANGED;
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*evt.get_tinfo());
+	m_params->m_usergroup_manager->add_user(container_id,
+	                                        evt.get_tinfo()->get_pid(),
+	                                        evt.get_tinfo()->get_uid(),
+	                                        evt.get_tinfo()->get_gid(),
+	                                        must_notify_thread_user_update());
+	m_params->m_usergroup_manager->add_group(container_id,
+	                                         evt.get_tinfo()->get_pid(),
+	                                         evt.get_tinfo()->get_gid(),
+	                                         must_notify_thread_group_update());
 
-	//
-	// If there's a listener, add a callback to later invoke it.
-	//
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_execve(evt); });
 	}
@@ -1782,11 +1777,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 * leader are terminated, and the new program is executed in
 	 * the thread group leader.
 	 *
-	 * if `evt.get_tinfo()->m_tginfo->get_thread_count() > 1` it means
+	 * if `evt.get_tinfo()->get_tginfo()->get_thread_count() > 1` it means
 	 * we still have some not leader threads in the group.
+	 *
+	 * Collect TIDs to remove first, then remove after the loop, so we
+	 * never call remove_thread (which mutates the thread group list) while
+	 * iterating over that same list.
 	 */
-	if(evt.get_tinfo()->m_tginfo != nullptr && evt.get_tinfo()->m_tginfo->get_thread_count() > 1) {
-		for(const auto &thread : evt.get_tinfo()->m_tginfo->get_thread_list()) {
+	if(evt.get_tinfo()->get_tginfo() != nullptr &&
+	   evt.get_tinfo()->get_tginfo()->get_thread_count() > 1) {
+		std::vector<int64_t> tids_to_remove;
+		for(const auto &thread : evt.get_tinfo()->get_tginfo()->get_thread_list()) {
 			auto thread_ptr = thread.lock().get();
 			/* we don't want to remove the main thread since it is the one
 			 * running in this parser!
@@ -1804,7 +1805,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			   thread_ptr->m_tid == evt.get_tinfo()->m_tid) {
 				continue;
 			}
-			m_thread_manager->remove_thread(thread_ptr->m_tid);
+			tids_to_remove.push_back(thread_ptr->m_tid);
+		}
+		for(int64_t tid : tids_to_remove) {
+			m_params->m_thread_manager->remove_thread(tid);
 		}
 	}
 }
@@ -1851,10 +1855,11 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt &evt,
 		return "<UNKNOWN>";
 	}
 
-	if(fdinfo->m_name.empty() || fdinfo->m_name.back() == '/') {
-		return fdinfo->m_name;
+	auto fd_name = fdinfo->get_name();
+	if(fd_name.empty() || fd_name.back() == '/') {
+		return fd_name;
 	}
-	return fdinfo->m_name + '/';
+	return fd_name + '/';
 }
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
@@ -1863,7 +1868,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 	std::string_view enter_evt_name;
 	uint32_t flags;
 	uint32_t enter_evt_flags;
-	sinsp_evt *enter_evt = &m_tmp_evt;
+	sinsp_evt *enter_evt = &m_tmp_evt_storage;
 	std::string sdir;
 	uint16_t etype = evt.get_type();
 	uint32_t dev = 0;
@@ -1916,7 +1921,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			}
 		}
 
-		sdir = evt.get_tinfo()->get_cwd();
+		sdir = evt.get_tinfo() != nullptr ? evt.get_tinfo()->get_cwd() : "";
 	} else if(etype == PPME_SYSCALL_CREAT_X) {
 		name = evt.get_param(1)->as<std::string_view>();
 
@@ -1951,7 +1956,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 			}
 		}
 
-		sdir = evt.get_tinfo()->get_cwd();
+		sdir = evt.get_tinfo() != nullptr ? evt.get_tinfo()->get_cwd() : "";
 	} else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X) {
 		sdir = "";
 		name = "<NA>";
@@ -2033,17 +2038,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 		//
 		// Populate the new fdi
 		//
-		auto fdi = m_fdinfo_factory.create();
-		if(flags & PPM_O_DIRECTORY) {
-			fdi->m_type = SCAP_FD_DIRECTORY;
-		} else {
-			fdi->m_type = SCAP_FD_FILE_V2;
-		}
-
-		fdi->m_openflags = flags;
-		fdi->m_mount_id = 0;
-		fdi->m_dev = dev;
-		fdi->m_ino = ino;
+		auto fdi = m_params->m_fdinfo_factory.create();
+		fdi->set_file_info(flags & PPM_O_DIRECTORY ? SCAP_FD_DIRECTORY : SCAP_FD_FILE_V2,
+		                   flags,
+		                   0,
+		                   dev,
+		                   ino);
 		fdi->add_filename_raw(name);
 		fdi->add_filename(fullpath);
 		if(flags & PPM_FD_UPPER_LAYER) {
@@ -2059,8 +2059,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 		evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 	}
 
-	if(m_observer && !(flags & PPM_O_DIRECTORY)) {
-		m_observer->on_file_open(&evt, fullpath, flags);
+	if(m_params->m_observer && !(flags & PPM_O_DIRECTORY)) {
+		m_params->m_observer->on_file_open(&evt, fullpath, flags);
 	}
 }
 
@@ -2076,15 +2076,15 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 	//
 	// Populate the new fdi
 	//
-	auto fdi = m_fdinfo_factory.create();
-	memset(&(fdi->m_sockinfo.m_ipv4info), 0, sizeof(fdi->m_sockinfo.m_ipv4info));
-	fdi->m_type = SCAP_FD_UNKNOWN;
-	fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
+	auto fdi = m_params->m_fdinfo_factory.create();
+	sinsp_sockinfo si = {};
+	scap_fd_type fd_type = SCAP_FD_UNKNOWN;
+	si.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
 
 	if(domain == PPM_AF_UNIX) {
-		fdi->m_type = SCAP_FD_UNIX_SOCK;
+		fd_type = SCAP_FD_UNIX_SOCK;
 	} else if(domain == PPM_AF_INET || domain == PPM_AF_INET6) {
-		fdi->m_type = (domain == PPM_AF_INET) ? SCAP_FD_IPV4_SOCK : SCAP_FD_IPV6_SOCK;
+		fd_type = (domain == PPM_AF_INET) ? SCAP_FD_IPV4_SOCK : SCAP_FD_IPV6_SOCK;
 
 		uint8_t l4proto = SCAP_L4_UNKNOWN;
 		if(protocol == IPPROTO_TCP) {
@@ -2092,11 +2092,6 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 		} else if(protocol == IPPROTO_UDP) {
 			l4proto = (type == SOCK_RAW) ? SCAP_L4_RAW : SCAP_L4_UDP;
 		} else if(protocol == IPPROTO_IP) {
-			//
-			// XXX: we mask type because, starting from linux 2.6.27, type can be ORed with
-			//      SOCK_NONBLOCK and SOCK_CLOEXEC. We need to validate that byte masking is
-			//      acceptable
-			//
 			if((type & 0xff) == SOCK_STREAM) {
 				l4proto = SCAP_L4_TCP;
 			} else if((type & 0xff) == SOCK_DGRAM) {
@@ -2111,13 +2106,13 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 		}
 
 		if(domain == PPM_AF_INET) {
-			fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = l4proto;
+			si.m_ipv4info.m_fields.m_l4proto = l4proto;
 		} else {
-			memset(&(fdi->m_sockinfo.m_ipv6info), 0, sizeof(fdi->m_sockinfo.m_ipv6info));
-			fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = l4proto;
+			memset(&si.m_ipv6info, 0, sizeof(si.m_ipv6info));
+			si.m_ipv6info.m_fields.m_l4proto = l4proto;
 		}
 	} else if(domain == PPM_AF_NETLINK) {
-		fdi->m_type = SCAP_FD_NETLINK;
+		fd_type = SCAP_FD_NETLINK;
 	} else {
 		if(domain != 10 &&  // IPv6
 #ifdef _WIN32
@@ -2125,21 +2120,19 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 #endif
 		   domain != 17)  // AF_PACKET, used for packet capture
 		{
-			// A possible case in which we enter here is when we reproduce an old scap-file like
-			// `scap_2013` in our tests. In this case, we have only the exit event of the socket
-			// `evt_num=5` because we have just started the capture so we lost the enter event. The
-			// result produced by our scap-file converter is a socket with (domain=0, type=0,
-			// protocol=0).
-			fdi->m_type = SCAP_FD_UNKNOWN;
+			fd_type = SCAP_FD_UNKNOWN;
 		}
 	}
 
-	if(fdi->m_type == SCAP_FD_UNKNOWN) {
+	fdi->set_type(fd_type);
+	fdi->set_sockinfo(si);
+
+	if(fd_type == SCAP_FD_UNKNOWN) {
 		SINSP_STR_DEBUG("Unknown fd fd=" + std::to_string(fd) +
 		                " domain=" + std::to_string(domain) + " type=" + std::to_string(type) +
 		                " protocol=" + std::to_string(protocol) +
-		                " pid=" + std::to_string(evt.get_tinfo()->m_pid) +
-		                " comm=" + evt.get_tinfo()->m_comm);
+		                " pid=" + std::to_string(evt.get_tinfo()->get_pid()) +
+		                " comm=" + evt.get_tinfo()->get_comm());
 	}
 
 	//
@@ -2189,7 +2182,7 @@ inline void sinsp_parser::infer_send_sendto_sendmsg_fdinfo(sinsp_evt &evt) const
 		        fd,
 		        (domain == PPM_AF_INET) ? "PPM_AF_INET" : "PPM_AF_INET6",
 		        evt.get_tinfo()->get_comm().c_str(),
-		        evt.get_tinfo()->m_pid);
+		        evt.get_tinfo()->get_pid());
 #endif
 
 		// Here we're assuming send*() means SOCK_DGRAM/UDP, but it
@@ -2253,44 +2246,45 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		memcpy(&ip, packed::in_sockaddr::ip(packed_data), sizeof(ip));
 		memcpy(&port, packed::in_sockaddr::port(packed_data), sizeof(port));
 		if(port > 0) {
-			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SERVSOCK;
-			evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_ip = ip;
-			evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_port = port;
-			evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_l4proto =
-			        evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
-			evt.get_fd_info()->set_role_server();
+			auto fdi = evt.get_fd_info();
+			auto lock = fdi->exclusive_lock();
+			fdi->m_type = SCAP_FD_IPV4_SERVSOCK;
+			fdi->m_sockinfo.m_ipv4serverinfo.m_ip = ip;
+			fdi->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			fdi->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+			        fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
+			fdi->m_flags |= sinsp_fdinfo::FLAGS_ROLE_SERVER;
 		}
 	} else if(family == PPM_AF_INET6) {
 		const auto *const ip = packed::in6_sockaddr::ip(packed_data);
 		uint16_t port;
 		memcpy(&port, packed::in6_sockaddr::port(packed_data), sizeof(uint16_t));
 		if(port > 0) {
+			auto fdi = evt.get_fd_info();
+			auto lock = fdi->exclusive_lock();
 			if(sinsp_utils::is_ipv4_mapped_ipv6(ip)) {
-				evt.get_fd_info()->m_type = SCAP_FD_IPV4_SERVSOCK;
-				evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_l4proto =
-				        evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
-				memcpy(&evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_ip,
+				fdi->m_type = SCAP_FD_IPV4_SERVSOCK;
+				fdi->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+				        fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+				memcpy(&fdi->m_sockinfo.m_ipv4serverinfo.m_ip,
 				       packed::in6_sockaddr::ipv4_mapped_ip(packed_data),
 				       sizeof(uint32_t));
-				evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_port = port;
+				fdi->m_sockinfo.m_ipv4serverinfo.m_port = port;
 			} else {
-				evt.get_fd_info()->m_type = SCAP_FD_IPV6_SERVSOCK;
-				evt.get_fd_info()->m_sockinfo.m_ipv6serverinfo.m_port = port;
-				memcpy(evt.get_fd_info()->m_sockinfo.m_ipv6serverinfo.m_ip.m_b,
-				       ip,
-				       sizeof(ipv6addr));
-				evt.get_fd_info()->m_sockinfo.m_ipv6serverinfo.m_l4proto =
-				        evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+				fdi->m_type = SCAP_FD_IPV6_SERVSOCK;
+				fdi->m_sockinfo.m_ipv6serverinfo.m_port = port;
+				memcpy(fdi->m_sockinfo.m_ipv6serverinfo.m_ip.m_b, ip, sizeof(ipv6addr));
+				fdi->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+				        fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 			}
-			evt.get_fd_info()->set_role_server();
+			fdi->m_flags |= sinsp_fdinfo::FLAGS_ROLE_SERVER;
 		}
 	}
-	// Update the name of this socket.
 	const char *parstr;
-	evt.get_fd_info()->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+	evt.get_fd_info()->set_name(evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE));
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [](sinsp_observer *observer, sinsp_evt *evt) { observer->on_bind(evt); });
 	}
@@ -2298,6 +2292,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 
 void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8_t *packed_data) {
 	const auto fdinfo = evt.get_fd_info();
+	auto lock = fdinfo->exclusive_lock();
 	auto &sockinfo = fdinfo->m_sockinfo;
 	switch(const uint8_t family = *packed::generic_sockaddr::family(packed_data); family) {
 	case PPM_AF_INET: {
@@ -2325,7 +2320,6 @@ void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8
 		break;
 	}
 	default: {
-		// Add the friendly name to the fd info.
 		const char *parstr;
 		fdinfo->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 		break;
@@ -2467,28 +2461,39 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			                                 dport);
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
+			auto fdi = evt.get_fd_info();
+			auto lock = fdi->exclusive_lock();
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
-				evt.get_fd_info()->m_type = SCAP_FD_IPV6_SOCK;
-				changed = set_ipv6_addresses_and_ports(*evt.get_fd_info(),
-				                                       sip,
-				                                       sport,
-				                                       dip,
-				                                       dport,
-				                                       overwrite_dest);
+				fdi->m_type = SCAP_FD_IPV6_SOCK;
+				changed =
+				        set_ipv6_addresses_and_ports(*fdi, sip, sport, dip, dport, overwrite_dest);
 			} else {
-				evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
+				fdi->m_type = SCAP_FD_IPV4_SOCK;
 				const auto *const mapped_sip = packed::in6_addr::ipv4_mapped_ip(sip);
 				const auto *const mapped_dip = packed::in6_addr::ipv4_mapped_ip(dip);
-				changed = set_ipv4_mapped_ipv6_addresses_and_ports(*evt.get_fd_info(),
+				changed = set_ipv4_mapped_ipv6_addresses_and_ports(*fdi,
 				                                                   mapped_sip,
 				                                                   sport,
 				                                                   mapped_dip,
 				                                                   dport,
 				                                                   overwrite_dest);
 			}
+
+			if(changed && (fdi->m_flags & sinsp_fdinfo::FLAGS_ROLE_SERVER) &&
+			   fdi->m_type == SCAP_FD_IPV4_SOCK &&
+			   fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP) {
+				swap_addresses(*fdi);
+			}
+
+			sinsp_utils::sockinfo_to_str(&fdi->m_sockinfo,
+			                             fdi->m_type,
+			                             &evt.get_paramstr_storage()[0],
+			                             evt.get_paramstr_storage().size(),
+			                             can_resolve_hostname_and_port);
+			fdi->m_name = &evt.get_paramstr_storage()[0];
 		} else {
-			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
-			// Update the FD info with this tuple.
+			auto fdi = evt.get_fd_info();
+			auto lock = fdi->exclusive_lock();
 			const auto *const sip = packed::in_socktuple::sip(exit_tuple_data);
 			const auto *const sport = packed::in_socktuple::sport(exit_tuple_data);
 			const uint8_t *dip;
@@ -2498,32 +2503,25 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			                                 enter_addr_data,
 			                                 dip,
 			                                 dport);
-			changed = set_ipv4_addresses_and_ports(*evt.get_fd_info(),
-			                                       sip,
-			                                       sport,
-			                                       dip,
-			                                       dport,
-			                                       overwrite_dest);
+			fdi->m_type = SCAP_FD_IPV4_SOCK;
+			changed = set_ipv4_addresses_and_ports(*fdi, sip, sport, dip, dport, overwrite_dest);
+
+			if(changed && (fdi->m_flags & sinsp_fdinfo::FLAGS_ROLE_SERVER) &&
+			   fdi->m_type == SCAP_FD_IPV4_SOCK &&
+			   fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP) {
+				swap_addresses(*fdi);
+			}
+
+			sinsp_utils::sockinfo_to_str(&fdi->m_sockinfo,
+			                             fdi->m_type,
+			                             &evt.get_paramstr_storage()[0],
+			                             evt.get_paramstr_storage().size(),
+			                             can_resolve_hostname_and_port);
+			fdi->m_name = &evt.get_paramstr_storage()[0];
 		}
-
-		if(changed && evt.get_fd_info()->is_role_server() && evt.get_fd_info()->is_udp_socket()) {
-			// connect done by a udp server, swap the addresses.
-			swap_addresses(*evt.get_fd_info());
-		}
-
-		// Add the friendly name to the fd info.
-		sinsp_utils::sockinfo_to_str(&evt.get_fd_info()->m_sockinfo,
-		                             evt.get_fd_info()->m_type,
-		                             &evt.get_paramstr_storage()[0],
-		                             evt.get_paramstr_storage().size(),
-		                             can_resolve_hostname_and_port);
-
-		evt.get_fd_info()->m_name = &evt.get_paramstr_storage()[0];
 	} else {
-		if(!evt.get_fd_info()->is_unix_socket()) {
-			// This should happen only in case of a bug in our code, because I'm assuming that the
-			// OS causes a connect with the wrong socket type to fail. Assert in debug mode and just
-			// return in release mode.
+		auto fdi = evt.get_fd_info();
+		if(!fdi->is_unix_socket()) {
 			ASSERT(false);
 			return;
 		}
@@ -2531,15 +2529,17 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		const char *dpath;
 		resolve_connect_unix_destination(exit_tuple_data, exit_addr_data, enter_addr_data, dpath);
 
-		// Update tuple info.
-		evt.get_fd_info()->set_unix_info(exit_tuple_data);
-		const auto source = evt.get_fd_info()->m_sockinfo.m_unixinfo.m_fields.m_source;
-		const auto dest = evt.get_fd_info()->m_sockinfo.m_unixinfo.m_fields.m_dest;
-		evt.get_fd_info()->m_name = encode_unix_tuple_fd_name(evt, source, dest, dpath);
+		auto lock = fdi->exclusive_lock();
+		const auto *raw = packed::un_socktuple::source(exit_tuple_data);
+		const auto *raw_dest = packed::un_socktuple::dest(exit_tuple_data);
+		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_source, raw, sizeof(uint64_t));
+		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_dest, raw_dest, sizeof(uint64_t));
+		const auto source = fdi->m_sockinfo.m_unixinfo.m_fields.m_source;
+		const auto dest = fdi->m_sockinfo.m_unixinfo.m_fields.m_dest;
+		fdi->m_name = encode_unix_tuple_fd_name(evt, source, dest, dpath);
 	}
 
 	if(evt.get_fd_info()->is_role_none()) {
-		// Mark this fd as a client.
 		evt.get_fd_info()->set_role_client();
 	}
 }
@@ -2568,7 +2568,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 
 	// Extract enter event address parameter. This is used as a fallback in case the event tuple is
 	// empty or in case a TOCTOU attack is attempted.
-	auto &enter_evt = m_tmp_evt;
+	auto &enter_evt = m_tmp_evt_storage;
 	const bool enter_evt_retrieved = retrieve_enter_event(enter_evt, evt);
 	const uint8_t *enter_addr_data = nullptr;
 	if(enter_evt_retrieved) {
@@ -2591,10 +2591,10 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 		fill_client_socket_info_from_addr(evt, enter_addr_data);
 
 		// If there's a listener callback, and we're tracking connection status, invoke it.
-		if(m_track_connection_status && m_observer) {
+		if(m_track_connection_status && m_params->m_observer) {
 			// todo(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
 			//   accept const pointers/references.
-			m_observer->on_connect(&evt, const_cast<uint8_t *>(enter_addr_data));
+			m_params->m_observer->on_connect(&evt, const_cast<uint8_t *>(enter_addr_data));
 		}
 		return;
 	}
@@ -2617,10 +2617,10 @@ void sinsp_parser::parse_connect_exit(sinsp_evt &evt, sinsp_parser_verdict &verd
 	                        tuple_data,
 	                        addr_data,
 	                        enter_addr_data,
-	                        m_hostname_and_port_resolution_enabled);
+	                        m_params->m_hostname_and_port_resolution_enabled);
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs([tuple_data](sinsp_observer *observer, sinsp_evt *evt) {
 			// TODO(ekoops): remove const_cast once we adapt sinsp_observer::on_connect API to
 			//   accept const pointers/references.
@@ -2644,7 +2644,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	}
 
 	// Update the last event fd. It's needed by the filtering engine.
-	evt.get_tinfo()->m_lastevent_fd = fd;
+	evt.get_tinfo()->set_lastevent_fd(fd);
 
 	// Extract the address.
 	const sinsp_evt_param *parinfo = evt.get_param(1);
@@ -2656,7 +2656,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	const auto family = *packed::generic_sockaddr::family(packed_data);
 
 	// Populate the fd info class.
-	std::shared_ptr fdi = m_fdinfo_factory.create();
+	std::shared_ptr fdi = m_params->m_fdinfo_factory.create();
 	if(family == PPM_AF_INET) {
 		const auto *const sip = packed::in_socktuple::sip(packed_data);
 		const auto *const sport = packed::in_socktuple::sport(packed_data);
@@ -2666,8 +2666,6 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		fdi->m_type = SCAP_FD_IPV4_SOCK;
 		fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 	} else if(family == PPM_AF_INET6) {
-		// Check to see if it's an IPv4-mapped IPv6 address
-		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 		const auto *const sip = packed::in6_socktuple::sip(packed_data);
 		const auto *const sport = packed::in6_socktuple::sport(packed_data);
 		const auto *const dip = packed::in6_socktuple::dip(packed_data);
@@ -2684,19 +2682,18 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = SCAP_L4_TCP;
 		}
 	} else if(family == PPM_AF_UNIX) {
-		fdi->m_type = SCAP_FD_UNIX_SOCK;
+		fdi->set_type(SCAP_FD_UNIX_SOCK);
 		fdi->set_unix_info(packed_data);
 	} else {
-		// Unsupported family
 		return;
 	}
 
 	const char *parstr;
-	fdi->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
-	fdi->m_flags = 0;
+	fdi->set_name(evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE));
+	fdi->set_flags_value(0);
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs(
 		        [fd, packed_data, fdi](sinsp_observer *observer, sinsp_evt *evt) {
 			        auto fd_info = evt->get_fd_info();
@@ -2732,8 +2729,8 @@ void sinsp_parser::erase_fd(erase_fd_params &params, sinsp_parser_verdict &verdi
 
 	// If there's a listener, invoke the callback.
 	// Note: we avoid postponing this to avoid the risk of use-after-free.
-	if(m_observer) {
-		m_observer->on_erase_fd(&params);
+	if(m_params->m_observer) {
+		m_params->m_observer->on_erase_fd(&params);
 	}
 }
 
@@ -2745,7 +2742,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		}
 
 		erase_fd_params eparams;
-		eparams.m_fd = evt.get_tinfo()->m_lastevent_fd;
+		eparams.m_fd = evt.get_tinfo()->get_lastevent_fd();
 		eparams.m_fdinfo = evt.get_fd_info();
 		eparams.m_remove_from_table = true;
 		eparams.m_tinfo = evt.get_tinfo();
@@ -2755,8 +2752,8 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 	// It is normal when a close fails that the fd lookup failed, so we revert the increment of
 	// m_n_failed_fd_lookups.
-	if(m_sinsp_stats_v2 != nullptr) {
-		m_sinsp_stats_v2->m_n_failed_fd_lookups--;
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->get_thread_counters().dec_n_failed_fd_lookups();
 	}
 }
 
@@ -2765,10 +2762,8 @@ void sinsp_parser::add_pipe(sinsp_evt &evt,
                             const uint64_t ino,
                             const uint32_t openflags) const {
 	// Populate the new fd info and add it to the table.
-	auto fdi = m_fdinfo_factory.create();
-	fdi->m_type = SCAP_FD_FIFO;
-	fdi->m_ino = ino;
-	fdi->m_openflags = openflags;
+	auto fdi = m_params->m_fdinfo_factory.create();
+	fdi->set_pipe_info(ino, openflags);
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
@@ -2790,10 +2785,12 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt &evt) const {
 	const auto source_address = evt.get_param(3)->as<uint64_t>();
 	const auto peer_address = evt.get_param(4)->as<uint64_t>();
 
-	auto fdi1 = m_fdinfo_factory.create();
-	fdi1->m_type = SCAP_FD_UNIX_SOCK;
-	fdi1->m_sockinfo.m_unixinfo.m_fields.m_source = source_address;
-	fdi1->m_sockinfo.m_unixinfo.m_fields.m_dest = peer_address;
+	auto fdi1 = m_params->m_fdinfo_factory.create();
+	fdi1->set_type(SCAP_FD_UNIX_SOCK);
+	sinsp_sockinfo si = {};
+	si.m_unixinfo.m_fields.m_source = source_address;
+	si.m_unixinfo.m_fields.m_dest = peer_address;
+	fdi1->set_sockinfo(si);
 	auto fdi2 = fdi1->clone();
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd1, std::move(fdi1)));
 	evt.get_tinfo()->add_fd(fd2, std::move(fdi2));
@@ -2831,8 +2828,8 @@ void sinsp_parser::parse_thread_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 * necessary at all since here we shouldn't receive dead threads.
 	 * This is first place where we mark threads as dead.
 	 */
-	if(evt.get_tinfo()->m_tginfo != nullptr && !evt.get_tinfo()->is_dead()) {
-		evt.get_tinfo()->m_tginfo->decrement_thread_count();
+	if(evt.get_tinfo()->get_tginfo() != nullptr && !evt.get_tinfo()->is_dead()) {
+		evt.get_tinfo()->get_tginfo()->decrement_thread_count();
 	}
 	evt.get_tinfo()->set_dead();
 
@@ -2844,7 +2841,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	/* If this thread has no children we don't send the reaper info from the kernel,
 	 * so we do nothing.
 	 */
-	if(evt.get_tinfo()->m_children.size() == 0) {
+	if(!evt.get_tinfo()->has_children()) {
 		return;
 	}
 
@@ -2853,10 +2850,10 @@ void sinsp_parser::parse_thread_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 */
 	if(evt.get_num_params() > 4) {
 		if(const auto reaper_tid_param = evt.get_param(4); !reaper_tid_param->empty()) {
-			evt.get_tinfo()->m_reaper_tid = reaper_tid_param->as<int64_t>();
+			evt.get_tinfo()->set_reaper_tid(reaper_tid_param->as<int64_t>());
 		}
 	} else {
-		evt.get_tinfo()->m_reaper_tid = -1;
+		evt.get_tinfo()->set_reaper_tid(-1);
 	}
 }
 
@@ -3009,22 +3006,21 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 
 	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo.data());
 	const auto family = *packed::generic_tuple::family(packed_data);
+	auto fdi = evt.get_fd_info();
+	auto lock = fdi->exclusive_lock();
 
 	if(family == PPM_AF_INET) {
-		if(evt.get_fd_info()->m_type == SCAP_FD_IPV4_SERVSOCK) {
-			//
-			// If this was previously a server socket, propagate the L4 protocol
-			//
-			evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_l4proto =
-			        evt.get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_l4proto;
+		if(fdi->m_type == SCAP_FD_IPV4_SERVSOCK) {
+			fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto =
+			        fdi->m_sockinfo.m_ipv4serverinfo.m_l4proto;
 		}
 
-		evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
+		fdi->m_type = SCAP_FD_IPV4_SOCK;
 		const auto *const sip = packed::in_socktuple::sip(packed_data);
 		const auto *const sport = packed::in_socktuple::sport(packed_data);
 		const auto *const dip = packed::in_socktuple::dip(packed_data);
 		const auto *const dport = packed::in_socktuple::dport(packed_data);
-		if(set_ipv4_addresses_and_ports(*evt.get_fd_info(), sip, sport, dip, dport) == false) {
+		if(set_ipv4_addresses_and_ports(*fdi, sip, sport, dip, dport) == false) {
 			return false;
 		}
 	} else if(family == PPM_AF_INET6) {
@@ -3032,15 +3028,11 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 		const auto *const sport = packed::in6_socktuple::sport(packed_data);
 		const auto *const dip = packed::in6_socktuple::dip(packed_data);
 		const auto *const dport = packed::in6_socktuple::dport(packed_data);
-		//
-		// Check to see if it's an IPv4-mapped IPv6 address
-		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-		//
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)) {
-			evt.get_fd_info()->m_type = SCAP_FD_IPV4_SOCK;
+			fdi->m_type = SCAP_FD_IPV4_SOCK;
 			const auto *const mapped_sip = packed::in6_socktuple::ipv4_mapped_sip(packed_data);
 			const auto *const mapped_dip = packed::in6_socktuple::ipv4_mapped_dip(packed_data);
-			if(set_ipv4_mapped_ipv6_addresses_and_ports(*evt.get_fd_info(),
+			if(set_ipv4_mapped_ipv6_addresses_and_ports(*fdi,
 			                                            mapped_sip,
 			                                            sport,
 			                                            mapped_dip,
@@ -3048,38 +3040,34 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 				return false;
 			}
 		} else {
-			// It's not an ipv4-mapped ipv6 address. Extract it as a normal address.
-			if(set_ipv6_addresses_and_ports(*evt.get_fd_info(), sip, sport, dip, dport) == false) {
+			if(set_ipv6_addresses_and_ports(*fdi, sip, sport, dip, dport) == false) {
 				return false;
 			}
 		}
 	} else if(family == PPM_AF_UNIX) {
-		evt.get_fd_info()->m_type = SCAP_FD_UNIX_SOCK;
-		evt.get_fd_info()->set_unix_info(packed_data);
-		evt.get_fd_info()->m_name =
-		        reinterpret_cast<const char *>(packed::un_socktuple::dpath(packed_data));
+		fdi->m_type = SCAP_FD_UNIX_SOCK;
+		const auto *src = packed::un_socktuple::source(packed_data);
+		const auto *dst = packed::un_socktuple::dest(packed_data);
+		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_source, src, sizeof(uint64_t));
+		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_dest, dst, sizeof(uint64_t));
+		fdi->m_name = reinterpret_cast<const char *>(packed::un_socktuple::dpath(packed_data));
 		return true;
 	}
 
-	//
-	// If we reach this point and the protocol is not set yet, we assume this
-	// connection is UDP, because TCP would fail if the address is changed in
-	// the middle of a connection.
-	//
-	if(evt.get_fd_info()->m_type == SCAP_FD_IPV4_SOCK) {
-		if(evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UNKNOWN) {
-			evt.get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
+	if(fdi->m_type == SCAP_FD_IPV4_SOCK) {
+		if(fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UNKNOWN) {
+			fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
 		}
-	} else if(evt.get_fd_info()->m_type == SCAP_FD_IPV6_SOCK) {
-		if(evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_l4proto == SCAP_L4_UNKNOWN) {
-			evt.get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_l4proto = SCAP_L4_UDP;
+	} else if(fdi->m_type == SCAP_FD_IPV6_SOCK) {
+		if(fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto == SCAP_L4_UNKNOWN) {
+			fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = SCAP_L4_UDP;
 		}
 	}
 
 	//
 	// If this is an incomplete tuple, patch it using interface info
 	//
-	m_network_interfaces.update_fd(*evt.get_fd_info());
+	m_params->m_network_interfaces.update_fd(*evt.get_fd_info());
 
 	return true;
 }
@@ -3221,11 +3209,11 @@ inline void sinsp_parser::process_recvmsg_ancillary_data(sinsp_evt &evt,
 		}
 		scap_threadinfo scap_tinfo{};
 		memset(&scap_tinfo, 0, sizeof(scap_tinfo));
-		m_thread_manager->thread_to_scap(*evt.get_tinfo(), &scap_tinfo);
+		m_params->m_thread_manager->thread_to_scap(*evt.get_tinfo(), &scap_tinfo);
 		int fds[SCM_MAX_FD];
 #undef SCM_MAX_FD
 		memcpy(&fds, PPM_CMSG_DATA(cmsg), data_size);
-		process_recvmsg_ancillary_data_fds(m_scap_platform, fds, fds_len, scap_tinfo);
+		process_recvmsg_ancillary_data_fds(m_params->m_scap_platform, fds, fds_len, scap_tinfo);
 	}
 }
 #endif  // _WIN32
@@ -3244,9 +3232,8 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		return;
 	}
 
-	// Fd info and type can change during event parsing.
 	auto &fdinfo = *evt.get_fd_info();
-	auto fd_type = evt.get_fd_info()->m_type;
+	auto fd_type = fdinfo.get_type();
 
 	if(evt.get_syscall_return_value() < 0) {
 		if(!m_track_connection_status) {
@@ -3255,7 +3242,7 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
 			fdinfo.set_socket_failed();
 			// If there's a listener, add a callback to later invoke it.
-			if(!m_observer) {
+			if(!m_params->m_observer) {
 				return;
 			}
 			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
@@ -3283,12 +3270,9 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
 		tupleparam = 4;
 	}
-	if(tupleparam != -1 && (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
-		// recvfrom contains tuple info. If the fd still doesn't contain tuple info (because the
-		// socket is a datagram one or because some event was lost), add it here.
+	if(tupleparam != -1 && (fdinfo.get_name().length() == 0 || !fdinfo.is_tcp_socket())) {
 		if(update_fd(evt, *evt.get_param(tupleparam))) {
-			// update_fd() can change the event's fd type.
-			fd_type = evt.get_fd_info()->m_type;
+			fd_type = fdinfo.get_type();
 			if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
 				if(fdinfo.is_role_none()) {
 					fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), true);
@@ -3300,21 +3284,22 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 
 				auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
 				const auto str_storage_len = std::size(evt.get_paramstr_storage());
-				sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
+				auto si = fdinfo.get_sockinfo();
+				sinsp_utils::sockinfo_to_str(&si,
 				                             fd_type,
 				                             str_storage_ptr,
 				                             str_storage_len,
-				                             m_hostname_and_port_resolution_enabled);
-				fdinfo.m_name = str_storage_ptr;
+				                             m_params->m_hostname_and_port_resolution_enabled);
+				fdinfo.set_name(str_storage_ptr);
 			} else {
 				const char *parstr;
-				fdinfo.m_name = evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+				fdinfo.set_name(evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE));
 			}
 		}
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		const sinsp_evt_param *data_param;
 		if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
 		   etype == PPME_SOCKET_RECVMSG_X) {
@@ -3332,7 +3317,7 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 			const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
 			observer->on_read(evt,
 			                  evt->get_tid(),
-			                  evt->get_tinfo()->m_lastevent_fd,
+			                  evt->get_tinfo()->get_lastevent_fd(),
 			                  evt->get_fd_info(),
 			                  data_ptr,
 			                  original_len,
@@ -3380,9 +3365,8 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		return;
 	}
 
-	// Fd info and type can change during event parsing.
 	auto &fdinfo = *evt.get_fd_info();
-	auto fd_type = evt.get_fd_info()->m_type;
+	auto fd_type = fdinfo.get_type();
 
 	if(evt.get_syscall_return_value() < 0) {
 		if(!m_track_connection_status) {
@@ -3390,8 +3374,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		}
 		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
 			fdinfo.set_socket_failed();
-			// If there's a listener, add a callback to later invoke it.
-			if(!m_observer) {
+			if(!m_params->m_observer) {
 				return;
 			}
 			verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
@@ -3419,8 +3402,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		// some event was lost), add it here.
 		if(constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
 		   update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
-			// update_fd() can change the event's fd type.
-			fd_type = evt.get_fd_info()->m_type;
+			fd_type = fdinfo.get_type();
 			if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
 				if(fdinfo.is_role_none()) {
 					fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), false);
@@ -3432,23 +3414,24 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 				auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
 				const auto str_storage_len = std::size(evt.get_paramstr_storage());
-				sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
+				auto si = fdinfo.get_sockinfo();
+				sinsp_utils::sockinfo_to_str(&si,
 				                             fd_type,
 				                             str_storage_ptr,
 				                             str_storage_len,
-				                             m_hostname_and_port_resolution_enabled);
+				                             m_params->m_hostname_and_port_resolution_enabled);
 
-				fdinfo.m_name = str_storage_ptr;
+				fdinfo.set_name(str_storage_ptr);
 			} else {
 				const char *parstr;
-				fdinfo.m_name =
-				        evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID, &parstr, sinsp_evt::PF_SIMPLE);
+				fdinfo.set_name(
+				        evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID, &parstr, sinsp_evt::PF_SIMPLE));
 			}
 		}
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		const sinsp_evt_param *data_param;
 		if(etype == PPME_SOCKET_SENDMMSG_X) {
 			data_param = evt.get_param(3);
@@ -3464,7 +3447,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 			const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
 			observer->on_write(evt,
 			                   evt->get_tid(),
-			                   evt->get_tinfo()->m_lastevent_fd,
+			                   evt->get_tinfo()->get_lastevent_fd(),
 			                   evt->get_fd_info(),
 			                   data_ptr,
 			                   original_len,
@@ -3481,7 +3464,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 	// If the operation was successful and there's a listener, add a callback to later
 	// invoke it.
 	const int64_t retval = evt.get_syscall_return_value();
-	if(retval < 0 || !m_observer) {
+	if(retval < 0 || !m_params->m_observer) {
 		return;
 	}
 
@@ -3504,11 +3487,11 @@ void sinsp_parser::parse_eventfd_eventfd2_exit(sinsp_evt &evt) const {
 	}
 
 	// Populate the new fd info.
-	auto fdi = m_fdinfo_factory.create();
-	fdi->m_type = SCAP_FD_EVENT;
+	auto fdi = m_params->m_fdinfo_factory.create();
+	fdi->set_type(SCAP_FD_EVENT);
 
 	if(evt.get_type() == PPME_SYSCALL_EVENTFD2_X) {
-		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
+		fdi->set_openflags(evt.get_param(1)->as<uint16_t>());
 	}
 
 	// Add the fd to the table.
@@ -3526,7 +3509,7 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt &evt) {
 	// In case of success, if the event has thread and fd info, update the thread working directory.
 	if(evt.get_syscall_return_value() >= 0 && evt.get_fd_info() != nullptr &&
 	   evt.get_tinfo() != nullptr) {
-		evt.get_tinfo()->update_cwd(evt.get_fd_info()->m_name);
+		evt.get_tinfo()->update_cwd(evt.get_fd_info()->get_name());
 	}
 }
 
@@ -3572,7 +3555,7 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt &evt, sinsp_parser_verdict &ver
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_socket_shutdown(evt);
 		});
@@ -3593,10 +3576,10 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 
 	// Heuristic to determine if a thread is part of a shell pipe.
 	if(retval == 0) {
-		tinfo->m_flags |= PPM_CL_PIPE_DST;
+		tinfo->or_flags((uint32_t)PPM_CL_PIPE_DST);
 	}
 	if(retval == 1) {
-		tinfo->m_flags |= PPM_CL_PIPE_SRC;
+		tinfo->or_flags((uint32_t)PPM_CL_PIPE_SRC);
 	}
 
 	// If the old FD is in the table, remove it properly.
@@ -3606,11 +3589,11 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 	//  - dup2(): fd number of an existing fd that we pass to the dup2() as the "newfd". dup2() will
 	//    close the existing one. So we need to clean it up / overwrite;
 	//  - dup3(): same as dup2().
-	if(auto *old_fdinfo = tinfo->get_fd(retval); old_fdinfo != nullptr) {
+	if(auto old_fdinfo = tinfo->get_fd(retval); old_fdinfo != nullptr) {
 		erase_fd_params eparams;
 
 		eparams.m_fd = retval;
-		eparams.m_fdinfo = old_fdinfo;
+		eparams.m_fdinfo = old_fdinfo.get();
 		eparams.m_remove_from_table = false;
 		eparams.m_tinfo = tinfo;
 		erase_fd(eparams, verdict);
@@ -3621,11 +3604,9 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 		// We keep the previously flags that has been set on the original file descriptor and just
 		// set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
 		if(const auto flags = evt.get_param(3)->as<uint32_t>()) {
-			// Set the O_CLOEXEC flag.
-			evt.get_fd_info()->m_openflags |= flags;
+			evt.get_fd_info()->or_openflags(flags);
 		} else {
-			// Reset the O_CLOEXEC flag.
-			evt.get_fd_info()->m_openflags &= ~PPM_O_CLOEXEC;
+			evt.get_fd_info()->and_openflags(~PPM_O_CLOEXEC);
 		}
 	}
 
@@ -3645,15 +3626,15 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 	}
 
 	// Populate the new fd info.
-	auto fdi = m_fdinfo_factory.create();
-	fdi->m_type = type;
+	auto fdi = m_params->m_fdinfo_factory.create();
+	fdi->set_type(type);
 
 	if(evt.get_type() == PPME_SYSCALL_INOTIFY_INIT1_X) {
-		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
+		fdi->set_openflags(evt.get_param(1)->as<uint16_t>());
 	}
 
 	if(evt.get_type() == PPME_SYSCALL_SIGNALFD4_X) {
-		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
+		fdi->set_openflags(evt.get_param(1)->as<uint16_t>());
 	}
 
 	// Add the fd to the table.
@@ -3674,7 +3655,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt &evt) {
 		if(main_thread == nullptr) {
 			return;
 		}
-		main_thread->m_fdlimit = curval;
+		main_thread->set_fdlimit(curval);
 	} else {
 		ASSERT(false);
 	}
@@ -3708,7 +3689,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 		tid = evt.get_tid();
 	}
 
-	auto *const ptinfo = m_thread_manager->get_thread(tid, true).get();
+	auto *const ptinfo = m_params->m_thread_manager->get_thread(tid, true).get();
 	// If the thread info is invalid we cannot recover the main thread because we don't even have
 	// the `pid` of the thread.
 	if(ptinfo == nullptr || ptinfo->is_invalid()) {
@@ -3716,11 +3697,11 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 	}
 
 	// Update the process fdlimit.
-	auto *const main_thread = ptinfo->get_main_thread();
+	auto const main_thread = ptinfo->get_main_thread();
 	if(main_thread == nullptr) {
 		return;
 	}
-	main_thread->m_fdlimit = newcur;
+	main_thread->set_fdlimit(newcur);
 }
 
 void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) {
@@ -3758,12 +3739,12 @@ void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
 		return;
 	}
 
-	evt.get_tinfo()->m_pfmajor = evt.get_param(1)->as<uint64_t>();
-	evt.get_tinfo()->m_pfminor = evt.get_param(2)->as<uint64_t>();
+	evt.get_tinfo()->set_pfmajor(evt.get_param(1)->as<uint64_t>());
+	evt.get_tinfo()->set_pfminor(evt.get_param(2)->as<uint64_t>());
 	if(const auto main_tinfo = evt.get_tinfo()->get_main_thread()) {
-		main_tinfo->m_vmsize_kb = evt.get_param(3)->as<uint32_t>();
-		main_tinfo->m_vmrss_kb = evt.get_param(4)->as<uint32_t>();
-		main_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+		main_tinfo->set_vmsize_kb(evt.get_param(3)->as<uint32_t>());
+		main_tinfo->set_vmrss_kb(evt.get_param(4)->as<uint32_t>());
+		main_tinfo->set_vmswap_kb(vm_swap_param->as<uint32_t>());
 	}
 }
 
@@ -3773,15 +3754,15 @@ void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
 	}
 
 	if(const auto vm_size_param = evt.get_param(1); !vm_size_param->empty()) {
-		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
+		evt.get_tinfo()->set_vmsize_kb(vm_size_param->as<uint32_t>());
 	}
 	// If one of these parameters is present, so is for the other ones, so just check
 	// the presence of one of them.
 	const auto vm_rss_param = evt.get_param(2);
 	const auto vm_swap_param = evt.get_param(3);
 	if(!vm_swap_param->empty()) {
-		evt.get_tinfo()->m_vmrss_kb = vm_rss_param->as<uint32_t>();
-		evt.get_tinfo()->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+		evt.get_tinfo()->set_vmrss_kb(vm_rss_param->as<uint32_t>());
+		evt.get_tinfo()->set_vmswap_kb(vm_swap_param->as<uint32_t>());
 	}
 }
 
@@ -3795,13 +3776,13 @@ void sinsp_parser::set_evt_thread_user(sinsp_evt &evt, const sinsp_evt_param &eu
 		return;
 	}
 
-	ti->m_uid = euid_param.as<uint32_t>();
-	std::string container_id = m_plugin_tables.get_container_id(*ti);
-	m_usergroup_manager->add_user(container_id,
-	                              ti->m_pid,
-	                              ti->m_uid,
-	                              ti->m_gid,
-	                              must_notify_thread_user_update());
+	ti->set_uid(euid_param.as<uint32_t>());
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*ti);
+	m_params->m_usergroup_manager->add_user(container_id,
+	                                        ti->get_pid(),
+	                                        ti->get_uid(),
+	                                        ti->get_gid(),
+	                                        must_notify_thread_user_update());
 }
 
 void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &egid_param) const {
@@ -3814,12 +3795,12 @@ void sinsp_parser::set_evt_thread_group(sinsp_evt &evt, const sinsp_evt_param &e
 		return;
 	}
 
-	ti->m_gid = egid_param.as<uint32_t>();
-	std::string container_id = m_plugin_tables.get_container_id(*ti);
-	m_usergroup_manager->add_group(container_id,
-	                               ti->m_pid,
-	                               ti->m_gid,
-	                               must_notify_thread_group_update());
+	ti->set_gid(egid_param.as<uint32_t>());
+	std::string container_id = m_params->m_plugin_tables.get_container_id(*ti);
+	m_params->m_usergroup_manager->add_group(container_id,
+	                                         ti->get_pid(),
+	                                         ti->get_gid(),
+	                                         must_notify_thread_group_update());
 }
 
 void sinsp_parser::parse_setresuid_exit(sinsp_evt &evt) const {
@@ -3879,9 +3860,9 @@ void sinsp_parser::parse_user_evt(sinsp_evt &evt) const {
 		const auto name = evt.get_param(2)->as<std::string_view>();
 		const auto home = evt.get_param(3)->as<std::string_view>();
 		const auto shell = evt.get_param(4)->as<std::string_view>();
-		m_usergroup_manager->add_user(container_id, -1, uid, gid, name, home, shell);
+		m_params->m_usergroup_manager->add_user(container_id, -1, uid, gid, name, home, shell);
 	} else {
-		m_usergroup_manager->rm_user(container_id, uid);
+		m_params->m_usergroup_manager->rm_user(container_id, uid);
 	}
 }
 
@@ -3891,14 +3872,14 @@ void sinsp_parser::parse_group_evt(sinsp_evt &evt) const {
 	const auto container_id = evt.get_param(2)->as<std::string_view>();
 
 	if(evt.get_scap_evt()->type == PPME_GROUP_ADDED_E) {
-		m_usergroup_manager->add_group(container_id.data(), -1, gid, name);
+		m_params->m_usergroup_manager->add_group(container_id.data(), -1, gid, name);
 	} else {
-		m_usergroup_manager->rm_group(container_id.data(), gid);
+		m_params->m_usergroup_manager->rm_group(container_id.data(), gid);
 	}
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt &evt) const {
-	if(m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) {
+	if(m_params->m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) {
 		throw sinsp_exception("CPU " + evt.get_param_value_str("cpu") +
 		                      " configuration change detected. Aborting.");
 	}
@@ -3926,7 +3907,7 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
 	// process. If arg2 is zero, unset the attribute.
 	const auto arg2_int = evt.get_param(3)->as<int64_t>();
 	const auto child_subreaper = arg2_int != 0;
-	caller_tinfo->m_tginfo->set_reaper(child_subreaper);
+	caller_tinfo->get_tginfo()->set_reaper(child_subreaper);
 }
 
 void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
@@ -3937,16 +3918,16 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 	const char *resolved_path;
 	const auto path = evt.get_param_as_str(1, &resolved_path);
 	if(resolved_path[0] == 0) {
-		evt.get_tinfo()->m_root = path;
+		evt.get_tinfo()->set_root(path);
 	} else {
-		evt.get_tinfo()->m_root = resolved_path;
+		evt.get_tinfo()->set_root(resolved_path);
 	}
 }
 
 void sinsp_parser::parse_setsid_exit(sinsp_evt &evt) {
 	if(const auto retval = evt.get_syscall_return_value();
 	   retval >= 0 && evt.get_thread_info() != nullptr) {
-		evt.get_thread_info()->m_sid = retval;
+		evt.get_thread_info()->set_sid(retval);
 	}
 }
 
@@ -3976,7 +3957,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt &evt, sinsp_parser_verdict &v
 	}
 
 	// If there's a listener, add a callback to later invoke it.
-	if(m_observer) {
+	if(m_params->m_observer) {
 		verdict.add_post_process_cbs([](sinsp_observer *observer, sinsp_evt *evt) {
 			observer->on_socket_status_changed(evt);
 		});
@@ -3990,9 +3971,9 @@ void sinsp_parser::parse_capset_exit(sinsp_evt &evt) {
 
 	// Extract and update thread capabilities.
 	const auto tinfo = evt.get_tinfo();
-	tinfo->m_cap_inheritable = evt.get_param(1)->as<uint64_t>();
-	tinfo->m_cap_permitted = evt.get_param(2)->as<uint64_t>();
-	tinfo->m_cap_effective = evt.get_param(3)->as<uint64_t>();
+	tinfo->set_cap_inheritable(evt.get_param(1)->as<uint64_t>());
+	tinfo->set_cap_permitted(evt.get_param(2)->as<uint64_t>());
+	tinfo->set_cap_effective(evt.get_param(3)->as<uint64_t>());
 }
 
 void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
@@ -4017,9 +3998,9 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt &evt) {
 
 	const auto tinfo = evt.get_tinfo();
 	const auto max_caps = sinsp_utils::get_max_caps();
-	tinfo->m_cap_inheritable = max_caps;
-	tinfo->m_cap_permitted = max_caps;
-	tinfo->m_cap_effective = max_caps;
+	tinfo->set_cap_inheritable(max_caps);
+	tinfo->set_cap_permitted(max_caps);
+	tinfo->set_cap_effective(max_caps);
 }
 
 void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type type) const {
@@ -4028,13 +4009,11 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt &evt, const scap_fd_type ty
 	}
 
 	const auto fd = evt.get_syscall_return_value();
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	if(fd >= 0) {
-		fdi->m_type = type;
-		const auto name = evt.get_param(1)->as<std::string_view>();
-		const auto flags = evt.get_param(2)->as<uint32_t>();
-		fdi->add_filename(name);
-		fdi->m_openflags = flags;
+		fdi->set_memfd_info(evt.get_param(2)->as<uint32_t>());
+		fdi->set_type(type);
+		fdi->add_filename(evt.get_param(1)->as<std::string_view>());
 	}
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
@@ -4045,17 +4024,13 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt &evt) const {
 	}
 
 	const auto fd = evt.get_syscall_return_value();
-	auto fdi = m_fdinfo_factory.create();
+	auto fdi = m_params->m_fdinfo_factory.create();
 	if(fd >= 0) {
-		// note: approximating equivalent filename as in:
-		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
 		const auto pid = evt.get_param(1)->as<int64_t>();
 		const auto flags = evt.get_param(2)->as<uint32_t>();
 		const auto fname = std::string(scap_get_host_root()) + "/proc/" + std::to_string(pid);
-		fdi->m_type = SCAP_FD_PIDFD;
+		fdi->set_pidfd_info(pid, flags);
 		fdi->add_filename(fname);
-		fdi->m_openflags = flags;
-		fdi->m_pid = pid;
 	}
 	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
@@ -4075,7 +4050,7 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	const auto pidfd_tinfo = m_thread_manager->find_thread(pidfd_fdinfo->m_pid, true);
+	const auto pidfd_tinfo = m_params->m_thread_manager->find_thread(pidfd_fdinfo->get_pid(), true);
 	if(pidfd_tinfo == nullptr) {
 		return;
 	}

@@ -37,6 +37,13 @@ int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...)
 int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...);
 #endif
 
+/** Set thread-local error buffer; when set, scap error writes go here instead of the passed buf. */
+void scap_set_thread_lasterr(char* buf);
+/** Clear thread-local error buffer. */
+void scap_clear_thread_lasterr(void);
+/** Return thread-local error buffer if set, otherwise NULL. */
+const char* scap_get_thread_lasterr(void);
+
 #ifdef __cplusplus
 };
 #endif

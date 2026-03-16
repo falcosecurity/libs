@@ -18,9 +18,11 @@ limitations under the License.
 
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -47,19 +49,27 @@ public:
 
 	bool is_suppressed_tid(uint64_t tid) const;
 
-	uint64_t get_num_suppressed_events() const { return m_num_suppressed_events; }
+	uint64_t get_num_suppressed_events() const {
+		return m_num_suppressed_events.load(std::memory_order_relaxed);
+	}
 
-	uint64_t get_num_suppressed_tids() const { return m_suppressed_tids.size(); }
+	uint64_t get_num_suppressed_tids() const {
+		std::shared_lock lock(m_mutex);
+		return m_suppressed_tids.size();
+	}
 
 	void initialize();
 
 	void finalize();
 
 protected:
+	mutable std::shared_mutex m_mutex;
 	std::unordered_set<std::string> m_suppressed_comms;
 	std::unordered_set<uint64_t> m_suppressed_tids;
 
-	uint64_t m_num_suppressed_events = 0;
+	std::atomic<uint64_t> m_num_suppressed_events{0};
+
+	bool is_suppressed_tid_unlocked(uint64_t tid) const;
 
 private:
 	struct tid_tree_node {

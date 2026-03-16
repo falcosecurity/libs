@@ -21,16 +21,18 @@ limitations under the License.
 #define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
 
 #include <array>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <set>
+#include <shared_mutex>
 
 #include <libscap/scap_savefile_api.h>
 #include <libsinsp/fdtable.h>
 #include <libsinsp/state/table.h>
 #include <libsinsp/event.h>
 #include <libsinsp/plugin.h>
-#include <libsinsp/threadinfo.h>
+#include <libsinsp/threadinfo_map.h>
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/timestamper.h>
@@ -38,7 +40,8 @@ limitations under the License.
 class sinsp_observer;
 
 ///////////////////////////////////////////////////////////////////////////////
-// This class manages the thread table
+// Manages the thread table. Add/remove/lookup/iteration are thread-safe when
+// built with LIBSINSP_USE_FOLLY (Folly ConcurrentHashMap).
 ///////////////////////////////////////////////////////////////////////////////
 class SINSP_PUBLIC sinsp_thread_manager : public libsinsp::state::built_in_table<int64_t>,
                                           public libsinsp::state::sinsp_table_owner {
@@ -57,10 +60,21 @@ public:
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& fdtable_dyn_fields);
 	void clear();
 
-	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
-	                                          bool must_create_thread_dependencies);
+	/*!
+	  \brief Add a thread to the table.
+	  \return shared_ptr to the inserted (or existing) thread, or empty if table full. Safe for
+	  concurrent use.
+	*/
+	threadinfo_map_t::ptr_t add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo,
+	                                   bool must_create_thread_dependencies);
 
-	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
+	/*!
+	  \brief Find the new reaper for a thread being removed (e.g. for reparenting children).
+	  \param tinfo the thread that is being removed (must not be null).
+	  \return shared_ptr to the reaper thread, or empty if none (e.g. loop detected).
+	  Caller holds a reference; safe for concurrent use.
+	*/
+	threadinfo_map_t::ptr_t find_new_reaper(sinsp_threadinfo* tinfo);
 	void remove_thread(int64_t tid);
 
 	/*!
@@ -99,8 +113,8 @@ public:
 	  \param tid the ID of the thread. In case of multi-thread processes,
 	   this corresponds to the PID.
 
-	  \return the \ref sinsp_threadinfo object containing full thread information
-	   and state.
+	  \return a copy of the shared_ptr to the thread info, or empty if not found.
+	   Caller holds a reference; safe for concurrent use (no internal cache).
 
 	  \note if you are interested in a process' information, just give this
 	  function with the PID of the process.
@@ -108,41 +122,56 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	const threadinfo_map_t::ptr_t& get_thread(int64_t tid,
-	                                          bool lookup_only = true,
-	                                          bool main_thread = false);
+	threadinfo_map_t::ptr_t get_thread(int64_t tid,
+	                                   bool lookup_only = true,
+	                                   bool main_thread = false);
 
-	//
-	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
-	//
-	const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
+	/*!
+	  \brief Look up a thread by TID; if not found, add a minimal in-memory entry
+	  without querying the OS. For use when the event source (e.g. plugin) does not
+	  have a real process table.
+	  \return shared_ptr to the thread info. Safe for concurrent use.
+	*/
+	threadinfo_map_t::ptr_t get_or_create_fake_thread(int64_t tid);
+
+	/*!
+	  \brief Look up a thread by TID without creating it from /proc.
+	  \param lookup_only when false, updates the thread's m_lastaccess_ts and main fdtable; use true
+	  for read-only lookups. \return shared_ptr to the thread info, or empty if not found.
+	*/
+	threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
 
 	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
 	  ancestors.
-
-	  \param thread_manager
-	  \param n when 1 it will look for the parent process, when 2 the grandparent and so forth.
-
-	  \return Pointer to the threadinfo or NULL if it doesn't exist
+	  \param tinfo the thread whose ancestor to look up.
+	  \param n when 1 look for the parent process, when 2 the grandparent, and so forth.
+	  \return shared_ptr to the ancestor threadinfo, or empty if it does not exist or was removed.
+	  Caller holds a reference; safe for concurrent use.
 	*/
-	sinsp_threadinfo* get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
-	//
-	// Walk up the parent process hierarchy, calling the provided
-	// function for each node. If the function returns false, the
-	// traversal stops.
-	//
+	threadinfo_map_t::ptr_t get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n = 1);
+	/*!
+	  \brief Walk up the parent process hierarchy, calling the provided function for each node.
+	  If the function returns false, the traversal stops.
+	  \note tinfo and the visitor must remain valid for the duration; use a shared_ptr or
+	  callback scope where the table holds a reference.
+	*/
 	typedef std::function<bool(sinsp_threadinfo*)> visitor_func_t;
 	void traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor);
 
-	sinsp_threadinfo* get_oldest_matching_ancestor(
+	/*!
+	  \brief Return the oldest ancestor for which get_thread_id matches the given id (e.g. session
+	  leader). \param tinfo the thread to start from. \param get_thread_id function returning the id
+	  to match (e.g. sid, pgid). \param is_virtual_id if true, resolve in pid-namespace context.
+	  \return shared_ptr to the matching ancestor, or empty if none. Caller holds a reference.
+	*/
+	threadinfo_map_t::ptr_t get_oldest_matching_ancestor(
 	        sinsp_threadinfo* tinfo,
 	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
 	        bool is_virtual_id = false);
 
+	/*! \brief Return a string field from the oldest matching ancestor (e.g. session leader). Uses
+	 * get_oldest_matching_ancestor internally. */
 	std::string get_ancestor_field_as_string(
 	        sinsp_threadinfo* tinfo,
 	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
@@ -151,21 +180,39 @@ public:
 
 	void dump_threads_to_file(scap_dumper_t* dumper);
 
+	/*! \return Approximate number of threads in the table (rolling count when using concurrent
+	 * storage). */
 	uint32_t get_thread_count() { return (uint32_t)m_threadtable.size(); }
 
-	threadinfo_map_t* get_threads() { return &m_threadtable; }
+	/*! \brief Iterate over all threads, calling \a callback with a const reference to each.
+	 * Return false from the callback to stop iteration. Safe for concurrent use.
+	 * Template avoids std::function allocation; callback signature: bool(const sinsp_threadinfo&).
+	 */
+	template<typename Visitor>
+	bool loop_threads(Visitor&& callback) const {
+		return m_threadtable.const_loop_shared_pointer(
+		        [&callback](const std::shared_ptr<sinsp_threadinfo>& ptr) {
+			        if(!ptr) {
+				        return true;
+			        }
+			        return callback(*ptr);
+		        });
+	}
 
 	std::set<uint16_t> m_server_ports;
+	mutable std::shared_mutex m_server_ports_mutex; /* protects m_server_ports */
 
 	void set_max_thread_table_size(uint32_t value);
 
-	int32_t get_m_n_proc_lookups() const { return m_n_proc_lookups; }
-	int32_t get_m_n_main_thread_lookups() const { return m_n_main_thread_lookups; }
-	uint64_t get_m_n_proc_lookups_duration_ns() const { return m_n_proc_lookups_duration_ns; }
+	int32_t get_m_n_proc_lookups() const { return m_n_proc_lookups.load(); }
+	int32_t get_m_n_main_thread_lookups() const { return m_n_main_thread_lookups.load(); }
+	uint64_t get_m_n_proc_lookups_duration_ns() const {
+		return m_n_proc_lookups_duration_ns.load();
+	}
 	void reset_thread_counters() {
-		m_n_proc_lookups = 0;
-		m_n_main_thread_lookups = 0;
-		m_n_proc_lookups_duration_ns = 0;
+		m_n_proc_lookups.store(0);
+		m_n_main_thread_lookups.store(0);
+		m_n_proc_lookups_duration_ns.store(0);
 	}
 
 	void set_m_max_n_proc_lookups(int32_t val) { m_max_n_proc_lookups = val; }
@@ -192,9 +239,7 @@ public:
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;
 
-	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
-		return m_threadtable.loop([&pred](sinsp_threadinfo& e) { return pred(e); });
-	}
+	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override;
 
 	std::shared_ptr<libsinsp::state::table_entry> get_entry(const int64_t& key) override {
 		return find_thread(key, true);
@@ -236,28 +281,17 @@ public:
 		return nullptr;
 	}
 
-	inline sinsp_table<std::string>* get_table(std::string table) {
+	inline sinsp_table<std::string>* get_table(const std::string& table) {
 		if(m_foreign_tables.count(table) > 0) {
 			return &m_foreign_tables.at(table);
 		}
 		return nullptr;
 	}
 
-	const std::shared_ptr<thread_group_info>& get_thread_group_info(const int64_t pid) const {
-		if(const auto tgroup = m_thread_groups.find(pid); tgroup != m_thread_groups.end()) {
-			return tgroup->second;
-		}
-		return m_nullptr_tginfo_ret;
-	}
+	/** Returns a copy of the shared_ptr so callers hold a reference; thread-safe. */
+	std::shared_ptr<thread_group_info> get_thread_group_info(const int64_t pid) const;
 
-	void set_thread_group_info(const int64_t pid,
-	                           const std::shared_ptr<thread_group_info>& tginfo) {
-		// It should be impossible to have a pid conflict. Right now we manage it by replacing the
-		// old entry with the new one.
-		if(const auto [it, inserted] = m_thread_groups.emplace(pid, tginfo); !inserted) {
-			it->second = tginfo;
-		}
-	}
+	void set_thread_group_info(const int64_t pid, const std::shared_ptr<thread_group_info>& tginfo);
 
 	void create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo);
 
@@ -265,9 +299,9 @@ public:
 
 	void maybe_log_max_lookup(int64_t tid, bool scan_sockets, uint64_t period);
 
-	inline uint64_t get_last_flush_time_ns() const { return m_last_flush_time_ns; }
+	inline uint64_t get_last_flush_time_ns() const { return m_last_flush_time_ns.load(); }
 
-	inline void set_last_flush_time_ns(uint64_t v) { m_last_flush_time_ns = v; }
+	inline void set_last_flush_time_ns(uint64_t v) { m_last_flush_time_ns.store(v); }
 
 	inline uint32_t get_max_thread_table_size() const { return m_max_thread_table_size; }
 
@@ -283,13 +317,13 @@ public:
 
 	  \note tinfo must be a reference to a thread that is already present in the thread table.
 	*/
-	sinsp_fdinfo* add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
-	                                      const scap_fdinfo& fdinfo,
-	                                      bool resolve_hostname_and_port);
+	std::shared_ptr<sinsp_fdinfo> add_thread_fd_from_scap(sinsp_threadinfo& tinfo,
+	                                                      const scap_fdinfo& fdinfo,
+	                                                      bool resolve_hostname_and_port);
 
 private:
 	/* We call it immediately before removing the thread from the thread table. */
-	void remove_child_from_parent(int64_t ptid);
+	void remove_child_from_parent(int64_t ptid, const std::shared_ptr<sinsp_threadinfo>& child);
 
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
@@ -308,36 +342,33 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_platform* const& m_scap_platform;
 	scap_t* const& m_scap_handle;
+	std::mutex m_scap_proc_mutex;
 	const std::shared_ptr<libsinsp::state::dynamic_field_infos> m_fdtable_dyn_fields;
 
-	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info
+	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info.
+	 * Protected by m_thread_groups_mutex for thread-safe access.
 	 */
 	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
+	mutable std::shared_mutex m_thread_groups_mutex;
 	threadinfo_map_t m_threadtable;
-	int64_t m_last_tid;
-	std::shared_ptr<sinsp_threadinfo> m_last_tinfo;
-	uint64_t m_last_flush_time_ns;
+	std::atomic<uint64_t> m_last_flush_time_ns{0};
 	// Increased legacy default of 131072 in January 2024 to prevent
 	// possible drops due to full threadtable on more modern servers
 	const uint32_t m_thread_table_default_size = 262144;
 	uint32_t m_max_thread_table_size;
-	int32_t m_n_proc_lookups = 0;
-	uint64_t m_n_proc_lookups_duration_ns = 0;
-	int32_t m_n_main_thread_lookups = 0;
+	std::atomic<int32_t> m_n_proc_lookups{0};
+	std::atomic<uint64_t> m_n_proc_lookups_duration_ns{0};
+	std::atomic<int32_t> m_n_main_thread_lookups{0};
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
 	uint64_t m_proc_lookup_period = 0;
-	uint64_t m_last_proc_lookup_period_start = 0;
+	std::atomic<uint64_t> m_last_proc_lookup_period_start{0};
 
-	const std::shared_ptr<sinsp_threadinfo>
-	        m_nullptr_tinfo_ret;  // needed for returning a reference
-	const std::shared_ptr<thread_group_info>
-	        m_nullptr_tginfo_ret;  // needed for returning a reference
-
-	// State table API field accessors to foreign keys written by plugins.
+	// State table API: field accessors and tables for plugin-provided (foreign) state.
+	// Populated only during single-threaded init (plugin load / inspector init) and
+	// read-only thereafter during concurrent use. No mutex required for reads.
 	std::map<std::string, libsinsp::state::dynamic_field_accessor<std::string>>
 	        m_foreign_fields_accessors;
-	// State tables exposed by plugins
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
 
 	// Ring buffer of recently-exited TIDs (from procexit events).
@@ -355,6 +386,7 @@ private:
 	static constexpr size_t RECENTLY_EXITED_RING_SIZE = 8192;
 	std::array<recently_exited_entry, RECENTLY_EXITED_RING_SIZE> m_recently_exited_tids{};
 	size_t m_recently_exited_write_idx = 0;
+	mutable std::shared_mutex m_recently_exited_mutex;
 
 	// Tables and fields names.
 	constexpr static auto s_thread_table_name = "threads";

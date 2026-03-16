@@ -32,26 +32,40 @@ limitations under the License.
 
 class sinsp_plugin_manager;
 
+/*!
+  \brief Container holding parameters to be provided to sinsp_parser constructor.
+  An instance of this struct is meant to be shared among all sinsp_parser instances.
+*/
+class sinsp_parser_shared_params {
+public:
+	// The following fields are externally provided and access to them is expected to be
+	// read-only.
+	const sinsp_mode& m_sinsp_mode;
+	const scap_machine_info* const& m_machine_info;
+	const std::vector<std::string>& m_event_sources;
+	const size_t m_syscall_event_source_idx;
+	const sinsp_network_interfaces& m_network_interfaces;
+	const bool& m_hostname_and_port_resolution_enabled;
+	const sinsp_threadinfo_factory m_threadinfo_factory;
+	const sinsp_fdinfo_factory m_fdinfo_factory;
+	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
+	const plugin_tables& m_plugin_tables;
+	const bool& m_large_envs_enabled;
+
+	// The following fields are externally provided and expected to be populated/updated by the
+	// parser.
+	std::shared_ptr<sinsp_plugin_manager> m_plugin_manager;
+	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
+	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
+	sinsp_observer* const& m_observer;
+	scap_platform* const& m_scap_platform;
+};
+
 class sinsp_parser {
 public:
-	sinsp_parser(const sinsp_mode& mode,
-	             const scap_machine_info* const& machine_info,
-	             const std::vector<std::string>& event_sources,
-	             size_t syscall_event_source_idx,
-	             const sinsp_network_interfaces& network_interfaces,
-	             const bool& hostname_and_port_resolution_enabled,
-	             const sinsp_threadinfo_factory& threadinfo_factory,
-	             const sinsp_fdinfo_factory& fdinfo_factory,
-	             const std::shared_ptr<const sinsp_plugin>& input_plugin,
-	             const plugin_tables& plugin_tables,
-	             const bool& large_envs_enabled,
-	             const std::shared_ptr<sinsp_plugin_manager>& plugin_manager,
-	             const std::shared_ptr<sinsp_thread_manager>& thread_manager,
-	             const std::shared_ptr<sinsp_usergroup_manager>& usergroup_manager,
-	             const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2,
-	             sinsp_observer* const& observer,
-	             sinsp_evt& tmp_evt,
-	             scap_platform* const& scap_platform);
+	sinsp_parser(const std::shared_ptr<sinsp_parser_shared_params>& shared_params,
+	             sinsp_evt& tmp_evt_storage);
 	~sinsp_parser();
 
 	//
@@ -235,45 +249,29 @@ private:
 	void erase_fd(erase_fd_params& params, sinsp_parser_verdict& verdict) const;
 
 	bool is_syscall_plugin_enabled() const {
-		return m_sinsp_mode.is_plugin() && m_input_plugin->id() == 0;
+		return m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin->id() == 0;
 	}
 
 	bool is_large_envs_enabled() const {
-		return (m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) && m_large_envs_enabled;
+		return (m_params->m_sinsp_mode.is_live() || is_syscall_plugin_enabled()) &&
+		       m_params->m_large_envs_enabled;
 	}
 
 	bool must_notify_thread_user_update() const {
-		return m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
+		return m_params->m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
 	}
 
 	bool must_notify_thread_group_update() const {
-		return m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
+		return m_params->m_sinsp_mode.is_live() || is_syscall_plugin_enabled();
 	}
 
-	// TODO(ekoops): replace references and pointers with owned resources as we determine they
-	//   cannot change at runtime and/or are used only by the parser.
-	// The following fields are externally provided and access to them is expected to be read-only.
-	const sinsp_mode& m_sinsp_mode;
-	const scap_machine_info* const& m_machine_info;
-	const std::vector<std::string>& m_event_sources;
-	const size_t m_syscall_event_source_idx;
-	const sinsp_network_interfaces& m_network_interfaces;
-	const bool& m_hostname_and_port_resolution_enabled;
-	const sinsp_threadinfo_factory m_threadinfo_factory;
-	const sinsp_fdinfo_factory m_fdinfo_factory;
-	const std::shared_ptr<const sinsp_plugin>& m_input_plugin;
-	const plugin_tables& m_plugin_tables;
-	const bool& m_large_envs_enabled;
-
-	// The following fields are externally provided and expected to be populated/updated by the
-	// parser.
-	std::shared_ptr<sinsp_plugin_manager> m_plugin_manager;
-	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
-	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
-	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	sinsp_observer* const& m_observer;
-	sinsp_evt& m_tmp_evt;  // Temporary storage to avoid memory allocation
-	scap_platform* const& m_scap_platform;
+	// Parameters provided at parser construction phase.
+	// Notice: the struct instance is shared among all the parser instances.
+	// Notice 2: this should be a plain const reference, but use a shared_ptr or the compiler will
+	// complain about referencing a member whose lifetime is shorter than the ctor_params object in
+	// sinsp constructor.
+	const std::shared_ptr<sinsp_parser_shared_params> m_params;
+	sinsp_evt& m_tmp_evt_storage;
 
 	bool m_track_connection_status = false;
 };

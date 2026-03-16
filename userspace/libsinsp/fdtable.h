@@ -18,14 +18,19 @@ limitations under the License.
 
 #pragma once
 
+#include <shared_mutex>
 #include <libsinsp/state/table.h>
 #include <libsinsp/fdinfo.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/sinsp_fdinfo_factory.h>
 #include <libsinsp/sinsp_mode.h>
 
+#ifdef LIBSINSP_USE_FOLLY
+#include <folly/concurrency/ConcurrentHashMap.h>
+#endif
+
 // Forward declare sinsp_stats_v2 to avoid including metrics_collector.h here.
-struct sinsp_stats_v2;
+class sinsp_stats_v2;
 
 ///////////////////////////////////////////////////////////////////////////////
 // fd info table
@@ -56,25 +61,43 @@ public:
 
 	explicit sinsp_fdtable(const std::shared_ptr<ctor_params>& params);
 
-	sinsp_fdinfo* find(int64_t fd);
+	std::shared_ptr<sinsp_fdinfo> find(int64_t fd);
 
-	sinsp_fdinfo* add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
+	std::shared_ptr<sinsp_fdinfo> add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
+#ifdef LIBSINSP_USE_FOLLY
+		for(auto it = m_table.cbegin(); it != m_table.cend(); ++it) {
+			if(!callback(it->first, *it->second)) {
+				return false;
+			}
+		}
+#else
+		std::shared_lock lock(m_mutex);
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
 			}
 		}
+#endif
 		return true;
 	}
 
 	inline bool loop(const fdtable_visitor_t callback) {
+#ifdef LIBSINSP_USE_FOLLY
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
 			}
 		}
+#else
+		std::shared_lock lock(m_mutex);
+		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
+			if(!callback(it->first, *it->second)) {
+				return false;
+			}
+		}
+#endif
 		return true;
 	}
 
@@ -122,6 +145,13 @@ public:
 
 	bool erase_entry(const int64_t& key) override { return erase(key); }
 
+#ifndef LIBSINSP_USE_FOLLY
+	// Lock order: when both fdtable (m_mutex) and fdinfo (sinsp_fdinfo::m_mutex) are needed,
+	// always take fdtable first, then fdinfo. Violating this can cause lock-order inversion
+	// and deadlock (see set_net_role_by_guessing in fdinfo.cpp).
+	mutable std::shared_mutex m_mutex;
+#endif
+
 private:
 	// Parameters provided at fdtable construction phase.
 	// Notice: the struct instance is shared among all fdtable instances.
@@ -130,7 +160,11 @@ private:
 	// ctor_params object in sinsp constructor.
 	const std::shared_ptr<ctor_params> m_params;
 
+#ifdef LIBSINSP_USE_FOLLY
+	folly::ConcurrentHashMap<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+#else
 	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+#endif
 
 	//
 	// Simple fd cache
@@ -138,14 +172,13 @@ private:
 	int64_t m_last_accessed_fd;
 	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
-	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
 
 	bool is_syscall_plugin_enabled() const {
-		return m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin->id() == 0;
+		return m_params && m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin &&
+		       m_params->m_input_plugin->id() == 0;
 	}
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
-	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);
-	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd,
-	                                             std::shared_ptr<sinsp_fdinfo>&& fdinfo);
+	std::shared_ptr<sinsp_fdinfo> find_ref(int64_t fd);
+	std::shared_ptr<sinsp_fdinfo> add_ref(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 };
