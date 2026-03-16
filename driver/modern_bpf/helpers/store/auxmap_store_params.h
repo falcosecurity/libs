@@ -222,6 +222,12 @@ static __always_inline void auxmap_iter__submit_event(struct auxiliary_map *auxm
  * `helpers/base/push_data.h` file.
  */
 
+/* Kfuncs used to mark RCU critical sections. For sleepable programs, their usage is required to
+ * avoid the verifier marking pointers as untrusted.
+ */
+extern void bpf_rcu_read_lock(void) __ksym __weak;
+extern void bpf_rcu_read_unlock(void) __ksym __weak;
+
 /**
  * @brief This function must be used when we are not able to correctly
  * collect the param. We simply put the param length to 0 into the
@@ -2167,4 +2173,135 @@ static __always_inline void auxmap__store_task_exe_file_path(struct auxiliary_ma
                                                              struct task_struct *task) {
 	struct file *exe_file = extract__exe_file_from_task(task);
 	auxmap__store_file_path(auxmap, exe_file);
+}
+
+/**
+ * NOTE: the usage of this helper will cause the verifier to reject the program under the same
+ * circumstances under which any program using `auxmap__store_d_path_exact_sleepable()` is rejected.
+ * Additionally, if the kernel provides support for `bpf_rcu_read_{lock,unlock}()` kfuncs, the
+ * kernel must support calling them from the calling program type since the kfuncs introduction.
+ * Valid program types:
+ * - `iter.s/task`
+ * - `iter.s/task_file`
+ * See `auxmap__store_task_exe_file_path()` for a version working on non-sleepable programs.
+ *
+ * @brief This helper stores the task's exe file path as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param task pointer to the task whose exe file path must be stored.
+ */
+static __always_inline void auxmap__store_task_exe_file_path_sleepable(struct auxiliary_map *auxmap,
+                                                                       struct task_struct *task) {
+	if(!bpf_rcu_read_lock) {
+		auxmap__store_task_exe_file_path(auxmap, task);
+		return;
+	}
+
+	// Access RCU critical section to avoid pointer being declassified to untrusted.
+	bpf_rcu_read_lock();
+	struct file *exe_file = extract__exe_file_from_task(task);
+	if(exe_file) {
+		auxmap__store_d_path_exact_sleepable(auxmap, &exe_file->f_path);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
+	bpf_rcu_read_unlock();
+}
+
+/**
+ * @brief This helper stores the task's cwd as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param task pointer to the task whose cwd must be stored.
+ */
+static __always_inline void auxmap__store_task_cwd(struct auxiliary_map *auxmap,
+                                                   struct task_struct *task) {
+	struct fs_struct *task_fs = READ_TASK_FIELD(task, fs);
+	if(task_fs) {
+		auxmap__store_d_path_approx(auxmap, &task_fs->pwd);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
+}
+
+/**
+ * NOTE: the usage of this helper will cause the verifier to reject the program under the same
+ * circumstances under which any program using `auxmap__store_d_path_exact_sleepable()` is rejected.
+ * Additionally, if the kernel provides support for `bpf_rcu_read_{lock,unlock}()` kfuncs, the
+ * kernel must support calling them from the calling program type since the kfuncs introduction.
+ * Valid program types:
+ * - `iter.s/task`
+ * - `iter.s/task_file`
+ * See `auxmap__store_task_cwd()` for a version working on non-sleepable programs.
+ *
+ * @brief This helper stores the task's cwd as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param task pointer to the task whose cwd must be stored.
+ */
+static __always_inline void auxmap__store_task_cwd_sleepable(struct auxiliary_map *auxmap,
+                                                             struct task_struct *task) {
+	if(!bpf_rcu_read_lock) {
+		auxmap__store_task_cwd(auxmap, task);
+		return;
+	}
+
+	// Access RCU critical section to avoid pointer being declassified to untrusted.
+	bpf_rcu_read_lock();
+	struct fs_struct *task_fs = READ_TASK_FIELD(task, fs);
+	if(task_fs) {
+		auxmap__store_d_path_exact_sleepable(auxmap, &task_fs->pwd);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
+	bpf_rcu_read_unlock();
+}
+
+/**
+ * @brief This helper stores the task's root folder as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param task pointer to the task whose root folder must be stored.
+ */
+static __always_inline void auxmap__store_task_root(struct auxiliary_map *auxmap,
+                                                    struct task_struct *task) {
+	struct fs_struct *task_fs = READ_TASK_FIELD(task, fs);
+	if(task_fs) {
+		auxmap__store_d_path_approx(auxmap, &task_fs->root);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
+}
+
+/**
+ * NOTE: the usage of this helper will cause the verifier to reject the program under the same
+ * circumstances under which any program using `auxmap__store_d_path_exact_sleepable()` is rejected.
+ * Additionally, if the kernel provides support for `bpf_rcu_read_{lock,unlock}()` kfuncs, the
+ * kernel must support calling them from the calling program type since the kfuncs introduction.
+ * Valid program types:
+ * - `iter.s/task`
+ * - `iter.s/task_file`
+ * See `auxmap__store_task_root()` for a version working on non-sleepable programs.
+ *
+ * @brief This helper stores the task's root folder as a charbuf into the auxmap.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the path.
+ * @param task pointer to the task whose root folder must be stored.
+ */
+static __always_inline void auxmap__store_task_root_sleepable(struct auxiliary_map *auxmap,
+                                                              struct task_struct *task) {
+	if(!bpf_rcu_read_lock) {
+		auxmap__store_task_root(auxmap, task);
+		return;
+	}
+
+	// Access RCU critical section to avoid pointer being declassified to untrusted.
+	bpf_rcu_read_lock();
+	struct fs_struct *task_fs = READ_TASK_FIELD(task, fs);
+	if(task_fs) {
+		auxmap__store_d_path_exact_sleepable(auxmap, &task_fs->root);
+	} else {
+		auxmap__store_empty_param(auxmap);
+	}
+	bpf_rcu_read_unlock();
 }
