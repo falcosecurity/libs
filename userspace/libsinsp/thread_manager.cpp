@@ -994,6 +994,26 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
 	return sinsp_proc;
 }
 
+threadinfo_map_t::ptr_t sinsp_thread_manager::get_or_create_fake_thread(int64_t tid) {
+	auto existing = find_thread(tid, true);
+	if(existing) {
+		return existing;
+	}
+	auto fake_tinfo = m_threadinfo_factory.create();
+	fake_tinfo->m_tid = tid;
+	fake_tinfo->set_pid(-1);
+	fake_tinfo->set_ptid(-1);
+	fake_tinfo->set_reaper_tid(-1);
+	fake_tinfo->set_not_expired_children(0);
+	fake_tinfo->set_comm("<NA>");
+	fake_tinfo->set_exe("<NA>");
+	fake_tinfo->set_uid(0xffffffff);
+	fake_tinfo->set_gid(0xffffffff);
+	fake_tinfo->set_loginuid(0xffffffff);
+	add_thread(std::move(fake_tinfo), true);
+	return find_thread(tid, false);
+}
+
 threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only) {
 	auto thr = m_threadtable.get_ref(tid);
 	if(thr) {

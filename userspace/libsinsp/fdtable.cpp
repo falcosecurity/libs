@@ -42,13 +42,13 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
 	auto fdit = m_table.find(fd);
 
 	if(fdit == m_table.end()) {
-		if(m_params->m_sinsp_stats_v2) {
+		if(m_params && m_params->m_sinsp_stats_v2) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
 		}
 		return nullptr;
 	}
 
-	if(m_params->m_sinsp_stats_v2 != nullptr) {
+	if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_noncached_fd_lookups();
 	}
 
@@ -69,8 +69,9 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 	fdinfo->m_fd = fd;
 	lookup_device(*fdinfo);
 
+	const uint32_t max_size = m_params ? m_params->m_max_table_size : 0xFFFFFFFFU;
 #ifdef LIBSINSP_USE_FOLLY
-	if(m_table.size() >= m_params->m_max_table_size) {
+	if(m_table.size() >= max_size) {
 		auto it = m_table.find(fd);
 		if(it == m_table.end()) {
 			return nullptr;
@@ -80,7 +81,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 	m_last_accessed_fd = -1;
 
 	auto [it, inserted] = m_table.insert_or_assign(fd, std::move(fdinfo));
-	if(inserted && m_params->m_sinsp_stats_v2 != nullptr) {
+	if(inserted && m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_added_fds();
 	}
 	return it->second;
@@ -88,12 +89,12 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 	const auto it = m_table.find(fd);
 
 	if(it == m_table.end()) {
-		if(m_table.size() == m_params->m_max_table_size) {
+		if(m_table.size() == max_size) {
 			return nullptr;
 		}
 
 		m_last_accessed_fd = -1;
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
+		if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_added_fds();
 		}
 
@@ -119,12 +120,12 @@ bool sinsp_fdtable::erase(int64_t fd) {
 #ifdef LIBSINSP_USE_FOLLY
 	auto erased = m_table.erase(fd);
 	if(erased == 0) {
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
+		if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
 		}
 		return false;
 	}
-	if(m_params->m_sinsp_stats_v2 != nullptr) {
+	if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 		auto& c = m_params->m_sinsp_stats_v2->get_thread_counters();
 		c.inc_n_noncached_fd_lookups();
 		c.inc_n_removed_fds();
@@ -134,13 +135,13 @@ bool sinsp_fdtable::erase(int64_t fd) {
 	auto fdit = m_table.find(fd);
 
 	if(fdit == m_table.end()) {
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
+		if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
 		}
 		return false;
 	} else {
 		m_table.erase(fdit);
-		if(m_params->m_sinsp_stats_v2 != nullptr) {
+		if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
 			auto& c = m_params->m_sinsp_stats_v2->get_thread_counters();
 			c.inc_n_noncached_fd_lookups();
 			c.inc_n_removed_fds();
@@ -171,6 +172,9 @@ void sinsp_fdtable::reset_cache() {
 
 void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #ifndef _WIN32
+	if(!m_params) {
+		return;
+	}
 	if(m_params->m_sinsp_mode.is_offline() ||
 	   (m_params->m_sinsp_mode.is_plugin() && !is_syscall_plugin_enabled())) {
 		return;
@@ -196,7 +200,7 @@ std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add(const int64_t fd,
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
-	return m_params->m_fdinfo_factory.create();
+	return m_params ? m_params->m_fdinfo_factory.create() : nullptr;
 };
 
 std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key) {

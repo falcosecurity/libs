@@ -127,6 +127,14 @@ public:
 	                                   bool main_thread = false);
 
 	/*!
+	  \brief Look up a thread by TID; if not found, add a minimal in-memory entry
+	  without querying the OS. For use when the event source (e.g. plugin) does not
+	  have a real process table.
+	  \return shared_ptr to the thread info. Safe for concurrent use.
+	*/
+	threadinfo_map_t::ptr_t get_or_create_fake_thread(int64_t tid);
+
+	/*!
 	  \brief Look up a thread by TID without creating it from /proc.
 	  \param lookup_only when false, updates the thread's m_lastaccess_ts and main fdtable; use true
 	  for read-only lookups. \return shared_ptr to the thread info, or empty if not found.
