@@ -648,7 +648,7 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 		callnum++;
 		if(callnum == 1) {
 			auto rc = scap_proc_get(platform, 0, false);
-			EXPECT_NE(SCAP_SUCCESS, rc);
+			EXPECT_EQ(SCAP_FAILURE, rc);
 
 			rc = scap_proc_get(platform, tid, false);
 			EXPECT_EQ(SCAP_SUCCESS, rc);

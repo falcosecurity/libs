@@ -1613,6 +1613,10 @@ int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool sc
 	struct scap_proclist* proclist = &platform->m_proclist;
 	char* error = linux_platform->m_lasterr;
 
+	if(tid <= 0) {
+		return scap_errprintf(error, 0, "expected positive thread id, got: %ld", tid);
+	}
+
 	// Try to fetch the thread leveraging linux vtable's API.
 	scap_threadinfo* tinfo = NULL;
 	int32_t res = linux_vtable_fetch_thread(linux_platform, proclist, tid, &tinfo, error);
@@ -1907,6 +1911,10 @@ int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
                               char* lasterr) {
 	if(!tinfo) {
 		return scap_errprintf(lasterr, 0, "tinfo must be non-NULL");
+	}
+
+	if(fd < 0) {
+		return scap_errprintf(lasterr, 0, "fd must be non-negative");
 	}
 
 	const struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;

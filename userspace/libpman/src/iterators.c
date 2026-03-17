@@ -504,6 +504,10 @@ int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
 		return SCAP_NOT_SUPPORTED;
 	}
 
+	if(tid == 0) {
+		return scap_errprintf(error, 0, "expected positive thread id, got: %u", tid);
+	}
+
 	struct prog_info prog_info;
 	fill_dump_task_prog_info(&prog_info);
 	return fetch(&prog_info, callbacks, 0, tid, tinfo, error);
