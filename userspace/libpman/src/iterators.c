@@ -152,6 +152,12 @@ static void i64_from_u32_param(int64_t *dest, const scap_const_sized_buffer *par
 	*dest = (int64_t)tmp;
 }
 
+static void i64_from_i32_param(int64_t *dest, const scap_const_sized_buffer *param) {
+	int32_t tmp;
+	COPY_PARAM(tmp, param);
+	*dest = tmp;
+}
+
 static void path_from_fspath_param(void *dest_buff,
                                    const size_t dest_buff_size,
                                    const scap_const_sized_buffer *param) {
@@ -315,18 +321,309 @@ static void handle_task_evt(const struct ppm_evt_hdr *evt,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// TASK FILE EVENT HANDLER LOGIC
+///////////////////////////////////////////////////////////////////////////////
+
+static bool is_task_file_socket_evt(const uint16_t evt_type) {
+	switch(evt_type) {
+	case PPME_ITER_TASK_FILE_SOCKET_INET_E:
+	case PPME_ITER_TASK_FILE_SOCKET_INET6_E:
+	case PPME_ITER_TASK_FILE_SOCKET_UNIX_E:
+	case PPME_ITER_TASK_FILE_SOCKET_NETLINK_E:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static uint8_t infer_socket_l4_proto(const uint16_t sk_type, const uint16_t sk_proto) {
+	switch(sk_type) {
+	case SOCK_STREAM:
+		return sk_proto == IPPROTO_TCP || sk_proto == IPPROTO_IP ? SCAP_L4_TCP : SCAP_L4_UNKNOWN;
+	case SOCK_DGRAM:
+		if(sk_proto == IPPROTO_UDP || sk_proto == IPPROTO_IP) {
+			return SCAP_L4_UDP;
+		}
+		if(sk_proto == IPPROTO_ICMP) {
+			return SCAP_L4_ICMP;
+		}
+		return SCAP_L4_UNKNOWN;
+	case SOCK_RAW:
+		return SCAP_L4_RAW;
+	default:
+		return SCAP_L4_UNKNOWN;
+	}
+}
+
+static void fdinfo_from_task_file_socket_inet_evt(scap_fdinfo *fdinfo,
+                                                  const scap_const_sized_buffer *evt_params) {
+	uint16_t sk_type, sk_proto;
+	COPY_PARAM(sk_type, &evt_params[1]);   // sk_type
+	COPY_PARAM(sk_proto, &evt_params[2]);  // sk_proto
+	const uint16_t l4_proto = infer_socket_l4_proto(sk_type, sk_proto);
+
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);  // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[7]);          // ino_num
+
+	uint32_t dip, sip;
+	uint16_t sport, dport;
+	COPY_PARAM(sip, &evt_params[3]);    // local_ip
+	COPY_PARAM(sport, &evt_params[4]);  // local_port
+	COPY_PARAM(dip, &evt_params[5]);    // remote_ip
+	COPY_PARAM(dport, &evt_params[6]);  // remote_port
+
+	if(dip != 0) {
+		fdinfo->type = SCAP_FD_IPV4_SOCK;
+		fdinfo->info.ipv4info.sip = sip;
+		fdinfo->info.ipv4info.dip = dip;
+		fdinfo->info.ipv4info.sport = sport;
+		fdinfo->info.ipv4info.dport = dport;
+		fdinfo->info.ipv4info.l4proto = l4_proto;
+	} else {
+		fdinfo->type = SCAP_FD_IPV4_SERVSOCK;
+		fdinfo->info.ipv4serverinfo.ip = sip;
+		fdinfo->info.ipv4serverinfo.port = sport;
+		fdinfo->info.ipv4serverinfo.l4proto = l4_proto;
+	}
+}
+
+static bool is_ipv6_unspec_addr(uint32_t ip[4]) {
+	return ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] == 0;
+}
+
+static void fdinfo_from_task_file_socket_inet6_evt(scap_fdinfo *fdinfo,
+                                                   const scap_const_sized_buffer *evt_params) {
+	uint16_t sk_type, sk_proto;
+	COPY_PARAM(sk_type, &evt_params[1]);   // sk_type
+	COPY_PARAM(sk_proto, &evt_params[2]);  // sk_proto
+	const uint16_t l4_proto = infer_socket_l4_proto(sk_type, sk_proto);
+
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);  // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[7]);          // ino_num
+
+	uint32_t sip[4], dip[4];
+	uint16_t sport, dport;
+	COPY_PARAM(sip, &evt_params[3]);    // local_ip
+	COPY_PARAM(sport, &evt_params[4]);  // local_port
+	COPY_PARAM(dip, &evt_params[5]);    // remote_ip
+	COPY_PARAM(dport, &evt_params[6]);  // remote_port
+
+	if(!is_ipv6_unspec_addr(dip)) {
+		fdinfo->type = SCAP_FD_IPV6_SOCK;
+		memcpy(&fdinfo->info.ipv6info.sip, sip, sizeof(fdinfo->info.ipv6info.sip));
+		memcpy(&fdinfo->info.ipv6info.dip, dip, sizeof(fdinfo->info.ipv6info.dip));
+		fdinfo->info.ipv6info.sport = sport;
+		fdinfo->info.ipv6info.dport = dport;
+		fdinfo->info.ipv6info.l4proto = l4_proto;
+	} else {
+		fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
+		memcpy(fdinfo->info.ipv6serverinfo.ip, sip, sizeof(fdinfo->info.ipv6serverinfo.ip));
+		fdinfo->info.ipv6serverinfo.port = sport;
+		fdinfo->info.ipv6serverinfo.l4proto = l4_proto;
+	}
+}
+
+static void fdinfo_from_task_file_socket_unix_evt(scap_fdinfo *fdinfo,
+                                                  const scap_const_sized_buffer *evt_params) {
+	fdinfo->type = SCAP_FD_UNIX_SOCK;
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);                   // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[5]);                           // ino_num
+	COPY_PARAM(fdinfo->info.unix_socket_info.source, &evt_params[3]);  // sk_pointer
+	fdinfo->info.unix_socket_info.destination = 0;
+	path_from_fspath_param(fdinfo->info.unix_socket_info.fname,
+	                       sizeof(fdinfo->info.unix_socket_info.fname),
+	                       &evt_params[4]);  // sun_path
+}
+
+static void fdinfo_from_task_file_socket_netlink_evt(scap_fdinfo *fdinfo,
+                                                     const scap_const_sized_buffer *evt_params) {
+	fdinfo->type = SCAP_FD_NETLINK;
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);  // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[3]);          // ino_num
+}
+
+static void fdinfo_from_task_file_pipe_evt(scap_fdinfo *fdinfo,
+                                           const scap_const_sized_buffer *evt_params) {
+	fdinfo->type = SCAP_FD_FIFO;
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);  // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[2]);          // ino_num
+	path_from_fspath_param(fdinfo->info.fname, sizeof(fdinfo->info.fname), &evt_params[1]);  // path
+}
+
+static void fdinfo_from_task_file_directory_evt(scap_fdinfo *fdinfo,
+                                                const scap_const_sized_buffer *evt_params) {
+	fdinfo->type = SCAP_FD_DIRECTORY;
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);  // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[2]);          // ino_num
+	path_from_fspath_param(fdinfo->info.fname, sizeof(fdinfo->info.fname), &evt_params[1]);  // path
+}
+
+static void fdinfo_from_task_file_regular_evt(scap_fdinfo *fdinfo,
+                                              const scap_const_sized_buffer *evt_params) {
+	fdinfo->type = SCAP_FD_FILE_V2;
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);                  // fd
+	COPY_PARAM(fdinfo->ino, &evt_params[4]);                          // ino_num
+	COPY_PARAM(fdinfo->info.regularinfo.open_flags, &evt_params[2]);  // flags
+	path_from_fspath_param(fdinfo->info.regularinfo.fname,
+	                       sizeof(fdinfo->info.regularinfo.fname),
+	                       &evt_params[1]);                         // path
+	COPY_PARAM(fdinfo->info.regularinfo.mount_id, &evt_params[3]);  // mnt_id
+	// Don't know why, but this is always set to 0 in linux/scap_fds.c.
+	fdinfo->info.regularinfo.dev = 0;
+}
+
+static scap_fd_type scap_fd_type_from_anon_inode_fd_type(const uint8_t fd_type) {
+	switch(fd_type) {
+	case ANON_INODE_FD_TYPE_EVENTFD:
+		return SCAP_FD_EVENT;
+	case ANON_INODE_FD_TYPE_EVENTPOLL:
+		return SCAP_FD_EVENTPOLL;
+	case ANON_INODE_FD_TYPE_INOTIFY:
+		return SCAP_FD_INOTIFY;
+	case ANON_INODE_FD_TYPE_SIGNALFD:
+		return SCAP_FD_SIGNALFD;
+	case ANON_INODE_FD_TYPE_TIMERFD:
+		return SCAP_FD_TIMERFD;
+	case ANON_INODE_FD_TYPE_IO_URING:
+		return SCAP_FD_IOURING;
+	case ANON_INODE_FD_TYPE_USERFAULTFD:
+		return SCAP_FD_USERFAULTFD;
+	case ANON_INODE_FD_TYPE_PIDFD:
+		return SCAP_FD_PIDFD;
+	case ANON_INODE_FD_TYPE_BPF_MAP:
+	case ANON_INODE_FD_TYPE_BPF_PROG:
+	case ANON_INODE_FD_TYPE_BPF_LINK:
+	case ANON_INODE_FD_TYPE_BPF_ITER:
+		return SCAP_FD_BPF;
+	case ANON_INODE_FD_TYPE_PERF_EVENT:
+	case ANON_INODE_FD_TYPE_UNKNOWN:
+	default:
+		return SCAP_FD_UNSUPPORTED;
+	}
+}
+
+static void fdinfo_from_task_file_anon_inode_evt(scap_fdinfo *fdinfo,
+                                                 const scap_const_sized_buffer *evt_params) {
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);  // fd
+	uint8_t fd_type;
+	COPY_PARAM(fd_type, &evt_params[1]);  // fd_type
+	fdinfo->type = scap_fd_type_from_anon_inode_fd_type(fd_type);
+	COPY_PARAM(fdinfo->ino, &evt_params[3]);  // ino_num
+	if(fd_type == ANON_INODE_FD_TYPE_UNKNOWN) {
+		path_from_fspath_param(fdinfo->info.fname,
+		                       sizeof(fdinfo->info.fname),
+		                       &evt_params[2]);  // path
+	}
+}
+
+static void fdinfo_from_task_file_memfd_evt(scap_fdinfo *fdinfo,
+                                            const scap_const_sized_buffer *evt_params) {
+	fdinfo->type = SCAP_FD_MEMFD;
+	i64_from_i32_param(&fdinfo->fd, &evt_params[0]);                                         // fd
+	path_from_fspath_param(fdinfo->info.fname, sizeof(fdinfo->info.fname), &evt_params[1]);  // path
+	COPY_PARAM(fdinfo->ino, &evt_params[2]);  // ino_num
+}
+
+static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
+                                 const scap_const_sized_buffer *evt_params,
+                                 const struct scap_fetch_callbacks *callbacks,
+                                 const bool must_fetch_sockets,
+                                 uint64_t *num_files_fetched,
+                                 const scap_sized_buffer *cb_err_buff) {
+	uint32_t pid, tid;
+	get_evt_pid_tid(evt, &pid, &tid);
+
+	const uint16_t evt_type = evt->type;
+	if(!must_fetch_sockets && is_task_file_socket_evt(evt_type)) {
+		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		                "received socket event type %d with socket fetching disabled for thread "
+		                "(pid: %u, tid: %u)",
+		                evt_type,
+		                pid,
+		                tid);
+	}
+
+	scap_fdinfo fdinfo = {};
+
+	switch(evt_type) {
+	case PPME_ITER_TASK_FILE_SOCKET_INET_E:
+		fdinfo_from_task_file_socket_inet_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_INET6_E:
+		fdinfo_from_task_file_socket_inet6_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_UNIX_E:
+		fdinfo_from_task_file_socket_unix_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_NETLINK_E:
+		fdinfo_from_task_file_socket_netlink_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_PIPE_E:
+		fdinfo_from_task_file_pipe_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_DIRECTORY_E:
+		fdinfo_from_task_file_directory_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_REGULAR_E:
+		fdinfo_from_task_file_regular_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_ANON_INODE_E:
+		fdinfo_from_task_file_anon_inode_evt(&fdinfo, evt_params);
+		break;
+	case PPME_ITER_TASK_FILE_MEMFD_E:
+		fdinfo_from_task_file_memfd_evt(&fdinfo, evt_params);
+		break;
+	default:
+		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		                "unknown file event type %d for thread (pid: %u, tid: %u)",
+		                evt_type,
+		                pid,
+		                tid);
+		return;
+	}
+
+	DEBUG_PRINT_FDINFO(&fdinfo);
+
+	const int32_t res = callbacks->proc_entry_cb(callbacks->ctx,
+	                                             cb_err_buff->buf,
+	                                             (int64_t)tid,
+	                                             NULL,
+	                                             &fdinfo,
+	                                             NULL);
+
+	if(scap_unlikely(res != SCAP_SUCCESS)) {
+		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		                "process entry callback failed with error code %d for file (pid: %u, "
+		                "tid: %u, fd: %ld): %.*s",
+		                res,
+		                pid,
+		                tid,
+		                fdinfo.fd,
+		                (int)cb_err_buff->size,
+		                (char *)cb_err_buff->buf);
+	}
+
+	if(num_files_fetched) {
+		(*num_files_fetched)++;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // BOOTSTRAP AND ROUTING LOGIC
 ///////////////////////////////////////////////////////////////////////////////
 
 // Select the logic that must be used to handle an event.
 enum evt_handler_selector {
 	EHS_TASK,
+	EHS_TASK_FILE,
 };
 
 static int32_t fetch_evts(const int iter_fd,
                           const enum evt_handler_selector selector,
                           const struct scap_fetch_callbacks *callbacks,
                           scap_threadinfo **tinfo,
+                          const bool must_fetch_sockets,
+                          uint64_t *num_files_fetched,
                           char *error) {
 	// Stack buffer to accommodate at least one event at the time.
 	char buff[MAX_ITER_EVENT_SIZE];
@@ -335,6 +632,10 @@ static int32_t fetch_evts(const int iter_fd,
 	// Buffer used to store any error resulting from callback invocation.
 	char cb_err[256] = {0};
 	const scap_sized_buffer cb_err_buff = {&cb_err, sizeof(cb_err)};
+
+	if(num_files_fetched) {
+		*num_files_fetched = 0;
+	}
 
 	while(true) {
 		const ssize_t bytes_read =
@@ -383,6 +684,14 @@ static int32_t fetch_evts(const int iter_fd,
 			case EHS_TASK:
 				handle_task_evt(evt, evt_params, callbacks, tinfo, &cb_err_buff);
 				break;
+			case EHS_TASK_FILE:
+				handle_task_file_evt(evt,
+				                     evt_params,
+				                     callbacks,
+				                     must_fetch_sockets,
+				                     num_files_fetched,
+				                     &cb_err_buff);
+				break;
 			default:
 				return scap_errprintf(error, 0, "bug: unknown event handler selector %d", selector);
 			}
@@ -427,6 +736,8 @@ static int32_t fetch(const struct prog_info *prog_info,
                      const int pid_filter,
                      const int tid_filter,
                      scap_threadinfo **tinfo,
+                     const bool must_fetch_sockets,
+                     uint64_t *num_files_fetched,
                      char *error) {
 	if(pid_filter != 0 && tid_filter != 0) {
 		return scap_errprintf(error,
@@ -473,7 +784,13 @@ static int32_t fetch(const struct prog_info *prog_info,
 		goto cleanup;
 	}
 
-	res = fetch_evts(iter_fd, prog_info->selector, callbacks, tinfo, error);
+	res = fetch_evts(iter_fd,
+	                 prog_info->selector,
+	                 callbacks,
+	                 tinfo,
+	                 must_fetch_sockets,
+	                 num_files_fetched,
+	                 error);
 
 cleanup:
 	if(iter_fd >= 0 && close(iter_fd) < 0) {
@@ -493,6 +810,13 @@ static void fill_dump_task_prog_info(struct prog_info *info) {
 	info->selector = EHS_TASK;
 }
 
+static void fill_dump_task_file_prog_info(struct prog_info *info) {
+	info->link = &g_state.skel->links.dump_task_file;
+	info->prog = g_state.skel->progs.dump_task_file;
+	info->name = "dump_task_file";
+	info->selector = EHS_TASK_FILE;
+}
+
 int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
                              const uint32_t tid,
                              scap_threadinfo **tinfo,
@@ -510,7 +834,7 @@ int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
 
 	struct prog_info prog_info;
 	fill_dump_task_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, 0, tid, tinfo, error);
+	return fetch(&prog_info, callbacks, 0, tid, tinfo, false, NULL, error);
 #endif
 }
 
@@ -524,7 +848,7 @@ int32_t pman_iter_fetch_tasks(const struct scap_fetch_callbacks *callbacks, char
 
 	struct prog_info prog_info;
 	fill_dump_task_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, 0, 0, NULL, error);
+	return fetch(&prog_info, callbacks, 0, 0, NULL, false, NULL, error);
 #endif
 }
 
@@ -535,8 +859,21 @@ int32_t pman_iter_fetch_proc_file(const struct scap_fetch_callbacks *callbacks,
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
 #else
-	// todo(ekoops): add support here.
-	return SCAP_NOT_SUPPORTED;
+	if(!g_state.is_task_files_dumping_supported) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	if(pid == 0) {
+		return scap_errprintf(error, 0, "expected positive process id, got: %u", pid);
+	}
+
+	const bool must_fetch_sockets = true;
+	g_state.skel->data->dump_task_file__fd_filter = (int64_t)fd;
+	g_state.skel->data->dump_task_file__must_dump_sockets = must_fetch_sockets;
+
+	struct prog_info prog_info;
+	fill_dump_task_file_prog_info(&prog_info);
+	return fetch(&prog_info, callbacks, pid, 0, NULL, must_fetch_sockets, NULL, error);
 #endif
 }
 
@@ -548,8 +885,20 @@ int32_t pman_iter_fetch_proc_files(const struct scap_fetch_callbacks *callbacks,
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
 #else
-	// todo(ekoops): add support here.
-	return SCAP_NOT_SUPPORTED;
+	if(!g_state.is_task_files_dumping_supported) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	if(pid == 0) {
+		return scap_errprintf(error, 0, "expected positive process id, got: %u", pid);
+	}
+
+	g_state.skel->data->dump_task_file__fd_filter = (int64_t)-1;
+	g_state.skel->data->dump_task_file__must_dump_sockets = must_fetch_sockets;
+
+	struct prog_info prog_info;
+	fill_dump_task_file_prog_info(&prog_info);
+	return fetch(&prog_info, callbacks, pid, 0, NULL, must_fetch_sockets, num_files_fetched, error);
 #endif
 }
 
@@ -557,7 +906,16 @@ int32_t pman_iter_fetch_procs_files(const struct scap_fetch_callbacks *callbacks
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
 #else
-	// todo(ekoops): add support here.
-	return SCAP_NOT_SUPPORTED;
+	if(!g_state.is_task_files_dumping_supported) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	const bool must_fetch_sockets = true;
+	g_state.skel->data->dump_task_file__fd_filter = (int64_t)-1;
+	g_state.skel->data->dump_task_file__must_dump_sockets = must_fetch_sockets;
+
+	struct prog_info prog_info;
+	fill_dump_task_file_prog_info(&prog_info);
+	return fetch(&prog_info, callbacks, 0, 0, NULL, must_fetch_sockets, NULL, error);
 #endif
 }
