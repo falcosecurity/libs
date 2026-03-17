@@ -1247,7 +1247,7 @@ static int32_t fetch_procfs_procs_files(struct scap_linux_platform* linux_platfo
 		// Gather the process PID, which is the directory name.
 		const uint32_t pid = (uint32_t)atoi(procfs_dir_entry->d_name);
 
-		snprintf(procfs_proc_dir, sizeof(procfs_proc_dir), "%s/%u", procfs_dir_path, pid);
+		snprintf(procfs_proc_dir, sizeof(procfs_proc_dir), "%s/%u/", procfs_dir_path, pid);
 
 		// Gather all files for this process.
 		uint64_t num_fds_this_proc;
@@ -1658,7 +1658,7 @@ int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool sc
 
 	// Fall back to procfs process files lookup.
 	char dir_name[SCAP_MAX_PATH_SIZE];
-	snprintf(dir_name, sizeof(dir_name), "%s/proc/%ld", scap_get_host_root(), tinfo->pid);
+	snprintf(dir_name, sizeof(dir_name), "%s/proc/%lu/", scap_get_host_root(), tinfo->pid);
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 	if(!scan_sockets) {
 		sockets_by_ns = (void*)-1;
