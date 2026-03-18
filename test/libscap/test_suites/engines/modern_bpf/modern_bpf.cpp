@@ -323,6 +323,66 @@ TEST(modern_bpf, metrics_v2_check_per_CPU_stats) {
 	scap_close(h);
 }
 
+TEST(modern_bpf, metrics_v2_check_kernel_iter_stats) {
+	char error_buffer[FILENAME_MAX]{};
+	int ret = 0;
+	/* We use buffers of 1 MB to be sure that we don't have drops */
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
+	        << "unable to open modern bpf engine with one single shared ring buffer: "
+	        << error_buffer << std::endl;
+
+	constexpr uint32_t flags = METRICS_V2_KERNEL_ITER_COUNTERS;
+	uint32_t nstats;
+	int32_t rc;
+	const metrics_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_GT(nstats, 0);
+
+	// The entire set of stats we expect to find.
+	const std::unordered_set<std::string> expected_stats_name = {
+	        "n_evts_task",
+	        "n_evts_task_file_pipe",
+	        "n_evts_task_file_memfd",
+	        "n_evts_task_file_regular",
+	        "n_evts_task_file_directory",
+	        "n_evts_task_file_socket_inet",
+	        "n_evts_task_file_socket_inet6",
+	        "n_evts_task_file_socket_unix",
+	        "n_evts_task_file_socket_netlink",
+	        "n_evts_task_file_anon_inode",
+	        "n_drops_max_event_size",
+	        "n_drops_task",
+	        "n_drops_task_file_pipe",
+	        "n_drops_task_file_memfd",
+	        "n_drops_task_file_regular",
+	        "n_drops_task_file_directory",
+	        "n_drops_task_file_socket_inet",
+	        "n_drops_task_file_socket_inet6",
+	        "n_drops_task_file_socket_unix",
+	        "n_drops_task_file_socket_netlink",
+	        "n_drops_task_file_anon_inode",
+	};
+
+	for(uint32_t i = 0; i < nstats; i++) {
+		const struct metrics_v2* stat = &stats_v2[i];
+
+		// Check that we there's no unexpected stat.
+		if(std::string stat_name{stat->name};
+		   expected_stats_name.find(stat_name) == expected_stats_name.end()) {
+			FAIL() << "unable to find stat '" << stat_name << "' into the array";
+		}
+
+		// All kernel iterator statistics are currently u64 monotonic counters.
+		ASSERT_EQ(stat->type, METRIC_VALUE_TYPE_U64);
+		ASSERT_EQ(stat->flags, METRICS_V2_KERNEL_ITER_COUNTERS);
+		ASSERT_EQ(stat->unit, METRIC_VALUE_UNIT_COUNT);
+		ASSERT_EQ(stat->metric_type, METRIC_VALUE_METRIC_TYPE_MONOTONIC);
+	}
+
+	scap_close(h);
+}
+
 TEST(modern_bpf, metrics_v2_check_results) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
