@@ -58,6 +58,7 @@ extern "C" {
 #define METRICS_V2_PLUGINS (1 << 6)
 #define METRICS_V2_KERNEL_COUNTERS_PER_CPU \
 	(1 << 7)  // Requesting this does also silently enable METRICS_V2_KERNEL_COUNTERS
+#define METRICS_V2_KERNEL_ITER_COUNTERS (1 << 8)
 
 typedef union metrics_v2_value {
 	uint32_t u32;

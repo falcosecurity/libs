@@ -527,7 +527,7 @@ void print_stats() {
 	gettimeofday(&tval_end, NULL);
 	timersub(&tval_end, &tval_start, &tval_result);
 	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS |
-	                 METRICS_V2_KERNEL_COUNTERS_PER_CPU;
+	                 METRICS_V2_KERNEL_COUNTERS_PER_CPU | METRICS_V2_KERNEL_ITER_COUNTERS;
 	uint32_t nstats;
 	int32_t rc;
 	const metrics_v2* stats_v2;
@@ -535,12 +535,13 @@ void print_stats() {
 	uint64_t engine_flags = scap_get_engine_flags(g_h);
 	uint64_t n_evts = 0;
 	if(stats_v2 && nstats > 0) {
-		for(int stat = 0; stat < nstats; stat++) {
-			if((strncmp(stats_v2[stat].name, "n_evts", 6) == 0) &&
-			   stats_v2[0].type == METRIC_VALUE_TYPE_U64) {
-				n_evts = stats_v2[stat].value.u64;
-				break;
-			}
+		const char* stat_name = (char*)stats_v2[0].name;
+		const size_t stat_name_len = strlen(stat_name);
+		const char n_evts_stat_name[] = "n_evts";
+		const size_t n_evts_stat_len = sizeof(n_evts_stat_name) - 1;
+		if(stats_v2[0].type == METRIC_VALUE_TYPE_U64 && stat_name_len == n_evts_stat_len &&
+		   strncmp(stat_name, n_evts_stat_name, n_evts_stat_len) == 0) {
+			n_evts = stats_v2[0].value.u64;
 		}
 	}
 

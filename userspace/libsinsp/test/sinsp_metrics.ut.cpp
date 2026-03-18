@@ -27,8 +27,9 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
 
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
-	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS |
-	                               METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
+	uint32_t test_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS |
+	                              METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS |
+	                              METRICS_V2_KERNEL_ITER_COUNTERS;
 	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
 	libs::metrics::prometheus_metrics_converter prometheus_metrics_converter;
 
@@ -258,8 +259,9 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
 
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
-	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS |
-	                               METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
+	uint32_t test_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS |
+	                              METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS |
+	                              METRICS_V2_KERNEL_ITER_COUNTERS;
 	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
 	libs::metrics::output_rule_metrics_converter output_rule_metrics_converter;
 
