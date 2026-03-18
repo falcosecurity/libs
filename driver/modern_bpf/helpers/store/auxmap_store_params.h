@@ -200,13 +200,24 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
  */
 static __always_inline void auxmap_iter__submit_event(struct auxiliary_map *auxmap,
                                                       struct seq_file *seq) {
-	// todo(ekoops): implement counter mechanism to account for event drops.
-	// todo(ekoops): handle possible errors.
-	if(auxmap->payload_pos > MAX_ITER_EVENT_SIZE) {
+	struct iter_counters *counters = maps__get_iter_counters();
+	if(!counters) {
 		return;
 	}
 
-	bpf_seq_write(seq, auxmap->data, auxmap->payload_pos);
+	if(auxmap->payload_pos > MAX_ITER_EVENT_SIZE) {
+		counters->n_drops_max_event_size++;
+		return;
+	}
+
+	const uint16_t evt_type = auxmap->event_type;
+
+	if(bpf_seq_write(seq, auxmap->data, auxmap->payload_pos) < 0) {
+		account_iter_event_drop(evt_type, counters);
+		return;
+	}
+
+	account_iter_event_processed(evt_type, counters);
 }
 
 /////////////////////////////////
