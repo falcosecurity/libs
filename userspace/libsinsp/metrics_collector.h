@@ -333,7 +333,8 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	uint32_t m_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS |
 	                           METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS |
-	                           METRICS_V2_PLUGINS | METRICS_V2_KERNEL_COUNTERS_PER_CPU;
+	                           METRICS_V2_PLUGINS | METRICS_V2_KERNEL_COUNTERS_PER_CPU |
+	                           METRICS_V2_KERNEL_ITER_COUNTERS;
 	std::vector<metrics_v2> m_metrics;
 };
 
