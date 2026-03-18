@@ -156,6 +156,17 @@ struct {
 	__type(value, struct auxiliary_map);
 } iter_auxiliary_map __weak SEC(".maps");
 
+/**
+ * @brief Global iterator counters map accounting the number of dropped and processed iterator
+ * events.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, uint32_t);
+	__type(value, struct iter_counters);
+} iter_counters_map __weak SEC(".maps");
+
 /* These maps have one entry for each CPU.
  *
  * PLEASE NOTE:

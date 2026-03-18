@@ -190,6 +190,15 @@ static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
 
 /*=============================== ITER AUXILIARY MAP ===========================*/
 
+/*=============================== ITER COUNTERS MAP ===========================*/
+
+static __always_inline struct iter_counters *maps__get_iter_counters() {
+	uint32_t key = 0;
+	return bpf_map_lookup_elem(&iter_counters_map, &key);
+}
+
+/*=============================== ITER COUNTERS MAP ===========================*/
+
 /*=============================== AUXILIARY MAPS ===========================*/
 
 static __always_inline struct auxiliary_map *maps__get_auxiliary_map() {

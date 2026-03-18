@@ -76,3 +76,36 @@ struct counter_map {
 	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
 };
+
+/**
+ * @brief Counters accounting the number of dropped and processed iterator events.
+ */
+struct iter_counters {
+	/* Per-program "event processed" counters. */
+
+	uint64_t n_evts_task;
+	uint64_t n_evts_task_file_pipe;
+	uint64_t n_evts_task_file_memfd;
+	uint64_t n_evts_task_file_regular;
+	uint64_t n_evts_task_file_directory;
+	uint64_t n_evts_task_file_socket_inet;
+	uint64_t n_evts_task_file_socket_inet6;
+	uint64_t n_evts_task_file_socket_unix;
+	uint64_t n_evts_task_file_socket_netlink;
+	uint64_t n_evts_task_file_anon_inode;
+
+	uint64_t n_drops_max_event_size; /* Drops due to event size >= `MAX_ITER_EVENT_SIZE`. */
+
+	/* Per-program "event drop" counters. */
+
+	uint64_t n_drops_task;
+	uint64_t n_drops_task_file_pipe;
+	uint64_t n_drops_task_file_memfd;
+	uint64_t n_drops_task_file_regular;
+	uint64_t n_drops_task_file_directory;
+	uint64_t n_drops_task_file_socket_inet;
+	uint64_t n_drops_task_file_socket_inet6;
+	uint64_t n_drops_task_file_socket_unix;
+	uint64_t n_drops_task_file_socket_netlink;
+	uint64_t n_drops_task_file_anon_inode;
+};

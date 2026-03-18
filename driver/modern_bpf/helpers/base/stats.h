@@ -100,3 +100,85 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 		break;
 	}
 }
+
+static __always_inline void account_iter_event_processed(const uint16_t event_type,
+                                                         struct iter_counters *counters) {
+	if(!counters) {
+		return;
+	}
+	switch(event_type) {
+	case PPME_ITER_TASK_E:
+		counters->n_evts_task++;
+		break;
+	case PPME_ITER_TASK_FILE_PIPE_E:
+		counters->n_evts_task_file_pipe++;
+		break;
+	case PPME_ITER_TASK_FILE_MEMFD_E:
+		counters->n_evts_task_file_memfd++;
+		break;
+	case PPME_ITER_TASK_FILE_REGULAR_E:
+		counters->n_evts_task_file_regular++;
+		break;
+	case PPME_ITER_TASK_FILE_DIRECTORY_E:
+		counters->n_evts_task_file_directory++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_INET_E:
+		counters->n_evts_task_file_socket_inet++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_INET6_E:
+		counters->n_evts_task_file_socket_inet6++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_UNIX_E:
+		counters->n_evts_task_file_socket_unix++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_NETLINK_E:
+		counters->n_evts_task_file_socket_netlink++;
+		break;
+	case PPME_ITER_TASK_FILE_ANON_INODE_E:
+		counters->n_evts_task_file_anon_inode++;
+		break;
+	default:
+		break;
+	}
+}
+
+static __always_inline void account_iter_event_drop(const uint16_t event_type,
+                                                    struct iter_counters *counters) {
+	if(!counters) {
+		return;
+	}
+	switch(event_type) {
+	case PPME_ITER_TASK_E:
+		counters->n_drops_task++;
+		break;
+	case PPME_ITER_TASK_FILE_PIPE_E:
+		counters->n_drops_task_file_pipe++;
+		break;
+	case PPME_ITER_TASK_FILE_MEMFD_E:
+		counters->n_drops_task_file_memfd++;
+		break;
+	case PPME_ITER_TASK_FILE_REGULAR_E:
+		counters->n_drops_task_file_regular++;
+		break;
+	case PPME_ITER_TASK_FILE_DIRECTORY_E:
+		counters->n_drops_task_file_directory++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_INET_E:
+		counters->n_drops_task_file_socket_inet++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_INET6_E:
+		counters->n_drops_task_file_socket_inet6++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_UNIX_E:
+		counters->n_drops_task_file_socket_unix++;
+		break;
+	case PPME_ITER_TASK_FILE_SOCKET_NETLINK_E:
+		counters->n_drops_task_file_socket_netlink++;
+		break;
+	case PPME_ITER_TASK_FILE_ANON_INODE_E:
+		counters->n_drops_task_file_anon_inode++;
+		break;
+	default:
+		break;
+	}
+}
