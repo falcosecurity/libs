@@ -1583,9 +1583,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 *  - writev
 	 *  - pwritev
 	 *  - recvmsg
-	 *  - recvmmsg
 	 *  - sendmsg
-	 *  - sendmmsg
 	 *  - send
 	 *  - recv
 	 *  - recvfrom
@@ -1605,9 +1603,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 *  - writev
 	 *  - pwritev
 	 *  - recvmsg
-	 *  - recvmmsg
 	 *  - sendmsg
-	 *  - sendmmsg
 	 */
 	unsigned long args[5] = {0};
 	struct sockaddr *sockaddr = NULL;
@@ -1639,31 +1635,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		}
 		if(extract__msghdr(&msg_mh.mh, args[1]) == 0) {
 			sockaddr = (struct sockaddr *)msg_mh.mh.msg_name;
-		}
-	} break;
-
-	case PPME_SOCKET_RECVMMSG_X:
-	case PPME_SOCKET_SENDMMSG_X: {
-		// To avoid verifier stack size issues, sendmmsg and recvmmsg directly pass args
-		// in dynamic_snaplen_args.
-		// This also gives a small perf boost while using `bpf_loop` because we don't need
-		// to re-fetch first 3 syscall args at every iteration.
-		__builtin_memcpy(args, input_args->mm_args, 3 * sizeof(unsigned long));
-		if(bpf_in_ia32_syscall()) {
-			struct compat_mmsghdr *mmh_ptr = (struct compat_mmsghdr *)args[1];
-			if(likely(bpf_probe_read_user(&msg_mh.compat_mmh,
-			                              bpf_core_type_size(struct compat_mmsghdr),
-			                              (void *)(mmh_ptr + input_args->mmsg_index)) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mmh.msg_hdr.msg_name);
-			}
-			// in any case we break the switch.
-			break;
-		}
-		struct mmsghdr *mmh_ptr = (struct mmsghdr *)args[1];
-		if(bpf_probe_read_user(&msg_mh.mmh,
-		                       bpf_core_type_size(struct mmsghdr),
-		                       (void *)(mmh_ptr + input_args->mmsg_index)) == 0) {
-			sockaddr = (struct sockaddr *)msg_mh.mmh.msg_hdr.msg_name;
 		}
 	} break;
 
@@ -1793,6 +1764,108 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		{
 			*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
 		}
+		return;
+	}
+}
+
+/* __noinline wrappers for use inside bpf_loop() callbacks.
+ *
+ * Kernel 6.19 commit f597664 introduced aggressive SCC analysis for implicit
+ * loops in bpf_loop() callbacks, causing the verifier to explore far more
+ * states. Inlining large helpers into these callbacks exceeds the 1M verified
+ * instruction limit. These __noinline wrappers are verified once as BPF
+ * subprograms and reused at each call site, keeping the callback complexity
+ * under the limit. Only bpf_loop() callbacks should use these; all other
+ * callers should use the __always_inline originals directly.
+ */
+static __noinline void auxmap__store_socktuple_param_noinline(struct auxiliary_map *auxmap,
+                                                              uint32_t socket_fd,
+                                                              int direction,
+                                                              struct sockaddr *usrsockaddr) {
+	auxmap__store_socktuple_param(auxmap, socket_fd, direction, usrsockaddr);
+}
+
+static __noinline void auxmap__submit_event_noinline(struct auxiliary_map *auxmap) {
+	auxmap__submit_event(auxmap);
+}
+
+static __noinline void auxmap__store_iovec_data_param_noinline(struct auxiliary_map *auxmap,
+                                                               unsigned long iov_pointer,
+                                                               unsigned long iov_cnt,
+                                                               unsigned long len_to_read) {
+	auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, len_to_read);
+}
+
+/* Slim port-range-only variant of apply_dynamic_snaplen for sendmmsg/recvmmsg
+ * bpf_loop callbacks. The full apply_dynamic_snaplen carries large locals
+ * (msg_mh union, DPI buf, multi-event switch) whose stack allocation pushes
+ * the 3-frame combined stack (program -> bpf_loop callback -> noinline callee)
+ * over the 512-byte verifier limit. This version only contains the code paths
+ * reachable when only_port_range is true, keeping the frame small enough.
+ *
+ * @param snaplen    pointer to the current snaplen value (may be increased)
+ * @param socket_fd  the socket file descriptor (first syscall arg)
+ * @param sockaddr   userspace sockaddr from the message header (may be NULL);
+ *                   used as fallback for port_remote on unconnected sockets
+ */
+static __noinline void apply_dynamic_snaplen_port_range(uint16_t *snaplen,
+                                                        int32_t socket_fd,
+                                                        struct sockaddr *sockaddr) {
+	if(!maps__get_do_dynamic_snaplen()) {
+		return;
+	}
+
+	if(socket_fd < 0) {
+		return;
+	}
+
+	struct file *file = extract__file_struct_from_fd(socket_fd);
+	struct socket *socket = extract__socket_from_file(file);
+	if(socket == NULL) {
+		return;
+	}
+	struct sock *sk = BPF_CORE_READ(socket, sk);
+	if(sk == NULL) {
+		return;
+	}
+
+	uint16_t port_local = 0;
+	uint16_t port_remote = 0;
+
+	uint16_t socket_family = BPF_CORE_READ(sk, __sk_common.skc_family);
+	if(socket_family == AF_INET || socket_family == AF_INET6) {
+		struct inet_sock *inet = (struct inet_sock *)sk;
+		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
+		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
+		port_local = ntohs(port_local);
+		port_remote = ntohs(port_remote);
+
+		/* For unconnected sockets (e.g. UDP sendto) skc_dport is 0;
+		 * fall back to the per-message sockaddr (userspace).
+		 */
+		if(port_remote == 0 && sockaddr != NULL) {
+			__be16 sa_port = 0;
+			if(socket_family == AF_INET) {
+				sa_port = BPF_CORE_READ_USER((struct sockaddr_in *)sockaddr, sin_port);
+			} else {
+				sa_port = BPF_CORE_READ_USER((struct sockaddr_in6 *)sockaddr, sin6_port);
+			}
+			port_remote = ntohs(sa_port);
+		}
+	}
+
+	uint16_t min_port = maps__get_fullcapture_port_range_start();
+	uint16_t max_port = maps__get_fullcapture_port_range_end();
+
+	if(max_port > 0 && ((port_local >= min_port && port_local <= max_port) ||
+	                    (port_remote >= min_port && port_remote <= max_port))) {
+		*snaplen = *snaplen > SNAPLEN_FULLCAPTURE_PORT ? *snaplen : SNAPLEN_FULLCAPTURE_PORT;
+		return;
+	} else if(port_remote == maps__get_statsd_port()) {
+		*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		return;
+	} else if(port_remote == PPM_PORT_DNS) {
+		*snaplen = *snaplen > SNAPLEN_DNS_UDP ? *snaplen : SNAPLEN_DNS_UDP;
 		return;
 	}
 }
