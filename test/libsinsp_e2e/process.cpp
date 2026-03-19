@@ -28,6 +28,7 @@ limitations under the License.
 
 #include "sys_call_test.h"
 #include "subprocess.h"
+#include "file_manager.h"
 
 #include <gtest/gtest.h>
 
@@ -574,36 +575,35 @@ public:
 	int64_t m_tid;
 };
 
-int create_inet_listening_socket() {
-	const int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if(fd < 0) {
-		return -1;
+static bool is_socket(const scap_fd_type type) {
+	return type == SCAP_FD_IPV4_SOCK || type == SCAP_FD_IPV6_SOCK ||
+	       type == SCAP_FD_IPV4_SERVSOCK || type == SCAP_FD_IPV6_SERVSOCK ||
+	       type == SCAP_FD_UNIX_SOCK || type == SCAP_FD_NETLINK;
+}
+
+static void validate_fdinfo_and_account(const int fd,
+                                        const sinsp_fdinfo& fdinfo,
+                                        const file_manager& manager,
+                                        file_counters& counters) {
+	const auto* spec = manager.get_file_spec(fd);
+	if(spec == nullptr) {
+		return;
 	}
 
-	struct sockaddr_in addr1 = {};
-	addr1.sin_family = AF_INET;
-	addr1.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	addr1.sin_port = 0;
-	if(bind(fd, reinterpret_cast<struct sockaddr*>(&addr1), sizeof(addr1)) != 0) {
-		close(fd);
-		return -1;
-	}
+	EXPECT_TRUE(spec->matches(fdinfo));
 
-	if(listen(fd, 1) != 0) {
-		close(fd);
-		return -1;
+	if(is_socket(spec->fd_type)) {
+		counters.add_sockets(1);
+	} else {
+		counters.add_files(1);
 	}
-
-	return fd;
 }
 
 TEST_F(sys_call_test, process_scap_proc_get) {
 	int callnum = 0;
-	int num_sockets_before = 0;
-	int num_sockets_after_no_scan_sockets = 0;
-	int num_sockets_after_with_scan_sockets = 0;
 
-	int sock_fd1 = -1, sock_fd2 = -1;
+	file_manager file_mgr;
+	file_counters before_counters, after_no_scan_sockets_counters, after_with_scan_sockets_counters;
 
 	auto is_sleep_evt = [](sinsp_evt* evt) -> bool {
 		return evt->get_type() == PPME_SYSCALL_NANOSLEEP_X ||
@@ -619,16 +619,25 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&sock_fd1, &sock_fd2](sinsp* /*inspector*/) {
+	run_callback_t test = [&file_mgr](sinsp* /*inspector*/) {
 		usleep(1000);
 
+		// Create different file types and account for them.
+		(void)file_mgr.add_regular_file();
+		(void)file_mgr.add_directory();
+		(void)file_mgr.add_pipes();
+		(void)file_mgr.add_event_fd();
+		(void)file_mgr.add_epoll_fd();
+		(void)file_mgr.add_inotify_fd();
+		(void)file_mgr.add_timer_fd();
+		(void)file_mgr.add_signal_fd();
+		(void)file_mgr.add_mem_fd();
 		// Sockets must be in listening or in connected state to be discoverable through a proc
 		// lookup.
-		sock_fd1 = create_inet_listening_socket();
-		EXPECT_GT(sock_fd1, 0);
-
-		sock_fd2 = create_inet_listening_socket();
-		EXPECT_GT(sock_fd2, 0);
+		(void)file_mgr.add_inet_listening_socket();
+		(void)file_mgr.add_inet6_listening_socket();
+		(void)file_mgr.add_unix_listening_socket();
+		(void)file_mgr.add_netlink_listening_socket();
 
 		usleep(1000);
 	};
@@ -657,10 +666,8 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 			ASSERT_TRUE(tinfo);
 			const auto* fd_table = tinfo->get_fd_table();
 			ASSERT_TRUE(fd_table);
-			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& /*fdinfo*/) -> bool {
-				if(fd == sock_fd1 || fd == sock_fd2) {
-					num_sockets_before++;
-				}
+			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
+				validate_fdinfo_and_account(fd, fdinfo, file_mgr, before_counters);
 				return true;
 			});
 		} else if(callnum == 2) {
@@ -672,10 +679,8 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 			ASSERT_TRUE(tinfo);
 			const auto* fd_table = tinfo->get_fd_table();
 			ASSERT_TRUE(fd_table);
-			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& /*fdinfo*/) -> bool {
-				if(fd == sock_fd1 || fd == sock_fd2) {
-					num_sockets_after_no_scan_sockets++;
-				}
+			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
+				validate_fdinfo_and_account(fd, fdinfo, file_mgr, after_no_scan_sockets_counters);
 				return true;
 			});
 
@@ -689,22 +694,20 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 			ASSERT_TRUE(tinfo);
 			fd_table = tinfo->get_fd_table();
 			ASSERT_TRUE(fd_table);
-			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& /*fdinfo*/) -> bool {
-				if(fd == sock_fd1 || fd == sock_fd2) {
-					num_sockets_after_with_scan_sockets++;
-				}
+			fd_table->const_loop([&](const int64_t fd, const sinsp_fdinfo& fdinfo) -> bool {
+				validate_fdinfo_and_account(fd, fdinfo, file_mgr, after_with_scan_sockets_counters);
 				return true;
 			});
 		}
 	};
 
 	const after_capture_t cleanup = [&](sinsp* /*inspector*/) {
-		close(sock_fd1);
-		close(sock_fd2);
 		ASSERT_EQ(callnum, 2);
-		ASSERT_EQ(num_sockets_before, 0);
-		ASSERT_EQ(num_sockets_after_no_scan_sockets, 0);
-		ASSERT_EQ(num_sockets_after_with_scan_sockets, 2);
+		ASSERT_EQ(before_counters.get_num_sockets(), 0);
+		ASSERT_EQ(after_no_scan_sockets_counters.get_num_files(), file_mgr.get_num_files());
+		ASSERT_EQ(after_no_scan_sockets_counters.get_num_sockets(), 0);
+		ASSERT_EQ(after_with_scan_sockets_counters.get_num_files(), file_mgr.get_num_files());
+		ASSERT_EQ(after_with_scan_sockets_counters.get_num_sockets(), file_mgr.get_num_sockets());
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
