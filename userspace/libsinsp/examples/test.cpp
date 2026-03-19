@@ -50,6 +50,8 @@ using namespace std;
 #include "perftest.h"
 #endif  // __linux__
 
+#include "platform.h"
+
 // Functions used for dumping to stdout
 void raw_dump(sinsp&, sinsp_evt* ev);
 void formatted_dump(sinsp&, sinsp_evt* ev);
@@ -387,6 +389,8 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	);
 	// clang-format on
 
+	add_platform_test_options(options);
+
 	try {
 		auto result = options.parse(argc, argv);
 
@@ -521,6 +525,8 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				exit(EXIT_FAILURE);
 			}
 		}
+
+		parse_platform_test_options(result);
 	} catch(const cxxopts::exceptions::exception& e) {
 		std::cerr << "Error parsing options: " << e.what() << std::endl;
 		exit(EXIT_FAILURE);
@@ -761,6 +767,12 @@ int main(int argc, char** argv) {
 	}
 
 	open_engine(inspector, events_sc_codes);
+
+#ifdef __linux__
+	if(should_run_linux_platform_fetch_api_tests()) {
+		return run_linux_platform_fetch_api_tests(inspector);
+	}
+#endif  // __linux__
 
 	if(table_mode == "brief") {
 		print_all_tables(inspector);
