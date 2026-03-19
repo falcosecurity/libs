@@ -676,6 +676,12 @@ static uint32_t scan_u32_hex_exact(char **str) {
 // first character after the parsed content.
 static bool scan_ipv6_socket_table_address(char **str, uint32_t *ip_out, uint16_t *port_out) {
 	char *ptr = *str;
+
+	// Skip leading whitespaces.
+	while(*ptr == ' ') {
+		ptr++;
+	}
+
 	for(int i = 0; i < 4; i++) {
 		*(ip_out + i) = scan_u32_hex_exact(&ptr);
 	}
