@@ -16,7 +16,7 @@
 include(cxxopts)
 include(jsoncpp)
 
-set(sources util.cpp test.cpp)
+set(sources util.cpp platform.cpp test.cpp)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	set(sources ${sources} perftest.cpp)

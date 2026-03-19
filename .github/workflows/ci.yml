@@ -226,7 +226,7 @@ jobs:
         run: |
           cd userspace/libsinsp/examples
           export PKG_CONFIG_PATH=/tmp/libs-test/lib/pkgconfig
-          c++ --std=c++17 -o sinsp-example test.cpp util.cpp $(pkg-config --cflags --libs libsinsp)
+          c++ --std=c++17 -o sinsp-example test.cpp util.cpp platform.cpp $(pkg-config --cflags --libs libsinsp)
 
       - name: Test sinsp-example runtime linker 🧪
         run: |
