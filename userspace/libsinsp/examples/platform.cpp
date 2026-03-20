@@ -73,11 +73,11 @@ static int linux_fetch_thread(const scap_linux_platform* platform,
                               const scap_fetch_callbacks& callbacks,
                               char* error) {
 	if(platform->m_linux_vtable->fetch_thread == nullptr) {
-		std::cerr << "fetch_thread() not supported\n";
+		std::cerr << "[ERROR] fetch_thread() not available\n";
 		return -1;
 	}
 
-	std::cout << "Calling fetch_thread(tid=" << fetch_thread_tid << ")...\n";
+	std::cout << "-- Calling fetch_thread(tid=" << fetch_thread_tid << ")...\n";
 	scap_threadinfo* tinfo = nullptr;
 	const auto rc = platform->m_linux_vtable->fetch_thread(platform->m_engine,
 	                                                       &callbacks,
@@ -85,13 +85,14 @@ static int linux_fetch_thread(const scap_linux_platform* platform,
 	                                                       &tinfo,
 	                                                       error);
 	if(rc == SCAP_NOT_SUPPORTED) {
-		std::cerr << "fetch_thread() not supported\n";
+		std::cerr << "[ERROR] fetch_thread() available but not supported\n";
 		return -1;
 	}
 	if(rc != SCAP_SUCCESS) {
-		std::cerr << "fetch_thread() failed (rc=" << rc << "): " << error << '\n';
+		std::cerr << "[ERROR] fetch_thread() failed (rc=" << rc << "): " << error << '\n';
 		return -1;
 	}
+	std::cout << "-- fetch_thread() succeeded\n";
 	return 0;
 }
 
@@ -99,20 +100,22 @@ static int linux_fetch_threads(const scap_linux_platform* platform,
                                const scap_fetch_callbacks& callbacks,
                                char* error) {
 	if(platform->m_linux_vtable->fetch_threads == nullptr) {
-		std::cerr << "fetch_threads() not supported\n";
+		std::cerr << "[ERROR] fetch_threads() not available\n";
 		return -1;
 	}
 
-	std::cout << "Calling fetch_threads()...\n";
+	std::cout << "-- Calling fetch_threads()...\n";
 	const auto rc = platform->m_linux_vtable->fetch_threads(platform->m_engine, &callbacks, error);
 	if(rc == SCAP_NOT_SUPPORTED) {
-		std::cerr << "fetch_threads() not supported\n";
+		std::cerr << "[ERROR] fetch_threads() available but not supported\n";
 		return -1;
 	}
 	if(rc != SCAP_SUCCESS) {
-		std::cerr << "fetch_threads() failed (rc=" << rc << "): " << error << '\n';
+		std::cerr << "[ERROR] fetch_threads() failed (rc=" << rc << "): " << error << '\n';
 		return -1;
 	}
+
+	std::cout << "-- fetch_threads() succeeded\n";
 	return 0;
 }
 
@@ -120,11 +123,11 @@ static int linux_fetch_proc_file(const scap_linux_platform* platform,
                                  const scap_fetch_callbacks& callbacks,
                                  char* error) {
 	if(platform->m_linux_vtable->fetch_proc_file == nullptr) {
-		std::cerr << "fetch_proc_file() not supported\n";
+		std::cerr << "[ERROR] fetch_proc_file() not available\n";
 		return -1;
 	}
 
-	std::cout << "Calling fetch_proc_file(pid=" << fetch_proc_file_pid
+	std::cout << "-- Calling fetch_proc_file(pid=" << fetch_proc_file_pid
 	          << ", fd=" << fetch_proc_file_fd << ")...\n";
 	const auto rc = platform->m_linux_vtable->fetch_proc_file(platform->m_engine,
 	                                                          &callbacks,
@@ -132,13 +135,15 @@ static int linux_fetch_proc_file(const scap_linux_platform* platform,
 	                                                          fetch_proc_file_fd,
 	                                                          error);
 	if(rc == SCAP_NOT_SUPPORTED) {
-		std::cerr << "fetch_proc_file() not supported\n";
+		std::cerr << "[ERROR] fetch_proc_file() available but not supported\n";
 		return -1;
 	}
 	if(rc != SCAP_SUCCESS) {
-		std::cerr << "fetch_proc_file() failed (rc=" << rc << "): " << error << '\n';
+		std::cerr << "[ERROR] fetch_proc_file() failed (rc=" << rc << "): " << error << '\n';
 		return -1;
 	}
+
+	std::cout << "-- fetch_proc_file() succeeded\n";
 	return 0;
 }
 
@@ -146,12 +151,12 @@ static int linux_fetch_proc_files(const scap_linux_platform* platform,
                                   const scap_fetch_callbacks& callbacks,
                                   char* error) {
 	if(platform->m_linux_vtable->fetch_proc_files == nullptr) {
-		std::cerr << "fetch_proc_files() not supported\n";
+		std::cerr << "[ERROR] fetch_proc_files() not available\n";
 		return -1;
 	}
 
 	auto* with_socket_str = fetch_proc_files_with_sockets ? "yes" : "no";
-	std::cout << "Calling fetch_proc_files(pid=" << fetch_proc_files_pid
+	std::cout << "-- Calling fetch_proc_files(pid=" << fetch_proc_files_pid
 	          << ", sockets=" << with_socket_str << ")...\n";
 	uint64_t num_files_fetched = 0;
 	const auto rc =
@@ -162,14 +167,15 @@ static int linux_fetch_proc_files(const scap_linux_platform* platform,
 	                                                   &num_files_fetched,
 	                                                   error);
 	if(rc == SCAP_NOT_SUPPORTED) {
-		std::cerr << "fetch_proc_files() not supported\n";
+		std::cerr << "[ERROR] fetch_proc_files() available but not supported\n";
 		return -1;
 	}
 	if(rc != SCAP_SUCCESS) {
-		std::cerr << "fetch_proc_files() failed (rc=" << rc << "): " << error << '\n';
+		std::cerr << "[ERROR] fetch_proc_files() failed (rc=" << rc << "): " << error << '\n';
 		return -1;
 	}
-	std::cout << "fetch_proc_files(...): fetched " << num_files_fetched << " file(s)\n";
+
+	std::cout << "-- fetch_proc_files() succeeded: fetched " << num_files_fetched << " file(s)\n";
 	return 0;
 }
 
@@ -177,21 +183,22 @@ static int linux_fetch_procs_files(const scap_linux_platform* platform,
                                    const scap_fetch_callbacks& callbacks,
                                    char* error) {
 	if(platform->m_linux_vtable->fetch_procs_files == nullptr) {
-		std::cerr << "fetch_procs_files() not supported\n";
+		std::cerr << "[ERROR] fetch_procs_files() not available\n";
 		return -1;
 	}
 
-	std::cout << "Calling fetch_procs_files()...\n";
+	std::cout << "-- Calling fetch_procs_files()...\n";
 	const auto rc =
 	        platform->m_linux_vtable->fetch_procs_files(platform->m_engine, &callbacks, error);
 	if(rc == SCAP_NOT_SUPPORTED) {
-		std::cerr << "fetch_procs_files() not supported\n";
+		std::cerr << "[ERROR] fetch_procs_files() available but not supported\n";
 		return -1;
 	}
 	if(rc != SCAP_SUCCESS) {
-		std::cerr << "fetch_procs_files() failed (rc=" << rc << "): " << error << '\n';
+		std::cerr << "[ERROR] fetch_procs_files() failed (rc=" << rc << "): " << error << '\n';
 		return -1;
 	}
+	std::cout << "-- fetch_procs_files() succeeded\n";
 	return 0;
 }
 
@@ -215,7 +222,7 @@ void add_platform_test_options(cxxopts::Options& options) {
 	        "fetch_proc_files() (arg: <pid>).",
 	        cxxopts::value<uint64_t>())(
 	        FETCH_OPT_FETCH_PROC_FILES_SOCKETS,
-	        "(modern eBPF only) Include sockets when using " FETCH_OPT_FETCH_PROC_FILES
+	        "(modern eBPF only) Include sockets when using --" FETCH_OPT_FETCH_PROC_FILES
 	        ".")(FETCH_OPT_FETCH_PROCS_FILES,
 	             "(modern eBPF only) Fetch all file descriptors for all processes via "
 	             "fetch_procs_files().");
@@ -241,7 +248,8 @@ void parse_platform_test_options(const cxxopts::ParseResult& result) {
 		const auto val = result[FETCH_OPT_FETCH_PROC_FILE].as<std::string>();
 		const auto colon_pos = val.find(':');
 		if(colon_pos == std::string::npos) {
-			std::cerr << "Invalid --" FETCH_OPT_FETCH_PROC_FILE " format, expected <pid>:<fd>\n";
+			std::cerr << "[ERROR] Invalid --" FETCH_OPT_FETCH_PROC_FILE
+			             " format, expected <pid>:<fd>\n";
 			exit(EXIT_FAILURE);
 		}
 		fetch_proc_file_pid = std::stoul(val.substr(0, colon_pos));
@@ -265,7 +273,7 @@ void parse_platform_test_options(const cxxopts::ParseResult& result) {
 	const int fetch_count = do_fetch_thread + do_fetch_threads + do_fetch_proc_file +
 	                        do_fetch_proc_files + do_fetch_procs_files;
 	if(fetch_count > 1) {
-		std::cerr << "--" FETCH_OPT_FETCH_THREAD ", --" FETCH_OPT_FETCH_THREADS
+		std::cerr << "[ERROR] --" FETCH_OPT_FETCH_THREAD ", --" FETCH_OPT_FETCH_THREADS
 		             ", --" FETCH_OPT_FETCH_PROC_FILE ", --" FETCH_OPT_FETCH_PROC_FILES
 		             ", and --" FETCH_OPT_FETCH_PROCS_FILES " are mutually exclusive\n";
 		exit(EXIT_FAILURE);
@@ -281,17 +289,17 @@ bool should_run_linux_platform_fetch_api_tests() {
 }
 
 int run_linux_platform_fetch_api_tests(sinsp& inspector) {
-	// TODO(ekoops): scap_platform should implement a way of determining the platform type,
+	// todo(ekoops): scap_platform should implement a way of determining the platform type,
 	//   so that we can safely cast to the correct platform struct instead of checking that we are
 	//   using the modern BPF probe.
 	if(!inspector.check_current_engine(MODERN_BPF_ENGINE)) {
-		std::cerr << "fetch_*() APIs are only supported with the modern BPF engine\n";
+		std::cerr << "[ERROR] fetch_*() APIs are only supported with the modern BPF engine\n";
 		return -1;
 	}
 
 	const auto* platform = reinterpret_cast<scap_linux_platform*>(inspector.get_scap_platform());
 	if(platform == nullptr || platform->m_linux_vtable == nullptr) {
-		std::cerr << "bug: Linux vtable is unexpectedly not available, something went wrong\n";
+		std::cerr << "[BUG] Linux vtable is unexpectedly not available, something went wrong\n";
 		return -1;
 	}
 
