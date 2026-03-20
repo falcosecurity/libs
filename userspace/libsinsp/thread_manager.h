@@ -265,7 +265,7 @@ public:
 		// or should we just erase the table entry?
 		// todo(jasondellaluce): should we make m_tid_to_remove a list, in case
 		// we have more than one thread removed in a given event loop iteration?
-		if(m_threadtable.get(key)) {
+		if(m_threadtable.get_ref(key)) {
 			this->remove_thread(key);
 			return true;
 		}

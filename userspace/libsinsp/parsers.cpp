@@ -3689,7 +3689,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt &evt) const {
 		tid = evt.get_tid();
 	}
 
-	auto *const ptinfo = m_params->m_thread_manager->get_thread(tid, true).get();
+	auto const ptinfo = m_params->m_thread_manager->get_thread(tid, true);
 	// If the thread info is invalid we cannot recover the main thread because we don't even have
 	// the `pid` of the thread.
 	if(ptinfo == nullptr || ptinfo->is_invalid()) {
