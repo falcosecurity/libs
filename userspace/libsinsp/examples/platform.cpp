@@ -26,8 +26,15 @@ limitations under the License.
 #include <libscap/scap_print.h>
 #include <libscap/scap_const.h>
 
-// fetch_* API testing state (see --fetch-thread, --fetch-threads, --fetch-proc-file,
-// --fetch-proc-files, --fetch-procs-files).
+// fetch_* API testing options.
+#define FETCH_OPT_FETCH_THREAD "fetch-thread"
+#define FETCH_OPT_FETCH_THREADS "fetch-threads"
+#define FETCH_OPT_FETCH_PROC_FILE "fetch-proc-file"
+#define FETCH_OPT_FETCH_PROC_FILES "fetch-proc-files"
+#define FETCH_OPT_FETCH_PROC_FILES_SOCKETS "fetch-proc-files-sockets"
+#define FETCH_OPT_FETCH_PROCS_FILES "fetch-procs-files"
+
+// fetch_* API testing state.
 static bool do_fetch_thread = false;
 static int64_t fetch_thread_tid = -1;
 static bool do_fetch_threads = false;
@@ -187,43 +194,43 @@ static int linux_fetch_procs_files(const scap_linux_platform* platform,
 
 void add_platform_test_options(cxxopts::Options& options) {
 #ifdef __linux__
-	options.add_options()("fetch-thread",
+	options.add_options()(FETCH_OPT_FETCH_THREAD,
 	                      "(modern eBPF only) Fetch a single thread by TID via fetch_thread().",
 	                      cxxopts::value<int64_t>())(
-	        "fetch-threads",
+	        FETCH_OPT_FETCH_THREADS,
 	        "(modern eBPF only) Fetch all threads via fetch_threads().")(
-	        "fetch-proc-file",
-	        "(modern eBPF only) Fetch a single file descriptor via fetch_proc_file(), "
-	        "format: <pid>:<fd>.",
+	        FETCH_OPT_FETCH_PROC_FILE,
+	        "(modern eBPF only) Fetch a single file descriptor via fetch_proc_file() (arg: "
+	        "<pid>:<fd>).",
 	        cxxopts::value<std::string>())(
-	        "fetch-proc-files",
+	        FETCH_OPT_FETCH_PROC_FILES,
 	        "(modern eBPF only) Fetch all file descriptors for a process via "
-	        "fetch_proc_files(), value: <pid>.",
+	        "fetch_proc_files() (arg: <pid>).",
 	        cxxopts::value<uint64_t>())(
-	        "fetch-proc-files-sockets",
-	        "(modern eBPF only) Include sockets when using --fetch-proc-files.")(
-	        "fetch-procs-files",
-	        "(modern eBPF only) Fetch all file descriptors for all processes via "
-	        "fetch_procs_files().");
+	        FETCH_OPT_FETCH_PROC_FILES_SOCKETS,
+	        "(modern eBPF only) Include sockets when using " FETCH_OPT_FETCH_PROC_FILES
+	        ".")(FETCH_OPT_FETCH_PROCS_FILES,
+	             "(modern eBPF only) Fetch all file descriptors for all processes via "
+	             "fetch_procs_files().");
 #endif  // __linux__
 }
 
 void parse_platform_test_options(const cxxopts::ParseResult& result) {
 #ifdef __linux__
-	if(result.count("fetch-thread")) {
-		fetch_thread_tid = result["fetch-thread"].as<int64_t>();
+	if(result.count(FETCH_OPT_FETCH_THREAD)) {
+		fetch_thread_tid = result[FETCH_OPT_FETCH_THREAD].as<int64_t>();
 		do_fetch_thread = true;
 	}
 
-	if(result.count("fetch-threads")) {
+	if(result.count(FETCH_OPT_FETCH_THREADS)) {
 		do_fetch_threads = true;
 	}
 
-	if(result.count("fetch-proc-file")) {
-		const auto val = result["fetch-proc-file"].as<std::string>();
+	if(result.count(FETCH_OPT_FETCH_PROC_FILE)) {
+		const auto val = result[FETCH_OPT_FETCH_PROC_FILE].as<std::string>();
 		const auto colon_pos = val.find(':');
 		if(colon_pos == std::string::npos) {
-			std::cerr << "Invalid --fetch-proc-file format, expected <pid>:<fd>\n";
+			std::cerr << "Invalid --" FETCH_OPT_FETCH_PROC_FILE " format, expected <pid>:<fd>\n";
 			exit(EXIT_FAILURE);
 		}
 		fetch_proc_file_pid = std::stoul(val.substr(0, colon_pos));
@@ -231,25 +238,25 @@ void parse_platform_test_options(const cxxopts::ParseResult& result) {
 		do_fetch_proc_file = true;
 	}
 
-	if(result.count("fetch-proc-files")) {
-		fetch_proc_files_pid = result["fetch-proc-files"].as<uint64_t>();
+	if(result.count(FETCH_OPT_FETCH_PROC_FILES)) {
+		fetch_proc_files_pid = result[FETCH_OPT_FETCH_PROC_FILES].as<uint64_t>();
 		do_fetch_proc_files = true;
 	}
 
-	if(result.count("fetch-proc-files-sockets")) {
+	if(result.count(FETCH_OPT_FETCH_PROC_FILES_SOCKETS)) {
 		fetch_proc_files_with_sockets = true;
 	}
 
-	if(result.count("fetch-procs-files")) {
+	if(result.count(FETCH_OPT_FETCH_PROCS_FILES)) {
 		do_fetch_procs_files = true;
 	}
 
 	const int fetch_count = do_fetch_thread + do_fetch_threads + do_fetch_proc_file +
 	                        do_fetch_proc_files + do_fetch_procs_files;
 	if(fetch_count > 1) {
-		std::cerr << "--fetch-thread, --fetch-threads, --fetch-proc-file, "
-		             "--fetch-proc-files, and --fetch-procs-files are mutually exclusive"
-		          << '\n';
+		std::cerr << "--" FETCH_OPT_FETCH_THREAD ", --" FETCH_OPT_FETCH_THREADS
+		             ", --" FETCH_OPT_FETCH_PROC_FILE ", --" FETCH_OPT_FETCH_PROC_FILES
+		             ", and --" FETCH_OPT_FETCH_PROCS_FILES " are mutually exclusive\n";
 		exit(EXIT_FAILURE);
 	}
 #endif  // __linux__
