@@ -27,6 +27,7 @@ limitations under the License.
 #include <libscap/scap_const.h>
 
 // fetch_* API testing options.
+#define FETCH_OPT_FETCH_SILENTLY "fetch-silently"
 #define FETCH_OPT_FETCH_THREAD "fetch-thread"
 #define FETCH_OPT_FETCH_THREADS "fetch-threads"
 #define FETCH_OPT_FETCH_PROC_FILE "fetch-proc-file"
@@ -35,6 +36,7 @@ limitations under the License.
 #define FETCH_OPT_FETCH_PROCS_FILES "fetch-procs-files"
 
 // fetch_* API testing state.
+static bool do_fetch_silently = false;
 static bool do_fetch_thread = false;
 static int64_t fetch_thread_tid = -1;
 static bool do_fetch_threads = false;
@@ -52,12 +54,15 @@ static int32_t on_fetch_entry(void* /*context*/,
                               scap_threadinfo* tinfo,
                               scap_fdinfo* fdinfo,
                               scap_threadinfo** new_tinfo) {
-	// `tinfo` and `fdinfo` are mutually exclusive: if one is NULL, the other is not.
-	if(tinfo != nullptr) {
-		scap_print_threadinfo(tinfo);
-	} else {
-		scap_print_fdinfo(fdinfo);
+	if(!do_fetch_silently) {
+		// `tinfo` and `fdinfo` are mutually exclusive: if one is NULL, the other is not.
+		if(tinfo != nullptr) {
+			scap_print_threadinfo(tinfo);
+		} else {
+			scap_print_fdinfo(fdinfo);
+		}
 	}
+
 	if(new_tinfo != nullptr) {
 		*new_tinfo = tinfo;
 	}
@@ -194,11 +199,13 @@ static int linux_fetch_procs_files(const scap_linux_platform* platform,
 
 void add_platform_test_options(cxxopts::Options& options) {
 #ifdef __linux__
-	options.add_options()(FETCH_OPT_FETCH_THREAD,
-	                      "(modern eBPF only) Fetch a single thread by TID via fetch_thread().",
-	                      cxxopts::value<int64_t>())(
-	        FETCH_OPT_FETCH_THREADS,
-	        "(modern eBPF only) Fetch all threads via fetch_threads().")(
+	options.add_options()(
+	        FETCH_OPT_FETCH_SILENTLY,
+	        "(modern eBPF only) Do not print fetched resources when using --fetch-* options.")(
+	        FETCH_OPT_FETCH_THREAD,
+	        "(modern eBPF only) Fetch a single thread by TID via fetch_thread().",
+	        cxxopts::value<int64_t>())(FETCH_OPT_FETCH_THREADS,
+	                                   "(modern eBPF only) Fetch all threads via fetch_threads().")(
 	        FETCH_OPT_FETCH_PROC_FILE,
 	        "(modern eBPF only) Fetch a single file descriptor via fetch_proc_file() (arg: "
 	        "<pid>:<fd>).",
@@ -217,6 +224,10 @@ void add_platform_test_options(cxxopts::Options& options) {
 
 void parse_platform_test_options(const cxxopts::ParseResult& result) {
 #ifdef __linux__
+	if(result.count(FETCH_OPT_FETCH_SILENTLY)) {
+		do_fetch_silently = true;
+	}
+
 	if(result.count(FETCH_OPT_FETCH_THREAD)) {
 		fetch_thread_tid = result[FETCH_OPT_FETCH_THREAD].as<int64_t>();
 		do_fetch_thread = true;
