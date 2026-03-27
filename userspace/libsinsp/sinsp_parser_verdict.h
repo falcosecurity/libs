@@ -16,7 +16,6 @@ limitations under the License.
 
 */
 #pragma once
-#include <queue>
 #include <vector>
 #include <functional>
 #include <libsinsp/event.h>
@@ -46,7 +45,7 @@ class sinsp_parser_verdict {
 	int64_t m_tid_of_fd_to_remove;
 	std::vector<int64_t> m_fds_to_remove;
 	typedef std::function<void(sinsp_observer* observer, sinsp_evt* evt)> post_process_cb;
-	std::queue<post_process_cb> m_post_process_cbs;
+	std::vector<post_process_cb> m_post_process_cbs;
 
 	void default_tid_to_remove() { m_tid_to_remove = -1; }
 
@@ -55,10 +54,7 @@ class sinsp_parser_verdict {
 		m_fds_to_remove.clear();
 	}
 
-	void default_post_process_cbs() {
-		// Clear the queue by swapping it with an empty instance.
-		std::queue<post_process_cb>().swap(m_post_process_cbs);
-	}
+	void default_post_process_cbs() { m_post_process_cbs.clear(); }
 
 public:
 	sinsp_parser_verdict() { clear(); }
@@ -140,26 +136,24 @@ public:
 	*/
 	void add_post_process_cbs(const post_process_cb& pcb) {
 		actions |= OBSERVER_POST_PROCESS;
-		m_post_process_cbs.emplace(pcb);
+		m_post_process_cbs.emplace_back(pcb);
 	}
 
 	/*!
-	  \brief Return true if the execution of post-process observer callbacks was registered.
-	 */
-	bool must_run_post_process_cbs() const { return (actions & OBSERVER_POST_PROCESS) != 0; }
-
-	/*!
-	  \brief Return the registered post-process observer callbacks
-	  \note This must be called only after `must_run_post_process_cbs()` returns `true`.
-	 */
-	std::queue<post_process_cb> get_post_process_cbs() { return m_post_process_cbs; }
-
-	/*!
-	  \brief Unregister every registered post-process observer callback.
+	  \brief Run all registered post-process observer callbacks and clear them.
+	  If no callbacks were registered, this is a no-op.
+	  \param observer The observer to pass to each callback.
+	  \param evt The event to pass to each callback.
 	*/
-	void clear_post_process_cbs() {
+	void run_post_process_cbs(sinsp_observer* observer, sinsp_evt* evt) {
+		if((actions & OBSERVER_POST_PROCESS) == 0) {
+			return;
+		}
+		for(auto& cb : m_post_process_cbs) {
+			cb(observer, evt);
+		}
+		m_post_process_cbs.clear();
 		actions &= ~OBSERVER_POST_PROCESS;
-		default_post_process_cbs();
 	}
 
 	/*!

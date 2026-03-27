@@ -1511,14 +1511,8 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// At this point, any plugin could have modified state tables,
 		// thus we can guarantee that any post-process callback
 		// will see the full post-event-processed state.
-		// NOTE: we don't use a RAII object because
-		// we cannot guarantee that no exception will be thrown by the callbacks.
-		if(m_observer != nullptr && m_parser_verdict.must_run_post_process_cbs()) {
-			for(auto cbs = m_parser_verdict.get_post_process_cbs(); !cbs.empty(); cbs.pop()) {
-				auto cb = cbs.front();
-				cb(m_observer, evt);
-			}
-			m_parser_verdict.clear_post_process_cbs();
+		if(m_observer != nullptr) {
+			m_parser_verdict.run_post_process_cbs(m_observer, evt);
 		}
 	}
 
