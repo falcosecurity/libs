@@ -1745,11 +1745,23 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	                               evt.get_tinfo()->m_gid,
 	                               must_notify_thread_group_update());
 	//
-	// execve starts with a clean fd list, so we get rid of the fd list that clone
-	// copied from the parent
-	// XXX validate this
+	// Purge CLOEXEC FDs on successful execve/execveat
 	//
-	//  scap_fd_free_table(tinfo);
+	if(auto *fd_table = evt.get_tinfo()->get_fd_table(); fd_table != nullptr) {
+		std::vector<int64_t> cloexec_fds;
+		size_t total_fds = 0;
+		fd_table->const_loop([&](int64_t fd, const sinsp_fdinfo &info) {
+			total_fds++;
+			if(info.is_close_on_exec()) {
+				cloexec_fds.push_back(fd);
+			}
+			return true;
+		});
+
+		for(const auto fd : cloexec_fds) {
+			evt.get_tinfo()->remove_fd(fd);
+		}
+	}
 
 	//
 	// Clear the flags for this thread, making sure to propagate the inverted

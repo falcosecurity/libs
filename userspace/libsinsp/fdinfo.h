@@ -267,6 +267,22 @@ public:
 		return (m_flags & FLAGS_OVERLAY_LOWER) == FLAGS_OVERLAY_LOWER;
 	}
 
+	inline bool is_close_on_exec() const {
+		if((m_openflags & PPM_O_CLOEXEC) == PPM_O_CLOEXEC) {
+			return true;
+		}
+
+		if(m_type == SCAP_FD_EVENTPOLL && (m_openflags & PPM_EPOLL_CLOEXEC) == PPM_EPOLL_CLOEXEC) {
+			return true;
+		}
+
+		if(m_type == SCAP_FD_MEMFD && (m_openflags & PPM_MFD_CLOEXEC) == PPM_MFD_CLOEXEC) {
+			return true;
+		}
+
+		return false;
+	}
+
 	void add_filename_raw(std::string_view rawpath);
 
 	void add_filename(std::string_view fullpath);
