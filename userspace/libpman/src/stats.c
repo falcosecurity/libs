@@ -124,13 +124,14 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 
 	if(!stats) {
 		pman_print_errorf("pointer to scap_stats is empty");
-		return errno;
+		return EINVAL;
 	}
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-	if(counter_maps_fd <= 0) {
+	if(counter_maps_fd < 0) {
+		const int last_errno = errno;
 		pman_print_errorf("unable to get counter maps");
-		return errno;
+		return last_errno;
 	}
 
 	/* Not used in modern probe:
@@ -229,7 +230,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	/* KERNEL COUNTER STATS */
 	if(flags & METRICS_V2_KERNEL_COUNTERS) {
 		int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-		if(counter_maps_fd <= 0) {
+		if(counter_maps_fd < 0) {
 			pman_print_errorf("unable to get 'counter_maps' fd during kernel stats processing");
 			return NULL;
 		}
@@ -372,7 +373,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	/* BPF ITERATOR PROGRAMS STATS */
 	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
 		const int counters_maps_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
-		if(counters_maps_fd <= 0) {
+		if(counters_maps_fd < 0) {
 			pman_print_errorf(
 			        "unable to get 'iter_counters_map' fd during kernel stats processing");
 			return NULL;
@@ -459,7 +460,7 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu) {
 	struct counter_map cnt_map;
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-	if(counter_maps_fd <= 0) {
+	if(counter_maps_fd < 0) {
 		pman_print_errorf("unable to get counter maps");
 		return errno;
 	}
