@@ -77,33 +77,43 @@ uint64_t pman_get_probe_schema_ver() {
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 int pman_get_capture_settings(struct capture_settings* settings) {
-	int ret;
-	uint32_t key = 0;
-	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
-	if(fd <= 0) {
+	int last_errno;
+
+	const int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
+	if(fd < 0) {
+		last_errno = errno;
 		pman_print_errorf("unable to get capture_settings map fd!");
-		return errno;
-	}
-	if((ret = bpf_map_lookup_elem(fd, &key, settings)) != 0) {
-		pman_print_errorf("unable to get capture_settings!");
+		return last_errno;
 	}
 
-	return ret;
+	const uint32_t key = 0;
+	if(bpf_map_lookup_elem(fd, &key, settings)) {
+		last_errno = errno;
+		pman_print_errorf("unable to get capture_settings!");
+		return last_errno;
+	}
+
+	return 0;
 }
 
 int pman_update_capture_settings(struct capture_settings* settings) {
-	int ret;
-	int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
-	if(fd <= 0) {
+	int last_errno;
+
+	const int fd = bpf_map__fd(g_state.skel->maps.capture_settings);
+	if(fd < 0) {
+		last_errno = errno;
 		pman_print_errorf("unable to get capture_settings map fd!");
-		return errno;
-	}
-	uint32_t key = 0;
-	if((ret = bpf_map_update_elem(fd, &key, settings, BPF_ANY)) != 0) {
-		pman_print_errorf("unable to initialize capture_settings map!");
+		return last_errno;
 	}
 
-	return ret;
+	const uint32_t key = 0;
+	if(bpf_map_update_elem(fd, &key, settings, BPF_ANY)) {
+		last_errno = errno;
+		pman_print_errorf("unable to initialize capture_settings map!");
+		return last_errno;
+	}
+
+	return 0;
 }
 
 void pman_set_snaplen(uint32_t desired_snaplen) {
@@ -226,7 +236,7 @@ void pman_fill_ia32_to_64_table() {
 
 static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog_name, int key) {
 	struct bpf_program* bpf_prog = NULL;
-	int bpf_prog_fd = 0;
+	int bpf_prog_fd = -1;
 
 	bpf_prog = bpf_object__find_program_by_name(g_state.skel->obj, bpf_prog_name);
 	if(!bpf_prog) {
@@ -242,28 +252,36 @@ static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog
 		return 0;
 	}
 
+	int last_errno = EINVAL;
+
 	bpf_prog_fd = bpf_program__fd(bpf_prog);
-	if(bpf_prog_fd <= 0) {
+	if(bpf_prog_fd < 0) {
+		last_errno = errno;
 		pman_print_errorf("unable to get the fd for BPF program '%s'", bpf_prog_name);
 		goto clean_add_program_to_tail_table;
 	}
 
 	if(bpf_map_update_elem(tail_table_fd, &key, &bpf_prog_fd, BPF_ANY)) {
+		last_errno = errno;
 		pman_print_errorf("unable to update the tail table with BPF program '%s'", bpf_prog_name);
 		goto clean_add_program_to_tail_table;
 	}
+
 	return 0;
 
 clean_add_program_to_tail_table:
 	close(bpf_prog_fd);
-	return errno;
+	return last_errno;
 }
 
 int pman_fill_syscalls_tail_table() {
+	int last_errno = EINVAL;
+
 	const int syscall_exit_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_exit_tail_table);
-	if(syscall_exit_tail_table_fd <= 0) {
+	if(syscall_exit_tail_table_fd < 0) {
+		last_errno = errno;
 		pman_print_errorf("unable to get the syscall exit tail table");
-		return errno;
+		return last_errno;
 	}
 
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++) {
@@ -289,7 +307,7 @@ int pman_fill_syscalls_tail_table() {
 		}
 
 		if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog->name, syscall_id)) {
-			const int last_errno = errno;
+			last_errno = errno;
 			close(syscall_exit_tail_table_fd);
 			return last_errno;
 		}
@@ -298,11 +316,14 @@ int pman_fill_syscalls_tail_table() {
 }
 
 int pman_fill_syscall_exit_extra_tail_table() {
+	int last_errno = EINVAL;
+
 	int extra_sys_exit_tail_table_fd =
 	        bpf_map__fd(g_state.skel->maps.syscall_exit_extra_tail_table);
-	if(extra_sys_exit_tail_table_fd <= 0) {
+	if(extra_sys_exit_tail_table_fd < 0) {
+		last_errno = errno;
 		pman_print_errorf("unable to get the extra sys exit tail table");
-		return errno;
+		return last_errno;
 	}
 
 	const char* tail_prog_name = NULL;
@@ -311,12 +332,13 @@ int pman_fill_syscall_exit_extra_tail_table() {
 
 		if(!tail_prog_name) {
 			pman_print_errorf("unknown entry in the extra sys exit tail table");
-			return -1;
+			return EINVAL;
 		}
 
 		if(add_bpf_program_to_tail_table(extra_sys_exit_tail_table_fd, tail_prog_name, j)) {
+			last_errno = errno;
 			close(extra_sys_exit_tail_table_fd);
-			return errno;
+			return last_errno;
 		}
 	}
 	return 0;

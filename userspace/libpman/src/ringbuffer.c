@@ -137,13 +137,20 @@ static bool is_cpu_online(uint16_t cpu_id) {
 
 /* After loading */
 int pman_finalize_ringbuf_array_after_loading() {
-	int ringubuf_array_fd = -1;
-	int *ringbufs_fds = (int *)calloc(g_state.n_required_buffers, sizeof(int));
-	if(ringbufs_fds == NULL) {
-		pman_print_errorf("failed to allocate the ringubufs_fds array");
-		return errno;
-	}
+	int last_errno = EINVAL;
 	bool success = false;
+
+	int ringbuf_array_fd = -1;
+
+	int *ringbufs_fds = (int *)malloc(g_state.n_required_buffers * sizeof(int));
+	if(ringbufs_fds == NULL) {
+		last_errno = errno;
+		pman_print_errorf("failed to allocate the ringbufs_fds array");
+		return last_errno;
+	}
+
+	/* Initialize all fds to -1 so we can distinguish between valid and invalid ones. */
+	memset(ringbufs_fds, -1, g_state.n_required_buffers * sizeof(int));
 
 	/* We don't need anymore the inner map, close it. */
 	close(g_state.inner_ringbuf_map_fd);
@@ -153,7 +160,8 @@ int pman_finalize_ringbuf_array_after_loading() {
 	for(int i = 0; i < g_state.n_required_buffers; i++) {
 		ringbufs_fds[i] =
 		        bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, g_state.buffer_bytes_dim, NULL);
-		if(ringbufs_fds[i] <= 0) {
+		if(ringbufs_fds[i] < 0) {
+			last_errno = errno;
 			pman_print_errorf(
 			        "failed to create the ringbuf map for CPU '%d'. (If you get memory allocation "
 			        "errors try to reduce the buffer dimension)",
@@ -165,6 +173,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	/* Create the ringbuf manager */
 	g_state.rb_manager = ring_buffer__new(ringbufs_fds[0], NULL, NULL, NULL);
 	if(!g_state.rb_manager) {
+		last_errno = errno;
 		pman_print_errorf("failed to instantiate the ringbuf manager.");
 		goto clean_percpu_ring_buffers;
 	}
@@ -175,16 +184,18 @@ int pman_finalize_ringbuf_array_after_loading() {
 	 */
 	for(int i = 1; i < g_state.n_required_buffers; i++) {
 		if(ring_buffer__add(g_state.rb_manager, ringbufs_fds[i], NULL, NULL)) {
+			last_errno = errno;
 			pman_print_errorf("failed to add the ringbuf map for CPU %d into the manager", i);
 			goto clean_percpu_ring_buffers;
 		}
 	}
 
 	/* `ringbuf_array` is a maps array, every map inside it is a `BPF_MAP_TYPE_RINGBUF`. */
-	ringubuf_array_fd = bpf_map__fd(g_state.skel->maps.ringbuf_maps);
-	if(ringubuf_array_fd <= 0) {
-		pman_print_errorf("failed to get the ringubuf_array");
-		return errno;
+	ringbuf_array_fd = bpf_map__fd(g_state.skel->maps.ringbuf_maps);
+	if(ringbuf_array_fd < 0) {
+		last_errno = errno;
+		pman_print_errorf("failed to get the ringbuf_array");
+		goto clean_percpu_ring_buffers;
 	}
 
 	/* We need to associate every CPU to the right ring buffer */
@@ -208,7 +219,8 @@ int pman_finalize_ringbuf_array_after_loading() {
 			goto clean_percpu_ring_buffers;
 		}
 
-		if(bpf_map_update_elem(ringubuf_array_fd, &i, &ringbufs_fds[ringbuf_id], BPF_ANY)) {
+		if(bpf_map_update_elem(ringbuf_array_fd, &i, &ringbufs_fds[ringbuf_id], BPF_ANY)) {
+			last_errno = errno;
 			pman_print_errorf("failed to add the ringbuf map for CPU '%d' to ringbuf '%d'",
 			                  i,
 			                  ringbuf_id);
@@ -225,7 +237,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 
 clean_percpu_ring_buffers:
 	for(int i = 0; i < g_state.n_required_buffers; i++) {
-		if(ringbufs_fds[i]) {
+		if(ringbufs_fds[i] >= 0) {
 			close(ringbufs_fds[i]);
 		}
 	}
@@ -235,11 +247,11 @@ clean_percpu_ring_buffers:
 		return 0;
 	}
 
-	close(ringubuf_array_fd);
+	close(ringbuf_array_fd);
 	if(g_state.rb_manager) {
 		ring_buffer__free(g_state.rb_manager);
 	}
-	return errno;
+	return last_errno;
 }
 
 static inline void *ringbuf__get_first_ring_event(struct ring *r, int pos) {
