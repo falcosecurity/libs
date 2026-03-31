@@ -18,6 +18,12 @@ or GPL2.txt for full copies of the license.
 #include <stddef.h>
 #include "ppm_events_public.h"
 
+#ifdef __cplusplus
+extern "C" {
+#else
+#include <stdbool.h>
+#endif
+
 // Stores the minimum parameter length for a parameter of type `t` in `min_len`. Returns 0 on
 // success, a negative number otherwise.
 inline int ppm_param_min_len_from_type(const enum ppm_param_type t, uint32_t *min_len) {
@@ -174,6 +180,10 @@ inline int ppm_param_max_len_from_type(const enum ppm_param_type t,
 		return -3;
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* #if !defined(__KERNEL__) && !defined(__USE_VMLINUX__) */
 
