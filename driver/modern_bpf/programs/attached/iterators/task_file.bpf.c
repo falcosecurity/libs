@@ -39,8 +39,7 @@ static int dump_pipe(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static int dump_memfd_file(struct seq_file *seq,
@@ -65,8 +64,7 @@ static int dump_memfd_file(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static int dump_regular_or_device_file(struct seq_file *seq,
@@ -99,8 +97,7 @@ static int dump_regular_or_device_file(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static int dump_directory(struct seq_file *seq,
@@ -125,8 +122,7 @@ static int dump_directory(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static __always_inline int skip_socket_dump(uint64_t tgid_pid, uint32_t fd) {
@@ -177,8 +173,7 @@ static __always_inline int dump_inet_socket(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static __always_inline int dump_inet6_socket(struct seq_file *seq,
@@ -221,8 +216,7 @@ static __always_inline int dump_inet6_socket(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static __always_inline int dump_unix_socket(struct seq_file *seq,
@@ -267,8 +261,7 @@ static __always_inline int dump_unix_socket(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static __always_inline int dump_netlink_socket(struct seq_file *seq,
@@ -297,8 +290,7 @@ static __always_inline int dump_netlink_socket(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static int dump_socket(struct seq_file *seq,
@@ -450,8 +442,7 @@ static int dump_anon_inode_file(struct seq_file *seq,
 	auxmap__store_u64_param(auxmap, ino_num);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }
 
 static __always_inline int handle_unsupported_file(struct seq_file *seq,

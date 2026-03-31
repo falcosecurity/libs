@@ -197,6 +197,5 @@ int dump_task(struct bpf_iter__task *ctx) {
 	auxmap__store_u32_param(auxmap, loginuid);
 
 	auxmap_iter__finalize_event_header(auxmap);
-	auxmap_iter__submit_event(auxmap, seq);
-	return 0;
+	return auxmap_iter__submit_event(auxmap, seq);
 }

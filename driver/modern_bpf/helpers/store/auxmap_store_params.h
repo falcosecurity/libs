@@ -193,31 +193,58 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 
 /**
  * @brief Copy the entire event from the auxiliary map to the seq file.
- * If the event is correctly copied in the seq file we increment the number of events sent to
- * userspace, otherwise we increment the dropped events.
+ * If the event is correctly copied in the seq file, it is accounted as sent; in case of
+ * unrecoverable errors, it is accounted as dropped.
  *
  * @param auxmap pointer to the auxmap in which we have already written the entire event.
+ * @param seq pointer to the sequential file the event must be written to.
+ * @return one of the following values, that must directly be returned by the calling BPF iterator
+ * program:
+ * - `0` on success, or when the event exceeds the seq file's fixed backing buffer size: in the
+ * latter case the event is dropped and no write is attempted, so no overflow flag is set and the
+ * kernel advances to the next object without error.
+ * - `1` when `bpf_seq_write()` fails because the backing buffer had prior data that did not leave
+ * enough room: the kernel interprets this as "retry the same object", flushing the existing data to
+ * userspace; on the subsequent run the object is re-presented to the BPF program with an empty
+ * buffer, so the event may still be delivered.
  */
-static __always_inline void auxmap_iter__submit_event(struct auxiliary_map *auxmap,
-                                                      struct seq_file *seq) {
+static __always_inline int auxmap_iter__submit_event(struct auxiliary_map *auxmap,
+                                                     struct seq_file *seq) {
 	struct iter_counters *counters = maps__get_iter_counters();
 	if(!counters) {
-		return;
+		return 0;
 	}
 
 	if(auxmap->payload_pos > MAX_ITER_EVENT_SIZE) {
 		counters->n_drops_max_event_size++;
-		return;
+		return 0;
 	}
 
 	const uint16_t evt_type = auxmap->event_type;
+	const size_t seq_count = seq->count;
+	const size_t seq_size = seq->size;
 
-	if(bpf_seq_write(seq, auxmap->data, auxmap->payload_pos) < 0) {
+	/* If the buffer is currently empty and the event still exceeds the full backing buffer size,
+	 * no amount of flushing will ever allow it to fit. In this case we must NOT call
+	 * `bpf_seq_write()`: doing so would set the seq overflow flag, causing the kernel to return
+	 * `-E2BIG` to userspace without advancing `seq->index`, which results in the same oversized
+	 * event being retried on every subsequent `read()` indefinitely. Instead, drop the event here
+	 * and return 0 with no write: the kernel sees a clean return, advances normally to the next
+	 * object, and no error is surfaced to userspace. */
+	if(seq_count == 0 && auxmap->payload_pos >= seq_size) {
 		account_iter_event_drop(evt_type, counters);
-		return;
+		return 0;
+	}
+
+	/* After the guard above, `bpf_seq_write()` can only fail when the buffer already contains data
+	 * from previous objects (`seq_count > 0`) and the remaining space is insufficient.
+	 * Return 1 so the kernel flushes the buffer and re-presents the current object. */
+	if(bpf_seq_write(seq, auxmap->data, auxmap->payload_pos) < 0) {
+		return 1;
 	}
 
 	account_iter_event_processed(evt_type, counters);
+	return 0;
 }
 
 /////////////////////////////////

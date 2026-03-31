@@ -388,7 +388,6 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 		}
 
 		set_kernel_iter_counter(offset, MODERN_BPF_ITER_N_EVTS_TASK, counters.n_evts_task);
-		set_kernel_iter_counter(offset, MODERN_BPF_ITER_N_EVTS_TASK, counters.n_evts_task);
 		set_kernel_iter_counter(offset,
 		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_PIPE,
 		                        counters.n_evts_task_file_pipe);
