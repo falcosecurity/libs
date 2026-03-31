@@ -14,7 +14,8 @@
 */
 
 #include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
-#include "driver/ppm_events_public.h"
+
+#include <array>
 
 sinsp_filter_multivalue_transformer::sinsp_filter_multivalue_transformer(
         value_type_info result,
@@ -271,31 +272,33 @@ std::string sinsp_filter_multivalue_transformer_getopt::name() const {
 bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
                                                          std::vector<extract_value_t>& values,
                                                          bool sanitize_strings) {
-	// Extract the optstring (second argument)
 	values.clear();
 	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings)) {
 		return false;
 	}
-	// Copy optstring to avoid pointer invalidation when values is cleared
 	std::string optstring((char*)values[0].ptr, values[0].len);
 
-	// Build a lookup table for which options require arguments
-	bool opts_with_args[256] = {};
-	for(size_t i = 0; i < optstring.size(); i++) {
-		unsigned char opt = static_cast<unsigned char>(optstring[i]);
-		if(i + 1 < optstring.size() && optstring[i + 1] == ':') {
+	bool missing_arg_returns_colon = !optstring.empty() && optstring[0] == ':';
+	size_t opt_idx = missing_arg_returns_colon ? 1 : 0;
+	std::array<bool, 256> valid_opts = {};
+	std::array<bool, 256> opts_with_args = {};
+	for(; opt_idx < optstring.size(); opt_idx++) {
+		unsigned char opt = static_cast<unsigned char>(optstring[opt_idx]);
+		if(opt == ':') {
+			continue;
+		}
+		valid_opts[opt] = true;
+		if(opt_idx + 1 < optstring.size() && optstring[opt_idx + 1] == ':') {
 			opts_with_args[opt] = true;
-			i++;  // Skip the ':'
+			opt_idx++;
 		}
 	}
 
-	// Extract the arguments list (first argument)
 	values.clear();
 	if(!m_arguments.at(0)->extract(evt, values, sanitize_strings)) {
 		return false;
 	}
 
-	// Parse the arguments following POSIX getopt conventions
 	m_result_storage.clear();
 	m_storage.clear();
 
@@ -303,71 +306,51 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 		const char* arg_ptr = (char*)values[arg_idx].ptr;
 		size_t arg_len = values[arg_idx].len;
 
-		// Stop processing at "--"
 		if(arg_len == 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
 			break;
 		}
 
-		// Skip non-option arguments (doesn't start with - or is just -)
-		// Continue processing to support GNU extension (options after non-options)
-		if(arg_len == 0 || arg_ptr[0] != '-' || arg_len == 1) {
+		// Long options are not supported by getopt(). Skip tokens like
+		// "--exec" so they are not misparsed as clusters of short options.
+		if(arg_len > 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
 			continue;
 		}
 
-		// Process each character after the '-'
+		if(arg_len == 0 || arg_ptr[0] != '-' || arg_len == 1) {
+			break;
+		}
+
 		for(size_t i = 1; i < arg_len; i++) {
 			unsigned char opt = static_cast<unsigned char>(arg_ptr[i]);
 
-			// Check if this option is alphanumeric
-			if(!std::isalnum(opt)) {
+			if(opt == ':' || !valid_opts[opt]) {
+				m_result_storage.emplace_back("?");
 				continue;
 			}
 
-			// Check if this option is in the optstring
-			bool found = false;
-			for(size_t j = 0; j < optstring.size(); j++) {
-				if(optstring[j] == static_cast<char>(opt) && optstring[j] != ':') {
-					found = true;
-					break;
-				}
-			}
-			if(!found) {
-				continue;
-			}
-
-			// Add the option character to result
-			// Use emplace_back to construct in-place and avoid extra allocation
 			m_result_storage.emplace_back(1, static_cast<char>(opt));
 
-			// Check if this option requires an argument
 			if(opts_with_args[opt]) {
-				// Option value can be:
-				// 1. Remainder of current argument (e.g., -ofoo same as -o foo)
-				// 2. Next argument (e.g., -o foo)
 				if(i + 1 < arg_len) {
-					// Value is remainder of current argument
 					m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
-					break;  // Done with this argument
+					break;
 				} else if(arg_idx + 1 < values.size()) {
-					// Value is next argument
 					arg_idx++;
 					m_result_storage.emplace_back((char*)values[arg_idx].ptr, values[arg_idx].len);
-					break;  // Done with this argument
+					break;
 				} else {
-					// No value available, use empty string
-					m_result_storage.emplace_back();
+					m_result_storage.pop_back();
+					m_result_storage.emplace_back(missing_arg_returns_colon ? ":" : "?");
 				}
 			}
 		}
 	}
 
-	// Convert result storage to extract_value_t format
 	values.clear();
 	values.reserve(m_result_storage.size());
-	// Calculate exact space needed and reserve to prevent reallocation (would invalidate pointers)
 	size_t total_size = 0;
 	for(const auto& str : m_result_storage) {
-		total_size += str.size() + 1;  // +1 for null terminator
+		total_size += str.size() + 1;
 	}
 	m_storage.reserve(total_size);
 
