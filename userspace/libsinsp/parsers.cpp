@@ -188,6 +188,9 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_CLOSE_X:
 		parse_close_exit(evt, verdict);
 		break;
+	case PPME_SYSCALL_CLOSE_RANGE_X:
+		parse_close_range_exit(evt);
+		break;
 	case PPME_SYSCALL_FCNTL_X:
 		parse_fcntl_exit(evt);
 		break;
@@ -2769,6 +2772,52 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 	// m_n_failed_fd_lookups.
 	if(m_sinsp_stats_v2 != nullptr) {
 		m_sinsp_stats_v2->m_n_failed_fd_lookups--;
+	}
+}
+
+void sinsp_parser::parse_close_range_exit(sinsp_evt &evt) const {
+	if(evt.get_tinfo() == nullptr) {
+		return;
+	}
+
+	const int64_t retval = evt.get_syscall_return_value();
+	if(retval < 0) {
+		return;
+	}
+
+	if(evt.get_num_params() < 4) {
+		return;
+	}
+
+	const uint32_t first = evt.get_param(1)->as<uint32_t>();
+	const uint32_t last = evt.get_param(2)->as<uint32_t>();
+	const uint32_t flags = evt.get_param(3)->as<uint32_t>();
+
+	auto *fd_table = evt.get_tinfo()->get_fd_table();
+	if(fd_table == nullptr) {
+		return;
+	}
+
+	std::vector<int64_t> matching_fds;
+	fd_table->const_loop([&](int64_t fd, const sinsp_fdinfo &) {
+		if(fd >= 0 && static_cast<uint64_t>(fd) >= first && static_cast<uint64_t>(fd) <= last) {
+			matching_fds.push_back(fd);
+		}
+		return true;
+	});
+
+	if((flags & PPM_CLOSE_RANGE_CLOEXEC) != 0) {
+		for(const auto fd : matching_fds) {
+			auto *fdinfo = evt.get_tinfo()->get_fd(fd);
+			if(fdinfo != nullptr) {
+				fdinfo->m_openflags |= PPM_O_CLOEXEC;
+			}
+		}
+		return;
+	}
+
+	for(const auto fd : matching_fds) {
+		evt.get_tinfo()->remove_fd(fd);
 	}
 }
 

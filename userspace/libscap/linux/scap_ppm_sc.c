@@ -237,7 +237,6 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
                                            PPM_SC_SCHED_SETATTR,
                                            PPM_SC_GET_KERNEL_SYMS,
                                            PPM_SC_RSEQ,
-                                           PPM_SC_CLOSE_RANGE,
                                            PPM_SC_GET_MEMPOLICY,
                                            PPM_SC_SCHED_GETATTR,
                                            PPM_SC_NFSSERVCTL,
@@ -511,7 +510,6 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
                                            PPM_SC_SCHED_SETATTR,
                                            PPM_SC_GET_KERNEL_SYMS,
                                            PPM_SC_RSEQ,
-                                           PPM_SC_CLOSE_RANGE,
                                            PPM_SC_GET_MEMPOLICY,
                                            PPM_SC_SCHED_GETATTR,
                                            PPM_SC_NFSSERVCTL,
@@ -1029,6 +1027,8 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
         [PPME_ITER_TASK_FILE_SOCKET_NETLINK_X] = NULL,
         [PPME_ITER_TASK_FILE_ANON_INODE_E] = NULL,
         [PPME_ITER_TASK_FILE_ANON_INODE_X] = NULL,
+        [PPME_SYSCALL_CLOSE_RANGE_E] = (ppm_sc_code[]){PPM_SC_CLOSE_RANGE, -1},
+        [PPME_SYSCALL_CLOSE_RANGE_X] = (ppm_sc_code[]){PPM_SC_CLOSE_RANGE, -1},
 };
 
 #if defined(__GNUC__) || (__STDC_VERSION__ >= 201112L)
