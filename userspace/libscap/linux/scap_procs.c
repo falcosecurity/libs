@@ -1768,6 +1768,7 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform,
 
 	DIR* dir_p = NULL;
 	FILE* fp = NULL;
+	DIR* taskdir_p = NULL;
 	struct dirent* dir_entry_p;
 	char procdirname[SCAP_MAX_PATH_SIZE];
 
@@ -1791,7 +1792,6 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform,
 	while((dir_entry_p = readdir(dir_p)) != NULL) {
 		char tasksdirname[SCAP_MAX_PATH_SIZE];
 		struct dirent* taskdir_entry_p;
-		DIR* taskdir_p;
 
 		if(!is_xid_filename(dir_entry_p->d_name)) {
 			continue;
@@ -1860,13 +1860,21 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform,
 	}
 
 error:
+	if(taskdir_p) {
+		closedir(taskdir_p);
+		taskdir_p = NULL;
+	}
+
 	if(dir_p) {
 		closedir(dir_p);
+		dir_p = NULL;
 	}
 
 	if(fp) {
 		fclose(fp);
+		fp = NULL;
 	}
+
 	return SCAP_SUCCESS;
 }
 
