@@ -54,6 +54,14 @@ static __always_inline int toctou_mitigation__64bit_should_drop(uint32_t syscall
 	uint32_t socketcall_syscall_id = -1;
 #endif
 
+	/* syscall_id == -1 means "no syscall" (e.g. cancelled by ptrace/seccomp).
+	 * Bail out early to avoid accidentally matching the socketcall_syscall_id
+	 * sentinel value.
+	 */
+	if(syscall_id == (uint32_t)-1) {
+		return 1;
+	}
+
 	// Convert the socketcall id into the network syscall id.
 	// In this way the syscall will be treated exactly as the original one.
 	if(syscall_id == socketcall_syscall_id) {
