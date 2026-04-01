@@ -179,6 +179,17 @@ int BPF_PROG(sys_exit, struct pt_regs *regs, long ret) {
 
 	uint32_t syscall_id = extract__syscall_id(regs);
 
+	/* On x86_64, orig_rax == -1 means "no syscall" (e.g. the syscall was
+	 * cancelled by ptrace/seccomp, or this is a signal-interrupted restart).
+	 * We must bail out early, otherwise syscall_id (0xFFFFFFFF) would
+	 * accidentally match the socketcall_syscall_id sentinel value of -1
+	 * and we'd enter the socketcall conversion path with garbage registers,
+	 * misrouting to arbitrary syscall handlers.
+	 */
+	if(syscall_id == (uint32_t)-1) {
+		return 0;
+	}
+
 	if(bpf_in_ia32_syscall()) {
 #if defined(__TARGET_ARCH_x86)
 		if(syscall_id == __NR_ia32_socketcall) {
