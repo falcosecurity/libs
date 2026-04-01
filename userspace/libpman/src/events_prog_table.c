@@ -183,6 +183,7 @@ event_prog_t exit_event_progs_table[PPM_EVENT_MAX][MAX_FEATURE_CHECKS] = {
         [PPME_SYSCALL_DELETE_MODULE_X] = {{"delete_module_x", 0}},
         [PPME_SYSCALL_SETREUID_X] = {{"setreuid_x", 0}},
         [PPME_SYSCALL_SETREGID_X] = {{"setregid_x", 0}},
+        [PPME_SYSCALL_CLOSE_RANGE_X] = {{"close_range_x", 0}},
 };
 
 ttm_progs_t ttm_progs_table[TTM_MAX] = {

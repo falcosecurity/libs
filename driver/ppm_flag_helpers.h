@@ -2243,4 +2243,15 @@ static __always_inline uint32_t delete_module_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline uint32_t close_range_flags_to_scap(unsigned long flags) {
+	uint32_t res = 0;
+	/* CLOSE_RANGE_UNSHARE is (1U << 1) */
+	if(flags & (1U << 1))
+		res |= PPM_CLOSE_RANGE_UNSHARE;
+	/* CLOSE_RANGE_CLOEXEC is (1U << 2) */
+	if(flags & (1U << 2))
+		res |= PPM_CLOSE_RANGE_CLOEXEC;
+	return res;
+}
+
 #endif /* PPM_FLAG_HELPERS_H_ */

@@ -773,6 +773,12 @@ const struct ppm_name_value delete_module_flags[] = {
         {0, 0},
 };
 
+const struct ppm_name_value close_range_flags[] = {
+        {"CLOSE_RANGE_UNSHARE", PPM_CLOSE_RANGE_UNSHARE},
+        {"CLOSE_RANGE_CLOEXEC", PPM_CLOSE_RANGE_CLOEXEC},
+        {0, 0},
+};
+
 const struct ppm_name_value finit_module_flags[] = {
         {"MODULE_INIT_IGNORE_MODVERSIONS", PPM_MODULE_INIT_IGNORE_MODVERSIONS},
         {"MODULE_INIT_IGNORE_VERMAGIC", PPM_MODULE_INIT_IGNORE_VERMAGIC},
