@@ -401,6 +401,66 @@ void scap_fd_flags_file(scap_fdinfo *fdi, const char *procdir) {
 	}
 }
 
+// The following are DJB2 hashes (i.e.: hash = 5381; foreach c: hash = ((hash << 5) + hash) + c;)
+// used by `classify_anon_inode_file()` to quickly classify an anon inode file based on the hash of
+// its name.
+#define HASH_EVENTFD 4283080137UL      // [eventfd]
+#define HASH_EVENTPOLL 4247027542UL    // [eventpoll]
+#define HASH_INOTIFY 2668889575UL      // inotify
+#define HASH_SIGNALFD 3769938309UL     // [signalfd]
+#define HASH_TIMERFD 7753960UL         // [timerfd]
+#define HASH_IO_URING 2266470649UL     // [io_uring]
+#define HASH_USERFAULTFD 3373497826UL  // [userfaultfd]
+#define HASH_PIDFD 1838784100UL        // [pidfd]
+#define HASH_BPF_MAP 2283598536UL      // bpf-map
+#define HASH_BPF_PROG 2344434050UL     // bpf-prog
+#define HASH_BPF_LINK 2344280472UL     // bpf-link
+#define HASH_BPF_ITER 2403480400UL     // bpf_iter
+#define HASH_PERF_EVENT 915066027UL    // [perf_event]
+
+static uint32_t djb2_hash(const char *str) {
+	uint32_t hash = 5381;
+	for(; *str != '\0'; str++) {
+		const int c = *(const unsigned char *)str;
+		hash = (hash << 5) + hash + c;
+	}
+	return hash;
+}
+
+#define ANON_INODE_FILE_PREFIX "anon_inode:"
+
+static enum scap_fd_type classify_anon_inode_file(const char *filename) {
+	// Strip "anon_inode:" prefix before hashing it.
+	const char *name = filename + sizeof(ANON_INODE_FILE_PREFIX) - 1;
+	const uint32_t hash = djb2_hash(name);
+	switch(hash) {
+	case HASH_EVENTFD:
+		return SCAP_FD_EVENT;
+	case HASH_EVENTPOLL:
+		return SCAP_FD_EVENTPOLL;
+	case HASH_INOTIFY:
+		return SCAP_FD_INOTIFY;
+	case HASH_SIGNALFD:
+		return SCAP_FD_SIGNALFD;
+	case HASH_TIMERFD:
+		return SCAP_FD_TIMERFD;
+	case HASH_IO_URING:
+		return SCAP_FD_IOURING;
+	case HASH_USERFAULTFD:
+		return SCAP_FD_USERFAULTFD;
+	case HASH_PIDFD:
+		return SCAP_FD_PIDFD;
+	case HASH_BPF_MAP:
+	case HASH_BPF_PROG:
+	case HASH_BPF_LINK:
+	case HASH_BPF_ITER:
+		return SCAP_FD_BPF;
+	case HASH_PERF_EVENT:  // Not supported yet.
+	default:
+		return SCAP_FD_UNSUPPORTED;
+	}
+}
+
 int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
                                     char *fname,
                                     uint32_t tid,
@@ -409,56 +469,29 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist,
                                     const char *procdir,
                                     char *error) {
 	char link_name[SCAP_MAX_PATH_SIZE];
-	ssize_t r;
-
-	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE - 1);
-	if(r <= 0) {
+	const ssize_t bytes_read = readlink(fname, link_name, SCAP_MAX_PATH_SIZE - 1);
+	if(bytes_read <= 0) {
 		return SCAP_SUCCESS;
 	}
+	link_name[bytes_read] = '\0';
 
-	link_name[r] = '\0';
-
-	if(SCAP_FD_UNSUPPORTED == fdi->type) {
-		// try to classify by link name
-		if(0 == strcmp(link_name, "anon_inode:[eventfd]")) {
-			fdi->type = SCAP_FD_EVENT;
-		} else if(0 == strcmp(link_name, "anon_inode:[signalfd]")) {
-			fdi->type = SCAP_FD_SIGNALFD;
-		} else if(0 == strcmp(link_name, "anon_inode:[eventpoll]")) {
-			fdi->type = SCAP_FD_EVENTPOLL;
-		} else if(0 == strcmp(link_name, "anon_inode:inotify")) {
-			fdi->type = SCAP_FD_INOTIFY;
-		} else if(0 == strcmp(link_name, "anon_inode:[timerfd]")) {
-			fdi->type = SCAP_FD_TIMERFD;
-		} else if(0 == strcmp(link_name, "anon_inode:[io_uring]")) {
-			fdi->type = SCAP_FD_IOURING;
-		} else if(0 == strcmp(link_name, "anon_inode:[userfaultfd]")) {
-			fdi->type = SCAP_FD_USERFAULTFD;
-		}
-		// anon_inode:bpf-map
-		// anon_inode:bpf-link
-		// anon_inode:bpf-prog
-		// anon_inode:bpf_iter
-		else if(0 == strncmp(link_name, "anon_inode:bpf", strlen("anon_inode:bpf"))) {
-			fdi->type = SCAP_FD_BPF;
-		} else if(0 == strcmp(link_name, "anon_inode:[pidfd]")) {
-			fdi->type = SCAP_FD_PIDFD;
-		}
-
-		if(SCAP_FD_UNSUPPORTED == fdi->type) {
-			// still not able to classify
-			// printf("unsupported %s -> %s\n",fname,link_name);
-		}
-		fdi->info.fname[0] = '\0';
-	} else if(fdi->type == SCAP_FD_FILE_V2) {
-		if(0 == strncmp(link_name, "/memfd:", strlen("/memfd:"))) {
+	switch(fdi->type) {
+	case SCAP_FD_FILE_V2:
+		if(MEMCMP_LITERAL(link_name, (size_t)bytes_read, "/memfd:")) {
 			fdi->type = SCAP_FD_MEMFD;
 			strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 		} else {
 			scap_fd_flags_file(fdi, procdir);
 			strlcpy(fdi->info.regularinfo.fname, link_name, sizeof(fdi->info.regularinfo.fname));
 		}
-	} else {
+		break;
+	case SCAP_FD_UNSUPPORTED:
+		if(MEMCMP_LITERAL(link_name, (size_t)bytes_read, ANON_INODE_FILE_PREFIX)) {
+			fdi->type = classify_anon_inode_file(link_name);
+		}
+		fdi->info.fname[0] = '\0';
+		break;
+	default:
 		strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 	}
 
