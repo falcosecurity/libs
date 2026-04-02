@@ -118,6 +118,9 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine,
 	case SCAP_DYNAMIC_SNAPLEN:
 		pman_set_do_dynamic_snaplen(arg1);
 		break;
+	case SCAP_KERN_FULLPATH_RESOLUTION:
+		pman_set_do_full_path_resolution(arg1);
+		break;
 	case SCAP_FULLCAPTURE_PORT_RANGE:
 		pman_set_fullcapture_port_range(arg1, arg2);
 		break;

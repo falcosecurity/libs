@@ -205,6 +205,10 @@ void event_test::set_do_dynamic_snaplen(bool enable) {
 	}
 }
 
+void event_test::set_do_full_path_resolution(bool enable) {
+	scap_set_kern_full_path_resolution(s_scap_handle, enable);
+}
+
 void event_test::set_statsd_port(uint16_t port) {
 	scap_set_statsd_port(s_scap_handle, port);
 }

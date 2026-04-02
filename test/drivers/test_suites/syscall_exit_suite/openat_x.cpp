@@ -112,6 +112,65 @@ TEST(SyscallExit, openatX_success) {
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 }
 
+TEST(SyscallExit, openatX_fullpath_resolution_disabled) {
+	auto evt_test = get_syscall_event_test(__NR_openat, EXIT_EVENT);
+
+	evt_test->set_do_full_path_resolution(false);
+	evt_test->enable_capture();
+
+	int dirfd = AT_FDCWD;
+	const char* pathname = ".";
+	int flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
+	mode_t mode = 0;
+	int fd = syscall(__NR_openat, dirfd, pathname, flags, mode);
+
+	if(fd == -1 && (errno == EOPNOTSUPP || errno == 95)) {
+		evt_test->set_do_full_path_resolution(true);
+		GTEST_SKIP() << "openat O_TMPFILE not supported" << std::endl;
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
+
+	struct stat file_stat;
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "fstat",
+	                     syscall(__NR_fstat, fd, &file_stat),
+	                     NOT_EQUAL,
+	                     -1);
+	uint32_t dev = (uint32_t)file_stat.st_dev;
+	uint64_t inode = file_stat.st_ino;
+	const bool is_ext4 = event_test::is_ext4_fs(fd);
+
+	close(fd);
+
+	evt_test->disable_capture();
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure()) {
+		evt_test->set_do_full_path_resolution(true);
+		return;
+	}
+
+	evt_test->parse_event();
+	evt_test->assert_header();
+
+	evt_test->assert_numeric_param(1, (int64_t)fd);
+	evt_test->assert_numeric_param(2, (int64_t)PPM_AT_FDCWD);
+	evt_test->assert_charbuf_param(3, pathname);
+	evt_test->assert_numeric_param(4, (uint32_t)PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
+	evt_test->assert_numeric_param(5, (uint32_t)mode);
+
+	if(is_ext4) {
+		evt_test->assert_numeric_param(6, (uint32_t)dev);
+	}
+
+	evt_test->assert_numeric_param(7, inode);
+	evt_test->assert_empty_param(8);
+	evt_test->assert_num_params_pushed(8);
+
+	evt_test->set_do_full_path_resolution(true);
+}
+
 TEST(SyscallExit, openatX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_openat, EXIT_EVENT);
 

@@ -66,7 +66,7 @@ int BPF_PROG(openat_x, struct pt_regs *regs, long ret) {
 	auxmap__store_u64_param(auxmap, ino);
 
 	/* Parameter 8: fullpath (type: PT_FSPATH) - kernel-resolved full path of opened file */
-	if(ret > 0) {
+	if(ret > 0 && maps__get_do_full_path_resolution()) {
 		/* Extract the full path from the opened file descriptor to prevent TOCTOU race conditions.
 		 * This captures the actual resolved path at syscall time, including any symlink resolution
 		 * and path normalization performed by the kernel.
@@ -81,7 +81,7 @@ int BPF_PROG(openat_x, struct pt_regs *regs, long ret) {
 			auxmap__store_empty_param(auxmap);
 		}
 	} else {
-		/* Syscall failed (ret <= 0), store empty */
+		/* Syscall failed or kernel-side fullpath resolution is disabled, store empty. */
 		auxmap__store_empty_param(auxmap);
 	}
 

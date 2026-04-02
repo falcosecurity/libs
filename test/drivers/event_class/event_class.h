@@ -231,6 +231,12 @@ public:
 	void set_do_dynamic_snaplen(bool enable);
 
 	/**
+	 * @brief Enable/Disable kernel-side fullpath resolution for openat/openat2.
+	 *
+	 */
+	void set_do_full_path_resolution(bool enable);
+
+	/**
 	 * @brief Set stasd port
 	 *
 	 * @param port new statsd port

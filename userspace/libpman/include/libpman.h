@@ -425,6 +425,13 @@ void pman_set_drop_failed(bool drop_failed);
 void pman_set_do_dynamic_snaplen(bool do_dynamic_snaplen);
 
 /**
+ * @brief Ask driver to enable/disable kernel-side fullpath resolution for openat/openat2.
+ *
+ * @param do_full_path_resolution whether to enable the kernel-side fullpath resolution.
+ */
+void pman_set_do_full_path_resolution(bool do_full_path_resolution);
+
+/**
  * @brief Ask driver to set a range of interesting ports.
  *
  * @param range_start first interesting port.

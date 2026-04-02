@@ -2256,6 +2256,8 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_DISABLE_TP _IO(PPM_IOCTL_MAGIC, 32)
 #define PPM_IOCTL_ENABLE_DROPFAILED _IO(PPM_IOCTL_MAGIC, 33)
 #define PPM_IOCTL_DISABLE_DROPFAILED _IO(PPM_IOCTL_MAGIC, 34)
+#define PPM_IOCTL_ENABLE_FULLPATH _IO(PPM_IOCTL_MAGIC, 35)
+#define PPM_IOCTL_DISABLE_FULLPATH _IO(PPM_IOCTL_MAGIC, 36)
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
