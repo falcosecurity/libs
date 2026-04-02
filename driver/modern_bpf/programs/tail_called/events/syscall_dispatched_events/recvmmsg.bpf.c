@@ -31,6 +31,9 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	unsigned long msg_controllen;
 
 	if(bpf_in_ia32_syscall()) {
+		if(!bpf_core_type_exists(struct compat_mmsghdr)) {
+			return 1;
+		}
 		struct compat_mmsghdr *cmmh_ptr = (struct compat_mmsghdr *)data->mmh + index;
 		msg_len = BPF_CORE_READ_USER(cmmh_ptr, msg_len);
 		msg_iov = (unsigned long)BPF_CORE_READ_USER(cmmh_ptr, msg_hdr.msg_iov);

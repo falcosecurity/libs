@@ -1173,6 +1173,11 @@ static __always_inline void auxmap__store_iovec_size_param_64(struct auxiliary_m
 static __always_inline void auxmap__store_iovec_size_param_32(struct auxiliary_map *auxmap,
                                                               unsigned long iov_pointer,
                                                               unsigned long iov_cnt) {
+	if(!bpf_core_type_exists(struct compat_iovec)) {
+		auxmap__store_u32_param(auxmap, 0);
+		return;
+	}
+
 	/* We use the second part of our auxmap as a scratch space. */
 	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
@@ -1275,6 +1280,11 @@ static __always_inline void auxmap__store_iovec_data_param_32(struct auxiliary_m
                                                               unsigned long iov_pointer,
                                                               unsigned long iov_cnt,
                                                               unsigned long len_to_read) {
+	if(!bpf_core_type_exists(struct compat_iovec)) {
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
 	/* We use the second part of our auxmap as a scratch space. */
 	unsigned long total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
 
@@ -1798,10 +1808,12 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	case PPME_SOCKET_SENDMSG_X: {
 		extract__network_args(args, 3, regs);
 		if(bpf_in_ia32_syscall()) {
-			if(likely(bpf_probe_read_user(&msg_mh.compat_mh,
-			                              bpf_core_type_size(struct compat_msghdr),
-			                              (void *)args[1]) == 0)) {
-				sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mh.msg_name);
+			if(bpf_core_type_exists(struct compat_msghdr)) {
+				if(likely(bpf_probe_read_user(&msg_mh.compat_mh,
+				                              bpf_core_type_size(struct compat_msghdr),
+				                              (void *)args[1]) == 0)) {
+					sockaddr = (struct sockaddr *)(unsigned long)(msg_mh.compat_mh.msg_name);
+				}
 			}
 			// in any case we break the switch.
 			break;
