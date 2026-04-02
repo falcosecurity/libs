@@ -89,6 +89,11 @@ enum read_memory {
 /* Paramater maximum size */
 #define MAX_PARAM_SIZE MAX_EVENT_SIZE - 1
 
+/* Conservative bound for esoteric BPF verifiers that lose tracking through register moves.
+ * This is 32KB - 1, which covers most real-world use cases while being verifier-friendly.
+ */
+#define VERIFIER_SAFE_PARAM_SIZE 0x7FFF
+
 /* Helper used to please the verifier during reading
  * operations like `bpf_probe_read_str()`.
  */
@@ -214,15 +219,21 @@ static __always_inline uint16_t push__charbuf(uint8_t *data,
                                               unsigned long charbuf_pointer,
                                               uint16_t limit,
                                               enum read_memory mem) {
+	/*
+	 * Clamp to VERIFIER_SAFE_PARAM_SIZE with explicit masking to ensure verifier sees
+	 * this as an unsigned positive value.
+	 */
+	uint32_t safe_limit = limit & VERIFIER_SAFE_PARAM_SIZE;
+
 	int written_bytes = 0;
 
 	if(mem == KERNEL) {
 		written_bytes = bpf_probe_read_kernel_str(&data[SAFE_ACCESS(*payload_pos)],
-		                                          limit,
+		                                          safe_limit & VERIFIER_SAFE_PARAM_SIZE,
 		                                          (char *)charbuf_pointer);
 	} else {
 		written_bytes = bpf_probe_read_user_str(&data[SAFE_ACCESS(*payload_pos)],
-		                                        limit,
+		                                        safe_limit & VERIFIER_SAFE_PARAM_SIZE,
 		                                        (char *)charbuf_pointer);
 	}
 
@@ -264,22 +275,28 @@ static __always_inline uint16_t push__bytebuf(uint8_t *data,
                                               unsigned long bytebuf_pointer,
                                               uint16_t len_to_read,
                                               enum read_memory mem) {
+	/*
+	 * Clamp to VERIFIER_SAFE_PARAM_SIZE with explicit masking to ensure verifier sees
+	 * this as an unsigned positive value.
+	 */
+	uint32_t safe_len = len_to_read & VERIFIER_SAFE_PARAM_SIZE;
+
 	if(mem == KERNEL) {
 		if(bpf_probe_read_kernel(&data[SAFE_ACCESS(*payload_pos)],
-		                         len_to_read,
+		                         safe_len & VERIFIER_SAFE_PARAM_SIZE,
 		                         (void *)bytebuf_pointer) != 0) {
 			return 0;
 		}
 	} else {
 		if(bpf_probe_read_user(&data[SAFE_ACCESS(*payload_pos)],
-		                       len_to_read,
+		                       safe_len & VERIFIER_SAFE_PARAM_SIZE,
 		                       (void *)bytebuf_pointer) != 0) {
 			return 0;
 		}
 	}
 
-	*payload_pos += len_to_read;
-	return len_to_read;
+	*payload_pos += safe_len;
+	return (uint16_t)safe_len;
 }
 
 /**
