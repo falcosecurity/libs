@@ -1793,8 +1793,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	union {
 		struct compat_msghdr compat_mh;
 		struct user_msghdr mh;
-		struct compat_mmsghdr compat_mmh;
-		struct mmsghdr mmh;
 	} msg_mh = {};
 
 	switch(input_args->evt_type) {
