@@ -19,8 +19,11 @@
  * - We cannot loop over all threads of the group due to BPF verifier limits (MAX_THREADS_GROUPS) ->
  * return -1
  * - We find a reaper -> return its `pid`
+ *
+ * NOTE: Not inlined to reduce jump complexity for esoteric (RHEL) BPF verifiers.
+ * Inlining creates nested loops that exceed the verifier's jump sequence limits.
  */
-static __always_inline pid_t find_alive_thread(struct task_struct *father) {
+static __noinline pid_t find_alive_thread(struct task_struct *father) {
 	struct signal_struct *signal = BPF_CORE_READ(father, signal);
 	struct list_head *head = &(signal->thread_head);
 	struct list_head *next_thread = BPF_CORE_READ(head, next);
@@ -101,12 +104,9 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father) {
 	 * We check pid->level, this is slightly more efficient than
 	 * task_active_pid_ns(reaper) != task_active_pid_ns(father).
 	 */
-	uint8_t cnt = 0;
-
-	for(struct task_struct *possible_reaper = READ_TASK_FIELD(father, real_parent);
-	    cnt < MAX_HIERARCHY_TRAVERSE;
-	    possible_reaper = BPF_CORE_READ(possible_reaper, real_parent)) {
-		cnt++;
+	unsigned int cnt;
+	struct task_struct *possible_reaper = READ_TASK_FIELD(father, real_parent);
+	for(cnt = 0; cnt < MAX_HIERARCHY_TRAVERSE; cnt++) {
 		current_ns_level = BPF_CORE_READ(possible_reaper, thread_pid, level);
 
 		/* We are crossing the namespace or we are the child_ns_reaper */
@@ -115,15 +115,15 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father) {
 		}
 
 		signal = BPF_CORE_READ(possible_reaper, signal);
-		if(!BPF_CORE_READ_BITFIELD_PROBED(signal, is_child_subreaper)) {
-			continue;
+		if(BPF_CORE_READ_BITFIELD_PROBED(signal, is_child_subreaper)) {
+			/* Here again we can return -1 in case we have verifier limits issues */
+			reaper_pid = find_alive_thread(possible_reaper);
+			if(reaper_pid != 0) {
+				return reaper_pid;
+			}
 		}
 
-		/* Here again we can return -1 in case we have verifier limits issues */
-		reaper_pid = find_alive_thread(possible_reaper);
-		if(reaper_pid != 0) {
-			return reaper_pid;
-		}
+		possible_reaper = BPF_CORE_READ(possible_reaper, real_parent);
 	}
 
 	/* We cannot traverse all the hierarchy, we cannot know the right reaper */
