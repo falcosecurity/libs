@@ -52,7 +52,7 @@ static __always_inline bool maps__get_dropping_mode() {
 static __always_inline uint32_t maps__get_sampling_ratio() {
 	struct capture_settings *settings = maps__get_capture_settings();
 	if(settings == NULL) {
-		return 0;
+		return 1;
 	}
 
 	return settings->sampling_ratio;
