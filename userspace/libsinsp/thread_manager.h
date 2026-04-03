@@ -272,7 +272,7 @@ public:
 		return false;
 	}
 
-	const libsinsp::state::dynamic_field_accessor<std::string>* get_field_accessor(
+	const libsinsp::state::dynamic_field_accessor* get_field_accessor(
 	        const std::string& field) const {
 		if(auto it = m_foreign_fields_accessors.find(field);
 		   it != m_foreign_fields_accessors.end()) {
@@ -367,8 +367,7 @@ private:
 	// State table API: field accessors and tables for plugin-provided (foreign) state.
 	// Populated only during single-threaded init (plugin load / inspector init) and
 	// read-only thereafter during concurrent use. No mutex required for reads.
-	std::map<std::string, libsinsp::state::dynamic_field_accessor<std::string>>
-	        m_foreign_fields_accessors;
+	std::map<std::string, libsinsp::state::dynamic_field_accessor> m_foreign_fields_accessors;
 	std::map<std::string, sinsp_table<std::string>> m_foreign_tables;
 
 	// Ring buffer of recently-exited TIDs (from procexit events).
