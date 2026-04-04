@@ -152,8 +152,10 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task) {
 	if(!auxmap) {
 		return 0;
 	}
-
-	auxmap__preload_event_header(auxmap, PPME_PROCEXIT_1_E);
+	/* Drop event if auxmap is busy to avoid data corruption */
+	if (!auxmap__preload_event_header(auxmap, PPME_PROCEXIT_1_E)) {
+		return 0;
+	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

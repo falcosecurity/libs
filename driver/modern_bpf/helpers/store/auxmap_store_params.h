@@ -88,8 +88,25 @@ static __always_inline struct auxiliary_map *auxmap_iter__get() {
  * @param auxmap pointer to the auxmap in which we are writing our event header.
  * @param event_type This is the type of the event that we are writing into the map.
  */
-static __always_inline void auxmap__preload_event_header(struct auxiliary_map *auxmap,
+
+ /*
+ * Protect the per-CPU auxmap from concurrent access.
+ * Even though eBPF programs are expected to run on a single CPU,
+ * they can be preempted, leading to possible interleaving on the same CPU.
+ *
+ * If contention is detected, we drop the event to avoid corrupting
+ * the auxmap buffer.
+ */
+static __always_inline bool auxmap__preload_event_header(struct auxiliary_map *auxmap,
                                                          uint16_t event_type) {
+	if (__sync_lock_test_and_set(&auxmap->busy, 1)) {
+		struct counter_map *counter = maps__get_counter_map();
+		if(counter) {
+			counter->n_preemption_drops++;
+		}
+		/* auxmap is busy, drop this event */
+		return false;
+	}
 	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)auxmap->data;
 	uint8_t nparams = maps__get_event_num_params(event_type);
 	hdr->ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
@@ -99,6 +116,7 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 	auxmap->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
 	auxmap->lengths_pos = sizeof(struct ppm_evt_hdr);
 	auxmap->event_type = event_type;
+	return true;
 }
 
 /**
@@ -114,9 +132,18 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
  * the thread id of the task the iterator event is related to.
  * @param event_type This is the type of the iterator event that we are writing into the map.
  */
-static __always_inline void auxmap_iter__preload_event_header(struct auxiliary_map *auxmap,
+ /* Same protection as auxmap__preload_event_header for iterator events */
+static __always_inline bool auxmap_iter__preload_event_header(struct auxiliary_map *auxmap,
                                                               uint64_t tgid_pid,
                                                               uint16_t event_type) {
+	if (__sync_lock_test_and_set(&auxmap->busy, 1)) {
+		struct counter_map *counter = maps__get_counter_map();
+		if(counter) {
+			counter->n_preemption_drops++;
+		}
+		/* auxmap is busy, drop this event */
+		return false;
+	}
 	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)auxmap->data;
 	uint8_t nparams = maps__get_event_num_params(event_type);
 	hdr->ts = 0;  // The timestamp field is currently not used.
@@ -126,6 +153,7 @@ static __always_inline void auxmap_iter__preload_event_header(struct auxiliary_m
 	auxmap->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
 	auxmap->lengths_pos = sizeof(struct ppm_evt_hdr);
 	auxmap->event_type = event_type;
+	return true;
 }
 
 /**
@@ -164,11 +192,14 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 		/* This should never happen in tail-called exit programs because we check it in `sys_exit`
 		 * dispatcher. It can happen in TOCTOU mitigation programs. */
 		bpf_printk("FAILURE: unable to obtain the ring buffer");
+		/* Release auxmap lock acquired during preload */
+		__sync_lock_release(&auxmap->busy);
 		return;
 	}
 
 	struct counter_map *counter = maps__get_counter_map();
 	if(!counter) {
+		__sync_lock_release(&auxmap->busy);
 		return;
 	}
 
@@ -178,6 +209,7 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 
 	if(auxmap->payload_pos > MAX_EVENT_SIZE) {
 		counter->n_drops_max_event_size++;
+		__sync_lock_release(&auxmap->busy);
 		return;
 	}
 
@@ -189,6 +221,7 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 		counter->n_drops_buffer++;
 		compute_event_types_stats(auxmap->event_type, counter);
 	}
+	__sync_lock_release(&auxmap->busy);
 }
 
 /**
@@ -212,11 +245,13 @@ static __always_inline int auxmap_iter__submit_event(struct auxiliary_map *auxma
                                                      struct seq_file *seq) {
 	struct iter_counters *counters = maps__get_iter_counters();
 	if(!counters) {
+		__sync_lock_release(&auxmap->busy);
 		return 0;
 	}
 
 	if(auxmap->payload_pos > MAX_ITER_EVENT_SIZE) {
 		counters->n_drops_max_event_size++;
+		__sync_lock_release(&auxmap->busy);
 		return 0;
 	}
 
@@ -233,6 +268,7 @@ static __always_inline int auxmap_iter__submit_event(struct auxiliary_map *auxma
 	 * object, and no error is surfaced to userspace. */
 	if(seq_count == 0 && auxmap->payload_pos >= seq_size) {
 		account_iter_event_drop(evt_type, counters);
+		__sync_lock_release(&auxmap->busy);
 		return 0;
 	}
 
@@ -240,10 +276,12 @@ static __always_inline int auxmap_iter__submit_event(struct auxiliary_map *auxma
 	 * from previous objects (`seq_count > 0`) and the remaining space is insufficient.
 	 * Return 1 so the kernel flushes the buffer and re-presents the current object. */
 	if(bpf_seq_write(seq, auxmap->data, auxmap->payload_pos) < 0) {
+		__sync_lock_release(&auxmap->busy);
 		return 1;
 	}
 
 	account_iter_event_processed(evt_type, counters);
+	__sync_lock_release(&auxmap->busy);
 	return 0;
 }
 

@@ -61,7 +61,10 @@ int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child
 	if(!auxmap) {
 		return 0;
 	}
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_CLONE_20_X);
+	/* Drop event if auxmap is busy to avoid data corruption */
+	if (!auxmap__preload_event_header(auxmap, PPME_SYSCALL_CLONE_20_X)) {
+		return 0;
+	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

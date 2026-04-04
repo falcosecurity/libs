@@ -81,7 +81,10 @@ int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_bi
 	if(!auxmap) {
 		return 0;
 	}
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_EXECVE_19_X);
+	/* Drop event if auxmap is busy to avoid data corruption */
+	if (!auxmap__preload_event_header(auxmap, PPME_SYSCALL_EXECVE_19_X)) {
+		return 0;
+	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
