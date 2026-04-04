@@ -1588,7 +1588,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_THREAD_VMSIZE_B:
 		if(tinfo->is_main_thread()) {
-			m_val.u64 = tinfo->m_vmsize_kb * 1024;
+			m_val.u64 = static_cast<uint64_t>(tinfo->m_vmsize_kb) * 1024ULL;
 		} else {
 			m_val.u64 = 0;
 		}
@@ -1596,7 +1596,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_THREAD_VMRSS_B:
 		if(tinfo->is_main_thread()) {
-			m_val.u64 = tinfo->m_vmrss_kb * 1024;
+			m_val.u64 = static_cast<uint64_t>(tinfo->m_vmrss_kb) * 1024ULL;
 		} else {
 			m_val.u64 = 0;
 		}
