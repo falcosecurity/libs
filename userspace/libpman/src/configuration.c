@@ -96,18 +96,34 @@ void pman_clear_state() {
 #ifdef BPF_ITERATOR_SUPPORT
 
 	/* BPF iterators section */
+	g_state.n_max_iters = 0;
+	__atomic_store_n(&g_state.n_encountered_iters, 0, __ATOMIC_SEQ_CST);
 	g_state.is_tasks_dumping_supported = false;
 	g_state.is_task_files_dumping_supported = false;
 
 #endif /* BPF_ITERATOR_SUPPORT */
 }
 
+#ifdef BPF_ITERATOR_SUPPORT
+static int init_iter_state(const uint8_t iters_num) {
+	g_state.n_max_iters = iters_num;
+	__atomic_store_n(&g_state.n_encountered_iters, 0, __ATOMIC_SEQ_CST);
+	return 0;
+}
+#endif /* BPF_ITERATOR_SUPPORT */
+
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     double buffers_num,
+                    int iters_num,
                     bool allocate_online_only) {
 	if(buffers_num < 0) {
 		pman_print_errorf("buffers_num cannot be negative");
+		return -1;
+	}
+
+	if(iters_num < 1 || iters_num > UINT8_MAX) {
+		pman_print_errorf("iters_num cannot be less than 1 or greater than %u", UINT8_MAX);
 		return -1;
 	}
 
@@ -161,6 +177,14 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 		g_state.n_required_buffers = (uint32_t)buffers_num;
 		/* The following disables cpus-to-ring-buffers mapping */
 		g_state.cpus_for_each_buffer = 0;
+
+#ifdef BPF_ITERATOR_SUPPORT
+		/* BPF iterators configuration section */
+		if(init_iter_state((uint8_t)iters_num)) {
+			return -1;
+		}
+#endif /* BPF_ITERATOR_SUPPORT */
+
 		return 0;
 	}
 
@@ -217,6 +241,13 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	if((g_state.n_interesting_cpus % g_state.cpus_for_each_buffer) != 0) {
 		g_state.n_required_buffers++;
 	}
+
+#ifdef BPF_ITERATOR_SUPPORT
+	/* BPF iterators configuration section */
+	if(init_iter_state((uint8_t)iters_num)) {
+		return -1;
+	}
+#endif /* BPF_ITERATOR_SUPPORT */
 
 	return 0;
 }

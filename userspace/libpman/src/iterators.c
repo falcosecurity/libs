@@ -16,6 +16,12 @@ limitations under the License.
 
 */
 
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <state.h>
+#include <bpf/libbpf.h>
+#include <netinet/in.h>
+
 #include <driver/ppm_events_public.h>
 #include <driver/ppm_param_helpers.h>
 #include <libpman.h>
@@ -23,10 +29,6 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap_likely.h>
 #include <libscap/strerror.h>
-
-#include <state.h>
-#include <bpf/libbpf.h>
-#include <netinet/in.h>
 
 #ifdef BPF_ITERATOR_DEBUG
 
@@ -725,11 +727,73 @@ static int32_t fetch_evts(const int iter_fd,
 }
 
 struct prog_info {
-	struct bpf_link **link;
 	const struct bpf_program *prog;
 	const char *name;
 	enum evt_handler_selector selector;
 };
+
+// `prev` is the value of `g_state.n_encountered_iters` before being atomically incremented.
+static int32_t configure_iter_maps_impl(const uint32_t tid, const uint8_t prev, char *error) {
+	if(prev >= g_state.n_max_iters) {
+		return scap_errprintf(error,
+		                      0,
+		                      "no more free iterator map entries available for new thread with tid "
+		                      "%" PRIu32 ": try to increase the number of required iterators",
+		                      tid);
+	}
+
+	// In case of a single required iterator, both `iter_auxiliary_map` and `iter_counters_map` are
+	// `BPF_MAP_TYPE_ARRAY` maps: their single entry is already pre-allocated and zeroed by the
+	// kernel.
+	if(g_state.n_max_iters == 1) {
+		return SCAP_SUCCESS;
+	}
+
+	const int auxiliary_map_fd = bpf_map__fd(g_state.skel->maps.iter_auxiliary_map);
+	if(auxiliary_map_fd < 0) {
+		return scap_errprintf(error, errno, "failed to get `iter_auxiliary_map` fd");
+	}
+
+	const int counters_map_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
+	if(counters_map_fd < 0) {
+		return scap_errprintf(error, errno, "failed to get `iter_counters_map` fd");
+	}
+
+	// Use pre-initialized zeroed static values to populate the map entries' ones.
+	static struct auxiliary_map zeroed_auxmap;
+	static struct iter_counters zeroed_counters;
+
+	if(bpf_map_update_elem(auxiliary_map_fd, &tid, &zeroed_auxmap, BPF_NOEXIST)) {
+		return scap_errprintf(error,
+		                      errno,
+		                      "failed to initialize `iter_auxiliary_map` entry for tid %" PRIu32,
+		                      tid);
+	}
+
+	if(bpf_map_update_elem(counters_map_fd, &tid, &zeroed_counters, BPF_NOEXIST)) {
+		const int last_errno = errno;
+		bpf_map_delete_elem(auxiliary_map_fd, &tid);
+		return scap_errprintf(error,
+		                      last_errno,
+		                      "failed to initialize `iter_counters_map` entry for tid %" PRIu32,
+		                      tid);
+	}
+
+	pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+	                "Reserved iterator map entries for new iterator thread with tid %" PRIu32,
+	                tid);
+	return SCAP_SUCCESS;
+}
+
+static int32_t configure_iter_maps(const uint32_t tid, char *error) {
+	// Atomically acquire and increment the counter, but decrement it if an error occurs.
+	const uint8_t prev = __atomic_fetch_add(&g_state.n_encountered_iters, 1, __ATOMIC_SEQ_CST);
+	const int32_t res = configure_iter_maps_impl(tid, prev, error);
+	if(res != SCAP_SUCCESS) {
+		__atomic_fetch_sub(&g_state.n_encountered_iters, 1, __ATOMIC_SEQ_CST);
+	}
+	return res;
+}
 
 static int32_t fetch(const struct prog_info *prog_info,
                      const struct scap_fetch_callbacks *callbacks,
@@ -748,17 +812,21 @@ static int32_t fetch(const struct prog_info *prog_info,
 		                      tid_filter);
 	}
 
-	// The program must not be already attached.
-	if(*prog_info->link) {
-		return scap_errprintf(error,
-		                      0,
-		                      "'%s' program is unexpectedly already attached",
-		                      prog_info->name);
-	}
-
 	errno = 0;
 	int32_t res = SCAP_SUCCESS;
+	struct bpf_link *link = NULL;
 	int iter_fd = -1;
+
+	// Ensure each caller thread has its entries in the iterator maps by leveraging a per-thread
+	// flag that becomes true once the corresponding map entries have been successfully configured.
+	static _Thread_local bool iter_maps_configured = false;
+	if(!iter_maps_configured) {
+		const uint32_t caller_tid = gettid();
+		if((res = configure_iter_maps(caller_tid, error)) != SCAP_SUCCESS) {
+			goto cleanup;
+		}
+		iter_maps_configured = true;
+	}
 
 	// Attach the program.
 	LIBBPF_OPTS(bpf_iter_attach_opts, opts);
@@ -768,14 +836,14 @@ static int32_t fetch(const struct prog_info *prog_info,
 	linfo.task.tid = tid_filter;  // If the tid is set to zero, no filtering logic is applied.
 	opts.link_info = &linfo;
 	opts.link_info_len = sizeof(linfo);
-	*prog_info->link = bpf_program__attach_iter(prog_info->prog, &opts);
-	if(!*prog_info->link) {
+	link = bpf_program__attach_iter(prog_info->prog, &opts);
+	if(!link) {
 		res = scap_errprintf(error, errno, "failed to attach the '%s' program", prog_info->name);
 		goto cleanup;
 	}
 
 	// Create the iter FD.
-	iter_fd = bpf_iter_create(bpf_link__fd(*prog_info->link));
+	iter_fd = bpf_iter_create(bpf_link__fd(link));
 	if(iter_fd < 0) {
 		res = scap_errprintf(error,
 		                     errno,
@@ -796,22 +864,19 @@ cleanup:
 	if(iter_fd >= 0 && close(iter_fd) < 0) {
 		pman_print_errorf("failed to close iter FD for `%s` program", prog_info->name);
 	}
-	if(*prog_info->link && bpf_link__destroy(*prog_info->link)) {
+	if(link && bpf_link__destroy(link)) {
 		pman_print_errorf("failed to detach the `%s` program", prog_info->name);
 	}
-	*prog_info->link = NULL;
 	return res;
 }
 
 static void fill_dump_task_prog_info(struct prog_info *info) {
-	info->link = &g_state.skel->links.dump_task;
 	info->prog = g_state.skel->progs.dump_task;
 	info->name = "dump_task";
 	info->selector = EHS_TASK;
 }
 
 static void fill_dump_task_file_prog_info(struct prog_info *info) {
-	info->link = &g_state.skel->links.dump_task_file;
 	info->prog = g_state.skel->progs.dump_task_file;
 	info->name = "dump_task_file";
 	info->selector = EHS_TASK_FILE;

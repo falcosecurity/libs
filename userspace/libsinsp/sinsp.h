@@ -161,6 +161,9 @@ public:
 	 *   as the (integer) number of CPUs to which a single buffer must be associated
 	 * - if `buffers_num` == 0, it means requiring 1 buffer shared among all available CPUs
 	 *
+	 * `iters_num` determines the maximum number of allowed iterator threads. It must be in the
+	 * range [1; 255].
+	 *
 	 * `online_only` is taken into account only if `buffers_num` >= 0 && `buffers_num` <= 1:
 	 * it allows to require allocation of buffers only for online CPUs and not for all
 	 * system-available CPUs.
@@ -168,6 +171,7 @@ public:
 	virtual void open_modern_bpf(
 	        unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM,
 	        double buffers_num = DEFAULT_BUFFERS_NUM,
+	        int iters_num = DEFAULT_ITERS_NUM,
 	        bool online_only = true,
 	        const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest = {});
 	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);

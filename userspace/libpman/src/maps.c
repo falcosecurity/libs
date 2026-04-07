@@ -80,6 +80,10 @@ static void set_ringbufs_num() {
 	        pman_is_cpus_to_ringbufs_mapping_disabled() ? g_state.n_required_buffers : 0;
 }
 
+static void set_max_iters_num(const uint8_t max_iters_num) {
+	g_state.skel->rodata->max_iters_num = max_iters_num;
+}
+
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
@@ -384,6 +388,43 @@ static int size_counter_maps(const struct bpf_probe* probe, const uint32_t max_e
 
 /*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
 
+/*=============================== BPF ITERATOR MAPS ===============================*/
+
+#ifdef BPF_ITERATOR_SUPPORT
+
+static int configure_iter_map(struct bpf_map* map, const uint32_t max_entries) {
+	// Set the type to `BPF_MAP_TYPE_ARRAY` or `BPF_MAP_TYPE_HASH` depending on the number of chosen
+	// max entries.
+	const enum bpf_map_type map_type = max_entries == 1 ? BPF_MAP_TYPE_ARRAY : BPF_MAP_TYPE_HASH;
+	if(bpf_map__set_type(map, map_type)) {
+		const int last_errno = errno;
+		const char* map_name = bpf_map__name(map);
+		pman_print_errorf("unable to set map type for '%s' to %d", map_name, map_type);
+		return last_errno;
+	}
+
+	if(bpf_map__set_max_entries(map, max_entries)) {
+		const int last_errno = errno;
+		const char* map_name = bpf_map__name(map);
+		pman_print_errorf("unable to set max entries for '%s' to %d", map_name, max_entries);
+		return last_errno;
+	}
+	return 0;
+}
+
+static int configure_iter_auxiliary_maps(const struct bpf_probe* probe,
+                                         const uint32_t max_entries) {
+	return configure_iter_map(probe->maps.iter_auxiliary_map, max_entries);
+}
+
+static int configure_iter_counters_maps(const struct bpf_probe* probe, const uint32_t max_entries) {
+	return configure_iter_map(probe->maps.iter_counters_map, max_entries);
+}
+
+#endif  // BPF_ITERATOR_SUPPORT
+
+/*=============================== BPF ITERATOR MAPS ===============================*/
+
 /* Here we split maps operations, before and after the loading phase.
  */
 
@@ -394,20 +435,38 @@ int pman_prepare_maps_before_loading() {
 	pman_fill_ia32_to_64_table();
 	pman_fill_syscall_sampling_table();
 	set_ringbufs_num();
+#ifdef BPF_ITERATOR_SUPPORT
+	set_max_iters_num(g_state.n_max_iters);
+#else
+	set_max_iters_num(1);
+#endif  // BPF_ITERATOR_SUPPORT
 
 	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY. The number of entries will be
 	 * always equal to the CPUs number, even if some of them are not online.
 	 */
 	int err = size_auxiliary_maps(g_state.skel, g_state.n_possible_cpus);
 	err = err ?: size_counter_maps(g_state.skel, g_state.n_possible_cpus);
+
+#ifdef BPF_ITERATOR_SUPPORT
+	/* We need to set the entries number for every map used by BPF iterator programs. The number of
+	 * entries will be always equal to the maximum number of allowed iterator threads, even if it
+	 * doesn't happen we manage to encounter all of them.
+	 */
+	err = err ?: configure_iter_auxiliary_maps(g_state.skel, g_state.n_max_iters);
+	err = err ?: configure_iter_counters_maps(g_state.skel, g_state.n_max_iters);
+#endif  // BPF_ITERATOR_SUPPORT
+
 	return err;
 }
 
 #ifdef BPF_ITERATOR_SUPPORT
 // Variant of `pman_prepare_maps_before_loading()` used for testing BPF iterator programs support.
 int iter_support_probing__prepare_maps_before_loading(struct iter_support_probing_ctx* ctx) {
+	set_max_iters_num(1);
 	int err = size_auxiliary_maps(ctx->probe, 1);
 	err = err ?: size_counter_maps(ctx->probe, 1);
+	err = err ?: configure_iter_auxiliary_maps(ctx->probe, 1);
+	err = err ?: configure_iter_counters_maps(ctx->probe, 1);
 	return err;
 }
 #endif  // BPF_ITERATOR_SUPPORT

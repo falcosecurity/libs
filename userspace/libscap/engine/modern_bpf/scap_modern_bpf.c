@@ -291,6 +291,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs) {
 	if(pman_init_state(oargs->log_fn,
 	                   params->buffer_bytes_dim,
 	                   params->buffers_num,
+	                   params->iters_num,
 	                   params->allocate_online_only)) {
 		return scap_errprintf(handle->m_lasterr, 0, "unable to configure the libpman state.");
 	}
