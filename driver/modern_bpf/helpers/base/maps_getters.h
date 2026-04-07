@@ -186,7 +186,7 @@ static __always_inline uint16_t maps__get_ppm_sc(uint16_t syscall_id) {
 #ifdef BPF_ITERATOR_SUPPORT
 
 static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
-	uint32_t key = 0;
+	uint32_t key = max_iters_num == 1 ? 0 : (uint32_t)bpf_get_current_pid_tgid();
 	return bpf_map_lookup_elem(&iter_auxiliary_map, &key);
 }
 
@@ -199,7 +199,7 @@ static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
 #ifdef BPF_ITERATOR_SUPPORT
 
 static __always_inline struct iter_counters *maps__get_iter_counters() {
-	uint32_t key = 0;
+	uint32_t key = max_iters_num == 1 ? 0 : (uint32_t)bpf_get_current_pid_tgid();
 	return bpf_map_lookup_elem(&iter_counters_map, &key);
 }
 

@@ -18,6 +18,7 @@ limitations under the License.
 
 #define MODERN_BPF_ENGINE "modern_bpf"
 #define DEFAULT_BUFFERS_NUM 1
+#define DEFAULT_ITERS_NUM 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +32,8 @@ struct scap_modern_bpf_engine_params {
 	                     ///<   number of CPUs to which we want to associate a ring buffer.
 	                     ///< - if buffers_num == 0, it means that 1 ring buffer is shared among all
 	                     ///<   available CPUs.
+	int iters_num;  ///< [EXPERIMENTAL] Determines the maximum number of allowed iterator threads.
+	                ///< It must be in the range [1; 255].
 	bool allocate_online_only;  ///< [EXPERIMENTAL] Allocate ring buffers only for online CPUs. The
 	                            ///< number of ring buffers allocated changes according to the
 	                            ///< `buffers_num` param. This parameter is taken into account only

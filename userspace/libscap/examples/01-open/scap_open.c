@@ -50,6 +50,7 @@ using namespace std;
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
 #define BUFFERS_NUM_OPTION "--buffers_num"
+#define ITERS_NUM_OPTION "--iters_num"
 #define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 #define DROP_FAILED "--drop-failed"
 #define VERBOSE_OPTION "--verbose"
@@ -307,6 +308,10 @@ void print_help() {
 	       "`<buffers_num == 0` it means that 1 ring buffer is shared among all available CPUs. "
 	       "Default: 1.\n",
 	       BUFFERS_NUM_OPTION);
+	printf("'%s <iters_num>': determines the maximum number of allowed iterator threads. "
+	       "It must be in the range [1; 255]. Moreover, it must also be greater than or equal to "
+	       "`<buffers_num>` if this latter is greater than 1. Default: 1.\n",
+	       ITERS_NUM_OPTION);
 	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for "
 	       "online CPUs only.\n",
 	       ALL_AVAILABLE_CPUS_MODE);
@@ -414,6 +419,7 @@ void parse_CLI_options(int argc, char** argv) {
 			vtable = &scap_modern_bpf_engine;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.buffers_num = DEFAULT_BUFFERS_NUM;
+			modern_bpf_params.iters_num = DEFAULT_ITERS_NUM;
 			modern_bpf_params.allocate_online_only = true;
 			oargs.engine_params = &modern_bpf_params;
 		}
@@ -475,9 +481,10 @@ void parse_CLI_options(int argc, char** argv) {
 				exit(EXIT_FAILURE);
 			}
 
-			char* err_ptr;
-			const double buffers_num = strtod(argv[++i], &err_ptr);
-			if(*err_ptr != '\0' || buffers_num < 0) {
+			const char* ptr = argv[++i];
+			char* endptr;
+			const double buffers_num = strtod(ptr, &endptr);
+			if(endptr == ptr || *endptr != '\0' || buffers_num < 0) {
 				printf("\nInvalid %s parameter. Must be greater than or equal to 0. Bye!\n",
 				       BUFFERS_NUM_OPTION);
 				exit(EXIT_FAILURE);
@@ -499,6 +506,33 @@ void parse_CLI_options(int argc, char** argv) {
 			}
 
 			modern_bpf_params.buffers_num = buffers_num;
+		}
+		/* This should be used only with the modern probe */
+		if(!strcmp(argv[i], ITERS_NUM_OPTION)) {
+			if(!(i + 1 < argc)) {
+				printf("\nYou need to specify also the number of iterators. Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+
+			const char* ptr = argv[++i];
+			char* endptr;
+			const uint64_t iters_num = strtoull(ptr, &endptr, 10);
+			if(endptr == ptr || *endptr != '\0' || iters_num < 1 || iters_num > UINT8_MAX) {
+				printf("\nInvalid %s parameter. Must be in the range [1; 255]. Bye!\n",
+				       ITERS_NUM_OPTION);
+				exit(EXIT_FAILURE);
+			}
+
+			const double buffers_num = modern_bpf_params.buffers_num;
+			if(buffers_num > 1 && iters_num < buffers_num) {
+				printf("\nInvalid %s parameter. Must be greater than or equal to %g. Bye!\n",
+				       ITERS_NUM_OPTION,
+				       buffers_num);
+				exit(EXIT_FAILURE);
+			}
+
+			// Truncation never happens due to previous range check.
+			modern_bpf_params.iters_num = (int)iters_num;
 		}
 		/* This should be used only with the modern probe */
 		if(!strcmp(argv[i], ALL_AVAILABLE_CPUS_MODE)) {
