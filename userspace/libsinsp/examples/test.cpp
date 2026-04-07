@@ -85,9 +85,9 @@ static string filter_string = "";
 static string file_path = "";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static double buffers_num = DEFAULT_BUFFERS_NUM;
+static double iters_num = DEFAULT_ITERS_NUM;
 static bool all_cpus = false;
 static uint64_t max_events = UINT64_MAX;
-static uint32_t num_processing_threads = 1;  // Number of threads for parallel event processing
 static std::shared_ptr<sinsp_plugin> plugin;
 static std::string open_params;  // for source plugins, its open params
 static std::unique_ptr<filter_check_list> filter_list;
@@ -500,13 +500,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			" - if `<num> > 1`, number of requested ring buffers;\n"
 			" - if `<num> > 0 && <num> <= 1`, a ring buffer for every `1 / <num>` CPUs;\n"
 			" - if `<num> == 0`, one ring buffer shared among all CPUs.\n"
-			" Default when omitted: 1. Ignored when -P is specified.",
+			" Default when omitted: 1.",
 			cxxopts::value<double>())
-		("P,processing-threads",
-			"Number of parallel event processing threads with TGID-partitioned ring buffers.\n"
-			" Allocates <num> ring buffers with events routed by tgid, one thread per buffer.\n"
-			" When specified, overrides --buffers-num (-b).",
-			cxxopts::value<uint32_t>());
+		("iters-num",
+			"(modern eBPF probe only) Determines the maximum number of allowed iterator "
+			"threads. It must be in the range [1; 255]. Moreover, it must also be greater than or "
+			"equal to `<buffers-num>` if this latter is greater than 1. Default when omitted: 1.",
+			cxxopts::value<int>());
 	// clang-format on
 
 	add_platform_test_options(options);
@@ -618,6 +618,24 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			buffers_num = bufs_num;
 		}
 
+		if(result.count("iters-num")) {
+			const auto iters = result["iters-num"].as<int>();
+			if(const auto max_u8 = std::numeric_limits<uint8_t>::max();
+			   iters < 1 || iters > max_u8) {
+				std::cerr << "Invalid iters-num option value. Must be in range [1; " << max_u8
+				          << "]" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			if(buffers_num > 1 && iters < buffers_num) {
+				std::cerr << "Invalid iters-num option value. Must be greater than or equal to "
+				          << static_cast<int>(buffers_num) << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			iters_num = iters;
+		}
+
 		if(result.count("all-cpus")) {
 			all_cpus = true;
 		}
@@ -670,15 +688,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				          << std::endl;
 				exit(EXIT_FAILURE);
 			}
-		}
-
-		if(result.count("processing-threads")) {
-			num_processing_threads = result["processing-threads"].as<uint32_t>();
-			if(num_processing_threads < 2) {
-				std::cerr << "Number of processing threads must be >= 2" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			buffers_num = static_cast<double>(num_processing_threads);
 		}
 
 		parse_platform_test_options(result);
@@ -756,7 +765,7 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
-		inspector.open_modern_bpf(buffer_bytes_dim, buffers_num, !all_cpus, ppm_sc);
+		inspector.open_modern_bpf(buffer_bytes_dim, buffers_num, iters_num, !all_cpus, ppm_sc);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
@@ -1080,6 +1089,9 @@ int main(int argc, char** argv) {
 	std::cout << "-- Start capture" << std::endl;
 
 	inspector.start_capture();
+
+	static uint32_t num_processing_threads =
+	        buffers_num <= 1 ? 1 : static_cast<uint32_t>(buffers_num);
 
 	initialize_formatter_vectors(inspector, num_processing_threads);
 

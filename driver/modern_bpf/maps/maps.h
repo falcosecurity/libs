@@ -63,9 +63,17 @@ __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
 /**
  * @brief Number of ring buffers. If set to zero, events will be pushed to the ring buffer
- * associated with the current CPU).
+ * associated with the current CPU.
  */
 __weak const volatile uint16_t ringbufs_num;
+
+/**
+ * @brief Maximum number of allowed iterator threads that can run concurrently. This must always be
+ * strictly positive. This directly affects iterator-related maps: if set to 1, `iter_auxiliary_map`
+ * and `iter_counters_map` will be array maps with a single entry; otherwise, they will be hash maps
+ * with an entry for each worker, indexed by the thread id of the corresponding worker.
+ */
+__weak const volatile uint8_t max_iters_num = 1;
 
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
@@ -151,32 +159,6 @@ struct {
 	__type(value, struct capture_settings);
 } capture_settings __weak SEC(".maps");
 
-#ifdef BPF_ITERATOR_SUPPORT
-
-/**
- * @brief Global iterator auxiliary map where the iterator event is temporally saved before being
- * pushed to userspace.
- */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, uint32_t);
-	__type(value, struct auxiliary_map);
-} iter_auxiliary_map __weak SEC(".maps");
-
-/**
- * @brief Global iterator counters map accounting the number of dropped and processed iterator
- * events.
- */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, uint32_t);
-	__type(value, struct iter_counters);
-} iter_counters_map __weak SEC(".maps");
-
-#endif /* BPF_ITERATOR_SUPPORT */
-
 /* These maps have one entry for each CPU.
  *
  * PLEASE NOTE:
@@ -236,3 +218,38 @@ struct {
 } ringbuf_maps __weak SEC(".maps");
 
 /*=============================== RINGBUF MAP ===============================*/
+
+#ifdef BPF_ITERATOR_SUPPORT
+/*=============================== BPF ITERATOR MAPS ===============================*/
+
+/* The type of these maps is patched during the preloading phase, and is linked to the maximum
+ * number of concurrent userspace iterators (see `max_iters_num`):
+ * - if there is at most a single iterator, these will be array maps with a single entry
+ * - otherwise, they will be hash maps with an entry for each iterator, indexed by the thread id of
+ * the iterator thread.
+ */
+
+/**
+ * @brief Auxiliary map holding scratch buffers where iterator events are temporally saved before
+ * being pushed to userspace.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, uint32_t);
+	__type(value, struct auxiliary_map);
+} iter_auxiliary_map __weak SEC(".maps");
+
+/**
+ * @brief Counters map accounting the number of dropped and processed iterator events.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, uint32_t);
+	__type(value, struct iter_counters);
+} iter_counters_map __weak SEC(".maps");
+
+/*=============================== BPF ITERATOR MAPS ===============================*/
+
+#endif /* BPF_ITERATOR_SUPPORT */
