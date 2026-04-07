@@ -291,6 +291,14 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	node_info.m_field = check->get_transformed_field_info();
 	check->m_cache_metrics = m_cache_factory->new_metrics(e->left.get(), node_info);
 	check->m_extract_cache = m_cache_factory->new_extract_cache(e->left.get(), node_info);
+
+	// if the extraction comes from a plugin-implemented field, then
+	// we need to add a storage transformer as the cache may end up storing a
+	// shallow copy of the value pointers that are not valid anymore.
+	if(check->get_field_info()->is_ptr_unstable() && check->m_extract_cache) {
+		check->add_transformer(filter_transformer_type::FTR_STORAGE);
+	}
+
 	node_info.m_compare_operator = check->m_cmpop;
 	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
 
