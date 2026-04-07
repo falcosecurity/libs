@@ -278,6 +278,8 @@ void pman_close_probe() {
 #ifdef BPF_ITERATOR_SUPPORT
 
 	/* BPF iterators section */
+	g_state.n_max_iters = 0;
+	__atomic_store_n(&g_state.n_encountered_iters, 0, __ATOMIC_SEQ_CST);
 	g_state.is_tasks_dumping_supported = false;
 	g_state.is_task_files_dumping_supported = false;
 
