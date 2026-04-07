@@ -376,10 +376,36 @@ static void set_kernel_iter_counter(const uint32_t base_offset,
 // number of collected stats on success, -1 otherwise.
 static int collect_kernel_iter_counter_stats(const int counters_map_fd, const int base_offset) {
 	struct iter_counters counters = {};
-	const uint32_t key = 0;  // Just a single entry.
-	if(bpf_map_lookup_elem(counters_map_fd, &key, &counters) < 0) {
-		pman_print_errorf("unable to get BPF iterator programs counters");
-		return -1;
+	uint32_t key;
+	for(const uint32_t *prev = NULL; bpf_map_get_next_key(counters_map_fd, prev, &key) == 0;
+	    prev = &key) {
+		struct iter_counters entry = {};
+		if(bpf_map_lookup_elem(counters_map_fd, &key, &entry) < 0) {
+			pman_print_errorf("unable to get BPF iterator programs counters for tid %u", key);
+			return -1;
+		}
+
+		counters.n_evts_task += entry.n_evts_task;
+		counters.n_evts_task_file_pipe += entry.n_evts_task_file_pipe;
+		counters.n_evts_task_file_memfd += entry.n_evts_task_file_memfd;
+		counters.n_evts_task_file_regular += entry.n_evts_task_file_regular;
+		counters.n_evts_task_file_directory += entry.n_evts_task_file_directory;
+		counters.n_evts_task_file_socket_inet += entry.n_evts_task_file_socket_inet;
+		counters.n_evts_task_file_socket_inet6 += entry.n_evts_task_file_socket_inet6;
+		counters.n_evts_task_file_socket_unix += entry.n_evts_task_file_socket_unix;
+		counters.n_evts_task_file_socket_netlink += entry.n_evts_task_file_socket_netlink;
+		counters.n_evts_task_file_anon_inode += entry.n_evts_task_file_anon_inode;
+		counters.n_drops_max_event_size += entry.n_drops_max_event_size;
+		counters.n_drops_task += entry.n_drops_task;
+		counters.n_drops_task_file_pipe += entry.n_drops_task_file_pipe;
+		counters.n_drops_task_file_memfd += entry.n_drops_task_file_memfd;
+		counters.n_drops_task_file_regular += entry.n_drops_task_file_regular;
+		counters.n_drops_task_file_directory += entry.n_drops_task_file_directory;
+		counters.n_drops_task_file_socket_inet += entry.n_drops_task_file_socket_inet;
+		counters.n_drops_task_file_socket_inet6 += entry.n_drops_task_file_socket_inet6;
+		counters.n_drops_task_file_socket_unix += entry.n_drops_task_file_socket_unix;
+		counters.n_drops_task_file_socket_netlink += entry.n_drops_task_file_socket_netlink;
+		counters.n_drops_task_file_anon_inode += entry.n_drops_task_file_anon_inode;
 	}
 
 	set_kernel_iter_counter(base_offset, MODERN_BPF_ITER_N_EVTS_TASK, counters.n_evts_task);

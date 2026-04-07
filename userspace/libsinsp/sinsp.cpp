@@ -726,6 +726,7 @@ void sinsp::open_plugin(const std::string& plugin_name,
 
 void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
                             double buffers_num,
+                            int iters_num,
                             bool online_only,
                             const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest) {
 #ifdef HAS_ENGINE_MODERN_BPF
@@ -738,6 +739,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 	scap_modern_bpf_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	params.buffers_num = buffers_num;
+	params.iters_num = iters_num;
 	params.allocate_online_only = online_only;
 	oargs.engine_params = &params;
 

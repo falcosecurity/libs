@@ -78,7 +78,10 @@ struct internal_state {
 
 #ifdef BPF_ITERATOR_SUPPORT
 
-	/* BPF iterator section */
+	/* BPF iterators section */
+	uint8_t n_max_iters;         /* Maximum number of allowed iterator threads. */
+	uint8_t n_encountered_iters; /* Number of encountered iterator threads. Always <= `n_max_iters`.
+	                                Updated atomically. */
 	bool is_tasks_dumping_supported;      /* If true, use the corresponding BPF iterator program to
 	                                         gather tasks information */
 	bool is_task_files_dumping_supported; /* If true, use the corresponding BPF iterator program to

@@ -158,6 +158,8 @@ int open_engine(int argc, char** argv) {
 		{
 			abort_if_already_configured(vtable);
 			vtable = &scap_modern_bpf_engine;
+			modern_bpf_params.buffers_num = DEFAULT_BUFFERS_NUM;
+			modern_bpf_params.iters_num = DEFAULT_ITERS_NUM;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &modern_bpf_params;
 			std::cout << "* Configure modern BPF probe tests!" << std::endl;
