@@ -464,13 +464,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		("d,buffer_dim",
 			"Dimension in bytes that every buffer will have.",
 			cxxopts::value<unsigned long>())
-		("c,buffers-num",
-		"(modern eBPF probe only) Determines the number of allocated ring buffers. The behaviour depends on its value:\n"
-										 " - if `<num> > 1`, it is the number of requested ring buffers;\n"
-										 " - if `<num> > 0 && <num> <= 1`, a ring buffer is allocated for every `1 / <num>`;\n"
-										 " - if `<num> == 0`, it means that 1 ring buffer is shared among all available CPUs.\n"
-										 " (default: 1).",
-			cxxopts::value<double>())
 		("A,all-cpus",
 			"(modern eBPF probe only) Allocate ring buffers for all available CPUs "
 			"(default: allocate ring buffers for online CPU(s) only).")
@@ -502,16 +495,17 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			"-T or -Tbrief print tables descriptions. -Tlist print table entries, if "
 			"-n is specified, print only the first n entries.",
 			cxxopts::value<std::string>()->implicit_value("brief"))
-		("b,buffers_num",
-			"Advanced: controls ring buffer allocation without parallel processing.\n"
-			" - if `<num> > 0 && <num> <= 1`, a ring buffer is allocated for every `1 / <num>` CPUs;\n"
-			" - if `<num> == 0`, it means that 1 ring buffer is shared among all available CPUs.\n"
-			" Default: (online CPUs)/2, at least 1. Ignored when -P is specified.",
+		("b,buffers-num",
+			"(modern eBPF probe only) Ring buffer allocation when not using -P. Behaviour:\n"
+			" - if `<num> > 1`, number of requested ring buffers;\n"
+			" - if `<num> > 0 && <num> <= 1`, a ring buffer for every `1 / <num>` CPUs;\n"
+			" - if `<num> == 0`, one ring buffer shared among all CPUs.\n"
+			" Default when omitted: 1. Ignored when -P is specified.",
 			cxxopts::value<double>())
 		("P,processing-threads",
 			"Number of parallel event processing threads with TGID-partitioned ring buffers.\n"
 			" Allocates <num> ring buffers with events routed by tgid, one thread per buffer.\n"
-			" When specified, overrides -b.",
+			" When specified, overrides --buffers-num (-b).",
 			cxxopts::value<uint32_t>());
 	// clang-format on
 
@@ -593,10 +587,10 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			buffer_bytes_dim = result["buffer_dim"].as<unsigned long>();
 		}
 
-		if(result.count("buffers_num")) {
-			const auto bufs_num = result["buffers_num"].as<double>();
+		if(result.count("buffers-num")) {
+			const auto bufs_num = result["buffers-num"].as<double>();
 			if(bufs_num < 0) {
-				std::cerr << "Invalid buffers_num option value. Must be greater than or equal to 0"
+				std::cerr << "Invalid buffers-num option value. Must be greater than or equal to 0"
 				             " option value. Must be greater than or equal to 0"
 				          << std::endl;
 				exit(EXIT_FAILURE);
@@ -606,7 +600,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				if(const auto cpus_for_each_buffer = static_cast<double>(1) / bufs_num;
 				   cpus_for_each_buffer !=
 				   static_cast<double>(static_cast<uint16_t>(cpus_for_each_buffer))) {
-					std::cerr << "Invalid buffers_num option value. 1 / <num> must be a positive "
+					std::cerr << "Invalid buffers-num option value. 1 / <num> must be a positive "
 					             "integer"
 					             " option value. 1 / <num> must be a positive integer"
 					          << std::endl;
@@ -614,13 +608,14 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				}
 			} else if(bufs_num !=
 			          static_cast<double>(static_cast<uint16_t>(bufs_num))) {  // bufs_num > 1
-				std::cerr << "Invalid buffers_num option value. If the value specified is above 1, "
+				std::cerr << "Invalid buffers-num option value. If the value specified is above 1, "
 				             "it must be a positive integer"
 				          << " option value. If the value specified is above 1, it must be a "
 				             "positive integer"
 				          << std::endl;
 				exit(EXIT_FAILURE);
 			}
+			buffers_num = bufs_num;
 		}
 
 		if(result.count("all-cpus")) {
