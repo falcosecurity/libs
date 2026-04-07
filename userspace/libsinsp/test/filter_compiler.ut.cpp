@@ -843,6 +843,48 @@ TEST_F(sinsp_with_test_input, filter_cache_pointer_instability) {
 	EXPECT_FALSE(eval_filter(evt, "(evt.arg.ret = val(evt.arg.reaper_tid))"));
 }
 
+// Verify that a unary 'exists' check on a plugin field doesn't poison
+// the shared extract cache with unstable pointers for a later binary check.
+// Pattern: field_A exists AND field_B = "x" AND field_A = "y"
+// Without FTR_STORAGE on the unary check, the extract cache stores a shallow
+// pointer for field_A. When field_B is extracted from the same plugin, the
+// plugin's internal buffer is overwritten, making the cached pointer stale.
+// The final binary check on field_A hits the cache and reads garbage data.
+TEST_F(sinsp_with_test_input, filter_cache_unary_check_plugin_ptr_instability) {
+	sinsp_filter_check_list flist;
+
+	add_default_init_thread();
+	open_inspector();
+
+	// Register a plugin with extraction capabilities
+	std::string err;
+	plugin_api papi;
+	get_plugin_api_sample_syscall_extract(papi);
+	auto pl = m_inspector.register_plugin(&papi);
+	ASSERT_TRUE(pl->init("", err)) << err;
+	flist.add_filter_check(m_inspector.new_generic_filtercheck());
+	flist.add_filter_check(sinsp_plugin::new_filtercheck(pl));
+
+	auto ff = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	auto cf = std::make_shared<test_sinsp_filter_cache_factory>();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// Both sample.proc_name and sample.tick are string fields sharing the
+	// same internal storage in the test plugin. Extracting sample.tick after
+	// sample.proc_name overwrites the buffer, invalidating any cached pointer.
+	//
+	// Without FTR_STORAGE on the unary 'exists' check:
+	//   1. "sample.proc_name exists" caches a shallow pointer to "init"
+	//   2. "sample.tick = \"false\"" extracts tick, overwriting the buffer
+	//   3. "sample.proc_name = \"init\"" cache hit → reads stale data → FALSE
+	// With FTR_STORAGE, step 1 deep-copies the value, so step 3 succeeds.
+	ASSERT_TRUE(eval_filter(
+	        evt,
+	        "sample.proc_name exists and sample.tick = \"false\" and sample.proc_name = \"init\"",
+	        ff,
+	        cf));
+}
+
 TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation) {
 	// Basic case just to assert that the basic setup works
 	add_default_init_thread();
