@@ -294,6 +294,68 @@ static int collect_kernel_counter_stats(const int counter_maps_fd, const bool co
 	return collected_stats;
 }
 
+// Collects stats for `METRICS_V2_LIBBPF_STATS`. `base_offset` is the first free position in the
+// global v2 metrics array to push libbpf stats to. Returns the strictly-positive number of
+// collected stats on success, -1 otherwise.
+static int collect_libbpf_stats(const int base_offset) {
+	int fd = 0;
+	int offset = base_offset;
+	for(int bpf_prog = 0; bpf_prog < MODERN_BPF_PROG_ATTACHED_MAX; bpf_prog++) {
+		fd = g_state.attached_progs_fds[bpf_prog];
+		if(fd < 0) {
+			/* landing here means prog was not attached */
+			continue;
+		}
+		struct bpf_prog_info info = {};
+		__u32 len = sizeof(info);
+		if(bpf_obj_get_info_by_fd(fd, &info, &len)) {
+			/* no info for that prog, it seems like a bug, but we can go on */
+			continue;
+		}
+
+		for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++) {
+			if(offset >= g_state.nstats) {
+				/* This should never happen, we are doing something wrong */
+				pman_print_errorf("no enough space for all the stats");
+				return -1;
+			}
+			g_state.stats[offset].type = METRIC_VALUE_TYPE_U64;
+			g_state.stats[offset].flags = METRICS_V2_LIBBPF_STATS;
+			strlcpy(g_state.stats[offset].name, info.name, METRIC_NAME_MAX);
+			strlcat(g_state.stats[offset].name,
+			        modern_bpf_libbpf_stats_names[stat],
+			        sizeof(g_state.stats[offset].name));
+			switch(stat) {
+			case RUN_CNT:
+				g_state.stats[offset].unit = METRIC_VALUE_UNIT_COUNT;
+				g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+				g_state.stats[offset].value.u64 = info.run_cnt;
+				break;
+			case RUN_TIME_NS:
+				g_state.stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
+				g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+				g_state.stats[offset].value.u64 = info.run_time_ns;
+				break;
+			case AVG_TIME_NS:
+				g_state.stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
+				g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
+				g_state.stats[offset].value.u64 = 0;
+				if(info.run_cnt > 0) {
+					g_state.stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
+				}
+				break;
+			default:
+				ASSERT(false);
+				break;
+			}
+			offset++;
+		}
+	}
+
+	const int collected_stats = offset - base_offset;
+	return collected_stats;
+}
+
 static void set_kernel_iter_counter(const uint32_t base_offset,
                                     const uint32_t stat_index,
                                     const uint64_t val) {
@@ -339,60 +401,12 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	 * we can simulate perf comparisons between future LSM hooks and tracepoints by leveraging
 	 * syscall selection mechanisms `handle->curr_sc_set`.
 	 */
-	if((flags & METRICS_V2_LIBBPF_STATS)) {
-		int fd = 0;
-		for(int bpf_prog = 0; bpf_prog < MODERN_BPF_PROG_ATTACHED_MAX; bpf_prog++) {
-			fd = g_state.attached_progs_fds[bpf_prog];
-			if(fd < 0) {
-				/* landing here means prog was not attached */
-				continue;
-			}
-			struct bpf_prog_info info = {};
-			__u32 len = sizeof(info);
-			if((bpf_obj_get_info_by_fd(fd, &info, &len))) {
-				/* no info for that prog, it seems like a bug but we can go on */
-				continue;
-			}
-
-			for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++) {
-				if(offset >= g_state.nstats) {
-					/* This should never happen, we are doing something wrong */
-					pman_print_errorf("no enough space for all the stats");
-					return NULL;
-				}
-				g_state.stats[offset].type = METRIC_VALUE_TYPE_U64;
-				g_state.stats[offset].flags = METRICS_V2_LIBBPF_STATS;
-				strlcpy(g_state.stats[offset].name, info.name, METRIC_NAME_MAX);
-				strlcat(g_state.stats[offset].name,
-				        modern_bpf_libbpf_stats_names[stat],
-				        sizeof(g_state.stats[offset].name));
-				switch(stat) {
-				case RUN_CNT:
-					g_state.stats[offset].unit = METRIC_VALUE_UNIT_COUNT;
-					g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-					g_state.stats[offset].value.u64 = info.run_cnt;
-					break;
-				case RUN_TIME_NS:
-					g_state.stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
-					g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-					g_state.stats[offset].value.u64 = info.run_time_ns;
-					break;
-				case AVG_TIME_NS:
-					g_state.stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
-					g_state.stats[offset].metric_type =
-					        METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
-					g_state.stats[offset].value.u64 = 0;
-					if(info.run_cnt > 0) {
-						g_state.stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
-					}
-					break;
-				default:
-					ASSERT(false);
-					break;
-				}
-				offset++;
-			}
+	if(flags & METRICS_V2_LIBBPF_STATS) {
+		const int collected_stats = collect_libbpf_stats(offset);
+		if(collected_stats < 0) {
+			return NULL;
 		}
+		offset += collected_stats;
 	}
 
 	/* BPF ITERATOR PROGRAMS STATS */
