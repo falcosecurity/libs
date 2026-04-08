@@ -39,6 +39,7 @@ typedef enum modern_bpf_kernel_counters_stats {
 	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
 } modern_bpf_kernel_counters_stats;
 
+#ifdef BPF_ITERATOR_SUPPORT
 typedef enum modern_bpf_kernel_iter_counters_stats {
 	MODERN_BPF_ITER_N_EVTS_TASK = 0,
 	MODERN_BPF_ITER_N_EVTS_TASK_FILE_PIPE,
@@ -63,6 +64,7 @@ typedef enum modern_bpf_kernel_iter_counters_stats {
 	MODERN_BPF_ITER_N_DROPS_TASK_FILE_ANON_INODE,
 	MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS
 } modern_bpf_kernel_iter_counters_stats;
+#endif /* BPF_ITERATOR_SUPPORT */
 
 typedef enum modern_bpf_libbpf_stats {
 	RUN_CNT = 0,
@@ -88,6 +90,7 @@ const char *const modern_bpf_kernel_counters_stats_names[] = {
         [MODERN_BPF_N_DROPS] = "n_drops",
 };
 
+#ifdef BPF_ITERATOR_SUPPORT
 const char *const modern_bpf_kernel_iter_counters_stats_names[] = {
         [MODERN_BPF_ITER_N_EVTS_TASK] = "n_evts_task",
         [MODERN_BPF_ITER_N_EVTS_TASK_FILE_PIPE] = "n_evts_task_file_pipe",
@@ -111,6 +114,7 @@ const char *const modern_bpf_kernel_iter_counters_stats_names[] = {
         [MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_NETLINK] = "n_drops_task_file_socket_netlink",
         [MODERN_BPF_ITER_N_DROPS_TASK_FILE_ANON_INODE] = "n_drops_task_file_anon_inode",
 };
+#endif /* BPF_ITERATOR_SUPPORT */
 
 const char *const modern_bpf_libbpf_stats_names[] = {
         [RUN_CNT] = ".run_cnt",          ///< `bpf_prog_info` run_cnt.
@@ -196,9 +200,11 @@ static int init_metrics_v2(const uint32_t flags) {
 
 	// Account for statistics related to BPF iterator programs.
 	uint32_t iter_stats = 0;
+#ifdef BPF_ITERATOR_SUPPORT
 	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
 		iter_stats = MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS;
 	}
+#endif /* BPF_ITERATOR_SUPPORT */
 
 	const uint32_t n_stats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats +
 	                         (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS) + iter_stats;
@@ -356,6 +362,8 @@ static int collect_libbpf_stats(const int base_offset) {
 	return collected_stats;
 }
 
+#ifdef BPF_ITERATOR_SUPPORT
+
 static void set_kernel_iter_counter(const uint32_t base_offset,
                                     const uint32_t stat_index,
                                     const uint64_t val) {
@@ -440,6 +448,8 @@ static int collect_kernel_iter_counter_stats(const int counters_map_fd, const in
 	return collected_stats;
 }
 
+#endif /* BPF_ITERATOR_SUPPORT */
+
 struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t *rc) {
 	*rc = SCAP_FAILURE;
 	*nstats = 0;
@@ -484,6 +494,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 		offset += collected_stats;
 	}
 
+#ifdef BPF_ITERATOR_SUPPORT
 	/* BPF ITERATOR PROGRAMS STATS */
 	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
 		const int counters_map_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
@@ -499,6 +510,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 		}
 		offset += collected_stats;
 	}
+#endif /* BPF_ITERATOR_SUPPORT */
 
 	/* Update with the real number of stats collected */
 	*nstats = offset;
