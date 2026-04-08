@@ -4171,5 +4171,8 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
 	if(targetfd_fdinfo == nullptr) {
 		return;
 	}
-	evt.get_tinfo()->add_fd(fd, targetfd_fdinfo->clone());
+	auto fdi = targetfd_fdinfo->clone();
+	fdi->clear_close_on_exec_bits();
+	fdi->m_openflags |= PPM_O_CLOEXEC;
+	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
