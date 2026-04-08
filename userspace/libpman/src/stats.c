@@ -170,6 +170,49 @@ clean_print_stats:
 	return errno;
 }
 
+// Initializes global v2 metrics. Returns 0 on success, -1 otherwise.
+static int init_metrics_v2(const uint32_t flags) {
+	if(g_state.stats) {
+		pman_print_errorf("bug: 'metrics_v2' array is already allocated");
+		return -1;
+	}
+
+	g_state.nstats = 0;
+
+	int nprogs_attached = 0;
+	for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++) {
+		if(g_state.attached_progs_fds[j] != -1) {
+			nprogs_attached++;
+		}
+	}
+
+	uint32_t per_cpu_stats = 0;
+	if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) {
+		// At the moment for each available CPU we want:
+		// - the number of events.
+		// - the number of drops.
+		per_cpu_stats = g_state.n_possible_cpus * 2;
+	}
+
+	// Account for statistics related to BPF iterator programs.
+	uint32_t iter_stats = 0;
+	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
+		iter_stats = MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS;
+	}
+
+	const uint32_t n_stats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats +
+	                         (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS) + iter_stats;
+	struct metrics_v2 *stats = (metrics_v2 *)calloc(n_stats, sizeof(metrics_v2));
+	if(!stats) {
+		pman_print_errorf("unable to allocate memory for 'metrics_v2' array");
+		return -1;
+	}
+
+	g_state.nstats = n_stats;
+	g_state.stats = stats;
+	return 0;
+}
+
 static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_t metric_flag) {
 	g_state.stats[pos].type = METRIC_VALUE_TYPE_U64;
 	g_state.stats[pos].flags = metric_flag;
@@ -191,37 +234,9 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	*rc = SCAP_FAILURE;
 	*nstats = 0;
 
-	// If it is the first time we call this function we populate the stats
-	if(g_state.stats == NULL) {
-		int nprogs_attached = 0;
-		for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++) {
-			if(g_state.attached_progs_fds[j] != -1) {
-				nprogs_attached++;
-			}
-		}
-
-		uint32_t per_cpu_stats = 0;
-		if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) {
-			// At the moment for each available CPU we want:
-			// - the number of events.
-			// - the number of drops.
-			per_cpu_stats = g_state.n_possible_cpus * 2;
-		}
-
-		// Account for statistics related to BPF iterator programs.
-		uint32_t iter_stats = 0;
-		if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
-			iter_stats = MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS;
-		}
-
-		g_state.nstats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats +
-		                 (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS) + iter_stats;
-		g_state.stats = (metrics_v2 *)calloc(g_state.nstats, sizeof(metrics_v2));
-		if(!g_state.stats) {
-			g_state.nstats = 0;
-			pman_print_errorf("unable to allocate memory for 'metrics_v2' array");
-			return NULL;
-		}
+	// If it is the first time we call this function we populate the stats.
+	if(g_state.stats == NULL && init_metrics_v2(flags) < 0) {
+		return NULL;
 	}
 
 	// offset in stats buffer
