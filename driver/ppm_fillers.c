@@ -5562,6 +5562,7 @@ int f_sys_io_uring_register_x(struct event_filler_arguments *args) {
 
 int f_sys_timerfd_create_x(struct event_filler_arguments *args) {
 	int64_t retval;
+	int64_t val;
 	int res;
 
 	/* Parameter 1: res (type: PT_FD) */
@@ -5571,12 +5572,14 @@ int f_sys_timerfd_create_x(struct event_filler_arguments *args) {
 
 	/* Parameter 2: clockid (type: PT_UINT8) */
 	/* Send `0`. */
-	res = val_to_ring(args, 0, 0, false, 0);
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, (uint8_t)val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_UINT8) */
 	/* Send `0`. */
-	res = val_to_ring(args, 0, 0, false, 0);
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, timerfd_create_flags_to_scap((int32_t)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

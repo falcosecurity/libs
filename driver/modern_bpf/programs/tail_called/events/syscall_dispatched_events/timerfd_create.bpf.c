@@ -25,12 +25,12 @@ int BPF_PROG(timerfd_create_x, struct pt_regs *regs, long ret) {
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: clockid (type: PT_UINT8) */
-	/* Like in the old probe we send `0` */
-	ringbuf__store_u8(&ringbuf, 0);
+	uint8_t clockid = (uint8_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u8(&ringbuf, clockid);
 
 	/* Parameter 3: flags (type: PT_UINT8) */
-	/* Like in the old probe we send `0` */
-	ringbuf__store_u8(&ringbuf, 0);
+	uint8_t flags = timerfd_create_flags_to_scap((int32_t)extract__syscall_argument(regs, 1));
+	ringbuf__store_u8(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

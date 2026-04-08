@@ -197,6 +197,28 @@ static __always_inline uint32_t open_modes_to_scap(unsigned long flags, unsigned
 	return res;
 }
 
+static __always_inline uint8_t timerfd_create_flags_to_scap(int32_t flags) {
+	uint8_t res = 0;
+
+	if(flags < 0) {
+		return res;
+	}
+
+#ifdef O_NONBLOCK
+	// TFD_NONBLOCK is #defined as O_NONBLOCK
+	if(flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+
+#ifdef O_CLOEXEC
+	// TFD_CLOEXEC is #defined as O_CLOEXEC
+	if(flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
 static __always_inline uint32_t openat2_resolve_to_scap(unsigned long flags) {
 	uint32_t res = 0;
 #ifdef RESOLVE_NO_XDEV

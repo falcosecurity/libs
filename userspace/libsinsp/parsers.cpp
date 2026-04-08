@@ -3665,6 +3665,11 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
 	}
 
+	if(evt.get_type() == PPME_SYSCALL_TIMERFD_CREATE_X) {
+		/* flags is param 3 (index 2) in the exit event */
+		fdi->m_openflags = evt.get_param(2)->as<uint8_t>();
+	}
+
 	if(evt.get_type() == PPME_SYSCALL_EPOLL_CREATE1_X) {
 		/* flags is param 2 (index 1) in the exit event */
 		uint32_t openflags = evt.get_param(1)->as<uint32_t>();
