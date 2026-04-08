@@ -4143,8 +4143,8 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt &evt) const {
 		fdi->add_filename(fname);
 		fdi->m_openflags = flags;
 		fdi->m_pid = pid;
+		evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 	}
-	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
 void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
