@@ -194,7 +194,8 @@ private:
 	                       int64_t fd,
 	                       uint32_t domain,
 	                       uint32_t type,
-	                       uint32_t protocol) const;
+	                       uint32_t protocol,
+	                       uint32_t flags) const;
 	inline void infer_send_sendto_sendmsg_fdinfo(sinsp_evt& evt) const;
 	inline void add_pipe(sinsp_evt& evt, int64_t fd, uint64_t ino, uint32_t openflags) const;
 	// Return false if the update didn't happen (for example because the tuple is NULL)

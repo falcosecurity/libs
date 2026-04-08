@@ -23,7 +23,7 @@
 /* Syscall events */
 #define SYSCALL_X_SIZE HEADER_LEN + sizeof(uint16_t) * 2 + PARAM_LEN * 2
 #define CLOSE_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
-#define SOCKET_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
+#define SOCKET_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 4 + PARAM_LEN * 5
 #define LISTEN_X_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(int64_t) * 2 + PARAM_LEN * 3
 #define SHUTDOWN_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
 #define GETSOCKNAME_X_SIZE HEADER_LEN

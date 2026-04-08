@@ -723,9 +723,17 @@ TEST_F(scap_file_test, socket_x_check_final_converted_event) {
 	constexpr uint32_t domain = 2;
 	constexpr uint32_t type = 524289;
 	constexpr uint32_t proto = 0;
+	constexpr uint32_t flags = 0;
 
-	assert_event_presence(
-	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SOCKET_SOCKET_X,
+	                                             5,
+	                                             fd,
+	                                             domain,
+	                                             type,
+	                                             proto,
+	                                             flags));
 }
 
 ////////////////////////////
