@@ -365,6 +365,81 @@ static void set_kernel_iter_counter(const uint32_t base_offset,
 	strlcpy(g_state.stats[stat_pos].name, stat_name, METRIC_NAME_MAX);
 }
 
+// Collects stats for `METRICS_V2_KERNEL_ITER_COUNTERS`. `base_offset` is the first free position in
+// the global v2 metrics array to push kernel iterator stats to. Returns the strictly-positive
+// number of collected stats on success, -1 otherwise.
+static int collect_kernel_iter_counter_stats(const int counters_map_fd, const int base_offset) {
+	struct iter_counters counters = {};
+	const uint32_t key = 0;  // Just a single entry.
+	if(bpf_map_lookup_elem(counters_map_fd, &key, &counters) < 0) {
+		pman_print_errorf("unable to get BPF iterator programs counters");
+		return -1;
+	}
+
+	set_kernel_iter_counter(base_offset, MODERN_BPF_ITER_N_EVTS_TASK, counters.n_evts_task);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_PIPE,
+	                        counters.n_evts_task_file_pipe);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_MEMFD,
+	                        counters.n_evts_task_file_memfd);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_REGULAR,
+	                        counters.n_evts_task_file_regular);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_DIRECTORY,
+	                        counters.n_evts_task_file_directory);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_INET,
+	                        counters.n_evts_task_file_socket_inet);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_INET6,
+	                        counters.n_evts_task_file_socket_inet6);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_UNIX,
+	                        counters.n_evts_task_file_socket_unix);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_NETLINK,
+	                        counters.n_evts_task_file_socket_netlink);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_ANON_INODE,
+	                        counters.n_evts_task_file_anon_inode);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_MAX_EVENT_SIZE,
+	                        counters.n_drops_max_event_size);
+	set_kernel_iter_counter(base_offset, MODERN_BPF_ITER_N_DROPS_TASK, counters.n_drops_task);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_PIPE,
+	                        counters.n_drops_task_file_pipe);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_MEMFD,
+	                        counters.n_drops_task_file_memfd);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_REGULAR,
+	                        counters.n_drops_task_file_regular);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_DIRECTORY,
+	                        counters.n_drops_task_file_directory);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_INET,
+	                        counters.n_drops_task_file_socket_inet);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_INET6,
+	                        counters.n_drops_task_file_socket_inet6);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_UNIX,
+	                        counters.n_drops_task_file_socket_unix);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_NETLINK,
+	                        counters.n_drops_task_file_socket_netlink);
+	set_kernel_iter_counter(base_offset,
+	                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_ANON_INODE,
+	                        counters.n_drops_task_file_anon_inode);
+
+	const int collected_stats = MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS;
+	return collected_stats;
+}
+
 struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t *rc) {
 	*rc = SCAP_FAILURE;
 	*nstats = 0;
@@ -411,81 +486,18 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 	/* BPF ITERATOR PROGRAMS STATS */
 	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
-		const int counters_maps_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
-		if(counters_maps_fd < 0) {
+		const int counters_map_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
+		if(counters_map_fd < 0) {
 			pman_print_errorf(
 			        "unable to get 'iter_counters_map' fd during kernel stats processing");
 			return NULL;
 		}
 
-		struct iter_counters counters = {};
-		const uint32_t key = 0;  // Just a single entry.
-		if(bpf_map_lookup_elem(counters_maps_fd, &key, &counters) < 0) {
-			pman_print_errorf("unable to get BPF iterator programs counters");
-			close(counters_maps_fd);
+		const int collected_stats = collect_kernel_iter_counter_stats(counters_map_fd, offset);
+		if(collected_stats < 0) {
 			return NULL;
 		}
-
-		set_kernel_iter_counter(offset, MODERN_BPF_ITER_N_EVTS_TASK, counters.n_evts_task);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_PIPE,
-		                        counters.n_evts_task_file_pipe);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_MEMFD,
-		                        counters.n_evts_task_file_memfd);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_REGULAR,
-		                        counters.n_evts_task_file_regular);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_DIRECTORY,
-		                        counters.n_evts_task_file_directory);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_INET,
-		                        counters.n_evts_task_file_socket_inet);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_INET6,
-		                        counters.n_evts_task_file_socket_inet6);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_UNIX,
-		                        counters.n_evts_task_file_socket_unix);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_SOCKET_NETLINK,
-		                        counters.n_evts_task_file_socket_netlink);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_EVTS_TASK_FILE_ANON_INODE,
-		                        counters.n_evts_task_file_anon_inode);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_MAX_EVENT_SIZE,
-		                        counters.n_drops_max_event_size);
-		set_kernel_iter_counter(offset, MODERN_BPF_ITER_N_DROPS_TASK, counters.n_drops_task);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_PIPE,
-		                        counters.n_drops_task_file_pipe);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_MEMFD,
-		                        counters.n_drops_task_file_memfd);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_REGULAR,
-		                        counters.n_drops_task_file_regular);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_DIRECTORY,
-		                        counters.n_drops_task_file_directory);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_INET,
-		                        counters.n_drops_task_file_socket_inet);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_INET6,
-		                        counters.n_drops_task_file_socket_inet6);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_UNIX,
-		                        counters.n_drops_task_file_socket_unix);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_SOCKET_NETLINK,
-		                        counters.n_drops_task_file_socket_netlink);
-		set_kernel_iter_counter(offset,
-		                        MODERN_BPF_ITER_N_DROPS_TASK_FILE_ANON_INODE,
-		                        counters.n_drops_task_file_anon_inode);
-		offset += MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS;
+		offset += collected_stats;
 	}
 
 	/* Update with the real number of stats collected */
