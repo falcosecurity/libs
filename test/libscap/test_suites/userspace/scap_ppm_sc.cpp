@@ -21,6 +21,7 @@ limitations under the License.
 #include <sys/syscall.h>
 
 extern const syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+extern const struct ppm_event_info g_event_info[];
 
 TEST(scap_ppm_sc, scap_get_modifies_state_ppm_sc) {
 	/* Failure case */
@@ -54,6 +55,16 @@ TEST(scap_ppm_sc, scap_get_modifies_state_ppm_sc) {
 			}
 		}
 	}
+}
+
+static void assert_sc_associated_with_event(uint8_t* events_array, int ppm_sc, int event) {
+	if(g_event_info[event].flags & EF_UNUSED) {
+		return;
+	}
+
+	ASSERT_TRUE(events_array[event])
+	        << "ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)ppm_sc) << " (" << ppm_sc
+	        << ") should be associated with event: " << event << std::endl;
 }
 
 /* This check tries to check the correspondence between the `g_events_to_sc_map` and the
@@ -90,19 +101,22 @@ TEST(scap_ppm_sc, scap_get_events_from_ppm_sc) {
 		for(int sys_id = 0; sys_id < SYSCALL_TABLE_SIZE; sys_id++) {
 			syscall_evt_pair pair = g_syscall_table[sys_id];
 			if(pair.ppm_sc == ppm_sc) {
-				ASSERT_TRUE(events_array[pair.enter_event_type])
-				        << "ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)pair.ppm_sc) << " ("
-				        << pair.ppm_sc
-				        << ") should be associated with event: " << pair.enter_event_type
-				        << std::endl;
-				ASSERT_TRUE(events_array[pair.exit_event_type])
-				        << "ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)pair.ppm_sc) << " ("
-				        << pair.ppm_sc
-				        << ") should be associated with event: " << pair.exit_event_type
-				        << std::endl;
+				assert_sc_associated_with_event(events_array, pair.ppm_sc, pair.enter_event_type);
+				assert_sc_associated_with_event(events_array, pair.ppm_sc, pair.exit_event_type);
 			}
 		}
 	}
+}
+
+static void assert_event_associated_with_sc(uint8_t* ppm_sc_array, int event, int ppm_sc) {
+	if(g_event_info[event].flags & EF_UNUSED) {
+		return;
+	}
+
+	ASSERT_TRUE(ppm_sc_array[ppm_sc])
+	        << "event: " << scap_get_event_info_table()[event].name << " (" << event
+	        << ") should be associated with ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)ppm_sc)
+	        << " (" << ppm_sc << ")" << std::endl;
 }
 
 /* This check tries to check the correspondence between the `g_events_to_sc_map` and the
@@ -137,9 +151,7 @@ TEST(scap_ppm_sc, scap_get_ppm_sc_from_events) {
 		for(int sys_id = 0; sys_id < SYSCALL_TABLE_SIZE; sys_id++) {
 			syscall_evt_pair pair = g_syscall_table[sys_id];
 			if(pair.enter_event_type == evt_id || pair.exit_event_type == evt_id) {
-				ASSERT_TRUE(ppm_sc_array[pair.ppm_sc])
-				        << "event: " << scap_get_event_info_table()[evt_id].name << " (" << evt_id
-				        << ") should be associated with ppm_sc: " << pair.ppm_sc << std::endl;
+				assert_event_associated_with_sc(ppm_sc_array, evt_id, pair.ppm_sc);
 			}
 		}
 	}
