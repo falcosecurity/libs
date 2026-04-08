@@ -58,17 +58,20 @@ struct socket_params {
 	uint32_t domain = PPM_AF_INET;
 	uint32_t type = SOCK_STREAM;
 	uint32_t proto = 0;
+	uint32_t sock_flags = 0;
 
 	socket_params() {
 		domain = PPM_AF_INET;
 		type = SOCK_STREAM;
 		proto = 0;
+		sock_flags = 0;
 	};
 
 	socket_params(uint32_t d, uint32_t t): domain(d), type(t) {
 		domain = d;
 		type = t;
 		proto = 0;
+		sock_flags = 0;
 	};
 };
 

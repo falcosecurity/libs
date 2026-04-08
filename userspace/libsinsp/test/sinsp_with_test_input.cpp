@@ -615,11 +615,12 @@ sinsp_evt* sinsp_with_test_input::generate_socket_exit_event(sinsp_test_input::s
 	return add_event_advance_ts(increasing_ts(),
 	                            tid_caller,
 	                            PPME_SOCKET_SOCKET_X,
-	                            4,
+	                            5,
 	                            params.fd,
 	                            params.domain,
 	                            params.type,
-	                            params.proto);
+	                            params.proto,
+	                            params.sock_flags);
 }
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 sinsp_evt* sinsp_with_test_input::generate_connect_exit_event(
