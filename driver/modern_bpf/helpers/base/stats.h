@@ -101,6 +101,8 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	}
 }
 
+#ifdef BPF_ITERATOR_SUPPORT
+
 static __always_inline void account_iter_event_processed(const uint16_t event_type,
                                                          struct iter_counters *counters) {
 	if(!counters) {
@@ -182,3 +184,5 @@ static __always_inline void account_iter_event_drop(const uint16_t event_type,
 		break;
 	}
 }
+
+#endif /* BPF_ITERATOR_SUPPORT */

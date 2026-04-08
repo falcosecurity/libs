@@ -68,9 +68,11 @@ static __always_inline struct auxiliary_map *auxmap__get() {
 	return maps__get_auxiliary_map();
 }
 
+#ifdef BPF_ITERATOR_SUPPORT
 static __always_inline struct auxiliary_map *auxmap_iter__get() {
 	return maps__get_iter_auxiliary_map();
 }
+#endif /* BPF_ITERATOR_SUPPORT */
 
 /////////////////////////////////
 // STORE EVENT HEADER INTO THE AUXILIARY MAP
@@ -101,6 +103,8 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 	auxmap->event_type = event_type;
 }
 
+#ifdef BPF_ITERATOR_SUPPORT
+
 /**
  * @brief Push the iterator event header inside the auxiliary map.
  *
@@ -128,6 +132,8 @@ static __always_inline void auxmap_iter__preload_event_header(struct auxiliary_m
 	auxmap->event_type = event_type;
 }
 
+#endif /* BPF_ITERATOR_SUPPORT */
+
 /**
  * @brief Finalize the event header writing the overall event len.
  *
@@ -138,6 +144,8 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
 	hdr->len = auxmap->payload_pos;
 }
 
+#ifdef BPF_ITERATOR_SUPPORT
+
 /**
  * @brief Finalize the iterator event header writing the overall event len.
  *
@@ -146,6 +154,8 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
 static __always_inline void auxmap_iter__finalize_event_header(struct auxiliary_map *auxmap) {
 	auxmap__finalize_event_header(auxmap);
 }
+
+#endif /* BPF_ITERATOR_SUPPORT */
 
 /////////////////////////////////
 // COPY EVENT FROM AUXMAP TO RINGBUF/SEQ FILE
@@ -190,6 +200,8 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 		compute_event_types_stats(auxmap->event_type, counter);
 	}
 }
+
+#ifdef BPF_ITERATOR_SUPPORT
 
 /**
  * @brief Copy the entire event from the auxiliary map to the seq file.
@@ -246,6 +258,8 @@ static __always_inline int auxmap_iter__submit_event(struct auxiliary_map *auxma
 	account_iter_event_processed(evt_type, counters);
 	return 0;
 }
+
+#endif /* BPF_ITERATOR_SUPPORT */
 
 /////////////////////////////////
 // STORE EVENT PARAMS INTO THE AUXILIARY MAP

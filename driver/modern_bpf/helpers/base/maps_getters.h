@@ -183,19 +183,27 @@ static __always_inline uint16_t maps__get_ppm_sc(uint16_t syscall_id) {
 
 /*=============================== ITER AUXILIARY MAP ===========================*/
 
+#ifdef BPF_ITERATOR_SUPPORT
+
 static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
 	uint32_t key = 0;
 	return bpf_map_lookup_elem(&iter_auxiliary_map, &key);
 }
 
+#endif /* BPF_ITERATOR_SUPPORT */
+
 /*=============================== ITER AUXILIARY MAP ===========================*/
 
 /*=============================== ITER COUNTERS MAP ===========================*/
+
+#ifdef BPF_ITERATOR_SUPPORT
 
 static __always_inline struct iter_counters *maps__get_iter_counters() {
 	uint32_t key = 0;
 	return bpf_map_lookup_elem(&iter_counters_map, &key);
 }
+
+#endif /* BPF_ITERATOR_SUPPORT */
 
 /*=============================== ITER COUNTERS MAP ===========================*/
 
