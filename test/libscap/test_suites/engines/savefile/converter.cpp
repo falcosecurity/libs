@@ -2808,7 +2808,7 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKET_E_store) {
 	assert_event_storage_presence(evt);
 }
 
-TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_4_params_no_enter) {
+TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_5_params_no_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 
@@ -2816,28 +2816,44 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_4_params_no_enter) {
 	constexpr uint32_t domain = 0;
 	constexpr uint32_t type = 0;
 	constexpr uint32_t proto = 0;
+	constexpr uint32_t flags = 0;
 
-	assert_single_conversion_success(
-	        CONVERSION_PASS,
-	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
-	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
+	assert_single_conversion_success(CONVERSION_PASS,
+	                                 create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SOCKET_X,
+	                                                        5,
+	                                                        fd,
+	                                                        domain,
+	                                                        type,
+	                                                        proto,
+	                                                        flags));
 }
 
-TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_4_params_with_enter) {
+TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_5_params_with_enter) {
 	constexpr uint64_t ts = 12;
 	constexpr int64_t tid = 25;
 	constexpr int64_t fd = 23;
 	constexpr uint32_t domain = 89;
 	constexpr uint32_t type = 87;
 	constexpr uint32_t proto = 86;
+	constexpr uint32_t flags = 0;
 
 	const auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_E, 3, domain, type, proto);
 	assert_single_conversion_drop(evt);
 
-	assert_single_conversion_success(
-	        CONVERSION_PASS,
-	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
-	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
+	assert_single_conversion_success(CONVERSION_PASS,
+	                                 create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
+	                                 create_safe_scap_event(ts,
+	                                                        tid,
+	                                                        PPME_SOCKET_SOCKET_X,
+	                                                        5,
+	                                                        fd,
+	                                                        domain,
+	                                                        type,
+	                                                        proto,
+	                                                        flags));
 }
 
 ////////////////////////////

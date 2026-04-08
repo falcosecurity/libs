@@ -2072,7 +2072,8 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
                                      const int64_t fd,
                                      const uint32_t domain,
                                      const uint32_t type,
-                                     const uint32_t protocol) const {
+                                     const uint32_t protocol,
+                                     const uint32_t flags) const {
 	//
 	// Populate the new fdi
 	//
@@ -2080,6 +2081,7 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 	memset(&(fdi->m_sockinfo.m_ipv4info), 0, sizeof(fdi->m_sockinfo.m_ipv4info));
 	fdi->m_type = SCAP_FD_UNKNOWN;
 	fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
+	fdi->m_openflags = flags;
 
 	if(domain == PPM_AF_UNIX) {
 		fdi->m_type = SCAP_FD_UNIX_SOCK;
@@ -2195,7 +2197,7 @@ inline void sinsp_parser::infer_send_sendto_sendmsg_fdinfo(sinsp_evt &evt) const
 		// Here we're assuming send*() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
 		// this point.
-		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP);
+		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP, 0);
 	}
 }
 
@@ -2226,11 +2228,15 @@ void sinsp_parser::parse_socket_exit(sinsp_evt &evt) const {
 	uint32_t domain = evt.get_param(1)->as<uint32_t>();
 	uint32_t type = evt.get_param(2)->as<uint32_t>();
 	uint32_t protocol = evt.get_param(3)->as<uint32_t>();
+	uint32_t flags = 0;
+	if(evt.get_num_params() > 4) {
+		flags = evt.get_param(4)->as<uint32_t>();
+	}
 
 	//
 	// Allocate a new fd descriptor, populate it and add it to the thread fd table
 	//
-	add_socket(evt, fd, domain, type, protocol);
+	add_socket(evt, fd, domain, type, protocol, flags);
 }
 
 void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
