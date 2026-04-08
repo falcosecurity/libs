@@ -36,11 +36,10 @@ TEST(SyscallExit, timerfd_createX) {
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: clockid (type: PT_UINT8) */
-	// We always send 0 from drivers.
-	evt_test->assert_numeric_param(2, (uint8_t)0);
+	evt_test->assert_numeric_param(2, (uint8_t)clockid);
 
 	/* Parameter 3: flags (type: PT_FLAGS8) */
-	// We always send 0 from drivers.
+	// timerfd_create_flags_to_scap returns 0 for negative flags
 	evt_test->assert_numeric_param(3, (uint8_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
