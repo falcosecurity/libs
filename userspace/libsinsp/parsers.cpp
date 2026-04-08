@@ -3678,21 +3678,17 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 	}
 
 	// If we are handling the dup3() event exit then we add the flags to the new file descriptor.
+	// We keep the previously flags that has been set on the original file descriptor and just
+	// set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
+	auto fdi = evt.get_fd_info()->clone();
+	fdi->clear_close_on_exec_bits();
 	if(evt.get_type() == PPME_SYSCALL_DUP3_X) {
-		// We keep the previously flags that has been set on the original file descriptor and just
-		// set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
-		if(const auto flags = evt.get_param(3)->as<uint32_t>()) {
-			// Set the O_CLOEXEC flag.
-			evt.get_fd_info()->m_openflags |= flags;
-		} else {
-			// Reset the O_CLOEXEC flag.
-			evt.get_fd_info()->m_openflags &= ~PPM_O_CLOEXEC;
+		uint32_t flags = evt.get_param(3)->as<uint32_t>();
+		if((flags & PPM_O_CLOEXEC) != 0) {
+			fdi->m_openflags |= PPM_O_CLOEXEC;
 		}
 	}
-
-	// Add the new fd to the table.
-	auto fdi = evt.get_fd_info()->clone();
-	evt.set_fd_info(tinfo->add_fd(retval, std::move(fdi)));
+	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 
 void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type type) const {
