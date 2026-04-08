@@ -550,6 +550,22 @@ static __always_inline uint32_t clone_flags_to_scap(int flags) {
 	return res;
 }
 
+/* Remaps accept4 flags (SOCK_CLOEXEC, which equals O_CLOEXEC) to PPM_O_CLOEXEC. */
+static __always_inline uint32_t socket_flags_to_scap(int32_t flags) {
+	uint32_t res = 0;
+
+#ifdef O_NONBLOCK
+	if(flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+#ifdef O_CLOEXEC
+	if(flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
 static __always_inline uint8_t socket_family_to_scap(uint8_t family) {
 	if(family == AF_INET)
 		return PPM_AF_INET;
