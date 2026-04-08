@@ -332,6 +332,12 @@ public:
 
 	inline void set_overlay_lower() { m_flags |= FLAGS_OVERLAY_LOWER; }
 
+	inline void clear_close_on_exec_bits() {
+		m_openflags &= ~PPM_O_CLOEXEC;
+		m_openflags &= ~PPM_EPOLL_CLOEXEC;
+		m_openflags &= ~PPM_MFD_CLOEXEC;
+	}
+
 	/*!
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
