@@ -90,6 +90,14 @@ void pman_clear_state() {
 	}
 	g_state.log_buf = NULL;
 	g_state.log_buf_size = 0;
+
+#ifdef BPF_ITERATOR_SUPPORT
+
+	/* BPF iterators section */
+	g_state.is_tasks_dumping_supported = false;
+	g_state.is_task_files_dumping_supported = false;
+
+#endif /* BPF_ITERATOR_SUPPORT */
 }
 
 int pman_init_state(falcosecurity_log_fn log_fn,
