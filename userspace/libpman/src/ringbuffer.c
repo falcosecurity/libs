@@ -140,7 +140,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	int last_errno = EINVAL;
 	bool success = false;
 
-	int ringbuf_array_fd = -1;
+	int ringbuf_array_fd;
 
 	int *ringbufs_fds = (int *)malloc(g_state.n_required_buffers * sizeof(int));
 	if(ringbufs_fds == NULL) {
@@ -247,7 +247,6 @@ clean_percpu_ring_buffers:
 		return 0;
 	}
 
-	close(ringbuf_array_fd);
 	if(g_state.rb_manager) {
 		ring_buffer__free(g_state.rb_manager);
 	}
