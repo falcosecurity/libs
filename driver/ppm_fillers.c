@@ -4603,6 +4603,11 @@ int f_sys_fcntl_x(struct event_filler_arguments *args) {
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 4: arg (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, (uint64_t)val, 0, false, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 

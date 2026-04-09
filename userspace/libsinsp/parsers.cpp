@@ -3753,9 +3753,10 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) {
 		return;
 	}
 
+	const auto cmd = evt.get_param(2)->as<uint8_t>();
 	// If not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore the event.
-	if(const auto cmd = evt.get_param(2)->as<int8_t>();
-	   !(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC)) {
+	if(!(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC ||
+	     cmd == PPM_FCNTL_F_SETFD)) {
 		return;
 	}
 
@@ -3765,10 +3766,26 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) {
 		return;
 	}
 
+#ifdef FD_CLOEXEC
+	if(cmd == PPM_FCNTL_F_SETFD) {
+		evt.get_fd_info()->clear_close_on_exec_bits();
+		const auto arg = evt.get_param(3)->as<uint64_t>();
+		if((arg & FD_CLOEXEC) != 0) {
+			evt.get_fd_info()->m_openflags |= PPM_O_CLOEXEC;
+		}
+		return;
+	}
+#endif
+
 	// Add the new fd to the table.
 	// note: dup2 and dup3 accept an existing FD and in that case they close it. For us, it's ok to
 	// just overwrite it.
-	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, evt.get_fd_info()->clone()));
+	auto fdi = evt.get_fd_info()->clone();
+	fdi->clear_close_on_exec_bits();
+	if(cmd == PPM_FCNTL_F_DUPFD_CLOEXEC) {
+		fdi->m_openflags |= PPM_O_CLOEXEC;
+	}
+	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 
 void sinsp_parser::parse_context_switch(sinsp_evt &evt) {

@@ -968,10 +968,11 @@ const struct ppm_event_info g_event_info[] = {
         [PPME_SYSCALL_FCNTL_X] = {"fcntl",
                                   EC_IO_OTHER | EC_SYSCALL,
                                   EF_USES_FD | EF_MODIFIES_STATE | EF_CONVERTER_MANAGED,
-                                  3,
+                                  4,
                                   {{"res", PT_FD, PF_DEC},
                                    {"fd", PT_FD, PF_DEC},
-                                   {"cmd", PT_ENUMFLAGS8, PF_DEC, fcntl_commands}}},
+                                   {"cmd", PT_ENUMFLAGS8, PF_DEC, fcntl_commands},
+                                   {"arg", PT_UINT64, PF_HEX}}},
         [PPME_SCHEDSWITCH_6_E] =
                 {"switch",
                  EC_SCHEDULER | EC_TRACEPOINT,

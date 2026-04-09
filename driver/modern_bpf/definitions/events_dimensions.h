@@ -51,7 +51,7 @@
 #define PRLIMIT_X_SIZE HEADER_LEN + sizeof(int64_t) * 6 + sizeof(uint8_t) + PARAM_LEN * 7
 #define DROP_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define DROP_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
-#define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
+#define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + sizeof(uint8_t) + PARAM_LEN * 4
 #define SWITCH_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 6
 #define BRK_X_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
 #define MMAP_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) * 5 + sizeof(uint64_t) * 3 + PARAM_LEN * 10
