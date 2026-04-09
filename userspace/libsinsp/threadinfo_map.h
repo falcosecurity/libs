@@ -47,22 +47,6 @@ public:
 #endif
 	}
 
-	inline sinsp_threadinfo* get(uint64_t tid) {
-#ifdef LIBSINSP_USE_FOLLY
-		auto it = m_threads.find(tid);
-		if(it == m_threads.end()) {
-			return nullptr;
-		}
-		return it->second.get();
-#else
-		auto it = m_threads.find(tid);
-		if(it == m_threads.end()) {
-			return nullptr;
-		}
-		return it->second.get();
-#endif
-	}
-
 	inline ptr_t get_ref(uint64_t tid) {
 #ifdef LIBSINSP_USE_FOLLY
 		auto it = m_threads.find(tid);
