@@ -235,10 +235,8 @@ void pman_fill_ia32_to_64_table() {
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 
 static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog_name, int key) {
-	struct bpf_program* bpf_prog = NULL;
-	int bpf_prog_fd = -1;
-
-	bpf_prog = bpf_object__find_program_by_name(g_state.skel->obj, bpf_prog_name);
+	struct bpf_program* bpf_prog =
+	        bpf_object__find_program_by_name(g_state.skel->obj, bpf_prog_name);
 	if(!bpf_prog) {
 		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
 		                "unable to find BPF program '%s'",
@@ -252,26 +250,21 @@ static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog
 		return 0;
 	}
 
-	int last_errno = EINVAL;
-
-	bpf_prog_fd = bpf_program__fd(bpf_prog);
+	int last_errno;
+	const int bpf_prog_fd = bpf_program__fd(bpf_prog);
 	if(bpf_prog_fd < 0) {
 		last_errno = errno;
 		pman_print_errorf("unable to get the fd for BPF program '%s'", bpf_prog_name);
-		goto clean_add_program_to_tail_table;
+		return last_errno;
 	}
 
 	if(bpf_map_update_elem(tail_table_fd, &key, &bpf_prog_fd, BPF_ANY)) {
 		last_errno = errno;
 		pman_print_errorf("unable to update the tail table with BPF program '%s'", bpf_prog_name);
-		goto clean_add_program_to_tail_table;
+		return last_errno;
 	}
 
 	return 0;
-
-clean_add_program_to_tail_table:
-	close(bpf_prog_fd);
-	return last_errno;
 }
 
 int pman_fill_syscalls_tail_table() {

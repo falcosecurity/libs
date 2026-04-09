@@ -250,10 +250,7 @@ void pman_close_probe() {
 	}
 
 	for(int i = 0; i < MODERN_BPF_PROG_ATTACHED_MAX; i++) {
-		if(g_state.attached_progs_fds[i] != -1) {
-			close(g_state.attached_progs_fds[i]);
-			g_state.attached_progs_fds[i] = -1;
-		}
+		g_state.attached_progs_fds[i] = -1;
 	}
 
 	if(g_state.cons_pos) {
