@@ -275,11 +275,9 @@ clean_add_program_to_tail_table:
 }
 
 int pman_fill_syscalls_tail_table() {
-	int last_errno = EINVAL;
-
 	const int syscall_exit_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_exit_tail_table);
 	if(syscall_exit_tail_table_fd < 0) {
-		last_errno = errno;
+		const int last_errno = errno;
 		pman_print_errorf("unable to get the syscall exit tail table");
 		return last_errno;
 	}
@@ -307,21 +305,17 @@ int pman_fill_syscalls_tail_table() {
 		}
 
 		if(add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog->name, syscall_id)) {
-			last_errno = errno;
-			close(syscall_exit_tail_table_fd);
-			return last_errno;
+			return errno;
 		}
 	}
 	return 0;
 }
 
 int pman_fill_syscall_exit_extra_tail_table() {
-	int last_errno = EINVAL;
-
-	int extra_sys_exit_tail_table_fd =
+	const int extra_sys_exit_tail_table_fd =
 	        bpf_map__fd(g_state.skel->maps.syscall_exit_extra_tail_table);
 	if(extra_sys_exit_tail_table_fd < 0) {
-		last_errno = errno;
+		const int last_errno = errno;
 		pman_print_errorf("unable to get the extra sys exit tail table");
 		return last_errno;
 	}
@@ -329,16 +323,13 @@ int pman_fill_syscall_exit_extra_tail_table() {
 	const char* tail_prog_name = NULL;
 	for(int j = 0; j < SYS_EXIT_EXTRA_CODE_MAX; j++) {
 		tail_prog_name = sys_exit_extra_event_names[j];
-
 		if(!tail_prog_name) {
 			pman_print_errorf("unknown entry in the extra sys exit tail table");
 			return EINVAL;
 		}
 
 		if(add_bpf_program_to_tail_table(extra_sys_exit_tail_table_fd, tail_prog_name, j)) {
-			last_errno = errno;
-			close(extra_sys_exit_tail_table_fd);
-			return last_errno;
+			return errno;
 		}
 	}
 	return 0;
@@ -349,32 +340,35 @@ int pman_fill_syscall_exit_extra_tail_table() {
 /*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
 
 int pman_fill_interesting_syscalls_table_64bit() {
-	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
+	const int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
 	for(uint32_t i = 0; i < SYSCALL_TABLE_SIZE; i++) {
 		const bool interesting = false;
 		if(bpf_map_update_elem(fd, &i, &interesting, BPF_ANY) < 0) {
+			const int last_errno = errno;
 			pman_print_errorf("unable to initialize interesting syscall table at index %d!", i);
-			return errno;
+			return last_errno;
 		}
 	}
 	return 0;
 }
 
 int pman_mark_single_64bit_syscall(int syscall_id, bool interesting) {
-	int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
+	const int fd = bpf_map__fd(g_state.skel->maps.interesting_syscalls_table_64bit);
 	if(bpf_map_update_elem(fd, &syscall_id, &interesting, BPF_ANY) < 0) {
+		const int last_errno = errno;
 		pman_print_errorf("unable to set interesting syscall at index %d as %d!",
 		                  syscall_id,
 		                  interesting);
-		return errno;
+		return last_errno;
 	}
 	return 0;
 }
 
 static int size_auxiliary_maps(const struct bpf_probe* probe, const uint32_t max_entries) {
 	if(bpf_map__set_max_entries(probe->maps.auxiliary_maps, max_entries)) {
+		const int last_errno = errno;
 		pman_print_errorf("unable to set max entries for 'auxiliary_maps' to %d", max_entries);
-		return errno;
+		return last_errno;
 	}
 	return 0;
 }
