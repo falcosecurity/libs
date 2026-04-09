@@ -65,6 +65,8 @@ MODULE_AUTHOR("the Falco authors");
 #define _PAGE_ENC 0
 #endif
 
+/* Testing CI. */
+
 /* This is a workaround we use to exclude internal events (like drop_e/x)
  * from the interesting tracepoint logic.
  */
