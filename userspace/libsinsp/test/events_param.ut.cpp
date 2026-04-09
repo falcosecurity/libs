@@ -473,10 +473,11 @@ TEST_F(sinsp_with_test_input, enumparams_fcntl_dupfd) {
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_FCNTL_X,
-	                           3,
+	                           4,
 	                           (int64_t)0,
 	                           (int64_t)0,
-	                           cmd);
+	                           cmd,
+	                           (uint64_t)0);
 
 	ASSERT_EQ(evt->get_param(2)->as<uint8_t>(), PPM_FCNTL_F_DUPFD);
 

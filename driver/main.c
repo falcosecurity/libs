@@ -1496,7 +1496,7 @@ static inline int drop_nostate_event(ppm_event_code event_type, struct pt_regs *
 		// cmd arg
 		ppm_syscall_get_arguments(current, regs, args);
 		arg = args[1];
-		if(arg != F_DUPFD && arg != F_DUPFD_CLOEXEC)
+		if(arg != F_DUPFD && arg != F_DUPFD_CLOEXEC && arg != F_SETFD)
 			drop = true;
 		break;
 	default:
