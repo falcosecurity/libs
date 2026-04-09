@@ -22,17 +22,11 @@
 #
 # Requires: fmt, double-conversion, glog (included before this module in libsinsp.cmake).
 #
-
-option(USE_BUNDLED_FOLLY "Enable building of the bundled folly" ${USE_BUNDLED_DEPS})
+# System Folly is not supported; the minimal subset is always built from the bundled sources below.
+#
 
 if(TARGET folly_minimal)
 	# folly already available
-elseif(NOT USE_BUNDLED_FOLLY)
-	# System Folly is not supported; the minimal subset must always be bundled.
-	message(
-		FATAL_ERROR
-			"System Folly is not supported. Set USE_BUNDLED_FOLLY=ON or USE_BUNDLED_DEPS=ON."
-	)
 else()
 	include(FetchContent)
 
