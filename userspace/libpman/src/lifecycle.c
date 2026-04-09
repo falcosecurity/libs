@@ -186,18 +186,18 @@ static int bpf_prog_fd_or_default(const struct bpf_program *prog) {
 }
 
 static void pman_save_attached_progs() {
-	g_state.attached_progs_fds[0] = bpf_program__fd(g_state.skel->progs.sys_exit);
-	g_state.attached_progs_fds[1] = bpf_program__fd(g_state.skel->progs.sched_proc_exit);
-	g_state.attached_progs_fds[2] = bpf_program__fd(g_state.skel->progs.sched_switch);
-	g_state.attached_progs_fds[3] = bpf_program__fd(g_state.skel->progs.sched_p_exec);
+	g_state.attached_progs_fds[0] = bpf_prog_fd_or_default(g_state.skel->progs.sys_exit);
+	g_state.attached_progs_fds[1] = bpf_prog_fd_or_default(g_state.skel->progs.sched_proc_exit);
+	g_state.attached_progs_fds[2] = bpf_prog_fd_or_default(g_state.skel->progs.sched_switch);
+	g_state.attached_progs_fds[3] = bpf_prog_fd_or_default(g_state.skel->progs.sched_p_exec);
 #ifdef CAPTURE_SCHED_PROC_FORK
-	g_state.attached_progs_fds[4] = bpf_program__fd(g_state.skel->progs.sched_p_fork);
+	g_state.attached_progs_fds[4] = bpf_prog_fd_or_default(g_state.skel->progs.sched_p_fork);
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
-	g_state.attached_progs_fds[5] = bpf_program__fd(g_state.skel->progs.pf_user);
-	g_state.attached_progs_fds[6] = bpf_program__fd(g_state.skel->progs.pf_kernel);
+	g_state.attached_progs_fds[5] = bpf_prog_fd_or_default(g_state.skel->progs.pf_user);
+	g_state.attached_progs_fds[6] = bpf_prog_fd_or_default(g_state.skel->progs.pf_kernel);
 #endif
-	g_state.attached_progs_fds[7] = bpf_program__fd(g_state.skel->progs.signal_deliver);
+	g_state.attached_progs_fds[7] = bpf_prog_fd_or_default(g_state.skel->progs.signal_deliver);
 	g_state.attached_progs_fds[8] = bpf_prog_fd_or_default(g_state.skel->progs.connect_e);
 	g_state.attached_progs_fds[9] =
 	        bpf_prog_fd_or_default(g_state.skel->progs.ia32_compat_connect_e);
