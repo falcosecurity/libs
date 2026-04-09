@@ -1447,6 +1447,7 @@ static inline void drops_buffer_syscall_categories_counters(
 	case PPME_SYSCALL_SETSID_X:
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_CAPSET_X:
+	case PPME_SYSCALL_KEYCTL_X:
 		ring_info->n_drops_buffer_other_interest_exit++;
 		break;
 	case PPME_SYSCALL_CLOSE_X:

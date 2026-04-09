@@ -512,6 +512,10 @@ or GPL2.txt for full copies of the license.
 
 #define PPM_BPF_IDX_MAX 2
 
+#define PPM_KEYCTL_IDX_INT64 0
+#define PPM_KEYCTL_IDX_CHARBUF 1
+#define PPM_KEYCTL_IDX_MAX 2
+
 /*
  * memory protection flags
  */
@@ -991,6 +995,43 @@ or GPL2.txt for full copies of the license.
 /* Bits common to PR_SME_SET_VL and PR_SME_GET_VL */
 
 #define PPM_PR_SET_VMA 0x53564d41
+
+/*
+ * keyctl() operations - taken from <linux/keyctl.h>
+ */
+#define PPM_KEYCTL_GET_KEYRING_ID 0
+#define PPM_KEYCTL_JOIN_SESSION_KEYRING 1
+#define PPM_KEYCTL_UPDATE 2
+#define PPM_KEYCTL_REVOKE 3
+#define PPM_KEYCTL_CHOWN 4
+#define PPM_KEYCTL_SETPERM 5
+#define PPM_KEYCTL_DESCRIBE 6
+#define PPM_KEYCTL_CLEAR 7
+#define PPM_KEYCTL_LINK 8
+#define PPM_KEYCTL_UNLINK 9
+#define PPM_KEYCTL_SEARCH 10
+#define PPM_KEYCTL_READ 11
+#define PPM_KEYCTL_INSTANTIATE 12
+#define PPM_KEYCTL_NEGATE 13
+#define PPM_KEYCTL_SET_REQKEY_KEYRING 14
+#define PPM_KEYCTL_SET_TIMEOUT 15
+#define PPM_KEYCTL_ASSUME_AUTHORITY 16
+#define PPM_KEYCTL_GET_SECURITY 17
+#define PPM_KEYCTL_SESSION_TO_PARENT 18
+#define PPM_KEYCTL_REJECT 19
+#define PPM_KEYCTL_INSTANTIATE_IOV 20
+#define PPM_KEYCTL_INVALIDATE 21
+#define PPM_KEYCTL_GET_PERSISTENT 22
+#define PPM_KEYCTL_DH_COMPUTE 23
+#define PPM_KEYCTL_PKEY_QUERY 24
+#define PPM_KEYCTL_PKEY_ENCRYPT 25
+#define PPM_KEYCTL_PKEY_DECRYPT 26
+#define PPM_KEYCTL_PKEY_SIGN 27
+#define PPM_KEYCTL_PKEY_VERIFY 28
+#define PPM_KEYCTL_RESTRICT_KEYRING 29
+#define PPM_KEYCTL_MOVE 30
+#define PPM_KEYCTL_CAPABILITIES 31
+#define PPM_KEYCTL_WATCH_KEY 32
 
 /*
  * SuS says limits have to be unsigned.
@@ -1541,7 +1582,9 @@ typedef enum {
 	PPME_ITER_TASK_FILE_ANON_INODE_X = 449,
 	PPME_SYSCALL_CLOSE_RANGE_E = 450,
 	PPME_SYSCALL_CLOSE_RANGE_X = 451,
-	PPM_EVENT_MAX = 452
+	PPME_SYSCALL_KEYCTL_E = 452,
+	PPME_SYSCALL_KEYCTL_X = 453,
+	PPM_EVENT_MAX = 454
 } ppm_event_code;
 /*@}*/
 
@@ -2313,12 +2356,14 @@ extern const struct ppm_name_value fsconfig_cmds[];
 extern const struct ppm_name_value epoll_create1_flags[];
 extern const struct ppm_name_value fchownat_flags[];
 extern const struct ppm_name_value prctl_options[];
+extern const struct ppm_name_value keyctl_operations[];
 extern const struct ppm_name_value memfd_create_flags[];
 extern const struct ppm_name_value pidfd_open_flags[];
 extern const struct ppm_name_value bpf_commands[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
+extern const struct ppm_param_info keyctl_dynamic_param[];
 extern const struct ppm_name_value delete_module_flags[];
 extern const struct ppm_name_value close_range_flags[];
 extern const struct ppm_name_value finit_module_flags[];

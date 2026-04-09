@@ -23,6 +23,8 @@ extern "C" {
 #include <driver/feature_gates.h>
 }
 
+#define VALUE_NOT_CORRECT ">>>>> value of the param is not correct. Param id = "
+
 struct param {
 	char* valptr;
 	uint16_t len;
@@ -733,6 +735,33 @@ public:
 	 * @param param_num number of the parameter to assert into the event.
 	 */
 	void assert_ptrace_data(int param_num);
+
+	/**
+	 * @brief Assert a keyctl arg captured as PT_DYN.
+	 *  Integer types dispatch to the INT64 path; const char* to the CHARBUF path.
+	 *
+	 * @param param_num number of the parameter to assert.
+	 * @param expected expected value (integral or const char*).
+	 */
+	template<typename T>
+	void assert_keyctl_arg(int param_num, T expected) {
+		assert_param_boundaries(param_num);
+		if constexpr(std::is_same_v<std::decay_t<T>, const char*>) {
+			uint16_t expected_len = sizeof(uint8_t) + (uint16_t)strlen(expected) + 1;
+			assert_param_len(expected_len);
+			ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), PPM_KEYCTL_IDX_CHARBUF)
+			        << VALUE_NOT_CORRECT << m_current_param << std::endl;
+			ASSERT_STREQ((const char*)(m_event_params[m_current_param].valptr + 1), expected)
+			        << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		} else {
+			assert_param_len(sizeof(uint8_t) + sizeof(int64_t));
+			ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), PPM_KEYCTL_IDX_INT64)
+			        << VALUE_NOT_CORRECT << m_current_param << std::endl;
+			ASSERT_EQ(*(int64_t*)(m_event_params[m_current_param].valptr + 1),
+			          static_cast<int64_t>(expected))
+			        << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		}
+	}
 
 	/**
 	 * @brief Some syscalls like `poll` and `ppoll` send

@@ -91,6 +91,7 @@ static __always_inline void compute_event_types_stats(uint16_t event_type,
 	case PPME_SYSCALL_SETSID_X:
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_CAPSET_X:
+	case PPME_SYSCALL_KEYCTL_X:
 		counter->n_drops_buffer_other_interest_exit++;
 		break;
 	case PPME_SYSCALL_CLOSE_X:

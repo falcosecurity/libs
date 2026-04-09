@@ -22,7 +22,6 @@ static_assert(sizeof(cgroup_prefix_array) / sizeof(*cgroup_prefix_array) == CGRO
               "Wrong number of cgroup_prefix_array.");
 
 /* Messages. */
-#define VALUE_NOT_CORRECT ">>>>> value of the param is not correct. Param id = "
 #define LEN_NOT_CORRECT ">>>>> len of the param is not correct. Param id = "
 #define VALUE_NOT_ZERO ">>>>> value of the param must not be zero. Param id = "
 

@@ -27,3 +27,8 @@ const struct ppm_param_info bpf_dynamic_param[PPM_BPF_IDX_MAX] = {
         [PPM_BPF_IDX_FD] = {{0}, PT_FD, PF_DEC, 0, 0},
         [PPM_BPF_IDX_RES] = {{0}, PT_ERRNO, PF_DEC, 0, 0},
 };
+
+const struct ppm_param_info keyctl_dynamic_param[PPM_KEYCTL_IDX_MAX] = {
+        [PPM_KEYCTL_IDX_INT64] = {{0}, PT_INT64, PF_DEC, 0, 0},
+        [PPM_KEYCTL_IDX_CHARBUF] = {{0}, PT_CHARBUF, PF_NA, 0, 0},
+};
