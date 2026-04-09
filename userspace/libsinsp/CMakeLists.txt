@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2023 The Falco Authors.
+# Copyright (C) 2026 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -135,8 +135,8 @@ set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
-	# Vendored Folly ConcurrentHashMap for thread-safe thread manager (see
-	# proposals/20260212-thread-safe-thread-manager.md and third_party/folly/)
+	# Folly ConcurrentHashMap for thread-safe thread manager (see
+	# proposals/20260212-thread-safe-thread-manager.md and cmake/modules/folly.cmake)
 	target_link_libraries(sinsp PUBLIC folly_minimal)
 	target_compile_definitions(sinsp PUBLIC LIBSINSP_USE_FOLLY)
 	# Suppress sign-compare warnings from glog when used inside Folly templates

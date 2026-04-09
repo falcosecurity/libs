@@ -27,7 +27,5 @@ CMakeUserPresets.json
 cscope.out
 tags
 third_party/*
-!third_party/folly/
-!third_party/folly/**
 *.vagrant*
 .DS_Store
