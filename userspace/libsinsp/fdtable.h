@@ -162,15 +162,32 @@ private:
 
 #ifdef LIBSINSP_USE_FOLLY
 	folly::ConcurrentHashMap<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+
+	struct fd_cache_entry {
+		const sinsp_fdtable* table{nullptr};
+		int64_t fd{-1};
+		std::shared_ptr<sinsp_fdinfo> fdinfo;
+	};
+
+	static fd_cache_entry& tl_cache() {
+		static thread_local fd_cache_entry entry;
+		return entry;
+	}
+
+	inline void invalidate_tl_cache() {
+		auto& c = tl_cache();
+		if(c.table == this) {
+			c.fd = -1;
+			c.fdinfo.reset();
+		}
+	}
 #else
 	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
-#endif
 
-	//
-	// Simple fd cache
-	//
 	int64_t m_last_accessed_fd;
 	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
+#endif
+
 	uint64_t m_tid;
 
 	bool is_syscall_plugin_enabled() const {

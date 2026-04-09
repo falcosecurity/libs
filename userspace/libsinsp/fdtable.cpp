@@ -30,17 +30,42 @@ static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
         extensible_table{"file_descriptors", &s_fdtable_static_fields},
         m_params{params},
+#ifndef LIBSINSP_USE_FOLLY
+        m_last_accessed_fd{-1},
+#endif
         m_tid{0} {
-	reset_cache();
 }
 
 inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
-#ifndef LIBSINSP_USE_FOLLY
-	std::shared_lock lock(m_mutex);
-#endif
+#ifdef LIBSINSP_USE_FOLLY
+	auto& c = tl_cache();
+	if(c.table == this && c.fd == fd) {
+		if(m_params && m_params->m_sinsp_stats_v2) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_cached_fd_lookups();
+		}
+		return c.fdinfo;
+	}
 
 	auto fdit = m_table.find(fd);
+	if(fdit == m_table.end()) {
+		if(m_params && m_params->m_sinsp_stats_v2) {
+			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
+		}
+		return nullptr;
+	}
 
+	if(m_params && m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_noncached_fd_lookups();
+	}
+
+	c.table = this;
+	c.fd = fd;
+	c.fdinfo = fdit->second;
+	return c.fdinfo;
+#else
+	std::shared_lock lock(m_mutex);
+
+	auto fdit = m_table.find(fd);
 	if(fdit == m_table.end()) {
 		if(m_params && m_params->m_sinsp_stats_v2) {
 			m_params->m_sinsp_stats_v2->get_thread_counters().inc_n_failed_fd_lookups();
@@ -53,6 +78,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd) {
 	}
 
 	return fdit->second;
+#endif
 }
 
 inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
@@ -78,7 +104,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 		}
 	}
 
-	m_last_accessed_fd = -1;
+	invalidate_tl_cache();
 
 	auto [it, inserted] = m_table.insert_or_assign(fd, std::move(fdinfo));
 	if(inserted && m_params && m_params->m_sinsp_stats_v2 != nullptr) {
@@ -109,13 +135,14 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(
 }
 
 bool sinsp_fdtable::erase(int64_t fd) {
-#ifndef LIBSINSP_USE_FOLLY
+#ifdef LIBSINSP_USE_FOLLY
+	invalidate_tl_cache();
+#else
 	std::unique_lock lock(m_mutex);
-#endif
-
 	if(fd == m_last_accessed_fd) {
 		m_last_accessed_fd = -1;
 	}
+#endif
 
 #ifdef LIBSINSP_USE_FOLLY
 	auto erased = m_table.erase(fd);
@@ -152,11 +179,13 @@ bool sinsp_fdtable::erase(int64_t fd) {
 }
 
 void sinsp_fdtable::clear() {
-#ifndef LIBSINSP_USE_FOLLY
+#ifdef LIBSINSP_USE_FOLLY
+	invalidate_tl_cache();
+#else
 	std::unique_lock lock(m_mutex);
+	m_last_accessed_fd = -1;
 #endif
 	m_table.clear();
-	m_last_accessed_fd = -1;
 }
 
 size_t sinsp_fdtable::size() const {
@@ -167,7 +196,11 @@ size_t sinsp_fdtable::size() const {
 }
 
 void sinsp_fdtable::reset_cache() {
+#ifdef LIBSINSP_USE_FOLLY
+	invalidate_tl_cache();
+#else
 	m_last_accessed_fd = -1;
+#endif
 }
 
 void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
