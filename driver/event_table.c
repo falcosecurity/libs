@@ -2940,6 +2940,18 @@ const struct ppm_event_info g_event_info[] = {
                    PF_NA},  // filled only if `fd_type == ANON_INODE_FD_TYPE_UNKNOWN`
                   {"ino_num", PT_UINT64, PF_DEC}}},
         [PPME_ITER_TASK_FILE_ANON_INODE_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+        [PPME_SYSCALL_KEYCTL_E] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
+        [PPME_SYSCALL_KEYCTL_X] =
+                {"keyctl",
+                 EC_OTHER | EC_SYSCALL,
+                 EF_NONE,
+                 6,
+                 {{"res", PT_ERRNO, PF_DEC},
+                  {"operation", PT_ENUMFLAGS32, PF_DEC, keyctl_operations},
+                  {"arg2", PT_DYN, PF_DEC, keyctl_dynamic_param, PPM_KEYCTL_IDX_MAX},
+                  {"arg3", PT_DYN, PF_DEC, keyctl_dynamic_param, PPM_KEYCTL_IDX_MAX},
+                  {"arg4", PT_DYN, PF_DEC, keyctl_dynamic_param, PPM_KEYCTL_IDX_MAX},
+                  {"arg5", PT_DYN, PF_DEC, keyctl_dynamic_param, PPM_KEYCTL_IDX_MAX}}},
 };
 #pragma GCC diagnostic pop
 

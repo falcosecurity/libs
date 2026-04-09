@@ -1485,6 +1485,36 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 }
 
 /**
+ * @brief Store a keyctl arg as PT_DYN.
+ *  Wire format: 1-byte index (PPM_KEYCTL_IDX_INT64 or PPM_KEYCTL_IDX_CHARBUF) + value.
+ *  For INT64: val is cast to int64_t and stored as 8 bytes.
+ *  For CHARBUF: val is treated as a user-space pointer to a null-terminated string.
+ */
+static __always_inline void auxmap__store_keyctl_param(struct auxiliary_map *auxmap,
+                                                       uint8_t idx,
+                                                       unsigned long val) {
+	switch(idx) {
+	case PPM_KEYCTL_IDX_CHARBUF: {
+		push__u8(auxmap->data, &auxmap->payload_pos, idx);
+		uint16_t charbuf_len = 0;
+		if(val) {
+			charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, val, MAX_PATH, USER);
+		}
+		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint8_t) + charbuf_len);
+		break;
+	}
+	case PPM_KEYCTL_IDX_INT64:
+		push__u8(auxmap->data, &auxmap->payload_pos, idx);
+		push__s64(auxmap->data, &auxmap->payload_pos, (int64_t)val);
+		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint8_t) + sizeof(int64_t));
+		break;
+	default:
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		break;
+	}
+}
+
+/**
  * @brief Store in the auxamp all data relative to a particular
  * `cgroup` subsystem. Data are stored in the following format:
  *

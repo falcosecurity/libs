@@ -8629,3 +8629,193 @@ int f_sys_setresuid_x(struct event_filler_arguments *args) {
 
 	return add_sentinel(args);
 }
+
+int f_sys_keyctl_x(struct event_filler_arguments *args) {
+	int res;
+	int retval;
+	unsigned long operation;
+	unsigned long arg2, arg3, arg4, arg5;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: operation (type: PT_ENUMFLAGS32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &operation);
+	operation = keyctl_operation_to_scap(operation);
+	res = val_to_ring(args, operation, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameters 3-6: arg2, arg3, arg4, arg5 (all PT_DYN) */
+	switch(operation) {
+	case PPM_KEYCTL_SESSION_TO_PARENT:
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_JOIN_SESSION_KEYRING:
+		/* arg2 = const char *name */
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		res = val_to_ring(args, arg2, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_REVOKE:
+	case PPM_KEYCTL_CLEAR:
+	case PPM_KEYCTL_SET_REQKEY_KEYRING:
+	case PPM_KEYCTL_ASSUME_AUTHORITY:
+	case PPM_KEYCTL_INVALIDATE:
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_GET_KEYRING_ID:
+	case PPM_KEYCTL_SETPERM:
+	case PPM_KEYCTL_LINK:
+	case PPM_KEYCTL_UNLINK:
+	case PPM_KEYCTL_SET_TIMEOUT:
+	case PPM_KEYCTL_GET_PERSISTENT:
+	case PPM_KEYCTL_CAPABILITIES:
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_UPDATE:
+	case PPM_KEYCTL_CHOWN:
+	case PPM_KEYCTL_DESCRIBE:
+	case PPM_KEYCTL_READ:
+	case PPM_KEYCTL_NEGATE:
+	case PPM_KEYCTL_GET_SECURITY:
+	case PPM_KEYCTL_WATCH_KEY:
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		syscall_get_arguments_deprecated(args, 3, 1, &arg4);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg4, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_RESTRICT_KEYRING:
+		/* arg3 = const char *type, arg4 = const char *restriction */
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		syscall_get_arguments_deprecated(args, 3, 1, &arg4);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg4, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_PKEY_QUERY:
+		/* arg3 = 0 (reserved), arg4 = const char *info */
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		syscall_get_arguments_deprecated(args, 3, 1, &arg4);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg4, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_SEARCH:
+		/* arg3 = const char *type, arg4 = const char *description */
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		syscall_get_arguments_deprecated(args, 3, 1, &arg4);
+		syscall_get_arguments_deprecated(args, 4, 1, &arg5);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg4, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg5, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_INSTANTIATE:
+	case PPM_KEYCTL_REJECT:
+	case PPM_KEYCTL_INSTANTIATE_IOV:
+	case PPM_KEYCTL_DH_COMPUTE:
+	case PPM_KEYCTL_MOVE:
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		syscall_get_arguments_deprecated(args, 3, 1, &arg4);
+		syscall_get_arguments_deprecated(args, 4, 1, &arg5);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg4, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg5, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	case PPM_KEYCTL_PKEY_ENCRYPT:
+	case PPM_KEYCTL_PKEY_DECRYPT:
+	case PPM_KEYCTL_PKEY_SIGN:
+	case PPM_KEYCTL_PKEY_VERIFY:
+		/* arg3 = const char *info, arg4 = data pointer */
+		syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+		syscall_get_arguments_deprecated(args, 2, 1, &arg3);
+		syscall_get_arguments_deprecated(args, 3, 1, &arg4);
+		syscall_get_arguments_deprecated(args, 4, 1, &arg5);
+		res = val_to_ring(args, arg2, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg3, 0, true, PPM_KEYCTL_IDX_CHARBUF);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg4, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg5, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	default:
+#ifdef _DEBUG
+		pr_info("unsupported keyctl op %lu", operation);
+#endif  // _DEBUG
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, PPM_KEYCTL_IDX_INT64);
+		CHECK_RES(res);
+		break;
+	}
+
+	return add_sentinel(args);
+}
