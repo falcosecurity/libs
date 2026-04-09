@@ -575,7 +575,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_waitid - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_WAITID},
 	[__NR_add_key - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_ADD_KEY},
 	[__NR_request_key - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_REQUEST_KEY},
-	[__NR_keyctl - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_KEYCTL},
+	[__NR_keyctl - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_KEYCTL_E, PPME_SYSCALL_KEYCTL_X, PPM_SC_KEYCTL },
 	[__NR_ioprio_set - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IOPRIO_SET},
 	[__NR_ioprio_get - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IOPRIO_GET},
 	[__NR_inotify_add_watch - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_INOTIFY_ADD_WATCH},

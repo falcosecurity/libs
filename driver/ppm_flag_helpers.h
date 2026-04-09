@@ -2116,6 +2116,10 @@ static __always_inline uint32_t prctl_options_to_scap(int options) {
 	return (uint32_t)options;
 }
 
+static __always_inline uint32_t keyctl_operation_to_scap(int operation) {
+	return (uint32_t)operation;
+}
+
 static __always_inline uint32_t finit_module_flags_to_scap(int32_t flags) {
 	int32_t res = 0;
 #ifdef MODULE_INIT_IGNORE_MODVERSIONS

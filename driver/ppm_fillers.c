@@ -8591,3 +8591,43 @@ int f_sys_setresuid_x(struct event_filler_arguments *args) {
 
 	return add_sentinel(args);
 }
+
+int f_sys_keyctl_x(struct event_filler_arguments *args) {
+	int res;
+	int retval;
+	unsigned long operation;
+	unsigned long arg2;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: operation (type: PT_ENUMFLAGS32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &operation);
+	operation = keyctl_operation_to_scap(operation);
+	res = val_to_ring(args, operation, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3 & 4: arg2_str / arg2_int */
+	syscall_get_arguments_deprecated(args, 1, 1, &arg2);
+
+	switch(operation) {
+	case PPM_KEYCTL_JOIN_SESSION_KEYRING:
+		/* arg2 is a char* keyring name (may be NULL) */
+		res = val_to_ring(args, arg2, 0, true, 0);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+		break;
+	default:
+		/* arg2 is an integer (key serial, permissions, etc.) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+		res = val_to_ring(args, arg2, 0, false, 0);
+		CHECK_RES(res);
+		break;
+	}
+
+	return add_sentinel(args);
+}

@@ -138,7 +138,6 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
                                            PPM_SC_WAITID,
                                            PPM_SC_ADD_KEY,
                                            PPM_SC_REQUEST_KEY,
-                                           PPM_SC_KEYCTL,
                                            PPM_SC_IOPRIO_SET,
                                            PPM_SC_IOPRIO_GET,
                                            PPM_SC_INOTIFY_ADD_WATCH,
@@ -412,7 +411,6 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
                                            PPM_SC_WAITID,
                                            PPM_SC_ADD_KEY,
                                            PPM_SC_REQUEST_KEY,
-                                           PPM_SC_KEYCTL,
                                            PPM_SC_IOPRIO_SET,
                                            PPM_SC_IOPRIO_GET,
                                            PPM_SC_INOTIFY_ADD_WATCH,
@@ -1029,6 +1027,8 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
         [PPME_ITER_TASK_FILE_SOCKET_NETLINK_X] = NULL,
         [PPME_ITER_TASK_FILE_ANON_INODE_E] = NULL,
         [PPME_ITER_TASK_FILE_ANON_INODE_X] = NULL,
+        [PPME_SYSCALL_KEYCTL_E] = (ppm_sc_code[]){PPM_SC_KEYCTL, -1},
+        [PPME_SYSCALL_KEYCTL_X] = (ppm_sc_code[]){PPM_SC_KEYCTL, -1},
 };
 
 #if defined(__GNUC__) || (__STDC_VERSION__ >= 201112L)

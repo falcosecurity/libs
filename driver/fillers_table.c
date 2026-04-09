@@ -225,4 +225,5 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
                                      3,
                                      APT_REG,
                                      {{AF_ID_RETVAL}, {0}, {1}}},
+        [PPME_SYSCALL_KEYCTL_X] = {FILLER_REF(sys_keyctl_x)},
 };
