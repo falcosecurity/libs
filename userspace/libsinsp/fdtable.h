@@ -68,7 +68,11 @@ public:
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
 #ifdef LIBSINSP_USE_FOLLY
 		for(auto it = m_table.cbegin(); it != m_table.cend(); ++it) {
-			if(!callback(it->first, *it->second)) {
+			std::shared_ptr<sinsp_fdinfo> pin = it->second;
+			if(!pin) {
+				continue;
+			}
+			if(!callback(it->first, *pin)) {
 				return false;
 			}
 		}
@@ -86,7 +90,11 @@ public:
 	inline bool loop(const fdtable_visitor_t callback) {
 #ifdef LIBSINSP_USE_FOLLY
 		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
-			if(!callback(it->first, *it->second)) {
+			std::shared_ptr<sinsp_fdinfo> pin = it->second;
+			if(!pin) {
+				continue;
+			}
+			if(!callback(it->first, *pin)) {
 				return false;
 			}
 		}

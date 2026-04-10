@@ -330,7 +330,7 @@ sinsp_filter_check_fd::sinsp_filter_check_fd() {
 	};
 
 	m_tinfo = NULL;
-	m_fdinfo = NULL;
+	m_fdinfo = nullptr;
 	m_argid = -1;
 	m_info = &s_field_infos;
 	memset(&m_val, 0, sizeof(m_val));
@@ -1611,13 +1611,13 @@ bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt) {
 		}
 
 		if(m_argid != -1) {
-			m_fdinfo = m_tinfo->get_fd(m_argid).get();
+			m_fdinfo = m_tinfo->get_fd(m_argid);
 		} else {
-			m_fdinfo = evt->get_fd_info();
+			m_fdinfo = evt->get_fdinfo_ref();
 
 			auto cached_fd = m_tinfo->get_lastevent_fd();
 			if(m_fdinfo == NULL && cached_fd != -1) {
-				m_fdinfo = m_tinfo->get_fd(cached_fd).get();
+				m_fdinfo = m_tinfo->get_fd(cached_fd);
 			}
 		}
 		// We'll check if fd is null below
