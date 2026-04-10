@@ -873,8 +873,9 @@ void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res) {
 	char buf[sizeof(TS_STR_FMT)];
 	uint64_t ns = ts % ONE_SECOND_IN_NS;
 	time_t sec = ts / ONE_SECOND_IN_NS;
+	struct tm tm_buf;
 
-	if(strftime(buf, sizeof(buf), "%FT%T", gmtime(&sec)) == 0) {
+	if(strftime(buf, sizeof(buf), "%FT%T", gmtime_r(&sec, &tm_buf)) == 0) {
 		*res = fmt;
 		return;
 	}
@@ -885,7 +886,7 @@ void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res) {
 		return;
 	}
 	*res += buf;
-	if(strftime(buf, sizeof(buf), "%z", gmtime(&sec)) == 0) {
+	if(strftime(buf, sizeof(buf), "%z", gmtime_r(&sec, &tm_buf)) == 0) {
 		*res = fmt;
 		return;
 	}
