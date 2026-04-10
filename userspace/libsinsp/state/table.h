@@ -24,7 +24,7 @@ limitations under the License.
 #include <functional>
 #include <type_traits>
 #include <memory>
-#include <list>
+#include <deque>
 #include <vector>
 
 namespace libsinsp {
@@ -426,23 +426,16 @@ protected:
 	std::vector<std::shared_ptr<libsinsp::state::table_entry>> m_accessed_entries;
 	std::vector<std::unique_ptr<libsinsp::state::table_entry>>
 	        m_created_entries;  // entries created but not yet added to a table
-	std::list<libsinsp::state::table_accessor>
-	        m_ephemeral_tables;  // note: lists have pointer stability
+
+	// we only ever append to the deque, so existing entries keep their addresses forever
+	// (a deque does not move an element once created, unless we erase some element in the middle,
+	// which we never do)
+	std::deque<libsinsp::state::table_accessor>
+	        m_ephemeral_tables;          // pool of reusable table_accessor slots
+	size_t m_ephemeral_tables_used = 0;  // number of slots in use (reset between events)
 	std::vector<accessor::ptr> m_accessed_table_fields;
 
-	bool m_ephemeral_tables_clear = false;
-
-	inline void clear_ephemeral_tables() {
-		if(m_ephemeral_tables_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path, in case of no accessed table
-			return;
-		}
-		for(auto& et : m_ephemeral_tables) {
-			et.unset();
-		}
-		m_ephemeral_tables_clear = true;
-	}
+	inline void clear_ephemeral_tables() { m_ephemeral_tables_used = 0; }
 
 	inline void clear_accessed_entries() {
 		// In the normal case, the plugin released all entries already.
@@ -457,13 +450,14 @@ protected:
 
 public:
 	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
-		m_ephemeral_tables_clear = false;
-		for(auto& et : m_ephemeral_tables) {
-			if(!et.is_set()) {
-				return et;
-			}
+		if(m_ephemeral_tables_used < m_ephemeral_tables.size()) {
+			// reuse an existing slot
+			return m_ephemeral_tables[m_ephemeral_tables_used++];
 		}
-		return m_ephemeral_tables.emplace_back();
+		// grow the pool — deque guarantees existing element pointers stay valid
+		m_ephemeral_tables.emplace_back();
+		m_ephemeral_tables_used++;
+		return m_ephemeral_tables.back();
 	}
 
 	// O(1) — push_back reuses existing capacity after the first few events
