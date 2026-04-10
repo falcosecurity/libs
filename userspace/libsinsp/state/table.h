@@ -25,6 +25,7 @@ limitations under the License.
 #include <type_traits>
 #include <memory>
 #include <list>
+#include <vector>
 
 namespace libsinsp {
 namespace state {
@@ -422,17 +423,14 @@ public:
 	std::string m_last_owner_err;
 
 protected:
-	std::list<std::shared_ptr<libsinsp::state::table_entry>>
-	        m_accessed_entries;  // using lists for ptr stability
-	std::list<std::unique_ptr<libsinsp::state::table_entry>>
+	std::vector<std::shared_ptr<libsinsp::state::table_entry>> m_accessed_entries;
+	std::vector<std::unique_ptr<libsinsp::state::table_entry>>
 	        m_created_entries;  // entries created but not yet added to a table
 	std::list<libsinsp::state::table_accessor>
-	        m_ephemeral_tables;                        // note: lists have pointer stability
-	std::list<accessor::ptr> m_accessed_table_fields;  // note: lists have pointer stability
+	        m_ephemeral_tables;  // note: lists have pointer stability
+	std::vector<accessor::ptr> m_accessed_table_fields;
 
 	bool m_ephemeral_tables_clear = false;
-	bool m_accessed_entries_clear = false;
-	bool m_created_entries_clear = false;
 
 	inline void clear_ephemeral_tables() {
 		if(m_ephemeral_tables_clear) {
@@ -447,37 +445,14 @@ protected:
 	}
 
 	inline void clear_accessed_entries() {
-		if(m_accessed_entries_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path
-			return;
-		}
-		for(auto& et : m_accessed_entries) {
-			if(et != nullptr) {
-				// if we get here, it means that the plugin did not
-				// release some of the entries it acquired
-				ASSERT(false);
-				et.reset();
-			};
-		}
-		m_accessed_entries_clear = true;
+		// In the normal case, the plugin released all entries already.
+		ASSERT(m_accessed_entries.empty());
+		m_accessed_entries.clear();  // safety net; keeps capacity
 	}
 
 	inline void clear_created_entries() {
-		if(m_created_entries_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path
-			return;
-		}
-		for(auto& et : m_created_entries) {
-			if(et != nullptr) {
-				// if we get here, it means that the plugin created entries
-				// but did not add or destroy them
-				ASSERT(false);
-				et.reset();
-			};
-		}
-		m_created_entries_clear = true;
+		ASSERT(m_created_entries.empty());
+		m_created_entries.clear();  // safety net; keeps capacity
 	}
 
 public:
@@ -491,45 +466,45 @@ public:
 		return m_ephemeral_tables.emplace_back();
 	}
 
-	inline std::shared_ptr<libsinsp::state::table_entry>* store_accessed_entry(
-	        std::shared_ptr<libsinsp::state::table_entry> entry) {
-		m_accessed_entries_clear = false;
-		for(auto& et : m_accessed_entries) {
-			if(et == nullptr) {
-				et = std::move(entry);
-				return &et;
-			}
-		}
-		return &m_accessed_entries.emplace_back(std::move(entry));
+	// O(1) — push_back reuses existing capacity after the first few events
+	inline void store_accessed_entry(std::shared_ptr<libsinsp::state::table_entry> entry) {
+		m_accessed_entries.push_back(std::move(entry));
 	}
 
+	// O(n) scan to find the element, then O(1) swap-with-back + pop_back
+	// to make room for a new item at future add (with push_back)
 	inline void release_accessed_entry(libsinsp::state::table_entry* raw) {
-		for(auto& et : m_accessed_entries) {
-			if(et.get() == raw) {
-				et.reset();
+		for(size_t i = 0; i < m_accessed_entries.size(); i++) {
+			if(m_accessed_entries[i].get() == raw) {
+				if(i != m_accessed_entries.size() - 1) {
+					m_accessed_entries[i] = std::move(m_accessed_entries.back());
+				}
+				m_accessed_entries.pop_back();
 				return;
 			}
 		}
 	}
 
+	// O(1) — push_back reuses existing capacity
 	inline libsinsp::state::table_entry* add_created_entry(
 	        std::unique_ptr<libsinsp::state::table_entry> entry) {
-		m_created_entries_clear = false;
-		// Reuse empty slots to avoid unbounded growth
-		for(auto& et : m_created_entries) {
-			if(et == nullptr) {
-				et = std::move(entry);
-				return et.get();
-			}
-		}
-		return m_created_entries.emplace_back(std::move(entry)).get();
+		libsinsp::state::table_entry* raw = entry.get();
+		m_created_entries.push_back(std::move(entry));
+		return raw;
 	}
 
+	// O(n) scan to find the element, then O(1) swap-with-back + pop_back
+	// to make room for a new item at future add (with push_back)
 	inline std::unique_ptr<libsinsp::state::table_entry> extract_created_entry(
 	        libsinsp::state::table_entry* raw) {
-		for(auto& et : m_created_entries) {
-			if(et.get() == raw) {
-				return std::move(et);  // Move out, slot becomes nullptr (reusable)
+		for(size_t i = 0; i < m_created_entries.size(); i++) {
+			if(m_created_entries[i].get() == raw) {
+				auto result = std::move(m_created_entries[i]);
+				if(i != m_created_entries.size() - 1) {
+					m_created_entries[i] = std::move(m_created_entries.back());
+				}
+				m_created_entries.pop_back();
+				return result;
 			}
 		}
 		return nullptr;
