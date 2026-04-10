@@ -220,6 +220,13 @@ public:
 
 	/*!
 	  \brief Get the main thread of the process containing this thread.
+
+	  \warning When this thread IS the main thread, the returned shared_ptr is a
+	  non-owning alias (null control block). It does NOT prevent `this` from being
+	  destroyed. Callers must already hold a separate owning shared_ptr to this
+	  thread (e.g. from find_thread or get_ref) for the lifetime of the returned
+	  pointer; otherwise a concurrent erase from the thread table will cause a
+	  dangling pointer.
 	*/
 	inline std::shared_ptr<sinsp_threadinfo> get_main_thread() {
 		if(is_main_thread()) {

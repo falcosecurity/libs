@@ -753,18 +753,18 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_oldest_matching_ancestor(
 
 	// If we are in a pid_namespace we cannot use directly m_sid to access the table
 	// since it could be related to a pid namespace.
-	sinsp_threadinfo* leader = nullptr;
-	visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
+	int64_t leader_tid = -1;
+	visitor_func_t visitor = [id, &leader_tid, get_thread_id](sinsp_threadinfo* pt) {
 		if(get_thread_id(pt) != id) {
 			return false;
 		}
-		leader = pt;
+		leader_tid = pt->m_tid;
 		return true;
 	};
 
 	traverse_parent_state(*tinfo, visitor);
-	if(leader != nullptr) {
-		return find_thread(leader->m_tid, true);
+	if(leader_tid != -1) {
+		return find_thread(leader_tid, true);
 	}
 	return {};
 }
