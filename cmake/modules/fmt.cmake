@@ -31,7 +31,15 @@ else()
 
 	set(FMT_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
 	set(FMT_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
-	set(FMT_LIB "${FMT_SRC}/build/${FMT_LIB_PREFIX}fmt${FMT_LIB_SUFFIX}")
+	# fmt uses DEBUG_POSTFIX "d" (libfmtd.a) when CMAKE_BUILD_TYPE is Debug.
+	set(_FMT_LIB_BASENAME "fmt")
+	if(CMAKE_BUILD_TYPE)
+		string(TOUPPER "${CMAKE_BUILD_TYPE}" _FMT_BUILD_UPPER)
+		if(_FMT_BUILD_UPPER STREQUAL "DEBUG")
+			set(_FMT_LIB_BASENAME "fmtd")
+		endif()
+	endif()
+	set(FMT_LIB "${FMT_SRC}/build/${FMT_LIB_PREFIX}${_FMT_LIB_BASENAME}${FMT_LIB_SUFFIX}")
 
 	if(NOT TARGET fmt)
 		message(STATUS "Using bundled fmt in '${FMT_SRC}'")
