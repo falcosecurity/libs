@@ -17,7 +17,7 @@
 # Minimal Folly (ConcurrentHashMap and transitive deps) via FetchContent.
 #
 # Downloads Facebook Folly v2026.02.23.00, applies patches, and builds a static library called
-# folly_minimal with only the 27 source files needed for ConcurrentHashMap support. See
+# folly_minimal with only the minimal source files needed for ConcurrentHashMap support. See
 # proposals/20260212-thread-safe-thread-manager.md and cmake/patches/folly/ for details.
 #
 # Requires: fmt, double-conversion, glog (included before this module in libsinsp.cmake).
@@ -63,6 +63,7 @@ else()
 		${folly_SOURCE_DIR}/folly/lang/SafeAssert.cpp
 		${folly_SOURCE_DIR}/folly/lang/ToAscii.cpp
 		${folly_SOURCE_DIR}/folly/memory/Malloc.cpp
+		${folly_SOURCE_DIR}/folly/memory/SanitizeLeak.cpp
 		${folly_SOURCE_DIR}/folly/memory/detail/MallocImpl.cpp
 		${folly_SOURCE_DIR}/folly/memory/ReentrantAllocator.cpp
 		${folly_SOURCE_DIR}/folly/portability/SysMembarrier.cpp
