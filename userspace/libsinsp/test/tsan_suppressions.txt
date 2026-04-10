@@ -17,8 +17,13 @@
 #    tests that use it hit this TLS path. TSAN reports races on these Folly internals
 #    despite the design being per-thread and properly synchronized.
 #
+# 2) ConcurrentHashMap (thread table, fd table) uses hazptr for deferred node reclamation.
+#    TSAN often reports operator new/delete races on the same address when one thread
+#    reclaims a map node and another allocates sinsp_fdinfo; hazptr defers destruction
+#    in a way that is safe but noisy for TSAN.
+#
 
-# The patterns below match only these Folly TLS/registry internals, not application code.
+# The patterns below match Folly TLS/registry and ConcurrentHashMap hazptr reclamation only.
 race:folly::threadlocal_detail
 race:folly::SingletonThreadLocal
 race:folly::hazptr_tc_tls
@@ -29,3 +34,6 @@ race:ThreadLocalDetail.cpp
 race:folly::ThreadEntrySet
 race:removeThreadEntryFromAllInMap
 race:onThreadExit
+race:unlink_and_reclaim_nodes
+race:concurrenthashmap::HazptrDeleter
+race:ConcurrentHashMap-detail.h
