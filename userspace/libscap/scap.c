@@ -236,21 +236,23 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
 }
 
 int32_t scap_buffer_next(scap_t* handle,
-                         scap_buffer_t buffer_h,
+                         scap_buffer_t* buffer_h,
                          scap_evt** pevent,
                          uint32_t* pflags) {
 	int32_t res = SCAP_FAILURE;
-	if(handle && handle->m_vtable && buffer_h != SCAP_INVALID_BUFFER_HANDLE) {
+	if(handle && handle->m_vtable && buffer_h && *buffer_h != SCAP_INVALID_BUFFER_HANDLE) {
 		res = handle->m_vtable->next_from_buffer(handle->m_engine, buffer_h, pevent, pflags);
 	}
 
-	if(res == SCAP_SUCCESS && handle->m_evtcnt_per_buffer &&
-	   buffer_h < handle->m_n_buffer_handles) {
+	if(res == SCAP_SUCCESS && handle->m_evtcnt_per_buffer) {
+		uint16_t idx = SCAP_BUFFER_INDEX(*buffer_h);
+		if(idx < handle->m_n_buffer_handles) {
 #ifdef _MSC_VER
-		atomic_fetch_add(handle->m_evtcnt_per_buffer + buffer_h, 1);
+			atomic_fetch_add(handle->m_evtcnt_per_buffer + idx, 1);
 #else
-		atomic_fetch_add_explicit(handle->m_evtcnt_per_buffer + buffer_h, 1, memory_order_relaxed);
+			atomic_fetch_add_explicit(handle->m_evtcnt_per_buffer + idx, 1, memory_order_relaxed);
 #endif
+		}
 	}
 
 	return res;

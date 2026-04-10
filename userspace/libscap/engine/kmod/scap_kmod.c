@@ -546,7 +546,7 @@ int32_t scap_kmod_next(struct scap_engine_handle engine,
 }
 
 int32_t scap_kmod_next_from_buffer(struct scap_engine_handle engine,
-                                   scap_buffer_t buffer_h,
+                                   scap_buffer_t *buffer_h,
                                    scap_evt **pevent,
                                    uint32_t *pflags) {
 	// TODO: implement

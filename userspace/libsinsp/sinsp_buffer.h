@@ -37,7 +37,7 @@ extern sinsp_buffer_t SINSP_INVALID_BUFFER_HANDLE;
  */
 class sinsp_buffer {
 	const sinsp_buffer_t m_sinsp_buffer_h;
-	const scap_buffer_t m_scap_buffer_h;
+	scap_buffer_t m_scap_buffer_h;
 
 	friend sinsp;
 
@@ -89,12 +89,11 @@ class sinsp_buffer {
 	public:
 		explicit delayed_scap_evt(sinsp_buffer& buffer): m_buffer{buffer} {}
 		inline auto next(scap_t* h) {
-			const auto scap_buffer_h = m_buffer.m_scap_buffer_h;
 			int32_t res;
-			if(scap_buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
+			if(m_buffer.m_scap_buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
 				res = scap_next(h, &m_pevt, &m_cpuid, &m_dump_flags);
 			} else {
-				res = scap_buffer_next(h, scap_buffer_h, &m_pevt, &m_dump_flags);
+				res = scap_buffer_next(h, &m_buffer.m_scap_buffer_h, &m_pevt, &m_dump_flags);
 				m_cpuid = 0;  // TODO: what should we set here?
 			}
 			if(res != SCAP_SUCCESS) {

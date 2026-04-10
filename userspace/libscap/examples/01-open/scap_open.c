@@ -788,7 +788,7 @@ static void signal_callback(int signal) {
 }
 
 static void* worker_run_fn(void* buffer_ptr) {
-	scap_buffer_t const buffer = *(scap_buffer_t*)buffer_ptr;
+	scap_buffer_t buffer = *(scap_buffer_t*)buffer_ptr;
 
 	int32_t res = 0;
 	scap_evt* ev = NULL;
@@ -801,7 +801,7 @@ static void* worker_run_fn(void* buffer_ptr) {
 			return NULL;
 		}
 		// printf("before ");
-		res = scap_buffer_next(g_h, buffer, &ev, &flags);
+		res = scap_buffer_next(g_h, &buffer, &ev, &flags);
 		atomic_fetch_add(&number_of_scap_next, 1);
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT) {
 			atomic_fetch_add(&number_of_timeouts, 1);

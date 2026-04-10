@@ -566,7 +566,8 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
   \brief Get the next event from the given capture instance
 
   \param handle Handle to the capture instance.
-  \param buffer_h Handle to a buffer instance.
+  \param buffer_h [in,out] Pointer to a buffer handle. The handle may be updated by the engine
+  (e.g. to persist retry/backoff state across calls).
   \param pevent [out] User-provided event pointer that will be initialized with address of the
   event.
   \param pflags [out] User-provided event pointer that will be initialized with the flags of the
@@ -578,7 +579,7 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
   error.
 */
 int32_t scap_buffer_next(scap_t* handle,
-                         scap_buffer_t buffer_h,
+                         scap_buffer_t* buffer_h,
                          scap_evt** pevent,
                          uint32_t* pflags);
 
