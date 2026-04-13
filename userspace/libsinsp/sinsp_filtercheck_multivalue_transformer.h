@@ -88,13 +88,13 @@ private:
 class sinsp_filter_multivalue_transformer_join : public sinsp_filter_multivalue_transformer {
 public:
 	sinsp_filter_multivalue_transformer_join(std::vector<std::unique_ptr<sinsp_filter_check>> args);
-	virtual ~sinsp_filter_multivalue_transformer_join();
+	~sinsp_filter_multivalue_transformer_join() override;
 
-	std::string name() const;
+	std::string name() const override;
 
-	virtual bool extract(sinsp_evt* evt,
-	                     std::vector<extract_value_t>& values,
-	                     bool sanitize_strings = true);
+	bool extract(sinsp_evt* evt,
+	             std::vector<extract_value_t>& values,
+	             bool sanitize_strings = true) override;
 
 private:
 	std::string m_res;
@@ -105,30 +105,36 @@ class sinsp_filter_multivalue_transformer_concat : public sinsp_filter_multivalu
 public:
 	sinsp_filter_multivalue_transformer_concat(
 	        std::vector<std::unique_ptr<sinsp_filter_check>> args);
-	virtual ~sinsp_filter_multivalue_transformer_concat();
+	~sinsp_filter_multivalue_transformer_concat() override;
 
-	std::string name() const;
+	std::string name() const override;
 
-	virtual bool extract(sinsp_evt* evt,
-	                     std::vector<extract_value_t>& values,
-	                     bool sanitize_strings = true);
+	bool extract(sinsp_evt* evt,
+	             std::vector<extract_value_t>& values,
+	             bool sanitize_strings = true) override;
 
 private:
 	std::string m_res;
 };
 
 // getopt
+// Parses short options following POSIX getopt(3) conventions.
+// Non-alphanumeric option characters (e.g. '@', '+') are accepted as an
+// intentional extension beyond strict POSIX, which only defines alphanumeric
+// option characters.
+// GNU extensions like optional arguments (double-colon '::' in optstring) are
+// intentionally unsupported; a second ':' is silently ignored during parsing.
 class sinsp_filter_multivalue_transformer_getopt : public sinsp_filter_multivalue_transformer {
 public:
 	sinsp_filter_multivalue_transformer_getopt(
 	        std::vector<std::unique_ptr<sinsp_filter_check>> args);
-	virtual ~sinsp_filter_multivalue_transformer_getopt();
+	~sinsp_filter_multivalue_transformer_getopt() override;
 
-	std::string name() const;
+	std::string name() const override;
 
-	virtual bool extract(sinsp_evt* evt,
-	                     std::vector<extract_value_t>& values,
-	                     bool sanitize_strings = true);
+	bool extract(sinsp_evt* evt,
+	             std::vector<extract_value_t>& values,
+	             bool sanitize_strings = true) override;
 
 private:
 	std::vector<std::string> m_result_storage;
