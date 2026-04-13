@@ -22,11 +22,10 @@ limitations under the License.
 #include <libsinsp/tuples.h>
 #include <libsinsp/sinsp_public.h>
 #include <libsinsp/state/table.h>
+#include <libsinsp/sync_policy.h>
 
 #include <unordered_map>
 #include <memory>
-#include <mutex>
-#include <shared_mutex>
 #include <libsinsp/packed_data.h>
 
 // fd type characters
@@ -52,7 +51,9 @@ limitations under the License.
 #define CHAR_FD_MEMFD 'm'
 #define CHAR_FD_PIDFD 'P'
 
-class sinsp_threadinfo;
+template<typename SyncPolicy>
+class sinsp_threadinfo_impl;
+using sinsp_threadinfo = sinsp_threadinfo_impl<sync_policy_default>;
 
 /** @defgroup state State management
  * A collection of classes to query process and FD state.
@@ -76,8 +77,12 @@ union sinsp_sockinfo {
    you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */
-class SINSP_PUBLIC sinsp_fdinfo : public libsinsp::state::extensible_struct {
+template<typename SyncPolicy = sync_policy_default>
+class SINSP_PUBLIC sinsp_fdinfo_impl : public libsinsp::state::extensible_struct {
 public:
+	using traits = libsinsp::sync_policy_traits<SyncPolicy>;
+	using inner_mutex_type = typename traits::fdinfo_inner_mutex;
+
 	/*!
 	  \brief FD flags.
 	*/
@@ -104,20 +109,21 @@ public:
 		FLAGS_OVERLAY_LOWER = (1 << 18),
 	};
 
-	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields = nullptr);
-	sinsp_fdinfo(sinsp_fdinfo&& o) = default;
-	sinsp_fdinfo& operator=(sinsp_fdinfo&& o) = default;
-	sinsp_fdinfo(const sinsp_fdinfo& o) = default;
-	sinsp_fdinfo& operator=(const sinsp_fdinfo& o) = default;
+	sinsp_fdinfo_impl(
+	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields = nullptr);
+	sinsp_fdinfo_impl(sinsp_fdinfo_impl&& o) = default;
+	sinsp_fdinfo_impl& operator=(sinsp_fdinfo_impl&& o) = default;
+	sinsp_fdinfo_impl(const sinsp_fdinfo_impl& o) = default;
+	sinsp_fdinfo_impl& operator=(const sinsp_fdinfo_impl& o) = default;
 
-	virtual ~sinsp_fdinfo() = default;
+	virtual ~sinsp_fdinfo_impl() = default;
 
-	virtual std::unique_ptr<sinsp_fdinfo> clone() const {
+	virtual std::unique_ptr<sinsp_fdinfo_impl> clone() const {
 		std::shared_lock lock(m_mutex.m);
-		return std::make_unique<sinsp_fdinfo>(*this);
+		return std::make_unique<sinsp_fdinfo_impl>(*this);
 	}
 
-	inline std::unique_lock<std::shared_mutex> exclusive_lock() const {
+	inline std::unique_lock<inner_mutex_type> exclusive_lock() const {
 		return std::unique_lock(m_mutex.m);
 	}
 
@@ -503,9 +509,12 @@ public:
 	static libsinsp::state::static_field_infos get_static_fields();
 
 	friend class sinsp_parser;
-	friend class sinsp_fdtable;
-	friend class sinsp_threadinfo;
-	friend class sinsp_thread_manager;
+	template<typename>
+	friend class sinsp_fdtable_impl;
+	template<typename>
+	friend class sinsp_threadinfo_impl;
+	template<typename>
+	friend class sinsp_thread_manager_impl;
 	friend class sinsp_network_interfaces;
 
 private:
@@ -526,13 +535,7 @@ public:
 	// Per-fdinfo mutex for thread-safe access. Mutable so const methods can lock.
 	// Wrapped in a struct with no-op copy/move so default copy/move constructors
 	// and assignments of sinsp_fdinfo work (each copy gets a fresh mutex).
-	struct copyable_shared_mutex {
-		mutable std::shared_mutex m;
-		copyable_shared_mutex() = default;
-		copyable_shared_mutex(const copyable_shared_mutex&) noexcept {}
-		copyable_shared_mutex& operator=(const copyable_shared_mutex&) noexcept { return *this; }
-		copyable_shared_mutex(copyable_shared_mutex&&) noexcept {}
-		copyable_shared_mutex& operator=(copyable_shared_mutex&&) noexcept { return *this; }
-	};
-	mutable copyable_shared_mutex m_mutex;
+	mutable libsinsp::sinsp_copyable_mutex<inner_mutex_type> m_mutex;
 };
+
+using sinsp_fdinfo = sinsp_fdinfo_impl<>;

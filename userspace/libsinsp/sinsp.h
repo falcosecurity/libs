@@ -873,7 +873,7 @@ private:
 	// Note: lookup_only when false updates the thread's m_lastaccess_ts;
 	//       use true for lookups that are not event-driven.
 	//
-	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only) {
+	inline typename threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only) {
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
 

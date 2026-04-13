@@ -28,8 +28,6 @@ limitations under the License.
 #include <unordered_map>
 #include <libsinsp/procfs_utils.h>
 #include <libsinsp/sinsp.h>
-
-class sinsp;
 namespace libsinsp {
 namespace procfs_utils {
 class ns_helper;

@@ -19,8 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/sinsp_filtercheck.h>
-
-class sinsp_fdinfo;
+#include <libsinsp/fdinfo.h>
 
 class sinsp_filter_check_fd : public sinsp_filter_check {
 public:

@@ -20,12 +20,12 @@ limitations under the License.
 #include <inttypes.h>
 #include <algorithm>
 #endif
-#include <shared_mutex>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
 
-char sinsp_fdinfo::get_typechar() const {
+template<typename SyncPolicy>
+char sinsp_fdinfo_impl<SyncPolicy>::get_typechar() const {
 	std::shared_lock l(m_mutex.m);
 	switch(m_type) {
 	case SCAP_FD_FILE_V2:
@@ -77,7 +77,8 @@ char sinsp_fdinfo::get_typechar() const {
 	}
 }
 
-const char* sinsp_fdinfo::get_typestring() const {
+template<typename SyncPolicy>
+const char* sinsp_fdinfo_impl<SyncPolicy>::get_typestring() const {
 	std::shared_lock l(m_mutex.m);
 	switch(m_type) {
 	case SCAP_FD_FILE_V2:
@@ -122,15 +123,18 @@ const char* sinsp_fdinfo::get_typestring() const {
 	}
 }
 
-sinsp_fdinfo::sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields):
+template<typename SyncPolicy>
+sinsp_fdinfo_impl<SyncPolicy>::sinsp_fdinfo_impl(
+        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dyn_fields):
         extensible_struct(dyn_fields) {}
 
+template<typename SyncPolicy>
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
 libsinsp::state::static_field_infos
-sinsp_fdinfo::get_static_fields() {
-	using self = sinsp_fdinfo;
+sinsp_fdinfo_impl<SyncPolicy>::get_static_fields() {
+	using self = sinsp_fdinfo_impl<SyncPolicy>;
 
 	libsinsp::state::static_field_infos ret;
 
@@ -216,7 +220,8 @@ sinsp_fdinfo::get_static_fields() {
 	return ret;
 }
 
-std::string sinsp_fdinfo::tostring_clean() const {
+template<typename SyncPolicy>
+std::string sinsp_fdinfo_impl<SyncPolicy>::tostring_clean() const {
 	std::shared_lock l(m_mutex.m);
 	std::string tstr = m_name;
 	l.unlock();
@@ -224,17 +229,21 @@ std::string sinsp_fdinfo::tostring_clean() const {
 	return tstr;
 }
 
-void sinsp_fdinfo::add_filename_raw(std::string_view rawpath) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::add_filename_raw(std::string_view rawpath) {
 	std::unique_lock l(m_mutex.m);
 	m_name_raw = std::string(rawpath);
 }
 
-void sinsp_fdinfo::add_filename(std::string_view fullpath) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::add_filename(std::string_view fullpath) {
 	std::unique_lock l(m_mutex.m);
 	m_name = std::string(fullpath);
 }
 
-void sinsp_fdinfo::set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, const bool incoming) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_net_role_by_guessing(const sinsp_threadinfo& ptinfo,
+                                                             const bool incoming) {
 	// Read port numbers under shared lock, then release. Do not hold fdinfo lock
 	// while calling ptinfo.is_bound_to_port/uses_client_port — they take the
 	// fdtable lock, and find_ref() elsewhere takes fdtable then fdinfo, so
@@ -266,7 +275,8 @@ void sinsp_fdinfo::set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, cons
 	}
 }
 
-scap_l4_proto sinsp_fdinfo::get_l4proto() const {
+template<typename SyncPolicy>
+scap_l4_proto sinsp_fdinfo_impl<SyncPolicy>::get_l4proto() const {
 	std::shared_lock l(m_mutex.m);
 	scap_fd_type evt_type = m_type;
 	bool role_none = (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
@@ -300,11 +310,12 @@ scap_l4_proto sinsp_fdinfo::get_l4proto() const {
 	}
 }
 
-void sinsp_fdinfo::set_file_info(scap_fd_type type,
-                                 uint32_t openflags,
-                                 uint32_t mount_id,
-                                 uint32_t dev,
-                                 uint64_t ino) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_file_info(scap_fd_type type,
+                                                  uint32_t openflags,
+                                                  uint32_t mount_id,
+                                                  uint32_t dev,
+                                                  uint64_t ino) {
 	std::unique_lock l(m_mutex.m);
 	m_type = type;
 	m_openflags = openflags;
@@ -313,7 +324,8 @@ void sinsp_fdinfo::set_file_info(scap_fd_type type,
 	m_ino = ino;
 }
 
-void sinsp_fdinfo::init_socket(scap_fd_type type, scap_l4_proto l4proto) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::init_socket(scap_fd_type type, scap_l4_proto l4proto) {
 	std::unique_lock l(m_mutex.m);
 	m_type = type;
 	m_sockinfo = {};
@@ -324,27 +336,31 @@ void sinsp_fdinfo::init_socket(scap_fd_type type, scap_l4_proto l4proto) {
 	}
 }
 
-void sinsp_fdinfo::set_pipe_info(uint64_t ino, uint32_t openflags) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_pipe_info(uint64_t ino, uint32_t openflags) {
 	std::unique_lock l(m_mutex.m);
 	m_type = SCAP_FD_FIFO;
 	m_ino = ino;
 	m_openflags = openflags;
 }
 
-void sinsp_fdinfo::set_memfd_info(uint32_t flags) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_memfd_info(uint32_t flags) {
 	std::unique_lock l(m_mutex.m);
 	m_type = SCAP_FD_MEMFD;
 	m_openflags = flags;
 }
 
-void sinsp_fdinfo::set_pidfd_info(int64_t pid, uint32_t flags) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_pidfd_info(int64_t pid, uint32_t flags) {
 	std::unique_lock l(m_mutex.m);
 	m_type = SCAP_FD_PIDFD;
 	m_pid = pid;
 	m_openflags = flags;
 }
 
-void sinsp_fdinfo::set_cloexec(bool enable) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_cloexec(bool enable) {
 	std::unique_lock l(m_mutex.m);
 	if(enable) {
 		m_openflags |= PPM_O_CLOEXEC;
@@ -353,7 +369,9 @@ void sinsp_fdinfo::set_cloexec(bool enable) {
 	}
 }
 
-void sinsp_fdinfo::set_unix_socket_info(const uint8_t* packed_data, std::string name) {
+template<typename SyncPolicy>
+void sinsp_fdinfo_impl<SyncPolicy>::set_unix_socket_info(const uint8_t* packed_data,
+                                                         std::string name) {
 	std::unique_lock l(m_mutex.m);
 	const auto* source = packed::un_socktuple::source(packed_data);
 	const auto* dest = packed::un_socktuple::dest(packed_data);
@@ -361,3 +379,5 @@ void sinsp_fdinfo::set_unix_socket_info(const uint8_t* packed_data, std::string 
 	memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, dest, sizeof(uint64_t));
 	m_name = std::move(name);
 }
+
+template class sinsp_fdinfo_impl<sync_policy_default>;

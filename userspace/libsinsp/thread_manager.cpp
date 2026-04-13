@@ -27,6 +27,7 @@ limitations under the License.
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/sinsp_observer.h>
 #include <libscap/scap-int.h>
+#include <libscap/scap_platform_api.h>
 
 extern sinsp_evttables g_infotables;
 
@@ -108,7 +109,8 @@ static void fd_to_scap(scap_fdinfo& dst, const sinsp_fdinfo& src) {
 
 static const auto s_threadinfo_static_fields = sinsp_threadinfo::get_static_fields();
 
-sinsp_thread_manager::sinsp_thread_manager(
+template<typename SyncPolicy>
+sinsp_thread_manager_impl<SyncPolicy>::sinsp_thread_manager_impl(
         const sinsp_threadinfo_factory& threadinfo_factory,
         sinsp_observer* const& observer,
         const timestamper& timestamper,
@@ -138,7 +140,8 @@ sinsp_thread_manager::sinsp_thread_manager(
 	clear();
 }
 
-std::shared_ptr<thread_group_info> sinsp_thread_manager::get_thread_group_info(
+template<typename SyncPolicy>
+std::shared_ptr<thread_group_info> sinsp_thread_manager_impl<SyncPolicy>::get_thread_group_info(
         const int64_t pid) const {
 	std::shared_lock lock(m_thread_groups_mutex);
 	auto it = m_thread_groups.find(pid);
@@ -148,8 +151,10 @@ std::shared_ptr<thread_group_info> sinsp_thread_manager::get_thread_group_info(
 	return nullptr;
 }
 
-void sinsp_thread_manager::set_thread_group_info(const int64_t pid,
-                                                 const std::shared_ptr<thread_group_info>& tginfo) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::set_thread_group_info(
+        const int64_t pid,
+        const std::shared_ptr<thread_group_info>& tginfo) {
 	std::unique_lock lock(m_thread_groups_mutex);
 	// It should be impossible to have a pid conflict. Right now we manage it by replacing the
 	// old entry with the new one.
@@ -158,7 +163,8 @@ void sinsp_thread_manager::set_thread_group_info(const int64_t pid,
 	}
 }
 
-void sinsp_thread_manager::clear() {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::clear() {
 	{
 		std::unique_lock lock(m_thread_groups_mutex);
 		m_thread_groups.clear();
@@ -171,14 +177,16 @@ void sinsp_thread_manager::clear() {
 	}
 }
 
-bool sinsp_thread_manager::foreach_entry(
+template<typename SyncPolicy>
+bool sinsp_thread_manager_impl<SyncPolicy>::foreach_entry(
         std::function<bool(libsinsp::state::table_entry& e)> pred) {
-	return m_threadtable.loop([&pred](sinsp_threadinfo& e) { return pred(e); });
+	return m_threadtable.loop([&pred](sinsp_threadinfo_impl<SyncPolicy>& e) { return pred(e); });
 }
 
 /* This is called on the table after the `/proc` scan */
-void sinsp_thread_manager::create_thread_dependencies(
-        const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::create_thread_dependencies(
+        const std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>>& tinfo) {
 	/* This should never happen */
 	if(tinfo == nullptr) {
 		throw sinsp_exception(
@@ -227,8 +235,9 @@ void sinsp_thread_manager::create_thread_dependencies(
 			thread_ptr->update_main_fdtable();
 		}
 	}
-	tinfo->for_each_child(
-	        [](const std::shared_ptr<sinsp_threadinfo>& child) { child->update_main_fdtable(); });
+	tinfo->for_each_child([](const std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>>& child) {
+		child->update_main_fdtable();
+	});
 
 	/* init group has no parent */
 	if(tinfo->get_pid() == 1) {
@@ -258,8 +267,9 @@ void sinsp_thread_manager::create_thread_dependencies(
  * 2. We are doing a proc scan with a callback or without. (`must_create_thread_dependencies==true`)
  * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
  */
-threadinfo_map_t::ptr_t sinsp_thread_manager::add_thread(
-        std::unique_ptr<sinsp_threadinfo> threadinfo,
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t sinsp_thread_manager_impl<SyncPolicy>::add_thread(
+        std::unique_ptr<sinsp_threadinfo_impl<SyncPolicy>> threadinfo,
         const bool must_create_thread_dependencies) {
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size && threadinfo->get_pid() != m_sinsp_pid) {
@@ -280,7 +290,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::add_thread(
 		return {};
 	}
 
-	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(std::move(threadinfo));
+	auto tinfo_shared_ptr =
+	        std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>>(std::move(threadinfo));
 
 	if(must_create_thread_dependencies) {
 		create_thread_dependencies(tinfo_shared_ptr);
@@ -300,10 +311,11 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::add_thread(
 	return m_threadtable.put(tinfo_shared_ptr);
 }
 
-void sinsp_thread_manager::remove_child_from_parent(
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::remove_child_from_parent(
         int64_t ptid,
-        const std::shared_ptr<sinsp_threadinfo>& child) {
-	threadinfo_map_t::ptr_t parent = find_thread(ptid, true);
+        const std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>>& child) {
+	typename threadinfo_map_impl_t<SyncPolicy>::ptr_t parent = find_thread(ptid, true);
 	if(!parent) {
 		return;
 	}
@@ -319,7 +331,9 @@ void sinsp_thread_manager::remove_child_from_parent(
  *    child_subreaper for its children (like a service manager)
  * 3. give them to the init process (PID 1) in our pid namespace
  */
-threadinfo_map_t::ptr_t sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo) {
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t
+sinsp_thread_manager_impl<SyncPolicy>::find_new_reaper(sinsp_threadinfo_impl<SyncPolicy>* tinfo) {
 	if(tinfo == nullptr) {
 		throw sinsp_exception("cannot call find_new_reaper() on a null tinfo");
 	}
@@ -351,7 +365,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* 
 	uint16_t prev_set_size = 1;
 
 	auto parent_ptr = find_thread(tinfo->get_ptid(), true);
-	sinsp_threadinfo* parent_tinfo = parent_ptr.get();
+	sinsp_threadinfo_impl<SyncPolicy>* parent_tinfo = parent_ptr.get();
 	while(parent_tinfo != nullptr) {
 		prev_set_size = loop_detection_set.size();
 		loop_detection_set.insert(parent_tinfo->m_tid);
@@ -391,7 +405,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* 
 	return {};
 }
 
-void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::remove_main_thread_fdtable(
+        sinsp_threadinfo_impl<SyncPolicy>* main_thread) const {
 	// All this logic is intended to just call the `m_observer->on_erase_fd` callback, so just
 	// returns if there is no observer.
 	if(m_observer == nullptr) {
@@ -424,7 +440,8 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 	});
 }
 
-void sinsp_thread_manager::remove_thread(int64_t tid) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::remove_thread(int64_t tid) {
 	auto thread_to_remove_ref = m_threadtable.get_ref(tid);
 	if(!thread_to_remove_ref) {
 		if(m_sinsp_stats_v2 != nullptr) {
@@ -433,7 +450,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		}
 		return;
 	}
-	std::shared_ptr<sinsp_threadinfo> thread_to_remove = thread_to_remove_ref;
+	std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>> thread_to_remove = thread_to_remove_ref;
 
 	/* [Remove invalid threads]
 	 * All threads should have a m_tginfo apart from the invalid ones
@@ -474,7 +491,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * our userspace logic.
 	 */
 	if(thread_to_remove->has_children()) {
-		threadinfo_map_t::ptr_t reaper_tinfo;
+		typename threadinfo_map_impl_t<SyncPolicy>::ptr_t reaper_tinfo;
 
 		if(thread_to_remove->get_reaper_tid() > 0) {
 			/* The kernel sent us a valid reaper
@@ -552,27 +569,32 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	}
 }
 
-void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostname_and_port) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::fix_sockets_coming_from_proc(
+        const bool resolve_hostname_and_port) {
 	std::set<uint16_t> server_ports_copy;
 	{
 		std::shared_lock lock(m_server_ports_mutex);
 		server_ports_copy = m_server_ports;
 	}
-	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
+	m_threadtable.loop([&](sinsp_threadinfo_impl<SyncPolicy>& tinfo) {
 		tinfo.fix_sockets_coming_from_proc(server_ports_copy, resolve_hostname_and_port);
 		return true;
 	});
 }
 
-void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::clear_thread_pointers(
+        sinsp_threadinfo_impl<SyncPolicy>& tinfo) {
 	sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL) {
 		fdt->reset_cache();
 	}
 }
 
-void sinsp_thread_manager::reset_child_dependencies() {
-	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::reset_child_dependencies() {
+	m_threadtable.loop([&](sinsp_threadinfo_impl<SyncPolicy>& tinfo) {
 		tinfo.clean_expired_children();
 		/* Little optimization: only the main thread cleans the thread group from expired threads.
 		 * Downside: if the main thread is not present in the thread group because we lost it we
@@ -586,14 +608,18 @@ void sinsp_thread_manager::reset_child_dependencies() {
 	});
 }
 
-void sinsp_thread_manager::create_thread_dependencies_after_proc_scan() {
-	m_threadtable.const_loop_shared_pointer([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
-		create_thread_dependencies(tinfo);
-		return true;
-	});
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::create_thread_dependencies_after_proc_scan() {
+	m_threadtable.const_loop_shared_pointer(
+	        [&](const std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>>& tinfo) {
+		        create_thread_dependencies(tinfo);
+		        return true;
+	        });
 }
 
-void sinsp_thread_manager::free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::free_dump_fdinfos(
+        std::vector<scap_fdinfo*>* fdinfos_to_free) {
 	for(uint32_t j = 0; j < fdinfos_to_free->size(); j++) {
 		free(fdinfos_to_free->at(j));
 	}
@@ -603,7 +629,9 @@ void sinsp_thread_manager::free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_
 
 // NOTE: This does *not* populate any array-based fields (comm, exe,
 // exepath, args, env, cwd, cgroups, root)
-void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::thread_to_scap(sinsp_threadinfo_impl<SyncPolicy>& tinfo,
+                                                           scap_threadinfo* sctinfo) {
 	//
 	// Fill in the thread data
 	//
@@ -634,8 +662,10 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 	sctinfo->filtered_out = tinfo.get_filtered_out();
 }
 
-std::shared_ptr<sinsp_fdinfo> sinsp_thread_manager::add_thread_fd_from_scap(
-        sinsp_threadinfo& tinfo,
+template<typename SyncPolicy>
+std::shared_ptr<sinsp_fdinfo_impl<SyncPolicy>>
+sinsp_thread_manager_impl<SyncPolicy>::add_thread_fd_from_scap(
+        sinsp_threadinfo_impl<SyncPolicy>& tinfo,
         const scap_fdinfo& fdinfo,
         const bool resolve_hostname_and_port) {
 	auto newfdinfo = tinfo.add_fd_from_scap(fdinfo, resolve_hostname_and_port);
@@ -664,7 +694,10 @@ std::shared_ptr<sinsp_fdinfo> sinsp_thread_manager::add_thread_fd_from_scap(
 	return newfdinfo;
 }
 
-void sinsp_thread_manager::maybe_log_max_lookup(int64_t tid, bool scan_sockets, uint64_t period) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::maybe_log_max_lookup(int64_t tid,
+                                                                 bool scan_sockets,
+                                                                 uint64_t period) {
 	if(m_proc_lookup_period) {
 		if(m_n_proc_lookups.load() == m_max_n_proc_lookups) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -703,7 +736,10 @@ void sinsp_thread_manager::maybe_log_max_lookup(int64_t tid, bool scan_sockets, 
 	}
 }
 
-void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::traverse_parent_state(
+        sinsp_threadinfo_impl<SyncPolicy>& tinfo,
+        visitor_func_t& visitor) {
 	// Floyd's cycle detection: two pointers traverse the parent chain at
 	// different rates. If they meet before reaching the end, there's a loop.
 	// We hold shared_ptr locals so the underlying threadinfo stays alive
@@ -731,9 +767,11 @@ void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visito
 		}
 	}
 }
-threadinfo_map_t::ptr_t sinsp_thread_manager::get_oldest_matching_ancestor(
-        sinsp_threadinfo* tinfo,
-        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t
+sinsp_thread_manager_impl<SyncPolicy>::get_oldest_matching_ancestor(
+        sinsp_threadinfo_impl<SyncPolicy>* tinfo,
+        const std::function<int64_t(sinsp_threadinfo_impl<SyncPolicy>*)>& get_thread_id,
         bool is_virtual_id) {
 	int64_t id = get_thread_id(tinfo);
 	if(id == -1) {
@@ -754,13 +792,14 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_oldest_matching_ancestor(
 	// If we are in a pid_namespace we cannot use directly m_sid to access the table
 	// since it could be related to a pid namespace.
 	int64_t leader_tid = -1;
-	visitor_func_t visitor = [id, &leader_tid, get_thread_id](sinsp_threadinfo* pt) {
-		if(get_thread_id(pt) != id) {
-			return false;
-		}
-		leader_tid = pt->m_tid;
-		return true;
-	};
+	visitor_func_t visitor =
+	        [id, &leader_tid, get_thread_id](sinsp_threadinfo_impl<SyncPolicy>* pt) {
+		        if(get_thread_id(pt) != id) {
+			        return false;
+		        }
+		        leader_tid = pt->m_tid;
+		        return true;
+	        };
 
 	traverse_parent_state(*tinfo, visitor);
 	if(leader_tid != -1) {
@@ -769,10 +808,11 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_oldest_matching_ancestor(
 	return {};
 }
 
-std::string sinsp_thread_manager::get_ancestor_field_as_string(
-        sinsp_threadinfo* tinfo,
-        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
-        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
+template<typename SyncPolicy>
+std::string sinsp_thread_manager_impl<SyncPolicy>::get_ancestor_field_as_string(
+        sinsp_threadinfo_impl<SyncPolicy>* tinfo,
+        const std::function<int64_t(sinsp_threadinfo_impl<SyncPolicy>*)>& get_thread_id,
+        const std::function<std::string(sinsp_threadinfo_impl<SyncPolicy>*)>& get_field_str,
         bool is_virtual_id) {
 	auto ancestor = get_oldest_matching_ancestor(tinfo, get_thread_id, is_virtual_id);
 	if(ancestor) {
@@ -781,7 +821,8 @@ std::string sinsp_thread_manager::get_ancestor_field_as_string(
 	return "";
 }
 
-void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::dump_threads_to_file(scap_dumper_t* dumper) {
 	if(m_threadtable.size() == 0) {
 		return;
 	}
@@ -792,7 +833,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	}
 
 	uint32_t totlen = 0;
-	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
+	m_threadtable.loop([&](sinsp_threadinfo_impl<SyncPolicy>& tinfo) {
 		if(tinfo.get_filtered_out()) {
 			return true;
 		}
@@ -846,7 +887,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	// Dump the FDs
 	//
 
-	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
+	m_threadtable.loop([&](sinsp_threadinfo_impl<SyncPolicy>& tinfo) {
 		if(tinfo.get_filtered_out()) {
 			return true;
 		}
@@ -917,9 +958,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	});
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
-                                                         const bool lookup_only,
-                                                         const bool main_thread) {
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t sinsp_thread_manager_impl<SyncPolicy>::get_thread(
+        const int64_t tid,
+        const bool lookup_only,
+        const bool main_thread) {
 	auto sinsp_proc = find_thread(tid, lookup_only);
 
 	if(!sinsp_proc && (m_threadtable.size() < m_max_thread_table_size || tid == m_sinsp_pid)) {
@@ -988,7 +1031,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread(const int64_t tid,
 	return sinsp_proc;
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::get_or_create_fake_thread(int64_t tid) {
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t
+sinsp_thread_manager_impl<SyncPolicy>::get_or_create_fake_thread(int64_t tid) {
 	auto existing = find_thread(tid, true);
 	if(existing) {
 		return existing;
@@ -1008,7 +1053,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_or_create_fake_thread(int64_t 
 	return find_thread(tid, false);
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only) {
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t
+sinsp_thread_manager_impl<SyncPolicy>::find_thread(int64_t tid, bool lookup_only) {
 	auto thr = m_threadtable.get_ref(tid);
 	if(thr) {
 		if(m_sinsp_stats_v2 != nullptr) {
@@ -1028,8 +1075,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	return {};
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo,
-                                                                   uint32_t n) {
+template<typename SyncPolicy>
+typename threadinfo_map_impl_t<SyncPolicy>::ptr_t sinsp_thread_manager_impl<
+        SyncPolicy>::get_ancestor_process(sinsp_threadinfo_impl<SyncPolicy>& tinfo, uint32_t n) {
 	auto mt = tinfo.get_main_thread();
 
 	for(uint32_t i = 0; i < n; i++) {
@@ -1049,7 +1097,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_ancestor_process(sinsp_threadi
 	return {};
 }
 
-void sinsp_thread_manager::set_max_thread_table_size(uint32_t value) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::set_max_thread_table_size(uint32_t value) {
 	m_max_thread_table_size = value;
 }
 
@@ -1058,13 +1107,19 @@ static constexpr uint64_t make_key(uint64_t ptid, uint64_t tid) {
 	return ((ptid & mask32) << 32) | (tid & mask32);
 }
 
-void sinsp_thread_manager::record_recently_exited(int64_t tid, int64_t ptid, uint64_t ts) {
+template<typename SyncPolicy>
+void sinsp_thread_manager_impl<SyncPolicy>::record_recently_exited(int64_t tid,
+                                                                   int64_t ptid,
+                                                                   uint64_t ts) {
 	std::unique_lock lock(m_recently_exited_mutex);
 	m_recently_exited_tids[m_recently_exited_write_idx] = {make_key(ptid, tid), ts};
 	m_recently_exited_write_idx = (m_recently_exited_write_idx + 1) % RECENTLY_EXITED_RING_SIZE;
 }
 
-bool sinsp_thread_manager::has_recently_exited(int64_t tid, int64_t ptid, uint64_t ts) const {
+template<typename SyncPolicy>
+bool sinsp_thread_manager_impl<SyncPolicy>::has_recently_exited(int64_t tid,
+                                                                int64_t ptid,
+                                                                uint64_t ts) const {
 	/* Only match entries within a 2-second window to avoid false positives
 	 * from TID recycling. This matches CLONE_STALE_TIME_NS used elsewhere
 	 * in the clone parsers. The composite (ptid, tid) key provides a second
@@ -1083,6 +1138,56 @@ bool sinsp_thread_manager::has_recently_exited(int64_t tid, int64_t ptid, uint64
 	return false;
 }
 
-std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const {
+template<typename SyncPolicy>
+std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager_impl<SyncPolicy>::new_entry()
+        const {
 	return m_threadinfo_factory.create();
 }
+
+template<typename SyncPolicy>
+bool sinsp_thread_manager_impl<SyncPolicy>::remove_inactive_threads() {
+	const uint64_t last_event_ts = m_timestamper.get_cached_ts();
+
+	if(m_last_flush_time_ns == 0) {
+		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without
+		// having to wait for tens of minutes.
+		if(m_threads_purging_scan_time_ns > 30 * ONE_SECOND_IN_NS) {
+			m_last_flush_time_ns =
+			        last_event_ts - m_threads_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
+		} else {
+			m_last_flush_time_ns = last_event_ts - m_threads_purging_scan_time_ns;
+		}
+	}
+
+	if(last_event_ts <= m_last_flush_time_ns + m_threads_purging_scan_time_ns) {
+		return false;
+	}
+
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Flushing thread table");
+	m_last_flush_time_ns = last_event_ts;
+
+	// Here we loop over the table in search of threads to delete. We remove:
+	// 1. Invalid threads.
+	// 2. Threads that we are not using and that are no more alive in /proc.
+	std::unordered_set<int64_t> to_delete;
+	loop_threads([&to_delete, last_event_ts, this](const sinsp_threadinfo_impl<SyncPolicy>& tinfo) {
+		if(tinfo.is_invalid() || (last_event_ts > tinfo.get_lastaccess_ts() + m_thread_timeout_ns &&
+		                          !scap_is_thread_alive(m_scap_platform,
+		                                                tinfo.get_pid(),
+		                                                tinfo.m_tid,
+		                                                tinfo.get_comm().c_str()))) {
+			to_delete.insert(tinfo.m_tid);
+		}
+		return true;
+	});
+
+	for(const auto& tid_to_remove : to_delete) {
+		remove_thread(tid_to_remove);
+	}
+
+	// Clean expired threads in the group and children.
+	reset_child_dependencies();
+	return true;
+}
+
+template class sinsp_thread_manager_impl<sync_policy_default>;

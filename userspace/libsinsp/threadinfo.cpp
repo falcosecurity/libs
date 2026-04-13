@@ -35,7 +35,9 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 	dest[3] = src[3];
 }
 
-sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
+template<typename SyncPolicy>
+sinsp_threadinfo_impl<SyncPolicy>::sinsp_threadinfo_impl(
+        const std::shared_ptr<ctor_params>& params):
         extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
         m_fdtable{params->fdtable_factory.create()},
@@ -46,12 +48,13 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
 	init();
 }
 
+template<typename SyncPolicy>
 #if defined(__clang__)
 __attribute__((no_sanitize("undefined")))
 #endif
 libsinsp::state::static_field_infos
-sinsp_threadinfo::get_static_fields() {
-	using self = sinsp_threadinfo;
+sinsp_threadinfo_impl<SyncPolicy>::get_static_fields() {
+	using self = sinsp_threadinfo_impl<SyncPolicy>;
 
 	libsinsp::state::static_field_infos ret;
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
@@ -118,7 +121,8 @@ sinsp_threadinfo::get_static_fields() {
 	return ret;
 }
 
-void sinsp_threadinfo::init() {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::init() {
 	m_pid = (uint64_t)-1LL;
 	m_sid = (uint64_t)-1LL;
 	m_ptid = (uint64_t)-1LL;
@@ -166,14 +170,17 @@ void sinsp_threadinfo::init() {
 	m_exe_from_memfd = false;
 }
 
-sinsp_threadinfo::~sinsp_threadinfo() {
+template<typename SyncPolicy>
+sinsp_threadinfo_impl<SyncPolicy>::~sinsp_threadinfo_impl() {
 	if(m_lastevent_data) {
 		free(m_lastevent_data);
 	}
 }
 
-void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
-                                                    const bool resolve_hostname_and_port) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::fix_sockets_coming_from_proc(
+        const std::set<uint16_t>& ipv4_server_ports,
+        const bool resolve_hostname_and_port) {
 	m_fdtable.loop([resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
 		if(fdi.m_type != SCAP_FD_IPV4_SOCK) {
 			return true;
@@ -199,7 +206,8 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ip
 	});
 }
 
-std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo::add_fd_from_scap(
+template<typename SyncPolicy>
+std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo_impl<SyncPolicy>::add_fd_from_scap(
         const scap_fdinfo& fdi,
         const bool resolve_hostname_and_port) {
 	auto newfdi = m_params->fdinfo_factory.create();
@@ -316,7 +324,9 @@ std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo::add_fd_from_scap(
 	return m_fdtable.add(fdi.fd, std::move(newfdi));
 }
 
-void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::init(const scap_threadinfo& pinfo,
+                                             const bool can_load_env_from_proc) {
 	init();
 
 	m_tid = pinfo.tid;
@@ -381,156 +391,189 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_en
 	m_loginuid = pinfo.loginuid;
 }
 
-const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
+template<typename SyncPolicy>
+const typename sinsp_threadinfo_impl<SyncPolicy>::cgroups_t&
+sinsp_threadinfo_impl<SyncPolicy>::cgroups() const {
 	return m_cgroups;
 }
 
-sinsp_threadinfo::cgroups_t sinsp_threadinfo::get_cgroups() const {
+template<typename SyncPolicy>
+typename sinsp_threadinfo_impl<SyncPolicy>::cgroups_t
+sinsp_threadinfo_impl<SyncPolicy>::get_cgroups() const {
 	std::shared_lock l(m_state_mutex);
 	return m_cgroups;
 }
 
-std::string sinsp_threadinfo::get_comm() const {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_comm() const {
 	std::shared_lock l(m_state_mutex);
 	return m_comm;
 }
 
-void sinsp_threadinfo::set_comm(std::string v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_comm(std::string v) {
 	std::unique_lock l(m_state_mutex);
 	m_comm = std::move(v);
 }
 
-std::string sinsp_threadinfo::get_exe() const {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_exe() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe;
 }
 
-void sinsp_threadinfo::set_exe(std::string v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe(std::string v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe = std::move(v);
 }
 
-std::string sinsp_threadinfo::get_exepath() const {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_exepath() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exepath;
 }
 
-bool sinsp_threadinfo::get_exe_writable() const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_writable() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_writable;
 }
 
-void sinsp_threadinfo::set_exe_writable(bool v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_writable(bool v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_writable = v;
 }
 
-bool sinsp_threadinfo::get_exe_upper_layer() const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_upper_layer() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_upper_layer;
 }
 
-void sinsp_threadinfo::set_exe_upper_layer(bool v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_upper_layer(bool v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_upper_layer = v;
 }
 
-bool sinsp_threadinfo::get_exe_lower_layer() const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_lower_layer() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_lower_layer;
 }
 
-void sinsp_threadinfo::set_exe_lower_layer(bool v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_lower_layer(bool v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_lower_layer = v;
 }
 
-bool sinsp_threadinfo::get_exe_from_memfd() const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_from_memfd() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_from_memfd;
 }
 
-void sinsp_threadinfo::set_exe_from_memfd(bool v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_from_memfd(bool v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_from_memfd = v;
 }
 
-std::vector<std::string> sinsp_threadinfo::get_args() const {
+template<typename SyncPolicy>
+std::vector<std::string> sinsp_threadinfo_impl<SyncPolicy>::get_args() const {
 	std::shared_lock l(m_state_mutex);
 	return m_args;
 }
 
-std::string sinsp_threadinfo::get_cmd_line() const {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_cmd_line() const {
 	std::shared_lock l(m_state_mutex);
 	return m_cmd_line;
 }
 
-std::string sinsp_threadinfo::get_root() const {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_root() const {
 	std::shared_lock l(m_state_mutex);
 	return m_root;
 }
 
-void sinsp_threadinfo::set_root(std::string v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_root(std::string v) {
 	std::unique_lock l(m_state_mutex);
 	m_root = std::move(v);
 }
 
-uint64_t sinsp_threadinfo::get_exe_ino() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_ino;
 }
 
-void sinsp_threadinfo::set_exe_ino(uint64_t v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino(uint64_t v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_ino = v;
 }
 
-uint64_t sinsp_threadinfo::get_exe_ino_ctime() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_ctime() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_ino_ctime;
 }
 
-void sinsp_threadinfo::set_exe_ino_ctime(uint64_t v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_ctime(uint64_t v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_ino_ctime = v;
 }
 
-uint64_t sinsp_threadinfo::get_exe_ino_mtime() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_mtime() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_ino_mtime;
 }
 
-void sinsp_threadinfo::set_exe_ino_mtime(uint64_t v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_mtime(uint64_t v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_ino_mtime = v;
 }
 
-uint64_t sinsp_threadinfo::get_exe_ino_ctime_duration_clone_ts() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_ctime_duration_clone_ts() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_ino_ctime_duration_clone_ts;
 }
 
-void sinsp_threadinfo::set_exe_ino_ctime_duration_clone_ts(uint64_t v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_ctime_duration_clone_ts(uint64_t v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_ino_ctime_duration_clone_ts = v;
 }
 
-uint64_t sinsp_threadinfo::get_exe_ino_ctime_duration_pidns_start() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_ctime_duration_pidns_start() const {
 	std::shared_lock l(m_state_mutex);
 	return m_exe_ino_ctime_duration_pidns_start;
 }
 
-void sinsp_threadinfo::set_exe_ino_ctime_duration_pidns_start(uint64_t v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_ctime_duration_pidns_start(uint64_t v) {
 	std::unique_lock l(m_state_mutex);
 	m_exe_ino_ctime_duration_pidns_start = v;
 }
 
-void sinsp_threadinfo::set_env(const std::vector<std::string>& env) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_env(const std::vector<std::string>& env) {
 	std::unique_lock l(m_state_mutex);
 	m_env = env;
 }
 
-void sinsp_threadinfo::set_args(const char* args, size_t len) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_args(const char* args, size_t len) {
 	if(len > 0 && args[len - 1] == '\0') {
 		len--;
 	}
@@ -538,7 +581,8 @@ void sinsp_threadinfo::set_args(const char* args, size_t len) {
 	set_args(sinsp_split({args, len}, '\0'));
 }
 
-void sinsp_threadinfo::set_args(const std::vector<std::string>& args) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_args(const std::vector<std::string>& args) {
 	std::unique_lock l(m_state_mutex);
 	m_args = args;
 	m_cmd_line = m_comm;
@@ -550,7 +594,10 @@ void sinsp_threadinfo::set_args(const std::vector<std::string>& args) {
 	}
 }
 
-void sinsp_threadinfo::set_env(const char* const env, size_t len, const bool can_load_from_proc) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_env(const char* const env,
+                                                size_t len,
+                                                const bool can_load_from_proc) {
 	if(len == SCAP_MAX_ENV_SIZE && can_load_from_proc) {
 		if(set_env_from_proc()) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -577,7 +624,8 @@ void sinsp_threadinfo::set_env(const char* const env, size_t len, const bool can
 	m_env = std::move(new_env);
 }
 
-bool sinsp_threadinfo::set_env_from_proc() {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::set_env_from_proc() {
 	std::string environ_path =
 	        std::string(scap_get_host_root()) + "/proc/" + std::to_string(m_pid) + "/environ";
 
@@ -600,7 +648,8 @@ bool sinsp_threadinfo::set_env_from_proc() {
 	return true;
 }
 
-std::vector<std::string> sinsp_threadinfo::get_env() {
+template<typename SyncPolicy>
+std::vector<std::string> sinsp_threadinfo_impl<SyncPolicy>::get_env() {
 	if(is_main_thread()) {
 		std::shared_lock l(m_state_mutex);
 		return m_env;
@@ -614,7 +663,8 @@ std::vector<std::string> sinsp_threadinfo::get_env() {
 }
 
 // Return value string for the exact environment variable name given
-std::string sinsp_threadinfo::get_env(const std::string& name) {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_env(const std::string& name) {
 	size_t nlen = name.length();
 	for(const auto& env_var : get_env()) {
 		if((env_var.length() > (nlen + 1)) && (env_var[nlen] == '=') &&
@@ -632,7 +682,8 @@ std::string sinsp_threadinfo::get_env(const std::string& name) {
 	return "";
 }
 
-std::string sinsp_threadinfo::concatenate_all_env() {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::concatenate_all_env() {
 	const auto& all_env = get_env();
 	if(all_env.size() == 0) {
 		return "";
@@ -648,7 +699,8 @@ std::string sinsp_threadinfo::concatenate_all_env() {
 	return concatenate_env;
 }
 
-void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_cgroups(const char* cgroups, size_t len) {
 	if(len > 0 && cgroups[len - 1] == '\0') {
 		len--;
 	}
@@ -656,7 +708,9 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len) {
 	set_cgroups(sinsp_split({cgroups, len}, '\0'));
 }
 
-sinsp_threadinfo::cgroups_t sinsp_threadinfo::parse_cgroups(const std::vector<std::string>& defs) {
+template<typename SyncPolicy>
+typename sinsp_threadinfo_impl<SyncPolicy>::cgroups_t
+sinsp_threadinfo_impl<SyncPolicy>::parse_cgroups(const std::vector<std::string>& defs) {
 	cgroups_t result;
 	for(const auto& def : defs) {
 		std::string::size_type eq_pos = def.find("=");
@@ -686,27 +740,32 @@ sinsp_threadinfo::cgroups_t sinsp_threadinfo::parse_cgroups(const std::vector<st
 	return result;
 }
 
-void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_cgroups(const std::vector<std::string>& cgroups) {
 	std::unique_lock l(m_state_mutex);
 	m_cgroups = parse_cgroups(cgroups);
 }
 
-void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_cgroups(const cgroups_t& cgroups) {
 	std::unique_lock l(m_state_mutex);
 	m_cgroups = cgroups;
 }
 
-uint64_t sinsp_threadinfo::get_lastexec_ts() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_lastexec_ts() const {
 	std::shared_lock l(m_state_mutex);
 	return m_lastexec_ts;
 }
 
-void sinsp_threadinfo::set_lastexec_ts(uint64_t v) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_lastexec_ts(uint64_t v) {
 	std::unique_lock l(m_state_mutex);
 	m_lastexec_ts = v;
 }
 
-void sinsp_threadinfo::apply_exec_state(const exec_state_t& state) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::apply_exec_state(const exec_state_t& state) {
 	std::unique_lock l(m_state_mutex);
 
 	// Mutex-protected exec-info only. Caller must set m_pid before this if using
@@ -780,8 +839,10 @@ void sinsp_threadinfo::apply_exec_state(const exec_state_t& state) {
 	}
 }
 
-std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo::add_fd(int64_t fd,
-                                                       std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
+template<typename SyncPolicy>
+std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo_impl<SyncPolicy>::add_fd(
+        int64_t fd,
+        std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
 		return nullptr;
@@ -793,7 +854,8 @@ std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo::add_fd(int64_t fd,
 	return res;
 }
 
-void sinsp_threadinfo::remove_fd(int64_t fd) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::remove_fd(int64_t fd) {
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL) {
 		return;
@@ -801,7 +863,8 @@ void sinsp_threadinfo::remove_fd(int64_t fd) {
 	fd_table_ptr->erase(fd);
 }
 
-bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor) {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor) {
 	sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
 		return false;
@@ -810,7 +873,8 @@ bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor) 
 	return fdt->const_loop(visitor);
 }
 
-bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::is_bound_to_port(uint16_t number) const {
 	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
 		return false;
@@ -837,7 +901,8 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const {
 	return ret;
 }
 
-bool sinsp_threadinfo::uses_client_port(uint16_t number) const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::uses_client_port(uint16_t number) const {
 	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
 		return false;
@@ -858,11 +923,13 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number) const {
 	return ret;
 }
 
-bool sinsp_threadinfo::is_lastevent_data_valid() const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::is_lastevent_data_valid() const {
 	return (get_lastevent_cpuid() != (uint16_t)-1);
 }
 
-sinsp_threadinfo* sinsp_threadinfo::get_cwd_root() {
+template<typename SyncPolicy>
+sinsp_threadinfo_impl<SyncPolicy>* sinsp_threadinfo_impl<SyncPolicy>::get_cwd_root() {
 	if(!(m_flags & PPM_CL_CLONE_FS)) {
 		return this;
 	} else {
@@ -870,7 +937,8 @@ sinsp_threadinfo* sinsp_threadinfo::get_cwd_root() {
 	}
 }
 
-std::string sinsp_threadinfo::get_cwd() {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_cwd() {
 	auto tinfo = get_main_thread();
 	if(tinfo) {
 		std::shared_lock l(tinfo->m_state_mutex);
@@ -879,7 +947,8 @@ std::string sinsp_threadinfo::get_cwd() {
 	return "./";
 }
 
-void sinsp_threadinfo::update_cwd(std::string_view cwd) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::update_cwd(std::string_view cwd) {
 	auto tinfo = get_main_thread();
 	if(!tinfo) {
 		return;
@@ -891,7 +960,8 @@ void sinsp_threadinfo::update_cwd(std::string_view cwd) {
 	}
 }
 
-uint64_t sinsp_threadinfo::get_fd_usage_pct() {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_fd_usage_pct() {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0) {
 		uint64_t fd_opencount = get_fd_opencount();
@@ -906,7 +976,8 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct() {
 	}
 }
 
-double sinsp_threadinfo::get_fd_usage_pct_d() {
+template<typename SyncPolicy>
+double sinsp_threadinfo_impl<SyncPolicy>::get_fd_usage_pct_d() {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0) {
 		uint64_t fd_opencount = get_fd_opencount();
@@ -921,7 +992,8 @@ double sinsp_threadinfo::get_fd_usage_pct_d() {
 	}
 }
 
-uint64_t sinsp_threadinfo::get_fd_opencount() const {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_fd_opencount() const {
 	auto main_thread = get_main_thread();
 	if(main_thread == nullptr) {
 		return 0;
@@ -929,7 +1001,8 @@ uint64_t sinsp_threadinfo::get_fd_opencount() const {
 	return main_thread->get_fdtable().size();
 }
 
-uint64_t sinsp_threadinfo::get_fd_limit() {
+template<typename SyncPolicy>
+uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_fd_limit() {
 	auto main_thread = get_main_thread();
 	if(main_thread == nullptr) {
 		return 0;
@@ -937,7 +1010,8 @@ uint64_t sinsp_threadinfo::get_fd_limit() {
 	return main_thread->get_fdlimit();
 }
 
-const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const {
+template<typename SyncPolicy>
+const std::string& sinsp_threadinfo_impl<SyncPolicy>::get_cgroup(const std::string& subsys) const {
 	static const std::string notfound = "/";
 
 	for(const auto& it : cgroups()) {
@@ -949,7 +1023,9 @@ const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
 	return notfound;
 }
 
-bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup) const {
+template<typename SyncPolicy>
+bool sinsp_threadinfo_impl<SyncPolicy>::get_cgroup(const std::string& subsys,
+                                                   std::string& cgroup) const {
 	for(const auto& it : cgroups()) {
 		if(it.first == subsys) {
 			cgroup = it.second;
@@ -960,7 +1036,9 @@ bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup
 	return false;
 }
 
-void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::report_thread_loop(
+        const sinsp_threadinfo_impl& looping_thread) {
 	// Note we only log a loop once for a given main thread, to avoid flooding logs.
 	if(!m_parent_loop_detected) {
 		libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
@@ -975,7 +1053,8 @@ void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread
 /* We should never call this method if we don't have children to reparent
  * if we want to save some clock cycles
  */
-void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::assign_children_to_reaper(sinsp_threadinfo_impl* reaper) {
 	if(get_children_count() == 0) {
 		return;
 	}
@@ -1000,15 +1079,15 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 	/* Lock both mutexes in canonical order (by tid) to prevent lock-order inversion
 	 * when different events reparent in opposite order (e.g. A→reaper B and B→reaper A).
 	 */
-	sinsp_threadinfo* first = (m_tid < reaper->m_tid) ? this : reaper;
-	sinsp_threadinfo* second = (m_tid < reaper->m_tid) ? reaper : this;
+	sinsp_threadinfo_impl* first = (m_tid < reaper->m_tid) ? this : reaper;
+	sinsp_threadinfo_impl* second = (m_tid < reaper->m_tid) ? reaper : this;
 	std::unique_lock lock1(first->m_children_mutex);
 	std::unique_lock lock2(second->m_children_mutex);
 
 	auto it = m_children.begin();
 	while(it != m_children.end()) {
 		if(!it->expired()) {
-			std::shared_ptr<sinsp_threadinfo> c = it->lock();
+			std::shared_ptr<sinsp_threadinfo_impl> c = it->lock();
 			reaper->m_children.push_front(c);
 			c->set_ptid(reaper->m_tid);
 			reaper->m_not_expired_children++;
@@ -1018,7 +1097,9 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 	m_not_expired_children = 0;
 }
 
-void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::populate_cmdline(std::string& cmdline,
+                                                         const sinsp_threadinfo_impl* tinfo) {
 	std::shared_lock l(tinfo->m_state_mutex);
 	if(tinfo->m_cmd_line.empty()) {
 		cmdline = tinfo->m_comm;
@@ -1031,7 +1112,9 @@ void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_thread
 	}
 }
 
-void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* tinfo) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::populate_args(std::string& args,
+                                                      const sinsp_threadinfo_impl* tinfo) {
 	std::shared_lock l(tinfo->m_state_mutex);
 	uint32_t nargs = (uint32_t)tinfo->m_args.size();
 
@@ -1043,7 +1126,8 @@ void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* 
 	}
 }
 
-std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
+template<typename SyncPolicy>
+std::string sinsp_threadinfo_impl<SyncPolicy>::get_path_for_dir_fd(int64_t dir_fd) {
 	auto dir_fdinfo = get_fd(dir_fd);
 	auto dir_name = dir_fdinfo ? dir_fdinfo->get_name() : std::string{};
 	if(!dir_fdinfo || dir_name.empty()) {
@@ -1077,19 +1161,27 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 	return dir_name;
 }
 
-size_t sinsp_threadinfo::args_len() const {
+template<typename SyncPolicy>
+size_t sinsp_threadinfo_impl<SyncPolicy>::args_len() const {
 	return strvec_len(m_args);
 }
 
-size_t sinsp_threadinfo::env_len() const {
+template<typename SyncPolicy>
+size_t sinsp_threadinfo_impl<SyncPolicy>::env_len() const {
 	return strvec_len(m_env);
 }
 
-void sinsp_threadinfo::args_to_iovec(struct iovec** iov, int* iovcnt, std::string& rem) const {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::args_to_iovec(struct iovec** iov,
+                                                      int* iovcnt,
+                                                      std::string& rem) const {
 	return strvec_to_iovec(m_args, iov, iovcnt, rem);
 }
 
-void sinsp_threadinfo::env_to_iovec(struct iovec** iov, int* iovcnt, std::string& rem) const {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::env_to_iovec(struct iovec** iov,
+                                                     int* iovcnt,
+                                                     std::string& rem) const {
 	return strvec_to_iovec(m_env, iov, iovcnt, rem);
 }
 
@@ -1097,11 +1189,12 @@ void sinsp_threadinfo::env_to_iovec(struct iovec** iov, int* iovcnt, std::string
 // won't, copy the portion that will fit to rem and set the iovec to
 // rem. Updates alen with the new total length and possibly sets rem
 // to any truncated string.
-void sinsp_threadinfo::add_to_iovec(const std::string& str,
-                                    const bool include_trailing_null,
-                                    struct iovec& iov,
-                                    uint32_t& alen,
-                                    std::string& rem) const {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::add_to_iovec(const std::string& str,
+                                                     const bool include_trailing_null,
+                                                     struct iovec& iov,
+                                                     uint32_t& alen,
+                                                     std::string& rem) const {
 	uint32_t len = str.size() + (include_trailing_null ? 1 : 0);
 	const char* buf = str.c_str();
 
@@ -1121,10 +1214,11 @@ void sinsp_threadinfo::add_to_iovec(const std::string& str,
 
 // iov will be allocated and must be freed. rem is used to hold a
 // possibly truncated final argument.
-void sinsp_threadinfo::cgroups_to_iovec(struct iovec** iov,
-                                        int* iovcnt,
-                                        std::string& rem,
-                                        const cgroups_t& cgroups) const {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::cgroups_to_iovec(struct iovec** iov,
+                                                         int* iovcnt,
+                                                         std::string& rem,
+                                                         const cgroups_t& cgroups) const {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 	static const std::string eq = "=";
 
@@ -1150,7 +1244,8 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec** iov,
 	}
 }
 
-size_t sinsp_threadinfo::strvec_len(const std::vector<std::string>& strs) const {
+template<typename SyncPolicy>
+size_t sinsp_threadinfo_impl<SyncPolicy>::strvec_len(const std::vector<std::string>& strs) const {
 	size_t totlen = 0;
 
 	for(auto& str : strs) {
@@ -1163,10 +1258,11 @@ size_t sinsp_threadinfo::strvec_len(const std::vector<std::string>& strs) const 
 
 // iov will be allocated and must be freed. rem is used to hold a
 // possibly truncated final argument.
-void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
-                                       struct iovec** iov,
-                                       int* iovcnt,
-                                       std::string& rem) const {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::strvec_to_iovec(const std::vector<std::string>& strs,
+                                                        struct iovec** iov,
+                                                        int* iovcnt,
+                                                        std::string& rem) const {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 
 	// We allocate an iovec big enough to hold all the entries in
@@ -1183,7 +1279,8 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
 	}
 }
 
-void sinsp_threadinfo::set_exepath(std::string&& exepath) {
+template<typename SyncPolicy>
+void sinsp_threadinfo_impl<SyncPolicy>::set_exepath(std::string&& exepath) {
 	constexpr char suffix[] = " (deleted)";
 	constexpr size_t suffix_len = sizeof(suffix) - 1;
 
@@ -1194,3 +1291,5 @@ void sinsp_threadinfo::set_exepath(std::string&& exepath) {
 		m_exepath.resize(m_exepath.size() - suffix_len);
 	}
 }
+
+template class sinsp_threadinfo_impl<sync_policy_default>;

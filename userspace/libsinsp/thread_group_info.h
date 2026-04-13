@@ -25,8 +25,11 @@ limitations under the License.
 #include <shared_mutex>
 
 #include <libsinsp/sinsp_exception.h>
+#include <libsinsp/sync_policy.h>
 
-class sinsp_threadinfo;
+template<typename SyncPolicy>
+class sinsp_threadinfo_impl;
+using sinsp_threadinfo = sinsp_threadinfo_impl<sync_policy_default>;
 
 /* Apart from the main thread all other threads when marked as dead should be removed
  * from the thread_table at the next event loop and so become expired. For this reason when we have

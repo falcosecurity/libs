@@ -30,8 +30,6 @@ struct iovec {
 #endif
 
 #include <memory>
-#include <mutex>
-#include <shared_mutex>
 #include <libsinsp/atomic_helpers.h>
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/fdtable.h>
@@ -105,13 +103,16 @@ struct SINSP_PUBLIC sinsp_threadinfo_exec_state {
 	std::optional<uint64_t> exe_ino_ctime_duration_pidns_start;
 };
 
-class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::extensible_struct {
+template<typename SyncPolicy = sync_policy_default>
+class SINSP_PUBLIC sinsp_threadinfo_impl : public libsinsp::state::extensible_struct {
+	using traits = libsinsp::sync_policy_traits<SyncPolicy>;
+
 public:
 	using ctor_params = sinsp_threadinfo_ctor_params;
 	using exec_state_t = sinsp_threadinfo_exec_state;
 
-	explicit sinsp_threadinfo(const std::shared_ptr<ctor_params>& params);
-	~sinsp_threadinfo() override;
+	explicit sinsp_threadinfo_impl(const std::shared_ptr<ctor_params>& params);
+	~sinsp_threadinfo_impl() override;
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -228,9 +229,9 @@ public:
 	  pointer; otherwise a concurrent erase from the thread table will cause a
 	  dangling pointer.
 	*/
-	inline std::shared_ptr<sinsp_threadinfo> get_main_thread() {
+	inline std::shared_ptr<sinsp_threadinfo_impl> get_main_thread() {
 		if(is_main_thread()) {
-			return std::shared_ptr<sinsp_threadinfo>(std::shared_ptr<void>{}, this);
+			return std::shared_ptr<sinsp_threadinfo_impl>(std::shared_ptr<void>{}, this);
 		}
 
 		auto tgi = get_tginfo();
@@ -245,8 +246,8 @@ public:
 		return possible_main;
 	}
 
-	inline std::shared_ptr<const sinsp_threadinfo> get_main_thread() const {
-		return const_cast<sinsp_threadinfo*>(this)->get_main_thread();
+	inline std::shared_ptr<const sinsp_threadinfo_impl> get_main_thread() const {
+		return const_cast<sinsp_threadinfo_impl*>(this)->get_main_thread();
 	}
 
 	/*!
@@ -323,23 +324,23 @@ public:
 	 */
 	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
 
-	void report_thread_loop(const sinsp_threadinfo& looping_thread);
+	void report_thread_loop(const sinsp_threadinfo_impl& looping_thread);
 
-	void assign_children_to_reaper(sinsp_threadinfo* reaper);
+	void assign_children_to_reaper(sinsp_threadinfo_impl* reaper);
 
-	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child) {
+	inline void add_child(const std::shared_ptr<sinsp_threadinfo_impl>& child) {
 		std::unique_lock lock(m_children_mutex);
 		m_children.push_front(child);
 		child->set_ptid(m_tid);
 		m_not_expired_children++;
 	}
 
-	inline void remove_child_from_list(const std::shared_ptr<sinsp_threadinfo>& child) {
+	inline void remove_child_from_list(const std::shared_ptr<sinsp_threadinfo_impl>& child) {
 		std::unique_lock lock(m_children_mutex);
 		remove_child_from_list_unlocked(child);
 	}
 
-	inline void remove_child_and_maybe_clean(const std::shared_ptr<sinsp_threadinfo>& child) {
+	inline void remove_child_and_maybe_clean(const std::shared_ptr<sinsp_threadinfo_impl>& child) {
 		std::unique_lock lock(m_children_mutex);
 		remove_child_from_list_unlocked(child);
 		if((m_children.size() - m_not_expired_children) >= DEFAULT_EXPIRED_CHILDREN_THRESHOLD) {
@@ -376,8 +377,8 @@ public:
 		return m_children.size();
 	}
 
-	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
-	static void populate_args(std::string& args, const sinsp_threadinfo* tinfo);
+	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo_impl* tinfo);
+	static void populate_args(std::string& args, const sinsp_threadinfo_impl* tinfo);
 
 	/*!
 	  \brief Translate a directory's file descriptor into its path
@@ -523,7 +524,7 @@ public:
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
-	inline sinsp_fdtable* get_fd_table() {
+	inline sinsp_fdtable_impl<SyncPolicy>* get_fd_table() {
 		if(!(load_relaxed(m_flags) & PPM_CL_CLONE_FILES)) {
 			return &m_fdtable;
 		} else {
@@ -532,8 +533,8 @@ public:
 		}
 	}
 
-	inline const sinsp_fdtable* get_fd_table() const {
-		return const_cast<sinsp_threadinfo*>(this)->get_fd_table();
+	inline const sinsp_fdtable_impl<SyncPolicy>* get_fd_table() const {
+		return const_cast<sinsp_threadinfo_impl*>(this)->get_fd_table();
 	}
 
 	void init();
@@ -562,9 +563,9 @@ public:
 
 	inline void set_last_event_data(uint8_t* v) { store_relaxed(m_lastevent_data, v); }
 
-	inline const sinsp_fdtable& get_fdtable() const { return m_fdtable; }
+	inline const sinsp_fdtable_impl<SyncPolicy>& get_fdtable() const { return m_fdtable; }
 
-	inline sinsp_fdtable& get_fdtable() { return m_fdtable; }
+	inline sinsp_fdtable_impl<SyncPolicy>& get_fdtable() { return m_fdtable; }
 
 	inline uint16_t get_lastevent_type() const { return load_relaxed(m_lastevent_type); }
 
@@ -614,7 +615,8 @@ protected:
 	// ctor_params object in sinsp constructor.
 	const std::shared_ptr<ctor_params> m_params;
 
-	inline void remove_child_from_list_unlocked(const std::shared_ptr<sinsp_threadinfo>& child) {
+	inline void remove_child_from_list_unlocked(
+	        const std::shared_ptr<sinsp_threadinfo_impl>& child) {
 		for(auto it = m_children.begin(); it != m_children.end(); ++it) {
 			auto locked = it->lock();
 			if(locked.get() == child.get()) {
@@ -639,7 +641,7 @@ protected:
 	}
 
 private:
-	sinsp_threadinfo* get_cwd_root();
+	sinsp_threadinfo_impl* get_cwd_root();
 	bool set_env_from_proc();
 	size_t strvec_len(const std::vector<std::string>& strs) const;
 	void strvec_to_iovec(const std::vector<std::string>& strs,
@@ -654,7 +656,7 @@ private:
 	                  std::string& rem) const;
 
 	// Mutex protecting exec-info group (strings, vectors, and related fields)
-	mutable std::shared_mutex m_state_mutex;
+	mutable typename traits::thread_state_mutex m_state_mutex;
 
 	// Atomic identity fields
 	int64_t m_pid;
@@ -707,12 +709,12 @@ private:
 	std::shared_ptr<thread_group_info> m_tginfo;
 
 	// Children (synchronized via m_children_mutex)
-	mutable std::mutex m_children_mutex;
-	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
+	mutable typename traits::thread_children_mutex m_children_mutex;
+	std::list<std::weak_ptr<sinsp_threadinfo_impl>> m_children;
 	uint64_t m_not_expired_children;
 
 	// Internal state
-	sinsp_fdtable m_fdtable;
+	sinsp_fdtable_impl<SyncPolicy> m_fdtable;
 	const libsinsp::state::base_table* m_main_fdtable;
 	std::string m_cwd;
 	uint8_t* m_lastevent_data;
@@ -736,5 +738,7 @@ private:
 	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>
 	        m_cgroups_table_adapter;
 };
+
+using sinsp_threadinfo = sinsp_threadinfo_impl<>;
 
 /*@}*/

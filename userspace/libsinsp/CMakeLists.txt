@@ -15,6 +15,9 @@
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 option(ENABLE_THREAD_POOL "Enable inspector thread pool" OFF)
+option(ENABLE_MULTI_THREAD "Enable multi-threaded event processing (real mutexes, concurrent maps)"
+	   OFF
+)
 
 if(NOT MSVC)
 	add_definitions(-DHAVE_PWD_H)
@@ -143,6 +146,10 @@ if(NOT EMSCRIPTEN)
 	if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 		target_compile_options(sinsp PRIVATE -Wno-sign-compare)
 	endif()
+endif()
+
+if(ENABLE_MULTI_THREAD)
+	target_compile_definitions(sinsp PUBLIC ENABLE_MULTI_THREAD)
 endif()
 
 if(USE_BUNDLED_VALIJSON)

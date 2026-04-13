@@ -35,7 +35,6 @@ limitations under the License.
 #include <libsinsp/utils.h>
 
 class sinsp;
-class sinsp_threadinfo;
 class sinsp_evt;
 
 ///////////////////////////////////////////////////////////////////////////////

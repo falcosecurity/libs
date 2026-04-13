@@ -918,6 +918,7 @@ void sinsp::close() {
 // This deinitializes the sinsp internal state, and it's used
 // internally while closing or restarting the capture.
 //
+
 void sinsp::deinit_state() {
 	m_network_interfaces.clear();
 	m_thread_manager->clear();
@@ -934,9 +935,12 @@ void sinsp::on_new_entry_from_proc(void* context,
 	bool must_create_thread_dependencies = !m_is_full_procfs_scan_in_progress;
 
 	//
-	// Retrieve machine information if we don't have it yet
+	// Retrieve machine information if we don't have it yet.
+	// m_machine_info is normally set once during init() (single-threaded);
+	// skip the write here to avoid racing with concurrent worker threads
+	// that read m_machine_info through sinsp_parser_shared_params.
 	//
-	{
+	if(m_machine_info == nullptr) {
 		m_machine_info = scap_get_machine_info(get_scap_platform());
 		if(m_machine_info != nullptr) {
 			m_num_cpus = m_machine_info->num_cpus;
@@ -955,7 +959,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	if(fdinfo == nullptr) {
 		ASSERT(tinfo != nullptr);
 
-		threadinfo_map_t::ptr_t sinsp_tinfo;
+		typename threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
 		newti->init(*tinfo, large_envs_enabled());
 		// we haven't run container detection yet, so we don't know the container_id
@@ -1221,6 +1225,7 @@ void sinsp::refresh_ifaddr_list() {
 // to closing and then re-opening the capture, but avoids losing the passed
 // configurations and reuses the same underlying scap event source.
 //
+
 void sinsp::restart_capture() {
 	// Save total event count across all buffers (lost during de-initialization)
 	uint64_t total_nevts = 0;
@@ -1309,6 +1314,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts) {
 }
 
 // TODO(ekoops): m_async_events_queue
+
 int32_t sinsp::fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer) {
 	// check if an event must be replayed, which currently happens
 	// when a capture file is read and we discover the first "event" block
@@ -1375,6 +1381,7 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer) {
 // TODO(ekoops): the m_get_procs_cpu_from_driver usage doesn't require it to be atomic; need to
 //   check m_next_flush_time_ns and m_last_procrequest_tod
 // TODO(ekoops): m_auto_threads_purging doesn't seem to be mutated after the inspector is opened.
+
 int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 	*puevt = nullptr;
 
@@ -1480,9 +1487,9 @@ int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
 	if(buffer.m_parser_verdict.must_remove_fds()) {
 		const auto tid_of_fds_to_remove = buffer.m_parser_verdict.get_tid_of_fds_to_remove();
 		const auto& fds_to_remove = buffer.m_parser_verdict.get_fds_to_remove();
-		threadinfo_map_t::ptr_t ptinfo_ptr =
+		typename threadinfo_map_t::ptr_t ptinfo_ptr =
 		        m_thread_manager->find_thread(tid_of_fds_to_remove, true);
-		if(sinsp_threadinfo* ptinfo = ptinfo_ptr.get()) {
+		if(auto* ptinfo = ptinfo_ptr.get()) {
 			for(const auto fd : fds_to_remove) {
 				ptinfo->remove_fd(fd);
 			}
@@ -1736,7 +1743,7 @@ void sinsp::stop_capture() {
 	/* Print the number of threads and fds in our tables */
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
-	m_thread_manager->loop_threads([&thread_cnt, &fd_cnt](const sinsp_threadinfo& tinfo) {
+	m_thread_manager->loop_threads([&thread_cnt, &fd_cnt](const auto& tinfo) {
 		thread_cnt++;
 
 		/* Only main threads have an associated fdtable */
@@ -1762,6 +1769,7 @@ void sinsp::start_capture() {
 }
 
 #ifndef _WIN32
+
 void sinsp::stop_dropping_mode() {
 	if(is_live()) {
 		libsinsp_logger()->format(sinsp_logger::SEV_INFO, "stopping drop mode");
@@ -2032,55 +2040,7 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val) {
 	m_proc_scan_log_interval_ms = val;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Note: this is defined here so we can inline it in sinso::next
-///////////////////////////////////////////////////////////////////////////////
-
-/* Returns true when we scan the table */
-bool sinsp_thread_manager::remove_inactive_threads() {
-	const uint64_t last_event_ts = m_timestamper.get_cached_ts();
-
-	if(m_last_flush_time_ns == 0) {
-		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without
-		// having to wait for tens of minutes.
-		if(m_threads_purging_scan_time_ns > 30 * ONE_SECOND_IN_NS) {
-			m_last_flush_time_ns =
-			        last_event_ts - m_threads_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
-		} else {
-			m_last_flush_time_ns = last_event_ts - m_threads_purging_scan_time_ns;
-		}
-	}
-
-	if(last_event_ts <= m_last_flush_time_ns + m_threads_purging_scan_time_ns) {
-		return false;
-	}
-
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Flushing thread table");
-	m_last_flush_time_ns = last_event_ts;
-
-	// Here we loop over the table in search of threads to delete. We remove:
-	// 1. Invalid threads.
-	// 2. Threads that we are not using and that are no more alive in /proc.
-	std::unordered_set<int64_t> to_delete;
-	loop_threads([&to_delete, last_event_ts, this](const sinsp_threadinfo& tinfo) {
-		if(tinfo.is_invalid() || (last_event_ts > tinfo.get_lastaccess_ts() + m_thread_timeout_ns &&
-		                          !scap_is_thread_alive(m_scap_platform,
-		                                                tinfo.get_pid(),
-		                                                tinfo.m_tid,
-		                                                tinfo.get_comm().c_str()))) {
-			to_delete.insert(tinfo.m_tid);
-		}
-		return true;
-	});
-
-	for(const auto& tid_to_remove : to_delete) {
-		remove_thread(tid_to_remove);
-	}
-
-	// Clean expired threads in the group and children.
-	reset_child_dependencies();
-	return true;
-}
+// remove_inactive_threads() is now defined in thread_manager.cpp
 
 std::unique_ptr<sinsp_threadinfo> libsinsp::event_processor::build_threadinfo(
         const std::shared_ptr<sinsp_threadinfo_ctor_params>& params) {
