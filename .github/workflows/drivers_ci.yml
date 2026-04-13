@@ -278,7 +278,7 @@ jobs:
           cmake --build skeleton-build --target ProbeSkeleton --parallel $(nproc)
 
       - name: Upload skeleton
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bpf_probe_x86_64.skel.h
           path: skeleton-build/skel_dir/bpf_probe.skel.h
@@ -370,7 +370,7 @@ jobs:
           echo ""
 
       - name: Upload PR info as artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: pr-kernel-testing
           path: pr/
