@@ -157,7 +157,10 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	"${TEST_HELPERS}"
 )
 
-if(NOT EMSCRIPTEN AND NOT WIN32)
+if(ENABLE_MULTI_THREAD
+   AND NOT EMSCRIPTEN
+   AND NOT WIN32
+)
 	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES usergroup_manager_concurrent.ut.cpp
 		 thread_manager_concurrent.ut.cpp
 	)
