@@ -247,7 +247,6 @@ protected:
 	std::vector<filter_value_t> m_vals;
 
 	const filtercheck_field_info* m_field = nullptr;
-	std::unique_ptr<filtercheck_field_info> m_transformed_field = nullptr;
 	const filter_check_info* m_info = nullptr;
 	uint32_t m_field_id = (uint32_t)-1;
 
@@ -312,6 +311,10 @@ protected:
 		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&val));
 	}
 
+	void set_transformed_field(std::unique_ptr<filtercheck_field_info> field) {
+		m_transformed_field = std::move(field);
+	}
+
 private:
 	//
 	// Instead of populating the filter check values with const values extracted at
@@ -323,6 +326,7 @@ private:
 
 	std::list<std::unique_ptr<sinsp_filter_transformer>> m_transformers;
 	std::unique_ptr<sinsp_filter_check> m_rhs_filter_check = nullptr;
+	std::unique_ptr<filtercheck_field_info> m_transformed_field = nullptr;
 
 	// used for comparing right-hand lists of values
 	std::unique_ptr<std::unordered_set<filter_value_t, g_hash_membuf, g_equal_to_membuf>>

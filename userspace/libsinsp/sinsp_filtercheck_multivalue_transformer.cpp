@@ -86,12 +86,13 @@ multivalue_transformer_filter_check::multivalue_transformer_filter_check(
 	m_field_id = 0;
 
 	if(m_transformer && m_transformer->result_type().is_list) {
-		m_transformed_field = std::make_unique<filtercheck_field_info>();
-		m_transformed_field->m_flags = EPF_IS_LIST | EPF_ARG_ALLOWED;
-		m_transformed_field->m_type = PT_CHARBUF;
-		m_transformed_field->m_name = "INTERNAL";
-		m_transformed_field->m_description = "NA";
-		m_transformed_field->m_display = "NA";
+		auto field = std::make_unique<filtercheck_field_info>();
+		field->m_flags = EPF_IS_LIST | EPF_ARG_ALLOWED;
+		field->m_type = PT_CHARBUF;
+		field->m_name = "INTERNAL";
+		field->m_description = "NA";
+		field->m_display = "NA";
+		set_transformed_field(std::move(field));
 	}
 }
 
@@ -273,7 +274,7 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
                                                          std::vector<extract_value_t>& values,
                                                          bool sanitize_strings) {
 	values.clear();
-	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings)) {
+	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings) || values.empty()) {
 		return false;
 	}
 	std::string optstring((char*)values[0].ptr, values[0].len);

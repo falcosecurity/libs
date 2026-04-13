@@ -739,8 +739,13 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_getopt) {
 	EXPECT_TRUE(eval_filter(
 	        evt,
 	        R"(getopt(("-l", "-p", "8080", "-e", "/bin/sh"), "lp:e:") intersects ("l", "p", "e", "8080", "/bin/sh"))"));
+	// With optstring "lp:e:", -l is parsed, then p (takes arg) consumes "e"
+	// as its argument value. The string "e" matches via intersects but is p's
+	// argument, not the -e option.
 	EXPECT_TRUE(
 	        eval_filter(evt, R"(getopt(("-lpe", "/bin/sh"), "lp:e:") intersects ("l","p","e"))"));
+	// With optstring "lpe:", -l, -p are no-arg options, then e (takes arg)
+	// consumes "/bin/sh" from the next token.
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-lpe", "/bin/sh"), "lpe:") intersects ("/bin/sh"))"));
 
 	EXPECT_THROW(eval_filter(evt, R"(getopt() intersects ("n"))"), sinsp_exception);
