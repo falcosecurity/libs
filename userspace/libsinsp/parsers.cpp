@@ -3668,6 +3668,14 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
 	}
 
+	if(evt.get_type() == PPME_SYSCALL_EPOLL_CREATE1_X && evt.get_num_params() > 1) {
+		/* flags is param 2 (index 1) in the exit event */
+		uint32_t openflags = evt.get_param(1)->as<uint32_t>();
+		if((openflags & PPM_EPOLL_CLOEXEC) != 0) {
+			fdi->m_openflags |= PPM_O_CLOEXEC;
+		}
+	}
+
 	// Add the fd to the table.
 	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
