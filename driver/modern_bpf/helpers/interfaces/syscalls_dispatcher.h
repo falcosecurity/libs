@@ -17,6 +17,28 @@ static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint3
 	return maps__interesting_syscall_64bit(syscall_id);
 }
 
+/**
+ * @brief Check whether the current syscall is a SYS_ACCEPT socketcall routed
+ * to the accept4 handler.
+ *
+ * On some architectures (s390x, x86 IA32 emulation) there is no __NR_accept,
+ * so SYS_ACCEPT socketcalls are dispatched to the accept4 BPF program.
+ * The accept4 handler needs to know this because accept() has only 3 arguments
+ * (no flags), while accept4() has 4.
+ */
+static __always_inline bool is_accept_socketcall(struct pt_regs *regs) {
+#ifdef __NR_socketcall
+	if(extract__syscall_id(regs) == __NR_socketcall) {
+		return (int)extract__syscall_argument(regs, 0) == SYS_ACCEPT;
+	}
+#elif defined(__TARGET_ARCH_x86)
+	if(bpf_in_ia32_syscall() && extract__syscall_id(regs) == __NR_ia32_socketcall) {
+		return (int)extract__syscall_argument(regs, 0) == SYS_ACCEPT;
+	}
+#endif
+	return false;
+}
+
 static __always_inline long syscalls_dispatcher__convert_socketcall_call_to_syscall_id(
         int socketcall_call) {
 	switch(socketcall_call) {

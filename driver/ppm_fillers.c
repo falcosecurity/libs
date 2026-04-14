@@ -1962,12 +1962,9 @@ int f_sys_accept4_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/*
-	 * push the flags into the ring.
-	 * XXX we don't support flags yet and so we just return zero
-	 */
-	/* res = val_to_ring(args, args->socketcall_args[3]); */
-	res = val_to_ring(args, 0, 0, false, 0);
+	unsigned long flags;
+	syscall_get_arguments_deprecated(args, 3, 1, &flags);
+	res = val_to_ring(args, socket_flags_to_scap(flags), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

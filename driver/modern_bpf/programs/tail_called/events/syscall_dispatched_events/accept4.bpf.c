@@ -8,6 +8,7 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 #include <helpers/interfaces/variable_size_event.h>
+#include <helpers/interfaces/syscalls_dispatcher.h>
 
 /*=============================== EXIT EVENT ===========================*/
 
@@ -78,10 +79,13 @@ int BPF_PROG(accept4_x, struct pt_regs *regs, long ret) {
 	auxmap__store_u32_param(auxmap, queuemax);
 
 	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/// TODO: we don't support flags yet and so we just return zero.
-	///    If implemented, special handling for SYS_ACCEPT socketcall is needed.
 	uint32_t flags = 0;
-	auxmap__store_u32_param(auxmap, flags);
+	if(!is_accept_socketcall(regs)) {
+		unsigned long args[4] = {0};
+		extract__network_args(args, 4, regs);
+		flags = (uint32_t)args[3];
+	}
+	auxmap__store_u32_param(auxmap, socket_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
