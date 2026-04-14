@@ -33,7 +33,7 @@ jobs:
           echo "  module: mod.ko" >> dk.yaml
           if [ "${{ inputs.linux-version }}" = "" ]; then
             krel=$(grep "_tag" PKGBUILD | head -n1 | awk -F"=" '{print $2}')
-            echo "kernelrelease: ${krel:1}" >> dk.yaml
+            echo "kernelrelease: \"${krel:1}\"" >> dk.yaml
             echo "target: vanilla" >> dk.yaml
             echo "kernelconfigdata: \"$(cat config | base64 | tr -d '\n')\"" >> dk.yaml
           else
