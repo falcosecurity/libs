@@ -125,13 +125,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine,
 		pman_set_statsd_port(arg1);
 		break;
 	default: {
-		struct modern_bpf_engine* handle = engine.m_handle;
-		return scap_errprintf(handle->m_lasterr,
-		                      0,
-		                      "Unsupported setting %d (args %lu, %lu)",
-		                      setting,
-		                      arg1,
-		                      arg2);
+		return scap_err_unsupported_setting(HANDLE(engine)->m_lasterr, setting, arg1, arg2);
 	}
 	}
 
