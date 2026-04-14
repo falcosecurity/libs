@@ -27,7 +27,7 @@ jobs:
         # We then need to extract the part after the "=" and finally remove the starting "v".
         run: |
           cd linux/
-          echo "kernelversion: 1" > dk.yaml
+          echo "kernelversion: \"1\"" > dk.yaml
           echo "driverversion: ${{ github.sha }}" >> dk.yaml
           echo "output:" >> dk.yaml
           echo "  module: mod.ko" >> dk.yaml
@@ -37,7 +37,7 @@ jobs:
             echo "target: vanilla" >> dk.yaml
             echo "kernelconfigdata: \"$(cat config | base64 | tr -d '\n')\"" >> dk.yaml
           else
-            echo "kernelrelease: ${{ inputs.linux-version }}" >> dk.yaml
+            echo "kernelrelease: \"${{ inputs.linux-version }}\"" >> dk.yaml
             echo "target: arch" >> dk.yaml
           fi
           echo "latest_vers=$(grep kernelrelease dk.yaml | awk -F": " '{print $2}')" >> $GITHUB_OUTPUT
