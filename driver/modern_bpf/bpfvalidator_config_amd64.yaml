@@ -6,3 +6,5 @@ vm_configs:
     - v6.6.95
     - v6.12.30
     - v6.15
+    - kernel_version: v7.0
+      vng_args: "--memory 4G"
