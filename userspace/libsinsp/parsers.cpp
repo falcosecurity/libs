@@ -2698,7 +2698,13 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	}
 
 	const char *parstr;
+	uint32_t openflags = 0;
 	fdi->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+	if(evt.get_type() == PPME_SOCKET_ACCEPT4_6_X && evt.get_num_params() > 5) {
+		auto flags = evt.get_param(5)->as<int32_t>();
+		openflags |= (flags & PPM_O_CLOEXEC);
+	}
+	fdi->m_openflags = openflags;
 	fdi->m_flags = 0;
 
 	// If there's a listener, add a callback to later invoke it.
