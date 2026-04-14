@@ -1,5 +1,5 @@
 parallel: 2
-kernel_versions:
+vm_configs:
     - v5.10.239
     - v5.15.188
     - v6.1.140
