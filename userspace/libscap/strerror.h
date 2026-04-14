@@ -20,6 +20,8 @@ limitations under the License.
 
 #include <stdint.h>
 
+#include <libscap/scap_const.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,6 +38,14 @@ int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...)
 	((void)sizeof(printf(__VA_ARGS__)), scap_errprintf_unchecked(BUF, ERRNUM, __VA_ARGS__))
 int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...);
 #endif
+
+static inline int32_t scap_err_unsupported_setting(char* lasterr,
+                                                   int setting,
+                                                   unsigned long arg1,
+                                                   unsigned long arg2) {
+	(void)scap_errprintf(lasterr, 0, "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
+	return SCAP_NOT_SUPPORTED;
+}
 
 #ifdef __cplusplus
 };

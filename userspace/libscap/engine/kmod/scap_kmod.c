@@ -905,12 +905,7 @@ static int32_t configure(struct scap_engine_handle engine,
 	case SCAP_STATSD_PORT:
 		return scap_kmod_set_statsd_port(engine, arg1);
 	default: {
-		return scap_errprintf(HANDLE(engine)->m_lasterr,
-		                      0,
-		                      "Unsupported setting %d (args %lu, %lu)",
-		                      setting,
-		                      arg1,
-		                      arg2);
+		return scap_err_unsupported_setting(HANDLE(engine)->m_lasterr, setting, arg1, arg2);
 	}
 	}
 }
