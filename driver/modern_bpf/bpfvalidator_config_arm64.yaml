@@ -1,4 +1,4 @@
-parallel: 2
+parallel: 6
 vm_configs:
     - v5.10.239
     - v5.15.188
