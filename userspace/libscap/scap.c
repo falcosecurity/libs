@@ -282,9 +282,8 @@ int32_t scap_stop_capture(scap_t* handle) {
 		return handle->m_vtable->stop_capture(handle->m_engine);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
 	ASSERT(false);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 //
@@ -299,9 +298,8 @@ int32_t scap_start_capture(scap_t* handle) {
 		return handle->m_vtable->start_capture(handle->m_engine);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
 	ASSERT(false);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_stop_dropping_mode(scap_t* handle) {
@@ -313,9 +311,8 @@ int32_t scap_stop_dropping_mode(scap_t* handle) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
 	ASSERT(false);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio) {
@@ -344,9 +341,8 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio) {
 		                                   1);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
 	ASSERT(false);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen) {
@@ -358,8 +354,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int64_t scap_get_readfile_offset(scap_t* handle) {
@@ -393,8 +388,7 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_PPM_SC_MASK, op, ppm_sc);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
@@ -406,8 +400,7 @@ int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DROP_FAILED, enabled, 0);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle) {
@@ -419,8 +412,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_disable_dynamic_snaplen(scap_t* handle) {
@@ -432,8 +424,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 const char* scap_get_host_root() {
@@ -471,8 +462,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret) {
 		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 bool scap_check_current_engine(scap_t* handle, const char* engine_name) {
@@ -494,8 +484,7 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 		                                   range_end);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port) {
@@ -507,8 +496,7 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port) {
 		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
 	}
 
-	scap_err_opnotsup(handle->m_lasterr);
-	return SCAP_FAILURE;
+	return scap_err_opnotsup(handle->m_lasterr);
 }
 
 uint64_t scap_get_driver_api_version(scap_t* handle) {

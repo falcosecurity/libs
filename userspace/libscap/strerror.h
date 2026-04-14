@@ -39,6 +39,11 @@ int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...)
 int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...);
 #endif
 
+static inline int32_t scap_err_opnotsup(char* error) {
+	(void)scap_errprintf(error, 0, "operation not supported");
+	return SCAP_NOT_SUPPORTED;
+}
+
 static inline int32_t scap_err_unsupported_setting(char* lasterr,
                                                    int setting,
                                                    unsigned long arg1,
@@ -50,5 +55,3 @@ static inline int32_t scap_err_unsupported_setting(char* lasterr,
 #ifdef __cplusplus
 };
 #endif
-
-#define scap_err_opnotsup(error) scap_errprintf(error, 0, "operation not supported")
