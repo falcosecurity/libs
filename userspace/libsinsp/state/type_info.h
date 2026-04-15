@@ -27,7 +27,7 @@ namespace state {
 class base_table;
 
 template<typename T>
-static constexpr ss_plugin_state_type type_id_of();
+inline constexpr ss_plugin_state_type type_id_of();
 
 template<>
 inline constexpr ss_plugin_state_type type_id_of<bool>() {
