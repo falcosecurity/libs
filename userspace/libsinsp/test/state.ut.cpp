@@ -21,6 +21,8 @@ limitations under the License.
 #include <libsinsp/state/dynamic_struct.h>
 #include <libsinsp/state/table_registry.h>
 #include <libsinsp/sinsp.h>
+#include <cstring>
+#include <string>
 
 TEST(static_struct, defs_and_access) {
 	struct err_multidef_struct : public libsinsp::state::extensible_struct {
@@ -717,4 +719,233 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_NO_THROW(subtable->clear_entries());
 	EXPECT_EQ(subtable->entries_count(), 0);
 	EXPECT_EQ(tinfo->m_env.size(), 0);
+}
+
+// Regression test for commit 890dacf: the thread_local std::string scratch
+// buffer in extensible_struct::raw_read_field is shared across ALL string field
+// reads.  Reading a second, longer string field causes the thread_local string
+// to reallocate, which frees the old buffer and leaves a dangling c_str()
+// pointer from the first read.
+//
+// Under ASan/Valgrind this should report a use-after-free / heap-use-after-free.
+TEST(dynamic_struct, thread_local_string_dangling_pointer_regression) {
+	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
+
+	struct sample_struct : public libsinsp::state::extensible_struct {
+		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	// Create two string fields
+	auto field_a = fields->add_field("field_a", SS_PLUGIN_ST_STRING);
+	auto field_b = fields->add_field("field_b", SS_PLUGIN_ST_STRING);
+
+	auto acc_a = field_a.new_accessor().into<std::string>();
+	auto acc_b = field_b.new_accessor().into<std::string>();
+
+	sample_struct s(fields);
+
+	// Write a short string to field_a and a long string to field_b.
+	// The long string is chosen to force a reallocation of the thread_local
+	// scratch buffer when field_b is read after field_a.
+	const std::string short_str = "/usr/lib";
+	const std::string long_str(256, 'X');  // long enough to force reallocation
+
+	s.write_field(acc_a, short_str);
+	s.write_field(acc_b, long_str);
+
+	// Read field_a as const char* — this stores a pointer into the
+	// thread_local std::string's internal buffer.
+	const char* ptr_a = nullptr;
+	s.read_field(acc_a, ptr_a);
+	ASSERT_NE(ptr_a, nullptr);
+
+	// Stash the content so we can verify it later.
+	// Under the bug, ptr_a is still valid here — but will become dangling
+	// after the next read_field call.
+	const std::string saved_a(ptr_a);
+	ASSERT_EQ(saved_a, short_str);
+
+	// Now read field_b — this overwrites the thread_local string with
+	// a longer value, causing reallocation and freeing ptr_a's buffer.
+	const char* ptr_b = nullptr;
+	s.read_field(acc_b, ptr_b);
+	ASSERT_NE(ptr_b, nullptr);
+	ASSERT_EQ(std::string(ptr_b), long_str);
+
+	// THE BUG: ptr_a now points to freed memory.
+	// Using it is UB; under ASan this is a heap-use-after-free.
+	// After the fix, ptr_a should still point to valid memory holding
+	// the original value.
+	EXPECT_EQ(std::string(ptr_a), short_str)
+	        << "ptr_a was invalidated by a subsequent read_field — "
+	           "thread_local scratch buffer dangling pointer bug";
+}
+
+// Same regression but with multiple entries in a table-like scenario:
+// read string fields from two different entries; verify the first pointer
+// survives the second read.
+TEST(dynamic_struct, thread_local_string_cross_entry_dangling_pointer) {
+	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
+
+	struct sample_struct : public libsinsp::state::extensible_struct {
+		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
+	auto acc_str = field_str.new_accessor().into<std::string>();
+
+	sample_struct entry1(fields);
+	sample_struct entry2(fields);
+
+	entry1.write_field(acc_str, std::string("short"));
+	entry2.write_field(acc_str, std::string(512, 'Y'));
+
+	// Read from entry1 first, then entry2.
+	const char* p1 = nullptr;
+	entry1.read_field(acc_str, p1);
+	ASSERT_NE(p1, nullptr);
+
+	const char* p2 = nullptr;
+	entry2.read_field(acc_str, p2);
+	ASSERT_NE(p2, nullptr);
+
+	// p1 must still be valid and hold the original value.
+	EXPECT_EQ(std::string(p1), "short") << "cross-entry read invalidated first pointer — "
+	                                       "thread_local scratch buffer bug";
+	EXPECT_EQ(std::string(p2), std::string(512, 'Y'));
+
+	// Also verify they point to distinct memory (not both aliasing
+	// the same thread_local buffer).
+	EXPECT_NE(p1, p2) << "two different entries should not alias the same buffer";
+}
+
+// Regression test for strdup(nullptr) UB in dynamic_field_value::set().
+// When a string field is created but never written, its initial value is
+// null (memset to 0).  Writing to a later field forces the string field
+// to be materialized with m_data.str == nullptr.
+//
+// Bug 1: raw_read_field does `str = ptr->m_data.str` which is UB when
+//        m_data.str is nullptr (assigns from null const char*).
+// Bug 2: Copying the entry calls deep_fields_copy which invokes
+//        operator= on the dynamic_field_value, triggering
+//        strdup(nullptr) in set().
+//
+// This test triggers the read path; the copy path is tested below.
+TEST(dynamic_struct, read_null_string_field_after_lazy_materialization) {
+	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
+
+	struct sample_struct : public libsinsp::state::extensible_struct {
+		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	// Define two fields: string at index 0, uint64 at index 1.
+	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
+	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
+	auto acc_str = field_str.new_accessor().into<std::string>();
+	auto acc_num = field_num.new_accessor().into<uint64_t>();
+
+	sample_struct s1(fields);
+
+	// Write only to the SECOND field (index 1).
+	// This forces the string field at index 0 to be materialized with
+	// its default value: m_data.str == nullptr (from memset).
+	s1.write_field(acc_num, (uint64_t)42);
+
+	// Reading the string field should return "" and NOT crash.
+	// Under the bug, raw_read_field does `str = ptr->m_data.str`
+	// where m_data.str is nullptr — this is UB (crashes under ASan).
+	std::string tmp;
+	ASSERT_NO_THROW(s1.read_field(acc_str, tmp));
+	ASSERT_EQ(tmp, "");
+}
+
+// Test the deep copy path with a null string field.
+// After the above test's scenario, copying the entry invokes
+// strdup(nullptr) in dynamic_field_value's copy path.
+TEST(dynamic_struct, strdup_nullptr_on_copy_with_uninitialized_string_field) {
+	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
+
+	struct sample_struct : public libsinsp::state::extensible_struct {
+		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
+	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
+	auto acc_str = field_str.new_accessor().into<std::string>();
+	auto acc_num = field_num.new_accessor().into<uint64_t>();
+
+	sample_struct s1(fields);
+
+	// Materialize the string field with a null m_data.str by writing
+	// to the later field. Then also explicitly write the string to
+	// avoid the raw_read_field crash (separate bug).
+	s1.write_field(acc_num, (uint64_t)42);
+	s1.write_field(acc_str, std::string("hello"));
+
+	// Now create a second entry where only the number field is written.
+	// The string field is lazily materialized with null.
+	sample_struct s2(fields);
+	s2.write_field(acc_num, (uint64_t)99);
+
+	// Copy s2 — the deep copy iterates over materialized fields and
+	// calls operator= on the string dynamic_field_value, which does
+	// strdup(m_data.str) where m_data.str is nullptr => UB/crash.
+	ASSERT_NO_THROW({
+		sample_struct s3(s2);  // copy constructor
+		std::string tmp;
+		s3.read_field(acc_str, tmp);
+		EXPECT_EQ(tmp, "");
+		uint64_t n = 0;
+		s3.read_field(acc_num, n);
+		EXPECT_EQ(n, 99);
+	});
+
+	ASSERT_NO_THROW({
+		sample_struct s4(fields);
+		s4 = s2;  // copy assignment
+		std::string tmp;
+		s4.read_field(acc_str, tmp);
+		EXPECT_EQ(tmp, "");
+		uint64_t n = 0;
+		s4.read_field(acc_num, n);
+		EXPECT_EQ(n, 99);
+	});
+}
+
+// Verify that writing an empty string and then copying does not crash
+// (a weaker variant of the nullptr test — ensures the empty-string path
+// also works correctly after the fix).
+TEST(dynamic_struct, copy_entry_with_empty_string_field) {
+	auto fields = std::make_shared<libsinsp::state::dynamic_field_infos>();
+
+	struct sample_struct : public libsinsp::state::extensible_struct {
+		sample_struct(const std::shared_ptr<libsinsp::state::dynamic_field_infos>& i):
+		        extensible_struct(i) {}
+	};
+
+	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
+	auto acc_str = field_str.new_accessor().into<std::string>();
+
+	sample_struct s1(fields);
+	s1.write_field(acc_str, std::string(""));
+
+	std::string tmp;
+	s1.read_field(acc_str, tmp);
+	ASSERT_EQ(tmp, "");
+
+	// Copy — should work fine, no UB.
+	sample_struct s2(s1);
+	s2.read_field(acc_str, tmp);
+	EXPECT_EQ(tmp, "");
+
+	// Write something to the copy and verify original is unchanged.
+	s2.write_field(acc_str, std::string("modified"));
+	s2.read_field(acc_str, tmp);
+	EXPECT_EQ(tmp, "modified");
+	s1.read_field(acc_str, tmp);
+	EXPECT_EQ(tmp, "");
 }
