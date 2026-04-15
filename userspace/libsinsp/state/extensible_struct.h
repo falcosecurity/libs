@@ -151,15 +151,9 @@ protected:
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			thread_local std::string str;
 			_check_defsptr(dynamic_acc->info(), false);
 			auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index());
 			if(ptr) {
-				if(a.type_id() == SS_PLUGIN_ST_STRING) {
-					str = ptr->m_data.str;
-					return &str;
-				}
-
 				switch(a.type_id()) {
 				case SS_PLUGIN_ST_INT8:
 					return &ptr->m_data.s8;
@@ -178,7 +172,7 @@ protected:
 				case SS_PLUGIN_ST_UINT64:
 					return &ptr->m_data.u64;
 				case SS_PLUGIN_ST_STRING:
-					return &ptr->m_data.str;
+					return &ptr->m_str;
 				case SS_PLUGIN_ST_TABLE:
 					return &ptr->m_data.table;
 				case SS_PLUGIN_ST_BOOL:

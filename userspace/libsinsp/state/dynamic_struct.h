@@ -33,61 +33,64 @@ namespace libsinsp::state {
 struct dynamic_field_value {
 	ss_plugin_state_type m_type;
 	ss_plugin_state_data m_data;
+	// Stable std::string storage for SS_PLUGIN_ST_STRING fields.
+	// raw_read_field returns &m_str for string fields, giving callers
+	// a const std::string* that remains valid across multiple reads.
+	// m_data.str is kept pointing at m_str.c_str() for the plugin C API.
+	std::string m_str;
 
 	explicit dynamic_field_value(ss_plugin_state_type type): m_type(type), m_data{} {
 		memset(&m_data, 0, sizeof(m_data));
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			m_data.str = m_str.c_str();
+		}
 	}
 
 	void update(const borrowed_state_data& val) {
-		clear();
-		set(val);
-	}
-
-	dynamic_field_value(const dynamic_field_value& rhs) noexcept: m_type(rhs.m_type), m_data{} {
-		*this = rhs;
-	}
-
-	dynamic_field_value& operator=(const dynamic_field_value& rhs) {
-		clear();
-		m_type = rhs.m_type;
-		set(borrowed_state_data(rhs.m_data));
-		return *this;
-	}
-
-	dynamic_field_value(dynamic_field_value&& rhs) noexcept: m_type(rhs.m_type), m_data{} {
-		*this = std::move(rhs);
-	}
-
-	dynamic_field_value& operator=(dynamic_field_value&& rhs) noexcept {
-		clear();
-		m_type = rhs.m_type;
-		m_data = rhs.m_data;
-		rhs.m_type = static_cast<ss_plugin_state_type>(0);  // invalid type
-		rhs.m_data.str = nullptr;
-		return *this;
-	}
-
-	~dynamic_field_value() {
 		if(m_type == SS_PLUGIN_ST_STRING) {
-			free(const_cast<char*>(m_data.str));
-		}
-	}
-
-private:
-	void clear() {
-		if(m_type == SS_PLUGIN_ST_STRING) {
-			free(const_cast<char*>(m_data.str));
-			m_data.str = nullptr;
-		}
-	}
-
-	void set(const libsinsp::state::borrowed_state_data& val) {
-		if(m_type == SS_PLUGIN_ST_STRING) {
-			m_data.str = strdup(val.data().str);
+			m_str = val.data().str ? val.data().str : "";
+			m_data.str = m_str.c_str();
 		} else {
 			m_data = val.data();
 		}
 	}
+
+	dynamic_field_value(const dynamic_field_value& rhs) noexcept:
+	        m_type(rhs.m_type),
+	        m_data{},
+	        m_str() {
+		*this = rhs;
+	}
+
+	dynamic_field_value& operator=(const dynamic_field_value& rhs) {
+		m_type = rhs.m_type;
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			m_str = rhs.m_str;
+			m_data.str = m_str.c_str();
+		} else {
+			m_data = rhs.m_data;
+		}
+		return *this;
+	}
+
+	dynamic_field_value(dynamic_field_value&& rhs) noexcept: m_type(rhs.m_type), m_data{}, m_str() {
+		*this = std::move(rhs);
+	}
+
+	dynamic_field_value& operator=(dynamic_field_value&& rhs) noexcept {
+		m_type = rhs.m_type;
+		if(m_type == SS_PLUGIN_ST_STRING) {
+			m_str = std::move(rhs.m_str);
+			m_data.str = m_str.c_str();
+			rhs.m_data.str = rhs.m_str.c_str();
+		} else {
+			m_data = rhs.m_data;
+		}
+		rhs.m_type = static_cast<ss_plugin_state_type>(0);  // invalid type
+		return *this;
+	}
+
+	~dynamic_field_value() = default;
 };
 
 class extensible_struct;
