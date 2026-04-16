@@ -333,15 +333,24 @@ void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::field_transfor
 	// apply transformer, ignoring the "identity one" (it's just a syntactic construct)
 	if(e->transformer != "val") {
 		if(args.size() == 1) {
+			if(!e->arg.empty()) {
+				throw sinsp_exception("filter error: transformer '" + e->transformer +
+				                      "' does not support field arguments");
+			}
 			m_last_node_field = std::move(args[0]);
 			m_last_node_field->add_transformer(filter_transformer_from_str(e->transformer));
 		} else {
 			// multivalue
 			m_last_node_field =
 			        sinsp_filter_multivalue_transformer::create_transformer(e->transformer,
-			                                                                std::move(args));
+			                                                                std::move(args),
+			                                                                e->arg);
 		}
 	} else {
+		if(!e->arg.empty()) {
+			throw sinsp_exception(
+			        "filter error: transformer 'val' does not support field arguments");
+		}
 		m_last_node_field = std::move(args[0]);
 	}
 }

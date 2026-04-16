@@ -534,9 +534,12 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 	field_transformer_expr() = default;
 	virtual ~field_transformer_expr() = default;
 
-	field_transformer_expr(const std::string& t, std::vector<std::unique_ptr<expr>>& v):
+	field_transformer_expr(const std::string& t,
+	                       std::vector<std::unique_ptr<expr>>& v,
+	                       const std::string& arg = ""):
 	        transformer(t),
-	        values(std::move(v)) {}
+	        values(std::move(v)),
+	        arg(arg) {}
 
 	void accept(expr_visitor* v) override { v->visit(this); };
 
@@ -544,7 +547,7 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 
 	bool is_equal(const expr* other) const override {
 		auto o = dynamic_cast<const field_transformer_expr*>(other);
-		if(o == nullptr || o->values.size() != values.size()) {
+		if(o == nullptr || o->values.size() != values.size() || o->arg != arg) {
 			return false;
 		}
 
@@ -559,12 +562,33 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 
 	std::string transformer;
 	std::vector<std::unique_ptr<expr>> values;
+	std::string arg;
+
+	static std::unique_ptr<field_transformer_expr> create(
+	        const std::string& m,
+	        std::vector<std::unique_ptr<expr>>& v,
+	        const std::string& arg,
+	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
+		auto ret = std::make_unique<field_transformer_expr>(m, v, arg);
+		ret->set_pos(pos);
+		return ret;
+	}
 
 	static std::unique_ptr<field_transformer_expr> create(
 	        const std::string& m,
 	        std::vector<std::unique_ptr<expr>>& v,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
-		auto ret = std::make_unique<field_transformer_expr>(m, v);
+		return create(m, v, "", pos);
+	}
+
+	static std::unique_ptr<field_transformer_expr> create(
+	        const std::string& m,
+	        std::unique_ptr<expr> v,
+	        const std::string& arg,
+	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
+		std::vector<std::unique_ptr<expr>> args;
+		args.push_back(std::move(v));
+		auto ret = std::make_unique<field_transformer_expr>(m, args, arg);
 		ret->set_pos(pos);
 		return ret;
 	}
@@ -573,11 +597,7 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 	        const std::string& m,
 	        std::unique_ptr<expr> v,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
-		std::vector<std::unique_ptr<expr>> args;
-		args.push_back(std::move(v));
-		auto ret = std::make_unique<field_transformer_expr>(m, args);
-		ret->set_pos(pos);
-		return ret;
+		return create(m, std::move(v), "", pos);
 	}
 };
 

@@ -838,6 +838,10 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_getopt) {
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("", "-n", ""), "n") intersects ("n"))"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-@", "-+"), "@+") intersects ("@", "+"))"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-nx"), "n") intersects ("n", "?"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[t] = hello)"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[t] = n)"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[n] = n)"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", "v1", "-t", "v2"), "t:")[t] = v2)"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("--exec"), "e:") intersects ("?"))"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("--exec"), "e:") intersects ("e"))"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("--exec", "-n"), "n") intersects ("n"))"));

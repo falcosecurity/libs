@@ -236,6 +236,9 @@ void string_visitor::visit(const field_transformer_expr* e) {
 		c->accept(this);
 	}
 	m_str += ")";
+	if(e->arg != "") {
+		m_str += "[" + libsinsp::filter::escape_str(e->arg) + "]";
+	}
 }
 
 const std::string& string_visitor::as_string() {
@@ -323,7 +326,8 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(const expr* e) {
 				c->accept(this);
 				values.push_back(std::move(m_last_node));
 			}
-			m_last_node = field_transformer_expr::create(e->transformer, values, e->get_pos());
+			m_last_node =
+			        field_transformer_expr::create(e->transformer, values, e->arg, e->get_pos());
 		}
 	} visitor;
 

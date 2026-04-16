@@ -124,6 +124,13 @@ TEST(parser, supported_field_transformers) {
 	}
 }
 
+TEST(parser, parse_transformer_with_arg) {
+	parser parser(R"(getopt(proc.args, "nt:")[t] = value)");
+	auto expr = parser.parse();
+	ASSERT_NE(expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(expr.get()), R"(getopt(proc.args,nt:)[t] = value)");
+}
+
 // Based on and extended Falco's parser smoke tests:
 // https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/userspace/engine/lua/parser-smoke.sh#L41
 TEST(parser, parse_smoke_test) {

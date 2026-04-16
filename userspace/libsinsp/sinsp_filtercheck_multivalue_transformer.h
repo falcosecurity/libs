@@ -33,7 +33,8 @@ public:
 
 	static std::unique_ptr<sinsp_filter_check> create_transformer(
 	        const std::string& name,
-	        std::vector<std::unique_ptr<sinsp_filter_check>> args);
+	        std::vector<std::unique_ptr<sinsp_filter_check>> args,
+	        const std::string& arg = "");
 
 	sinsp_filter_multivalue_transformer(value_type_info result,
 	                                    std::vector<std::unique_ptr<sinsp_filter_check>> args);
@@ -46,6 +47,8 @@ public:
 	virtual std::unique_ptr<sinsp_filter_multivalue_transformer> clone() const;
 
 	virtual std::string name() const;
+	virtual bool supports_arg() const;
+	virtual void set_arg(std::string arg);
 
 	virtual bool extract(sinsp_evt* evt,
 	                     std::vector<extract_value_t>& values,
@@ -131,12 +134,15 @@ public:
 	~sinsp_filter_multivalue_transformer_getopt() override;
 
 	std::string name() const override;
+	bool supports_arg() const override;
+	void set_arg(std::string arg) override;
 
 	bool extract(sinsp_evt* evt,
 	             std::vector<extract_value_t>& values,
 	             bool sanitize_strings = true) override;
 
 private:
+	std::string m_arg;
 	std::vector<std::string> m_result_storage;
 	storage_t m_storage;
 };

@@ -59,6 +59,16 @@ std::string sinsp_filter_multivalue_transformer::name() const {
 	return "";
 };
 
+bool sinsp_filter_multivalue_transformer::supports_arg() const {
+	return false;
+}
+
+void sinsp_filter_multivalue_transformer::set_arg(std::string arg) {
+	if(!arg.empty()) {
+		throw sinsp_exception("transformer '" + name() + "' does not support field arguments");
+	}
+}
+
 bool sinsp_filter_multivalue_transformer::extract(sinsp_evt* evt,
                                                   std::vector<extract_value_t>& values,
                                                   bool sanitize_strings) {
@@ -87,7 +97,10 @@ multivalue_transformer_filter_check::multivalue_transformer_filter_check(
 
 	if(m_transformer && m_transformer->result_type().is_list) {
 		auto field = std::make_unique<filtercheck_field_info>();
-		field->m_flags = EPF_IS_LIST | EPF_ARG_ALLOWED;
+		field->m_flags = EPF_IS_LIST;
+		if(m_transformer->supports_arg()) {
+			field->m_flags |= EPF_ARG_ALLOWED | EPF_ARG_KEY;
+		}
 		field->m_type = PT_CHARBUF;
 		field->m_name = "INTERNAL";
 		field->m_description = "NA";
@@ -270,6 +283,23 @@ std::string sinsp_filter_multivalue_transformer_getopt::name() const {
 	return "getopt";
 }
 
+bool sinsp_filter_multivalue_transformer_getopt::supports_arg() const {
+	return true;
+}
+
+void sinsp_filter_multivalue_transformer_getopt::set_arg(std::string arg) {
+	if(arg.empty()) {
+		m_arg.clear();
+		m_result_type = {PT_CHARBUF, true};
+		return;
+	}
+	if(arg.size() != 1) {
+		throw sinsp_exception("getopt() field argument must be a single option character");
+	}
+	m_arg = std::move(arg);
+	m_result_type = {PT_CHARBUF, false};
+}
+
 bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
                                                          std::vector<extract_value_t>& values,
                                                          bool sanitize_strings) {
@@ -303,6 +333,9 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 	m_result_storage.clear();
 	m_storage.clear();
 
+	const bool has_selector = !m_arg.empty();
+	const unsigned char selector = has_selector ? static_cast<unsigned char>(m_arg[0]) : 0;
+
 	for(size_t arg_idx = 0; arg_idx < values.size(); arg_idx++) {
 		const char* arg_ptr = (char*)values[arg_idx].ptr;
 		size_t arg_len = values[arg_idx].len;
@@ -325,26 +358,52 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 			unsigned char opt = static_cast<unsigned char>(arg_ptr[i]);
 
 			if(opt == ':' || !valid_opts[opt]) {
-				m_result_storage.emplace_back("?");
+				if(!has_selector) {
+					m_result_storage.emplace_back("?");
+				}
 				continue;
 			}
 
-			m_result_storage.emplace_back(1, static_cast<char>(opt));
+			const bool selector_match = !has_selector || opt == selector;
+			if(selector_match && !opts_with_args[opt]) {
+				m_result_storage.emplace_back(1, static_cast<char>(opt));
+			}
 
 			if(opts_with_args[opt]) {
 				if(i + 1 < arg_len) {
-					m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
+					if(selector_match) {
+						if(has_selector) {
+							m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
+						} else {
+							m_result_storage.emplace_back(1, static_cast<char>(opt));
+							m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
+						}
+					}
 					break;
 				} else if(arg_idx + 1 < values.size()) {
 					arg_idx++;
-					m_result_storage.emplace_back((char*)values[arg_idx].ptr, values[arg_idx].len);
+					if(selector_match) {
+						if(has_selector) {
+							m_result_storage.emplace_back((char*)values[arg_idx].ptr,
+							                              values[arg_idx].len);
+						} else {
+							m_result_storage.emplace_back(1, static_cast<char>(opt));
+							m_result_storage.emplace_back((char*)values[arg_idx].ptr,
+							                              values[arg_idx].len);
+						}
+					}
 					break;
 				} else {
-					m_result_storage.pop_back();
-					m_result_storage.emplace_back(missing_arg_returns_colon ? ":" : "?");
+					if(selector_match) {
+						m_result_storage.emplace_back(missing_arg_returns_colon ? ":" : "?");
+					}
 				}
 			}
 		}
+	}
+
+	if(has_selector && m_result_storage.size() > 1) {
+		m_result_storage = {m_result_storage.back()};
 	}
 
 	values.clear();
@@ -369,17 +428,19 @@ sinsp_filter_multivalue_transformer_getopt::~sinsp_filter_multivalue_transformer
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_multivalue_transformer::create_transformer(
         const std::string& name,
-        std::vector<std::unique_ptr<sinsp_filter_check>> args) {
+        std::vector<std::unique_ptr<sinsp_filter_check>> args,
+        const std::string& arg) {
+	std::unique_ptr<sinsp_filter_multivalue_transformer> transformer;
 	if(name == "join") {
-		return std::make_unique<multivalue_transformer_filter_check>(
-		        std::make_unique<sinsp_filter_multivalue_transformer_join>(std::move(args)));
+		transformer = std::make_unique<sinsp_filter_multivalue_transformer_join>(std::move(args));
 	} else if(name == "concat") {
-		return std::make_unique<multivalue_transformer_filter_check>(
-		        std::make_unique<sinsp_filter_multivalue_transformer_concat>(std::move(args)));
+		transformer = std::make_unique<sinsp_filter_multivalue_transformer_concat>(std::move(args));
 	} else if(name == "getopt") {
-		return std::make_unique<multivalue_transformer_filter_check>(
-		        std::make_unique<sinsp_filter_multivalue_transformer_getopt>(std::move(args)));
+		transformer = std::make_unique<sinsp_filter_multivalue_transformer_getopt>(std::move(args));
 	} else {
 		throw std::runtime_error("unknown multivalue transformer");
 	}
+
+	transformer->set_arg(arg);
+	return std::make_unique<multivalue_transformer_filter_check>(std::move(transformer));
 }
