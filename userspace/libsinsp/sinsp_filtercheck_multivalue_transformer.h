@@ -160,8 +160,7 @@ private:
 	std::optional<std::string_view> get_option_argument(
 	        size_t& arg_idx,
 	        size_t opt_idx,
-	        const char* arg_ptr,
-	        size_t arg_len,
+	        std::string_view arg,
 	        const std::vector<extract_value_t>& values) const;
 	std::pair<size_t, uint32_t> append_result(std::string_view str);
 	void emit_option_result(std::vector<result_ref>& results,
