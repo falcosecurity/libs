@@ -14,6 +14,7 @@
 */
 
 #include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
+#include <libsinsp/sinsp_filtercheck_rawstring.h>
 
 #include <array>
 #include <string_view>
@@ -278,6 +279,18 @@ sinsp_filter_multivalue_transformer_getopt::sinsp_filter_multivalue_transformer_
 	if(arg_types[0].type != PT_CHARBUF || arg_types[1].type != PT_CHARBUF) {
 		throw sinsp_exception("getopt() arguments must be strings");
 	}
+
+	// When the optstring is a literal, the compiler materializes it as a
+	// rawstring_check. Decode it once here so extract() can skip reparsing it
+	// for every event.
+	if(auto* raw_optstring = dynamic_cast<rawstring_check*>(m_arguments[1].get());
+	   raw_optstring != nullptr) {
+		uint32_t len = 0;
+		auto* ptr = raw_optstring->extract_single(nullptr, &len, false);
+		m_constant_optinfo =
+		        parse_optstring(std::string_view(reinterpret_cast<const char*>(ptr), len));
+		m_has_constant_optinfo = true;
+	}
 }
 
 std::string sinsp_filter_multivalue_transformer_getopt::name() const {
@@ -301,125 +314,239 @@ void sinsp_filter_multivalue_transformer_getopt::set_arg(std::string arg) {
 	m_result_type = {PT_CHARBUF, false};
 }
 
-bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
-                                                         std::vector<extract_value_t>& values,
-                                                         bool sanitize_strings) {
-	values.clear();
-	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings) || values.empty()) {
-		return false;
-	}
-	std::string_view optstring(reinterpret_cast<const char*>(values[0].ptr), values[0].len);
+sinsp_filter_multivalue_transformer_getopt::getopt_optstring_info
+sinsp_filter_multivalue_transformer_getopt::parse_optstring(std::string_view optstring) {
+	getopt_optstring_info info;
 
-	bool missing_arg_returns_colon = !optstring.empty() && optstring[0] == ':';
-	size_t opt_idx = missing_arg_returns_colon ? 1 : 0;
-	std::array<bool, 256> valid_opts = {};
-	std::array<bool, 256> opts_with_args = {};
+	info.missing_arg_returns_colon = !optstring.empty() && optstring[0] == ':';
+	size_t opt_idx = info.missing_arg_returns_colon ? 1 : 0;
 	for(; opt_idx < optstring.size(); opt_idx++) {
 		unsigned char opt = static_cast<unsigned char>(optstring[opt_idx]);
 		if(opt == ':') {
 			continue;
 		}
-		valid_opts[opt] = true;
+		info.valid_opts[opt] = true;
 		if(opt_idx + 1 < optstring.size() && optstring[opt_idx + 1] == ':') {
-			opts_with_args[opt] = true;
+			info.opts_with_args[opt] = true;
 			opt_idx++;
 		}
 	}
 
+	return info;
+}
+
+const sinsp_filter_multivalue_transformer_getopt::getopt_optstring_info*
+sinsp_filter_multivalue_transformer_getopt::get_optinfo(sinsp_evt* evt,
+                                                        std::vector<extract_value_t>& values,
+                                                        bool sanitize_strings) {
+	if(m_has_constant_optinfo) {
+		return &m_constant_optinfo;
+	}
+
+	values.clear();
+	// getopt() needs one concrete optstring value. If extraction fails or
+	// yields no values, there is nothing meaningful to parse.
+	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings) || values.empty()) {
+		return nullptr;
+	}
+
+	std::string_view optstring(reinterpret_cast<const char*>(values[0].ptr), values[0].len);
+	// For non-literal optstrings, i.e. optstrings extracted from an event field
+	// instead of a constant rawstring_check, reparse only when the bytes change.
+	// We copy the current string_view into owned storage before decoding so the
+	// cached optinfo always refers to stable memory.
+	if(!m_has_last_optinfo || m_last_optstring != optstring) {
+		m_last_optstring.assign(optstring.data(), optstring.size());
+		m_last_optinfo = parse_optstring(m_last_optstring);
+		m_has_last_optinfo = true;
+	}
+
+	return &m_last_optinfo;
+}
+
+std::optional<std::string_view> sinsp_filter_multivalue_transformer_getopt::get_option_argument(
+        size_t& arg_idx,
+        size_t opt_idx,
+        const char* arg_ptr,
+        size_t arg_len,
+        const std::vector<extract_value_t>& values) const {
+	if(opt_idx + 1 < arg_len) {
+		return std::string_view(arg_ptr + opt_idx + 1, arg_len - opt_idx - 1);
+	}
+
+	if(arg_idx + 1 >= values.size()) {
+		return std::nullopt;
+	}
+
+	arg_idx++;
+	return std::string_view(reinterpret_cast<const char*>(values[arg_idx].ptr),
+	                        values[arg_idx].len);
+}
+
+std::pair<size_t, uint32_t> sinsp_filter_multivalue_transformer_getopt::append_result(
+        std::string_view str) {
+	size_t offset = m_storage.size();
+	m_storage.insert(m_storage.end(), str.begin(), str.end());
+	m_storage.push_back('\0');
+	return {offset, static_cast<uint32_t>(str.size())};
+}
+
+void sinsp_filter_multivalue_transformer_getopt::emit_option_result(
+        std::vector<result_ref>& results,
+        std::optional<result_ref>& selected_result,
+        bool has_selector,
+        std::string_view option_name,
+        std::optional<std::string_view> option_value) {
+	if(has_selector) {
+		selected_result = append_result(option_value.value_or(option_name));
+		return;
+	}
+
+	results.push_back(append_result(option_name));
+	if(option_value.has_value()) {
+		results.push_back(append_result(*option_value));
+	}
+}
+
+bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
+                                                         std::vector<extract_value_t>& values,
+                                                         bool sanitize_strings) {
+	// The second argument is the getopt(3) optstring. Extract it first and
+	// decode it into two lookup tables:
+	// - which option characters are valid
+	// - which option characters require a following value
+	//
+	// We also remember whether a leading ':' is present, because that changes
+	// the missing-argument error from '?' to ':'.
+	const getopt_optstring_info* optinfo = get_optinfo(evt, values, sanitize_strings);
+	if(optinfo == nullptr) {
+		return false;
+	}
+
+	// The first argument is argv. Extract it and then scan it token-by-token
+	// using getopt-like rules:
+	// - stop at bare "--"
+	// - skip unsupported long options like "--exec"
+	// - stop at the first non-option token
+	// - expand short-option clusters like "-nt"
+	//
+	// Results are appended directly into m_storage and recorded as offsets.
+	// We build extract_value_t views only at the end, once the storage buffer
+	// is stable and no further growth can invalidate pointers.
 	values.clear();
 	if(!m_arguments.at(0)->extract(evt, values, sanitize_strings)) {
 		return false;
 	}
 
-	m_result_storage.clear();
 	m_storage.clear();
+	// Each result is tracked as an (offset, length) pair into m_storage until
+	// we materialize the final extract_value_t views at the end of extraction.
+	std::vector<std::pair<size_t, uint32_t>> results;
 
+	// In selector mode, e.g. getopt(...)[t], we keep only the last matching
+	// option/value instead of emitting the full getopt result stream.
 	const bool has_selector = !m_arg.empty();
 	const unsigned char selector = has_selector ? static_cast<unsigned char>(m_arg[0]) : 0;
+	std::optional<std::pair<size_t, uint32_t>> selected_result;
 
+	// Walk argv entries in order, applying getopt's top-level stopping rules
+	// before scanning any short-option cluster inside the current token.
 	for(size_t arg_idx = 0; arg_idx < values.size(); arg_idx++) {
-		const char* arg_ptr = (char*)values[arg_idx].ptr;
+		const char* arg_ptr = reinterpret_cast<const char*>(values[arg_idx].ptr);
 		size_t arg_len = values[arg_idx].len;
 
+		// "--" is the standard end-of-options marker.
 		if(arg_len == 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
 			break;
 		}
 
-		// Long options are not supported by getopt(). Skip tokens like
+		// Long options are intentionally unsupported here. Skip tokens like
 		// "--exec" so they are not misparsed as clusters of short options.
 		if(arg_len > 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
 			continue;
 		}
 
+		// getopt() stops as soon as it reaches the first non-option argument.
 		if(arg_len == 0 || arg_ptr[0] != '-' || arg_len == 1) {
 			break;
 		}
 
+		// Consume one short option at a time from a token like "-ntvalue".
 		for(size_t i = 1; i < arg_len; i++) {
 			unsigned char opt = static_cast<unsigned char>(arg_ptr[i]);
+			const bool valid_opt = opt != ':' && optinfo->valid_opts[opt];
 
-			if(opt == ':' || !valid_opts[opt]) {
+			// Unknown options yield '?' in list mode. In selector mode they are
+			// irrelevant because only one requested option can match.
+			if(!valid_opt) {
 				if(!has_selector) {
-					m_result_storage.emplace_back("?");
+					results.push_back(append_result("?"));
 				}
 				continue;
 			}
 
+			// Normalize the current short option into the pieces used below:
+			// whether it matches the requested selector, whether it expects an
+			// argument, and its one-character textual representation.
 			const bool selector_match = !has_selector || opt == selector;
-			if(selector_match && !opts_with_args[opt]) {
-				m_result_storage.emplace_back(1, static_cast<char>(opt));
+			const bool option_requires_arg = optinfo->opts_with_args[opt];
+			std::string_view option_name(reinterpret_cast<const char*>(&arg_ptr[i]), 1);
+
+			// Options without arguments emit just their option character.
+			if(selector_match && !option_requires_arg) {
+				emit_option_result(results,
+				                   selected_result,
+				                   has_selector,
+				                   option_name,
+				                   std::nullopt);
 			}
 
-			if(opts_with_args[opt]) {
-				if(i + 1 < arg_len) {
-					if(selector_match) {
-						if(has_selector) {
-							m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
-						} else {
-							m_result_storage.emplace_back(1, static_cast<char>(opt));
-							m_result_storage.emplace_back(arg_ptr + i + 1, arg_len - i - 1);
-						}
-					}
-					break;
-				} else if(arg_idx + 1 < values.size()) {
-					arg_idx++;
-					if(selector_match) {
-						if(has_selector) {
-							m_result_storage.emplace_back((char*)values[arg_idx].ptr,
-							                              values[arg_idx].len);
-						} else {
-							m_result_storage.emplace_back(1, static_cast<char>(opt));
-							m_result_storage.emplace_back((char*)values[arg_idx].ptr,
-							                              values[arg_idx].len);
-						}
-					}
-					break;
-				} else {
-					if(selector_match) {
-						m_result_storage.emplace_back(missing_arg_returns_colon ? ":" : "?");
-					}
-				}
+			if(!option_requires_arg) {
+				continue;
 			}
+
+			// Options requiring an argument accept either the rest of the current
+			// token (e.g. "-tvalue") or the next argv entry (e.g. "-t value").
+			auto option_value = get_option_argument(arg_idx, i, arg_ptr, arg_len, values);
+			if(!option_value.has_value()) {
+				// Missing arguments surface as '?' by default, or ':' when the
+				// optstring starts with ':'.
+				if(selector_match) {
+					emit_option_result(results,
+					                   selected_result,
+					                   has_selector,
+					                   optinfo->missing_arg_returns_colon ? ":" : "?",
+					                   std::nullopt);
+				}
+				break;
+			}
+
+			// In list mode we emit both the option and its value, matching the
+			// existing transformer contract. In selector mode we keep only the
+			// selected value, with last-match-wins semantics handled below.
+			if(selector_match) {
+				emit_option_result(results,
+				                   selected_result,
+				                   has_selector,
+				                   option_name,
+				                   *option_value);
+			}
+			break;
 		}
 	}
 
-	if(has_selector && m_result_storage.size() > 1) {
-		m_result_storage = {m_result_storage.back()};
+	// Selector mode behaves like a keyed lookup: only the last matching value
+	// is observable, so replace the full result list with that single entry.
+	if(has_selector && selected_result.has_value()) {
+		results.clear();
+		results.push_back(*selected_result);
 	}
 
+	// Finally, convert the stored offsets into extract_value_t views.
 	values.clear();
-	values.reserve(m_result_storage.size());
-	size_t total_size = 0;
-	for(const auto& str : m_result_storage) {
-		total_size += str.size() + 1;
-	}
-	m_storage.reserve(total_size);
-
-	for(const auto& str : m_result_storage) {
-		size_t offset = m_storage.size();
-		m_storage.insert(m_storage.end(), str.begin(), str.end());
-		m_storage.push_back('\0');
-		values.emplace_back(extract_value_t{&m_storage[offset], static_cast<uint32_t>(str.size())});
+	values.reserve(results.size());
+	for(const auto& [offset, len] : results) {
+		values.emplace_back(extract_value_t{&m_storage[offset], len});
 	}
 
 	return true;

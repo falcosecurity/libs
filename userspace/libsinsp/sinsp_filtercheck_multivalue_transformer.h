@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include <array>
+#include <string_view>
+
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/sinsp_filter_transformers.h>
 
@@ -142,7 +145,36 @@ public:
 	             bool sanitize_strings = true) override;
 
 private:
+	struct getopt_optstring_info {
+		bool missing_arg_returns_colon = false;
+		std::array<bool, 256> valid_opts = {};
+		std::array<bool, 256> opts_with_args = {};
+	};
+
+	using result_ref = std::pair<size_t, uint32_t>;
+
+	static getopt_optstring_info parse_optstring(std::string_view optstring);
+	const getopt_optstring_info* get_optinfo(sinsp_evt* evt,
+	                                         std::vector<extract_value_t>& values,
+	                                         bool sanitize_strings);
+	std::optional<std::string_view> get_option_argument(
+	        size_t& arg_idx,
+	        size_t opt_idx,
+	        const char* arg_ptr,
+	        size_t arg_len,
+	        const std::vector<extract_value_t>& values) const;
+	std::pair<size_t, uint32_t> append_result(std::string_view str);
+	void emit_option_result(std::vector<result_ref>& results,
+	                        std::optional<result_ref>& selected_result,
+	                        bool has_selector,
+	                        std::string_view option_name,
+	                        std::optional<std::string_view> option_value);
+
 	std::string m_arg;
-	std::vector<std::string> m_result_storage;
 	storage_t m_storage;
+	bool m_has_constant_optinfo = false;
+	getopt_optstring_info m_constant_optinfo;
+	bool m_has_last_optinfo = false;
+	std::string m_last_optstring;
+	getopt_optstring_info m_last_optinfo;
 };
