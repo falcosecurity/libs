@@ -16,6 +16,7 @@
 #include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
 
 #include <array>
+#include <string_view>
 
 sinsp_filter_multivalue_transformer::sinsp_filter_multivalue_transformer(
         value_type_info result,
@@ -307,7 +308,7 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings) || values.empty()) {
 		return false;
 	}
-	std::string optstring((char*)values[0].ptr, values[0].len);
+	std::string_view optstring(reinterpret_cast<const char*>(values[0].ptr), values[0].len);
 
 	bool missing_arg_returns_colon = !optstring.empty() && optstring[0] == ':';
 	size_t opt_idx = missing_arg_returns_colon ? 1 : 0;
