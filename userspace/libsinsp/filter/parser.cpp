@@ -374,7 +374,22 @@ inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
 	if(!lex_helper_str(")")) {
 		throw sinsp_exception("expected a ')' token closing the transformer");
 	}
-	return ast::field_transformer_expr::create(transformer, children, pos);
+
+	std::string arg;
+	if(lex_helper_str("[")) {
+		if(!lex_quoted_str() && !lex_field_arg_bare_str()) {
+			throw sinsp_exception(
+			        "expected a valid field argument: a quoted string or a bare string");
+		}
+
+		arg = m_last_token;
+
+		if(!lex_helper_str("]")) {
+			throw sinsp_exception("expected a ']' token");
+		}
+	}
+
+	return ast::field_transformer_expr::create(transformer, children, arg, pos);
 }
 
 // FieldTransformerArg ::= FieldTransformer | Field | QuotedStr | NumValue | TransformerList

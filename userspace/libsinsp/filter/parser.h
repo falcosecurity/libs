@@ -45,6 +45,7 @@ class RE2;
 //                             | '(' Expr ')'
 //     FieldTransformer       ::= FieldTransformerType FieldTransformerTail
 //     FieldTransformerTail   ::= FieldTransformerArg ( ',' FieldTransformerArg )* ')'
+//                                ('[' FieldArg ']')?
 //     FieldTransformerArg    ::= FieldTransformer
 //                             | Field | QuotedStr | NumValue | TransformerList
 //     TransformerList        ::= '(' ( TransformerListArg (',' TransformerListArg)* )? ')'
@@ -77,6 +78,7 @@ class RE2;
 //     ListOperator        ::= 'in' | 'intersects' | 'pmatch'
 //     FieldTransformerVal    ::= 'val('
 //     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename(' | 'len('
+//                             | 'join(' | 'concat(' | 'getopt('
 //
 // Tokens (Regular Expressions):
 //     Identifier          ::= [a-zA-Z]+[a-zA-Z0-9_]*
