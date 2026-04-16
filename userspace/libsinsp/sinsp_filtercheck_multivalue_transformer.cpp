@@ -367,11 +367,10 @@ sinsp_filter_multivalue_transformer_getopt::get_optinfo(sinsp_evt* evt,
 std::optional<std::string_view> sinsp_filter_multivalue_transformer_getopt::get_option_argument(
         size_t& arg_idx,
         size_t opt_idx,
-        const char* arg_ptr,
-        size_t arg_len,
+        std::string_view arg,
         const std::vector<extract_value_t>& values) const {
-	if(opt_idx + 1 < arg_len) {
-		return std::string_view(arg_ptr + opt_idx + 1, arg_len - opt_idx - 1);
+	if(opt_idx + 1 < arg.size()) {
+		return arg.substr(opt_idx + 1);
 	}
 
 	if(arg_idx + 1 >= values.size()) {
@@ -452,28 +451,28 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 	// Walk argv entries in order, applying getopt's top-level stopping rules
 	// before scanning any short-option cluster inside the current token.
 	for(size_t arg_idx = 0; arg_idx < values.size(); arg_idx++) {
-		const char* arg_ptr = reinterpret_cast<const char*>(values[arg_idx].ptr);
-		size_t arg_len = values[arg_idx].len;
+		std::string_view arg(reinterpret_cast<const char*>(values[arg_idx].ptr),
+		                     values[arg_idx].len);
 
 		// "--" is the standard end-of-options marker.
-		if(arg_len == 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
+		if(arg == "--") {
 			break;
 		}
 
 		// Long options are intentionally unsupported here. Skip tokens like
 		// "--exec" so they are not misparsed as clusters of short options.
-		if(arg_len > 2 && arg_ptr[0] == '-' && arg_ptr[1] == '-') {
+		if(arg.size() > 2 && arg[0] == '-' && arg[1] == '-') {
 			continue;
 		}
 
 		// getopt() stops as soon as it reaches the first non-option argument.
-		if(arg_len == 0 || arg_ptr[0] != '-' || arg_len == 1) {
+		if(arg.empty() || arg[0] != '-' || arg.size() == 1) {
 			break;
 		}
 
 		// Consume one short option at a time from a token like "-ntvalue".
-		for(size_t i = 1; i < arg_len; i++) {
-			unsigned char opt = static_cast<unsigned char>(arg_ptr[i]);
+		for(size_t i = 1; i < arg.size(); i++) {
+			unsigned char opt = static_cast<unsigned char>(arg[i]);
 			const bool valid_opt = opt != ':' && optinfo->valid_opts[opt];
 
 			// Unknown options yield '?' in list mode. In selector mode they are
@@ -490,7 +489,7 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 			// argument, and its one-character textual representation.
 			const bool selector_match = !has_selector || opt == selector;
 			const bool option_requires_arg = optinfo->opts_with_args[opt];
-			std::string_view option_name(reinterpret_cast<const char*>(&arg_ptr[i]), 1);
+			std::string_view option_name = arg.substr(i, 1);
 
 			// Options without arguments emit just their option character.
 			if(selector_match && !option_requires_arg) {
@@ -507,7 +506,7 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 
 			// Options requiring an argument accept either the rest of the current
 			// token (e.g. "-tvalue") or the next argv entry (e.g. "-t value").
-			auto option_value = get_option_argument(arg_idx, i, arg_ptr, arg_len, values);
+			auto option_value = get_option_argument(arg_idx, i, arg, values);
 			if(!option_value.has_value()) {
 				// Missing arguments surface as '?' by default, or ':' when the
 				// optstring starts with ':'.
