@@ -547,7 +547,8 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 
 	bool is_equal(const expr* other) const override {
 		auto o = dynamic_cast<const field_transformer_expr*>(other);
-		if(o == nullptr || o->values.size() != values.size() || o->arg != arg) {
+		if(o == nullptr || o->transformer != transformer || o->values.size() != values.size() ||
+		   o->arg != arg) {
 			return false;
 		}
 

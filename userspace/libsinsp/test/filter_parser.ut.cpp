@@ -59,6 +59,17 @@ static void test_reject(const std::string in) {
 	EXPECT_ANY_THROW(parser.parse()) << "filter: " << in;
 }
 
+static void test_reject_msg(const std::string& in, const std::string& msg) {
+	parser parser(in);
+	try {
+		auto res = parser.parse();
+		(void)res;
+		FAIL() << "expected parse failure: " << in;
+	} catch(const std::runtime_error& e) {
+		EXPECT_EQ(std::string(e.what()), msg) << "filter: " << in;
+	}
+}
+
 TEST(pos_info, equality_assignments) {
 	pos_info a;
 	pos_info b(5, 1, 3);
@@ -129,6 +140,53 @@ TEST(parser, parse_transformer_with_arg) {
 	auto expr = parser.parse();
 	ASSERT_NE(expr, nullptr);
 	EXPECT_EQ(libsinsp::filter::ast::as_string(expr.get()), R"(getopt(proc.args,nt:)[t] = value)");
+}
+
+TEST(parser, parse_shared_field_arg_syntax) {
+	parser field_parser(R"(evt.arg[0] = value)");
+	auto field_expr = field_parser.parse();
+	ASSERT_NE(field_expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(field_expr.get()), R"(evt.arg[0] = value)");
+
+	parser transformer_parser(R"(getopt(proc.args, "nt:")["t"] = value)");
+	auto transformer_expr = transformer_parser.parse();
+	ASSERT_NE(transformer_expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(transformer_expr.get()),
+	          R"(getopt(proc.args,nt:)[t] = value)");
+}
+
+TEST(parser, parse_shared_field_arg_types) {
+	parser bare_field_parser(R"(evt.arg[key] = value)");
+	auto bare_field_expr = bare_field_parser.parse();
+	ASSERT_NE(bare_field_expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(bare_field_expr.get()), R"(evt.arg[key] = value)");
+
+	parser quoted_field_parser(R"(evt.arg["key with space"] = value)");
+	auto quoted_field_expr = quoted_field_parser.parse();
+	ASSERT_NE(quoted_field_expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(quoted_field_expr.get()),
+	          R"(evt.arg["key with space"] = value)");
+
+	parser bare_transformer_parser(R"(getopt(proc.args, "nt:")[t] = value)");
+	auto bare_transformer_expr = bare_transformer_parser.parse();
+	ASSERT_NE(bare_transformer_expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(bare_transformer_expr.get()),
+	          R"(getopt(proc.args,nt:)[t] = value)");
+
+	parser quoted_transformer_parser(R"(getopt(proc.args, "nt:")["t"] = value)");
+	auto quoted_transformer_expr = quoted_transformer_parser.parse();
+	ASSERT_NE(quoted_transformer_expr, nullptr);
+	EXPECT_EQ(libsinsp::filter::ast::as_string(quoted_transformer_expr.get()),
+	          R"(getopt(proc.args,nt:)[t] = value)");
+}
+
+TEST(parser, parse_shared_field_arg_exceptions) {
+	test_reject_msg(R"(evt.arg[] = value)",
+	                "expected a valid field argument: a quoted string or a bare string");
+	test_reject_msg(R"(evt.arg["x" = value)", "expected a ']' token");
+	test_reject_msg(R"(getopt(proc.args, "nt:")[] = value)",
+	                "expected a valid field argument: a quoted string or a bare string");
+	test_reject_msg(R"(getopt(proc.args, "nt:")["t" = value)", "expected a ']' token");
 }
 
 // Based on and extended Falco's parser smoke tests:
