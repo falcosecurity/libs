@@ -333,21 +333,27 @@ std::unique_ptr<ast::expr> parser::parse_field_remainder(std::string fieldname,
 	auto field = std::make_unique<ast::field_expr>();
 	field->field = fieldname;
 	field->set_pos(pos);
-
-	if(lex_helper_str("[")) {
-		if(!lex_quoted_str() && !lex_field_arg_bare_str()) {
-			throw sinsp_exception(
-			        "expected a valid field argument: a quoted string or a bare string");
-		}
-
-		field->arg = m_last_token;
-
-		if(!lex_helper_str("]")) {
-			throw sinsp_exception("expected a ']' token");
-		}
-	}
+	field->arg = parse_optional_field_arg();
 
 	return field;
+}
+
+std::string parser::parse_optional_field_arg() {
+	if(!lex_helper_str("[")) {
+		return "";
+	}
+
+	if(!lex_quoted_str() && !lex_field_arg_bare_str()) {
+		throw sinsp_exception("expected a valid field argument: a quoted string or a bare string");
+	}
+
+	auto arg = m_last_token;
+
+	if(!lex_helper_str("]")) {
+		throw sinsp_exception("expected a ']' token");
+	}
+
+	return arg;
 }
 
 // FieldTransformerTail ::= FieldTransformerArg ( ',' FieldTransformerArg )* ')'
@@ -375,21 +381,10 @@ inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
 		throw sinsp_exception("expected a ')' token closing the transformer");
 	}
 
-	std::string arg;
-	if(lex_helper_str("[")) {
-		if(!lex_quoted_str() && !lex_field_arg_bare_str()) {
-			throw sinsp_exception(
-			        "expected a valid field argument: a quoted string or a bare string");
-		}
-
-		arg = m_last_token;
-
-		if(!lex_helper_str("]")) {
-			throw sinsp_exception("expected a ']' token");
-		}
-	}
-
-	return ast::field_transformer_expr::create(transformer, children, arg, pos);
+	return ast::field_transformer_expr::create(transformer,
+	                                           children,
+	                                           parse_optional_field_arg(),
+	                                           pos);
 }
 
 // FieldTransformerArg ::= FieldTransformer | Field | QuotedStr | NumValue | TransformerList
@@ -630,7 +625,10 @@ std::unique_ptr<ast::expr> parser::try_parse_transformer_or_val() {
 		if(!lex_helper_str(")")) {
 			throw sinsp_exception("expected a ')' token closing the transformer");
 		}
-		return ast::field_transformer_expr::create(transformer, children, pos);
+		return ast::field_transformer_expr::create(transformer,
+		                                           children,
+		                                           parse_optional_field_arg(),
+		                                           pos);
 	}
 
 	if(lex_field_transformer_type()) {
