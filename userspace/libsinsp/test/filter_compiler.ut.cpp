@@ -174,6 +174,21 @@ void test_filter_compile(std::shared_ptr<sinsp_filter_factory> factory,
 	        << "filter: " + filter_str + "\nactual warnings: " + warnings_fmt;
 }
 
+void test_filter_compile_msg(std::shared_ptr<sinsp_filter_factory> factory,
+                             const string& filter_str,
+                             const string& expected_msg) {
+	sinsp_filter_compiler compiler(factory, filter_str);
+	try {
+		auto filter = compiler.compile();
+		(void)filter;
+		FAIL() << filter_str << " -> expected failure but compilation was successful";
+	} catch(const std::exception& e) {
+		ASSERT_EQ(std::string(e.what()), expected_msg) << "filter: " << filter_str;
+	} catch(...) {
+		FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
+	}
+}
+
 // In each of these test cases, we compile filter expression
 // of which we can control the truth state of each filtercheck,
 // so that we can deterministically check the result of running
@@ -629,6 +644,20 @@ TEST(sinsp_filter_compiler, compilation_warnings) {
 	test_filter_compile(factory, "evt.source regex syscall\\.*", false, 0);
 	test_filter_compile(factory, "evt.source regex s.*l", false, 0);
 	test_filter_compile(factory, "evt.source regex syscal[l]?", false, 0);
+}
+
+TEST(sinsp_filter_compiler, transformer_field_arg_support) {
+	sinsp inspector;
+	sinsp_filter_check_list filterlist;
+	auto factory = std::make_shared<sinsp_filter_factory>(&inspector, filterlist);
+
+	test_filter_compile_msg(factory,
+	                        R"(toupper(fd.name)[x] = foo)",
+	                        "filter error: transformer 'toupper' does not support field "
+	                        "arguments");
+	test_filter_compile_msg(factory,
+	                        R"(fd.name = val(proc.name)[x])",
+	                        "filter error: transformer 'val' does not support field arguments");
 }
 
 //////////////////////////////
