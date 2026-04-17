@@ -1976,7 +1976,7 @@ static inline bool kmod_in_ia32_syscall(void) {
 #elif defined(CONFIG_ARM64)
 	if(unlikely(task_thread_info(current)->flags & _TIF_32BIT))
 		return true;
-#elif defined(CONFIG_S390)
+#elif defined(CONFIG_S390) && HAS_COMPAT_S390
 	if(unlikely(task_thread_info(current)->flags & _TIF_31BIT))
 		return true;
 #elif defined(CONFIG_PPC64)
