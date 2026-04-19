@@ -15,3 +15,8 @@ Navigate to the Home of Falco Drivers Syscalls Report on the left, or click this
 ## Perf Continuous Monitoring
 
 Navigate to the Home of Falco Perf Monitoring on the left, or click this [link](perf.md).
+
+## Fuzzing
+
+For a high-level overview of the current `libscap` fuzzing integration and the
+local workflow, see [fuzzing.md](fuzzing.md).

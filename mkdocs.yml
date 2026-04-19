@@ -2,6 +2,7 @@ site_name: Falcosecurity Drivers
 site_url: https://github.com/falcosecurity/libs
 nav:
     - Home: index.md
+    - Fuzzing: fuzzing.md
     - Matrixes:
       - matrix.md
       - amd64: matrix_X64.md

@@ -60,6 +60,8 @@ option(USE_BUNDLED_DRIVER
 option(ENABLE_E2E_TESTS "Enable e2e tests" OFF)
 option(ENABLE_DRIVERS_TESTS "Enable driver tests (kernel module, modern bpf)" OFF)
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
+option(ENABLE_LIBSCAP_FUZZERS "Enable libscap fuzz targets" OFF)
+option(ENABLE_LIBSCAP_FUZZ_TOOLS "Enable libscap fuzz helper tools" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
 option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
 option(USE_ASAN "Build with AddressSanitizer" OFF)
@@ -121,6 +123,10 @@ endif()
 include(libscap)
 include(libsinsp)
 
+if(ENABLE_LIBSCAP_FUZZ_TOOLS)
+	add_subdirectory(test/libscap/fuzz/tools)
+endif()
+
 if(CREATE_TEST_TARGETS)
 	# Add command to run all unit tests at once via the make system. This is preferred vs using
 	# ctest's add_test because it will build the code and output to stdout.
@@ -136,6 +142,10 @@ if(CREATE_TEST_TARGETS)
 
 	if(ENABLE_LIBSCAP_TESTS)
 		add_subdirectory(test/libscap)
+	endif()
+
+	if(ENABLE_LIBSCAP_FUZZERS)
+		add_subdirectory(test/libscap/fuzz)
 	endif()
 
 	if(ENABLE_LIBSINSP_E2E_TESTS)
