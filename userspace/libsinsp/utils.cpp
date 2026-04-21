@@ -594,20 +594,119 @@ static inline void rewind_to_parent_path(const char* targetbase,
 	(*pc) += delta;
 }
 
+// Returns a nonzero integer describing the UTF-8 sequence starting at `p`:
+// - if > 0, indicates a valid and printable UTF-8 sequence; the returned value is the sequence
+//   length (in range [1; 4]).
+// - if < 0, indicates an invalid byte, a broken sequence, or a valid-but-non-printable sequence;
+//   the absolute value is the number of bytes to consume (in range [1; 4]).
+//
+// Broken sequences follow the maximal subpart substitution algorithm (Unicode Standard §3.9, U+FFFD
+// Substitution of Maximal Subparts): each continuation byte that falls within the valid range for
+// its position extends the consumed subpart; the first byte that is out of range (or absent)
+// truncates it. For example:
+// - sequence: 3-byte lead + valid first continuation + bad second continuation; consumed: 2 bytes;
+//   return value: -2
+// - sequence: 3-byte lead + bad first continuation; consumed 1 byte; return value: -1
+//
+// Valid-but-non-printable sequences (C1 controls U+0080..U+009F, Unicode non-characters) are
+// consumed in full (e.g. -2 for U+0085 = C2 85, -3 for U+FDD0 = EF B7 90).
+// `p_end` is the exclusive upper bound of the source buffer.
+static inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
+	const unsigned char c = p[0];
+	if(c < 0x80) {
+		// ASCII: printable range is 0x20 (space) to 0x7E (tilde); reject control chars and DEL.
+		return c >= 0x20 && c != 0x7F ? 1 : -1;
+	}
+	if(c < 0xC2) {
+		// 0x80-0xBF: orphan continuation byte.
+		// 0xC0-0xC1: would encode U+0000..U+007F (overlong 2-byte).
+		return -1;
+	}
+	if(c < 0xE0) {
+		// 2-byte: 110xxxxx 10xxxxxx. Need 1 continuation byte.
+		if(p + 1 >= p_end || (p[1] & 0xC0) != 0x80) {
+			return -1;
+		}
+		const unsigned int cp =
+		        static_cast<unsigned int>(c & 0x1F) << 6 | static_cast<unsigned int>(p[1] & 0x3F);
+		// Reject C1 control characters (U+0080..U+009F) (non-printable).
+		return cp > 0x9F ? 2 : -2;
+	}
+	if(c < 0xF0) {
+		// 3-byte: 1110xxxx 10xxxxxx 10xxxxxx.
+		// Enforce lead-byte-specific valid ranges for the first continuation byte: 0xE0 requires
+		// 0xA0-0xBF (to structurally exclude overlongs), 0xED requires 0x80-0x9F (to structurally
+		// exclude surrogates). When the first continuation is out of range, only the lead byte is
+		// the maximal subpart (-1); when the second continuation is bad, the lead plus the valid
+		// first continuation form the maximal subpart (-2).
+		const unsigned char lo2 = c == 0xE0 ? 0xA0u : 0x80u;
+		const unsigned char hi2 = c == 0xED ? 0x9Fu : 0xBFu;
+		if(p + 1 >= p_end || p[1] < lo2 || p[1] > hi2) {
+			return -1;  // Maximal subpart: lead byte only.
+		}
+		if(p + 2 >= p_end || (p[2] & 0xC0) != 0x80) {
+			return -2;  // Maximal subpart: lead + first continuation.
+		}
+		const unsigned int cp = static_cast<unsigned int>(c & 0x0F) << 12 |
+		                        static_cast<unsigned int>(p[1] & 0x3F) << 6 |
+		                        static_cast<unsigned int>(p[2] & 0x3F);
+		// Overlongs and surrogates are structurally excluded by the narrow ranges above.
+		// Reject Unicode non-characters (U+FDD0-U+FDEF, U+FFFE-U+FFFF).
+		if((cp >= 0xFDD0 && cp <= 0xFDEF) || cp >= 0xFFFE) {
+			return -3;
+		}
+		return 3;
+	}
+	if(c <= 0xF4) {
+		// 4-byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx.
+		// Enforce lead-byte-specific valid ranges for the first continuation byte: 0xF0 requires
+		// 0x90-0xBF (to structurally exclude overlongs), 0xF4 requires 0x80-0x8F (to structurally
+		// exclude > U+10FFFF). 0xF5-0xFF are never valid and fall through to the catch-all below.
+		// Maximal subpart grows by one byte for each valid continuation position consumed.
+		const unsigned char lo2 = c == 0xF0 ? 0x90u : 0x80u;
+		const unsigned char hi2 = c == 0xF4 ? 0x8Fu : 0xBFu;
+		if(p + 1 >= p_end || p[1] < lo2 || p[1] > hi2) {
+			return -1;  // Maximal subpart: lead byte only.
+		}
+		if(p + 2 >= p_end || (p[2] & 0xC0) != 0x80) {
+			return -2;  // Maximal subpart: lead + first continuation.
+		}
+		if(p + 3 >= p_end || (p[3] & 0xC0) != 0x80) {
+			return -3;  // Maximal subpart: lead + first + second continuation.
+		}
+		const unsigned int cp = static_cast<unsigned int>(c & 0x07) << 18 |
+		                        static_cast<unsigned int>(p[1] & 0x3F) << 12 |
+		                        static_cast<unsigned int>(p[2] & 0x3F) << 6 |
+		                        static_cast<unsigned int>(p[3] & 0x3F);
+		// Overlongs and out-of-range values are structurally excluded by the narrow ranges above.
+		// Reject end-of-plane non-characters (U+xFFFE, U+xFFFF for planes 1-16).
+		if((cp & 0xFFFF) >= 0xFFFE) {
+			return -4;
+		}
+		return 4;
+	}
+
+	// 0xF5-0xFF: never valid in UTF-8.
+	return -1;
+}
+
 //
 // Args:
 //  - target: the string where we are supposed to start copying
 //  - targetbase: the base of the path, i.e. the furthest we can go back when
 //                following parent directories
+//  - target_end: exclusive end of the output buffer (target + buffer_size)
 //  - path: the path to copy
+//  - path_end: exclusive end of the source buffer (path + path_len)
 //
 static inline void copy_and_sanitize_path(char* target,
                                           char* targetbase,
+                                          char* target_end,
                                           const char* path,
+                                          const char* path_end,
                                           char separator) {
 	char* tc = target;
 	const char* pc = path;
-	g_invalidchar ic;
 	const bool empty_base = target == targetbase;
 
 	while(true) {
@@ -625,15 +724,31 @@ static inline void copy_and_sanitize_path(char* target,
 			return;
 		}
 
-		if(ic(*pc)) {
-			//
-			// Invalid char, substitute with a '.'
-			//
-			*tc = '.';
-			tc++;
-			pc++;
+		if(const int seq_len = utf8_seq_len(reinterpret_cast<const unsigned char*>(pc),
+		                                    reinterpret_cast<const unsigned char*>(path_end));
+		   seq_len > 1) {
+			// Valid multibyte printable UTF-8 sequence. Copy all bytes as-is.
+			if(tc + seq_len >= target_end) {
+				*tc = 0;
+				return;
+			}
+			memcpy(tc, pc, static_cast<size_t>(seq_len));
+			tc += seq_len;
+			pc += seq_len;
+		} else if(seq_len < 0) {
+			// Invalid, broken, or valid-but-non-printable UTF-8 sequence `-seq_len` long. Replace
+			// with `U+FFFD` (EF BF BD) and advance by the number of bytes that form the sequence
+			// (i.e.: `-seq_len`).
+			if(tc + 3 >= target_end) {
+				*tc = 0;
+				return;
+			}
+			memcpy(tc, "\xEF\xBF\xBD", 3);
+			tc += 3;
+			pc += -seq_len;
 		} else {
-			//
+			// Printable ASCII (`seqlen == 1`). Apply path-aware logic.
+
 			// If path begins with '.' or '.' is the first char after a '/'
 			//
 			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator)) {
@@ -667,6 +782,10 @@ static inline void copy_and_sanitize_path(char* target,
 				// Otherwise, we leave the string intact.
 				//
 				else {
+					if(tc + 1 >= target_end) {
+						*tc = 0;
+						return;
+					}
 					*tc = *pc;
 					pc++;
 					tc++;
@@ -684,6 +803,10 @@ static inline void copy_and_sanitize_path(char* target,
 				   (tc == targetbase && !empty_base)) {
 					pc++;
 				} else {
+					if(tc + 1 >= target_end) {
+						*tc = 0;
+						return;
+					}
 					*tc = *pc;
 					tc++;
 					pc++;
@@ -692,6 +815,10 @@ static inline void copy_and_sanitize_path(char* target,
 				//
 				// Normal char, copy it
 				//
+				if(tc + 1 >= target_end) {
+					*tc = 0;
+					return;
+				}
 				*tc = *pc;
 				tc++;
 				pc++;
@@ -712,18 +839,24 @@ static inline bool concatenate_paths_(char* target,
                                       uint32_t len1,
                                       const char* path2,
                                       uint32_t len2) {
+	// note: this is a loose check, as `len2` doesn't account any replacement character (3 bytes
+	// long) that would replace any `path2`'s UTF-8 invalid, broken or non-printable sequence
+	// (1-to-4 bytes long) during sanitization. Keep this loose and truncate the final string in
+	// case it becomes longer than `targetlen` during sanitization.
 	if(targetlen < (len1 + len2 + 1)) {
 		strlcpy(target, "/DIR_TOO_LONG/FILENAME_TOO_LONG", targetlen);
 		return false;
 	}
 
+	char* target_end = target + targetlen;
+	const char* path2_end = path2 + len2;
 	if(len2 != 0 && path2[0] != '/') {
 		memcpy(target, path1, len1);
-		copy_and_sanitize_path(target + len1, target, path2, '/');
+		copy_and_sanitize_path(target + len1, target, target_end, path2, path2_end, '/');
 		return true;
 	} else {
 		target[0] = 0;
-		copy_and_sanitize_path(target, target, path2, '/');
+		copy_and_sanitize_path(target, target, target_end, path2, path2_end, '/');
 		return false;
 	}
 }
