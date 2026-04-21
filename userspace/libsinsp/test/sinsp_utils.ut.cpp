@@ -25,7 +25,7 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	// https://pubs.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap04.html#tag_04_11
 
 	// PLEASE NOTE:
-	// * current impl does not support unicode.
+	// * current impl supports UTF-8 encoding.
 	// * current impl does not sanitize path1
 	// * current impl expects path1 to end with '/'
 	// * current impl skips path1 altogether if path2 is absolute
@@ -188,7 +188,7 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG", res);
 
-	/* No unicode support
+	// Valid UTF-8 multibyte characters pass through unchanged.
 	path1 = "/root/";
 	path2 = "../😉";
 	res = sinsp_utils::concatenate_paths(path1, path2);
@@ -204,10 +204,78 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/АБВЙЛж", res);
 
-	path1 = "/root";
+	// Invalid UTF-8 bytes are replaced with U+FFFD (EF BF BD).
+	path1 = "/root/";
+	path2 = "../\xFF\xFE/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD\xEF\xBF\xBD/test", res);
+
+	// Mix of valid UTF-8 (é = C3 A9) and an invalid byte (FF).
+	path1 = "/root/";
+	path2 = "../\xC3\xA9\xFF/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xC3\xA9\xEF\xBF\xBD/test", res);
+
+	// C1 control character encoded as valid-but-non-printable UTF-8 (U+0085, NEL = C2 85) is
+	// replaced.
+	path1 = "/root/";
+	path2 = "../\xC2\x85/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD/test", res);
+
+	// Non-printable ASCII control characters are replaced with U+FFFD.
+	path1 = "/root/";
+	path2 = "../\x01\x1F/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD\xEF\xBF\xBD/test", res);
+
+	// Unicode non-characters are replaced with U+FFFD.
+	// U+FDD0 (EF B7 90) - non-character in the range U+FDD0..U+FDEF.
+	path1 = "/root/";
+	path2 = "../\xEF\xB7\x90/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD/test", res);
+
+	// U+FFFF (EF BF BF) - non-character U+FFFF.
+	path1 = "/root/";
+	path2 = "../\xEF\xBF\xBF/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD/test", res);
+
+	// U+1FFFE (F0 9F BF BE) - end-of-plane non-character in plane 1.
+	path1 = "/root/";
+	path2 = "../\xF0\x9F\xBF\xBE/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD/test", res);
+
+	// Maximal-subpart: 3-byte lead (E1) + valid first continuation (80) + bad second continuation
+	// (2F = '/'). The maximal subpart is 2 bytes, so the pair is replaced with one U+FFFD.
+	path1 = "/root/";
+	path2 = "../\xE1\x80/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD/test", res);
+
+	// Maximal-subpart: surrogate bytes (ED A0 80). The first continuation A0 is outside the valid
+	// range 80-9F for lead ED, so the maximal subpart is just ED, and the entire sequence is
+	// replaced with three individual U+FFFDs.
+	path1 = "/root/";
+	path2 = "../\xED\xA0\x80/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD/test", res);
+
+	// Maximal-subpart: overlong 3-byte (E0 9F BF). The first continuation 9F is outside the valid
+	// range A0-BF for lead E0, so the maximal subpart is just E0, and the entire sequence is
+	// replaced with three individual U+FFFDs.
+	path1 = "/root/";
+	path2 = "../\xE0\x9F\xBF/test";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD/test", res);
+
+	// todo(ekoops): path1 and Windows-style path2... What to do here?
+	/* path1 = "/root";
 	path2 = "c:/hello/world/";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/root/c:/hello/world", res); */
+	EXPECT_EQ("/rootc:/hello/world", res); */
 }
 
 TEST(sinsp_utils_test, sinsp_split) {
