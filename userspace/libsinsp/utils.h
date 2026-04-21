@@ -27,6 +27,7 @@ limitations under the License.
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <list>
 #include <locale>
@@ -182,14 +183,199 @@ struct g_invalidchar {
 	}
 };
 
+// Returns a nonzero integer describing the UTF-8 sequence starting at `p`:
+// - if > 0, indicates a valid and printable UTF-8 sequence; the returned value is the sequence
+//   length (in range [1; 4]).
+// - if < 0, indicates an invalid byte, a broken sequence, or a valid-but-non-printable sequence;
+//   the absolute value is the number of bytes to consume (in range [1; 4]).
+//
+// Broken sequences follow the maximal subpart substitution algorithm (Unicode Standard §3.9, U+FFFD
+// Substitution of Maximal Subparts): each continuation byte that falls within the valid range for
+// its position extends the consumed subpart; the first byte that is out of range (or absent)
+// truncates it. For example:
+// - sequence: 3-byte lead + valid first continuation + bad second continuation; consumed: 2 bytes;
+//   return value: -2
+// - sequence: 3-byte lead + bad first continuation; consumed 1 byte; return value: -1
+//
+// Valid-but-non-printable sequences (C1 controls U+0080..U+009F, Unicode non-characters) are
+// consumed in full (e.g. -2 for U+0085 = C2 85, -3 for U+FDD0 = EF B7 90).
+// `p_end` is the exclusive upper bound of the source buffer.
+inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
+	const unsigned char c = p[0];
+	if(c < 0x80) {
+		// ASCII: printable range is 0x20 (space) to 0x7E (tilde); reject control chars and DEL.
+		return c >= 0x20 && c != 0x7F ? 1 : -1;
+	}
+	if(c < 0xC2) {
+		// 0x80-0xBF: orphan continuation byte.
+		// 0xC0-0xC1: would encode U+0000..U+007F (overlong 2-byte).
+		return -1;
+	}
+	if(c < 0xE0) {
+		// 2-byte: 110xxxxx 10xxxxxx. Need 1 continuation byte.
+		if(p + 1 >= p_end || (p[1] & 0xC0) != 0x80) {
+			return -1;
+		}
+		const unsigned int cp =
+		        static_cast<unsigned int>(c & 0x1F) << 6 | static_cast<unsigned int>(p[1] & 0x3F);
+		// Reject C1 control characters (U+0080..U+009F) (non-printable).
+		return cp > 0x9F ? 2 : -2;
+	}
+	if(c < 0xF0) {
+		// 3-byte: 1110xxxx 10xxxxxx 10xxxxxx.
+		// Enforce lead-byte-specific valid ranges for the first continuation byte: 0xE0 requires
+		// 0xA0-0xBF (to structurally exclude overlongs), 0xED requires 0x80-0x9F (to structurally
+		// exclude surrogates). When the first continuation is out of range, only the lead byte is
+		// the maximal subpart (-1); when the second continuation is bad, the lead plus the valid
+		// first continuation form the maximal subpart (-2).
+		const unsigned char lo2 = c == 0xE0 ? 0xA0u : 0x80u;
+		const unsigned char hi2 = c == 0xED ? 0x9Fu : 0xBFu;
+		if(p + 1 >= p_end || p[1] < lo2 || p[1] > hi2) {
+			return -1;  // Maximal subpart: lead byte only.
+		}
+		if(p + 2 >= p_end || (p[2] & 0xC0) != 0x80) {
+			return -2;  // Maximal subpart: lead + first continuation.
+		}
+		const unsigned int cp = static_cast<unsigned int>(c & 0x0F) << 12 |
+		                        static_cast<unsigned int>(p[1] & 0x3F) << 6 |
+		                        static_cast<unsigned int>(p[2] & 0x3F);
+		// Overlongs and surrogates are structurally excluded by the narrow ranges above.
+		// Reject Unicode non-characters (U+FDD0-U+FDEF, U+FFFE-U+FFFF).
+		if((cp >= 0xFDD0 && cp <= 0xFDEF) || cp >= 0xFFFE) {
+			return -3;
+		}
+		return 3;
+	}
+	if(c <= 0xF4) {
+		// 4-byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx.
+		// Enforce lead-byte-specific valid ranges for the first continuation byte: 0xF0 requires
+		// 0x90-0xBF (to structurally exclude overlongs), 0xF4 requires 0x80-0x8F (to structurally
+		// exclude > U+10FFFF). 0xF5-0xFF are never valid and fall through to the catch-all below.
+		// Maximal subpart grows by one byte for each valid continuation position consumed.
+		const unsigned char lo2 = c == 0xF0 ? 0x90u : 0x80u;
+		const unsigned char hi2 = c == 0xF4 ? 0x8Fu : 0xBFu;
+		if(p + 1 >= p_end || p[1] < lo2 || p[1] > hi2) {
+			return -1;  // Maximal subpart: lead byte only.
+		}
+		if(p + 2 >= p_end || (p[2] & 0xC0) != 0x80) {
+			return -2;  // Maximal subpart: lead + first continuation.
+		}
+		if(p + 3 >= p_end || (p[3] & 0xC0) != 0x80) {
+			return -3;  // Maximal subpart: lead + first + second continuation.
+		}
+		const unsigned int cp = static_cast<unsigned int>(c & 0x07) << 18 |
+		                        static_cast<unsigned int>(p[1] & 0x3F) << 12 |
+		                        static_cast<unsigned int>(p[2] & 0x3F) << 6 |
+		                        static_cast<unsigned int>(p[3] & 0x3F);
+		// Overlongs and out-of-range values are structurally excluded by the narrow ranges above.
+		// Reject end-of-plane non-characters (U+xFFFE, U+xFFFF for planes 1-16).
+		if((cp & 0xFFFF) >= 0xFFFE) {
+			return -4;
+		}
+		return 4;
+	}
+
+	// 0xF5-0xFF: never valid in UTF-8.
+	return -1;
+}
+
+// Skips 8 printable ASCII bytes [0x20, 0x7E] at a time, until it finds a block of 8 bytes
+// containing a single byte not in that range or until it finds a block (at the end of the string)
+// shorter than 8 bytes. Returns the pointer to the next invalid block or to the final shorter
+// block.
+inline const unsigned char* skip_8_byte_printable_ascii_blocks(const unsigned char* ptr,
+                                                               const unsigned char* end_ptr) {
+	while(ptr + 8 <= end_ptr) {
+		uint64_t word;
+		memcpy(&word, ptr, 8);
+		// Check all 8 bytes are printable ASCII [0x20, 0x7E] using word-at-a-time tricks.
+		// Each condition isolates the highest bit of each byte (by masking it with 0x80).
+		// Check 1: match any byte >= 0x80 (non-ASCII, having high bit == 1)
+		// Check 2: adding 0x60 maps [0x00,0x1F] to [0x60,0x7F] (high bit == 0) and [0x20,0x7F] to
+		//   [0x80,0xDF] (high bit == 1); no carry between bytes since all bytes are <= 0x7F after
+		//   check 1, so max per-byte result is 0x7F+0x60=0xDF < 0x100; match any byte of the first
+		//   group (high bit 0)
+		// Check 3: match any byte == 0x7F (DEL): adding 0x01 maps 0x7F to 0x80 (high bit == 1)
+		if(word & 0x8080808080808080ULL ||
+		   ((word + 0x6060606060606060ULL) & 0x8080808080808080ULL) != 0x8080808080808080ULL ||
+		   (word + 0x0101010101010101ULL) & 0x8080808080808080ULL) {
+			break;
+		}
+		ptr += 8;
+	}
+	return ptr;
+}
+
 inline void sanitize_string(std::string& str) {
-	// It turns out with -O3 (release flags) using erase and
-	// remove_if is slightly faster than the inline version that
-	// was here. It's not faster for -O2, and is actually much
-	// slower without optimization.
-	//
-	// Optimize for the release case, then.
-	str.erase(remove_if(str.begin(), str.end(), g_invalidchar()), str.end());
+	const auto* const str_ptr = reinterpret_cast<const unsigned char*>(str.data());
+	const auto str_len = str.size();
+	const auto* const str_end_ptr = str_ptr + str_len;
+
+	// First pass (note: this must be FAST).
+	// Find the first sequence needing replacement. For valid strings, this is the only pass that
+	// runs (no replacement needed).
+	auto* scan_ptr = str_ptr;
+	while(scan_ptr < str_end_ptr) {
+		// If `scan_ptr` is 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
+		if((reinterpret_cast<uintptr_t>(scan_ptr) & 7u) == 0u) {
+			scan_ptr = skip_8_byte_printable_ascii_blocks(scan_ptr, str_end_ptr);
+			if(scan_ptr >= str_end_ptr) {
+				break;
+			}
+		}
+		// Check if the next sequence needs to be replaced (i.e.: `seq_len` is negative).
+		const int seq_len = utf8_seq_len(scan_ptr, str_end_ptr);
+		if(seq_len < 0) {
+			break;
+		}
+		scan_ptr += seq_len;
+	}
+
+	// String is already valid, return.
+	if(scan_ptr == str_end_ptr) {
+		return;
+	}
+
+	// Second pass for strings needing replacements (note: unfortunately, this is not as fast as the
+	// first pass).
+	// Copy the already-validated prefix in one shot, then process the remainder.
+	std::string res;
+	res.reserve(str_len);
+	res.append(reinterpret_cast<const char*>(str_ptr), static_cast<size_t>(scan_ptr - str_ptr));
+
+	// As we scan the string, keep track of the beginning of the last non-yet-copied block of
+	// multiple valid UTF-8 sequences: in this way, we can append the entire block with a single
+	// `res.append()` call.
+	const auto* block_start = scan_ptr;
+	do {
+		// Process the current sequence first (on the first iteration this is the one that must be
+		// replaced).
+		if(const int seq_len = utf8_seq_len(scan_ptr, str_end_ptr); seq_len > 0) {
+			scan_ptr += seq_len;
+		} else {
+			// Found invalid sequence. Copy the last valid block (if any) and then append the
+			// replacement character.
+			if(scan_ptr > block_start) {
+				res.append(reinterpret_cast<const char*>(block_start),
+				           static_cast<size_t>(scan_ptr - block_start));
+			}
+			res.append("\xEF\xBF\xBD", 3);
+			scan_ptr += -seq_len;
+			block_start = scan_ptr;
+		}
+		// If `scan_ptr` is now 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
+		if((reinterpret_cast<uintptr_t>(scan_ptr) & 7u) == 0u) {
+			scan_ptr = skip_8_byte_printable_ascii_blocks(scan_ptr, str_end_ptr);
+		}
+	} while(scan_ptr < str_end_ptr);
+
+	// Copy the last valid block (if any).
+	if(scan_ptr > block_start) {
+		res.append(reinterpret_cast<const char*>(block_start),
+		           static_cast<size_t>(scan_ptr - block_start));
+	}
+
+	str = std::move(res);
 }
 
 inline void remove_duplicate_path_separators(std::string& str) {
