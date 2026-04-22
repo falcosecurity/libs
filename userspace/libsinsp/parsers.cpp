@@ -273,11 +273,8 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 		break;
 	}
 
-	// Check to see if the name changed as a side effect of parsing this event. Try to avoid the
-	// overhead of a string compare for every event.
 	if(evt.get_fd_info()) {
-		evt.set_fdinfo_name_changed(evt.get_fd_info()->get_name() !=
-		                            evt.get_fd_info()->get_oldname());
+		evt.set_fdinfo_name_changed(evt.get_fd_info()->consume_name_changed());
 	}
 }
 
@@ -2321,7 +2318,7 @@ void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8
 	}
 	default: {
 		const char *parstr;
-		fdinfo->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		fdinfo->set_name_locked(evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE));
 		break;
 	}
 	}
@@ -2490,7 +2487,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			                             &evt.get_paramstr_storage()[0],
 			                             evt.get_paramstr_storage().size(),
 			                             can_resolve_hostname_and_port);
-			fdi->m_name = &evt.get_paramstr_storage()[0];
+			fdi->set_name_locked(&evt.get_paramstr_storage()[0]);
 		} else {
 			auto fdi = evt.get_fd_info();
 			auto lock = fdi->exclusive_lock();
@@ -2517,7 +2514,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			                             &evt.get_paramstr_storage()[0],
 			                             evt.get_paramstr_storage().size(),
 			                             can_resolve_hostname_and_port);
-			fdi->m_name = &evt.get_paramstr_storage()[0];
+			fdi->set_name_locked(&evt.get_paramstr_storage()[0]);
 		}
 	} else {
 		auto fdi = evt.get_fd_info();
@@ -2536,7 +2533,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_dest, raw_dest, sizeof(uint64_t));
 		const auto source = fdi->m_sockinfo.m_unixinfo.m_fields.m_source;
 		const auto dest = fdi->m_sockinfo.m_unixinfo.m_fields.m_dest;
-		fdi->m_name = encode_unix_tuple_fd_name(evt, source, dest, dpath);
+		fdi->set_name_locked(encode_unix_tuple_fd_name(evt, source, dest, dpath));
 	}
 
 	if(evt.get_fd_info()->is_role_none()) {
@@ -3050,7 +3047,8 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 		const auto *dst = packed::un_socktuple::dest(packed_data);
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_source, src, sizeof(uint64_t));
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_dest, dst, sizeof(uint64_t));
-		fdi->m_name = reinterpret_cast<const char *>(packed::un_socktuple::dpath(packed_data));
+		fdi->set_name_locked(
+		        reinterpret_cast<const char *>(packed::un_socktuple::dpath(packed_data)));
 		return true;
 	}
 

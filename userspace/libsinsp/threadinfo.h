@@ -268,7 +268,6 @@ public:
 		if(fdt) {
 			auto fdinfo = fdt->find(fd);
 			if(fdinfo) {
-				fdinfo->snapshot_oldname();
 				return fdinfo;
 			}
 		}

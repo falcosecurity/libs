@@ -23,6 +23,7 @@ limitations under the License.
 #include <libsinsp/sinsp_public.h>
 #include <libsinsp/state/table.h>
 #include <libsinsp/sync_policy.h>
+#include <libsinsp/atomic_helpers.h>
 
 #include <unordered_map>
 #include <memory>
@@ -132,6 +133,12 @@ public:
 		m_oldname = m_name;
 	}
 
+	inline bool consume_name_changed() {
+		bool changed = m_name_changed;
+		m_name_changed = false;
+		return changed;
+	}
+
 	// --- Thread-safe getters (return by value, shared_lock) ---
 	inline scap_fd_type get_type() const {
 		std::shared_lock l(m_mutex.m);
@@ -193,7 +200,11 @@ public:
 	}
 	inline void set_name(std::string n) {
 		std::unique_lock l(m_mutex.m);
+		set_name_locked(std::move(n));
+	}
+	inline void set_name_locked(std::string n) {
 		m_name = std::move(n);
+		m_name_changed = true;
 	}
 	inline void set_name_raw(std::string n) {
 		std::unique_lock l(m_mutex.m);
@@ -470,9 +481,14 @@ public:
 	}
 
 	inline void set_socket_connected() {
+		constexpr uint32_t target = FLAGS_SOCKET_CONNECTED;
+		constexpr uint32_t stale = FLAGS_CONNECTION_PENDING | FLAGS_CONNECTION_FAILED;
+		if((load_relaxed(m_flags) & (target | stale)) == target) {
+			return;
+		}
 		std::unique_lock l(m_mutex.m);
-		m_flags &= ~(FLAGS_CONNECTION_PENDING | FLAGS_CONNECTION_FAILED);
-		m_flags |= FLAGS_SOCKET_CONNECTED;
+		m_flags &= ~stale;
+		m_flags |= target;
 	}
 
 	inline void set_socket_pending() {
@@ -524,6 +540,7 @@ private:
 	std::string m_name;
 	std::string m_name_raw;
 	std::string m_oldname;
+	bool m_name_changed = false;
 	uint32_t m_flags = FLAGS_NONE;
 	uint32_t m_dev = 0;
 	uint32_t m_mount_id = 0;
