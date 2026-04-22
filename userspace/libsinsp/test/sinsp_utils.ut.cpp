@@ -190,9 +190,9 @@ TEST(sinsp_utils_test, concatenate_paths) {
 
 	// Valid UTF-8 multibyte characters pass through unchanged.
 	path1 = "/root/";
-	path2 = "../😉";
+	path2 = "../😀";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/😉", res);
+	EXPECT_EQ("/😀", res);
 
 	path1 = "/root/";
 	path2 = "../诶比西";
@@ -276,6 +276,121 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	path2 = "c:/hello/world/";
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/rootc:/hello/world", res); */
+}
+
+TEST(sinsp_utils_test, sanitize_string) {
+	std::string str;
+
+	// Empty string passes through unchanged.
+	str = "";
+	sanitize_string(str);
+	EXPECT_EQ("", str);
+
+	// Valid pure ASCII passes through unchanged.
+	str = "hello world";
+	sanitize_string(str);
+	EXPECT_EQ("hello world", str);
+
+	// Valid multibyte UTF-8 passes through unchanged.
+	str = "😀";  // U+1F600, 4-byte sequence
+	sanitize_string(str);
+	EXPECT_EQ("😀", str);
+
+	str = "诶比西";  // 3-byte sequences
+	sanitize_string(str);
+	EXPECT_EQ("诶比西", str);
+
+	str = "АБВЙЛж";  // 2-byte sequences (Cyrillic)
+	sanitize_string(str);
+	EXPECT_EQ("АБВЙЛж", str);
+
+	// Mixed valid ASCII and valid multibyte UTF-8 passes through unchanged.
+	str = "hello 😀 world";
+	sanitize_string(str);
+	EXPECT_EQ("hello 😀 world", str);
+
+	// Non-printable ASCII control characters (0x00-0x1F) are replaced with U+FFFD.
+	str = "foo\x01\x1Fxyz";
+	sanitize_string(str);
+	EXPECT_EQ("foo\xEF\xBF\xBD\xEF\xBF\xBDxyz", str);
+
+	// DEL (0x7F) is replaced with U+FFFD.
+	str = "foo\x7Fxyz";
+	sanitize_string(str);
+	EXPECT_EQ("foo\xEF\xBF\xBDxyz", str);
+
+	// C1 control character encoded as valid-but-non-printable UTF-8 (U+0085, NEL = C2 85) is
+	// replaced with U+FFFD.
+	str = "foo\xC2\x85xyz";
+	sanitize_string(str);
+	EXPECT_EQ("foo\xEF\xBF\xBDxyz", str);
+
+	// Invalid UTF-8 bytes are replaced with U+FFFD (EF BF BD).
+	str = "foo\xFF\xFExyz";
+	sanitize_string(str);
+	EXPECT_EQ("foo\xEF\xBF\xBD\xEF\xBF\xBDxyz", str);
+
+	// Mix of valid UTF-8 (é = C3 A9) and an invalid byte (FF).
+	str = "\xC3\xA9\xFF";
+	sanitize_string(str);
+	EXPECT_EQ("\xC3\xA9\xEF\xBF\xBD", str);
+
+	// Invalid byte at the start of the string.
+	str = "\x80xyz";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBDxyz", str);
+
+	// Invalid byte at the end of the string.
+	str = "foo\xFF";
+	sanitize_string(str);
+	EXPECT_EQ("foo\xEF\xBF\xBD", str);
+
+	// All bytes invalid.
+	str = "\x80\xFF\xFE";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD", str);
+
+	// Unicode non-characters are replaced with U+FFFD.
+	// U+FDD0 (EF B7 90) - non-character in the range U+FDD0..U+FDEF.
+	str = "\xEF\xB7\x90";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBD", str);
+
+	// U+FFFF (EF BF BF) - non-character U+FFFF.
+	str = "\xEF\xBF\xBF";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBD", str);
+
+	// U+1FFFE (F0 9F BF BE) - end-of-plane non-character in plane 1.
+	str = "\xF0\x9F\xBF\xBE";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBD", str);
+
+	// Maximal-subpart: 3-byte lead (E1) + valid first continuation (80) + bad second continuation
+	// (61 = 'a'). The maximal subpart is 2 bytes, so the pair is replaced with one U+FFFD.
+	str = "\xE1\x80x";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBDx", str);
+
+	// Maximal-subpart: truncated 3-byte sequence at end of string. Lead (E1) + valid first
+	// continuation (80), missing second continuation. Replaced with one U+FFFD.
+	str = "hello\xE1\x80";
+	sanitize_string(str);
+	EXPECT_EQ("hello\xEF\xBF\xBD", str);
+
+	// Maximal-subpart: surrogate bytes (ED A0 80). The first continuation A0 is outside the valid
+	// range 80-9F for lead ED, so the maximal subpart is just ED, and the entire sequence is
+	// replaced with three individual U+FFFDs.
+	str = "\xED\xA0\x80";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD", str);
+
+	// Maximal-subpart: overlong 3-byte (E0 9F BF). The first continuation 9F is outside the valid
+	// range A0-BF for lead E0, so the maximal subpart is just E0, and the entire sequence is
+	// replaced with three individual U+FFFDs.
+	str = "\xE0\x9F\xBF";
+	sanitize_string(str);
+	EXPECT_EQ("\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD", str);
 }
 
 TEST(sinsp_utils_test, sinsp_split) {
