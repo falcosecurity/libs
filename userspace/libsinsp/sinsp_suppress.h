@@ -22,10 +22,16 @@ limitations under the License.
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <shared_mutex>
+#include <mutex>
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#ifdef LIBSINSP_USE_FOLLY
+#include <folly/concurrency/ConcurrentHashMap.h>
+#else
+#include <shared_mutex>
+#endif
 
 typedef struct ppm_evt_hdr scap_evt;
 
@@ -53,23 +59,30 @@ public:
 		return m_num_suppressed_events.load(std::memory_order_relaxed);
 	}
 
-	uint64_t get_num_suppressed_tids() const {
-		std::shared_lock lock(m_mutex);
-		return m_suppressed_tids.size();
-	}
+	uint64_t get_num_suppressed_tids() const { return suppressed_tids_size(); }
 
 	void initialize();
 
 	void finalize();
 
 protected:
-	mutable std::shared_mutex m_mutex;
-	std::unordered_set<std::string> m_suppressed_comms;
-	std::unordered_set<uint64_t> m_suppressed_tids;
-
+	std::atomic<bool> m_active{false};
 	std::atomic<uint64_t> m_num_suppressed_events{0};
 
-	bool is_suppressed_tid_unlocked(uint64_t tid) const;
+#ifdef LIBSINSP_USE_FOLLY
+	folly::ConcurrentHashMap<uint64_t, bool> m_suppressed_tids;
+	mutable std::mutex m_comms_mutex;
+#else
+	mutable std::shared_mutex m_mutex;
+	std::unordered_set<uint64_t> m_suppressed_tids;
+#endif
+	std::unordered_set<std::string> m_suppressed_comms;
+
+	bool find_suppressed_tid(uint64_t tid) const;
+	void insert_suppressed_tid(uint64_t tid);
+	void erase_suppressed_tid(uint64_t tid);
+	void clear_suppressed_tids();
+	size_t suppressed_tids_size() const;
 
 private:
 	struct tid_tree_node {
@@ -80,8 +93,6 @@ private:
 
 	void handle_thread(uint64_t tid, uint64_t parent_tid, const std::string& comm);
 
-	// tree representation of /proc filesystem. Used to generate the suppressed tids
-	// when the proc scan is performed.
 	std::unique_ptr<std::map<uint64_t, tid_tree_node>> m_tids_tree;
 };
 
