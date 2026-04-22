@@ -9,7 +9,7 @@ or GPL2.txt for full copies of the license.
 */
 
 /* Some rules on how to populate this table:
- * - Enter and exit events should have the same flags unless the exit one is `EC_UNKNOWN`.
+ * - Enter and exit events should have the same flags unless one side is `EC_UNKNOWN`.
  *
  * - The `ppm_event_category` is composed of 2 parts:
  *
@@ -2929,7 +2929,7 @@ const struct ppm_event_info g_event_info[] = {
                    PF_NA},  // filled only if `fd_type == ANON_INODE_FD_TYPE_UNKNOWN`
                   {"ino_num", PT_UINT64, PF_DEC}}},
         [PPME_ITER_TASK_FILE_ANON_INODE_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
-        [PPME_SYSCALL_KEYCTL_E] = {"keyctl", EC_OTHER | EC_SYSCALL, EF_OLD_VERSION, 0},
+        [PPME_SYSCALL_KEYCTL_E] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
         [PPME_SYSCALL_KEYCTL_X] = {"keyctl",
                                    EC_OTHER | EC_SYSCALL,
                                    EF_NONE,
