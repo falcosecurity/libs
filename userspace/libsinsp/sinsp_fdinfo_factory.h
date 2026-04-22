@@ -63,4 +63,15 @@ public:
 		fdinfo->set_dynamic_fields(m_dyn_fields);
 		return fdinfo;
 	}
+
+	template<typename SyncPolicy>
+	std::unique_ptr<sinsp_fdinfo_impl<SyncPolicy>> create_for_policy() const {
+		if constexpr(std::is_same_v<SyncPolicy, sync_policy_default>) {
+			return create();
+		} else {
+			auto fdinfo = std::make_unique<sinsp_fdinfo_impl<SyncPolicy>>();
+			fdinfo->set_dynamic_fields(m_dyn_fields);
+			return fdinfo;
+		}
+	}
 };

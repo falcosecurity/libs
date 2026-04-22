@@ -17,7 +17,6 @@ limitations under the License.
 */
 
 #include "event_capture.h"
-#include "subprocess.h"
 #include "sys_call_test.h"
 
 #include <gtest/gtest.h>
@@ -668,33 +667,28 @@ TEST_F(sys_call_test, fs_dup) {
 		ASSERT_NE((sinsp_threadinfo*)&*thread_manager->find_thread(e->get_tid(), true), nullptr);
 		if(callnum == 0) {
 			EXPECT_EQ(fd1, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_NE((sinsp_threadinfo*)NULL,
-			          (sinsp_threadinfo*)&*thread_manager->find_thread(e->get_tid(), true)
-			                  ->get_fd(fd1));
+			EXPECT_NE((sinsp_fdinfo*)nullptr,
+			          thread_manager->find_thread(e->get_tid(), true)->get_fd(fd1).get());
 			callnum++;
 		} else if(callnum == 1) {
 			EXPECT_EQ(fd2, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_NE((sinsp_threadinfo*)NULL,
-			          (sinsp_threadinfo*)&*thread_manager->find_thread(e->get_tid(), true)
-			                  ->get_fd(fd2));
+			EXPECT_NE((sinsp_fdinfo*)nullptr,
+			          thread_manager->find_thread(e->get_tid(), true)->get_fd(fd2).get());
 			callnum++;
 		} else if(callnum == 2) {
 			EXPECT_EQ(fd3, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_NE((sinsp_threadinfo*)NULL,
-			          (sinsp_threadinfo*)&*thread_manager->find_thread(e->get_tid(), true)
-			                  ->get_fd(fd3));
+			EXPECT_NE((sinsp_fdinfo*)nullptr,
+			          thread_manager->find_thread(e->get_tid(), true)->get_fd(fd3).get());
 			callnum++;
 		} else if(callnum == 3) {
 			EXPECT_EQ(fd4, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_NE((sinsp_threadinfo*)NULL,
-			          (sinsp_threadinfo*)&*thread_manager->find_thread(e->get_tid(), true)
-			                  ->get_fd(fd4));
+			EXPECT_NE((sinsp_fdinfo*)nullptr,
+			          thread_manager->find_thread(e->get_tid(), true)->get_fd(fd4).get());
 			callnum++;
 		} else if(callnum == 4) {
 			EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
-			EXPECT_EQ((sinsp_threadinfo*)NULL,
-			          (sinsp_threadinfo*)&*thread_manager->find_thread(e->get_tid(), true)
-			                  ->get_fd(fd5));
+			EXPECT_EQ((sinsp_fdinfo*)nullptr,
+			          thread_manager->find_thread(e->get_tid(), true)->get_fd(fd5).get());
 			callnum++;
 		} else if(callnum == 5) {
 			EXPECT_EQ(fd6, std::stoi(e->get_param_value_str("res", false)));

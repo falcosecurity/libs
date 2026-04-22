@@ -689,7 +689,7 @@ void sinsp_with_test_input::add_thread(const scap_threadinfo& tinfo,
 void sinsp_with_test_input::set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns) {
 	auto tinfo = m_inspector.m_thread_manager->find_thread(tid, true).get();
 	if(tinfo != nullptr) {
-		tinfo->m_lastaccess_ts = access_time_ns;
+		tinfo->set_lastaccess_ts(access_time_ns);
 	} else {
 		throw sinsp_exception("There is no thread info associated with tid: " +
 		                      std::to_string(tid));
@@ -703,6 +703,10 @@ void sinsp_with_test_input::remove_inactive_threads(uint64_t m_lastevent_ts,
 	m_inspector.m_thread_manager->set_last_flush_time_ns(1);
 	m_inspector.m_threads_purging_scan_time_ns = 2;
 
+	// set_lastevent_ts only updates when the new value is greater than the current (monotonic).
+	// After processing events, the cached ts is the last event ts (e.g. from increasing_ts()).
+	// Reset so the test can force the "current time" used by the purge logic.
+	m_inspector.reset_lastevent_ts();
 	m_inspector.set_lastevent_ts(m_lastevent_ts);
 	m_inspector.m_thread_timeout_ns = thread_timeout;
 	m_inspector.remove_inactive_threads();
@@ -1074,7 +1078,7 @@ void sinsp_with_test_input::assert_return_value(sinsp_evt* evt, int64_t expected
 			// prefixed by `<f>`
 			auto fdinfo = evt->get_fd_info();
 			ASSERT_TRUE(fdinfo);
-			arg0 = std::string("<f>") + fdinfo->m_name;
+			arg0 = std::string("<f>") + fdinfo->get_name();
 
 			// raw_arg0 is ok!
 		}
@@ -1118,15 +1122,15 @@ void sinsp_with_test_input::assert_fd_fields(sinsp_evt* evt,
 
 	if(fdinfo) {
 		if(fields.fd_num.has_value()) {
-			ASSERT_EQ(fdinfo->m_fd, fields.fd_num.value());
+			ASSERT_EQ(fdinfo->get_fd_num(), fields.fd_num.value());
 		}
 
 		if(fields.fd_name.has_value()) {
-			ASSERT_EQ(fdinfo->m_name, fields.fd_name.value());
+			ASSERT_EQ(fdinfo->get_name(), fields.fd_name.value());
 		}
 
 		if(fields.fd_name_raw.has_value()) {
-			ASSERT_EQ(fdinfo->m_name_raw, fields.fd_name_raw.value());
+			ASSERT_EQ(fdinfo->get_name_raw(), fields.fd_name_raw.value());
 		}
 	}
 

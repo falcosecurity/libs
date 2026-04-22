@@ -32,13 +32,11 @@ jobs:
           - name: zig
             cmake_opts: -DUSE_BUNDLED_DEPS=True
     container:
-      image: debian:buster
+      image: debian:bookworm
     steps:
       - name: Install deps ⛓️
         run: |
-          # Use 20250630T203427Z debian apt snapshot as it still contains support for buster.
-          printf "deb http://snapshot.debian.org/archive/debian/20250630T203427Z buster main\ndeb http://snapshot.debian.org/archive/debian-security/20250630T203427Z buster/updates main\ndeb http://snapshot.debian.org/archive/debian/20250630T203427Z buster-updates main" > /etc/apt/sources.list
-          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev libgtest-dev linux-headers-${{ matrix.arch }} sudo
+          apt-get update && apt-get install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev libgtest-dev linux-headers-${{ matrix.arch }} sudo
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -64,7 +62,7 @@ jobs:
         env:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
-          cmake -B build -S . ${{ matrix.cmake_opts }} -DENABLE_THREAD_POOL=ON
+          cmake -B build -S . ${{ matrix.cmake_opts }} -DENABLE_THREAD_POOL=ON -DENABLE_MULTI_THREAD=ON
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
           cmake --build build --target run-unit-tests --parallel $(nproc)
 
@@ -131,6 +129,7 @@ jobs:
             -DUSE_BUNDLED_DEPS=True \
             -DCREATE_TEST_TARGETS=Off \
             -DENABLE_THREAD_POOL=ON \
+            -DENABLE_MULTI_THREAD=ON \
             -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchains/linux-cross-aarch64.cmake
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build-cross-arm64 --target scap-open --parallel $(nproc)
 
@@ -172,7 +171,8 @@ jobs:
             -DUSE_SHARED_LIBELF=Off \
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
             -DMUSL_OPTIMIZED_BUILD=On \
-            -DENABLE_THREAD_POOL=ON
+            -DENABLE_THREAD_POOL=ON \
+            -DENABLE_MULTI_THREAD=ON
           cmake --build build --target run-unit-tests --parallel $(nproc)
 
   build-shared-libs-linux-amd64:
@@ -199,7 +199,8 @@ jobs:
             -DBUILD_SHARED_LIBS=True \
             -DUSE_BUNDLED_DEPS=False \
             -DCMAKE_INSTALL_PREFIX=/tmp/libs-test \
-            -DENABLE_THREAD_POOL=ON
+            -DENABLE_THREAD_POOL=ON \
+            -DENABLE_MULTI_THREAD=ON
           cmake --build build --target run-unit-tests --parallel $(nproc)
 
       - name: Install
@@ -238,7 +239,7 @@ jobs:
         run: |
           mkdir -p build
           # note: these long commands cannot be split on multiple lines as windows runners don't like `\` syntax.
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DENABLE_THREAD_POOL=ON ..
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DENABLE_THREAD_POOL=ON -DENABLE_MULTI_THREAD=ON ..
           # note: changing 4 to $(nproc) results in the job freezing on macos... Not sure why.
           cmake --build . --config Release --parallel 4 && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
@@ -253,7 +254,7 @@ jobs:
 
       - name: Install deps ⛓️
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares re2 tbb jq jsoncpp openssl uthash cxxopts
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares re2 tbb jq jsoncpp openssl uthash cxxopts fmt glog double-conversion
 
       - name: Build 🏗️
         run: |
@@ -263,6 +264,7 @@ jobs:
             -DUSE_BUNDLED_VALIJSON=ON \
             -DUSE_BUNDLED_BS_THREADPOOL=ON \
             -DENABLE_THREAD_POOL=ON \
+            -DENABLE_MULTI_THREAD=ON \
             -DCMAKE_BUILD_TYPE=Release \
             -DCREATE_TEST_TARGETS=OFF \
             -DCMAKE_INSTALL_PREFIX=/tmp/libs-test
@@ -389,6 +391,6 @@ jobs:
           export CXX=clang++-20
           export AR=llvm-ar-20
           export RANLIB=llvm-ranlib-20
-          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=On -DENABLE_THREAD_POOL=ON
+          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=On -DENABLE_THREAD_POOL=ON -DENABLE_MULTI_THREAD=ON
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
           cmake --build build --target run-unit-tests --parallel $(nproc)

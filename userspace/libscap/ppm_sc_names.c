@@ -21,6 +21,7 @@ limitations under the License.
 #include <libscap/scap-int.h>
 #include <libscap/strl.h>
 #include <ctype.h>
+#include <pthread.h>
 
 /*
  * PPM_SC_NAMES
@@ -37,6 +38,7 @@ limitations under the License.
 // would be clearer now that we have empty string names
 
 static char g_ppm_sc_names[PPM_SC_MAX][PPM_MAX_NAME_LEN];
+static pthread_once_t g_ppm_sc_names_once = PTHREAD_ONCE_INIT;
 
 static void load_ppm_sc_table() {
 	const char *sc_names[PPM_SC_MAX] = {
@@ -64,9 +66,6 @@ const char *scap_get_ppm_sc_name(ppm_sc_code sc) {
 	/* We avoid the check for perf reasons */
 	ASSERT(sc >= 0 && sc < PPM_SC_MAX);
 
-	/* Lazy loading */
-	if(g_ppm_sc_names[0][0] == '\0') {
-		load_ppm_sc_table();
-	}
+	pthread_once(&g_ppm_sc_names_once, load_ppm_sc_table);
 	return g_ppm_sc_names[sc];
 }

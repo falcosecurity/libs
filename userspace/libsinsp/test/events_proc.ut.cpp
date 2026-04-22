@@ -103,7 +103,7 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag) {
 	 * `AT_EMPTY_PATH` flag.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), file_to_run);
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), file_to_run);
 }
@@ -184,7 +184,7 @@ TEST_F(sinsp_with_test_input, execveat_relative_path) {
 	 * specified in the `execveat` enter event.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/dir/file");
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), "/tmp/dir/file");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/dir/file");
 }
@@ -268,7 +268,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path) {
 	 * is invalid and should set `<NA>`.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), "<NA>");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "<NA>");
 }
@@ -339,7 +339,7 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path) {
 	 * `execveat` enter event.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/file");
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), "/tmp/file");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/file");
 }
@@ -423,7 +423,7 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag_s390) {
 	 * `AT_EMPTY_PATH` flag.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), file_to_run);
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), file_to_run);
 }
@@ -502,7 +502,7 @@ TEST_F(sinsp_with_test_input, execveat_relative_path_s390) {
 	 */
 
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390x/dir/file");
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), "/tmp/s390x/dir/file");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/s390x/dir/file");
 }
@@ -571,7 +571,7 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path_s390) {
 	 * `execveat` enter event.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390/file");
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), "/tmp/s390/file");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/s390/file");
 }
@@ -649,7 +649,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path_s390) {
 	 * is invalid and should set `<NA>`.
 	 */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
+	ASSERT_STREQ(evt->get_thread_info()->get_exepath().c_str(), "<NA>");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "<NA>");
 }
@@ -1223,7 +1223,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 
 	ASSERT_TRUE(evt->get_thread_info());
 	// Check we initialize lastexec time to zero
-	ASSERT_EQ(evt->get_thread_info()->m_lastexec_ts, 0);
+	ASSERT_EQ(evt->get_thread_info()->get_lastexec_ts(), 0);
 
 	add_event_advance_ts(increasing_ts(),
 	                     child_tid,
@@ -1287,9 +1287,9 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	                           "/bin/test-exe");
 
 	// Check last exec was recorded
-	ASSERT_GT(evt->get_thread_info()->m_lastexec_ts, 0);
+	ASSERT_GT(evt->get_thread_info()->get_lastexec_ts(), 0);
 	// Check we execed after the last clone
-	ASSERT_GT(evt->get_thread_info()->m_lastexec_ts, evt->get_thread_info()->m_clone_ts);
+	ASSERT_GT(evt->get_thread_info()->get_lastexec_ts(), evt->get_thread_info()->get_clone_ts());
 }
 
 TEST_F(sinsp_with_test_input, proc_ppid_apid) {

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2023 The Falco Authors.
+# Copyright (C) 2026 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -15,6 +15,9 @@
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 option(ENABLE_THREAD_POOL "Enable inspector thread pool" OFF)
+option(ENABLE_MULTI_THREAD "Enable multi-threaded event processing (real mutexes, concurrent maps)"
+	   OFF
+)
 
 if(NOT MSVC)
 	add_definitions(-DHAVE_PWD_H)
@@ -85,6 +88,7 @@ add_library(
 	thread_manager.cpp
 	tuples.cpp
 	sinsp.cpp
+	sinsp_buffer.cpp
 	token_bucket.cpp
 	utils.cpp
 	value_parser.cpp
@@ -134,6 +138,18 @@ set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
+	# Folly ConcurrentHashMap for thread-safe thread manager (see
+	# proposals/20260212-thread-safe-thread-manager.md and cmake/modules/folly.cmake)
+	target_link_libraries(sinsp PUBLIC folly_minimal)
+	target_compile_definitions(sinsp PUBLIC LIBSINSP_USE_FOLLY)
+	# Suppress sign-compare warnings from glog when used inside Folly templates
+	if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+		target_compile_options(sinsp PRIVATE -Wno-sign-compare)
+	endif()
+endif()
+
+if(ENABLE_MULTI_THREAD)
+	target_compile_definitions(sinsp PUBLIC ENABLE_MULTI_THREAD)
 endif()
 
 if(USE_BUNDLED_VALIJSON)

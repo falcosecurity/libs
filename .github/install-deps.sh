@@ -61,6 +61,53 @@ echo "=== Downloading BS_thread_pool.h (4.1.0) ==="
 
 wget -P "/usr/include" "https://github.com/bshoshany/thread-pool/raw/v4.1.0/include/BS_thread_pool.hpp"
 
+# === double-conversion ===
+echo "=== Building and installing double-conversion (v3.3.1) ==="
+
+wget "https://github.com/google/double-conversion/archive/refs/tags/v3.3.1.tar.gz"
+tar xzf v3.3.1.tar.gz
+pushd double-conversion-3.3.1
+cmake -B build -S . \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_TESTING=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build --parallel $(nproc)
+cmake --build build --target install
+popd
+
+# === glog ===
+echo "=== Building and installing glog (v0.7.1) ==="
+
+wget "https://github.com/google/glog/archive/refs/tags/v0.7.1.tar.gz"
+tar xzf v0.7.1.tar.gz
+pushd glog-0.7.1
+cmake -B build -S . \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_TESTING=OFF \
+    -DWITH_GFLAGS=OFF \
+    -DWITH_GTEST=OFF \
+    -DWITH_UNWIND=none \
+    -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build --parallel $(nproc)
+cmake --build build --target install
+popd
+
+# === fmt ===
+echo "=== Building and installing fmt (10.2.1) ==="
+
+wget "https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz"
+tar xzf 10.2.1.tar.gz
+pushd fmt-10.2.1
+cmake -B build -S . \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DFMT_DOC=OFF \
+    -DFMT_TEST=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build --parallel $(nproc)
+cmake --build build --target install
+popd
+
 # === cxxopts ===
 if [ ! -f "/usr/include/cxxopts.hpp" ]; then
     echo "=== Downloading cxxopts.hpp (3.3.1) ==="

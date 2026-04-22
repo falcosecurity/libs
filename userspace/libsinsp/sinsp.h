@@ -79,7 +79,9 @@ limitations under the License.
 #include <libsinsp/sinsp_thread_manager_factory.h>
 #include <libsinsp/sinsp_parser_verdict.h>
 #include <libsinsp/timestamper.h>
+#include <libsinsp/sinsp_buffer.h>
 
+#include <atomic>
 #include <list>
 #include <map>
 #include <memory>
@@ -92,6 +94,7 @@ limitations under the License.
 #define ONE_SECOND_IN_NS 1000000000LL
 
 class sinsp_parser;
+class sinsp_parser_shared_params;
 class sinsp_filter;
 class sinsp_plugin;
 class sinsp_plugin_manager;
@@ -148,14 +151,27 @@ public:
 	                         const std::string& plugin_open_params,
 	                         sinsp_plugin_platform platform_type);
 	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right
-	 * configuration to deploy the modern bpf probe: `cpus_for_each_buffer` and `online_only` are
-	 * the 2 experimental params. The first one allows associating more than one CPU to a single
-	 * ring buffer. The last one allows allocating ring buffers only for online CPUs and not for all
+	 * configuration to deploy the modern bpf probe: `buffers_num` and `online_only` are the 2
+	 * experimental params.
+	 *
+	 * `buffers_num` is interpreted based on its value:
+	 * - if `buffers_num` > 1, it is interpreted as the absolute (integer) number of requested
+	 *   buffers
+	 * - if `buffers_num` > 0 && `buffers_num` <= 1, its inverse (1 / `buffers_num`) is interpreted
+	 *   as the (integer) number of CPUs to which a single buffer must be associated
+	 * - if `buffers_num` == 0, it means requiring 1 buffer shared among all available CPUs
+	 *
+	 * `iters_num` determines the maximum number of allowed iterator threads. It must be in the
+	 * range [1; 255].
+	 *
+	 * `online_only` is taken into account only if `buffers_num` >= 0 && `buffers_num` <= 1:
+	 * it allows to require allocation of buffers only for online CPUs and not for all
 	 * system-available CPUs.
 	 */
 	virtual void open_modern_bpf(
 	        unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM,
-	        uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER,
+	        double buffers_num = DEFAULT_BUFFERS_NUM,
+	        int iters_num = DEFAULT_ITERS_NUM,
 	        bool online_only = true,
 	        const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest = {});
 	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);
@@ -173,6 +189,10 @@ public:
 	  \param evt [out] a \ref sinsp_evt pointer that will be initialized to point to
 	  the next available event.
 
+	  \param buffer_h a buffer handle forcing getting the next available event from the specified
+	  buffer. If `SINSP_INVALID_BUFFER_HANDLE` is provided, the function will get the next available
+	  event by leveraging all the available buffers
+
 	  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain
 	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is
 	   available. SCAP_EOF when the end of an offline capture is reached.
@@ -182,7 +202,11 @@ public:
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref)
 	*/
-	virtual int32_t next(sinsp_evt** evt);
+	virtual int32_t next(sinsp_evt** evt, sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE);
+
+	// TODO: add descriptions
+	uint16_t get_num_allocated_buffer_handles() const;
+	sinsp_buffer_t reserve_buffer_handle();
 
 	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
@@ -196,6 +220,12 @@ public:
 	  \return the number of captured events.
 	*/
 	uint64_t get_num_events() const;
+
+	/*!
+	  \brief First-event timestamp for the current thread's buffer (for evt.time / evt.reltime).
+	  Thread-local so filter/format can read it without storing on every event.
+	*/
+	uint64_t get_firstevent_ts() const;
 
 	/*!
 	  \brief Set the capture snaplen, i.e. the maximum size an event
@@ -275,6 +305,8 @@ public:
 	  \param filter the runtime filter object
 	*/
 	void set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& filterstring = "");
+
+	void compile_per_buffer_filters();
 
 	/*!
 	  \brief Return the filter set for this capture.
@@ -450,7 +482,9 @@ public:
 	/*!
 	  \brief get last library error.
 	*/
-	std::string getlasterr() const { return m_lasterr; }
+	std::string getlasterr(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
+		return std::string(m_buffers.at(buffer_h).m_lasterr_buf);
+	}
 
 	/*!
 	  \brief Get the list of machine network interfaces.
@@ -671,9 +705,14 @@ public:
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
 	}
 
-	inline sinsp_parser* get_parser() { return m_parser.get(); }
+	inline sinsp_parser* get_parser(const sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) {
+		return m_buffers.at(buffer_h).m_parser.get();
+	}
 
-	inline const sinsp_parser* get_parser() const { return m_parser.get(); }
+	inline const sinsp_parser* get_parser(
+	        const sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
+		return m_buffers.at(buffer_h).m_parser.get();
+	}
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp)
 	 * ===============================*/
@@ -756,6 +795,9 @@ public:
 
 	uint64_t get_lastevent_ts() const { return m_timestamper.get_cached_ts(); }
 	void set_lastevent_ts(const uint64_t v) { m_timestamper.set_cached_ts(v); }
+	/** Reset cached last-event timestamp so a subsequent set_lastevent_ts can set any value (e.g.
+	 * in tests). */
+	void reset_lastevent_ts() { m_timestamper.reset(); }
 
 	inline const std::string& get_host_root() const { return m_host_root; }
 	inline void set_host_root(const std::string& s) { m_host_root = s; }
@@ -766,8 +808,10 @@ public:
 	inline void set_observer(sinsp_observer* observer) { m_observer = observer; }
 	inline sinsp_observer* get_observer() const { return m_observer; }
 
-	bool get_track_connection_status() const;
-	inline void set_track_connection_status(bool enabled) const;
+	bool get_track_connection_status(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const;
+	inline void set_track_connection_status(
+	        bool enabled,
+	        sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const;
 
 	std::shared_ptr<sinsp_thread_pool> get_thread_pool();
 	bool set_thread_pool(const std::shared_ptr<sinsp_thread_pool>& tpool);
@@ -792,7 +836,10 @@ public:
 
 	inline scap_t* get_scap_handle() { return m_h; }
 
-	inline int64_t get_tid_to_remove() const { return m_parser_verdict.get_tid_to_remove(); }
+	inline int64_t get_tid_to_remove(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
+		auto& buffer = m_buffers.at(buffer_h);
+		return buffer.m_parser_verdict.get_tid_to_remove();
+	}
 
 	inline bool is_dumping() const { return m_is_dumping; }
 
@@ -820,15 +867,13 @@ private:
 	static bool is_initialstate_event(const scap_evt& pevent);
 	void import_ifaddr_list();
 	void import_user_list();
-	int32_t fetch_next_event(sinsp_evt*& evt);
+	int32_t fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer);
 
 	//
-	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
+	// Note: lookup_only when false updates the thread's m_lastaccess_ts;
+	//       use true for lookups that are not event-driven.
 	//
-	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only) {
+	inline typename threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only) {
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
 
@@ -862,7 +907,8 @@ private:
 	scap_t* m_h;
 	struct scap_platform* m_platform{};
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
-	uint64_t m_nevts;
+	// Base added to buffer.m_nevts for event numbering (used by restart_capture only).
+	uint64_t m_nevts_base{0};
 	int64_t m_filesize;
 	sinsp_mode m_mode = SINSP_MODE_NONE;
 
@@ -876,14 +922,7 @@ private:
 	bool m_hostname_and_port_resolution_enabled;
 	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
-	sinsp_evt m_evt;
-	std::string m_lasterr;
-	sinsp_parser_verdict m_parser_verdict;
 	timestamper m_timestamper;
-	// the parsing engine
-	std::unique_ptr<sinsp_parser> m_parser;
-	// temporary storage for the parser event to avoid memory allocation
-	sinsp_evt m_parser_tmp_evt;
 	// the statistics analysis engine
 	std::unique_ptr<sinsp_dumper> m_dumper;
 	bool m_is_dumping;
@@ -925,6 +964,8 @@ private:
 	const sinsp_thread_manager_factory m_thread_manager_factory;
 	// A registry that manages the state tables of this inspector.
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
+	// Parameter shared with each single sinsp_parser instance.
+	std::shared_ptr<sinsp_parser_shared_params> m_parser_shared_params;
 
 public:
 	const sinsp_fdinfo_factory& get_fdinfo_factory() const { return m_fdinfo_factory; }
@@ -936,7 +977,6 @@ public:
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
-	uint64_t m_firstevent_ts;
 	std::unique_ptr<sinsp_filter> m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
@@ -987,50 +1027,9 @@ public:
 	// priority queue to hold injected events
 	mpsc_priority_queue<sinsp_evt_ptr, state_evts_less> m_async_events_queue;
 
-	// predicate struct for checking the head of the async events queue.
-	// keeping a struct in the internal state makes sure that we don't do
-	// any extra allocation by creating a lambda and its closure
-	struct {
-		uint64_t ts{0};
-
-		bool operator()(const sinsp_evt& evt) const {
-			return compare_evt_timestamps(evt.get_scap_evt()->ts, ts);
-		};
-	} m_async_events_checker;
-
-	// Holds an event dequeued from the above queue
-	sinsp_evt_ptr m_async_evt;
-
-	// temp storage for scap_next
-	// stores top scap_evt while qualified events from m_async_events_queue are being processed
-	struct {
-		inline auto next(scap_t* h) {
-			auto res = scap_next(h, &m_pevt, &m_cpuid, &m_dump_flags);
-			if(res != SCAP_SUCCESS) {
-				clear();
-			}
-			return res;
-		}
-		inline void move(sinsp_evt* evt) {
-			evt->set_scap_evt(m_pevt);
-			evt->set_cpuid(m_cpuid);
-			evt->set_dump_flags(m_dump_flags);
-			clear();
-		}
-		inline bool empty() const { return m_pevt == nullptr; }
-		inline void clear() {
-			m_pevt = nullptr;
-			m_cpuid = 0;
-			m_dump_flags = 0;
-		}
-
-		scap_evt* m_pevt{nullptr};
-		uint16_t m_cpuid{0};
-		uint32_t m_dump_flags;
-	} m_delayed_scap_evt;
-
 	//
 	// Used for collecting process CPU and res usage info from the kernel
+	// (default buffer only)
 	//
 	bool m_get_procs_cpu_from_driver;
 	uint64_t m_next_flush_time_ns;
@@ -1038,6 +1037,7 @@ public:
 
 	//
 	// End of second housekeeping
+	// (default buffer only)
 	//
 	bool m_auto_stats_print = true;
 	uint64_t m_next_stats_print_time_ns;
@@ -1065,17 +1065,6 @@ public:
 	//
 	// The event sources available in the inspector
 	std::vector<std::string> m_event_sources;
-	//
-	// An instance of scap_evt to be used during the next call to sinsp::next().
-	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
-	// After using this event, sinsp::next() will set this back to nullptr.
-	// This is used internally during the state initialization phase.
-	scap_evt* m_replay_scap_evt;
-	//
-	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
-	// information of the replayed scap event.
-	uint16_t m_replay_scap_cpuid;
-	uint32_t m_replay_scap_flags;
 
 	sinsp_observer* m_observer{nullptr};
 
@@ -1083,6 +1072,22 @@ public:
 	static std::atomic<int> instance_count;
 
 	plugin_tables m_plugin_tables;
+
+	// The list of buffers controlled by the inspector. This list contains at least 1 element at
+	// index 0, called the "default buffer", that is used by next() if invoked with
+	// `SINSP_INVALID_BUFFER_HANDLE`. The vector contains more than one buffer if the user requested
+	// to open the modern bpf probe with an absolute number of buffers (i.e.: calling
+	// `open_modern_bpf` with `buffers_num` > 1): in this case, the list contains N + 1 elements,
+	// where N is the number of requested buffers.
+	std::vector<sinsp_buffer> m_buffers;
+
+	// next reservable buffer handle. Used internally by reserve_buffer_handle() to take note of the
+	// buffer handle to be returned on the next invocation. Atomic so that reserve_buffer_handle()
+	// can be called from multiple threads (e.g. parallel event processing).
+	std::atomic<sinsp_buffer_t> m_next_reservable_buffer_handle;
+
+	// First-event timestamp per thread; set in next() from current buffer, read by filter/format.
+	static thread_local uint64_t s_firstevent_ts;
 };
 
 /*@}*/

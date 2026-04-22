@@ -4,9 +4,12 @@
 #include <libsinsp/plugin.h>
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/dynamic_struct.h>
+#include <libsinsp/sync_policy.h>
 
 class sinsp;
-class sinsp_threadinfo;
+template<typename SyncPolicy>
+class sinsp_threadinfo_impl;
+using sinsp_threadinfo = sinsp_threadinfo_impl<sync_policy_default>;
 class sinsp_usergroup_manager;
 struct scap_userinfo;
 struct scap_groupinfo;

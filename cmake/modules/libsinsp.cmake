@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2023 The Falco Authors.
+# Copyright (C) 2026 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -31,6 +31,10 @@ if(NOT HAVE_LIBSINSP)
 	include(libscap)
 	if(NOT EMSCRIPTEN)
 		include(tbb)
+		include(fmt)
+		include(double-conversion)
+		include(glog)
+		include(folly)
 	endif()
 	include(jsoncpp)
 	include(valijson)

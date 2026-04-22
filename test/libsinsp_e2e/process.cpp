@@ -371,7 +371,7 @@ TEST(procinfo, process_not_existent) {
 	sinsp_threadinfo* tinfo = thread_manager->get_thread(0xffff, true).get();
 	EXPECT_NE((sinsp_threadinfo*)NULL, tinfo);
 	if(tinfo) {
-		EXPECT_EQ("<NA>", tinfo->m_comm);
+		EXPECT_EQ("<NA>", tinfo->get_comm());
 	}
 
 	//
@@ -380,7 +380,7 @@ TEST(procinfo, process_not_existent) {
 	tinfo = thread_manager->find_thread(0xffff, true).get();
 	EXPECT_NE((sinsp_threadinfo*)NULL, tinfo);
 	if(tinfo) {
-		EXPECT_EQ("<NA>", tinfo->m_comm);
+		EXPECT_EQ("<NA>", tinfo->get_comm());
 	}
 
 	inspector.close();

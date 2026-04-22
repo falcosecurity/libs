@@ -36,7 +36,7 @@ public:
 	             uint32_t original_len,
 	             uint32_t len) override {
 		ASSERT_EQ(evt->get_num(), 4);
-		ASSERT_EQ(fdinfo->m_fd, 4);
+		ASSERT_EQ(fdinfo->get_fd_num(), 4);
 		ASSERT_STREQ(data, "hello");
 		m_read_ctr++;
 	}

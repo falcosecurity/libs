@@ -30,7 +30,7 @@ jobs:
 
       - name: Build and test 🏗️🧪
         run: |
-          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=True -DENABLE_COVERAGE=True -DUSE_BUNDLED_DEPS=False
+          cmake -B build -S . -DBUILD_WARNINGS_AS_ERRORS=True -DENABLE_COVERAGE=True -DUSE_BUNDLED_DEPS=False -DENABLE_THREAD_POOL=ON -DENABLE_MULTI_THREAD=ON
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
           cmake --build build --target run-unit-tests --parallel $(nproc)
 

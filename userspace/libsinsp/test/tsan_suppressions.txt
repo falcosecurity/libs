@@ -1,0 +1,39 @@
+# ThreadSanitizer suppressions for libsinsp unit tests (USE_TSAN=ON).
+#
+# Run unit tests under TSAN with these suppressions (from repo root):
+#
+#   TSAN_OPTIONS="suppressions=$(pwd)/userspace/libsinsp/test/tsan_suppressions.txt" \
+#     ./build/libsinsp/test/unit-test-libsinsp --gtest_brief=1
+#
+# Or use the CMake target: cmake --build build --target run-unit-test-libsinsp-tsan
+#
+# Well-known basis for these suppressions:
+#
+# 1) Folly ThreadLocal and hazptr: Folly's ThreadLocal (folly/detail/ThreadLocalDetail.h)
+#    uses a global registry of per-thread entries (ThreadEntrySet, allId2ThreadEntrySets_);
+#    the file documents TSAN and lock ordering for this machinery. Folly's hazard
+#    pointer implementation (HazptrThrLocal.h) uses a thread-local cache (hazptr_tc,
+#    "Thread cache of hazptr_rec-s"). ConcurrentHashMap uses hazptr, so thread_manager
+#    tests that use it hit this TLS path. TSAN reports races on these Folly internals
+#    despite the design being per-thread and properly synchronized.
+#
+# 2) ConcurrentHashMap (thread table, fd table) uses hazptr for deferred node reclamation.
+#    TSAN often reports operator new/delete races on the same address when one thread
+#    reclaims a map node and another allocates sinsp_fdinfo; hazptr defers destruction
+#    in a way that is safe but noisy for TSAN.
+#
+
+# The patterns below match Folly TLS/registry and ConcurrentHashMap hazptr reclamation only.
+race:folly::threadlocal_detail
+race:folly::SingletonThreadLocal
+race:folly::hazptr_tc_tls
+race:folly::detail::StaticSingletonManager
+race:StaticSingletonManager.cpp
+race:ThreadLocalDetail.h
+race:ThreadLocalDetail.cpp
+race:folly::ThreadEntrySet
+race:removeThreadEntryFromAllInMap
+race:onThreadExit
+race:unlink_and_reclaim_nodes
+race:concurrenthashmap::HazptrDeleter
+race:ConcurrentHashMap-detail.h

@@ -84,14 +84,14 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	/* See the `reset` logic for enter events with `EF_USES_FD` flag */
 	auto* tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	ASSERT_NE(tinfo, nullptr);
-	ASSERT_EQ(tinfo->m_lastevent_fd, sinsp_test_input::socket_params::default_fd);
-	ASSERT_EQ(tinfo->m_lastevent_ts, evt_ts);
+	ASSERT_EQ(tinfo->get_lastevent_fd(), sinsp_test_input::socket_params::default_fd);
+	ASSERT_EQ(tinfo->get_lastevent_ts(), evt_ts);
 
 	/* Here we should recover the fdinfo from the thread info since the socket call has already
 	 * added the fdinfo into the thread. See `reset` logic, the fdinfo is recovered from the
 	 * `client_fd` (first parameter).
 	 */
-	auto* fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
+	auto fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket()); /* in `parse_connect_enter` we set `SCAP_FD_IPV4_SOCK` as
 	                                          type */
@@ -103,14 +103,14 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	ASSERT_FALSE(fdinfo->is_socket_pending());
 
 	/* Check that ip and port are not set. */
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, 0);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, 0);
+	ASSERT_EQ(fdinfo->get_sockinfo().m_ipv4info.m_fields.m_dip, 0);
+	ASSERT_EQ(fdinfo->get_sockinfo().m_ipv4info.m_fields.m_dport, 0);
 
 	/* Since the role of the fd is none, all these fields are null. The fdinfo state is updated but
 	 * we cannot use these info in the filterchecks */
-	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->get_name(), "");
 	ASSERT_FALSE(fdinfo->is_socket_connected());
-	ASSERT_FALSE(fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+	ASSERT_FALSE(fdinfo->get_sockinfo().m_ipv4serverinfo.m_ip);
 
 	/* If the exit event is immediately consecutive we can obtain some info otherwise there is the
 	 * risk we cannot update the fd */
@@ -127,21 +127,23 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	        sinsp_test_input::socket_params::default_fd,
 	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
-	fdinfo = evt->get_fd_info();
-	ASSERT_NE(fdinfo, nullptr);
-	ASSERT_TRUE(fdinfo->is_ipv4_socket());
+	sinsp_fdinfo* fdinfo_evt = evt->get_fd_info();
+	ASSERT_NE(fdinfo_evt, nullptr);
+	ASSERT_TRUE(fdinfo_evt->is_ipv4_socket());
 	ASSERT_TRUE(
-	        fdinfo->is_socket_connected()); /* in the parse exit we set the socket as connected */
-	ASSERT_TRUE(fdinfo->is_role_client());  /* The connect exit set the client role */
+	        fdinfo_evt
+	                ->is_socket_connected()); /* in the parse exit we set the socket as connected */
+	ASSERT_TRUE(fdinfo_evt->is_role_client()); /* The connect exit set the client role */
 
 	/* Check that ip and port are saved from the server socktuple */
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
+	auto si = fdinfo_evt->get_sockinfo();
+	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
+	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV4_FDNAME);
 	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "true");
@@ -338,9 +340,10 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 	ASSERT_FALSE(fdinfo->is_socket_pending());
 
 	/* Check that ip and port are saved from the server sockaddr in the fdinfo */
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip), ipv4_string, 100);
+	auto si = fdinfo->get_sockinfo();
+	inet_ntop(AF_INET, (uint8_t*)&(si.m_ipv4serverinfo.m_ip), ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4serverinfo.m_port, DEFAULT_SERVER_PORT);
+	ASSERT_EQ(si.m_ipv4serverinfo.m_port, DEFAULT_SERVER_PORT);
 
 	/* The fdname is just the server ip + server port */
 	std::string fdname =
@@ -494,7 +497,7 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 
 	fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
-	ASSERT_STREQ(fdinfo->m_name.c_str(), DEFAULT_IPV4_FDNAME);
+	ASSERT_STREQ(fdinfo->get_name().c_str(), DEFAULT_IPV4_FDNAME);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV4_FDNAME);
 
 	/* Second connection with another server but in this case, the connect exit event fails */
@@ -547,18 +550,19 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	 * flow is truncated */
 	fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
-	ASSERT_STREQ(fdinfo->m_name.c_str(), DEFAULT_IPV4_FDNAME);
+	ASSERT_STREQ(fdinfo->get_name().c_str(), DEFAULT_IPV4_FDNAME);
 
 	/* Addresses and ports are not updated. */
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
+	auto si = fdinfo->get_sockinfo();
+	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
 
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
+	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
 
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
 }
 
 TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
@@ -636,17 +640,18 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty) {
 	 * flow is truncated */
 	auto* fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
-	ASSERT_STREQ(fdinfo->m_name.c_str(), DEFAULT_IPV4_FDNAME);
+	ASSERT_STREQ(fdinfo->get_name().c_str(), DEFAULT_IPV4_FDNAME);
 
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
+	auto si = fdinfo->get_sockinfo();
+	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_dip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_SERVER_STRING);
 
-	inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
+	inet_ntop(AF_INET, &si.m_ipv4info.m_fields.m_sip, ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, DEFAULT_IPV4_CLIENT_STRING);
 
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_dport, DEFAULT_SERVER_PORT);
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_sport, DEFAULT_CLIENT_PORT);
 }
 
 TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing) {
@@ -701,14 +706,15 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing) {
 
 	fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
-	ASSERT_STREQ(fdinfo->m_name.c_str(), fdname.c_str());
+	ASSERT_STREQ(fdinfo->get_name().c_str(), fdname.c_str());
 
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip), ipv4_string, 100);
+	auto si = fdinfo->get_sockinfo();
+	inet_ntop(AF_INET, (uint8_t*)&(si.m_ipv4info.m_fields.m_dip), ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, ipv4_server.c_str());
 
-	inet_ntop(AF_INET, (uint8_t*)&(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip), ipv4_string, 100);
+	inet_ntop(AF_INET, (uint8_t*)&(si.m_ipv4info.m_fields.m_sip), ipv4_string, 100);
 	ASSERT_STREQ(ipv4_string, ipv4_client.c_str());
 
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, std::stoi(port_server_string));
-	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, std::stoi(port_client_string));
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_dport, std::stoi(port_server_string));
+	ASSERT_EQ(si.m_ipv4info.m_fields.m_sport, std::stoi(port_client_string));
 }

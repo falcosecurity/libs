@@ -77,7 +77,7 @@ TEST_F(sinsp_with_test_input, parse_write_failure) {
 	// Check we have the correct fd info associated with the event
 	auto fdinfo = evt->get_fd_info();
 	ASSERT_TRUE(fdinfo);
-	ASSERT_EQ(fdinfo->m_fd, sinsp_test_input::open_params::default_fd);
+	ASSERT_EQ(fdinfo->get_fd_num(), sinsp_test_input::open_params::default_fd);
 
 	// Assert return value filterchecks
 	assert_return_value(evt, errno_code);

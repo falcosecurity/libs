@@ -786,10 +786,11 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 			ASSERT(false);
 			sdir = "<UNKNOWN>/";
 		} else {
-			if(evt->get_fd_info()->m_name[evt->get_fd_info()->m_name.length()] == '/') {
-				sdir = evt->get_fd_info()->m_name;
+			auto fd_name = evt->get_fd_info()->get_name();
+			if(!fd_name.empty() && fd_name.back() == '/') {
+				sdir = fd_name;
 			} else {
-				sdir = evt->get_fd_info()->m_name + '/';
+				sdir = fd_name + '/';
 			}
 		}
 	}
@@ -908,16 +909,17 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
 			RETURN_EXTRACT_STRING(m_strstorage);
 
-		case 'r':
-			m_strstorage +=
-			        to_string((evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS);
+		case 'r': {
+			const uint64_t first_ts = m_inspector->get_firstevent_ts();
+			m_strstorage += to_string((evt->get_ts() - first_ts) / ONE_SECOND_IN_NS);
 			m_strstorage += ".";
 			snprintf(timebuffer,
 			         sizeof(timebuffer),
 			         "%09llu",
-			         (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
+			         (evt->get_ts() - first_ts) % ONE_SECOND_IN_NS);
 			m_strstorage += string(timebuffer);
 			RETURN_EXTRACT_STRING(m_strstorage);
+		}
 
 		case 'd': {
 			m_strstorage = "0.000000000";
@@ -1313,8 +1315,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 		if(fdinfo != NULL) {
-			if(fdinfo->m_type == SCAP_FD_FILE || fdinfo->m_type == SCAP_FD_FILE_V2 ||
-			   fdinfo->m_type == SCAP_FD_DIRECTORY) {
+			auto ftype = fdinfo->get_type();
+			if(ftype == SCAP_FD_FILE || ftype == SCAP_FD_FILE_V2 || ftype == SCAP_FD_DIRECTORY) {
 				return extract_error_count(evt, len);
 			}
 		} else {
@@ -1332,9 +1334,10 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 		if(fdinfo != NULL) {
-			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK || fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-			   fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK ||
-			   fdinfo->m_type == SCAP_FD_UNIX_SOCK) {
+			auto ftype = fdinfo->get_type();
+			if(ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+			   ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK ||
+			   ftype == SCAP_FD_UNIX_SOCK) {
 				return extract_error_count(evt, len);
 			}
 		} else {
@@ -1359,10 +1362,11 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 		if(fdinfo != NULL) {
-			if(!(fdinfo->m_type == SCAP_FD_FILE || fdinfo->m_type == SCAP_FD_FILE_V2 ||
-			     fdinfo->m_type == SCAP_FD_DIRECTORY || fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
-			     fdinfo->m_type == SCAP_FD_IPV6_SOCK || fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
-			     fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK || fdinfo->m_type == SCAP_FD_UNIX_SOCK)) {
+			auto ftype = fdinfo->get_type();
+			if(!(ftype == SCAP_FD_FILE || ftype == SCAP_FD_FILE_V2 || ftype == SCAP_FD_DIRECTORY ||
+			     ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+			     ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK ||
+			     ftype == SCAP_FD_UNIX_SOCK)) {
 				return extract_error_count(evt, len);
 			}
 		} else {
@@ -1418,8 +1422,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_BUFLEN_FILE:
 		if(evt->get_fd_info() && evt->get_category() & EC_IO_BASE) {
-			if(evt->get_fd_info()->m_type == SCAP_FD_FILE ||
-			   evt->get_fd_info()->m_type == SCAP_FD_FILE_V2) {
+			auto etype = evt->get_fd_info()->get_type();
+			if(etype == SCAP_FD_FILE || etype == SCAP_FD_FILE_V2) {
 				return extract_buflen(evt, len);
 			}
 		}
@@ -1427,8 +1431,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_BUFLEN_FILE_IN:
 		if(evt->get_fd_info() && evt->get_category() == EC_IO_READ) {
-			if(evt->get_fd_info()->m_type == SCAP_FD_FILE ||
-			   evt->get_fd_info()->m_type == SCAP_FD_FILE_V2) {
+			auto etype = evt->get_fd_info()->get_type();
+			if(etype == SCAP_FD_FILE || etype == SCAP_FD_FILE_V2) {
 				return extract_buflen(evt, len);
 			}
 		}
@@ -1436,8 +1440,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_BUFLEN_FILE_OUT:
 		if(evt->get_fd_info() && evt->get_category() == EC_IO_WRITE) {
-			if(evt->get_fd_info()->m_type == SCAP_FD_FILE ||
-			   evt->get_fd_info()->m_type == SCAP_FD_FILE_V2) {
+			auto etype = evt->get_fd_info()->get_type();
+			if(etype == SCAP_FD_FILE || etype == SCAP_FD_FILE_V2) {
 				return extract_buflen(evt, len);
 			}
 		}
@@ -1445,7 +1449,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_BUFLEN_NET:
 		if(evt->get_fd_info() && evt->get_category() & EC_IO_BASE) {
-			scap_fd_type etype = evt->get_fd_info()->m_type;
+			auto etype = evt->get_fd_info()->get_type();
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) {
 				return extract_buflen(evt, len);
@@ -1455,7 +1459,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_BUFLEN_NET_IN:
 		if(evt->get_fd_info() && evt->get_category() == EC_IO_READ) {
-			scap_fd_type etype = evt->get_fd_info()->m_type;
+			auto etype = evt->get_fd_info()->get_type();
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) {
 				return extract_buflen(evt, len);
@@ -1465,7 +1469,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		break;
 	case TYPE_BUFLEN_NET_OUT:
 		if(evt->get_fd_info() && evt->get_category() == EC_IO_WRITE) {
-			scap_fd_type etype = evt->get_fd_info()->m_type;
+			auto etype = evt->get_fd_info()->get_type();
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) {
 				return extract_buflen(evt, len);

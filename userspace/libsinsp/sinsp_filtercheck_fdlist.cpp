@@ -119,7 +119,7 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		bool add_comma = true;
 		int64_t fd = *(int64_t *)(payload + pos);
 
-		sinsp_fdinfo *fdinfo = tinfo ? tinfo->get_fd(fd) : NULL;
+		auto fdinfo = tinfo ? tinfo->get_fd(fd) : nullptr;
 
 		switch(m_field_id) {
 		case TYPE_FDNUMS: {
@@ -127,8 +127,9 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		} break;
 		case TYPE_FDNAMES: {
 			if(fdinfo != NULL) {
-				if(fdinfo->m_name != "") {
-					m_strval += fdinfo->m_name;
+				auto fd_name = fdinfo->get_name();
+				if(!fd_name.empty()) {
+					m_strval += fd_name;
 				} else {
 					m_strval += "<NA>";
 				}
@@ -139,16 +140,18 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		case TYPE_CLIENTIPS: {
 			if(fdinfo != NULL) {
 				char m_addrbuff[100];
-				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+				auto si = fdinfo->get_sockinfo();
+				auto ftype = fdinfo->get_type();
+				if(ftype == SCAP_FD_IPV4_SOCK) {
 					inet_ntop(AF_INET,
-					          &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+					          &si.m_ipv4info.m_fields.m_sip,
 					          m_addrbuff,
 					          sizeof(m_addrbuff));
 					m_strval += m_addrbuff;
 					break;
-				} else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
+				} else if(ftype == SCAP_FD_IPV6_SOCK) {
 					inet_ntop(AF_INET6,
-					          fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b,
+					          si.m_ipv6info.m_fields.m_sip.m_b,
 					          m_addrbuff,
 					          sizeof(m_addrbuff));
 					m_strval += m_addrbuff;
@@ -161,30 +164,29 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		case TYPE_SERVERIPS: {
 			if(fdinfo != NULL) {
 				char m_addrbuff[100];
-				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+				auto si = fdinfo->get_sockinfo();
+				auto ftype = fdinfo->get_type();
+				if(ftype == SCAP_FD_IPV4_SOCK) {
 					inet_ntop(AF_INET,
-					          &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+					          &si.m_ipv4info.m_fields.m_dip,
 					          m_addrbuff,
 					          sizeof(m_addrbuff));
 					m_strval += m_addrbuff;
 					break;
-				} else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
+				} else if(ftype == SCAP_FD_IPV6_SOCK) {
 					inet_ntop(AF_INET6,
-					          fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b,
+					          si.m_ipv6info.m_fields.m_dip.m_b,
 					          m_addrbuff,
 					          sizeof(m_addrbuff));
 					m_strval += m_addrbuff;
 					break;
-				} else if(fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK) {
-					inet_ntop(AF_INET,
-					          &fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip,
-					          m_addrbuff,
-					          sizeof(m_addrbuff));
+				} else if(ftype == SCAP_FD_IPV4_SERVSOCK) {
+					inet_ntop(AF_INET, &si.m_ipv4serverinfo.m_ip, m_addrbuff, sizeof(m_addrbuff));
 					m_strval += m_addrbuff;
 					break;
-				} else if(fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+				} else if(ftype == SCAP_FD_IPV6_SERVSOCK) {
 					inet_ntop(AF_INET,
-					          &fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip.m_b,
+					          &si.m_ipv6serverinfo.m_ip.m_b,
 					          m_addrbuff,
 					          sizeof(m_addrbuff));
 					m_strval += m_addrbuff;
@@ -196,11 +198,13 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		} break;
 		case TYPE_CLIENTPORTS: {
 			if(fdinfo != NULL) {
-				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
-					m_strval += to_string(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+				auto si = fdinfo->get_sockinfo();
+				auto ftype = fdinfo->get_type();
+				if(ftype == SCAP_FD_IPV4_SOCK) {
+					m_strval += to_string(si.m_ipv4info.m_fields.m_sport);
 					break;
-				} else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
-					m_strval += to_string(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+				} else if(ftype == SCAP_FD_IPV6_SOCK) {
+					m_strval += to_string(si.m_ipv6info.m_fields.m_sport);
 					break;
 				}
 			}
@@ -209,11 +213,13 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		}
 		case TYPE_SERVERPORTS: {
 			if(fdinfo != NULL) {
-				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
-					m_strval += to_string(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+				auto si = fdinfo->get_sockinfo();
+				auto ftype = fdinfo->get_type();
+				if(ftype == SCAP_FD_IPV4_SOCK) {
+					m_strval += to_string(si.m_ipv4info.m_fields.m_dport);
 					break;
-				} else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
-					m_strval += to_string(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+				} else if(ftype == SCAP_FD_IPV6_SOCK) {
+					m_strval += to_string(si.m_ipv6info.m_fields.m_dport);
 					break;
 				}
 			}
