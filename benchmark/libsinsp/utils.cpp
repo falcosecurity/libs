@@ -53,3 +53,113 @@ static void BM_sinsp_concatenate_paths_absolute_path(benchmark::State& state) {
 	}
 }
 BENCHMARK(BM_sinsp_concatenate_paths_absolute_path);
+
+// Fast path for short valid ASCII string. No 8-byte aligned block skipping. No replacement needed.
+static void BM_sinsp_sanitize_string_fast_path_ascii_short(benchmark::State& state) {
+	std::string str = "/foo/";
+	for(auto _ : state) {
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_fast_path_ascii_short);
+
+// Fast path for long valid ASCII string. Exercises 8-byte aligned block skipping. No replacement
+// needed.
+static void BM_sinsp_sanitize_string_fast_path_ascii_long(benchmark::State& state) {
+	std::string str(1024, 'a');
+	for(auto _ : state) {
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_fast_path_ascii_long);
+
+// Fast path for short valid multibyte UTF-8 string. No 8-byte aligned block skipping. No
+// replacement needed.
+static void BM_sinsp_sanitize_string_fast_path_multibyte_short(benchmark::State& state) {
+	std::string str{"😀😀"};
+	for(auto _ : state) {
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_fast_path_multibyte_short);
+
+// Fast path for long valid multibyte UTF-8 string composed of 4-byte sequences. Exercises
+// `utf8_seq_len()` for each 4-byte sequence. No replacement needed.
+static void BM_sinsp_sanitize_string_fast_path_multibyte_long(benchmark::State& state) {
+	const std::string emoji{"😀"};
+	std::string str;
+	str.reserve(1024 * emoji.size());
+	for(int i = 0; i < 1024; i++) {
+		str.append(emoji.data(), emoji.size());
+	}
+	for(auto _ : state) {
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_fast_path_multibyte_long);
+
+// Fast path for long valid mixed ASCII and multibyte UTF-8 string. Exercises both 8-byte aligned
+// block skipping for ASCII runs and `utf8_seq_len()` for 4-byte sequences. No replacement needed.
+static void BM_sinsp_sanitize_string_fast_path_mixed_long(benchmark::State& state) {
+	const std::string ascii{"abcdefgh"};
+	const std::string emoji{"😀"};
+	std::string str;
+	str.reserve(128 * (ascii.size() + emoji.size()));
+	for(int i = 0; i < 128; i++) {
+		str.append(ascii.data(), ascii.size());
+		str.append(emoji.data(), emoji.size());
+	}
+	for(auto _ : state) {
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_fast_path_mixed_long);
+
+// Slow path for long valid multibyte UTF-8 composed of 2-byte non-printable characters (C1 control
+// characters). Replacement needed for all characters.
+static void BM_sinsp_sanitize_string_slow_path_c1_controls_long(benchmark::State& state) {
+	for(auto _ : state) {
+		state.PauseTiming();
+		std::string c1{"\xC2\x80"};
+		std::string str;
+		str.reserve(512 * c1.size());
+		for(int i = 0; i < 512; i++) {
+			str.append(c1.data(), c1.size());
+		}
+		state.ResumeTiming();
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_c1_controls_long);
+
+// Slow path for long string with a single, invalid byte in the middle. Triggers second pass but
+// only a single replacement takes place.
+static void BM_sinsp_sanitize_string_slow_path_sparse_invalid_long(benchmark::State& state) {
+	for(auto _ : state) {
+		state.PauseTiming();
+		std::string str(1024, 'a');
+		str[512] = '\x80';
+		state.ResumeTiming();
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_sparse_invalid_long);
+
+// Slow path for long string with all bytes invalid. Worst scenario for replacement logic.
+static void BM_sinsp_sanitize_string_slow_path_all_invalid_long(benchmark::State& state) {
+	for(auto _ : state) {
+		state.PauseTiming();
+		std::string str(1024, '\x80');
+		state.ResumeTiming();
+		sanitize_string(str);
+		benchmark::DoNotOptimize(str);
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_all_invalid_long);
