@@ -2120,6 +2120,46 @@ static __always_inline uint32_t keyctl_operation_to_scap(int operation) {
 	return (uint32_t)operation;
 }
 
+static __always_inline uint32_t keyctl_operation_supports_arg2(uint32_t operation) {
+	switch(operation) {
+	case PPM_KEYCTL_GET_KEYRING_ID:
+	case PPM_KEYCTL_JOIN_SESSION_KEYRING:
+	case PPM_KEYCTL_UPDATE:
+	case PPM_KEYCTL_REVOKE:
+	case PPM_KEYCTL_CHOWN:
+	case PPM_KEYCTL_SETPERM:
+	case PPM_KEYCTL_DESCRIBE:
+	case PPM_KEYCTL_CLEAR:
+	case PPM_KEYCTL_LINK:
+	case PPM_KEYCTL_UNLINK:
+	case PPM_KEYCTL_SEARCH:
+	case PPM_KEYCTL_READ:
+	case PPM_KEYCTL_INSTANTIATE:
+	case PPM_KEYCTL_NEGATE:
+	case PPM_KEYCTL_SET_REQKEY_KEYRING:
+	case PPM_KEYCTL_SET_TIMEOUT:
+	case PPM_KEYCTL_ASSUME_AUTHORITY:
+	case PPM_KEYCTL_GET_SECURITY:
+	case PPM_KEYCTL_REJECT:
+	case PPM_KEYCTL_INSTANTIATE_IOV:
+	case PPM_KEYCTL_INVALIDATE:
+	case PPM_KEYCTL_GET_PERSISTENT:
+	case PPM_KEYCTL_DH_COMPUTE:
+	case PPM_KEYCTL_PKEY_QUERY:
+	case PPM_KEYCTL_PKEY_ENCRYPT:
+	case PPM_KEYCTL_PKEY_DECRYPT:
+	case PPM_KEYCTL_PKEY_SIGN:
+	case PPM_KEYCTL_PKEY_VERIFY:
+	case PPM_KEYCTL_RESTRICT_KEYRING:
+	case PPM_KEYCTL_MOVE:
+	case PPM_KEYCTL_CAPABILITIES:
+	case PPM_KEYCTL_WATCH_KEY:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static __always_inline uint32_t finit_module_flags_to_scap(int32_t flags) {
 	int32_t res = 0;
 #ifdef MODULE_INIT_IGNORE_MODVERSIONS

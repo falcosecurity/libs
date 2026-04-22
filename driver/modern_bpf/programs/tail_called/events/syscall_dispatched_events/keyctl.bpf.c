@@ -29,21 +29,24 @@ int BPF_PROG(keyctl_x, struct pt_regs *regs, long ret) {
 	uint32_t operation = (uint32_t)keyctl_operation_to_scap(extract__syscall_argument(regs, 0));
 	auxmap__store_u32_param(auxmap, operation);
 
-	unsigned long arg2 = extract__syscall_argument(regs, 1);
-
-	switch(operation) {
-	case PPM_KEYCTL_JOIN_SESSION_KEYRING:
-		/* Parameter 3: arg2_str (type: PT_CHARBUF) — char* keyring name */
-		auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
-		/* Parameter 4: arg2_int (type: PT_INT64) */
-		auxmap__store_s64_param(auxmap, 0);
-		break;
-	default:
-		/* Parameter 3: arg2_str (type: PT_CHARBUF) — empty, arg2 is an integer */
+	if(!keyctl_operation_supports_arg2(operation)) {
+		/* Operations like SESSION_TO_PARENT don't define arg2. */
 		auxmap__store_empty_param(auxmap);
-		/* Parameter 4: arg2_int (type: PT_INT64) */
-		auxmap__store_s64_param(auxmap, arg2);
-		break;
+		auxmap__store_s64_param(auxmap, 0);
+	} else {
+		unsigned long arg2 = extract__syscall_argument(regs, 1);
+
+		if(operation == PPM_KEYCTL_JOIN_SESSION_KEYRING) {
+			/* Parameter 3: arg2_str (type: PT_CHARBUF) — char* keyring name */
+			auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
+			/* Parameter 4: arg2_int (type: PT_INT64) */
+			auxmap__store_s64_param(auxmap, 0);
+		} else {
+			/* Parameter 3: arg2_str (type: PT_CHARBUF) — empty, arg2 is a raw non-string value */
+			auxmap__store_empty_param(auxmap);
+			/* Parameter 4: arg2_int (type: PT_INT64) */
+			auxmap__store_s64_param(auxmap, arg2);
+		}
 	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

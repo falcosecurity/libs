@@ -8610,23 +8610,29 @@ int f_sys_keyctl_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 3 & 4: arg2_str / arg2_int */
+	if(!keyctl_operation_supports_arg2(operation)) {
+		/* Operations like SESSION_TO_PARENT don't define arg2. */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+		return add_sentinel(args);
+	}
+
 	syscall_get_arguments_deprecated(args, 1, 1, &arg2);
 
-	switch(operation) {
-	case PPM_KEYCTL_JOIN_SESSION_KEYRING:
+	if(operation == PPM_KEYCTL_JOIN_SESSION_KEYRING) {
 		/* arg2 is a char* keyring name (may be NULL) */
 		res = val_to_ring(args, arg2, 0, true, 0);
 		CHECK_RES(res);
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
-		break;
-	default:
-		/* arg2 is an integer (key serial, permissions, etc.) */
+	} else {
+		/* arg2 is a raw non-string value (key ID, enum, pointer, etc.) */
 		res = push_empty_param(args);
 		CHECK_RES(res);
 		res = val_to_ring(args, arg2, 0, false, 0);
 		CHECK_RES(res);
-		break;
 	}
 
 	return add_sentinel(args);

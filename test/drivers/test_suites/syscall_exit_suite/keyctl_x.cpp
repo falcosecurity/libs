@@ -47,11 +47,11 @@ TEST(SyscallExit, keyctlX_failure) {
 	/* Parameter 2: operation (type: PT_ENUMFLAGS32) */
 	evt_test->assert_numeric_param(2, (uint32_t)operation);
 
-	/* Parameter 3: arg2_str (type: PT_CHARBUF) — empty for default/integer branch */
+	/* Parameter 3: arg2_str (type: PT_CHARBUF) — empty for unsupported operations */
 	evt_test->assert_empty_param(3);
 
-	/* Parameter 4: arg2_int (type: PT_INT64) */
-	evt_test->assert_numeric_param(4, (int64_t)arg2);
+	/* Parameter 4: arg2_int (type: PT_INT64) — unsupported operations don't claim arg2 */
+	evt_test->assert_numeric_param(4, (int64_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
