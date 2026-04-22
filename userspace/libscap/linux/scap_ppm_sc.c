@@ -1027,7 +1027,7 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
         [PPME_ITER_TASK_FILE_SOCKET_NETLINK_X] = NULL,
         [PPME_ITER_TASK_FILE_ANON_INODE_E] = NULL,
         [PPME_ITER_TASK_FILE_ANON_INODE_X] = NULL,
-        [PPME_SYSCALL_KEYCTL_E] = (ppm_sc_code[]){PPM_SC_KEYCTL, -1},
+        [PPME_SYSCALL_KEYCTL_E] = NULL,
         [PPME_SYSCALL_KEYCTL_X] = (ppm_sc_code[]){PPM_SC_KEYCTL, -1},
 };
 

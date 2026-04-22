@@ -273,6 +273,7 @@ const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
         PPME_ITER_TASK_FILE_SOCKET_UNIX_X,
         PPME_ITER_TASK_FILE_SOCKET_NETLINK_X,
         PPME_ITER_TASK_FILE_ANON_INODE_X,
+        PPME_SYSCALL_KEYCTL_E,
 
 };
 
