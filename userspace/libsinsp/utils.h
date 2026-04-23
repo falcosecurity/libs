@@ -174,15 +174,6 @@ public:
 // little STL thing to sanitize strings
 ///////////////////////////////////////////////////////////////////////////////
 
-struct g_invalidchar {
-	bool operator()(char c) const {
-		unsigned char uc = static_cast<unsigned char>(c);
-		// Exclude all non-printable characters and control characters while
-		// including a wide range of languages (emojis, cyrillic, chinese etc)
-		return (!(isprint(uc)));
-	}
-};
-
 // Returns a nonzero integer describing the UTF-8 sequence starting at `p`:
 // - if > 0, indicates a valid and printable UTF-8 sequence; the returned value is the sequence
 //   length (in range [1; 4]).
