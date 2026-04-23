@@ -306,6 +306,31 @@ inline const unsigned char* skip_8_byte_printable_ascii_blocks(const unsigned ch
 	return ptr;
 }
 
+// Returns a pointer to the first invalid UTF-8 sequence of bytes between `ptr` and `end_ptr`. In
+// this context, an invalid sequence is an invalid byte, a broken sequence (e.g.: wrong continuation
+// byte) or a valid-but-non-printable sequence. If the input is a valid printable UTF-8 string, it
+// returns `end_ptr`; otherwise, the returned pointer is guaranteed to be in the range [ptr;
+// end_ptr).
+inline const unsigned char* utf8_first_invalid_seq(const unsigned char* ptr,
+                                                   const unsigned char* end_ptr) {
+	while(ptr < end_ptr) {
+		// If `ptr` is 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
+		if((reinterpret_cast<uintptr_t>(ptr) & 7u) == 0u) {
+			ptr = skip_8_byte_printable_ascii_blocks(ptr, end_ptr);
+			if(ptr >= end_ptr) {
+				return end_ptr;
+			}
+		}
+		// Check if the next sequence is invalid (i.e.: `seq_len` is negative).
+		const int seq_len = utf8_seq_len(ptr, end_ptr);
+		if(seq_len < 0) {
+			return ptr;
+		}
+		ptr += seq_len;
+	}
+	return end_ptr;
+}
+
 inline void sanitize_string(std::string& str) {
 	const auto* const str_ptr = reinterpret_cast<const unsigned char*>(str.data());
 	const auto str_len = str.size();
@@ -313,25 +338,8 @@ inline void sanitize_string(std::string& str) {
 
 	// First pass (note: this must be FAST).
 	// Find the first sequence needing replacement. For valid strings, this is the only pass that
-	// runs (no replacement needed).
-	auto* scan_ptr = str_ptr;
-	while(scan_ptr < str_end_ptr) {
-		// If `scan_ptr` is 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
-		if((reinterpret_cast<uintptr_t>(scan_ptr) & 7u) == 0u) {
-			scan_ptr = skip_8_byte_printable_ascii_blocks(scan_ptr, str_end_ptr);
-			if(scan_ptr >= str_end_ptr) {
-				break;
-			}
-		}
-		// Check if the next sequence needs to be replaced (i.e.: `seq_len` is negative).
-		const int seq_len = utf8_seq_len(scan_ptr, str_end_ptr);
-		if(seq_len < 0) {
-			break;
-		}
-		scan_ptr += seq_len;
-	}
-
-	// String is already valid, return.
+	// runs (no replacement needed), and the flow immediately returns after it.
+	auto* scan_ptr = utf8_first_invalid_seq(str_ptr, str_end_ptr);
 	if(scan_ptr == str_end_ptr) {
 		return;
 	}
