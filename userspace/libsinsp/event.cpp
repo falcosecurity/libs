@@ -469,34 +469,84 @@ uint32_t binary_buffer_to_string(char *dst,
 	return k;
 }
 
-static uint32_t strcpy_sanitized(char *dest, const char *src, uint32_t dstsize) {
-	volatile char *tmp = (volatile char *)dest;
-	uint32_t j = 0;
-	g_invalidchar ic;
+// `dst` and `src` must both be non-empty.
+static void strcpy_sanitized(std::vector<char> &dst, const std::string_view src) {
+	auto *dst_ptr = reinterpret_cast<unsigned char *>(&dst[0]);
+	const auto dst_size = dst.size();
+	ASSERT(dst_size > 0);
 
-	while(j < dstsize) {
-		if(!ic(*src)) {
-			*tmp = *src;
-			tmp++;
-			j++;
+	const auto *src_ptr = reinterpret_cast<const unsigned char *>(src.data());
+	const size_t src_size = src.size();
+	ASSERT(src_size > 0);
+
+	auto *capped_src_end = src_ptr + std::min(src_size, dst_size);
+
+	// Find the first sequence in source needing replacement. For valid strings, this is the only
+	// pass that runs (no replacement needed), and the flow immediately returns after copying the
+	// maximum allowed amount of bytes.
+	auto *scan_src_ptr = utf8_first_invalid_seq(src_ptr, capped_src_end);
+	if(scan_src_ptr == capped_src_end) {
+		size_t bytes_to_copy;
+		if(src_size < dst_size) {
+			bytes_to_copy = src_size;
+		} else {
+			// The source string must be truncated (`src_size >= dst_size`). Find the boundary of
+			// the last valid UTF-8 sequence in source (a valid UTF-8 sequence is guaranteed to
+			// exist, given `src_size > 0`).
+			auto *scan_ptr = capped_src_end - 1;
+			while(utf8_seq_len(scan_ptr, capped_src_end) < 0) {
+				scan_ptr--;
+			}
+			const auto last_valid_seq_off = capped_src_end - scan_ptr;
+			bytes_to_copy = dst_size - last_valid_seq_off;
 		}
-
-		if(*src == 0) {
-			*tmp = 0;
-			return j + 1;
-		}
-
-		src++;
+		memcpy(dst_ptr, src_ptr, bytes_to_copy);
+		dst_ptr[bytes_to_copy] = 0;
+		return;
 	}
 
-	//
-	// In case there wasn't enough space, null-terminate the destination
-	//
-	if(dstsize) {
-		dest[dstsize - 1] = 0;
-	}
+	// Copy the valid prefix (note: can be empty) in one shot.
+	size_t bytes_to_copy = scan_src_ptr - src_ptr;
+	memcpy(dst_ptr, src_ptr, bytes_to_copy);
 
-	return dstsize;
+	// Process the remainder. The assumption here is that, at the beginning of each iteration, there
+	// is an invalid sequence in source that should result into a single replacement character into
+	// destination: this requires at least 3 bytes for the replacement character. Moreover, the
+	// destination must be NUL terminated, so the destination must have at least 4 bytes (i.e.:
+	// `dst_left_bytes >= 4`).
+	auto *scan_dst_ptr = dst_ptr + bytes_to_copy;
+	size_t dst_left_bytes = dst_size - bytes_to_copy;
+	while(scan_src_ptr < capped_src_end && dst_left_bytes >= 4) {
+		// Replace the invalid sequence at the beginning of each iteration with the replacement
+		// character.
+		const int seq_len = utf8_seq_len(scan_src_ptr, capped_src_end);
+		ASSERT(seq_len < 0);
+		memcpy(scan_dst_ptr, "\xEF\xBF\xBD", 3);
+		scan_dst_ptr += 3;
+		dst_left_bytes -= 3;
+		scan_src_ptr += -seq_len;
+
+		// Find the next valid block of UTF-8 characters to copy. Its size must not be greater than
+		// `min(src_left_bytes, dst_left_bytes - 1)`. (-1 accounts for the NUL terminator).
+		const size_t src_left_bytes = capped_src_end - scan_src_ptr;
+		const auto *end_ptr = scan_src_ptr + std::min(dst_left_bytes - 1, src_left_bytes);
+		const auto *next_invalid = utf8_first_invalid_seq(scan_src_ptr, end_ptr);
+		bytes_to_copy = next_invalid - scan_src_ptr;
+		if(bytes_to_copy > 0) {
+			memcpy(scan_dst_ptr, scan_src_ptr, bytes_to_copy);
+			scan_dst_ptr += bytes_to_copy;
+			dst_left_bytes -= bytes_to_copy;
+		}
+		scan_src_ptr = next_invalid;
+
+		// `utf8_first_invalid_seq` could have stopped before the end of source due to the cap to
+		// `dst_left_bytes - 1`. In this case, the following UTF-8 sequence could still be valid,
+		// but there is no space left in the destination, so break.
+		if(scan_src_ptr < capped_src_end && utf8_seq_len(scan_src_ptr, capped_src_end) > 0) {
+			break;
+		}
+	}
+	*scan_dst_ptr = 0;
 }
 
 int sinsp_evt::render_fd_json(Json::Value *ret,
@@ -882,7 +932,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			m_paramstr_storage.resize(path.length() + 1);
 		}
 
-		strcpy_sanitized(&m_paramstr_storage[0], path.data(), path.length() + 1);
+		strcpy_sanitized(m_paramstr_storage, path);
 
 		sinsp_threadinfo *tinfo = get_thread_info();
 
@@ -898,10 +948,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 					m_resolved_paramstr_storage[0] = 0;
 				} else {
 					std::string concatenated_path = sinsp_utils::concatenate_paths(cwd, path);
-					strcpy_sanitized(&m_resolved_paramstr_storage[0],
-					                 concatenated_path.data(),
-					                 std::min(concatenated_path.size() + 1,
-					                          m_resolved_paramstr_storage.size()));
+					strcpy_sanitized(m_resolved_paramstr_storage, concatenated_path);
 				}
 			}
 		} else {
@@ -1341,9 +1388,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				user_info = m_inspector->m_usergroup_manager->get_user(container_id, val);
 			}
 			if(user_info != NULL && user_info->name[0] != 0) {
-				strcpy_sanitized(&m_resolved_paramstr_storage[0],
-				                 user_info->name,
-				                 (uint32_t)m_resolved_paramstr_storage.size());
+				strcpy_sanitized(m_resolved_paramstr_storage, user_info->name);
 			} else {
 				snprintf(&m_resolved_paramstr_storage[0],
 				         m_resolved_paramstr_storage.size(),
@@ -1371,9 +1416,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 				group_info = m_inspector->m_usergroup_manager->get_group(container_id, val);
 			}
 			if(group_info != NULL && group_info->name[0] != 0) {
-				strcpy_sanitized(&m_resolved_paramstr_storage[0],
-				                 group_info->name,
-				                 (uint32_t)m_resolved_paramstr_storage.size());
+				strcpy_sanitized(m_resolved_paramstr_storage, group_info->name);
 			} else {
 				snprintf(&m_resolved_paramstr_storage[0],
 				         m_resolved_paramstr_storage.size(),
