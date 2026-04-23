@@ -21,6 +21,7 @@ limitations under the License.
 #include <libsinsp/utils.h>
 #include <libsinsp/logger.h>
 #include <libsinsp/sinsp.h>
+#include <libsinsp/fgetpwent_r.h>
 #include <libscap/strl.h>
 #include <sys/types.h>
 
@@ -32,26 +33,23 @@ limitations under the License.
 #include <grp.h>
 #endif
 
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
-
-// See fgetpwent() / fgetgrent() feature test macros:
-// https://man7.org/linux/man-pages/man3/fgetpwent.3.html
-// https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined(MUSL_OPTIMIZED) || defined(_DEFAULT_SOURCE) || defined(_SVID_SOURCE)
-#define HAVE_FGET__ENT
-#endif
-
-#endif
-
 #ifdef HAVE_PWD_H
-static struct passwd *__getpwuid(uint32_t uid, const std::string &host_root) {
+static struct passwd *__getpwuid(uint32_t uid,
+                                 const std::string &host_root,
+                                 struct passwd *pwd,
+                                 char *buf,
+                                 size_t buflen) {
 	if(uid == (uint32_t)-1) {
 		return nullptr;
 	}
 	if(host_root.empty()) {
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
-		return getpwuid(uid);
+		struct passwd *result = nullptr;
+		if(getpwuid_r(uid, pwd, buf, buflen, &result) == 0) {
+			return result;
+		}
+		return nullptr;
 	}
 
 	// If we have a host root and we can use fgetpwent,
@@ -60,31 +58,43 @@ static struct passwd *__getpwuid(uint32_t uid, const std::string &host_root) {
 	static std::string filename(host_root + "/etc/passwd");
 
 	auto f = fopen(filename.c_str(), "r");
-	if(f) {
-		struct passwd *p = nullptr;
-		while((p = fgetpwent(f))) {
-			if(uid == p->pw_uid) {
-				break;
-			}
-		}
-
-		fclose(f);
-		return p;
+	if(!f) {
+		return nullptr;
 	}
+
+	struct passwd *p = nullptr;
+	while(!feof(f)) {
+		if(fgetpwent_r(f, pwd, buf, buflen, &p) != 0 || !p) {
+			continue;  // skip malformed lines
+		}
+		if(uid == p->pw_uid) {
+			fclose(f);
+			return p;
+		}
+	}
+	fclose(f);
 #endif
 	return nullptr;
 }
 #endif
 
 #ifdef HAVE_GRP_H
-static struct group *__getgrgid(uint32_t gid, const std::string &host_root) {
+static struct group *__getgrgid(uint32_t gid,
+                                const std::string &host_root,
+                                struct group *grp,
+                                char *buf,
+                                size_t buflen) {
 	if(gid == (uint32_t)-1) {
 		return nullptr;
 	}
 	if(host_root.empty()) {
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
-		return getgrgid(gid);
+		struct group *result = nullptr;
+		if(getgrgid_r(gid, grp, buf, buflen, &result) == 0) {
+			return result;
+		}
+		return nullptr;
 	}
 
 	// If we have a host root and we can use fgetgrent,
@@ -93,17 +103,21 @@ static struct group *__getgrgid(uint32_t gid, const std::string &host_root) {
 	static std::string filename(host_root + "/etc/group");
 
 	auto f = fopen(filename.c_str(), "r");
-	if(f) {
-		struct group *p = nullptr;
-		while((p = fgetgrent(f))) {
-			if(gid == p->gr_gid) {
-				break;
-			}
-		}
-
-		fclose(f);
-		return p;
+	if(!f) {
+		return nullptr;
 	}
+
+	struct group *p = nullptr;
+	while(!feof(f)) {
+		if(fgetgrent_r(f, grp, buf, buflen, &p) != 0 || !p) {
+			continue;  // skip malformed lines
+		}
+		if(gid == p->gr_gid) {
+			fclose(f);
+			return p;
+		}
+	}
+	fclose(f);
 #endif
 	return NULL;
 }
@@ -288,7 +302,9 @@ scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid,
 	} else {
 #ifdef HAVE_PWD_H
 		// On Host, try to load info from db
-		auto *p = __getpwuid(uid, m_host_root);
+		struct passwd pwd_entry;
+		char pwd_buf[4096];
+		auto *p = __getpwuid(uid, m_host_root, &pwd_entry, pwd_buf, sizeof(pwd_buf));
 		if(p) {
 			retval = userinfo_map_insert(m_userlist[""],
 			                             p->pw_uid,
@@ -326,7 +342,13 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 	auto pwd_file = fopen(path.c_str(), "r");
 	if(pwd_file) {
 		auto &userlist = m_userlist[container_id];
-		while(auto p = fgetpwent(pwd_file)) {
+		struct passwd pwd_entry;
+		char pwd_buf[4096];
+		struct passwd *p = nullptr;
+		while(!feof(pwd_file)) {
+			if(fgetpwent_r(pwd_file, &pwd_entry, pwd_buf, sizeof(pwd_buf), &p) != 0 || !p) {
+				continue;  // skip malformed lines
+			}
 			// Here we cache all container users
 			auto *usr = userinfo_map_insert(userlist,
 			                                p->pw_uid,
@@ -415,7 +437,9 @@ scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid,
 	} else {
 #ifdef HAVE_GRP_H
 		// On Host, try to load info from db
-		auto *g = __getgrgid(gid, m_host_root);
+		struct group grp_entry;
+		char grp_buf[4096];
+		auto *g = __getgrgid(gid, m_host_root, &grp_entry, grp_buf, sizeof(grp_buf));
 		if(g) {
 			gr = groupinfo_map_insert(m_grouplist[""], g->gr_gid, g->gr_name);
 		}
@@ -448,7 +472,13 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 	auto group_file = fopen(path.c_str(), "r");
 	if(group_file) {
 		auto &grouplist = m_grouplist[container_id];
-		while(auto g = fgetgrent(group_file)) {
+		struct group grp_entry;
+		char grp_buf[4096];
+		struct group *g = nullptr;
+		while(!feof(group_file)) {
+			if(fgetgrent_r(group_file, &grp_entry, grp_buf, sizeof(grp_buf), &g) != 0 || !g) {
+				continue;  // skip malformed lines
+			}
 			// Here we cache all container groups
 			auto *gr = groupinfo_map_insert(grouplist, g->gr_gid, g->gr_name);
 

@@ -95,6 +95,12 @@ add_library(
 	state/table.cpp
 )
 
+# On non-glibc platforms (e.g. musl), fgetpwent_r/fgetgrent_r are not available. Provide
+# from-scratch implementations.
+if(MUSL_OPTIMIZED_BUILD)
+	target_sources(sinsp PRIVATE fgetpwent_r.cpp)
+endif()
+
 if(NOT WIN32
    AND NOT APPLE
    AND NOT EMSCRIPTEN
