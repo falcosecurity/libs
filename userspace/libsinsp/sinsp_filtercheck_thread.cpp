@@ -1261,9 +1261,6 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 	}
 	case TYPE_CMDLINE: {
 		sinsp_threadinfo::populate_cmdline(m_tstr, tinfo);
-		if(sanitize_strings) {
-			sanitize_string(m_tstr);
-		}
 		return extract_single_string(m_tstr, len, sanitize_strings);
 	}
 	case TYPE_EXELINE: {
