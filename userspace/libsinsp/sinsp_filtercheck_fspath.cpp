@@ -25,12 +25,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_fspath_fields[] = {
         {PT_CHARBUF,
          EPF_NONE,
@@ -411,7 +405,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		}
 	}
 
-	RETURN_EXTRACT_STRING(m_tstr);
+	return extract_single_string(m_tstr, len);
 }
 
 bool sinsp_filter_check_fspath::extract_fspath(sinsp_evt* evt,

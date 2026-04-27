@@ -28,12 +28,6 @@ using namespace std;
 		return (uint8_t*)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_user_fields[] = {
         {PT_UINT32, EPF_NONE, PF_ID, "user.uid", "User ID", "user ID."},
         {PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "User Name", "user name."},
@@ -100,7 +94,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	   (evt->get_type() == PPME_CONTAINER_JSON_2_E || is_container_asyncevent)) {
 		m_strval = m_inspector->m_plugin_tables.get_container_user(*tinfo);
 		if(!m_strval.empty()) {
-			RETURN_EXTRACT_STRING(m_strval);
+			return extract_single_string(m_strval, len);
 		}
 	}
 
@@ -119,7 +113,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		} else {
 			m_strval = "<NA>";
 		}
-		RETURN_EXTRACT_STRING(m_strval);
+		return extract_single_string(m_strval, len);
 	case TYPE_HOMEDIR:
 		if(user) {
 			m_strval = user->homedir;
@@ -128,14 +122,14 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		} else {
 			m_strval = "<NA>";
 		}
-		RETURN_EXTRACT_STRING(m_strval);
+		return extract_single_string(m_strval, len);
 	case TYPE_SHELL:
 		if(user) {
 			m_strval = user->shell;
 		} else {
 			m_strval = "<NA>";
 		}
-		RETURN_EXTRACT_STRING(m_strval);
+		return extract_single_string(m_strval, len);
 	case TYPE_LOGINUID:
 		m_val.s64 = (int64_t)-1;
 		if(tinfo->m_loginuid < UINT32_MAX) {
@@ -150,7 +144,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		} else {
 			m_strval = "<NA>";
 		}
-		RETURN_EXTRACT_STRING(m_strval);
+		return extract_single_string(m_strval, len);
 	default:
 		ASSERT(false);
 		break;

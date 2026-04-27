@@ -28,12 +28,6 @@ limitations under the License.
 		return (uint8_t*)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_mock_fields[] = {
         {PT_INT64, EPF_NONE, PF_ID, "test.int64", "", ""},
         {PT_CHARBUF, EPF_NONE, PF_NA, "test.charbuf", "", ""},
@@ -103,16 +97,16 @@ protected:
 			RETURN_EXTRACT_VAR(m_u64_val);
 		case TYPE_CHARBUF:
 			m_str_val = "charbuf";
-			RETURN_EXTRACT_STRING(m_str_val);
+			return extract_single_string(m_str_val, len);
 		case TYPE_BYTEBUF:
 			m_str_val = "bytebuf";
-			RETURN_EXTRACT_STRING(m_str_val);
+			return extract_single_string(m_str_val, len);
 		case TYPE_MORE_THAN_256:
 			m_str_val = std::string(257, 'a');
-			RETURN_EXTRACT_STRING(m_str_val);
+			return extract_single_string(m_str_val, len);
 		case TYPE_BASE64:
 			m_str_val = "Y2hhcmJ1Zg==";  // base64("charbuf")
-			RETURN_EXTRACT_STRING(m_str_val);
+			return extract_single_string(m_str_val, len);
 		default:
 			throw std::runtime_error("unknown field id: " + std::to_string(m_field_id));
 			break;
