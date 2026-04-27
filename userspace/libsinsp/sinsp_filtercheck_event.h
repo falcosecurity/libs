@@ -108,7 +108,7 @@ private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val, const ppm_param_info**);
 	int32_t extract_type(std::string_view fldname, std::string_view val, const ppm_param_info**);
 	uint8_t* extract_error_count(sinsp_evt* evt, uint32_t* len);
-	uint8_t* extract_abspath(sinsp_evt* evt, uint32_t* len);
+	uint8_t* extract_abspath(sinsp_evt* evt, uint32_t* len, bool sanitize_strings);
 	inline uint8_t* extract_buflen(sinsp_evt* evt, uint32_t* len);
 	uint8_t* extract_argraw(sinsp_evt* evt, uint32_t* len, const char* argname);
 
