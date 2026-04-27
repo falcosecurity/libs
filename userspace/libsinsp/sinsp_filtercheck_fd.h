@@ -89,7 +89,7 @@ protected:
 
 private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val);
-	bool extract_fdname_from_event(sinsp_evt* evt, bool sanitize_strings, bool fd_nameraw = false);
+	bool extract_fdname_from_event(sinsp_evt* evt, bool fd_nameraw = false);
 	bool extract_fd(sinsp_evt* evt);
 
 	bool compare_ip(sinsp_evt* evt);
