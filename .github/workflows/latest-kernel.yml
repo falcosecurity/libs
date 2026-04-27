@@ -60,7 +60,7 @@ jobs:
           name: driverkit_config.yaml
 
       - name: Download latest driverkit artifact
-        uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # v1.12
+        uses: robinraju/release-downloader@28fc21f50d76778e7023361aa1f863e717d3d56f # v1.13
         with:
           fileName: driverkit_*_linux_amd64.tar.gz
           latest: true
@@ -88,7 +88,7 @@ jobs:
           name: driverkit_config.yaml
 
       - name: Download latest driverkit artifact
-        uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 # v1.12
+        uses: robinraju/release-downloader@28fc21f50d76778e7023361aa1f863e717d3d56f # v1.13
         with:
           fileName:  driverkit_*_linux_arm64.tar.gz
           latest: true
