@@ -763,9 +763,11 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_getopt) {
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("arg1", "-n", "arg2"), "n") intersects ("n"))"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-", "-n"), "n") intersects ("n"))"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-"), "n") intersects ("n"))"));
-	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), "t:") intersects ("?"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), "t:") intersects (""))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t"), "t:") intersects ("?"))"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t"), "t:") intersects ("t"))"));
-	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), ":t:") intersects (":"))"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), ":t:") intersects (""))"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t"), ":t:") intersects (":"))"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "--", "--"), "n") intersects ("n"))"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("--", "-n"), "n") intersects ("n"))"));
 	EXPECT_TRUE(
@@ -842,6 +844,15 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_getopt) {
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[t] = n)"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[n] = n)"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", "v1", "-t", "v2"), "t:")[t] = v2)"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t?"), "t:")[t] = ?)"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t:"), ":t:")[t] = :)"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t"), "t:")[t] != "")"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t"), "t:")[t] = "")"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t"), "t:")[t] = ?)"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t"), ":t:")[t] = :)"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n"), "nt:")[t] != "")"));
+	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-t", "v1", "-t"), "t:")[t] = v1)"));
+	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", "v1", "-t"), "t:")[t] = "")"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("--exec"), "e:") intersects ("?"))"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("--exec"), "e:") intersects ("e"))"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("--exec", "-n"), "n") intersects ("n"))"));
