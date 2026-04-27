@@ -494,8 +494,7 @@ public:
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();
 		m_main_fdtable =
-		        !fdtable ? nullptr
-		                 : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+		        !fdtable ? nullptr : static_cast<const libsinsp::state::base_table*>(fdtable);
 	}
 
 	void set_exepath(std::string&& exepath);
@@ -545,10 +544,7 @@ private:
 	bool m_parent_loop_detected;
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
-	libsinsp::state::stl_container_table_adapter<
-	        decltype(m_cgroups),
-	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>
-	        m_cgroups_table_adapter;
+	libsinsp::state::stl_container_table_adapter<decltype(m_cgroups)> m_cgroups_table_adapter;
 };
 
 /*@}*/

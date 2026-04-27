@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libsinsp/state/borrowed_state_data.h>
 #include <libsinsp/state/type_info.h>
 #include <memory>
 
@@ -25,6 +26,9 @@ namespace libsinsp::state {
 
 class accessor {
 public:
+	using reader_fn = borrowed_state_data (*)(const void*, size_t);
+	using writer_fn = void (*)(void*, size_t, const borrowed_state_data&);
+
 	template<typename T>
 	class typed_ref {
 	public:
@@ -80,7 +84,21 @@ public:
 		std::unique_ptr<const accessor> m_ptr;
 	};
 
-	explicit accessor(ss_plugin_state_type type_id): m_type_id(type_id) {}
+	explicit accessor(const std::string& name,
+	                  ss_plugin_state_type type_id,
+	                  reader_fn reader,
+	                  writer_fn writer,
+	                  size_t index,
+	                  bool readonly):
+	        m_name(std::make_shared<const std::string>(name)),
+	        m_type_id(type_id),
+	        m_reader(reader),
+	        m_writer(writer),
+	        m_index(index),
+	        m_readonly(readonly) {}
+
+	accessor(const accessor& other) = default;
+
 	virtual ~accessor() = default;
 
 	[[nodiscard]] ss_plugin_state_type type_id() const { return m_type_id; }
@@ -101,8 +119,41 @@ public:
 		return typed_ref<T>(*this);
 	}
 
+	borrowed_state_data read(const void* obj) const {
+		if(m_reader == nullptr) {
+			throw sinsp_exception("accessor has no reader function");
+		}
+		return m_reader(obj, m_index);
+	}
+
+	void write(void* obj, const borrowed_state_data& in) const {
+		if(m_writer == nullptr) {
+			throw sinsp_exception("accessor has no writer function");
+		}
+		m_writer(obj, m_index, in);
+	}
+
+	inline const std::string& name() const { return *m_name; }
+
+	inline bool readonly() const { return m_readonly; }
+
+	size_t index() const { return m_index; }
+
+	ptr clone() const { return ptr(std::make_unique<accessor>(*this)); }
+
+	template<typename T>
+	typed_ptr<T> into() const {
+		assert_type<T>();
+		return typed_ptr<T>(std::make_unique<accessor>(*this));
+	}
+
 protected:
+	std::shared_ptr<const std::string> m_name;
 	ss_plugin_state_type m_type_id;
+	reader_fn m_reader;
+	writer_fn m_writer;
+	size_t m_index;
+	bool m_readonly;
 };
 
 /**
@@ -114,11 +165,10 @@ public:
 
 	template<typename T>
 	T read_field(const accessor::typed_ref<T>& a) const {
-		auto out = static_cast<const T*>(this->raw_read_field(a));
-		if(out == nullptr) {
-			return {};
-		}
-		return *out;
+		T val{};
+		const auto& acc = static_cast<const accessor&>(a);
+		acc.read(this).borrow_to<libsinsp::state::type_id_of<T>(), T>(val);
+		return val;
 	}
 
 	template<typename T, typename Val = T>
@@ -138,31 +188,27 @@ public:
 
 	template<typename T, typename Val = T>
 	void write_field(const accessor::typed_ref<T>& a, const Val& in) {
-		// TODO: we could use a direct assignment of const char* to strings
-		//       but we'd have to handle it deep down in each individual
-		//       implementation of raw_write_field
-		T in_val = in;
-		this->raw_write_field(a, &in_val);
+		borrowed_state_data in_val =
+		        borrowed_state_data::from<libsinsp::state::type_id_of<T>(), Val>(in);
+		const auto& acc = static_cast<const accessor&>(a);
+		acc.write(this, in_val);
 	}
 
 	template<typename T, typename Val = T>
 	void write_field(const accessor::typed_ptr<T>& a, const Val& in) {
 		write_field(a.as_ref(), in);
 	}
-
-protected:
-	[[nodiscard]] virtual const void* raw_read_field(const accessor& a) const = 0;
-	virtual void raw_write_field(const accessor& a, const void* in) = 0;
 };
 
 template<>
 inline void table_entry::read_field(const accessor::typed_ref<std::string>& a,
                                     const char*& out) const {
-	auto out_ptr = static_cast<const std::string*>(this->raw_read_field(a));
-	if(out_ptr) {
-		out = out_ptr->c_str();
-	} else {
+	const auto& acc = static_cast<const accessor&>(a);
+	const auto val = acc.read(this);
+	if(val.data().str == nullptr) {
 		out = "";
+	} else {
+		out = val.data().str;
 	}
 }
 

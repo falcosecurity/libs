@@ -53,8 +53,7 @@ struct table_accessor {
 
 	void unset();
 	bool is_set() const;
-	template<typename T>
-	void set(sinsp_table_owner* p, libsinsp::state::table<T>* t);
+	void set(sinsp_table_owner* p, libsinsp::state::base_table* t);
 
 	// static functions, will be used to populate vtable functions where
 	// ss_plugin_table_t* will point to a `table_accessor` instance
@@ -185,28 +184,7 @@ public:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
-	inline built_in_table(const std::string& name):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name) {}
-
-	/**
-	 * @brief Returns a pointer to the area of memory in which this table
-	 * object is allocated. Here for convenience as required in other code parts.
-	 */
-	inline const base_table* const& table_ptr() const { return m_this_ptr; }
-
-	/**
-	 * @brief Returns the offset of m_this_ptr. Here for convenience as required in other code
-	 * parts.
-	 */
-#if defined(__clang__)
-	__attribute__((no_sanitize("undefined")))
-#endif
-	static size_t
-	table_ptr_offset() {
-		return OFFSETOF_STATIC_FIELD(built_in_table<KeyType>, m_this_ptr);
-	}
+	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
 
 	const char* name() const override { return m_name.c_str(); }
 
@@ -347,7 +325,6 @@ public:
 	                               const ss_plugin_state_data* in) override;
 
 private:
-	const base_table* m_this_ptr;
 	std::string m_name;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, const accessor*> m_field_accessors;
@@ -356,18 +333,26 @@ private:
 template<typename KeyType>
 class extensible_table : public built_in_table<KeyType> {
 public:
+	template<typename T>
+	struct type_tag {
+		using type = T;
+	};
+
+	template<typename T>
 	inline extensible_table(
+	        type_tag<T>,
 	        const std::string& name,
 	        const static_field_infos* static_fields,
 	        const std::shared_ptr<libsinsp::state::dynamic_field_infos>& dynamic_fields = nullptr):
 	        built_in_table<KeyType>(name),
 	        m_static_fields(static_fields),
 	        m_dynamic_fields(dynamic_fields != nullptr ? dynamic_fields
-	                                                   : std::make_shared<dynamic_field_infos>()) {}
+	                                                   : dynamic_field_infos::make<T>()) {}
 
-	inline extensible_table(const std::string& name):
+	template<typename T>
+	inline extensible_table(type_tag<T>, const std::string& name):
 	        built_in_table<KeyType>(name),
-	        m_dynamic_fields(std::make_shared<dynamic_field_infos>()) {}
+	        m_dynamic_fields(dynamic_field_infos::make<T>()) {}
 
 	/**
 	 * @brief Returns the fields metadata list for the static fields defined
