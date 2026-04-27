@@ -30,12 +30,6 @@ using namespace std;
 		return (uint8_t*)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
-	} while(0)
-
 #define RETURN_EXTRACT_CSTR(x)           \
 	do {                                 \
 		if((x)) {                        \
@@ -214,19 +208,19 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		} else {
 			sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
 		}
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_TIME_S:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, false);
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_TIME_ISO8601:
 		sinsp_utils::ts_to_iso_8601(evt->get_ts(), &m_strstorage);
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_DATETIME:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_DATETIME_S:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, false);
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_RAWTS:
 		m_val.u64 = evt->get_ts();
 		RETURN_EXTRACT_VAR(m_val.u64);
@@ -261,7 +255,7 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 			m_strstorage = plugin->event_to_string(evt);
 		}
 
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	}
 	case TYPE_SOURCE:
 		if(evt->get_source_idx() == sinsp_no_event_source_idx ||

@@ -252,6 +252,13 @@ protected:
 
 	inline void check_rhs_field_type_consistency() const;
 
+	// Helper that must be used while extracting a single string value. It returns a pointer to the
+	// first character of `str` and sets `*len` to the string length.
+	static uint8_t* extract_single_string(std::string& str, uint32_t* len) {
+		*len = str.size();
+		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str.c_str()));
+	}
+
 private:
 	//
 	// Instead of populating the filter check values with const values extracted at

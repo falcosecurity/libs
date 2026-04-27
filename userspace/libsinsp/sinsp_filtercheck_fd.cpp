@@ -30,12 +30,6 @@ using namespace std;
 		return (uint8_t *)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)       \
-	do {                               \
-		*len = (x).size();             \
-		return (uint8_t *)(x).c_str(); \
-	} while(0)
-
 #define RETURN_EXTRACT_CSTR(x)            \
 	do {                                  \
 		if((x)) {                         \
@@ -540,7 +534,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(sanitize_strings) {
 			sanitize_string(m_tstr);
 		}
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 		break;
 	case TYPE_FDTYPES:
 	case TYPE_FDTYPE:
@@ -590,7 +584,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = container_id + ':' + m_tstr;
 		}
 
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_FILENAME: {
 		if(m_fdinfo == NULL) {
@@ -615,7 +609,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = "/";
 		}
 
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_FDTYPECHAR:
 		*len = 1;
@@ -667,7 +661,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(!m_tstr.empty()) {
-			RETURN_EXTRACT_STRING(m_tstr);
+			return extract_single_string(m_tstr, len);
 		}
 	} break;
 	case TYPE_SNET:
@@ -724,7 +718,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(!m_tstr.empty()) {
-			RETURN_EXTRACT_STRING(m_tstr);
+			return extract_single_string(m_tstr, len);
 		}
 	} break;
 	case TYPE_LNET:
@@ -848,7 +842,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			}
 
 			if(!m_tstr.empty()) {
-				RETURN_EXTRACT_STRING(m_tstr);
+				return extract_single_string(m_tstr, len);
 			}
 		}
 	}
@@ -893,7 +887,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			                        m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_SERVERPORT: {
 		if(m_fdinfo == NULL) {
@@ -960,7 +954,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			                        m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_LPORT:
 	case TYPE_RPORT: {
@@ -1086,7 +1080,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		m_tstr = port_to_string(nport,
 		                        this->m_fdinfo->get_l4proto(),
 		                        m_inspector->is_hostname_and_port_resolution_enabled());
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 
 	case TYPE_L4PROTO: {
@@ -1114,7 +1108,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			break;
 		}
 
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_IS_SERVER: {
 		if(m_fdinfo == NULL) {
@@ -1147,10 +1141,10 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
 		   m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
 			m_tstr = "ip";
-			RETURN_EXTRACT_STRING(m_tstr);
+			return extract_single_string(m_tstr, len);
 		} else if(m_fdinfo->m_type == SCAP_FD_UNIX_SOCK) {
 			m_tstr = "unix";
-			RETURN_EXTRACT_STRING(m_tstr);
+			return extract_single_string(m_tstr, len);
 		} else {
 			return NULL;
 		}
@@ -1161,7 +1155,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_IS_CONNECTED: {
 		if(m_fdinfo == NULL) {
@@ -1225,7 +1219,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = m_fdinfo->m_name_raw;
 		}
 		remove_duplicate_path_separators(m_tstr);
-		RETURN_EXTRACT_STRING(m_tstr);
+		return extract_single_string(m_tstr, len);
 	} break;
 	case TYPE_FDUPPER: {
 		if(m_fdinfo == NULL) {

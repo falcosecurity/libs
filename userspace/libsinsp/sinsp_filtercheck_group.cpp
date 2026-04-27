@@ -28,12 +28,6 @@ using namespace std;
 		return (uint8_t*)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_group_fields[] = {
         {PT_UINT32, EPF_NONE, PF_ID, "group.gid", "Group ID", "group ID."},
         {PT_CHARBUF, EPF_NONE, PF_NA, "group.name", "Group Name", "group name."},
@@ -79,7 +73,7 @@ uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt,
 		} else {
 			m_name = "<NA>";
 		}
-		RETURN_EXTRACT_STRING(m_name);
+		return extract_single_string(m_name, len);
 	}
 	default:
 		ASSERT(false);

@@ -37,12 +37,6 @@ extern sinsp_evttables g_infotables;
 		return (uint8_t*)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_STRING(x)      \
-	do {                              \
-		*len = (x).size();            \
-		return (uint8_t*)(x).c_str(); \
-	} while(0)
-
 #define RETURN_EXTRACT_CSTR(x)           \
 	do {                                 \
 		if((x)) {                        \
@@ -713,7 +707,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 			//
 			m_strstorage = sinsp_utils::concatenate_paths("", evt->get_param(3)->as<std::string>());
 
-			RETURN_EXTRACT_STRING(m_strstorage);
+			return extract_single_string(m_strstorage, len);
 		}
 	} else if(etype == PPME_SYSCALL_LINKAT_2_X) {
 		if(m_argid == 0 || m_argid == 1) {
@@ -796,7 +790,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 
 	m_strstorage = sinsp_utils::concatenate_paths(sdir, path);
 
-	RETURN_EXTRACT_STRING(m_strstorage);
+	return extract_single_string(m_strstorage, len);
 }
 
 inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt* evt, uint32_t* len) {
@@ -870,7 +864,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		// Hardcoded value to "0ns" for now to avoid breaking changes.
 		// TODO(irozzo): get rid of this once the deprecated fields are removed.
 		m_strstorage = "0ns";
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	}
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
@@ -900,13 +894,13 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		switch(m_inspector->get_time_output_mode()) {
 		case 'h':
 			sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
-			RETURN_EXTRACT_STRING(m_strstorage);
+			return extract_single_string(m_strstorage, len);
 
 		case 'a':
 			m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
 			m_strstorage += ".";
 			m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
-			RETURN_EXTRACT_STRING(m_strstorage);
+			return extract_single_string(m_strstorage, len);
 
 		case 'r':
 			m_strstorage +=
@@ -917,11 +911,11 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			         "%09llu",
 			         (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
 			m_strstorage += string(timebuffer);
-			RETURN_EXTRACT_STRING(m_strstorage);
+			return extract_single_string(m_strstorage, len);
 
 		case 'd': {
 			m_strstorage = "0.000000000";
-			RETURN_EXTRACT_STRING(m_strstorage);
+			return extract_single_string(m_strstorage, len);
 		}
 
 		case 'D':
@@ -942,7 +936,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			m_tsdelta = (tts - m_val.u64) % ONE_SECOND_IN_NS;
 
 			m_val.u64 = tts;
-			RETURN_EXTRACT_STRING(m_strstorage);
+			return extract_single_string(m_strstorage, len);
 		}
 	}
 	case TYPE_DIR:
@@ -1122,7 +1116,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			break;
 		}
 
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_CPU:
 		m_val.u16 = evt->get_cpuid();
 		RETURN_EXTRACT_VAR(m_val.u16);
@@ -1191,7 +1185,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		if(!m_strstorage.empty()) {
 			m_strstorage.pop_back();
 		}
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	} break;
 	case TYPE_BUFFER: {
 		if(m_is_compare) {
@@ -1235,7 +1229,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		//
 		// m_strstorage = sinsp_utils::errno_to_str((int32_t)res);
 		m_strstorage = evt->get_param_value_str(0, true);
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	} break;
 	case TYPE_ISIO: {
 		ppm_event_flags eflags = evt->get_info_flags();
@@ -1277,7 +1271,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			return NULL;
 		}
 
-		RETURN_EXTRACT_STRING(m_strstorage);
+		return extract_single_string(m_strstorage, len);
 	}
 	case TYPE_ISWAIT: {
 		ppm_event_flags eflags = evt->get_info_flags();
@@ -1556,7 +1550,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 						vector<string> subelements = sinsp_split(e, ':');
 						ASSERT(subelements.size() == 2);
 						m_strstorage = trim(subelements[1]);
-						RETURN_EXTRACT_STRING(m_strstorage);
+						return extract_single_string(m_strstorage, len);
 					}
 				} else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_ID) {
 					if(e.substr(0, sizeof("ID") - 1) == "ID") {
@@ -1566,14 +1560,14 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 						if(m_strstorage.length() > 12) {
 							m_strstorage = m_strstorage.substr(0, 12);
 						}
-						RETURN_EXTRACT_STRING(m_strstorage);
+						return extract_single_string(m_strstorage, len);
 					}
 				} else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_NAME) {
 					if(e.substr(0, sizeof("name") - 1) == "name") {
 						vector<string> subelements = sinsp_split(e, ':');
 						ASSERT(subelements.size() == 2);
 						m_strstorage = trim(subelements[1]);
-						RETURN_EXTRACT_STRING(m_strstorage);
+						return extract_single_string(m_strstorage, len);
 					}
 				} else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_IMAGE) {
 					if(e.substr(0, sizeof("Image") - 1) == "Image") {
@@ -1587,7 +1581,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 							m_strstorage = e.substr(e.find(":") + 1);
 						}
 						m_strstorage = trim(m_strstorage);
-						RETURN_EXTRACT_STRING(m_strstorage);
+						return extract_single_string(m_strstorage, len);
 					}
 				}
 			}
