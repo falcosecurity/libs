@@ -508,14 +508,12 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 			// token (e.g. "-tvalue") or the next argv entry (e.g. "-t value").
 			auto option_value = get_option_argument(arg_idx, i, arg, values);
 			if(!option_value.has_value()) {
-				// Missing arguments surface as '?' by default, or ':' when the
-				// optstring starts with ':'.
 				if(selector_match) {
-					emit_option_result(results,
-					                   selected_result,
-					                   has_selector,
-					                   optinfo->missing_arg_returns_colon ? ":" : "?",
-					                   std::nullopt);
+					// Missing arguments are represented as an empty value. This
+					// keeps selector mode useful for scalar comparisons like
+					// getopt(...)[t] != "" while preserving real attached values
+					// such as -t? and -t: as non-empty strings.
+					emit_option_result(results, selected_result, has_selector, "", std::nullopt);
 				}
 				break;
 			}
@@ -535,8 +533,13 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 	}
 
 	// Selector mode behaves like a keyed lookup: only the last matching value
-	// is observable, so replace the full result list with that single entry.
-	if(has_selector && selected_result.has_value()) {
+	// is observable. If the selected option was absent, extraction fails so
+	// scalar comparisons do not evaluate against an empty result vector.
+	if(has_selector && !selected_result.has_value()) {
+		values.clear();
+		return false;
+	}
+	if(has_selector) {
 		results.clear();
 		results.push_back(*selected_result);
 	}
