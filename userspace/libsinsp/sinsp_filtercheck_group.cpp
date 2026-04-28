@@ -67,7 +67,7 @@ uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt,
 		} else {
 			m_name = "<NA>";
 		}
-		return extract_single_string(m_name, len, sanitize_strings);
+		return extract_single_string(m_name, len, sanitize_strings, m_sanitized_str_storage);
 	}
 	default:
 		ASSERT(false);
