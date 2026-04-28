@@ -248,7 +248,7 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		   evt->get_source_name() == sinsp_no_event_source_name) {
 			return NULL;
 		}
-		return extract_single_cstring(evt->get_source_name(), len);
+		return extract_single_cstring(evt->get_source_name(), len, sanitize_strings, m_strstorage);
 	case TYPE_ISASYNC:
 		if(libsinsp::events::is_metaevent((ppm_event_code)evt->get_type())) {
 			m_val.u32 = 1;
@@ -261,11 +261,11 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 			return NULL;
 		}
 		if(evt->get_type() != PPME_ASYNCEVENT_E) {
-			return extract_single_cstring(evt->get_name(), len);
+			return extract_single_cstring(evt->get_name(), len, sanitize_strings, m_strstorage);
 		}
 		const auto name_param = evt->get_param(1);
 		const auto [data, _] = name_param->data_and_len_with_legacy_null_encoding();
-		return extract_single_cstring(data, len);
+		return extract_single_cstring(data, len, sanitize_strings, m_strstorage);
 	}
 
 	case TYPE_HOSTNAME:
@@ -273,7 +273,7 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		if(!minfo) {
 			return NULL;
 		}
-		return extract_single_cstring(minfo->hostname, len);
+		return extract_single_cstring(minfo->hostname, len, sanitize_strings, m_strstorage);
 	default:
 		ASSERT(false);
 		return NULL;

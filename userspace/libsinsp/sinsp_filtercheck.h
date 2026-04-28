@@ -267,12 +267,39 @@ protected:
 
 	// Helper that must be used while extracting a single C string value. It returns `str` and sets
 	// `*len` to `strlen(str)`. Returns nullptr if `str` is nullptr, leaving `*len` unset.
-	static uint8_t* extract_single_cstring(const char* str, uint32_t* len) {
+	// If `must_sanitize` is true and the string contains invalid UTF-8 sequences, the sanitized
+	// copy is written into `storage` and a pointer to it is returned instead.
+	static uint8_t* extract_single_cstring(const char* str,
+	                                       uint32_t* len,
+	                                       const bool must_sanitize,
+	                                       std::string& storage) {
 		if(str == nullptr) {
 			return nullptr;
 		}
+
 		*len = strlen(str);
-		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
+		if(!must_sanitize) {
+			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
+		}
+
+		// Check if the string needs sanitization.
+		const auto* const ptr = reinterpret_cast<const unsigned char*>(str);
+		const auto* const end_ptr = ptr + *len;
+		const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+		// String already sanitized, return it.
+		if(first_invalid_ptr == end_ptr) {
+			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
+		}
+
+		// String needs sanitization. Store the sanitized version in `storage` and returns a pointer
+		// to it.
+		const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
+		const std::string_view str_to_sanitize{str, *len};
+		storage.clear();  // Reset to empty while preserving allocated capacity.
+		storage.reserve(*len);
+		append_sanitized_string(storage, str_to_sanitize, valid_prefix_len);
+		*len = static_cast<uint32_t>(storage.size());
+		return reinterpret_cast<uint8_t*>(storage.data());
 	}
 
 	// Helper that must be used while extracting a single value. It returns a pointer to `val` and

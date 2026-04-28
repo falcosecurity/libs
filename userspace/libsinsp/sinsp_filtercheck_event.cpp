@@ -928,7 +928,10 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 	}
 	case TYPE_DIR:
-		return extract_single_cstring(PPME_IS_ENTER(evt->get_type()) ? ">" : "<", len);
+		return extract_single_cstring(PPME_IS_ENTER(evt->get_type()) ? ">" : "<",
+		                              len,
+		                              sanitize_strings,
+		                              m_strstorage);
 	case TYPE_TYPE: {
 		// TODO(ekoops): from each case, remove the following const_casts once the method signature
 		//   is updated to return a pointer to a const buffer.
@@ -963,7 +966,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 		}
 
-		return extract_single_cstring(evt_name, len);
+		return extract_single_cstring(evt_name, len, sanitize_strings, m_strstorage);
 	} break;
 	case TYPE_TYPE_IS: {
 		uint16_t etype = evt->get_scap_evt()->type;
@@ -1004,7 +1007,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			evt_name = const_cast<char*>(evt->get_name());
 		}
 
-		return extract_single_cstring(evt_name, len);
+		return extract_single_cstring(evt_name, len, sanitize_strings, m_strstorage);
 	} break;
 	case TYPE_CATEGORY:
 		sinsp_evt::category cat;
@@ -1127,9 +1130,9 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 
 		if(resolved_argstr != NULL && resolved_argstr[0] != 0) {
-			return extract_single_cstring(resolved_argstr, len);
+			return extract_single_cstring(resolved_argstr, len, sanitize_strings, m_strstorage);
 		} else {
-			return extract_single_cstring(argstr, len);
+			return extract_single_cstring(argstr, len, sanitize_strings, m_strstorage);
 		}
 	} break;
 	case TYPE_INFO: {
@@ -1140,7 +1143,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 	case TYPE_ARGS: {
 		if(evt->get_type() == PPME_GENERIC_X) {
 			// Don't print the arguments for generic events: they have only internal use.
-			return extract_single_cstring("", len);
+			return extract_single_cstring("", len, sanitize_strings, m_strstorage);
 		}
 
 		const char* resolved_argstr = NULL;
@@ -1204,7 +1207,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 		int64_t res = evt->get_syscall_return_value();
 		if(res >= 0) {
-			return extract_single_cstring("SUCCESS", len);
+			return extract_single_cstring("SUCCESS", len, sanitize_strings, m_strstorage);
 		}
 
 		// todo!: we should check if a failed syscall can return something that is not an errno.
