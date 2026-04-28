@@ -237,6 +237,7 @@ sinsp::sinsp(bool with_metrics):
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
 	m_statsd_port = -1;
+	m_kern_full_path_resolution = true;
 	m_platform = nullptr;
 
 	m_self_pid = getpid();
@@ -413,6 +414,10 @@ void sinsp::init() {
 	//
 	if(m_statsd_port != -1) {
 		set_statsd_port(m_statsd_port);
+	}
+
+	if(!m_kern_full_path_resolution) {
+		set_kern_full_path_resolution(false);
 	}
 
 	if(is_live()) {
@@ -1603,6 +1608,24 @@ void sinsp::set_dropfailed(bool dropfailed) {
 	if(is_live() && scap_set_dropfailed(m_h, dropfailed) != SCAP_SUCCESS) {
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+}
+
+void sinsp::set_kern_full_path_resolution(bool enable) {
+	if(m_h == nullptr) {
+		m_kern_full_path_resolution = enable;
+		return;
+	}
+
+	if(!is_live()) {
+		throw sinsp_exception(
+		        "set_kern_full_path_resolution called on a trace file, plugin, or test engine");
+	}
+
+	if(scap_set_kern_full_path_resolution(m_h, enable) != SCAP_SUCCESS) {
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+
+	m_kern_full_path_resolution = enable;
 }
 
 void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end) {

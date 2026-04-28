@@ -204,7 +204,7 @@ protected:
 			add_event_advance_ts(increasing_ts(),
 			                     1,
 			                     PPME_SYSCALL_OPENAT2_X,
-			                     8,
+			                     9,
 			                     evt_dirfd,
 			                     evt_dirfd,
 			                     dirfd_path,
@@ -212,7 +212,8 @@ protected:
 			                     mode,
 			                     resolve,
 			                     dev,
-			                     ino);
+			                     ino,
+			                     "");  // fullpath parameter (empty for setup event)
 		} break;
 		default:
 			break;
@@ -241,7 +242,7 @@ protected:
 			add_event_advance_ts(increasing_ts(),
 			                     1,
 			                     PPME_SYSCALL_OPENAT2_X,
-			                     8,
+			                     9,
 			                     evt_dirfd,
 			                     evt_dirfd,
 			                     dirfd_path,
@@ -249,7 +250,8 @@ protected:
 			                     mode,
 			                     resolve,
 			                     dev,
-			                     ino);
+			                     ino,
+			                     "");  // fullpath parameter (empty for setup event)
 		} break;
 		default:
 			break;
@@ -327,53 +329,57 @@ TEST_F(fspath, openat_2) {
 	test_exit_path(resolved_name,
 	               name,
 	               PPME_SYSCALL_OPENAT_2_X,
-	               7,
+	               8,
 	               fd,
 	               evt_dirfd,
 	               name,
 	               open_flags,
 	               mode,
 	               dev,
-	               ino);
+	               ino,
+	               "");  // fullpath parameter (empty to test fallback)
 	test_failed_exit(PPME_SYSCALL_OPENAT_2_X,
-	                 7,
+	                 8,
 	                 failed_res,
 	                 evt_dirfd,
 	                 name,
 	                 open_flags,
 	                 mode,
 	                 dev,
-	                 ino);
+	                 ino,
+	                 "");  // fullpath parameter
 }
 
 TEST_F(fspath, openat_2_relative) {
 	test_exit_path(resolved_rel_name,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT_2_X,
-	               7,
+	               8,
 	               fd,
 	               evt_dirfd,
 	               rel_name,
 	               open_flags,
 	               mode,
 	               dev,
-	               ino);
+	               ino,
+	               "");  // fullpath parameter (empty to test fallback)
 	test_failed_exit(PPME_SYSCALL_OPENAT_2_X,
-	                 7,
+	                 8,
 	                 failed_res,
 	                 evt_dirfd,
 	                 name,
 	                 open_flags,
 	                 mode,
 	                 dev,
-	                 ino);
+	                 ino,
+	                 "");  // fullpath parameter
 }
 
 TEST_F(fspath, openat2) {
 	test_exit_path(resolved_name,
 	               name,
 	               PPME_SYSCALL_OPENAT2_X,
-	               8,
+	               9,
 	               fd,
 	               evt_dirfd,
 	               name,
@@ -381,9 +387,10 @@ TEST_F(fspath, openat2) {
 	               mode,
 	               resolve,
 	               dev,
-	               ino);
+	               ino,
+	               "");  // fullpath parameter (empty to test fallback)
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X,
-	                 8,
+	                 9,
 	                 failed_res,
 	                 evt_dirfd,
 	                 name,
@@ -391,14 +398,15 @@ TEST_F(fspath, openat2) {
 	                 mode,
 	                 resolve,
 	                 dev,
-	                 ino);
+	                 ino,
+	                 "");  // fullpath parameter
 }
 
 TEST_F(fspath, openat2_relative_dirfd) {
 	test_exit_path(resolved_rel_name,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT2_X,
-	               8,
+	               9,
 	               fd,
 	               evt_dirfd,
 	               rel_name,
@@ -406,9 +414,10 @@ TEST_F(fspath, openat2_relative_dirfd) {
 	               mode,
 	               resolve,
 	               dev,
-	               ino);
+	               ino,
+	               "");  // fullpath parameter (empty to test fallback)
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X,
-	                 8,
+	                 9,
 	                 failed_res,
 	                 evt_dirfd,
 	                 name,
@@ -416,7 +425,8 @@ TEST_F(fspath, openat2_relative_dirfd) {
 	                 mode,
 	                 resolve,
 	                 dev,
-	                 ino);
+	                 ino,
+	                 "");  // fullpath parameter
 }
 
 TEST_F(fspath, openat2_relative_cwd) {
@@ -425,7 +435,7 @@ TEST_F(fspath, openat2_relative_cwd) {
 	test_exit_path(resolved_rel_filename2_cwd,
 	               rel_name,
 	               PPME_SYSCALL_OPENAT2_X,
-	               8,
+	               9,
 	               fd,
 	               evt_dirfd_cwd,
 	               rel_name,
@@ -433,9 +443,10 @@ TEST_F(fspath, openat2_relative_cwd) {
 	               mode,
 	               resolve,
 	               dev,
-	               ino);
+	               ino,
+	               "");  // fullpath parameter (empty to test fallback)
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X,
-	                 8,
+	                 9,
 	                 failed_res,
 	                 evt_dirfd_cwd,
 	                 name,
@@ -443,7 +454,8 @@ TEST_F(fspath, openat2_relative_cwd) {
 	                 mode,
 	                 resolve,
 	                 dev,
-	                 ino);
+	                 ino,
+	                 "");  // fullpath parameter
 }
 
 TEST_F(fspath, fchmodat) {
@@ -841,4 +853,193 @@ TEST_F(fspath, umount_1) {
 TEST_F(fspath, umount2) {
 	test_exit_path(mountpath, mountpath, PPME_SYSCALL_UMOUNT2_X, 3, res, mountpath, flags);
 	test_failed_exit(PPME_SYSCALL_UMOUNT2_X, 2, failed_res, mountpath, flags);
+}
+
+/* Test openat/openat2 handling when the kernel-side fullpath parameter is present.
+ * Userspace should continue resolving the path from dirfd + name to avoid regressions,
+ * regardless of whether the extra fullpath parameter is empty, <NA>, or populated.
+ */
+TEST_F(fspath, openat2_fullpath_param_ignored) {
+	const char *kernel_resolved_path = "/kernel/resolved/path/to/file";
+
+	/* Setup dirfd in fd table */
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     9,
+	                     evt_dirfd,
+	                     evt_dirfd,
+	                     dirfd_path,
+	                     open_flags | PPM_O_DIRECTORY,
+	                     mode,
+	                     resolve,
+	                     dev,
+	                     ino,
+	                     "");  // fullpath parameter (empty for setup event)
+
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT2_X,
+	                                      9,
+	                                      fd,
+	                                      evt_dirfd,
+	                                      name,
+	                                      open_flags,
+	                                      mode,
+	                                      resolve,
+	                                      dev,
+	                                      ino,
+	                                      kernel_resolved_path);
+
+	const auto fullpath_param = evt->get_param(8);
+	ASSERT_FALSE(fullpath_param->empty()) << "Fullpath parameter should not be empty";
+	std::string_view kernel_path = fullpath_param->as<std::string_view>();
+	ASSERT_EQ(kernel_path, kernel_resolved_path)
+	        << "Fullpath parameter should match kernel_resolved_path";
+
+	verify_fields(PPME_SYSCALL_OPENAT2_X, evt, resolved_name, name, NULL, NULL, NULL, NULL);
+}
+
+TEST_F(fspath, openat2_kernel_resolved_fullpath_empty) {
+	/* Test case: kernel provides empty fullpath, parser should fall back to dirfd + name */
+
+	/* Setup dirfd in fd table */
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     9,
+	                     evt_dirfd,
+	                     evt_dirfd,
+	                     dirfd_path,
+	                     open_flags | PPM_O_DIRECTORY,
+	                     mode,
+	                     resolve,
+	                     dev,
+	                     ino,
+	                     "");  // fullpath parameter (empty for setup event)
+
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT2_X,
+	                                      9,
+	                                      fd,
+	                                      evt_dirfd,
+	                                      name,
+	                                      open_flags,
+	                                      mode,
+	                                      resolve,
+	                                      dev,
+	                                      ino,
+	                                      "");  // Empty fullpath
+
+	verify_fields(PPME_SYSCALL_OPENAT2_X, evt, resolved_name, name, NULL, NULL, NULL, NULL);
+}
+
+TEST_F(fspath, openat2_kernel_resolved_fullpath_na) {
+	/* Test case: kernel provides <NA> fullpath, parser should fall back to dirfd + name */
+
+	/* Setup dirfd in fd table */
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     9,
+	                     evt_dirfd,
+	                     evt_dirfd,
+	                     dirfd_path,
+	                     open_flags | PPM_O_DIRECTORY,
+	                     mode,
+	                     resolve,
+	                     dev,
+	                     ino,
+	                     "");  // fullpath parameter (empty for setup event)
+
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT2_X,
+	                                      9,
+	                                      fd,
+	                                      evt_dirfd,
+	                                      name,
+	                                      open_flags,
+	                                      mode,
+	                                      resolve,
+	                                      dev,
+	                                      ino,
+	                                      "<NA>");  // <NA> fullpath
+
+	verify_fields(PPME_SYSCALL_OPENAT2_X, evt, resolved_name, name, NULL, NULL, NULL, NULL);
+}
+
+TEST_F(fspath, openat_fullpath_param_ignored) {
+	const char *kernel_resolved_path = "/kernel/resolved/path/to/file";
+
+	/* Setup dirfd in fd table */
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     9,
+	                     evt_dirfd,
+	                     evt_dirfd,
+	                     dirfd_path,
+	                     open_flags | PPM_O_DIRECTORY,
+	                     mode,
+	                     resolve,
+	                     dev,
+	                     ino,
+	                     "");  // fullpath parameter (empty for setup event)
+
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT_2_X,
+	                                      8,
+	                                      fd,
+	                                      evt_dirfd,
+	                                      name,
+	                                      open_flags,
+	                                      mode,
+	                                      dev,
+	                                      ino,
+	                                      kernel_resolved_path);
+
+	const auto fullpath_param = evt->get_param(7);
+	ASSERT_FALSE(fullpath_param->empty()) << "Fullpath parameter should not be empty";
+	std::string_view kernel_path = fullpath_param->as<std::string_view>();
+	ASSERT_EQ(kernel_path, kernel_resolved_path)
+	        << "Fullpath parameter should match kernel_resolved_path";
+
+	verify_fields(PPME_SYSCALL_OPENAT_2_X, evt, resolved_name, name, NULL, NULL, NULL, NULL);
+}
+
+TEST_F(fspath, openat_kernel_resolved_fullpath_empty) {
+	/* Test case: kernel provides empty fullpath for openat, parser should fall back */
+
+	/* Setup dirfd in fd table */
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     9,
+	                     evt_dirfd,
+	                     evt_dirfd,
+	                     dirfd_path,
+	                     open_flags | PPM_O_DIRECTORY,
+	                     mode,
+	                     resolve,
+	                     dev,
+	                     ino,
+	                     "");  // fullpath parameter (empty for setup event)
+
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT_2_X,
+	                                      8,
+	                                      fd,
+	                                      evt_dirfd,
+	                                      name,
+	                                      open_flags,
+	                                      mode,
+	                                      dev,
+	                                      ino,
+	                                      "");  // Empty fullpath
+
+	verify_fields(PPME_SYSCALL_OPENAT_2_X, evt, resolved_name, name, NULL, NULL, NULL, NULL);
 }

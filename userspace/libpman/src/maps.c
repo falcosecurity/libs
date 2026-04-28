@@ -170,6 +170,15 @@ void pman_set_do_dynamic_snaplen(bool do_dynamic_snaplen) {
 	pman_update_capture_settings(&settings);
 }
 
+void pman_set_do_full_path_resolution(bool do_full_path_resolution) {
+	struct capture_settings settings;
+	if(pman_get_capture_settings(&settings) != 0) {
+		return;
+	}
+	settings.do_full_path_resolution = do_full_path_resolution;
+	pman_update_capture_settings(&settings);
+}
+
 void pman_set_fullcapture_port_range(uint16_t range_start, uint16_t range_end) {
 	struct capture_settings settings;
 	if(pman_get_capture_settings(&settings) != 0) {
@@ -417,6 +426,7 @@ int pman_finalize_maps_after_loading() {
 	pman_set_sampling_ratio(1);
 	pman_set_drop_failed(false);
 	pman_set_do_dynamic_snaplen(false);
+	pman_set_do_full_path_resolution(true);
 	pman_set_fullcapture_port_range(0, 0);
 	pman_set_statsd_port(PPM_PORT_STATSD);
 

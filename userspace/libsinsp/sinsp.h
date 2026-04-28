@@ -225,6 +225,11 @@ public:
 	void set_dropfailed(bool dropfailed);
 
 	/*!
+	  \brief Enable/disable kernel-side fullpath resolution for `openat/openat2`.
+	*/
+	void set_kern_full_path_resolution(bool enable);
+
+	/*!
 	  \brief Determine if this inspector is going to load user tables on
 	  startup.
 
@@ -955,6 +960,7 @@ public:
 	} m_increased_snaplen_port_range;
 
 	int32_t m_statsd_port;
+	bool m_kern_full_path_resolution;
 
 	//
 	// Some thread table limits

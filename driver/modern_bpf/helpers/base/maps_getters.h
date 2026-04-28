@@ -76,6 +76,15 @@ static __always_inline bool maps__get_do_dynamic_snaplen() {
 	return settings->do_dynamic_snaplen;
 }
 
+static __always_inline bool maps__get_do_full_path_resolution() {
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return 0;
+	}
+
+	return settings->do_full_path_resolution;
+}
+
 static __always_inline uint16_t maps__get_fullcapture_port_range_start() {
 	struct capture_settings *settings = maps__get_capture_settings();
 	if(settings == NULL) {

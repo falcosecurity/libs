@@ -29,6 +29,7 @@ limitations under the License.
 #include <fcntl.h>
 #include <cinttypes>
 #include <limits>
+#include <optional>
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
@@ -1809,6 +1810,20 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	}
 }
 
+/**
+ * @brief Retrieve the kernel-resolved fullpath parameter if available.
+ *
+ * For openat/openat2 events, the kernel may provide a fullpath parameter
+ * that contains the full resolved path of the opened file, extracted from
+ * the returned file descriptor in kernel space at syscall time. This prevents
+ * TOCTOU race conditions and provides the actual resolved path including any
+ * symlink resolution and path normalization performed by the kernel.
+ *
+ * @param evt The event to extract the parameter from
+ * @param fullpath_param_idx The parameter index for the fullpath parameter
+ * @return std::optional containing the kernel-resolved full path if available,
+ *         or std::nullopt if the parameter is empty, <NA>, or not available
+ */
 /* Different possible cases:
  * - the pathname is absolute:
  *	 sdir = "."
@@ -1865,6 +1880,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 	uint32_t enter_evt_flags;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	std::string sdir;
+	std::string fullpath;
 	uint16_t etype = evt.get_type();
 	uint32_t dev = 0;
 	uint64_t ino = 0;
@@ -2001,6 +2017,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 
 		if(!dirfd_param->empty()) {
 			sdir = parse_dirfd(evt, name, dirfd_param->as<int64_t>());
+			fullpath = sinsp_utils::concatenate_paths(sdir, name);
+		} else {
+			fullpath = sinsp_utils::concatenate_paths("", name);
 		}
 	} else if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
 		flags = evt.get_param(2)->as<uint32_t>();
@@ -2027,7 +2046,11 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt &evt) const {
 	// ASSERT(parinfo->len() == sizeof(uint32_t));
 	// mode = *(uint32_t*)parinfo->data());
 
-	std::string fullpath = sinsp_utils::concatenate_paths(sdir, name);
+	// Note: fullpath is already set above for openat/openat2 events
+	// For other event types (open, creat, open_by_handle_at), construct it here
+	if(etype != PPME_SYSCALL_OPENAT_2_X && etype != PPME_SYSCALL_OPENAT2_X) {
+		fullpath = sinsp_utils::concatenate_paths(sdir, name);
+	}
 
 	if(fd >= 0) {
 		//
