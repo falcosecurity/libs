@@ -35,7 +35,10 @@ limitations under the License.
 #include <thread>
 #include <json/json.h>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <Windows.h>
+#include <shellapi.h>
+#else
 extern "C" {
 #include <sys/syscall.h>
 #include <sys/stat.h>
@@ -695,6 +698,21 @@ static void print_perftest_table_data(const uint64_t num_events_diff,
 	          << std::setw(14) << curr_vm_rss_in_mebibytes << '\r' << std::flush;
 }
 
+#ifdef _WIN32
+char* utf16_to_utf8(const LPWSTR utf16_str) {
+	int utf8_str_len = WideCharToMultiByte(CP_UTF8, 0, utf16_str, -1, NULL, 0, NULL, NULL);
+	if(utf8_str_len <= 0) {
+		return NULL;
+	}
+	char* utf8_str = (char*)malloc(utf8_str_len * sizeof(char));
+	if(WideCharToMultiByte(CP_UTF8, 0, utf16_str, -1, utf8_str, utf8_str_len, NULL, NULL) <= 0) {
+		free(utf8_str);
+		return NULL;
+	}
+	return utf8_str;
+}
+#endif
+
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -702,6 +720,26 @@ static void print_perftest_table_data(const uint64_t num_events_diff,
 //   or evt.type=vfork)"
 //
 int main(int argc, char** argv) {
+#ifdef _WIN32
+	// main+argv uses the system encoding, which may not be able to handle all
+	// filesystem paths. Fetch the wide command line arguments and convert them
+	// to UTF-8.
+	int utf16_argc;
+	LPWSTR* utf16_argv = CommandLineToArgvW(GetCommandLineW(), &utf16_argc);
+	char** utf8_argv = nullptr;
+
+	if(utf16_argv && utf16_argc == argc) {
+		utf8_argv = (char**)malloc((argc + 1) * sizeof(char*));
+		for(int idx = 0; idx < argc; idx++) {
+			utf8_argv[idx] = utf16_to_utf8(utf16_argv[idx]);
+		}
+		utf8_argv[argc] = NULL;
+		argv = utf8_argv;
+	}
+	LocalFree(utf16_argv);
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+
 	sinsp inspector;
 
 	filter_list.reset(new sinsp_filter_check_list());
@@ -777,10 +815,20 @@ int main(int argc, char** argv) {
 
 	if(table_mode == "brief") {
 		print_all_tables(inspector);
+#ifdef _WIN32
+		if(utf8_argv) {
+			free(utf8_argv);
+		}
+#endif
 		return 0;
 	}
 	if(table_mode == "list") {
 		print_table_entries(inspector);
+#ifdef _WIN32
+		if(utf8_argv) {
+			free(utf8_argv);
+		}
+#endif
 		return 0;
 	}
 
@@ -916,6 +964,11 @@ int main(int argc, char** argv) {
 		          << max_vm_rss_in_mebibytes << " MiB" << std::endl;
 	}
 
+#ifdef _WIN32
+	if(utf8_argv) {
+		free(utf8_argv);
+	}
+#endif
 	return 0;
 }
 

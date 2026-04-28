@@ -72,6 +72,8 @@ plugin_handle_t* plugin_load_api(const plugin_api* api, char* err);
     \brief Loads a dynamic library from the given path and returns a
     plugin_handle_t* representing the loaded plugin. In case of error,
     returns NULL and fills the err string up to PLUGIN_MAX_ERRLEN chars.
+
+    The path must be encoded as UTF-8 on Windows.
 */
 plugin_handle_t* plugin_load(const char* path, char* err);
 
