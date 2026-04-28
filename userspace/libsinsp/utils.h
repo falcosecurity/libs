@@ -322,59 +322,80 @@ inline const unsigned char* utf8_first_invalid_seq(const unsigned char* ptr,
 	return end_ptr;
 }
 
-inline void sanitize_string(std::string& str) {
+// Appends a sanitized version of `str` to `storage`. `valid_prefix_len` is the length of the prefix
+// in `str` that is assumed to be valid and copied as is. `valid_prefix_len` must be less than
+// str.size()`, and `storage` and `str` must not alias the same memory region.
+inline void append_sanitized_string(std::string& storage,
+                                    std::string_view str,
+                                    const size_t valid_prefix_len) {
+	ASSERT(valid_prefix_len < str.size());
+	// Assert `storage` and `str` don't alias the same memory region.
+	ASSERT(reinterpret_cast<uintptr_t>(str.data()) + str.size() <=
+	               reinterpret_cast<uintptr_t>(storage.data()) ||
+	       reinterpret_cast<uintptr_t>(storage.data()) + storage.capacity() <=
+	               reinterpret_cast<uintptr_t>(str.data()));
+
 	const auto* const str_ptr = reinterpret_cast<const unsigned char*>(str.data());
 	const auto str_len = str.size();
 	const auto* const str_end_ptr = str_ptr + str_len;
+	auto* str_scan_ptr = str_ptr + valid_prefix_len;
+
+	// Copy the valid prefix in one shot, then process the remainder.
+	storage.append(reinterpret_cast<const char*>(str_ptr), valid_prefix_len);
+
+	// As we scan the string, keep track of the beginning of the last non-yet-copied block of
+	// multiple valid UTF-8 sequences: in this way, we can append the entire block with a single
+	// `storage.append()` call.
+	const auto* block_start = str_scan_ptr;
+	do {
+		// Process the current sequence first (on the first iteration this is the one that must be
+		// replaced).
+		if(const int seq_len = utf8_seq_len(str_scan_ptr, str_end_ptr); seq_len > 0) {
+			str_scan_ptr += seq_len;
+		} else {
+			// Found invalid sequence. Copy the last valid block (if any) and then append the
+			// replacement character.
+			if(str_scan_ptr > block_start) {
+				storage.append(reinterpret_cast<const char*>(block_start),
+				               static_cast<size_t>(str_scan_ptr - block_start));
+			}
+			storage.append("\xEF\xBF\xBD", 3);
+			str_scan_ptr += -seq_len;
+			block_start = str_scan_ptr;
+		}
+		// If `str_scan_ptr` is now 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
+		if((reinterpret_cast<uintptr_t>(str_scan_ptr) & 7u) == 0u) {
+			str_scan_ptr = skip_8_byte_printable_ascii_blocks(str_scan_ptr, str_end_ptr);
+		}
+	} while(str_scan_ptr < str_end_ptr);
+
+	// Copy the last valid block (if any).
+	if(str_scan_ptr > block_start) {
+		storage.append(reinterpret_cast<const char*>(block_start),
+		               static_cast<size_t>(str_scan_ptr - block_start));
+	}
+}
+
+inline void sanitize_string(std::string& str) {
+	const auto* const ptr = reinterpret_cast<const unsigned char*>(str.data());
+	const auto len = str.size();
+	const auto* const end_ptr = ptr + len;
 
 	// First pass (note: this must be FAST).
 	// Find the first sequence needing replacement. For valid strings, this is the only pass that
 	// runs (no replacement needed), and the flow immediately returns after it.
-	auto* scan_ptr = utf8_first_invalid_seq(str_ptr, str_end_ptr);
-	if(scan_ptr == str_end_ptr) {
+	const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+	if(first_invalid_ptr == end_ptr) {
 		return;
 	}
 
-	// Second pass for strings needing replacements (note: unfortunately, this is not as fast as the
-	// first pass).
-	// Copy the already-validated prefix in one shot, then process the remainder.
-	std::string res;
-	res.reserve(str_len);
-	res.append(reinterpret_cast<const char*>(str_ptr), static_cast<size_t>(scan_ptr - str_ptr));
-
-	// As we scan the string, keep track of the beginning of the last non-yet-copied block of
-	// multiple valid UTF-8 sequences: in this way, we can append the entire block with a single
-	// `res.append()` call.
-	const auto* block_start = scan_ptr;
-	do {
-		// Process the current sequence first (on the first iteration this is the one that must be
-		// replaced).
-		if(const int seq_len = utf8_seq_len(scan_ptr, str_end_ptr); seq_len > 0) {
-			scan_ptr += seq_len;
-		} else {
-			// Found invalid sequence. Copy the last valid block (if any) and then append the
-			// replacement character.
-			if(scan_ptr > block_start) {
-				res.append(reinterpret_cast<const char*>(block_start),
-				           static_cast<size_t>(scan_ptr - block_start));
-			}
-			res.append("\xEF\xBF\xBD", 3);
-			scan_ptr += -seq_len;
-			block_start = scan_ptr;
-		}
-		// If `scan_ptr` is now 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
-		if((reinterpret_cast<uintptr_t>(scan_ptr) & 7u) == 0u) {
-			scan_ptr = skip_8_byte_printable_ascii_blocks(scan_ptr, str_end_ptr);
-		}
-	} while(scan_ptr < str_end_ptr);
-
-	// Copy the last valid block (if any).
-	if(scan_ptr > block_start) {
-		res.append(reinterpret_cast<const char*>(block_start),
-		           static_cast<size_t>(scan_ptr - block_start));
-	}
-
-	str = std::move(res);
+	// Second pass for strings needing replacements. Unfortunately, this is not as fast as the first
+	// pass.
+	std::string storage;
+	storage.reserve(len);
+	const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
+	append_sanitized_string(storage, str, valid_prefix_len);
+	str = std::move(storage);
 }
 
 inline void remove_duplicate_path_separators(std::string& str) {
