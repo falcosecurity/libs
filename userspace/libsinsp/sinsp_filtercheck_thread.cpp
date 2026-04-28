@@ -22,12 +22,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_PTR(x) \
-	do {                      \
-		*len = sizeof(*(x));  \
-		return (uint8_t*)(x); \
-	} while(0)
-
 static inline bool str_match_start(std::string_view val, size_t len, const char* m) {
 	return val.compare(0, len, m) == 0;
 }
@@ -1517,7 +1511,10 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		// Then check all its parents to see if they are shells
 		m_inspector->m_thread_manager->traverse_parent_state(*mt, check_thread_for_shell);
 
-		RETURN_EXTRACT_PTR(res);
+		if(res == nullptr) {
+			return nullptr;
+		}
+		return extract_single_val(*res, len);
 	}
 	case TYPE_DURATION: {
 		if(tinfo->m_clone_ts != 0) {
