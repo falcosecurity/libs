@@ -22,12 +22,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_VAR(x)  \
-	do {                       \
-		*len = sizeof((x));    \
-		return (uint8_t*)&(x); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_utils_fields[] = {
         {PT_UINT64, EPF_NONE, PF_ID, "util.cnt", "Counter", "incremental counter."},
 };
@@ -56,7 +50,7 @@ uint8_t* sinsp_filter_check_utils::extract_single(sinsp_evt* evt,
 	switch(m_field_id) {
 	case TYPE_CNT:
 		m_cnt++;
-		RETURN_EXTRACT_VAR(m_cnt);
+		return extract_single_val(m_cnt, len);
 	default:
 		ASSERT(false);
 		break;

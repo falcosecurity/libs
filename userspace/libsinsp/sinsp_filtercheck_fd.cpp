@@ -24,12 +24,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_VAR(x)   \
-	do {                        \
-		*len = sizeof((x));     \
-		return (uint8_t *)&(x); \
-	} while(0)
-
 #define RETURN_EXTRACT_CSTR(x)            \
 	do {                                  \
 		if((x)) {                         \
@@ -497,7 +491,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	// TYPE_FDNUM doesn't need fdinfo
 	//
 	if(m_field_id == TYPE_FDNUM) {
-		RETURN_EXTRACT_VAR(m_tinfo->m_lastevent_fd);
+		return extract_single_val(m_tinfo->m_lastevent_fd, len);
 	}
 
 	std::string container_id;
@@ -611,9 +605,9 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		scap_fd_type evt_type = m_fdinfo->m_type;
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, len);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, len);
 		}
 	} break;
 	case TYPE_CLIENTIP_NAME: {
@@ -655,13 +649,13 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		scap_fd_type evt_type = m_fdinfo->m_type;
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, len);
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, len);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, len);
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, len);
 		}
 	} break;
 	case TYPE_SERVERIP_NAME: {
@@ -738,29 +732,37 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			if(is_local) {
 				if(m_field_id == TYPE_LIP || m_field_id == TYPE_LNET) {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+						                          len);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+						                          len);
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+						                          len);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip,
+						                          len);
 					}
 				}
 			} else {
 				if(m_field_id == TYPE_LIP || m_field_id == TYPE_LNET) {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
+						                          len);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip,
+						                          len);
 					}
 				} else {
 					if(evt_type == SCAP_FD_IPV4_SOCK) {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
+						                          len);
 					} else {
-						RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+						return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
+						                          len);
 					}
 				}
 			}
@@ -839,9 +841,9 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, len);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, len);
 		}
 	} break;
 	case TYPE_CLIENTPROTO: {
@@ -880,17 +882,17 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 				return NULL;
 			}
 
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, len);
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port, len);
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
 			if(m_fdinfo->is_role_none()) {
 				return NULL;
 			}
 
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport, len);
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port);
+			return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port, len);
 		} else {
 			return NULL;
 		}
@@ -967,29 +969,37 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(is_local) {
 			if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO) {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport,
+					                          len);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport,
+					                          len);
 				}
 			} else {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport,
+					                          len);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport,
+					                          len);
 				}
 			}
 		} else {
 			if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO) {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport,
+					                          len);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport,
+					                          len);
 				}
 			} else {
 				if(evt_type == SCAP_FD_IPV4_SOCK) {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport,
+					                          len);
 				} else {
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+					return extract_single_val(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport,
+					                          len);
 				}
 			}
 		}
@@ -1110,7 +1120,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_val.u32 = false;
 		}
 
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_SOCKFAMILY: {
 		if(m_fdinfo == NULL) {
@@ -1143,7 +1153,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		m_val.u32 = m_fdinfo->is_socket_connected();
 
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_NAME_CHANGED: {
 		if(m_fdinfo == NULL) {
@@ -1152,7 +1162,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		m_val.u32 = evt->fdinfo_name_changed();
 
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_DEV: {
 		if(m_fdinfo == NULL) {
@@ -1161,7 +1171,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		m_val.u32 = m_fdinfo->get_device();
 
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_DEV_MAJOR: {
 		if(m_fdinfo == NULL) {
@@ -1170,7 +1180,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		m_val.u32 = m_fdinfo->get_device_major();
 
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_DEV_MINOR: {
 		if(m_fdinfo == NULL) {
@@ -1179,7 +1189,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 
 		m_val.u32 = m_fdinfo->get_device_minor();
 
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_INO: {
 		if(m_fdinfo == NULL) {
@@ -1187,7 +1197,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_val.u64 = m_fdinfo->get_ino();
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	} break;
 	case TYPE_FDNAMERAW: {
 		if(m_fdinfo == NULL) {
@@ -1206,7 +1216,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_val.u32 = m_fdinfo->is_overlay_upper();
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	case TYPE_FDLOWER: {
 		if(m_fdinfo == NULL) {
@@ -1214,7 +1224,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_val.u32 = m_fdinfo->is_overlay_lower();
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	} break;
 	default:
 		ASSERT(false);

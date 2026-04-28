@@ -265,6 +265,15 @@ protected:
 		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str.c_str()));
 	}
 
+	// Helper that must be used while extracting a single value. It returns a pointer to `val` and
+	// sets `*len` to `sizeof(val)`.
+	template<typename T,
+	         std::enable_if_t<std::is_trivially_copyable_v<T> && !std::is_pointer_v<T>, int> = 0>
+	static uint8_t* extract_single_val(T& val, uint32_t* len) {
+		*len = sizeof(val);
+		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&val));
+	}
+
 private:
 	//
 	// Instead of populating the filter check values with const values extracted at

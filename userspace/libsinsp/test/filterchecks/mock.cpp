@@ -22,12 +22,6 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <test_utils.h>
 
-#define RETURN_EXTRACT_VAR(x)  \
-	do {                       \
-		*len = sizeof((x));    \
-		return (uint8_t*)&(x); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_mock_fields[] = {
         {PT_INT64, EPF_NONE, PF_ID, "test.int64", "", ""},
         {PT_CHARBUF, EPF_NONE, PF_NA, "test.charbuf", "", ""},
@@ -94,7 +88,7 @@ protected:
 		switch(m_field_id) {
 		case TYPE_INT64:
 			m_u64_val = 1;
-			RETURN_EXTRACT_VAR(m_u64_val);
+			return extract_single_val(m_u64_val, len);
 		case TYPE_CHARBUF:
 			m_str_val = "charbuf";
 			return extract_single_string(m_str_val, len, sanitize_strings);
