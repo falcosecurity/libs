@@ -405,7 +405,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		}
 	}
 
-	return extract_single_string(m_tstr, len, sanitize_strings);
+	return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 }
 
 bool sinsp_filter_check_fspath::extract_fspath(sinsp_evt* evt,

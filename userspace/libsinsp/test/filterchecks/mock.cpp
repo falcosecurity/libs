@@ -91,16 +91,16 @@ protected:
 			return extract_single_val(m_u64_val, len);
 		case TYPE_CHARBUF:
 			m_str_val = "charbuf";
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len, sanitize_strings, m_sanitized_str_storage);
 		case TYPE_BYTEBUF:
 			m_str_val = "bytebuf";
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len, sanitize_strings, m_sanitized_str_storage);
 		case TYPE_MORE_THAN_256:
 			m_str_val = std::string(257, 'a');
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len, sanitize_strings, m_sanitized_str_storage);
 		case TYPE_BASE64:
 			m_str_val = "Y2hhcmJ1Zg==";  // base64("charbuf")
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len, sanitize_strings, m_sanitized_str_storage);
 		default:
 			throw std::runtime_error("unknown field id: " + std::to_string(m_field_id));
 			break;

@@ -252,17 +252,47 @@ protected:
 
 	inline void check_rhs_field_type_consistency() const;
 
+	// Storage for sanitized strings, lazily allocated on the first encountered invalid string.
+	// This is not a plain `std::string` to save space: `std::unique_ptr` adds 8 bytes to the filter
+	// check memory footprint on 64 bits platforms, while `std::string` adds 32 bytes. The smaller
+	// the objects are, the greater is the number of the ones that can fit in cache. The additional
+	// memory cost is only paid (on the heap) if the single filter check ever encounters an invalid
+	// string.
+	std::unique_ptr<std::string> m_sanitized_str_storage;
+
 	// Helper that must be used while extracting a single string value. It returns a pointer to the
-	// first character of `str` and sets `*len` to the string length. If `must_sanitize` is true, it
-	// sanitizes `str` first.
-	static uint8_t* extract_single_string(std::string& str,
+	// first character of `str` and sets `*len` to the string length. If `must_sanitize` is true and
+	// `str` contains invalid UTF-8 sequences, the sanitized copy is written into `*storage` (lazily
+	// allocated on first use) and a pointer to it is returned instead.
+	static uint8_t* extract_single_string(const std::string& str,
 	                                      uint32_t* len,
-	                                      const bool must_sanitize) {
-		if(must_sanitize) {
-			sanitize_string(str);
-		}
+	                                      const bool must_sanitize,
+	                                      std::unique_ptr<std::string>& storage) {
+		const auto* const ptr = reinterpret_cast<const unsigned char*>(str.data());
 		*len = str.size();
-		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str.c_str()));
+		if(!must_sanitize) {
+			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
+		}
+
+		// Check if the string needs sanitization.
+		const auto* const end_ptr = ptr + *len;
+		const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+		// String already sanitized, return it.
+		if(first_invalid_ptr == end_ptr) {
+			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
+		}
+
+		// String needs sanitization. Store the sanitized version in `*storage` and return a pointer
+		// to it.
+		if(!storage) {
+			storage = std::make_unique<std::string>();
+		}
+		const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
+		storage->clear();  // Reset to empty while preserving allocated capacity.
+		storage->reserve(*len);
+		append_sanitized_string(*storage, str, valid_prefix_len);
+		*len = static_cast<uint32_t>(storage->size());
+		return reinterpret_cast<uint8_t*>(storage->data());
 	}
 
 	// Helper that must be used while extracting a single C string value. It returns `str` and sets

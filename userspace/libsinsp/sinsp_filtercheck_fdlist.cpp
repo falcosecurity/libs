@@ -230,7 +230,7 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 			m_strval = m_strval.substr(0, m_strval.size() - 1);
 		}
 
-		return extract_single_string(m_strval, len, sanitize_strings);
+		return extract_single_string(m_strval, len, sanitize_strings, m_sanitized_str_storage);
 	} else {
 		return NULL;
 	}

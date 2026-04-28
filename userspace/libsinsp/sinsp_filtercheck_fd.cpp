@@ -506,7 +506,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = container_id + ':' + m_tstr;
 		}
 
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 		break;
 	case TYPE_FDTYPES:
 	case TYPE_FDTYPE:
@@ -552,7 +552,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = container_id + ':' + m_tstr;
 		}
 
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_FILENAME: {
 		if(m_fdinfo == NULL) {
@@ -574,7 +574,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = "/";
 		}
 
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_FDTYPECHAR:
 		*len = 1;
@@ -626,7 +626,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(!m_tstr.empty()) {
-			return extract_single_string(m_tstr, len, sanitize_strings);
+			return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 		}
 	} break;
 	case TYPE_SNET:
@@ -683,7 +683,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(!m_tstr.empty()) {
-			return extract_single_string(m_tstr, len, sanitize_strings);
+			return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 		}
 	} break;
 	case TYPE_LNET:
@@ -815,7 +815,10 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			}
 
 			if(!m_tstr.empty()) {
-				return extract_single_string(m_tstr, len, sanitize_strings);
+				return extract_single_string(m_tstr,
+				                             len,
+				                             sanitize_strings,
+				                             m_sanitized_str_storage);
 			}
 		}
 	}
@@ -860,7 +863,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			                        m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_SERVERPORT: {
 		if(m_fdinfo == NULL) {
@@ -927,7 +930,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			                        m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_LPORT:
 	case TYPE_RPORT: {
@@ -1061,7 +1064,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		m_tstr = port_to_string(nport,
 		                        this->m_fdinfo->get_l4proto(),
 		                        m_inspector->is_hostname_and_port_resolution_enabled());
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 
 	case TYPE_L4PROTO: {
@@ -1089,7 +1092,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			break;
 		}
 
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_IS_SERVER: {
 		if(m_fdinfo == NULL) {
@@ -1122,10 +1125,10 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
 		   m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
 			m_tstr = "ip";
-			return extract_single_string(m_tstr, len, sanitize_strings);
+			return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 		} else if(m_fdinfo->m_type == SCAP_FD_UNIX_SOCK) {
 			m_tstr = "unix";
-			return extract_single_string(m_tstr, len, sanitize_strings);
+			return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 		} else {
 			return NULL;
 		}
@@ -1136,7 +1139,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_IS_CONNECTED: {
 		if(m_fdinfo == NULL) {
@@ -1200,7 +1203,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			m_tstr = m_fdinfo->m_name_raw;
 		}
 		remove_duplicate_path_separators(m_tstr);
-		return extract_single_string(m_tstr, len, sanitize_strings);
+		return extract_single_string(m_tstr, len, sanitize_strings, m_sanitized_str_storage);
 	} break;
 	case TYPE_FDUPPER: {
 		if(m_fdinfo == NULL) {
