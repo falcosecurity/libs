@@ -141,48 +141,17 @@ private:
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 	// end of dynamic_struct interface
 
-protected:
-	[[nodiscard]] const void* raw_read_field(const accessor& a) const override {
+	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
 		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			if(!static_acc->info().valid()) {
-				throw sinsp_exception("can't get invalid field in static struct");
-			}
-			return reinterpret_cast<const char*>(this) + static_acc->info().offset();
+			return static_acc->info().read(this, 0);
 		}
 
 		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
 			_check_defsptr(dynamic_acc->info(), false);
-			auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index());
-			if(ptr) {
-				switch(a.type_id()) {
-				case SS_PLUGIN_ST_INT8:
-					return &ptr->m_data.s8;
-				case SS_PLUGIN_ST_INT16:
-					return &ptr->m_data.s16;
-				case SS_PLUGIN_ST_INT32:
-					return &ptr->m_data.s32;
-				case SS_PLUGIN_ST_INT64:
-					return &ptr->m_data.s64;
-				case SS_PLUGIN_ST_UINT8:
-					return &ptr->m_data.u8;
-				case SS_PLUGIN_ST_UINT16:
-					return &ptr->m_data.u16;
-				case SS_PLUGIN_ST_UINT32:
-					return &ptr->m_data.u32;
-				case SS_PLUGIN_ST_UINT64:
-					return &ptr->m_data.u64;
-				case SS_PLUGIN_ST_STRING:
-					return &ptr->m_str;
-				case SS_PLUGIN_ST_TABLE:
-					return &ptr->m_data.table;
-				case SS_PLUGIN_ST_BOOL:
-					return &ptr->m_data.b;
-				default:
-					throw sinsp_exception("can't convert plugin state type to typeinfo: " +
-					                      std::to_string(a.type_id()));
-				}
+			if(auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index())) {
+				return borrowed_state_data(ptr->m_data);
 			}
-			return nullptr;
+			return {};
 		}
 
 #ifdef _MSC_VER
@@ -192,46 +161,24 @@ protected:
 #endif
 	}
 
-	struct writer {
-		extensible_struct* self;
-		const accessor* acc;
-		const void* in;
+protected:
+	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
+		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
+			static_acc->info().write(this, 0, in);
+			return;
+		}
 
-		template<typename T>
-		void operator()() const {
-			if(auto static_acc = dynamic_cast<const static_field_accessor*>(acc)) {
-				if(!static_acc->info().valid()) {
-					throw sinsp_exception("can't set invalid field in static struct");
-				}
-				if(static_acc->info().readonly()) {
-					throw sinsp_exception("can't set a read-only static struct field: " +
-					                      static_acc->info().name());
-				}
-				auto ptr = reinterpret_cast<T*>(reinterpret_cast<char*>(self) +
-				                                static_acc->info().offset());
-				auto val = static_cast<const T*>(in);
-				*ptr = *val;
-				return;
-			}
-
-			if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(acc)) {
-				self->_check_defsptr(dynamic_acc->info(), true);
-				auto ptr = self->_access_dynamic_field_for_write(dynamic_acc->info().index());
-				auto val = static_cast<const T*>(in);
-				ptr->update(borrowed_state_data::from<type_id_of<T>(), T>(*val));
-				return;
-			}
+		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
+			auto ptr = _access_dynamic_field_for_write(dynamic_acc->info().index());
+			ptr->update(in);
+			return;
+		}
 
 #ifdef _MSC_VER
-			_assume(0);
+		_assume(0);
 #else
-			__builtin_unreachable();
+		__builtin_unreachable();
 #endif
-		}
-	};
-
-	void raw_write_field(const accessor& a, const void* in) override {
-		return dispatch_lambda(a.type_id(), writer{this, &a, in});
 	}
 };
 
@@ -247,22 +194,23 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  *
  * @tparam T Type of the field.
  * @param fields Fields group to which to add the new field.
- * @param offset Field's memory offset in instances of the class/struct.
  * @param name Display name of the field.
+ * @param reader Function to read the field's value from an instance of the class/struct.
+ * @param writer Function to write the field's value in an instance of the class/struct.
  * @param readonly Read-only field annotation.
  */
 template<typename T>
 constexpr static const static_field_info& define_static_field(static_field_infos& fields,
-                                                              const size_t offset,
                                                               const std::string& name,
+                                                              accessor::reader_fn reader,
+                                                              accessor::writer_fn writer,
                                                               const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
 	}
 
-	// todo(jasondellaluce): add extra safety boundary checks here
-	fields.insert({name, static_field_info(name, offset, type_id_of<T>(), readonly)});
+	fields.insert({name, static_field_info(name, type_id_of<T>(), readonly, reader, writer)});
 	return fields.at(name);
 }
 

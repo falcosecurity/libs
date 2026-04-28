@@ -39,18 +39,14 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
         m_fdtable{params->fdtable_factory.create()},
-        m_main_fdtable(m_fdtable.table_ptr()),
+        m_main_fdtable(&m_fdtable),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
         m_cgroups_table_adapter("cgroups", m_cgroups) {
 	init();
 }
 
-#if defined(__clang__)
-__attribute__((no_sanitize("undefined")))
-#endif
-libsinsp::state::static_field_infos
-sinsp_threadinfo::get_static_fields() {
+libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	using self = sinsp_threadinfo;
 
 	libsinsp::state::static_field_infos ret;
@@ -67,21 +63,44 @@ sinsp_threadinfo::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
 	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
-	const auto table_ptr_offset = libsinsp::state::extensible_table<uint64_t>::table_ptr_offset();
 	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_args_table_adapter) + table_ptr_offset,
 	        "args",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::
+		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
+		                        &c->m_args_table_adapter);
+	        },
+	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
+		        throw sinsp_exception("attempt to write to read-only static struct field: args");
+	        },
 	        true);
 	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_env_table_adapter) + table_ptr_offset,
 	        "env",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::
+		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
+		                        &c->m_env_table_adapter);
+	        },
+	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
+		        throw sinsp_exception("attempt to write to read-only static struct field: env");
+	        },
 	        true);
 	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
-	        OFFSETOF_STATIC_FIELD(self, m_cgroups_table_adapter) + table_ptr_offset,
 	        "cgroups",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::
+		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
+		                        &c->m_cgroups_table_adapter);
+	        },
+	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
+		        throw sinsp_exception("attempt to write to read-only static struct field: cgroups");
+	        },
 	        true);
 	DEFINE_STATIC_FIELD(ret, self, m_flags, "flags");
 	DEFINE_STATIC_FIELD(ret, self, m_fdlimit, "fd_limit");

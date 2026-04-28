@@ -24,6 +24,12 @@ limitations under the License.
 #include <cstring>
 #include <string>
 
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer) && !defined(__SANITIZE_ADDRESS__)  // for clang
+#define __SANITIZE_ADDRESS__                                            // GCC already sets this
+#endif
+#endif
+
 TEST(static_struct, defs_and_access) {
 	struct err_multidef_struct : public libsinsp::state::extensible_struct {
 #if defined(__clang__)
@@ -137,13 +143,18 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_EQ(cstr, s.get_str().c_str());
 	ASSERT_ANY_THROW(s.write_field(acc_str, cstr));  // readonly
 
+#if !defined(__SANITIZE_ADDRESS__)
 	// illegal access from an accessor created from different definition list
 	// note: this should supposedly be checked for and throw an exception,
 	// but for now we have no elegant way to do it efficiently.
 	// todo(jasondellaluce): find a good way to check for this
+	//
+	// Note: With clang, ASAN actually catches this and aborts, so don't check
+	// this with ASAN enabled (even if GCC lets this through)
 	auto acc_num2 =
 	        sample_struct2::get_static_fields().find("num")->second.new_accessor().into<uint32_t>();
 	ASSERT_NO_THROW(s.read_field(acc_num2));
+#endif
 }
 
 TEST(dynamic_struct, defs_and_access) {
@@ -456,7 +467,6 @@ TEST(thread_manager, fdtable_access) {
 	auto field = table->static_fields()->find("file_descriptors");
 	ASSERT_NE(field, table->static_fields()->end());
 	ASSERT_EQ(field->second.readonly(), true);
-	ASSERT_EQ(field->second.valid(), true);
 	ASSERT_EQ(field->second.name(), "file_descriptors");
 	ASSERT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 
@@ -491,7 +501,6 @@ TEST(thread_manager, fdtable_access) {
 	auto sfield = subtable->static_fields()->find("pid");
 	ASSERT_NE(sfield, subtable->static_fields()->end());
 	ASSERT_EQ(sfield->second.readonly(), false);
-	ASSERT_EQ(sfield->second.valid(), true);
 	ASSERT_EQ(sfield->second.name(), "pid");
 	ASSERT_EQ(sfield->second.type_id(), SS_PLUGIN_ST_INT64);
 
@@ -602,7 +611,6 @@ TEST(thread_manager, env_vars_access) {
 	auto field = table->static_fields()->find("env");
 	ASSERT_NE(field, table->static_fields()->end());
 	EXPECT_EQ(field->second.readonly(), true);
-	EXPECT_EQ(field->second.valid(), true);
 	EXPECT_EQ(field->second.name(), "env");
 	EXPECT_EQ(field->second.type_id(), SS_PLUGIN_ST_TABLE);
 

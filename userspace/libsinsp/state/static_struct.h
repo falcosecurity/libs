@@ -35,18 +35,12 @@ class static_field_accessor;
 class static_field_info {
 public:
 	friend inline bool operator==(const static_field_info& a, const static_field_info& b) {
-		return a.type_id() == b.type_id() && a.name() == b.name() && a.readonly() == b.readonly() &&
-		       a.m_offset == b.m_offset;
+		return a.type_id() == b.type_id() && a.name() == b.name() && a.readonly() == b.readonly();
 	};
 
 	friend inline bool operator!=(const static_field_info& a, const static_field_info& b) {
 		return !(a == b);
 	};
-
-	/**
-	 * @brief Returns true if the field info is valid.
-	 */
-	inline bool valid() const { return m_offset != (size_t)-1; }
 
 	/**
 	 * @brief Returns true if the field is read only.
@@ -64,9 +58,15 @@ public:
 	inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
-	 * @brief Returns the offset of the field within the struct.
+	 * @brief Returns the reader function for this field.
 	 */
-	inline size_t offset() const { return m_offset; }
+	inline borrowed_state_data read(const void* obj, size_t index) const {
+		return m_reader(obj, index);
+	}
+
+	inline void write(void* obj, size_t index, const borrowed_state_data& data) const {
+		m_writer(obj, index, data);
+	}
 
 	/**
 	 * @brief Returns a strongly-typed accessor for the given field,
@@ -75,17 +75,23 @@ public:
 	 */
 	inline accessor::ptr new_accessor() const;
 
-	inline static_field_info(const std::string& n, size_t o, ss_plugin_state_type t, bool r):
+	inline static_field_info(const std::string& n,
+	                         ss_plugin_state_type t,
+	                         bool r,
+	                         accessor::reader_fn reader,
+	                         accessor::writer_fn writer):
 	        m_readonly(r),
-	        m_offset(o),
 	        m_name(n),
-	        m_type_id(t) {}
+	        m_type_id(t),
+	        m_reader(reader),
+	        m_writer(writer) {}
 
 private:
 	bool m_readonly;
-	size_t m_offset;
 	std::string m_name;
 	ss_plugin_state_type m_type_id;
+	accessor::reader_fn m_reader;
+	accessor::writer_fn m_writer;
 };
 
 /**
@@ -119,36 +125,51 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  * all instances of structs where it is defined.
  */
 inline accessor::ptr static_field_info::new_accessor() const {
-	if(!valid()) {
-		throw sinsp_exception("can't create static struct field accessor for invalid field");
-	}
 	return accessor::ptr(std::make_unique<static_field_accessor>(*this));
 }
 
 };  // namespace state
 };  // namespace libsinsp
 
-// This `offsetof` custom definition prevents the compiler from complaining about "offsetof"-ing on
-// non-standard-layout types (e.g.: `warning: ‘offsetof’ within non-standard-layout type ‘X’ is
-// conditionally-supported)`.
-#define OFFSETOF_STATIC_FIELD(type, member) reinterpret_cast<size_t>(&static_cast<type*>(0)->member)
+#define READER_LAMBDA(container_type, container_field, state_type)                             \
+	[](const void* in, size_t) -> libsinsp::state::borrowed_state_data {                       \
+		auto* c = static_cast<const container_type*>(in);                                      \
+		return libsinsp::state::borrowed_state_data::                                          \
+		        from<libsinsp::state::type_id_of<state_type>(), decltype(c->container_field)>( \
+		                c->container_field);                                                   \
+	}
+
+#define WRITER_LAMBDA(container_type, container_field, field_type)                                \
+	[](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {                   \
+		auto* c = static_cast<container_type*>(in);                                               \
+		in_data.copy_to<libsinsp::state::type_id_of<field_type>(), decltype(c->container_field)>( \
+		        c->container_field);                                                              \
+	}
+
+#define READONLY_WRITER_LAMBDA(name)                                                  \
+	[](void*, size_t, const libsinsp::state::borrowed_state_data&) {                  \
+		throw sinsp_exception("attempt to write to read-only static struct field: " + \
+		                      std::string(name));                                     \
+	}
 
 // DEFINE_STATIC_FIELD macro is a wrapper around static_struct::define_static_field helping to
 // extract the field type and field offset.
-#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name) \
-	libsinsp::state::define_static_field<                                       \
-	        decltype(static_cast<container_type*>(0)->container_field)>(        \
-	        field_infos,                                                        \
-	        OFFSETOF_STATIC_FIELD(container_type, container_field),             \
-	        name);
+#define DEFINE_STATIC_FIELD(field_infos, container_type, container_field, name)           \
+	libsinsp::state::define_static_field<                                                 \
+	        decltype(static_cast<container_type*>(0)->container_field)>(                  \
+	        field_infos,                                                                  \
+	        name,                                                                         \
+	        READER_LAMBDA(container_type, container_field, decltype(c->container_field)), \
+	        WRITER_LAMBDA(container_type, container_field, decltype(c->container_field)));
 
 // DEFINE_STATIC_FIELD_READONLY macro is a wrapper around static_struct::define_static_field helping
 // to extract the field type and field offset. The defined field is set to guarantee read-only
 // access.
-#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name) \
-	libsinsp::state::define_static_field<                                                \
-	        decltype(static_cast<container_type*>(0)->container_field)>(                 \
-	        field_infos,                                                                 \
-	        OFFSETOF_STATIC_FIELD(container_type, container_field),                      \
-	        name,                                                                        \
+#define DEFINE_STATIC_FIELD_READONLY(field_infos, container_type, container_field, name)  \
+	libsinsp::state::define_static_field<                                                 \
+	        decltype(static_cast<container_type*>(0)->container_field)>(                  \
+	        field_infos,                                                                  \
+	        name,                                                                         \
+	        READER_LAMBDA(container_type, container_field, decltype(c->container_field)), \
+	        READONLY_WRITER_LAMBDA(name),                                                 \
 	        true);
