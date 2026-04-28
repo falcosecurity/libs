@@ -1,7 +1,11 @@
 name: 'install-zig'
-description: 'Install zig compiler and make it available in PATH.'
+description: 'Install zig compiler and set ZIG/ZIG_TARGET/ZIG_TOOLCHAIN_FILE env vars. The zig.cmake toolchain file is bundled with this action.'
 
 inputs:
+  target:
+    description: 'Zig target triple (default: <host-arch>-linux-gnu.2.17)'
+    required: false
+    default: ''
   zig_download_retries:
     description: 'Number of retries for the download'
     required: false
@@ -23,27 +27,24 @@ runs:
       run: |
         wget --tries=${{ inputs.zig_download_retries }} -O zig.tar.xz https://ziglang.org/download/${{ steps.store.outputs.zig_version }}/zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}.tar.xz
         tar -xvf zig.tar.xz
-
-        cat > zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-cc <<EOF
-        #!/bin/bash
-        exec zig cc -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
-        EOF
-        chmod +x zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-cc
-
-        cat > zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-c++ <<EOF
-        #!/bin/bash
-        exec zig c++ -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
-        EOF
-        chmod +x zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/zig-c++
-
         mv zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/ zig
 
     - name: Setup zig
       shell: bash
       id: zig
       run: |
-        echo "$(pwd)/zig" >> $GITHUB_PATH
-        echo "CC=zig-cc" >> $GITHUB_ENV
-        echo "CXX=zig-c++" >> $GITHUB_ENV
-        echo "AR=zig ar" >> $GITHUB_ENV
-        echo "RANLIB=zig ranlib" >> $GITHUB_ENV
+        ZIG_DIR="$(pwd)/zig"
+        echo "${ZIG_DIR}" >> $GITHUB_PATH
+        echo "ZIG=${ZIG_DIR}/zig" >> $GITHUB_ENV
+        if [ -n "${{ inputs.target }}" ]; then
+          echo "ZIG_TARGET=${{ inputs.target }}" >> $GITHUB_ENV
+        else
+          echo "ZIG_TARGET=$(uname -m)-linux-gnu.2.17" >> $GITHUB_ENV
+        fi
+        ACTION_DIR="${{ github.action_path }}"
+        if [ -f "${ACTION_DIR}/zig.cmake" ]; then
+          cp "${ACTION_DIR}/zig.cmake" "${ZIG_DIR}/zig.cmake"
+        else
+          cp "${GITHUB_WORKSPACE}/.github/actions/install-zig/zig.cmake" "${ZIG_DIR}/zig.cmake"
+        fi
+        echo "ZIG_TOOLCHAIN_FILE=${ZIG_DIR}/zig.cmake" >> $GITHUB_ENV

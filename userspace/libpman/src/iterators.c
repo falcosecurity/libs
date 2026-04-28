@@ -16,6 +16,21 @@ limitations under the License.
 
 */
 
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#ifdef __GLIBC_PREREQ
+#if __GLIBC_PREREQ(2, 30)
+#define HAS_GETTID 1
+#endif
+#endif
+#ifndef HAS_GETTID
+static inline pid_t compat_gettid(void) {
+	return (pid_t)syscall(SYS_gettid);
+}
+#define gettid compat_gettid
+#endif
+
 #include <driver/ppm_events_public.h>
 #include <driver/ppm_param_helpers.h>
 #include <libpman.h>
