@@ -31,14 +31,6 @@ extern sinsp_evttables g_infotables;
 
 #define UESTORAGE_INITIAL_BUFSIZE 256
 
-#define RETURN_EXTRACT_CSTR(x)           \
-	do {                                 \
-		if((x)) {                        \
-			*len = strlen((char*)((x))); \
-		}                                \
-		return (uint8_t*)((x));          \
-	} while(0)
-
 static inline bool str_match_start(std::string_view val, size_t len, const char* m) {
 	return val.compare(0, len, m) == 0;
 }
@@ -936,11 +928,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 	}
 	case TYPE_DIR:
-		if(PPME_IS_ENTER(evt->get_type())) {
-			RETURN_EXTRACT_CSTR(">");
-		} else {
-			RETURN_EXTRACT_CSTR("<");
-		}
+		return extract_single_cstring(PPME_IS_ENTER(evt->get_type()) ? ">" : "<", len);
 	case TYPE_TYPE: {
 		// TODO(ekoops): from each case, remove the following const_casts once the method signature
 		//   is updated to return a pointer to a const buffer.
@@ -975,7 +963,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 		}
 
-		RETURN_EXTRACT_CSTR(evt_name);
+		return extract_single_cstring(evt_name, len);
 	} break;
 	case TYPE_TYPE_IS: {
 		uint16_t etype = evt->get_scap_evt()->type;
@@ -1016,7 +1004,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			evt_name = const_cast<char*>(evt->get_name());
 		}
 
-		RETURN_EXTRACT_CSTR(evt_name);
+		return extract_single_cstring(evt_name, len);
 	} break;
 	case TYPE_CATEGORY:
 		sinsp_evt::category cat;
@@ -1139,9 +1127,9 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 
 		if(resolved_argstr != NULL && resolved_argstr[0] != 0) {
-			RETURN_EXTRACT_CSTR(resolved_argstr);
+			return extract_single_cstring(resolved_argstr, len);
 		} else {
-			RETURN_EXTRACT_CSTR(argstr);
+			return extract_single_cstring(argstr, len);
 		}
 	} break;
 	case TYPE_INFO: {
@@ -1152,7 +1140,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 	case TYPE_ARGS: {
 		if(evt->get_type() == PPME_GENERIC_X) {
 			// Don't print the arguments for generic events: they have only internal use.
-			RETURN_EXTRACT_CSTR("");
+			return extract_single_cstring("", len);
 		}
 
 		const char* resolved_argstr = NULL;
@@ -1216,7 +1204,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 		int64_t res = evt->get_syscall_return_value();
 		if(res >= 0) {
-			RETURN_EXTRACT_CSTR("SUCCESS");
+			return extract_single_cstring("SUCCESS", len);
 		}
 
 		// todo!: we should check if a failed syscall can return something that is not an errno.
