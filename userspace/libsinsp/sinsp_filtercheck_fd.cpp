@@ -514,7 +514,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			return NULL;
 		} else {
 			const char *typestr = m_fdinfo->get_typestring();
-			return extract_single_cstring(typestr, len, sanitize_strings, m_tstr);
+			return extract_single_cstring(typestr, len, sanitize_strings, m_sanitized_str_storage);
 		}
 		break;
 	case TYPE_DIRECTORY:
