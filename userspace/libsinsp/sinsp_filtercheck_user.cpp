@@ -22,12 +22,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_VAR(x)  \
-	do {                       \
-		*len = sizeof((x));    \
-		return (uint8_t*)&(x); \
-	} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_user_fields[] = {
         {PT_UINT32, EPF_NONE, PF_ID, "user.uid", "User ID", "user ID."},
         {PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "User Name", "user name."},
@@ -104,7 +98,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	switch(m_field_id) {
 	case TYPE_UID:
 		m_val.u32 = tinfo->m_uid;
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	case TYPE_NAME:
 		if(user) {
 			m_strval = user->name;
@@ -135,7 +129,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		if(tinfo->m_loginuid < UINT32_MAX) {
 			m_val.s64 = (int64_t)tinfo->m_loginuid;
 		}
-		RETURN_EXTRACT_VAR(m_val.s64);
+		return extract_single_val(m_val.s64, len);
 	case TYPE_LOGINNAME:
 		if(loginuser) {
 			m_strval = loginuser->name;

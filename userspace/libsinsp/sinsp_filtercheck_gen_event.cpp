@@ -24,12 +24,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_VAR(x)  \
-	do {                       \
-		*len = sizeof((x));    \
-		return (uint8_t*)&(x); \
-	} while(0)
-
 #define RETURN_EXTRACT_CSTR(x)           \
 	do {                                 \
 		if((x)) {                        \
@@ -223,25 +217,25 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		return extract_single_string(m_strstorage, len, sanitize_strings);
 	case TYPE_RAWTS:
 		m_val.u64 = evt->get_ts();
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_RAWTS_S:
 		m_val.u64 = evt->get_ts() / ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_RAWTS_NS:
 		m_val.u64 = evt->get_ts() % ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_RELTS:
 		m_val.u64 = evt->get_ts() - m_inspector->m_firstevent_ts;
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_RELTS_S:
 		m_val.u64 = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_RELTS_NS:
 		m_val.u64 = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_NUMBER:
 		m_val.u64 = evt->get_num();
-		RETURN_EXTRACT_VAR(m_val.u64);
+		return extract_single_val(m_val.u64, len);
 	case TYPE_PLUGINNAME:
 	case TYPE_PLUGININFO: {
 		const auto& plugin = m_inspector->get_plugin_manager()->plugin_by_evt(evt);
@@ -269,7 +263,7 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		} else {
 			m_val.u32 = 0;
 		}
-		RETURN_EXTRACT_VAR(m_val.u32);
+		return extract_single_val(m_val.u32, len);
 	case TYPE_ASYNCTYPE: {
 		if(!libsinsp::events::is_metaevent((ppm_event_code)evt->get_type())) {
 			return NULL;
