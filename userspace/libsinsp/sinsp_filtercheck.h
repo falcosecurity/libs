@@ -265,6 +265,16 @@ protected:
 		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str.c_str()));
 	}
 
+	// Helper that must be used while extracting a single C string value. It returns `str` and sets
+	// `*len` to `strlen(str)`. Returns nullptr if `str` is nullptr, leaving `*len` unset.
+	static uint8_t* extract_single_cstring(const char* str, uint32_t* len) {
+		if(str == nullptr) {
+			return nullptr;
+		}
+		*len = strlen(str);
+		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
+	}
+
 	// Helper that must be used while extracting a single value. It returns a pointer to `val` and
 	// sets `*len` to `sizeof(val)`.
 	template<typename T,

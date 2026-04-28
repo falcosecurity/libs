@@ -24,14 +24,6 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_CSTR(x)            \
-	do {                                  \
-		if((x)) {                         \
-			*len = strlen((char *)((x))); \
-		}                                 \
-		return (uint8_t *)((x));          \
-	} while(0)
-
 static inline bool str_match_start(std::string_view val, size_t len, const char *m) {
 	return val.compare(0, len, m) == 0;
 }
@@ -521,8 +513,8 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(m_fdinfo == NULL) {
 			return NULL;
 		} else {
-			uint8_t *typestr = (uint8_t *)m_fdinfo->get_typestring();
-			RETURN_EXTRACT_CSTR(typestr);
+			const char *typestr = m_fdinfo->get_typestring();
+			return extract_single_cstring(typestr, len);
 		}
 		break;
 	case TYPE_DIRECTORY:
