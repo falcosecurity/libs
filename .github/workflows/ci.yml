@@ -30,7 +30,7 @@ jobs:
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
-            cmake_opts: -DUSE_BUNDLED_DEPS=True
+            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchains/zig.cmake
     container:
       image: debian:bookworm
     steps:

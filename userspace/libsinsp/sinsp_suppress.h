@@ -93,6 +93,8 @@ private:
 
 	void handle_thread(uint64_t tid, uint64_t parent_tid, const std::string& comm);
 
+	// tree representation of /proc filesystem. Used to generate the suppressed tids
+	// when the proc scan is performed.
 	std::unique_ptr<std::map<uint64_t, tid_tree_node>> m_tids_tree;
 };
 
