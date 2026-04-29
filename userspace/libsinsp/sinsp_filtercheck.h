@@ -262,29 +262,26 @@ protected:
 
 	// Helper that must be used while extracting a single string value. It returns a pointer to the
 	// first character of `str` and sets `*len` to the string length. If `must_sanitize` is true and
-	// `str` contains invalid UTF-8 sequences, the sanitized copy is written into `*storage` (lazily
-	// allocated on first use) and a pointer to it is returned instead.
-	static uint8_t* extract_single_string(const std::string& str,
-	                                      uint32_t* len,
-	                                      const bool must_sanitize,
-	                                      std::unique_ptr<std::string>& storage) {
+	// `str` contains invalid UTF-8 sequences, the sanitized copy is written into
+	// `m_sanitized_str_storage` (lazily allocated on first use) and a pointer to it is returned
+	// instead.
+	uint8_t* extract_single_string(const std::string& str,
+	                               uint32_t* len,
+	                               const bool must_sanitize) {
 		const auto* const ptr = str.data();
 		*len = str.size();
 		if(!must_sanitize) {
 			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
 		}
-		return extract_single_sanitized_string(ptr, *len, len, storage);
+		return extract_single_sanitized_string(ptr, *len, len, m_sanitized_str_storage);
 	}
 
 	// Helper that must be used while extracting a single C string value. It returns `str` and sets
 	// `*len` to `strlen(str)`. Returns nullptr if `str` is nullptr, leaving `*len` unset.
 	// If `must_sanitize` is true and the string contains invalid UTF-8 sequences, the sanitized
-	// copy is written into `*storage` (lazily allocated on first use) and a pointer to it is
-	// returned instead.
-	static uint8_t* extract_single_cstring(const char* str,
-	                                       uint32_t* len,
-	                                       const bool must_sanitize,
-	                                       std::unique_ptr<std::string>& storage) {
+	// copy is written into `m_sanitized_str_storage` (lazily allocated on first use) and a pointer
+	// to it is returned instead.
+	uint8_t* extract_single_cstring(const char* str, uint32_t* len, const bool must_sanitize) {
 		if(str == nullptr) {
 			return nullptr;
 		}
@@ -292,7 +289,7 @@ protected:
 		if(!must_sanitize) {
 			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
 		}
-		return extract_single_sanitized_string(str, *len, len, storage);
+		return extract_single_sanitized_string(str, *len, len, m_sanitized_str_storage);
 	}
 
 	// Helper that must be used while extracting a single value. It returns a pointer to `val` and
