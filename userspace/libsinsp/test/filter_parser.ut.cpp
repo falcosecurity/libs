@@ -180,6 +180,49 @@ TEST(parser, parse_shared_field_arg_types) {
 	          R"(getopt(proc.args,nt:)[t] = value)");
 }
 
+TEST(parser, filtercheck_arg_optional) {
+	parser no_arg_parser(R"(test.str = value)");
+	auto no_arg = no_arg_parser.parse();
+	auto* no_arg_check = dynamic_cast<binary_check_expr*>(no_arg.get());
+	ASSERT_NE(no_arg_check, nullptr);
+	auto* no_arg_field = dynamic_cast<field_expr*>(no_arg_check->left.get());
+	ASSERT_NE(no_arg_field, nullptr);
+	EXPECT_FALSE(no_arg_field->arg);
+
+	parser empty_arg_parser(R"(test.str[""] = value)");
+	auto empty_arg = empty_arg_parser.parse();
+	auto* empty_arg_check = dynamic_cast<binary_check_expr*>(empty_arg.get());
+	ASSERT_NE(empty_arg_check, nullptr);
+	auto* empty_arg_field = dynamic_cast<field_expr*>(empty_arg_check->left.get());
+	ASSERT_NE(empty_arg_field, nullptr);
+	ASSERT_TRUE(empty_arg_field->arg);
+	EXPECT_EQ(*empty_arg_field->arg, "");
+
+	EXPECT_FALSE(no_arg->is_equal(empty_arg.get()));
+}
+
+TEST(parser, transformer_arg_optional) {
+	parser no_arg_parser(R"(getopt(proc.args, "nt:") = value)");
+	auto no_arg = no_arg_parser.parse();
+	auto* no_arg_check = dynamic_cast<binary_check_expr*>(no_arg.get());
+	ASSERT_NE(no_arg_check, nullptr);
+	auto* no_arg_transformer = dynamic_cast<field_transformer_expr*>(no_arg_check->left.get());
+	ASSERT_NE(no_arg_transformer, nullptr);
+	EXPECT_FALSE(no_arg_transformer->arg);
+
+	parser empty_arg_parser(R"(getopt(proc.args, "nt:")[""] = value)");
+	auto empty_arg = empty_arg_parser.parse();
+	auto* empty_arg_check = dynamic_cast<binary_check_expr*>(empty_arg.get());
+	ASSERT_NE(empty_arg_check, nullptr);
+	auto* empty_arg_transformer =
+	        dynamic_cast<field_transformer_expr*>(empty_arg_check->left.get());
+	ASSERT_NE(empty_arg_transformer, nullptr);
+	ASSERT_TRUE(empty_arg_transformer->arg);
+	EXPECT_EQ(*empty_arg_transformer->arg, "");
+
+	EXPECT_FALSE(no_arg->is_equal(empty_arg.get()));
+}
+
 TEST(parser, parse_shared_field_arg_exceptions) {
 	test_reject_msg(R"(evt.arg[] = value)",
 	                "expected a valid field argument: a quoted string or a bare string");
@@ -693,14 +736,14 @@ TEST(parser, parse_position_info) {
 // complex test case with all supported node types
 TEST(parser, expr_all_node_types) {
 	std::vector<std::unique_ptr<expr>> and_children;
-	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name", ""), "exists"));
-	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""),
+	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name"), "exists"));
+	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type"),
 	                                                 "in",
 	                                                 list_expr::create({"a", "b"})));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
-	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name", ""),
+	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
 	                                                "=",
 	                                                value_expr::create("cat")));
 
@@ -712,24 +755,23 @@ TEST(parser, expr_all_node_types) {
 TEST(parser, expr_transformers) {
 	std::vector<std::unique_ptr<expr>> and_children;
 	and_children.push_back(unary_check_expr::create(
-	        field_transformer_expr::create("b64", field_expr::create("evt.name", "")),
+	        field_transformer_expr::create("b64", field_expr::create("evt.name")),
 	        "exists"));
 	and_children.push_back(binary_check_expr::create(
 	        field_transformer_expr::create(
 	                "tolower",
-	                field_transformer_expr::create("toupper", field_expr::create("evt.type", ""))),
+	                field_transformer_expr::create("toupper", field_expr::create("evt.type"))),
 	        "in",
-	        field_transformer_expr::create("val", field_expr::create("some.field", ""))));
+	        field_transformer_expr::create("val", field_expr::create("some.field"))));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
 	or_children.push_back(binary_check_expr::create(
-	        field_expr::create("proc.name", ""),
+	        field_expr::create("proc.name"),
 	        "=",
 	        field_transformer_expr::create(
 	                "b64",
-	                field_transformer_expr::create("tolower",
-	                                               field_expr::create("some.field", "")))));
+	                field_transformer_expr::create("tolower", field_expr::create("some.field")))));
 
 	std::unique_ptr<expr> ast = or_expr::create(or_children);
 
@@ -742,14 +784,14 @@ TEST(parser, expr_transformers) {
 // complex example with parenthesis
 TEST(parser, expr_parenthesis) {
 	std::vector<std::unique_ptr<expr>> and_children;
-	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name", ""), "exists"));
-	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""),
+	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name"), "exists"));
+	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type"),
 	                                                 "in",
 	                                                 list_expr::create({"a", "b"})));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
-	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name", ""),
+	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
 	                                                "=",
 	                                                value_expr::create("cat")));
 
@@ -761,14 +803,14 @@ TEST(parser, expr_parenthesis) {
 // stressing nested negation and identifiers
 TEST(parser, expr_multi_negation) {
 	std::vector<std::unique_ptr<expr>> and_children;
-	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name", ""), "exists"));
-	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""),
+	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name"), "exists"));
+	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type"),
 	                                                 "in",
 	                                                 list_expr::create({"a", "b"})));
 
 	std::vector<std::unique_ptr<expr>> or_children;
 	or_children.push_back(and_expr::create(and_children));
-	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name", ""),
+	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
 	                                                "=",
 	                                                value_expr::create("cat")));
 

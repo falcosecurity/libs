@@ -26,6 +26,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <memory>
+#include <optional>
 
 /** @defgroup filter Filtering events
  * Filtering infrastructure.
@@ -233,7 +234,8 @@ private:
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::field_expr*) override;
 	void visit(const libsinsp::filter::ast::field_transformer_expr*) override;
-	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
+	std::string create_filtercheck_name(const std::string& name,
+	                                    const std::optional<std::string>& arg);
 	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
 	void check_value_and_add_warnings(cmpop op,
 	                                  const libsinsp::filter::ast::pos_info& pos,
@@ -341,7 +343,8 @@ private:
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::field_expr*) override;
 	void visit(const libsinsp::filter::ast::field_transformer_expr*) override;
-	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
+	std::string create_filtercheck_name(const std::string& name,
+	                                    const std::optional<std::string>& arg);
 	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
 	void check_value_and_add_warnings(cmpop op,
 	                                  const libsinsp::filter::ast::pos_info& pos,

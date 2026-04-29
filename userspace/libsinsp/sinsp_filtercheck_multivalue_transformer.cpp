@@ -65,8 +65,8 @@ bool sinsp_filter_multivalue_transformer::supports_arg() const {
 	return false;
 }
 
-void sinsp_filter_multivalue_transformer::set_arg(std::string arg) {
-	if(!arg.empty()) {
+void sinsp_filter_multivalue_transformer::set_arg(std::optional<std::string> arg) {
+	if(arg) {
 		throw sinsp_exception("transformer '" + name() + "' does not support field arguments");
 	}
 }
@@ -301,13 +301,13 @@ bool sinsp_filter_multivalue_transformer_getopt::supports_arg() const {
 	return true;
 }
 
-void sinsp_filter_multivalue_transformer_getopt::set_arg(std::string arg) {
-	if(arg.empty()) {
-		m_arg.clear();
+void sinsp_filter_multivalue_transformer_getopt::set_arg(std::optional<std::string> arg) {
+	if(!arg) {
+		m_arg = std::nullopt;
 		m_result_type = {PT_CHARBUF, true};
 		return;
 	}
-	if(arg.size() != 1) {
+	if(arg->size() != 1) {
 		throw sinsp_exception("getopt() field argument must be a single option character");
 	}
 	m_arg = std::move(arg);
@@ -444,8 +444,8 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 
 	// In selector mode, e.g. getopt(...)[t], we keep only the last matching
 	// option/value instead of emitting the full getopt result stream.
-	const bool has_selector = !m_arg.empty();
-	const unsigned char selector = has_selector ? static_cast<unsigned char>(m_arg[0]) : 0;
+	const bool has_selector = m_arg.has_value();
+	const unsigned char selector = has_selector ? static_cast<unsigned char>((*m_arg)[0]) : 0;
 	std::optional<std::pair<size_t, uint32_t>> selected_result;
 
 	// Walk argv entries in order, applying getopt's top-level stopping rules
@@ -559,7 +559,7 @@ sinsp_filter_multivalue_transformer_getopt::~sinsp_filter_multivalue_transformer
 std::unique_ptr<sinsp_filter_check> sinsp_filter_multivalue_transformer::create_transformer(
         const std::string& name,
         std::vector<std::unique_ptr<sinsp_filter_check>> args,
-        const std::string& arg) {
+        const std::optional<std::string>& arg) {
 	std::unique_ptr<sinsp_filter_multivalue_transformer> transformer;
 	if(name == "join") {
 		transformer = std::make_unique<sinsp_filter_multivalue_transformer_join>(std::move(args));

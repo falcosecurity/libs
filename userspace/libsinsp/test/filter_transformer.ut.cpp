@@ -843,6 +843,7 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_getopt) {
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[t] = hello)"));
 	EXPECT_FALSE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[t] = n)"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-n", "-t", "hello"), "nt:")[n] = n)"));
+	EXPECT_THROW(eval_filter(evt, R"(getopt(("-n"), "n")[""] = n)"), sinsp_exception);
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t", "v1", "-t", "v2"), "t:")[t] = v2)"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t?"), "t:")[t] = ?)"));
 	EXPECT_TRUE(eval_filter(evt, R"(getopt(("-t:"), ":t:")[t] = :)"));

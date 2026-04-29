@@ -338,9 +338,9 @@ std::unique_ptr<ast::expr> parser::parse_field_remainder(std::string fieldname,
 	return field;
 }
 
-std::string parser::parse_optional_field_arg() {
+std::optional<std::string> parser::parse_optional_field_arg() {
 	if(!lex_helper_str("[")) {
-		return "";
+		return std::nullopt;
 	}
 
 	if(!lex_quoted_str() && !lex_field_arg_bare_str()) {
@@ -353,7 +353,7 @@ std::string parser::parse_optional_field_arg() {
 		throw sinsp_exception("expected a ']' token");
 	}
 
-	return arg;
+	return std::make_optional(arg);
 }
 
 // FieldTransformerTail ::= FieldTransformerArg ( ',' FieldTransformerArg )* ')'

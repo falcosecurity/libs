@@ -21,6 +21,20 @@ limitations under the License.
 
 using namespace libsinsp::filter::ast;
 
+namespace {
+void append_optional_field_arg(std::string& str, const std::optional<std::string>& arg) {
+	if(!arg) {
+		return;
+	}
+	const auto& value = *arg;
+	if(value.empty()) {
+		str += "[\"\"]";
+	} else {
+		str += "[" + libsinsp::filter::escape_str(value) + "]";
+	}
+}
+}  // namespace
+
 void base_expr_visitor::visit(and_expr* e) {
 	for(auto& c : e->children) {
 		if(m_should_stop_visit) {
@@ -219,9 +233,7 @@ void string_visitor::visit(const binary_check_expr* e) {
 
 void string_visitor::visit(const field_expr* e) {
 	m_str += e->field;
-	if(e->arg != "") {
-		m_str += "[" + libsinsp::filter::escape_str(e->arg) + "]";
-	}
+	append_optional_field_arg(m_str, e->arg);
 }
 
 void string_visitor::visit(const field_transformer_expr* e) {
@@ -236,9 +248,7 @@ void string_visitor::visit(const field_transformer_expr* e) {
 		c->accept(this);
 	}
 	m_str += ")";
-	if(e->arg != "") {
-		m_str += "[" + libsinsp::filter::escape_str(e->arg) + "]";
-	}
+	append_optional_field_arg(m_str, e->arg);
 }
 
 const std::string& string_visitor::as_string() {
