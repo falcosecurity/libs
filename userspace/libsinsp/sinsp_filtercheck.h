@@ -268,31 +268,12 @@ protected:
 	                                      uint32_t* len,
 	                                      const bool must_sanitize,
 	                                      std::unique_ptr<std::string>& storage) {
-		const auto* const ptr = reinterpret_cast<const unsigned char*>(str.data());
+		const auto* const ptr = str.data();
 		*len = str.size();
 		if(!must_sanitize) {
 			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
 		}
-
-		// Check if the string needs sanitization.
-		const auto* const end_ptr = ptr + *len;
-		const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
-		// String already sanitized, return it.
-		if(first_invalid_ptr == end_ptr) {
-			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
-		}
-
-		// String needs sanitization. Store the sanitized version in `*storage` and return a pointer
-		// to it.
-		if(!storage) {
-			storage = std::make_unique<std::string>();
-		}
-		const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
-		storage->clear();  // Reset to empty while preserving allocated capacity.
-		storage->reserve(*len);
-		append_sanitized_string(*storage, str, valid_prefix_len);
-		*len = static_cast<uint32_t>(storage->size());
-		return reinterpret_cast<uint8_t*>(storage->data());
+		return extract_single_sanitized_string(ptr, *len, len, storage);
 	}
 
 	// Helper that must be used while extracting a single C string value. It returns `str` and sets
@@ -307,33 +288,11 @@ protected:
 		if(str == nullptr) {
 			return nullptr;
 		}
-
 		*len = strlen(str);
 		if(!must_sanitize) {
 			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
 		}
-
-		// Check if the string needs sanitization.
-		const auto* const ptr = reinterpret_cast<const unsigned char*>(str);
-		const auto* const end_ptr = ptr + *len;
-		const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
-		// String already sanitized, return it.
-		if(first_invalid_ptr == end_ptr) {
-			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
-		}
-
-		// String needs sanitization. Store the sanitized version in `*storage` and return a pointer
-		// to it.
-		if(!storage) {
-			storage = std::make_unique<std::string>();
-		}
-		const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
-		const std::string_view str_to_sanitize{str, *len};
-		storage->clear();  // Reset to empty while preserving allocated capacity.
-		storage->reserve(*len);
-		append_sanitized_string(*storage, str_to_sanitize, valid_prefix_len);
-		*len = static_cast<uint32_t>(storage->size());
-		return reinterpret_cast<uint8_t*>(storage->data());
+		return extract_single_sanitized_string(str, *len, len, storage);
 	}
 
 	// Helper that must be used while extracting a single value. It returns a pointer to `val` and
@@ -350,6 +309,37 @@ protected:
 	}
 
 private:
+	// Checks `str` for invalid UTF-8:
+	// - if valid, returns the original pointer (leaving `*len` unchanged)
+	// - if invalid, writes the sanitized version into `*storage` (lazily allocated on first use),
+	//   updates `*len`, and returns a pointer to the sanitized data.
+	// Callers must set `*len` to `str_len` before calling.
+	static uint8_t* extract_single_sanitized_string(const char* str,
+	                                                const size_t str_len,
+	                                                uint32_t* len,
+	                                                std::unique_ptr<std::string>& storage) {
+		const auto* const ptr = reinterpret_cast<const unsigned char*>(str);
+		const auto* const end_ptr = ptr + str_len;
+		const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+		// String already sanitized, return it.
+		if(first_invalid_ptr == end_ptr) {
+			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
+		}
+
+		// String needs sanitization. Store the sanitized version in `*storage` and return a pointer
+		// to it.
+		if(!storage) {
+			storage = std::make_unique<std::string>();
+		}
+		const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
+		const std::string_view str_to_sanitize{str, str_len};
+		storage->clear();  // Reset to empty while preserving allocated capacity.
+		storage->reserve(str_len);
+		append_sanitized_string(*storage, str_to_sanitize, valid_prefix_len);
+		*len = static_cast<uint32_t>(storage->size());
+		return reinterpret_cast<uint8_t*>(storage->data());
+	}
+
 	//
 	// Instead of populating the filter check values with const values extracted at
 	// filter compile time, it populates the filter check values with values extracted
