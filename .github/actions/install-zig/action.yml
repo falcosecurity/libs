@@ -6,6 +6,10 @@ inputs:
     description: 'Zig target triple (default: <host-arch>-linux-gnu.2.17)'
     required: false
     default: ''
+  toolchain_file:
+    description: 'Absolute path to the zig.cmake toolchain file. If empty, defaults to cmake/toolchains/zig.cmake inside the libs source tree that contains this action.'
+    required: false
+    default: ''
   zig_download_retries:
     description: 'Number of retries for the download'
     required: false
@@ -41,5 +45,10 @@ runs:
         else
           echo "ZIG_TARGET=$(uname -m)-linux-gnu.2.17" >> $GITHUB_ENV
         fi
-        TOOLCHAIN="$(realpath "${{ github.action_path }}/../../../cmake/toolchains/zig.cmake")"
+        if [ -n "${{ inputs.toolchain_file }}" ]; then
+          TOOLCHAIN="${{ inputs.toolchain_file }}"
+        else
+          LIBS_ROOT="$(cd "${{ github.action_path }}/../../.." && pwd)"
+          TOOLCHAIN="${LIBS_ROOT}/cmake/toolchains/zig.cmake"
+        fi
         echo "ZIG_TOOLCHAIN_FILE=${TOOLCHAIN}" >> $GITHUB_ENV

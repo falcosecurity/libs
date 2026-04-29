@@ -30,7 +30,7 @@ jobs:
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
-            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchains/zig.cmake
+            cmake_opts: -DUSE_BUNDLED_DEPS=True
     container:
       image: debian:bookworm
     steps:
@@ -62,7 +62,7 @@ jobs:
         env:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
-          cmake -B build -S . ${{ matrix.cmake_opts }} -DENABLE_THREAD_POOL=ON -DENABLE_MULTI_THREAD=ON
+          cmake -B build -S . ${{ matrix.cmake_opts }} ${ZIG_TOOLCHAIN_FILE:+-DCMAKE_TOOLCHAIN_FILE=$ZIG_TOOLCHAIN_FILE} -DENABLE_THREAD_POOL=ON -DENABLE_MULTI_THREAD=ON
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
           cmake --build build --target run-unit-tests --parallel $(nproc)
 
