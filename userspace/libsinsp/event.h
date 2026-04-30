@@ -626,11 +626,6 @@ public:
 	}
 
 	std::string get_param_value_str(uint32_t id, bool resolved);
-	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
-	int render_fd_json(Json::Value* ret,
-	                   int64_t fd,
-	                   const char** resolved_str,
-	                   sinsp_evt::param_fmt fmt);
 	inline uint32_t get_dump_flags() const { return m_dump_flags; }
 	inline void set_dump_flags(uint32_t v) { m_dump_flags = v; }
 	int32_t get_errorcode() const { return m_errorcode; }
@@ -774,6 +769,9 @@ public:
 	inline bool creates_fd() const { return get_info_flags() & EF_CREATES_FD; }
 
 private:
+	char* render_fd(int64_t fd, const char** resolved_str, param_fmt fmt);
+	int render_fd_json(Json::Value* ret, int64_t fd, const char** resolved_str, param_fmt fmt);
+
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
 	char* m_pevt_storage;  // In some cases an alternate buffer is used to hold m_pevt. This points
