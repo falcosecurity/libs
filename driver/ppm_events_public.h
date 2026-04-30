@@ -842,6 +842,12 @@ or GPL2.txt for full copies of the license.
 #define PPM_DELETE_MODULE_O_NONBLOCK (1 << 1)
 
 /*
+ * close_range flags
+ */
+#define PPM_CLOSE_RANGE_UNSHARE (1 << 1)
+#define PPM_CLOSE_RANGE_CLOEXEC (1 << 2)
+
+/*
  * bpf_commands
  */
 #define PPM_BPF_MAP_CREATE 0
@@ -1533,7 +1539,9 @@ typedef enum {
 	PPME_ITER_TASK_FILE_SOCKET_NETLINK_X = 447,
 	PPME_ITER_TASK_FILE_ANON_INODE_E = 448,
 	PPME_ITER_TASK_FILE_ANON_INODE_X = 449,
-	PPM_EVENT_MAX = 450
+	PPME_SYSCALL_CLOSE_RANGE_E = 450,
+	PPME_SYSCALL_CLOSE_RANGE_X = 451,
+	PPM_EVENT_MAX = 452
 } ppm_event_code;
 /*@}*/
 
@@ -2311,6 +2319,7 @@ extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
 extern const struct ppm_name_value delete_module_flags[];
+extern const struct ppm_name_value close_range_flags[];
 extern const struct ppm_name_value finit_module_flags[];
 extern const struct ppm_name_value anon_inode_fd_types[];
 /*!

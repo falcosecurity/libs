@@ -13,7 +13,8 @@ TEST(SyscallExit, fcntlX) {
 
 	int32_t invalid_fd = -1;
 	int cmd = F_DUPFD_CLOEXEC;
-	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
+	int arg = 0;
+	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd, arg));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -41,8 +42,11 @@ TEST(SyscallExit, fcntlX) {
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS8) */
 	evt_test->assert_numeric_param(3, (uint8_t)PPM_FCNTL_F_DUPFD_CLOEXEC);
 
+	/* Parameter 4: arg (type: PT_UINT64) */
+	evt_test->assert_numeric_param(4, (uint64_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif

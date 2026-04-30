@@ -31,7 +31,7 @@ def expected_events(origin: dict, destination: dict) -> list:
     return [
         {
             "container.id": origin['id'],
-            "evt.args": "fd=3(<4>) domain=2(AF_INET) type=1 proto=0",
+            "evt.args": "fd=3(<4>) domain=2(AF_INET) type=1 proto=0 flags=0(O_NONE)",
             "evt.category": "net",
             "evt.type": "socket",
             "fd.name": "",
@@ -39,7 +39,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.exe": "curl",
         }, {
             "container.id": destination['id'],
-            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511 flags=0",
+            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511 flags=40",
             "evt.category": "net",
             "evt.type": "accept4",
             "fd.name": f"{origin['ip']}->{destination['ip']}",

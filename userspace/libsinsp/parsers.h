@@ -98,6 +98,7 @@ private:
 	void parse_connect_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_accept_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
 	void parse_close_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
+	void parse_close_range_exit(sinsp_evt& evt) const;
 	static void parse_thread_exit(sinsp_evt& evt, sinsp_parser_verdict& verdict);
 	void parse_memfd_create_exit(sinsp_evt& evt, scap_fd_type type) const;
 	void parse_pidfd_open_exit(sinsp_evt& evt) const;
@@ -194,7 +195,8 @@ private:
 	                       int64_t fd,
 	                       uint32_t domain,
 	                       uint32_t type,
-	                       uint32_t protocol) const;
+	                       uint32_t protocol,
+	                       uint32_t flags) const;
 	inline void infer_send_sendto_sendmsg_fdinfo(sinsp_evt& evt) const;
 	inline void add_pipe(sinsp_evt& evt, int64_t fd, uint64_t ino, uint32_t openflags) const;
 	// Return false if the update didn't happen (for example because the tuple is NULL)

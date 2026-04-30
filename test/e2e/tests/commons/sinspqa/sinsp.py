@@ -258,15 +258,30 @@ def assert_events(expected_events: dict,
         timeout (int): The seconds to wait for the events to be asserted
     """
     start = datetime.now()
+    events_since_last_match = []
+    # Keep track of all events by evt.type so we can show near-misses
+    events_by_type = {}
     for log in sinsp.read():
         if not log:
             continue
         received_event = parse_log(log)
 
+        matched = False
         for event in expected_events:
             if validate_event(event, received_event):
                 expected_events.remove(event)
+                matched = True
                 break
+
+        if matched:
+            events_since_last_match = []
+        else:
+            events_since_last_match.append(received_event)
+
+        # Track events by type for near-miss reporting
+        if received_event is not None:
+            evt_type = received_event.get('evt.type', '<unknown>')
+            events_by_type.setdefault(evt_type, []).append(received_event)
 
         if not expected_events:
             # No more events to be matched. Leave.
@@ -277,7 +292,36 @@ def assert_events(expected_events: dict,
 
     # If any event was unmatched, raise an assert.
     if expected_events:
-        assert False, f"Did not receive expected events: {expected_events}"
+        max_dump = 50
+        msg_parts = [f"Did not receive expected events:"]
+        for evt in expected_events:
+            msg_parts.append(f"  {evt}")
+
+        total = len(events_since_last_match)
+        if total > 0:
+            msg_parts.append(f"\nEvents seen since last successful match ({total} total, showing last {min(total, max_dump)}):")
+            for evt in events_since_last_match[-max_dump:]:
+                if evt is not None:
+                    summary = {k: evt.get(k, '<missing>') for expected in expected_events for k in expected}
+                    msg_parts.append(f"  {summary}")
+                else:
+                    msg_parts.append("  None (unparseable event)")
+
+        # Show near-miss events: all events matching the evt.type of unmatched expected events
+        wanted_types = {e.get('evt.type') for e in expected_events if 'evt.type' in e}
+        if wanted_types:
+            for wt in sorted(wanted_types):
+                candidates = events_by_type.get(wt, [])
+                if candidates:
+                    shown = candidates[-max_dump:]
+                    msg_parts.append(f"\nNear-miss events with evt.type={wt} ({len(candidates)} total, showing last {len(shown)}):")
+                    for evt in shown:
+                        summary = {k: evt.get(k, '<missing>') for expected in expected_events for k in expected}
+                        msg_parts.append(f"  {summary}")
+                else:
+                    msg_parts.append(f"\nNo events with evt.type={wt} were seen at all")
+
+        assert False, "\n".join(msg_parts)
 
 
 def sinsp_validation(container: docker.models.containers.Container) -> (bool, str):

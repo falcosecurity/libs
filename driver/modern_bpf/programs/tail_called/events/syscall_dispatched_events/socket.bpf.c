@@ -62,6 +62,9 @@ int BPF_PROG(socket_x, struct pt_regs *regs, long ret) {
 	uint32_t proto = (uint32_t)args[2];
 	ringbuf__store_u32(&ringbuf, proto);
 
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	ringbuf__store_u32(&ringbuf, socket_flags_to_scap(type));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);

@@ -127,6 +127,34 @@ int f_sys_generic(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
+int f_sys_close_range_x(struct event_filler_arguments *args) {
+	int64_t retval = 0;
+	int64_t res = 0;
+	unsigned long val = 0;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: first (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: last (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, close_range_flags_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_empty(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
@@ -1962,12 +1990,9 @@ int f_sys_accept4_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 6: flags (type: PT_FLAGS32) */
-	/*
-	 * push the flags into the ring.
-	 * XXX we don't support flags yet and so we just return zero
-	 */
-	/* res = val_to_ring(args, args->socketcall_args[3]); */
-	res = val_to_ring(args, 0, 0, false, 0);
+	unsigned long flags;
+	syscall_get_arguments_deprecated(args, 3, 1, &flags);
+	res = val_to_ring(args, socket_flags_to_scap(flags), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -4606,6 +4631,11 @@ int f_sys_fcntl_x(struct event_filler_arguments *args) {
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 4: arg (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, (uint64_t)val, 0, false, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 
@@ -5565,6 +5595,7 @@ int f_sys_io_uring_register_x(struct event_filler_arguments *args) {
 
 int f_sys_timerfd_create_x(struct event_filler_arguments *args) {
 	int64_t retval;
+	int64_t val;
 	int res;
 
 	/* Parameter 1: res (type: PT_FD) */
@@ -5574,12 +5605,14 @@ int f_sys_timerfd_create_x(struct event_filler_arguments *args) {
 
 	/* Parameter 2: clockid (type: PT_UINT8) */
 	/* Send `0`. */
-	res = val_to_ring(args, 0, 0, false, 0);
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, (uint8_t)val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_UINT8) */
 	/* Send `0`. */
-	res = val_to_ring(args, 0, 0, false, 0);
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, timerfd_create_flags_to_scap((int32_t)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -7027,6 +7060,11 @@ int f_sys_socket_x(struct event_filler_arguments *args) {
 	/* Parameter 4: proto (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, socket_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

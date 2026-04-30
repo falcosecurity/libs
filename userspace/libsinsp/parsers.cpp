@@ -188,6 +188,9 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	case PPME_SYSCALL_CLOSE_X:
 		parse_close_exit(evt, verdict);
 		break;
+	case PPME_SYSCALL_CLOSE_RANGE_X:
+		parse_close_range_exit(evt);
+		break;
 	case PPME_SYSCALL_FCNTL_X:
 		parse_fcntl_exit(evt);
 		break;
@@ -1742,11 +1745,23 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	                               evt.get_tinfo()->m_gid,
 	                               must_notify_thread_group_update());
 	//
-	// execve starts with a clean fd list, so we get rid of the fd list that clone
-	// copied from the parent
-	// XXX validate this
+	// Purge CLOEXEC FDs on successful execve/execveat
 	//
-	//  scap_fd_free_table(tinfo);
+	if(auto *fd_table = evt.get_tinfo()->get_fd_table(); fd_table != nullptr) {
+		std::vector<int64_t> cloexec_fds;
+		size_t total_fds = 0;
+		fd_table->const_loop([&](int64_t fd, const sinsp_fdinfo &info) {
+			total_fds++;
+			if(info.is_close_on_exec()) {
+				cloexec_fds.push_back(fd);
+			}
+			return true;
+		});
+
+		for(const auto fd : cloexec_fds) {
+			evt.get_tinfo()->remove_fd(fd);
+		}
+	}
 
 	//
 	// Clear the flags for this thread, making sure to propagate the inverted
@@ -2072,7 +2087,8 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
                                      const int64_t fd,
                                      const uint32_t domain,
                                      const uint32_t type,
-                                     const uint32_t protocol) const {
+                                     const uint32_t protocol,
+                                     const uint32_t flags) const {
 	//
 	// Populate the new fdi
 	//
@@ -2080,6 +2096,7 @@ inline void sinsp_parser::add_socket(sinsp_evt &evt,
 	memset(&(fdi->m_sockinfo.m_ipv4info), 0, sizeof(fdi->m_sockinfo.m_ipv4info));
 	fdi->m_type = SCAP_FD_UNKNOWN;
 	fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
+	fdi->m_openflags = flags;
 
 	if(domain == PPM_AF_UNIX) {
 		fdi->m_type = SCAP_FD_UNIX_SOCK;
@@ -2195,7 +2212,7 @@ inline void sinsp_parser::infer_send_sendto_sendmsg_fdinfo(sinsp_evt &evt) const
 		// Here we're assuming send*() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
 		// this point.
-		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP);
+		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP, 0);
 	}
 }
 
@@ -2226,11 +2243,15 @@ void sinsp_parser::parse_socket_exit(sinsp_evt &evt) const {
 	uint32_t domain = evt.get_param(1)->as<uint32_t>();
 	uint32_t type = evt.get_param(2)->as<uint32_t>();
 	uint32_t protocol = evt.get_param(3)->as<uint32_t>();
+	uint32_t flags = 0;
+	if(evt.get_num_params() > 4) {
+		flags = evt.get_param(4)->as<uint32_t>();
+	}
 
 	//
 	// Allocate a new fd descriptor, populate it and add it to the thread fd table
 	//
-	add_socket(evt, fd, domain, type, protocol);
+	add_socket(evt, fd, domain, type, protocol, flags);
 }
 
 void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
@@ -2692,7 +2713,13 @@ void sinsp_parser::parse_accept_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	}
 
 	const char *parstr;
+	uint32_t openflags = 0;
 	fdi->m_name = evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+	if(evt.get_type() == PPME_SOCKET_ACCEPT4_6_X && evt.get_num_params() > 5) {
+		auto flags = evt.get_param(5)->as<int32_t>();
+		openflags |= (flags & PPM_O_CLOEXEC);
+	}
+	fdi->m_openflags = openflags;
 	fdi->m_flags = 0;
 
 	// If there's a listener, add a callback to later invoke it.
@@ -2757,6 +2784,52 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 	// m_n_failed_fd_lookups.
 	if(m_sinsp_stats_v2 != nullptr) {
 		m_sinsp_stats_v2->m_n_failed_fd_lookups--;
+	}
+}
+
+void sinsp_parser::parse_close_range_exit(sinsp_evt &evt) const {
+	if(evt.get_tinfo() == nullptr) {
+		return;
+	}
+
+	const int64_t retval = evt.get_syscall_return_value();
+	if(retval < 0) {
+		return;
+	}
+
+	if(evt.get_num_params() < 4) {
+		return;
+	}
+
+	const uint32_t first = evt.get_param(1)->as<uint32_t>();
+	const uint32_t last = evt.get_param(2)->as<uint32_t>();
+	const uint32_t flags = evt.get_param(3)->as<uint32_t>();
+
+	auto *fd_table = evt.get_tinfo()->get_fd_table();
+	if(fd_table == nullptr) {
+		return;
+	}
+
+	std::vector<int64_t> matching_fds;
+	fd_table->const_loop([&](int64_t fd, const sinsp_fdinfo &) {
+		if(fd >= 0 && static_cast<uint64_t>(fd) >= first && static_cast<uint64_t>(fd) <= last) {
+			matching_fds.push_back(fd);
+		}
+		return true;
+	});
+
+	if((flags & PPM_CLOSE_RANGE_CLOEXEC) != 0) {
+		for(const auto fd : matching_fds) {
+			auto *fdinfo = evt.get_tinfo()->get_fd(fd);
+			if(fdinfo != nullptr) {
+				fdinfo->m_openflags |= PPM_O_CLOEXEC;
+			}
+		}
+		return;
+	}
+
+	for(const auto fd : matching_fds) {
+		evt.get_tinfo()->remove_fd(fd);
 	}
 }
 
@@ -3617,21 +3690,17 @@ void sinsp_parser::parse_dup_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict)
 	}
 
 	// If we are handling the dup3() event exit then we add the flags to the new file descriptor.
+	// We keep the previously flags that has been set on the original file descriptor and just
+	// set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
+	auto fdi = evt.get_fd_info()->clone();
+	fdi->clear_close_on_exec_bits();
 	if(evt.get_type() == PPME_SYSCALL_DUP3_X) {
-		// We keep the previously flags that has been set on the original file descriptor and just
-		// set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
-		if(const auto flags = evt.get_param(3)->as<uint32_t>()) {
-			// Set the O_CLOEXEC flag.
-			evt.get_fd_info()->m_openflags |= flags;
-		} else {
-			// Reset the O_CLOEXEC flag.
-			evt.get_fd_info()->m_openflags &= ~PPM_O_CLOEXEC;
+		uint32_t flags = evt.get_param(3)->as<uint32_t>();
+		if((flags & PPM_O_CLOEXEC) != 0) {
+			fdi->m_openflags |= PPM_O_CLOEXEC;
 		}
 	}
-
-	// Add the new fd to the table.
-	auto fdi = evt.get_fd_info()->clone();
-	evt.set_fd_info(tinfo->add_fd(retval, std::move(fdi)));
+	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 
 void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type type) const {
@@ -3654,6 +3723,19 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt &evt, const scap_fd_type
 
 	if(evt.get_type() == PPME_SYSCALL_SIGNALFD4_X) {
 		fdi->m_openflags = evt.get_param(1)->as<uint16_t>();
+	}
+
+	if(evt.get_type() == PPME_SYSCALL_TIMERFD_CREATE_X && evt.get_num_params() > 2) {
+		/* flags is param 3 (index 2) in the exit event */
+		fdi->m_openflags = evt.get_param(2)->as<uint8_t>();
+	}
+
+	if(evt.get_type() == PPME_SYSCALL_EPOLL_CREATE1_X && evt.get_num_params() > 1) {
+		/* flags is param 2 (index 1) in the exit event */
+		uint32_t openflags = evt.get_param(1)->as<uint32_t>();
+		if((openflags & PPM_EPOLL_CLOEXEC) != 0) {
+			fdi->m_openflags |= PPM_O_CLOEXEC;
+		}
 	}
 
 	// Add the fd to the table.
@@ -3728,9 +3810,10 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) {
 		return;
 	}
 
+	const auto cmd = evt.get_param(2)->as<uint8_t>();
 	// If not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore the event.
-	if(const auto cmd = evt.get_param(2)->as<int8_t>();
-	   !(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC)) {
+	if(!(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC ||
+	     cmd == PPM_FCNTL_F_SETFD)) {
 		return;
 	}
 
@@ -3740,10 +3823,26 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt &evt) {
 		return;
 	}
 
+#ifdef FD_CLOEXEC
+	if(cmd == PPM_FCNTL_F_SETFD) {
+		evt.get_fd_info()->clear_close_on_exec_bits();
+		const auto arg = evt.get_param(3)->as<uint64_t>();
+		if((arg & FD_CLOEXEC) != 0) {
+			evt.get_fd_info()->m_openflags |= PPM_O_CLOEXEC;
+		}
+		return;
+	}
+#endif
+
 	// Add the new fd to the table.
 	// note: dup2 and dup3 accept an existing FD and in that case they close it. For us, it's ok to
 	// just overwrite it.
-	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, evt.get_fd_info()->clone()));
+	auto fdi = evt.get_fd_info()->clone();
+	fdi->clear_close_on_exec_bits();
+	if(cmd == PPM_FCNTL_F_DUPFD_CLOEXEC) {
+		fdi->m_openflags |= PPM_O_CLOEXEC;
+	}
+	evt.set_fd_info(evt.get_tinfo()->add_fd(retval, std::move(fdi)));
 }
 
 void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
@@ -4056,8 +4155,8 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt &evt) const {
 		fdi->add_filename(fname);
 		fdi->m_openflags = flags;
 		fdi->m_pid = pid;
+		evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 	}
-	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }
 
 void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
@@ -4084,5 +4183,8 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt &evt) const {
 	if(targetfd_fdinfo == nullptr) {
 		return;
 	}
-	evt.get_tinfo()->add_fd(fd, targetfd_fdinfo->clone());
+	auto fdi = targetfd_fdinfo->clone();
+	fdi->clear_close_on_exec_bits();
+	fdi->m_openflags |= PPM_O_CLOEXEC;
+	evt.set_fd_info(evt.get_tinfo()->add_fd(fd, std::move(fdi)));
 }

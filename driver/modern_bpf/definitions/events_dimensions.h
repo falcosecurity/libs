@@ -23,7 +23,7 @@
 /* Syscall events */
 #define SYSCALL_X_SIZE HEADER_LEN + sizeof(uint16_t) * 2 + PARAM_LEN * 2
 #define CLOSE_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
-#define SOCKET_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
+#define SOCKET_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 4 + PARAM_LEN * 5
 #define LISTEN_X_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(int64_t) * 2 + PARAM_LEN * 3
 #define SHUTDOWN_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
 #define GETSOCKNAME_X_SIZE HEADER_LEN
@@ -51,7 +51,7 @@
 #define PRLIMIT_X_SIZE HEADER_LEN + sizeof(int64_t) * 6 + sizeof(uint8_t) + PARAM_LEN * 7
 #define DROP_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define DROP_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
-#define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
+#define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + sizeof(uint8_t) + PARAM_LEN * 4
 #define SWITCH_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 6
 #define BRK_X_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
 #define MMAP_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) * 5 + sizeof(uint64_t) * 3 + PARAM_LEN * 10
@@ -118,5 +118,6 @@
 #define TASK_FILE_SOCKET_INET_E_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(uint16_t) * 4 + sizeof(uint32_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 8
 #define TASK_FILE_SOCKET_INET6_E_SIZE HEADER_LEN + 16 * 2 + sizeof(int32_t) + sizeof(uint16_t) * 4 + sizeof(uint64_t) + PARAM_LEN * 8
 #define TASK_FILE_SOCKET_NETLINK_E_SIZE HEADER_LEN + sizeof(int32_t) + sizeof(uint16_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 4
+#define CLOSE_RANGE_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
 
 #endif /* __EVENT_DIMENSIONS_H__ */

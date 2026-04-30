@@ -10,7 +10,7 @@
 
 static __always_inline bool check_fcntl_dropping(struct pt_regs *regs) {
 	int cmd = (int32_t)extract__syscall_argument(regs, 1);
-	if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC) {
+	if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC && cmd != F_SETFD) {
 		return true;
 	}
 	return false;
@@ -43,6 +43,10 @@ int BPF_PROG(fcntl_x, struct pt_regs *regs, long ret) {
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS8) */
 	int cmd = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u8(&ringbuf, fcntl_cmd_to_scap(cmd));
+
+	/* Parameter 4: arg (type: PT_UINT64) */
+	uint64_t arg = (uint64_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u64(&ringbuf, arg);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

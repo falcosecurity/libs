@@ -197,6 +197,28 @@ static __always_inline uint32_t open_modes_to_scap(unsigned long flags, unsigned
 	return res;
 }
 
+static __always_inline uint8_t timerfd_create_flags_to_scap(int32_t flags) {
+	uint8_t res = 0;
+
+	if(flags < 0) {
+		return res;
+	}
+
+#ifdef O_NONBLOCK
+	// TFD_NONBLOCK is #defined as O_NONBLOCK
+	if(flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+
+#ifdef O_CLOEXEC
+	// TFD_CLOEXEC is #defined as O_CLOEXEC
+	if(flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
 static __always_inline uint32_t openat2_resolve_to_scap(unsigned long flags) {
 	uint32_t res = 0;
 #ifdef RESOLVE_NO_XDEV
@@ -545,6 +567,22 @@ static __always_inline uint32_t clone_flags_to_scap(int flags) {
 #ifdef CLONE_NEWCGROUP
 	if(flags & CLONE_NEWCGROUP)
 		res |= PPM_CL_CLONE_NEWCGROUP;
+#endif
+
+	return res;
+}
+
+/* Remaps accept4 flags (SOCK_CLOEXEC, which equals O_CLOEXEC) to PPM_O_CLOEXEC. */
+static __always_inline uint32_t socket_flags_to_scap(int32_t flags) {
+	uint32_t res = 0;
+
+#ifdef O_NONBLOCK
+	if(flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+#ifdef O_CLOEXEC
+	if(flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
 #endif
 
 	return res;
@@ -2202,6 +2240,17 @@ static __always_inline uint32_t delete_module_flags_to_scap(unsigned long flags)
 	if(flags & O_TRUNC)
 		res |= PPM_DELETE_MODULE_O_TRUNC;
 #endif
+	return res;
+}
+
+static __always_inline uint32_t close_range_flags_to_scap(unsigned long flags) {
+	uint32_t res = 0;
+	/* CLOSE_RANGE_UNSHARE is (1U << 1) */
+	if(flags & (1U << 1))
+		res |= PPM_CLOSE_RANGE_UNSHARE;
+	/* CLOSE_RANGE_CLOEXEC is (1U << 2) */
+	if(flags & (1U << 2))
+		res |= PPM_CLOSE_RANGE_CLOEXEC;
 	return res;
 }
 

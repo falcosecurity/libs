@@ -842,7 +842,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_rseq - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RSEQ},
 #endif
 #ifdef __NR_close_range
-	[__NR_close_range - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_CLOSE_RANGE},
+	[__NR_close_range - SYSCALL_TABLE_ID0] = {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLOSE_RANGE_E, PPME_SYSCALL_CLOSE_RANGE_X, PPM_SC_CLOSE_RANGE},
 #endif
 #ifdef __NR_get_mempolicy
 	[__NR_get_mempolicy - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_GET_MEMPOLICY},

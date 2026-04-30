@@ -463,7 +463,7 @@ TEST_F(sys_call_test, timerfd) {
 
 		if(type == PPME_SYSCALL_TIMERFD_CREATE_X) {
 			EXPECT_EQ(fd, std::stoll(e->get_param_value_str("res", false)));
-			EXPECT_EQ(0, std::stoll(e->get_param_value_str("clockid")));
+			EXPECT_EQ(1, std::stoll(e->get_param_value_str("clockid")));  // CLOCK_MONOTONIC
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("flags")));
 			callnum++;
 		} else if(type == PPME_SYSCALL_READ_X) {
