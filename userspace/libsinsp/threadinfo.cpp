@@ -825,35 +825,48 @@ void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* 
 
 std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 	sinsp_fdinfo* dir_fdinfo = get_fd(dir_fd);
-	if(!dir_fdinfo || dir_fdinfo->m_name.empty()) {
-#ifndef _WIN32  // we will have to implement this for Windows
-		// Sad day; we don't have the directory in the tinfo's fd cache.
-		// Must manually look it up so we can resolve filenames correctly.
-		char proc_path[PATH_MAX];
-		char dirfd_path[PATH_MAX];
-		int ret;
-		snprintf(proc_path,
-		         sizeof(proc_path),
-		         "%s/proc/%lld/fd/%lld",
-		         scap_get_host_root(),
-		         (long long)m_pid,
-		         (long long)dir_fd);
-
-		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
-		if(ret < 0) {
-			libsinsp_logger()->log("Unable to determine path for file descriptor.",
-			                       sinsp_logger::SEV_INFO);
-			return "";
+	if(dir_fdinfo && !dir_fdinfo->m_name.empty()) {
+		const auto& name = dir_fdinfo->m_name;
+		std::string sanitized_name;
+		if(name.back() == '/') {
+			sanitized_name.reserve(name.size());
+			sanitized_name.append(name);
+		} else {
+			sanitized_name.reserve(name.size() + 1);  // +1 account for the trailing '/'.
+			sanitized_name.append(name);
+			sanitized_name.append("/");
 		}
-		dirfd_path[ret] = '\0';
-		std::string rel_path_base = dirfd_path;
-		sanitize_string(rel_path_base);
-		rel_path_base.append("/");
-		libsinsp_logger()->log(std::string("Translating to ") + rel_path_base);
-		return rel_path_base;
-#endif  // _WIN32
+		sanitize_string(sanitized_name);
+		return sanitized_name;
 	}
-	return dir_fdinfo->m_name;
+#ifdef _WIN32
+	return "";  // We will have to implement this for Windows.
+#else
+	// Sad day; we don't have the directory in the tinfo's fd cache.
+	// Must manually look it up so we can resolve filenames correctly.
+	char proc_path[PATH_MAX];
+	char dirfd_path[PATH_MAX];
+	int ret;
+	snprintf(proc_path,
+	         sizeof(proc_path),
+	         "%s/proc/%lld/fd/%lld",
+	         scap_get_host_root(),
+	         (long long)m_pid,
+	         (long long)dir_fd);
+
+	ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
+	if(ret < 0) {
+		libsinsp_logger()->log("Unable to determine path for file descriptor.",
+		                       sinsp_logger::SEV_INFO);
+		return "";
+	}
+	dirfd_path[ret] = '\0';
+	std::string rel_path_base = dirfd_path;
+	sanitize_string(rel_path_base);
+	rel_path_base.append("/");
+	libsinsp_logger()->log(std::string("Translating to ") + rel_path_base);
+	return rel_path_base;
+#endif
 }
 
 size_t sinsp_threadinfo::args_len() const {
