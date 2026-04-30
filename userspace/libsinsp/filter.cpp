@@ -333,7 +333,7 @@ void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::field_transfor
 	// apply transformer, ignoring the "identity one" (it's just a syntactic construct)
 	if(e->transformer != "val") {
 		if(args.size() == 1) {
-			if(!e->arg.empty()) {
+			if(e->arg) {
 				throw sinsp_exception("filter error: transformer '" + e->transformer +
 				                      "' does not support field arguments");
 			}
@@ -347,7 +347,7 @@ void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::field_transfor
 			                                                                e->arg);
 		}
 	} else {
-		if(!e->arg.empty()) {
+		if(e->arg) {
 			throw sinsp_exception(
 			        "filter error: transformer 'val' does not support field arguments");
 		}
@@ -355,14 +355,15 @@ void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::field_transfor
 	}
 }
 
-std::string sinsp_extractor_compiler::create_filtercheck_name(const std::string& name,
-                                                              const std::string& arg) {
+std::string sinsp_extractor_compiler::create_filtercheck_name(
+        const std::string& name,
+        const std::optional<std::string>& arg) {
 	// The filtercheck factories parse the name + arg as a whole.
 	// We keep this for now, but we may want to change this in the future.
 	// todo(jasondellaluce): handle field arg parsing at compilation time
 	std::string fld = name;
-	if(arg.size() > 0) {
-		fld += "[" + arg + "]";
+	if(arg) {
+		fld += "[" + *arg + "]";
 	}
 	return fld;
 }
@@ -789,13 +790,13 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_transformer
 }
 
 std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& name,
-                                                           const std::string& arg) {
+                                                           const std::optional<std::string>& arg) {
 	// The filtercheck factories parse the name + arg as a whole.
 	// We keep this for now, but we may want to change this in the future.
 	// todo(jasondellaluce): handle field arg parsing at compilation time
 	std::string fld = name;
-	if(arg.size() > 0) {
-		fld += "[" + arg + "]";
+	if(arg) {
+		fld += "[" + *arg + "]";
 	}
 	return fld;
 }

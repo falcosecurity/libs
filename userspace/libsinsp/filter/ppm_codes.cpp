@@ -216,7 +216,7 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 		m_last_node_has_codes = false;
 		m_last_node_is_field_or_transformer = true;
 		m_last_node_is_evttype_field =
-		        (e->field == "evt.type" || e->field == "syscall.type") && e->arg.empty();
+		        (e->field == "evt.type" || e->field == "syscall.type") && !e->arg;
 		m_last_node_codes = all_codes_set();
 		try_inversion(m_last_node_codes);
 	}

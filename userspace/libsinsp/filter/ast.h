@@ -23,6 +23,7 @@ limitations under the License.
 #include <string>
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <libsinsp/sinsp_public.h>
 
 namespace libsinsp {
@@ -506,7 +507,7 @@ struct SINSP_PUBLIC field_expr : expr {
 	field_expr() = default;
 	virtual ~field_expr() = default;
 
-	field_expr(const std::string& f, const std::string& a): field(f), arg(a) {}
+	field_expr(const std::string& f, const std::optional<std::string>& a): field(f), arg(a) {}
 
 	void accept(expr_visitor* v) override { v->visit(this); };
 
@@ -518,11 +519,11 @@ struct SINSP_PUBLIC field_expr : expr {
 	}
 
 	std::string field;
-	std::string arg;
+	std::optional<std::string> arg;
 
 	static std::unique_ptr<field_expr> create(
 	        const std::string& f,
-	        const std::string& a,
+	        const std::optional<std::string>& a = std::nullopt,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
 		auto ret = std::make_unique<field_expr>(f, a);
 		ret->set_pos(pos);
@@ -536,7 +537,7 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 
 	field_transformer_expr(const std::string& t,
 	                       std::vector<std::unique_ptr<expr>>& v,
-	                       const std::string& arg = ""):
+	                       const std::optional<std::string>& arg = std::nullopt):
 	        transformer(t),
 	        values(std::move(v)),
 	        arg(arg) {}
@@ -563,12 +564,12 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 
 	std::string transformer;
 	std::vector<std::unique_ptr<expr>> values;
-	std::string arg;
+	std::optional<std::string> arg;
 
 	static std::unique_ptr<field_transformer_expr> create(
 	        const std::string& m,
 	        std::vector<std::unique_ptr<expr>>& v,
-	        const std::string& arg,
+	        const std::optional<std::string>& arg,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
 		auto ret = std::make_unique<field_transformer_expr>(m, v, arg);
 		ret->set_pos(pos);
@@ -579,13 +580,13 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 	        const std::string& m,
 	        std::vector<std::unique_ptr<expr>>& v,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
-		return create(m, v, "", pos);
+		return create(m, v, std::nullopt, pos);
 	}
 
 	static std::unique_ptr<field_transformer_expr> create(
 	        const std::string& m,
 	        std::unique_ptr<expr> v,
-	        const std::string& arg,
+	        const std::optional<std::string>& arg,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
 		std::vector<std::unique_ptr<expr>> args;
 		args.push_back(std::move(v));
@@ -598,7 +599,7 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 	        const std::string& m,
 	        std::unique_ptr<expr> v,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
-		return create(m, std::move(v), "", pos);
+		return create(m, std::move(v), std::nullopt, pos);
 	}
 };
 

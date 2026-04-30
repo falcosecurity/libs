@@ -165,6 +165,30 @@ TEST_F(string_visitor_test, check_args_escaped_bidirectional) {
 	bidirectional(in);
 }
 
+TEST_F(string_visitor_test, check_args_empty_escaped) {
+	std::string in = "test.str[\"\"] != nginx";
+
+	unidirectional(in, in);
+}
+
+TEST_F(string_visitor_test, check_args_empty_escaped_bidirectional) {
+	std::string in = "test.str[\"\"] != nginx";
+
+	bidirectional(in);
+}
+
+TEST_F(string_visitor_test, transformer_args_empty_escaped) {
+	std::string in = "getopt(proc.args,proc.args)[\"\"] != nginx";
+
+	unidirectional(in, in);
+}
+
+TEST_F(string_visitor_test, transformer_args_empty_escaped_bidirectional) {
+	std::string in = "getopt(proc.args,proc.args)[\"\"] != nginx";
+
+	bidirectional(in);
+}
+
 TEST_F(string_visitor_test, binary_check) {
 	std::string in = "proc.name=nginx";
 	std::string out = "proc.name = nginx";
