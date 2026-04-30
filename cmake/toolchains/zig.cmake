@@ -1,0 +1,1 @@
+../../.github/actions/install-zig/zig.cmake

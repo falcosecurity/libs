@@ -60,27 +60,52 @@ endfunction()
 function(falcosecurity_external_project_env out_var)
 	set(args env)
 
-	if(DEFINED CMAKE_C_COMPILER AND NOT "${CMAKE_C_COMPILER}" STREQUAL "")
-		list(APPEND args "CC=${CMAKE_C_COMPILER}")
+	# Build compiler env vars: compiler + optional subcommand (_ARG1) + optional -target flag. CMake
+	# auto-populates CMAKE_*_COMPILER_ARG1 from list-form CMAKE_*_COMPILER (e.g. "zig" "cc"). The
+	# -target flag goes in CC/CXX (not CFLAGS) to avoid overriding the project's own CFLAGS, which
+	# would cause Zig to default to -O0 and emit UBSan instrumentation.
+	set(_target_flag "")
+	if(DEFINED CMAKE_C_COMPILER_TARGET AND NOT "${CMAKE_C_COMPILER_TARGET}" STREQUAL "")
+		set(_target_flag " -target ${CMAKE_C_COMPILER_TARGET}")
 	endif()
-	if(DEFINED CMAKE_CXX_COMPILER AND NOT "${CMAKE_CXX_COMPILER}" STREQUAL "")
-		list(APPEND args "CXX=${CMAKE_CXX_COMPILER}")
-	endif()
-	if(DEFINED CMAKE_AR AND NOT "${CMAKE_AR}" STREQUAL "")
-		list(APPEND args "AR=${CMAKE_AR}")
-	endif()
-	if(DEFINED CMAKE_RANLIB AND NOT "${CMAKE_RANLIB}" STREQUAL "")
-		list(APPEND args "RANLIB=${CMAKE_RANLIB}")
-	endif()
-	if(DEFINED CMAKE_STRIP AND NOT "${CMAKE_STRIP}" STREQUAL "")
-		list(APPEND args "STRIP=${CMAKE_STRIP}")
-	endif()
-	if(DEFINED CMAKE_NM AND NOT "${CMAKE_NM}" STREQUAL "")
-		list(APPEND args "NM=${CMAKE_NM}")
-	endif()
-	if(DEFINED CMAKE_LINKER AND NOT "${CMAKE_LINKER}" STREQUAL "")
-		list(APPEND args "LD=${CMAKE_LINKER}")
-	endif()
+
+	macro(_falcosecurity_append_compiler_env env_var cmake_compiler cmake_arg1)
+		if(DEFINED ${cmake_compiler} AND NOT "${${cmake_compiler}}" STREQUAL "")
+			set(_cmd "${${cmake_compiler}}")
+			if(DEFINED ${cmake_arg1} AND NOT "${${cmake_arg1}}" STREQUAL "")
+				string(STRIP "${${cmake_arg1}}" _stripped_arg1)
+				string(APPEND _cmd " ${_stripped_arg1}")
+			endif()
+			string(APPEND _cmd "${_target_flag}")
+			list(APPEND args "${env_var}=${_cmd}")
+		endif()
+	endmacro()
+
+	_falcosecurity_append_compiler_env(CC CMAKE_C_COMPILER CMAKE_C_COMPILER_ARG1)
+	_falcosecurity_append_compiler_env(CXX CMAKE_CXX_COMPILER CMAKE_CXX_COMPILER_ARG1)
+
+	macro(_falcosecurity_append_env env_var cmake_var)
+		if(DEFINED ${cmake_var} AND NOT "${${cmake_var}}" STREQUAL "")
+			list(APPEND args "${env_var}=${${cmake_var}}")
+		endif()
+	endmacro()
+
+	# AR/RANLIB: prefer the environment variable (supports multi-tool commands like "zig ar"), fall
+	# back to the CMAKE_* variable for standard toolchains.
+	macro(_falcosecurity_append_tool_env env_var env_name cmake_var)
+		if(NOT "$ENV{${env_name}}" STREQUAL "")
+			list(APPEND args "${env_var}=$ENV{${env_name}}")
+		elseif(DEFINED ${cmake_var} AND NOT "${${cmake_var}}" STREQUAL "")
+			list(APPEND args "${env_var}=${${cmake_var}}")
+		endif()
+	endmacro()
+
+	_falcosecurity_append_tool_env(AR AR CMAKE_AR)
+	_falcosecurity_append_tool_env(RANLIB RANLIB CMAKE_RANLIB)
+
+	_falcosecurity_append_env(STRIP CMAKE_STRIP)
+	_falcosecurity_append_env(NM CMAKE_NM)
+	_falcosecurity_append_env(LD CMAKE_LINKER)
 
 	if(DEFINED FALCOSECURITY_EXTERNAL_PROJECT_ENV)
 		list(APPEND args ${FALCOSECURITY_EXTERNAL_PROJECT_ENV})
@@ -91,3 +116,13 @@ function(falcosecurity_external_project_env out_var)
 		PARENT_SCOPE
 	)
 endfunction()
+
+# Autotools --host flag for cross-compilation. Tells autotools configure scripts not to try running
+# compiled test programs.
+if(CMAKE_CROSSCOMPILING AND NOT "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL
+							"${CMAKE_HOST_SYSTEM_PROCESSOR}"
+)
+	set(FALCOSECURITY_AUTOTOOLS_HOST_FLAG --host=${CMAKE_SYSTEM_PROCESSOR}-linux-gnu)
+else()
+	set(FALCOSECURITY_AUTOTOOLS_HOST_FLAG "")
+endif()

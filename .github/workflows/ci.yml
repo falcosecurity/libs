@@ -64,7 +64,7 @@ jobs:
         env:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
-          cmake -B build -S . ${{ matrix.cmake_opts }} -DENABLE_THREAD_POOL=ON
+          cmake -B build -S . ${{ matrix.cmake_opts }} ${ZIG_TOOLCHAIN_FILE:+-DCMAKE_TOOLCHAIN_FILE=$ZIG_TOOLCHAIN_FILE} -DENABLE_THREAD_POOL=ON
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build --parallel $(nproc)
           cmake --build build --target run-unit-tests --parallel $(nproc)
 
