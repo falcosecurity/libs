@@ -339,7 +339,9 @@ public:
 	static void populate_args(std::string& args, const sinsp_threadinfo* tinfo);
 
 	/*!
-	  \brief Translate a directory's file descriptor into its path
+	  \brief Translate a directory's file descriptor into its path.
+
+	  The returned path is sanitized and terminated with a trailing slash.
 	  \param dir_fd  A file descriptor for a directory
 	  \return  A path (or "" if failure)
 	 */

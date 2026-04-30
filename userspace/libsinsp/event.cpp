@@ -732,15 +732,9 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo) {
 		return cwd;
 	}
 
-	// If the previous param is a fd with a value other than AT_FDCWD,
-	// get the path to that fd and use it in place of CWD
-	std::string rel_path_base = tinfo->get_path_for_dir_fd(dirfd);
-	if(rel_path_base.empty()) {
-		return rel_path_base;
-	}
-	sanitize_string(rel_path_base);
-	rel_path_base.append("/");
-	return rel_path_base;
+	// If the previous param is a fd with a value other than AT_FDCWD, get the path to that fd and
+	// use it in place of CWD
+	return tinfo->get_path_for_dir_fd(dirfd);
 }
 
 const char *sinsp_evt::get_param_as_str(uint32_t id,
