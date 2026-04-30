@@ -591,12 +591,11 @@ int sinsp_evt::render_fd_json(Json::Value *ret,
 			//
 			// Make sure we remove invalid characters from the resolved name
 			//
-			std::string sanitized_str = fdinfo->m_name;
-
-			sanitize_string(sanitized_str);
+			std::string sanitized_name_storage;
+			const auto sanitized_name = sanitize_string(fdinfo->m_name, sanitized_name_storage);
 
 			(*ret)["typechar"] = typestr;
-			(*ret)["name"] = sanitized_str;
+			(*ret)["name"] = sanitized_name.data();
 		}
 	} else if(fd == PPM_AT_FDCWD) {
 		//
@@ -664,22 +663,21 @@ char *sinsp_evt::render_fd(int64_t fd, const char **resolved_str, sinsp_evt::par
 			//
 			// Make sure we remove invalid characters from the resolved name
 			//
-			std::string sanitized_str = fdinfo->m_name;
-
-			sanitize_string(sanitized_str);
+			std::string sanitized_name_storage;
+			const auto sanitized_name = sanitize_string(fdinfo->m_name, sanitized_name_storage);
 
 			//
 			// Make sure the string will fit
 			//
-			if(sanitized_str.size() >= m_resolved_paramstr_storage.size()) {
-				m_resolved_paramstr_storage.resize(sanitized_str.size() + 1);
+			if(sanitized_name.size() >= m_resolved_paramstr_storage.size()) {
+				m_resolved_paramstr_storage.resize(sanitized_name.size() + 1);
 			}
 
 			snprintf(&m_resolved_paramstr_storage[0],
 			         m_resolved_paramstr_storage.size(),
 			         "<%s>%s",
 			         typestr,
-			         sanitized_str.c_str());
+			         sanitized_name.data());
 		}
 	} else if(fd == PPM_AT_FDCWD) {
 		//
@@ -996,13 +994,12 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			//
 			// Sanitize the file string.
 			//
-			std::string sanitized_str = param_data + 1;
-			sanitize_string(sanitized_str);
-
+			std::string sanitized_path_storage;
+			const auto sanitized_path = sanitize_string(param_data + 1, sanitized_path_storage);
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
 			         "%s",
-			         sanitized_str.c_str());
+			         sanitized_path.data());
 		} else if(sockfamily == PPM_AF_INET) {
 			if(param_len == 1 + 4 + 2) {
 				ipv4serverinfo addr;
@@ -1120,8 +1117,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			//
 			// Sanitize the file string.
 			//
-			std::string sanitized_str = reinterpret_cast<const char *>(param_data) + 17;
-			sanitize_string(sanitized_str);
+			std::string sanitized_path_storage;
+			const auto sanitized_path =
+			        sanitize_string(reinterpret_cast<const char *>(param_data) + 17,
+			                        sanitized_path_storage);
 
 			uint64_t src, dst;
 			memcpy(&src, param_data + 1, sizeof(uint64_t));
@@ -1132,7 +1131,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			         "%" PRIx64 "->%" PRIx64 " %s",
 			         src,
 			         dst,
-			         sanitized_str.c_str());
+			         sanitized_path.data());
 		} else {
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "family %d", sockfamily);
 		}

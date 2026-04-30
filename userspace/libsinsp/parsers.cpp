@@ -2429,8 +2429,8 @@ const char *sinsp_parser::encode_unix_tuple_fd_name(sinsp_evt &evt,
                                                     const uint64_t dst,
                                                     const char *path) {
 	// Sanitize the file string.
-	std::string sanitized_str = path;
-	sanitize_string(sanitized_str);
+	std::string sanitized_path_storage;
+	const auto sanitized_path = sanitize_string(path, sanitized_path_storage);
 
 	auto &storage = evt.get_paramstr_storage();
 
@@ -2440,7 +2440,7 @@ const char *sinsp_parser::encode_unix_tuple_fd_name(sinsp_evt &evt,
 	         "%" PRIx64 "->%" PRIx64 " %s",
 	         src,
 	         dst,
-	         sanitized_str.c_str());
+	         sanitized_path.data());
 
 	return &storage[0];
 }

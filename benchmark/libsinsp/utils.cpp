@@ -56,10 +56,10 @@ BENCHMARK(BM_sinsp_concatenate_paths_absolute_path);
 
 // Fast path for short valid ASCII string. No 8-byte aligned block skipping. No replacement needed.
 static void BM_sinsp_sanitize_string_fast_path_ascii_short(benchmark::State& state) {
-	std::string str = "/foo/";
+	const std::string str = "/foo/";
+	std::string unused_storage;
 	for(auto _ : state) {
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		benchmark::DoNotOptimize(sanitize_string(str, unused_storage));
 	}
 }
 BENCHMARK(BM_sinsp_sanitize_string_fast_path_ascii_short);
@@ -67,10 +67,10 @@ BENCHMARK(BM_sinsp_sanitize_string_fast_path_ascii_short);
 // Fast path for long valid ASCII string. Exercises 8-byte aligned block skipping. No replacement
 // needed.
 static void BM_sinsp_sanitize_string_fast_path_ascii_long(benchmark::State& state) {
-	std::string str(1024, 'a');
+	const std::string str(1024, 'a');
+	std::string unused_storage;
 	for(auto _ : state) {
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		benchmark::DoNotOptimize(sanitize_string(str, unused_storage));
 	}
 }
 BENCHMARK(BM_sinsp_sanitize_string_fast_path_ascii_long);
@@ -78,10 +78,10 @@ BENCHMARK(BM_sinsp_sanitize_string_fast_path_ascii_long);
 // Fast path for short valid multibyte UTF-8 string. No 8-byte aligned block skipping. No
 // replacement needed.
 static void BM_sinsp_sanitize_string_fast_path_multibyte_short(benchmark::State& state) {
-	std::string str{"😀😀"};
+	const std::string str{"😀😀"};
+	std::string unused_storage;
 	for(auto _ : state) {
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		benchmark::DoNotOptimize(sanitize_string(str, unused_storage));
 	}
 }
 BENCHMARK(BM_sinsp_sanitize_string_fast_path_multibyte_short);
@@ -95,9 +95,9 @@ static void BM_sinsp_sanitize_string_fast_path_multibyte_long(benchmark::State& 
 	for(int i = 0; i < 1024; i++) {
 		str.append(emoji.data(), emoji.size());
 	}
+	std::string unused_storage;
 	for(auto _ : state) {
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		benchmark::DoNotOptimize(sanitize_string(str, unused_storage));
 	}
 }
 BENCHMARK(BM_sinsp_sanitize_string_fast_path_multibyte_long);
@@ -113,53 +113,91 @@ static void BM_sinsp_sanitize_string_fast_path_mixed_long(benchmark::State& stat
 		str.append(ascii.data(), ascii.size());
 		str.append(emoji.data(), emoji.size());
 	}
+	std::string unused_storage;
 	for(auto _ : state) {
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		benchmark::DoNotOptimize(sanitize_string(str, unused_storage));
 	}
 }
 BENCHMARK(BM_sinsp_sanitize_string_fast_path_mixed_long);
 
 // Slow path for long valid multibyte UTF-8 composed of 2-byte non-printable characters (C1 control
-// characters). Replacement needed for all characters.
-static void BM_sinsp_sanitize_string_slow_path_c1_controls_long(benchmark::State& state) {
+// characters). Replacement needed for all characters. Storage needs allocation.
+static void BM_sinsp_sanitize_string_slow_path_c1_controls_long_alloc(benchmark::State& state) {
+	const std::string c1{"\xC2\x80"};
+	std::string str;
+	str.reserve(512 * c1.size());
+	for(int i = 0; i < 512; i++) {
+		str.append(c1.data(), c1.size());
+	}
 	for(auto _ : state) {
-		state.PauseTiming();
-		std::string c1{"\xC2\x80"};
-		std::string str;
-		str.reserve(512 * c1.size());
-		for(int i = 0; i < 512; i++) {
-			str.append(c1.data(), c1.size());
-		}
-		state.ResumeTiming();
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		std::string storage;
+		benchmark::DoNotOptimize(sanitize_string(str, storage));
 	}
 }
-BENCHMARK(BM_sinsp_sanitize_string_slow_path_c1_controls_long);
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_c1_controls_long_alloc);
+
+// Slow path for long valid multibyte UTF-8 composed of 2-byte non-printable characters (C1 control
+// characters). Replacement needed for all characters. Storage has enough capacity.
+static void BM_sinsp_sanitize_string_slow_path_c1_controls_long_noalloc(benchmark::State& state) {
+	const std::string c1{"\xC2\x80"};
+	std::string str;
+	str.reserve(512 * c1.size());
+	for(int i = 0; i < 512; i++) {
+		str.append(c1.data(), c1.size());
+	}
+	std::string storage;
+	storage.reserve(3 * str.size() / 2);  // Each 2 bytes are replaced with 3 bytes.
+	for(auto _ : state) {
+		benchmark::DoNotOptimize(sanitize_string(str, storage));
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_c1_controls_long_noalloc);
 
 // Slow path for long string with a single, invalid byte in the middle. Triggers second pass but
-// only a single replacement takes place.
-static void BM_sinsp_sanitize_string_slow_path_sparse_invalid_long(benchmark::State& state) {
+// only a single replacement takes place. Storage needs allocation.
+static void BM_sinsp_sanitize_string_slow_path_sparse_invalid_long_alloc(benchmark::State& state) {
+	std::string str(1024, 'a');
+	str[512] = '\x80';
 	for(auto _ : state) {
-		state.PauseTiming();
-		std::string str(1024, 'a');
-		str[512] = '\x80';
-		state.ResumeTiming();
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		std::string storage;
+		benchmark::DoNotOptimize(sanitize_string(str, storage));
 	}
 }
-BENCHMARK(BM_sinsp_sanitize_string_slow_path_sparse_invalid_long);
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_sparse_invalid_long_alloc);
 
-// Slow path for long string with all bytes invalid. Worst scenario for replacement logic.
-static void BM_sinsp_sanitize_string_slow_path_all_invalid_long(benchmark::State& state) {
+// Slow path for long string with a single, invalid byte in the middle. Triggers second pass but
+// only a single replacement takes place. Storage has enough capacity.
+static void BM_sinsp_sanitize_string_slow_path_sparse_invalid_long_noalloc(
+        benchmark::State& state) {
+	std::string str(1024, 'a');
+	str[512] = '\x80';
+	std::string storage;
+	storage.reserve(str.size() + 2);  // +2 accounts for 1 byte replaced by 3.
 	for(auto _ : state) {
-		state.PauseTiming();
-		std::string str(1024, '\x80');
-		state.ResumeTiming();
-		sanitize_string(str);
-		benchmark::DoNotOptimize(str);
+		benchmark::DoNotOptimize(sanitize_string(str, storage));
 	}
 }
-BENCHMARK(BM_sinsp_sanitize_string_slow_path_all_invalid_long);
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_sparse_invalid_long_noalloc);
+
+// Slow path for long string with all bytes invalid. Worst scenario for replacement logic. Storage
+// needs allocation.
+static void BM_sinsp_sanitize_string_slow_path_all_invalid_long_alloc(benchmark::State& state) {
+	const std::string str(1024, '\x80');
+	for(auto _ : state) {
+		std::string storage;
+		benchmark::DoNotOptimize(sanitize_string(str, storage));
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_all_invalid_long_alloc);
+
+// Slow path for long string with all bytes invalid. Worst scenario for replacement logic. Storage
+// has enough capacity.
+static void BM_sinsp_sanitize_string_slow_path_all_invalid_long_noalloc(benchmark::State& state) {
+	const std::string str(1024, '\x80');
+	std::string storage;
+	storage.reserve(str.size() * 3);  // Each byte needs 3 replacement bytes.
+	for(auto _ : state) {
+		benchmark::DoNotOptimize(sanitize_string(str, storage));
+	}
+}
+BENCHMARK(BM_sinsp_sanitize_string_slow_path_all_invalid_long_noalloc);
