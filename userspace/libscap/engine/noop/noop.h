@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <libscap/engine_handle.h>
+#include <libscap/scap.h>
 #include <libscap/scap_vtable.h>
 
 typedef struct scap scap_t;
@@ -33,6 +34,12 @@ int32_t noop_next(struct scap_engine_handle handle,
                   scap_evt** pevent,
                   uint16_t* pdevid,
                   uint32_t* pflags);
+int32_t noop_next_from_buffer(struct scap_engine_handle engine,
+                              scap_buffer_t buffer_h,
+                              scap_evt** pevent,
+                              uint32_t* pflags);
+uint16_t noop_get_n_allocated_buffer_handles(struct scap_engine_handle engine);
+scap_buffer_t noop_reserve_buffer_handle(struct scap_engine_handle engine);
 int32_t noop_start_capture(struct scap_engine_handle engine);
 int32_t noop_stop_capture(struct scap_engine_handle engine);
 int32_t unimplemented_op(char* err, size_t err_size);

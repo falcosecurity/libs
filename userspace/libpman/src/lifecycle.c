@@ -270,11 +270,16 @@ void pman_close_probe() {
 
 	if(g_state.rb_manager) {
 		ring_buffer__free(g_state.rb_manager);
+		free(g_state.ringbuf_handles);
+		g_state.ringbuf_handles = NULL;
+		g_state.n_reserved_ringbuf_handles = 0;
 	}
 
 #ifdef BPF_ITERATOR_SUPPORT
 
 	/* BPF iterators section */
+	g_state.n_max_iters = 0;
+	__atomic_store_n(&g_state.n_encountered_iters, 0, __ATOMIC_SEQ_CST);
 	g_state.is_tasks_dumping_supported = false;
 	g_state.is_task_files_dumping_supported = false;
 
