@@ -54,15 +54,14 @@ class sinsp_evt;
 */
 class SINSP_PUBLIC sinsp_evttables {
 public:
-	struct ppm_event_info
-	        m_event_info[MAX_EVENTINFO_SIZE];  ///< List of events supported by the capture and
-	                                           ///< analysis subsystems. Each entry fully documents
-	                                           ///< an event and its parameters.
-	size_t m_event_size;                       ///< Number of events in the event table.
+	ppm_event_info m_event_info[MAX_EVENTINFO_SIZE];  ///< List of events supported by the capture
+	                                                  ///< and analysis subsystems. Each entry fully
+	                                                  ///< documents an event and its parameters.
+	size_t m_event_size;                              ///< Number of events in the event table.
 };
 
 template<class T>
-inline T get_event_param_as(const class sinsp_evt_param& param);
+T get_event_param_as(const sinsp_evt_param& param);
 
 /*!
   \brief Event parameter wrapper.
@@ -166,11 +165,11 @@ public:
 	  std::vector<std::string>
 	*/
 	template<class T>
-	inline T as() const {
+	T as() const {
 		return get_event_param_as<T>(*this);
 	}
 
-	const struct ppm_param_info* get_info() const;
+	const ppm_param_info* get_info() const;
 
 	// Throws a sinsp_exception detailing why the requested_len is incorrect.
 	// This is only meant to be called by get_event_param_as. This way, this function will not be
@@ -186,7 +185,7 @@ public:
   \param param The parameter.
 */
 template<class T>
-inline T get_event_param_as(const sinsp_evt_param& param) {
+T get_event_param_as(const sinsp_evt_param& param) {
 	static_assert(std::is_fundamental_v<T>,
 	              "event parameter cast (e.g. evt->get_param(N)->as<T>()) unsupported for this "
 	              "type. Implement it or see the available definitions in " __FILE__);
@@ -230,9 +229,8 @@ inline std::string get_event_param_as<std::string>(const sinsp_evt_param& param)
 		return "";
 	}
 
-	size_t string_len = strnlen(param_data, param_len);
 	// We expect the parameter to be exactly one null-terminated string
-	if(param_len != string_len + 1) {
+	if(const auto string_len = strnlen(param_data, param_len); param_len != string_len + 1) {
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
 		param.throw_invalid_len_error(string_len + 1);
@@ -262,7 +260,7 @@ inline std::vector<uint8_t> get_event_param_as<std::vector<uint8_t>>(const sinsp
 	// copy content of the event parameter to a new vector
 	std::vector<uint8_t> res;
 	for(size_t i = 0; i < param_len; ++i) {
-		res.push_back(uint8_t(param_data[i]));
+		res.push_back(static_cast<uint8_t>(param_data[i]));
 	}
 
 	return res;
@@ -281,19 +279,18 @@ public:
 	  \brief How to render an event parameter to string.
 	*/
 	enum param_fmt {
-		PF_NORMAL = (1 << 0),    ///< Normal screen output
-		PF_JSON = (1 << 1),      ///< Json formatting with data in normal screen format
-		PF_SIMPLE = (1 << 2),    ///< Reduced output, e.g. not type character for FDs
-		PF_HEX = (1 << 3),       ///< Hexadecimal output
-		PF_HEXASCII = (1 << 4),  ///< Hexadecimal + ASCII output
-		PF_EOLS = (1 << 5),      ///< Normal + end of lines
-		PF_EOLS_COMPACT =
-		        (1 << 6),        ///< Normal + end of lines but with no force EOL at the beginning
-		PF_BASE64 = (1 << 7),    ///< Base64 output
-		PF_JSONEOLS = (1 << 8),  ///< Json formatting with data in hexadecimal format
-		PF_JSONHEX = (1 << 9),   ///< Json formatting with data in hexadecimal format
-		PF_JSONHEXASCII = (1 << 10),  ///< Json formatting with data in hexadecimal + ASCII format
-		PF_JSONBASE64 = (1 << 11),    ///< Json formatting with data in base64 format
+		PF_NORMAL = 1 << 0,        ///< Normal screen output
+		PF_JSON = 1 << 1,          ///< Json formatting with data in normal screen format
+		PF_SIMPLE = 1 << 2,        ///< Reduced output, e.g. not type character for FDs
+		PF_HEX = 1 << 3,           ///< Hexadecimal output
+		PF_HEXASCII = 1 << 4,      ///< Hexadecimal + ASCII output
+		PF_EOLS = 1 << 5,          ///< Normal + end of lines
+		PF_EOLS_COMPACT = 1 << 6,  ///< Normal + end of lines but with no force EOL at the beginning
+		PF_BASE64 = 1 << 7,        ///< Base64 output
+		PF_JSONEOLS = 1 << 8,      ///< Json formatting with data in hexadecimal format
+		PF_JSONHEX = 1 << 9,       ///< Json formatting with data in hexadecimal format
+		PF_JSONHEXASCII = 1 << 10,  ///< Json formatting with data in hexadecimal + ASCII format
+		PF_JSONBASE64 = 1 << 11,    ///< Json formatting with data in base64 format
 	};
 
 	/*!
@@ -331,65 +328,65 @@ public:
 	/*!
 	  \brief Set the inspector.
 	*/
-	inline void set_inspector(sinsp* value) { m_inspector = value; }
+	void set_inspector(sinsp* value) { m_inspector = value; }
 
-	inline sinsp* get_inspector() { return m_inspector; }
+	sinsp* get_inspector() { return m_inspector; }
 
-	inline const sinsp* get_inspector() const { return m_inspector; }
+	const sinsp* get_inspector() const { return m_inspector; }
 
 	/*!
 	  \brief Get the incremental number of this event.
 	*/
-	inline uint64_t get_num() const { return m_evtnum; }
+	uint64_t get_num() const { return m_evtnum; }
 
 	/*!
 	  \brief Set the number of this event.
 	*/
-	inline void set_num(uint64_t evtnum) { m_evtnum = evtnum; }
+	void set_num(const uint64_t evtnum) { m_evtnum = evtnum; }
 
 	/*!
 	  \brief Get the number of the CPU where this event was captured.
 	*/
-	inline uint16_t get_cpuid() const { return m_cpuid; }
+	uint16_t get_cpuid() const { return m_cpuid; }
 
-	inline void set_cpuid(uint16_t v) { m_cpuid = v; }
+	void set_cpuid(const uint16_t v) { m_cpuid = v; }
 
 	/*!
 	  \brief Get the event type.
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	virtual inline uint16_t get_type() const { return m_pevt->type; }
+	virtual uint16_t get_type() const { return m_pevt->type; }
 
 	/*!
 	  \brief Get the event source index, as in the positional order of
 	  used by the event's inspector event sources.
 	  Returns sinsp_no_event_source_idx if the event source is unknown.
 	*/
-	inline size_t get_source_idx() const { return m_source_idx; }
+	size_t get_source_idx() const { return m_source_idx; }
 
-	inline void set_source_idx(size_t v) { m_source_idx = v; }
+	void set_source_idx(const size_t v) { m_source_idx = v; }
 
 	/*!
 	  \brief Get the event source name, as in the event's inspector
 	  event sources. Returns sinsp_no_event_source_name if
 	  the event source is unknown.
 	*/
-	inline const char* get_source_name() const { return m_source_name; }
+	const char* get_source_name() const { return m_source_name; }
 
-	inline void set_source_name(const char* v) { m_source_name = v; }
+	void set_source_name(const char* v) { m_source_name = v; }
 
 	/*!
 	  \brief Get the event info
 	*/
-	inline const ppm_event_info* get_info() const { return m_info; }
+	const ppm_event_info* get_info() const { return m_info; }
 
-	inline void set_info(const ppm_event_info* v) { m_info = v; }
+	void set_info(const ppm_event_info* v) { m_info = v; }
 
 	/*!
 	  \brief Get the event's flags.
 	*/
-	inline ppm_event_flags get_info_flags() const { return m_info->flags; }
+	ppm_event_flags get_info_flags() const { return m_info->flags; }
 
 	/*!
 	  \brief Return the event direction: in or out.
@@ -401,7 +398,7 @@ public:
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	virtual inline uint64_t get_ts() const { return m_pevt->ts; }
+	virtual uint64_t get_ts() const { return m_pevt->ts; }
 
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
@@ -412,7 +409,7 @@ public:
 	  \brief Return the event category.
 	*/
 	/// TODO: in the next future we need to rename this into `get_syscall_category_from_event`
-	inline ppm_event_category get_category() const {
+	ppm_event_category get_category() const {
 		/* Every event category is composed of 2 parts:
 		 * 1. The highest bits represent the event category:
 		 *   - `EC_SYSCALL`
@@ -425,7 +422,7 @@ public:
 		 *
 		 * This function removes the highest bits, so we consider only the syscall category.
 		 */
-		const int bitmask = EC_SYSCALL - 1;
+		constexpr int bitmask = EC_SYSCALL - 1;
 		return static_cast<ppm_event_category>(m_info->category & bitmask);
 	}
 
@@ -445,15 +442,15 @@ public:
 
 	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
-	inline const sinsp_fdinfo* get_fd_info() const { return m_fdinfo; }
+	const sinsp_fdinfo* get_fd_info() const { return m_fdinfo; }
 
-	inline sinsp_fdinfo* get_fd_info() { return m_fdinfo; }
+	sinsp_fdinfo* get_fd_info() { return m_fdinfo; }
 
-	inline void set_fd_info(sinsp_fdinfo* v) { m_fdinfo = v; }
+	void set_fd_info(sinsp_fdinfo* v) { m_fdinfo = v; }
 
-	inline bool fdinfo_name_changed() const { return m_fdinfo_name_changed; }
+	bool fdinfo_name_changed() const { return m_fdinfo_name_changed; }
 
-	inline void set_fdinfo_name_changed(bool changed) { m_fdinfo_name_changed = changed; }
+	void set_fdinfo_name_changed(const bool changed) { m_fdinfo_name_changed = changed; }
 
 	/*!
 	  \brief Return the number of the FD associated with this event.
@@ -482,7 +479,7 @@ public:
 	  \note Refer to the g_event_info structure in driver/event_table.c for
 	   a list of event descriptions.
 	*/
-	const struct ppm_param_info* get_param_info(uint32_t id);
+	const ppm_param_info* get_param_info(uint32_t id);
 
 	/*!
 	  \brief Get a parameter in raw format by position.
@@ -514,7 +511,7 @@ public:
 
 	  \param cat [out] the category for the event
 	*/
-	void get_category(sinsp_evt::category* cat) const;
+	void get_category(category* cat) const;
 
 	/*!
 	  \brief Return true if the event has been rejected by the filtering system.
@@ -569,32 +566,34 @@ public:
 	const char* get_param_as_str(uint32_t id, const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	/*!
+	  \param name the name of the parameter
 	  \param resolved_str [out] the string representation of the parameter
+	  \param fmt the format specifier
 	*/
 	const char* get_param_value_str(std::string_view name,
 	                                const char** resolved_str,
 	                                param_fmt fmt = PF_NORMAL);
 
-	inline void init() {
+	void init() {
 		m_flags = EF_NONE;
-		m_info = &(m_event_info_table[m_pevt->type]);
+		m_info = &m_event_info_table[m_pevt->type];
 		m_tinfo_ref.reset();
-		m_tinfo = NULL;
+		m_tinfo = nullptr;
 		m_fdinfo_ref.reset();
-		m_fdinfo = NULL;
+		m_fdinfo = nullptr;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
 	}
-	inline void init_from_raw(uint8_t* evdata, uint16_t cpuid) {
+	void init_from_raw(uint8_t* evdata, const uint16_t cpuid) {
 		m_flags = EF_NONE;
-		m_pevt = (scap_evt*)evdata;
-		m_info = &(m_event_info_table[m_pevt->type]);
+		m_pevt = reinterpret_cast<scap_evt*>(evdata);
+		m_info = &m_event_info_table[m_pevt->type];
 		m_tinfo_ref.reset();
-		m_tinfo = NULL;
+		m_tinfo = nullptr;
 		m_fdinfo_ref.reset();
-		m_fdinfo = NULL;
+		m_fdinfo = nullptr;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_cpuid = cpuid;
@@ -604,19 +603,16 @@ public:
 
 	static std::unique_ptr<sinsp_evt> from_scap_evt(std::unique_ptr<uint8_t[]> scap_event) {
 		auto ret = std::make_unique<sinsp_evt>();
-		auto evdata = scap_event.release();
+		const auto evdata = scap_event.release();
 		ret->init_from_raw(evdata, 0);
-		ret->m_pevt_storage = (char*)evdata;
+		ret->m_pevt_storage = reinterpret_cast<char*>(evdata);
 		return ret;
 	}
 
-	inline void load_params() {
-		struct scap_sized_buffer params[PPM_MAX_EVENT_PARAMS];
-
+	void load_params() {
+		scap_sized_buffer params[PPM_MAX_EVENT_PARAMS];
+		const auto nparams = scap_event_decode_params(m_pevt, params);
 		m_params.clear();
-
-		uint32_t nparams = scap_event_decode_params(m_pevt, params);
-
 		for(uint32_t i = 0; i < nparams; i++) {
 			m_params.emplace_back(this,
 			                      i,
@@ -626,60 +622,60 @@ public:
 	}
 
 	std::string get_param_value_str(uint32_t id, bool resolved);
-	inline uint32_t get_dump_flags() const { return m_dump_flags; }
-	inline void set_dump_flags(uint32_t v) { m_dump_flags = v; }
+	uint32_t get_dump_flags() const { return m_dump_flags; }
+	void set_dump_flags(const uint32_t v) { m_dump_flags = v; }
 	int32_t get_errorcode() const { return m_errorcode; }
-	inline void set_errorcode(int32_t v) { m_errorcode = v; }
+	void set_errorcode(const int32_t v) { m_errorcode = v; }
 
-	inline const scap_evt* get_scap_evt() const { return m_pevt; }
+	const scap_evt* get_scap_evt() const { return m_pevt; }
 
-	inline scap_evt* get_scap_evt() { return m_pevt; }
+	scap_evt* get_scap_evt() { return m_pevt; }
 
-	inline void set_scap_evt(scap_evt* v) { m_pevt = v; }
+	void set_scap_evt(scap_evt* v) { m_pevt = v; }
 
-	inline const char* get_scap_evt_storage() const { return m_pevt_storage; }
+	const char* get_scap_evt_storage() const { return m_pevt_storage; }
 
-	inline char* get_scap_evt_storage() { return m_pevt_storage; }
+	char* get_scap_evt_storage() { return m_pevt_storage; }
 
-	inline void set_scap_evt_storage(char* v) { m_pevt_storage = v; }
+	void set_scap_evt_storage(char* v) { m_pevt_storage = v; }
 
-	inline uint32_t get_flags() const { return m_flags; }
+	uint32_t get_flags() const { return m_flags; }
 
-	inline void set_flags(uint32_t v) { m_flags = v; }
+	void set_flags(const uint32_t v) { m_flags = v; }
 
-	inline int32_t get_rawbuf_str_len() const { return m_rawbuf_str_len; }
+	int32_t get_rawbuf_str_len() const { return m_rawbuf_str_len; }
 
-	inline void set_rawbuf_str_len(int32_t v) { m_rawbuf_str_len = v; }
+	void set_rawbuf_str_len(const int32_t v) { m_rawbuf_str_len = v; }
 
-	inline void set_filtered_out(bool v) { m_filtered_out = v; }
+	void set_filtered_out(const bool v) { m_filtered_out = v; }
 
-	inline std::shared_ptr<const sinsp_threadinfo> get_tinfo_ref() const { return m_tinfo_ref; }
+	std::shared_ptr<const sinsp_threadinfo> get_tinfo_ref() const { return m_tinfo_ref; }
 
-	inline const std::shared_ptr<sinsp_threadinfo>& get_tinfo_ref() { return m_tinfo_ref; }
+	const std::shared_ptr<sinsp_threadinfo>& get_tinfo_ref() { return m_tinfo_ref; }
 
-	inline void set_tinfo_ref(const std::shared_ptr<sinsp_threadinfo>& v) { m_tinfo_ref = v; }
+	void set_tinfo_ref(const std::shared_ptr<sinsp_threadinfo>& v) { m_tinfo_ref = v; }
 
-	inline const sinsp_threadinfo* get_tinfo() const { return m_tinfo; }
+	const sinsp_threadinfo* get_tinfo() const { return m_tinfo; }
 
-	inline sinsp_threadinfo* get_tinfo() { return m_tinfo; }
+	sinsp_threadinfo* get_tinfo() { return m_tinfo; }
 
-	inline void set_tinfo(sinsp_threadinfo* v) { m_tinfo = v; }
+	void set_tinfo(sinsp_threadinfo* v) { m_tinfo = v; }
 
-	inline std::shared_ptr<const sinsp_fdinfo> get_fdinfo_ref() const { return m_fdinfo_ref; }
+	std::shared_ptr<const sinsp_fdinfo> get_fdinfo_ref() const { return m_fdinfo_ref; }
 
-	inline const std::shared_ptr<sinsp_fdinfo>& get_fdinfo_ref() { return m_fdinfo_ref; }
+	const std::shared_ptr<sinsp_fdinfo>& get_fdinfo_ref() { return m_fdinfo_ref; }
 
-	inline void set_fdinfo_ref(const std::shared_ptr<sinsp_fdinfo>& v) { m_fdinfo_ref = v; }
+	void set_fdinfo_ref(const std::shared_ptr<sinsp_fdinfo>& v) { m_fdinfo_ref = v; }
 
-	inline const std::vector<char>& get_paramstr_storage() const { return m_paramstr_storage; }
+	const std::vector<char>& get_paramstr_storage() const { return m_paramstr_storage; }
 
-	inline std::vector<char>& get_paramstr_storage() { return m_paramstr_storage; }
+	std::vector<char>& get_paramstr_storage() { return m_paramstr_storage; }
 
-	inline const std::vector<sinsp_evt_param>& get_params() const { return m_params; }
+	const std::vector<sinsp_evt_param>& get_params() const { return m_params; }
 
-	inline std::vector<sinsp_evt_param>& get_params() { return m_params; }
+	std::vector<sinsp_evt_param>& get_params() { return m_params; }
 
-	inline char extract_typechar() {
+	char extract_typechar() const {
 		switch(PPME_MAKE_EXIT(get_type())) {
 		case PPME_SYSCALL_OPENAT_2_X:
 		case PPME_SYSCALL_OPENAT2_X:
@@ -714,9 +710,9 @@ public:
 		}
 	}
 
-	inline bool is_syscall_event() const { return get_info()->category & EC_SYSCALL; }
+	bool is_syscall_event() const { return get_info()->category & EC_SYSCALL; }
 
-	inline bool has_return_value() {
+	bool has_return_value() {
 		// This event does not have a return value
 		if(get_type() == PPME_GENERIC_X) {
 			return false;
@@ -734,7 +730,7 @@ public:
 		return false;
 	}
 
-	inline int64_t get_syscall_return_value() {
+	int64_t get_syscall_return_value() {
 		if(!has_return_value()) {
 			throw sinsp_exception(
 			        "Called get_syscall_return_value() on an event that does not have a return "
@@ -746,7 +742,7 @@ public:
 		// The return value is always the first parameter of the syscall event
 		// It could have different names depending on the event type `res`,`fd`, etc.
 		const sinsp_evt_param* p = get_param(0);
-		if(p == NULL) {
+		if(p == nullptr) {
 			// We should always have the return value in the syscall
 			ASSERT(false);
 			return 0;
@@ -755,7 +751,7 @@ public:
 		// the only return values should be on 32 or 64 bits
 		switch(p->len()) {
 		case sizeof(int32_t):
-			return (int64_t)p->as<int32_t>();
+			return p->as<int32_t>();
 		case sizeof(int64_t):
 			return p->as<int64_t>();
 		default:
@@ -764,9 +760,9 @@ public:
 		}
 	}
 
-	inline bool uses_fd() const { return get_info_flags() & EF_USES_FD; }
+	bool uses_fd() const { return get_info_flags() & EF_USES_FD; }
 
-	inline bool creates_fd() const { return get_info_flags() & EF_CREATES_FD; }
+	bool creates_fd() const { return get_info_flags() & EF_CREATES_FD; }
 
 private:
 	char* render_fd(int64_t fd, const char** resolved_str, param_fmt fmt);
@@ -780,7 +776,7 @@ private:
 	uint64_t m_evtnum;
 	uint32_t m_flags;
 	uint32_t m_dump_flags;
-	const struct ppm_event_info* m_info;
+	const ppm_event_info* m_info;
 	std::vector<sinsp_evt_param> m_params;
 
 	std::vector<char> m_paramstr_storage;
@@ -800,7 +796,7 @@ private:
 	int32_t m_errorcode;
 	int32_t m_rawbuf_str_len;
 	bool m_filtered_out;
-	const struct ppm_event_info* m_event_info_table;
+	const ppm_event_info* m_event_info_table;
 
 	std::shared_ptr<sinsp_fdinfo> m_fdinfo_ref;
 
