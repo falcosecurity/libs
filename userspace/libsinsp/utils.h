@@ -381,8 +381,7 @@ inline void append_sanitized_string(std::string& storage,
 // - a string view of `storage`, if `str` needs sanitization. In this case a sanitized version of
 // `str` is written into `storage`, reusing its capacity.
 // `storage` and `str` must not alias the same memory region.
-[[nodiscard]] inline std::string_view sanitize_string_with_storage(std::string_view str,
-                                                                   std::string& storage) {
+[[nodiscard]] inline std::string_view sanitize_string(std::string_view str, std::string& storage) {
 	// Assert `storage` and `str` don't alias the same memory region.
 	ASSERT(reinterpret_cast<uintptr_t>(str.data()) + str.size() <=
 	               reinterpret_cast<uintptr_t>(storage.data()) ||
@@ -407,14 +406,6 @@ inline void append_sanitized_string(std::string& storage,
 	const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
 	append_sanitized_string(storage, str, valid_prefix_len);
 	return storage;
-}
-
-inline void sanitize_string(std::string& str) {
-	std::string storage;
-	const auto sanitized_str = sanitize_string_with_storage(str, storage);
-	if(sanitized_str.data() != str.data()) {
-		str = std::move(storage);
-	}
 }
 
 inline void remove_duplicate_path_separators(std::string& str) {
