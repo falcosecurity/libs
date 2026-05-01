@@ -494,7 +494,7 @@ std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> le
 		right = parse_num_value_or_transformer();
 	} else if(lex_str_op()) {
 		op = m_last_token;
-		if(lex_str_op_modifier()) {
+		if(lex_blank() && lex_str_op_modifier()) {
 			op.append(" ").append(m_last_token);
 			right = parse_list_value();
 		} else {
