@@ -1195,3 +1195,208 @@ TEST(parser, position_transformer_list) {
 	EXPECT_TRUE(pv.as_string().find("transformer0 1 1") != std::string::npos);
 	EXPECT_TRUE(pv.as_string().find("transformer_list") != std::string::npos);
 }
+
+TEST(parser, parse_str_op_modifier_accept) {
+	// all three modifiers with ==
+	test_accept("proc.name == oneof (cat, nginx)");
+	test_accept("proc.name == anyof (cat, nginx)");
+	test_accept("proc.name == allof (cat, nginx)");
+
+	// with = (alias for ==)
+	test_accept("proc.name = oneof (cat, nginx)");
+	test_accept("proc.name = anyof (cat, nginx)");
+	test_accept("proc.name = allof (cat, nginx)");
+
+	// with !=
+	test_accept("proc.name != oneof (cat, nginx)");
+	test_accept("proc.name != anyof (cat, nginx)");
+	test_accept("proc.name != allof (cat, nginx)");
+
+	// no space between modifier and opening paren is still valid (space before modifier is enough)
+	test_accept("proc.name == oneof(cat, nginx)");
+
+	// single-element and empty list
+	test_accept("proc.name == oneof (cat)");
+	test_accept("proc.name == oneof ()");
+
+	// many values
+	test_accept("proc.name == oneof (cat, nginx, apache, httpd)");
+
+	// quoted values
+	test_accept("proc.name == oneof ('single-quoted')");
+	test_accept("proc.name == oneof (\"double-quoted\")");
+	test_accept("proc.name == oneof ('cat', \"nginx\", bare)");
+
+	// values with path-like special characters
+	test_accept("proc.exepath == oneof (/usr/bin/bash, /bin/sh, /usr/sbin/sshd)");
+	test_accept("fd.name == oneof (/var/log/auth.log, /etc/passwd)");
+
+	// identifier (macro reference for list)
+	test_accept("proc.name == oneof allowed_processes");
+	test_accept("proc.name != allof my_list");
+
+	// modifier keyword itself used as the identifier for the list
+	// (oneof is only reserved as a modifier; it can still name a macro)
+	test_accept("proc.name == oneof oneof");
+	test_accept("proc.name == anyof anyof");
+
+	// field with argument + modifier
+	test_accept("evt.arg[0] == oneof (connect, accept)");
+	test_accept("proc.aname[2] != oneof (bash, sh)");
+
+	// left-hand transformer + modifier
+	test_accept("tolower(proc.name) == oneof (cat, nginx)");
+	test_accept("toupper(fd.name) != anyof (/TMP/A, /TMP/B)");
+	// base64 values containing '=' must be quoted (bare strings exclude '=')
+	test_accept("b64(proc.cmdline) == allof (\"dGVzdA==\")");
+
+	// modifier as a plain quoted string value (no modifier semantics)
+	test_accept("proc.name == 'oneof'");
+	test_accept("proc.name == \"anyof\"");
+
+	// inside complex expressions
+	test_accept("proc.name == oneof (cat, nginx) and fd.name exists");
+	test_accept("proc.name == oneof (cat, nginx) or fd.name exists");
+	test_accept("not proc.name == oneof (cat, nginx)");
+	test_accept("(proc.name == oneof (cat, nginx))");
+	test_accept("proc.name == oneof (cat) and proc.name == anyof (nginx, apache)");
+	test_accept("proc.name == oneof (cat) or proc.name != allof (nginx)");
+}
+
+TEST(parser, parse_str_op_modifier_reject) {
+	// missing right-hand value after modifier
+	test_reject("proc.name == oneof");
+	test_reject("proc.name == anyof");
+	test_reject("proc.name == allof");
+
+	// malformed list: trailing / double / leading commas
+	test_reject("proc.name == oneof (cat,)");
+	test_reject("proc.name == oneof (cat,,nginx)");
+	test_reject("proc.name == oneof (,cat)");
+
+	// missing closing paren
+	test_reject("proc.name == oneof (cat, nginx");
+
+	// a space between op and modifier is required; no space means the word is
+	// parsed as a bare string value and the following "(" is leftover
+	test_reject("proc.name ==oneof (cat, nginx)");
+	test_reject("proc.name !=anyof (cat, nginx)");
+	test_reject("proc.name =allof (cat, nginx)");
+	// same rule: no space before modifier, no space before paren → also rejected
+	test_reject("proc.name ==oneof(cat, nginx)");
+
+	// modifier keywords are case-sensitive; uppercase variants are not modifiers
+	// and end up parsed as bare string values, leaving "(cat)" as leftover
+	test_reject("proc.name == ONEOF (cat)");
+	test_reject("proc.name == Anyof (cat)");
+	test_reject("proc.name == ALLOF (cat)");
+
+	// a bare word starting with a modifier prefix is greedily consumed as the
+	// modifier keyword (when the required space is present), leaving the suffix
+	// unparseable as a list
+	test_reject("proc.name == oneof_something");
+	test_reject("proc.name == anyof_extra");
+
+	// numeric operators cannot use modifiers
+	test_reject("proc.num > oneof (1, 2)");
+	test_reject("proc.num <= anyof (1, 2)");
+
+	// list operators (in/intersects/pmatch) cannot use modifiers in this way;
+	// "oneof" would be parsed as an identifier (macro name) and "(a)" would be
+	// leftover, causing a parse error
+	test_reject("proc.name in oneof (cat)");
+	test_reject("proc.name intersects anyof (cat)");
+}
+
+TEST(parser, parse_str_op_modifier_ast) {
+	// == oneof with list
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "== oneof",
+		                                       list_expr::create({"cat", "nginx"}));
+		test_equal_ast("proc.name == oneof (cat, nginx)", check.get());
+	}
+
+	// != anyof with list
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "!= anyof",
+		                                       list_expr::create({"cat", "nginx"}));
+		test_equal_ast("proc.name != anyof (cat, nginx)", check.get());
+	}
+
+	// = allof with single-element list
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "= allof",
+		                                       list_expr::create({"cat"}));
+		test_equal_ast("proc.name = allof (cat)", check.get());
+	}
+
+	// modifier with empty list
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "== oneof",
+		                                       list_expr::create({}));
+		test_equal_ast("proc.name == oneof ()", check.get());
+	}
+
+	// modifier with identifier (macro reference)
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "== oneof",
+		                                       value_expr::create("my_list"));
+		test_equal_ast("proc.name == oneof my_list", check.get());
+	}
+
+	// modifier inside a compound expression
+	{
+		std::vector<std::unique_ptr<expr>> and_children;
+		and_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
+		                                                 "== oneof",
+		                                                 list_expr::create({"cat", "nginx"})));
+		and_children.push_back(unary_check_expr::create(field_expr::create("fd.name"), "exists"));
+		test_equal_ast("proc.name == oneof (cat, nginx) and fd.name exists",
+		               and_expr::create(and_children).get());
+	}
+}
+
+TEST(parser, parse_str_op_modifier_as_string) {
+	// the as_string output round-trips through the parser
+	{
+		const string input = "proc.name == oneof (cat, nginx)";
+		parser p1(input);
+		auto e1 = p1.parse();
+		string s1 = as_string(e1.get());
+
+		parser p2(s1);
+		auto e2 = p2.parse();
+		string s2 = as_string(e2.get());
+
+		EXPECT_EQ(s1, s2);
+		EXPECT_TRUE(e1->is_equal(e2.get()));
+	}
+
+	{
+		const string input = "proc.name != anyof (cat, nginx, apache)";
+		parser p1(input);
+		auto e1 = p1.parse();
+		EXPECT_EQ(as_string(e1.get()), input);
+	}
+}
+
+TEST(parser, position_str_op_modifier) {
+	// position of the binary_check_expr starts at the beginning of the field
+	{
+		parser p("proc.name == oneof (cat)");
+		auto e = p.parse();
+		pos_visitor pv;
+		e->accept(&pv);
+		// binary node at position 0
+		EXPECT_TRUE(pv.as_string().find("binary0 1 1") != std::string::npos);
+		// field node at position 0
+		EXPECT_TRUE(pv.as_string().find("field0 1 1") != std::string::npos);
+		// list node after "proc.name == oneof " (19 chars)
+		EXPECT_TRUE(pv.as_string().find("list19 1 20") != std::string::npos);
+	}
+}

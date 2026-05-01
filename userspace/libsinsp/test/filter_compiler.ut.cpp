@@ -938,3 +938,108 @@ TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation) {
 	// can't be used with field-to-field comparisons
 	EXPECT_THROW(eval_filter(evt, "evt.plugininfo regex val(evt.source)"), sinsp_exception);
 }
+
+// A cache factory that captures the m_compare.mod values passed to new_compare_cache.
+struct modifier_capturing_cache_factory : public exprstr_sinsp_filter_cache_factory {
+	std::vector<cmpop_mod> captured_modifiers;
+
+	std::shared_ptr<sinsp_filter_compare_cache> new_compare_cache(const ast_expr_t* e,
+	                                                              node_info_t& info) override {
+		captured_modifiers.push_back(info.m_compare.mod);
+		return exprstr_sinsp_filter_cache_factory::new_compare_cache(e, info);
+	}
+};
+
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_compilation) {
+	add_default_init_thread();
+	open_inspector();
+
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// all three modifiers with == should compile and not throw
+	EXPECT_NO_THROW(eval_filter(evt, "evt.type == oneof (getcwd, openat)"));
+	EXPECT_NO_THROW(eval_filter(evt, "evt.type == anyof (getcwd, openat)"));
+	EXPECT_NO_THROW(eval_filter(evt, "evt.type == allof (getcwd)"));
+
+	// with != operator
+	EXPECT_NO_THROW(eval_filter(evt, "evt.type != oneof (openat, execve)"));
+	EXPECT_NO_THROW(eval_filter(evt, "evt.type != anyof (openat, execve)"));
+	EXPECT_NO_THROW(eval_filter(evt, "evt.type != allof (openat)"));
+
+	// modifier in complex expressions
+	EXPECT_NO_THROW(
+	        eval_filter(evt,
+	                    "evt.type == oneof (getcwd, openat) and evt.source == oneof (syscall)"));
+	EXPECT_NO_THROW(
+	        eval_filter(evt, "not evt.type == oneof (openat) or evt.type == anyof (getcwd)"));
+
+	// modifier with transformer on LHS
+	EXPECT_NO_THROW(eval_filter(evt, "toupper(proc.name) == oneof (INIT, BASH)"));
+}
+
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_filter_check_list flist;
+	auto ff = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	auto cf = std::make_shared<modifier_capturing_cache_factory>();
+
+	// single modifier expression: exactly one compare_cache call with the right modifier
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type == oneof (getcwd, openat)", cf);
+		compiler.compile();
+		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
+		EXPECT_EQ(cf->captured_modifiers[0], oneof);
+		cf->captured_modifiers.clear();
+	}
+
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type == anyof (getcwd, openat)", cf);
+		compiler.compile();
+		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
+		EXPECT_EQ(cf->captured_modifiers[0], anyof);
+		cf->captured_modifiers.clear();
+	}
+
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type != allof (getcwd)", cf);
+		compiler.compile();
+		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
+		EXPECT_EQ(cf->captured_modifiers[0], allof);
+		cf->captured_modifiers.clear();
+	}
+
+	// plain comparison (no modifier): modifier must be none
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type == getcwd", cf);
+		compiler.compile();
+		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
+		EXPECT_EQ(cf->captured_modifiers[0], none);
+		cf->captured_modifiers.clear();
+	}
+
+	// list operator (no modifier): modifier must be none
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type in (getcwd, openat)", cf);
+		compiler.compile();
+		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
+		EXPECT_EQ(cf->captured_modifiers[0], none);
+		cf->captured_modifiers.clear();
+	}
+
+	// compound expression: each comparison produces one entry in the correct order
+	{
+		sinsp_filter_compiler compiler(
+		        ff,
+		        "evt.type == oneof (getcwd) and evt.source == anyof (syscall) and evt.type == "
+		        "getcwd",
+		        cf);
+		compiler.compile();
+		ASSERT_EQ(cf->captured_modifiers.size(), 3u);
+		EXPECT_EQ(cf->captured_modifiers[0], oneof);
+		EXPECT_EQ(cf->captured_modifiers[1], anyof);
+		EXPECT_EQ(cf->captured_modifiers[2], none);
+		cf->captured_modifiers.clear();
+	}
+}
