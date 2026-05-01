@@ -55,6 +55,7 @@ class RE2;
 //     Condition           ::= UnaryOperator
 //                             | NumOperator (NumValue | FieldTransformerOrVal)
 //                             | StrOperator (StrValue | FieldTransformerOrVal)
+//                             | StrOperator StrOperatorModifier ListValue
 //                             | ListOperator (ListValue | FieldTransformerOrVal)
 //     ListValue           ::= '(' (StrValue (',' StrValue)*)* ')'
 //                             | Identifier
@@ -75,6 +76,7 @@ class RE2;
 //                             | 'iglob '
 //                             | 'startswith '
 //                             | 'regex '
+//     StrOperatorModifier ::= 'oneof' | 'anyof' | 'allof'
 //     ListOperator        ::= 'in' | 'intersects' | 'pmatch'
 //     FieldTransformerVal    ::= 'val('
 //     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename(' | 'len('
@@ -187,6 +189,7 @@ private:
 	inline bool lex_unary_op();
 	inline bool lex_num_op();
 	inline bool lex_str_op();
+	inline bool lex_str_op_modifier();
 	inline bool lex_list_op();
 	inline bool lex_field_transformer_val();
 	inline bool lex_field_transformer_type();
