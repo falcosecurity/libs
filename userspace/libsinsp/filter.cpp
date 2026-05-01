@@ -503,7 +503,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	}
 
 	auto check = std::move(m_last_node_field);
-	check->m_cmp = str_to_cmpop(e->op);
+	check->m_cmp = str_to_cmpop_with_modifier(e->op);
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
 
@@ -520,7 +520,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 		check->add_transformer(filter_transformer_type::FTR_STORAGE);
 	}
 
-	node_info.m_compare_operator = check->m_cmp.op;
+	node_info.m_compare = check->m_cmp;
 	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
 
 	m_filter->add_check(std::move(check));
@@ -571,7 +571,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		check->add_transformer(filter_transformer_type::FTR_STORAGE);
 	}
 
-	check->m_cmp = str_to_cmpop(e->op);
+	check->m_cmp = str_to_cmpop_with_modifier(e->op);
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
 
@@ -656,7 +656,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	// install cache in the check comparison
 	// note: we don't need to re-install the metrics as the check is implemented
 	// by the same object responsible of the left-hand side field extraction
-	node_info.m_compare_operator = check->m_cmp.op;
+	node_info.m_compare = check->m_cmp;
 	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
 
 	m_filter->add_check(std::move(check));
