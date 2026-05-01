@@ -82,6 +82,12 @@ static const std::vector<std::string> s_binary_str_ops = {
         "regex ",
 };
 
+static const std::vector<std::string> s_str_modifier_ops = {
+        "oneof",
+        "anyof",
+        "allof",
+};
+
 static const std::vector<std::string> s_binary_list_ops = {
         "intersects",
         "in",
@@ -488,7 +494,12 @@ std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> le
 		right = parse_num_value_or_transformer();
 	} else if(lex_str_op()) {
 		op = m_last_token;
-		right = parse_str_value_or_transformer(false);
+		if(lex_str_op_modifier()) {
+			op.append(" ").append(m_last_token);
+			right = parse_list_value();
+		} else {
+			right = parse_str_value_or_transformer(false);
+		}
 	} else if(lex_list_op()) {
 		op = m_last_token;
 		right = parse_list_value_or_transformer();
@@ -707,6 +718,10 @@ inline bool parser::lex_num_op() {
 
 inline bool parser::lex_str_op() {
 	return lex_helper_operator_list(s_binary_str_ops);
+}
+
+inline bool parser::lex_str_op_modifier() {
+	return lex_helper_operator_list(s_str_modifier_ops);
 }
 
 inline bool parser::lex_list_op() {
