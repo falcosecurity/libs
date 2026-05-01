@@ -51,21 +51,36 @@ enum cmpop : uint8_t {
 	CO_REGEX = 19,
 };
 
+enum cmpop_mod : uint8_t {
+	none = 0,
+	oneof = 1,
+	anyof = 2,
+	allof = 3,
+};
+
 cmpop str_to_cmpop(std::string_view str);
-bool cmpop_to_str(cmpop op, std::string& out);
+cmpop_mod str_to_cmpop_mod(std::string_view str);
+struct comparator {
+	cmpop op = CO_NONE;
+	cmpop_mod mod = none;
+	comparator() = default;
+	comparator(cmpop op): op(op) {}
+};
+comparator str_to_cmpop_with_modifier(std::string_view str);
+bool cmpop_to_str(comparator cmp, std::string& out);
 
 namespace std {
 std::string to_string(cmpop);
 }
 
-bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& err);
-bool flt_compare(cmpop op,
+bool flt_is_comparable(comparator cmp, ppm_param_type t, bool is_list, std::string& err);
+bool flt_compare(comparator cmp,
                  ppm_param_type type,
                  const void* operand1,
                  const void* operand2,
                  uint32_t op1_len = 0,
                  uint32_t op2_len = 0);
-bool flt_compare_avg(cmpop op,
+bool flt_compare_avg(comparator cmp,
                      ppm_param_type type,
                      const void* operand1,
                      const void* operand2,
@@ -73,5 +88,5 @@ bool flt_compare_avg(cmpop op,
                      uint32_t op2_len,
                      uint32_t cnt1,
                      uint32_t cnt2);
-bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
-bool flt_compare_ipv6net(cmpop op, const ipv6addr* operand1, const ipv6net* operand2);
+bool flt_compare_ipv4net(comparator cmp, uint64_t operand1, const ipv4net* operand2);
+bool flt_compare_ipv6net(comparator cmp, const ipv6addr* operand1, const ipv6net* operand2);
