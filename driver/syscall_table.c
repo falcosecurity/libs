@@ -1045,4 +1045,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_listns
 	[__NR_listns - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LISTNS},
 #endif
+#ifdef __NR_rseq_slice_yield
+	[__NR_rseq_slice_yield - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RSEQ_SLICE_YIELD},
+#endif
 };

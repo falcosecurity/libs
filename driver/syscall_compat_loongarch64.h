@@ -908,6 +908,9 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_landlock_restrict_self
 #define __NR_landlock_restrict_self 446
 #endif
+#ifndef __NR_memfd_secret
+#define __NR_memfd_secret 447
+#endif
 #ifndef __NR_process_mrelease
 #define __NR_process_mrelease 448
 #endif
@@ -976,4 +979,7 @@ or GPL2.txt for full copies of the license.
 #endif
 #ifndef __NR_listns
 #define __NR_listns 470
+#endif
+#ifndef __NR_rseq_slice_yield
+#define __NR_rseq_slice_yield 471
 #endif

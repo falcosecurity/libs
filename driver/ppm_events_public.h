@@ -2018,7 +2018,8 @@ enum sys_exit_extra_code {
 	PPM_SC_X(FILE_GETATTR, 449)            \
 	PPM_SC_X(FILE_SETATTR, 450)            \
 	PPM_SC_X(LISTNS, 451)                  \
-	PPM_SC_X(UPROBE, 452)
+	PPM_SC_X(UPROBE, 452)                  \
+	PPM_SC_X(RSEQ_SLICE_YIELD, 453)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),

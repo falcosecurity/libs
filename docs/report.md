@@ -170,7 +170,7 @@
 | mbind                   | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | membarrier              | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | memfd_create            | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| memfd_secret            | 🟡        | aarch64,riscv64,s390x,x86_64                     |
+| memfd_secret            | 🟡        | aarch64,loongarch64,riscv64,s390x,x86_64         |
 | migrate_pages           | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | mincore                 | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | mkdir                   | 🟢        | ppc64le,s390x,x86_64                             |
@@ -275,6 +275,7 @@
 | riscv_hwprobe           | 🟡        | riscv64                                          |
 | rmdir                   | 🟢        | ppc64le,s390x,x86_64                             |
 | rseq                    | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| rseq_slice_yield        | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | rt_sigaction            | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | rt_sigpending           | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | rt_sigprocmask          | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
