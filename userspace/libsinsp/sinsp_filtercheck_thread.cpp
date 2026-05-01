@@ -1842,7 +1842,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
-		res = compare_rhs(m_cmpop, PT_PID, &pt->m_pid);
+		res = compare_rhs(m_cmp, PT_PID, &pt->m_pid);
 
 		if(res == true) {
 			found = true;
@@ -1885,7 +1885,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt* evt) {
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
-		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)pt->m_comm.c_str());
+		res = compare_rhs(m_cmp, PT_CHARBUF, (void*)pt->m_comm.c_str());
 
 		if(res == true) {
 			found = true;
@@ -1928,7 +1928,7 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt* evt) {
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
-		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)pt->m_exe.c_str());
+		res = compare_rhs(m_cmp, PT_CHARBUF, (void*)pt->m_exe.c_str());
 
 		if(res == true) {
 			found = true;
@@ -1971,7 +1971,7 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt* evt) {
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
-		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)pt->m_exepath.c_str());
+		res = compare_rhs(m_cmp, PT_CHARBUF, (void*)pt->m_exepath.c_str());
 
 		if(res == true) {
 			found = true;
@@ -2016,7 +2016,7 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt* evt) {
 		std::string cmdline;
 		sinsp_threadinfo::populate_cmdline(cmdline, pt);
 
-		res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)cmdline.c_str());
+		res = compare_rhs(m_cmp, PT_CHARBUF, (void*)cmdline.c_str());
 
 		if(res == true) {
 			found = true;
@@ -2058,7 +2058,7 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt* evt) {
 	bool found = false;
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		std::string full_env = pt->concatenate_all_env();
-		bool res = compare_rhs(m_cmpop, PT_CHARBUF, (void*)full_env.c_str());
+		bool res = compare_rhs(m_cmp, PT_CHARBUF, (void*)full_env.c_str());
 
 		if(res == true) {
 			found = true;

@@ -64,7 +64,6 @@ sinsp_filter_check::~sinsp_filter_check() = default;
 
 sinsp_filter_check::sinsp_filter_check() {
 	m_boolop = BO_NONE;
-	m_cmpop = CO_NONE;
 	m_inspector = NULL;
 	m_field = NULL;
 	m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
@@ -607,7 +606,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	m_vals[i] = item;
 
 	// populate operator-specific optimizations
-	if(m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS) {
+	if(m_cmp.op == CO_IN || m_cmp.op == CO_INTERSECTS) {
 		// If the operator is IN or INTERSECTS, populate the map search
 		ensure_unique_ptr_allocated(m_val_storages_members);
 		m_val_storages_members->insert(item);
@@ -619,11 +618,11 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		if(parsed_len > m_val_storages_max_size) {
 			m_val_storages_max_size = parsed_len;
 		}
-	} else if(m_cmpop == CO_PMATCH) {
+	} else if(m_cmp.op == CO_PMATCH) {
 		// If the operator is CO_PMATCH, also add the value to the paths set.
 		ensure_unique_ptr_allocated(m_val_storages_paths);
 		m_val_storages_paths->add_search_path(item);
-	} else if(m_cmpop == CO_REGEX) {
+	} else if(m_cmp.op == CO_REGEX) {
 		ensure_unique_ptr_allocated(m_val_regex,
 		                            re2::StringPiece((const char*)item.first),
 		                            re2::RE2::POSIX);
@@ -649,8 +648,8 @@ void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rh
 		        std::string(m_rhs_filter_check->get_transformed_field_info()->m_name) + "'");
 	}
 
-	if(m_cmpop == CO_PMATCH || m_cmpop == CO_REGEX) {
-		throw sinsp_exception("operator '" + std::to_string(m_cmpop) +
+	if(m_cmp.op == CO_PMATCH || m_cmp.op == CO_REGEX) {
+		throw sinsp_exception("operator '" + std::to_string(m_cmp.op) +
 		                      "' doesn't support right-hand side fields");
 	}
 
@@ -760,10 +759,10 @@ size_t sinsp_filter_check::parse_filter_value(const char* str,
 	return parsed_len;
 }
 
-bool sinsp_filter_check::compare_rhs(cmpop op,
+bool sinsp_filter_check::compare_rhs(comparator cmp,
                                      ppm_param_type type,
                                      std::vector<extract_value_t>& values) {
-	if(op == CO_EXISTS) {
+	if(cmp.op == CO_EXISTS) {
 		return true;
 	}
 
@@ -793,7 +792,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op,
 			                      std::string(param_type_to_string(type)));
 		}
 		filter_value_t item(NULL, 0);
-		switch(op) {
+		switch(cmp.op) {
 		case CO_EXISTS:
 			// note: sinsp_filter_check_*::compare already discard NULL values
 			return true;
@@ -861,7 +860,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op,
 		                      std::to_string(values.size()) + " were found");
 	}
 
-	return compare_rhs(m_cmpop, type, values[0].ptr, values[0].len);
+	return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
 }
 
 static inline filter_value_t craft_filter_value(ppm_param_type type,
@@ -888,11 +887,11 @@ static inline filter_value_t craft_filter_value(ppm_param_type type,
 	return filter_value_t{(uint8_t*)value, len};
 }
 
-bool sinsp_filter_check::compare_rhs(cmpop op,
+bool sinsp_filter_check::compare_rhs(comparator cmp,
                                      ppm_param_type type,
                                      const void* operand1,
                                      uint32_t op1_len) {
-	switch(op) {
+	switch(cmp.op) {
 	case CO_EXISTS:
 		return true;
 	case CO_IN:
@@ -923,7 +922,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op,
 		default:
 			auto item = craft_filter_value(type, operand1, op1_len);
 
-			if(op == CO_IN || op == CO_INTERSECTS) {
+			if(cmp.op == CO_IN || cmp.op == CO_INTERSECTS) {
 				// CO_INTERSECTS is really more interesting when a filtercheck can extract
 				// multiple values, and you're comparing the set of extracted values
 				// against the set of rhs values. sinsp_filter_checks only extract a
@@ -962,7 +961,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op,
 			return false;
 		};
 	default:
-		return (::flt_compare(op, type, operand1, filter_value_p(), op1_len, filter_value_len()));
+		return (::flt_compare(cmp, type, operand1, filter_value_p(), op1_len, filter_value_len()));
 	}
 }
 
@@ -1082,7 +1081,7 @@ bool sinsp_filter_check::compare_nocache(sinsp_evt* evt) {
 		populate_filter_values_with_rhs_extracted_values(m_rhs_filter_check->m_extracted_values);
 	}
 
-	return compare_rhs(m_cmpop, lhs_type, m_extracted_values);
+	return compare_rhs(m_cmp, lhs_type, m_extracted_values);
 }
 
 void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
@@ -1143,7 +1142,7 @@ void sinsp_filter_check::populate_filter_values_with_rhs_extracted_values(
 	m_vals.clear();
 
 	// These are needed for In/Intersects
-	if(m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS) {
+	if(m_cmp.op == CO_IN || m_cmp.op == CO_INTERSECTS) {
 		ensure_unique_ptr_allocated(m_val_storages_members);
 		m_val_storages_members->clear();
 		m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
@@ -1154,7 +1153,7 @@ void sinsp_filter_check::populate_filter_values_with_rhs_extracted_values(
 		filter_value_t item(v.ptr, v.len);
 		m_vals.push_back(item);
 
-		if(m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS) {
+		if(m_cmp.op == CO_IN || m_cmp.op == CO_INTERSECTS) {
 			m_val_storages_members->insert(std::move(item));
 			if(v.len < m_val_storages_min_size) {
 				m_val_storages_min_size = v.len;

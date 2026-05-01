@@ -625,7 +625,7 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 
 		throw sinsp_exception("unknown event type " + stype);
 	} else if(m_field_id == TYPE_AROUND) {
-		if(m_cmpop != CO_EQ) {
+		if(m_cmp.op != CO_EQ) {
 			throw sinsp_exception("evt.around supports only '=' comparison operator");
 		}
 
@@ -1599,7 +1599,7 @@ bool sinsp_filter_check_event::compare_nocache(sinsp_evt* evt) {
 
 		ASSERT(m_arginfo != NULL);
 
-		res = compare_rhs(m_cmpop, m_arginfo->type, extracted_val);
+		res = compare_rhs(m_cmp, m_arginfo->type, extracted_val);
 	} else if(m_field_id == TYPE_AROUND) {
 		uint64_t ts = evt->get_ts();
 		uint64_t t1 = ts - m_tsdelta;

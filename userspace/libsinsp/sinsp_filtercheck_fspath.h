@@ -43,7 +43,7 @@ private:
 	typedef std::map<uint16_t, std::shared_ptr<sinsp_filter_check>> filtercheck_map_t;
 
 	std::shared_ptr<sinsp_filter_check> create_event_check(const char* name,
-	                                                       cmpop cop = CO_NONE,
+	                                                       comparator cmp = {},
 	                                                       const char* value = NULL);
 
 	std::shared_ptr<sinsp_filter_check> create_fd_check(const char* name);

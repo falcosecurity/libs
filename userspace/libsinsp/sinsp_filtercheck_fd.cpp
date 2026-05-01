@@ -1231,26 +1231,26 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt) {
 	}
 
 	if(m_fdinfo != NULL) {
-		if(m_cmpop == CO_EXISTS) {
+		if(m_cmp.op == CO_EXISTS) {
 			return true;
 		}
 
 		scap_fd_type evt_type = m_fdinfo->m_type;
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
-			if(m_cmpop == CO_EQ || m_cmpop == CO_IN) {
-				if(compare_rhs(m_cmpop,
+			if(m_cmp.op == CO_EQ || m_cmp.op == CO_IN) {
+				if(compare_rhs(m_cmp,
 				               PT_IPV4ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) ||
-				   compare_rhs(m_cmpop,
+				   compare_rhs(m_cmp,
 				               PT_IPV4ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip)) {
 					return true;
 				}
-			} else if(m_cmpop == CO_NE) {
-				if(compare_rhs(m_cmpop,
+			} else if(m_cmp.op == CO_NE) {
+				if(compare_rhs(m_cmp,
 				               PT_IPV4ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) &&
-				   compare_rhs(m_cmpop,
+				   compare_rhs(m_cmp,
 				               PT_IPV4ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip)) {
 					return true;
@@ -1260,29 +1260,27 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt) {
 				        "filter error: IP filter only supports '=' and '!=' operators");
 			}
 		} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN) {
-				return compare_rhs(m_cmpop,
-				                   PT_IPV4ADDR,
-				                   &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+			if(m_cmp.op == CO_EQ || m_cmp.op == CO_NE || m_cmp.op == CO_IN) {
+				return compare_rhs(m_cmp, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 			} else {
 				throw sinsp_exception(
 				        "filter error: IP filter only supports '=' and '!=' operators");
 			}
 		} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-			if(m_cmpop == CO_EQ || m_cmpop == CO_IN) {
-				if(compare_rhs(m_cmpop,
+			if(m_cmp.op == CO_EQ || m_cmp.op == CO_IN) {
+				if(compare_rhs(m_cmp,
 				               PT_IPV6ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) ||
-				   compare_rhs(m_cmpop,
+				   compare_rhs(m_cmp,
 				               PT_IPV6ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip)) {
 					return true;
 				}
-			} else if(m_cmpop == CO_NE) {
-				if(compare_rhs(m_cmpop,
+			} else if(m_cmp.op == CO_NE) {
+				if(compare_rhs(m_cmp,
 				               PT_IPV6ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) &&
-				   compare_rhs(m_cmpop,
+				   compare_rhs(m_cmp,
 				               PT_IPV6ADDR,
 				               &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip)) {
 					return true;
@@ -1292,10 +1290,8 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt) {
 				        "filter error: IP filter only supports '=' and '!=' operators");
 			}
 		} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN) {
-				return compare_rhs(m_cmpop,
-				                   PT_IPV6ADDR,
-				                   &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
+			if(m_cmp.op == CO_EQ || m_cmp.op == CO_NE || m_cmp.op == CO_IN) {
+				return compare_rhs(m_cmp, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
 			} else {
 				throw sinsp_exception(
 				        "filter error: IP filter only supports '=' and '!=' operators");
@@ -1311,7 +1307,7 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 		return false;
 	}
 
-	if(m_cmpop == CO_EXISTS) {
+	if(m_cmp.op == CO_EXISTS) {
 		return true;
 	}
 
@@ -1321,40 +1317,40 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 	switch(m_fdinfo->m_type) {
 	case SCAP_FD_IPV4_SERVSOCK:
 		if(filter_value_len() != sizeof(ipv4net)) {
-			return m_cmpop == CO_NE;
+			return m_cmp.op == CO_NE;
 		}
-		return flt_compare_ipv4net(m_cmpop,
+		return flt_compare_ipv4net(m_cmp,
 		                           m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip,
 		                           (ipv4net *)filter_value_p());
 
 	case SCAP_FD_IPV6_SERVSOCK:
 		if(filter_value_len() != sizeof(ipv6net)) {
-			return m_cmpop == CO_NE;
+			return m_cmp.op == CO_NE;
 		}
-		return flt_compare_ipv6net(m_cmpop,
+		return flt_compare_ipv6net(m_cmp,
 		                           &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip,
 		                           (ipv6net *)filter_value_p());
 
 	case SCAP_FD_IPV4_SOCK:
 		if(filter_value_len() != sizeof(ipv4net)) {
-			return m_cmpop == CO_NE;
+			return m_cmp.op == CO_NE;
 		}
-		sip_cmp = flt_compare_ipv4net(m_cmpop,
+		sip_cmp = flt_compare_ipv4net(m_cmp,
 		                              m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip,
 		                              (ipv4net *)filter_value_p());
-		dip_cmp = flt_compare_ipv4net(m_cmpop,
+		dip_cmp = flt_compare_ipv4net(m_cmp,
 		                              m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip,
 		                              (ipv4net *)filter_value_p());
 		break;
 
 	case SCAP_FD_IPV6_SOCK:
 		if(filter_value_len() != sizeof(ipv6net)) {
-			return m_cmpop == CO_NE;
+			return m_cmp.op == CO_NE;
 		}
-		sip_cmp = flt_compare_ipv6net(m_cmpop,
+		sip_cmp = flt_compare_ipv6net(m_cmp,
 		                              &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip,
 		                              (ipv6net *)filter_value_p());
-		dip_cmp = flt_compare_ipv6net(m_cmpop,
+		dip_cmp = flt_compare_ipv6net(m_cmp,
 		                              &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip,
 		                              (ipv6net *)filter_value_p());
 		break;
@@ -1363,11 +1359,11 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt) {
 		return false;
 	}
 
-	if(m_cmpop == CO_EQ || m_cmpop == CO_IN) {
+	if(m_cmp.op == CO_EQ || m_cmp.op == CO_IN) {
 		return sip_cmp || dip_cmp;
 	}
 
-	if(m_cmpop == CO_NE) {
+	if(m_cmp.op == CO_NE) {
 		return sip_cmp && dip_cmp;
 	}
 
@@ -1380,7 +1376,7 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt) {
 	}
 
 	if(m_fdinfo != NULL) {
-		if(m_cmpop == CO_EXISTS) {
+		if(m_cmp.op == CO_EXISTS) {
 			return true;
 		}
 
@@ -1404,7 +1400,7 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt) {
 			return false;
 		}
 
-		switch(m_cmpop) {
+		switch(m_cmp.op) {
 		case CO_EQ:
 			if(*sport == *(uint16_t *)filter_value_p() || *dport == *(uint16_t *)filter_value_p()) {
 				return true;
@@ -1437,8 +1433,8 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt) {
 			break;
 
 		case CO_IN:
-			if(compare_rhs(m_cmpop, PT_PORT, sport, sizeof(*sport)) ||
-			   compare_rhs(m_cmpop, PT_PORT, dport, sizeof(*dport))) {
+			if(compare_rhs(m_cmp, PT_PORT, sport, sizeof(*sport)) ||
+			   compare_rhs(m_cmp, PT_PORT, dport, sizeof(*dport))) {
 				return true;
 			}
 			break;
@@ -1456,7 +1452,7 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 	}
 
 	if(m_fdinfo != NULL) {
-		if(m_cmpop == CO_EXISTS) {
+		if(m_cmp.op == CO_EXISTS) {
 			return true;
 		}
 
@@ -1529,7 +1525,7 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 
 		uint64_t ts = evt->get_ts();
 
-		if(m_cmpop == CO_IN) {
+		if(m_cmp.op == CO_IN) {
 			for(uint16_t i = 0; i < m_vals.size(); i++) {
 				if(sinsp_dns_manager::get().match(
 				           (const char *)filter_value_p(i),
@@ -1541,13 +1537,13 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 			}
 
 			return false;
-		} else if(m_cmpop == CO_EQ) {
+		} else if(m_cmp.op == CO_EQ) {
 			return sinsp_dns_manager::get().match(
 			        (const char *)filter_value_p(),
 			        (evt_type == SCAP_FD_IPV6_SOCK) ? AF_INET6 : AF_INET,
 			        addr,
 			        ts);
-		} else if(m_cmpop == CO_NE) {
+		} else if(m_cmp.op == CO_NE) {
 			return !sinsp_dns_manager::get().match(
 			        (const char *)filter_value_p(),
 			        (evt_type == SCAP_FD_IPV6_SOCK) ? AF_INET6 : AF_INET,
@@ -1611,7 +1607,7 @@ bool sinsp_filter_check_fd::compare_nocache(sinsp_evt *evt) {
 			return compare_domain(evt);
 		}
 		auto ftype = sinsp_filter_check::get_transformed_field_info()->m_type;
-		return compare_rhs(m_cmpop, ftype, m_extracted_values);
+		return compare_rhs(m_cmp, ftype, m_extracted_values);
 	}
 
 	return sinsp_filter_check::compare_nocache(evt);

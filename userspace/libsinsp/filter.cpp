@@ -257,7 +257,7 @@ void sinsp_extractor_compiler::check_warnings_transformer_value(
 	throw_unexpected_warning_check("check_warnings_transformer_value");
 }
 
-void sinsp_extractor_compiler::check_value_and_add_warnings(cmpop,
+void sinsp_extractor_compiler::check_value_and_add_warnings(comparator,
                                                             const libsinsp::filter::ast::pos_info&,
                                                             const std::string&) {
 	throw_unexpected_warning_check("check_value_and_add_warnings");
@@ -489,7 +489,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::not_expr* e) {
 static inline void check_op_type_compatibility(sinsp_filter_check& c) {
 	std::string err;
 	auto fi = c.get_transformed_field_info();
-	if(fi && !flt_is_comparable(c.m_cmpop, fi->m_type, fi->is_list(), err)) {
+	if(fi && !flt_is_comparable(c.m_cmp, fi->m_type, fi->is_list(), err)) {
 		throw sinsp_exception("filter error: " + err);
 	}
 }
@@ -503,7 +503,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	}
 
 	auto check = std::move(m_last_node_field);
-	check->m_cmpop = str_to_cmpop(e->op);
+	check->m_cmp = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
 
@@ -520,7 +520,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 		check->add_transformer(filter_transformer_type::FTR_STORAGE);
 	}
 
-	node_info.m_compare_operator = check->m_cmpop;
+	node_info.m_compare_operator = check->m_cmp.op;
 	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
 
 	m_filter->add_check(std::move(check));
@@ -528,7 +528,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 
 static void add_filtercheck_value(sinsp_filter_check* chk, size_t idx, std::string_view value) {
 	std::vector<char> hex_bytes;
-	switch(chk->m_cmpop) {
+	switch(chk->m_cmp.op) {
 	case CO_BCONTAINS:
 	case CO_BSTARTSWITH:
 		if(!sinsp_utils::unhex(value, hex_bytes)) {
@@ -571,7 +571,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		check->add_transformer(filter_transformer_type::FTR_STORAGE);
 	}
 
-	check->m_cmpop = str_to_cmpop(e->op);
+	check->m_cmp = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
 
@@ -648,7 +648,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		// expect the vector to only have 1 value. We don't check this here, as
 		// the parser is trusted to apply proper grammar checks on this constraint.
 		for(size_t i = 0; i < field_values.size(); i++) {
-			check_value_and_add_warnings(check->m_cmpop, e->right->get_pos(), field_values[i]);
+			check_value_and_add_warnings(check->m_cmp, e->right->get_pos(), field_values[i]);
 			add_filtercheck_value(check.get(), i, field_values[i]);
 		}
 	}
@@ -656,7 +656,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	// install cache in the check comparison
 	// note: we don't need to re-install the metrics as the check is implemented
 	// by the same object responsible of the left-hand side field extraction
-	node_info.m_compare_operator = check->m_cmpop;
+	node_info.m_compare_operator = check->m_cmp.op;
 	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
 
 	m_filter->add_check(std::move(check));
@@ -735,7 +735,7 @@ void sinsp_filter_compiler::check_warnings_transformer_value(
 	}
 }
 
-void sinsp_filter_compiler::check_value_and_add_warnings(cmpop op,
+void sinsp_filter_compiler::check_value_and_add_warnings(comparator cmp,
                                                          const libsinsp::filter::ast::pos_info& pos,
                                                          const std::string& v) {
 	try {
@@ -747,7 +747,7 @@ void sinsp_filter_compiler::check_value_and_add_warnings(cmpop op,
 		// checks using regex operator are the most performance expensive ones,
 		// so we want to appply few euristics to understand if the check could
 		// be trivially rewritten with simpler operators
-		if(op == CO_REGEX) {
+		if(cmp.op == CO_REGEX) {
 			check_warnings_regex_value(pos, v);
 		}
 
