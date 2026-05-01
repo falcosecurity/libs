@@ -165,9 +165,9 @@ public:
 		// Left to null in all other cases.
 		const filtercheck_field_info* m_right_field = nullptr;
 
-		// For nodes with a comparison, the comparison operator.
-		// Left to CO_NONE in all other cases.
-		cmpop m_compare_operator = cmpop::CO_NONE;
+		// For nodes with a comparison, the comparison operator and optional modifier.
+		// Left to default ({CO_NONE, none}) in all other cases.
+		comparator m_compare = {};
 	};
 
 	virtual ~sinsp_filter_cache_factory() = default;
