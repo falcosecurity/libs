@@ -182,7 +182,7 @@ public:
 	std::shared_ptr<sinsp_filter_extract_cache> m_extract_cache = nullptr;
 	std::shared_ptr<sinsp_filter_cache_metrics> m_cache_metrics = nullptr;
 	boolop m_boolop = BO_NONE;
-	cmpop m_cmpop = CO_NONE;
+	comparator m_cmp;
 
 	char* rawval_to_string(uint8_t* rawval,
 	                       ppm_param_type ptype,
@@ -223,8 +223,11 @@ protected:
 	// \param len [out] length in bytes for the returned value
 	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true);
 
-	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
-	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);
+	bool compare_rhs(comparator cmp,
+	                 ppm_param_type type,
+	                 const void* operand1,
+	                 uint32_t op1_len = 0);
+	bool compare_rhs(comparator cmp, ppm_param_type type, std::vector<extract_value_t>& values);
 
 	Json::Value rawval_to_json(uint8_t* rawval,
 	                           ppm_param_type ptype,

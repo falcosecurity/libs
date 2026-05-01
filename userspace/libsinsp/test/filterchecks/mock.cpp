@@ -122,7 +122,7 @@ static std::unique_ptr<sinsp_filter_check> create_filtercheck_from_field(sinsp* 
 	filter_list.add_filter_check(std::make_unique<sinsp_filter_check_mock>());
 	sinsp_filter_factory factory(inspector, filter_list);
 	auto check = factory.new_filtercheck(field);
-	check->m_cmpop = op;
+	check->m_cmp = op;
 	check->m_boolop = BO_NONE;
 	check->parse_field_name(field, true, true);
 	return check;
