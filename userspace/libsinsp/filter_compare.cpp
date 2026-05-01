@@ -30,6 +30,18 @@ limitations under the License.
 #include <netdb.h>
 #endif
 
+cmpop_mod str_to_cmpop_mod(std::string_view str) {
+	if(str == "oneof") {
+		return oneof;
+	} else if(str == "anyof") {
+		return anyof;
+	} else if(str == "allof") {
+		return allof;
+	}
+
+	throw sinsp_exception("unrecognized filter comparison modifier '" + std::string(str) + "'");
+}
+
 cmpop str_to_cmpop(std::string_view str) {
 	if(str == "=" || str == "==") {
 		return CO_EQ;
@@ -74,8 +86,20 @@ cmpop str_to_cmpop(std::string_view str) {
 	throw sinsp_exception("unrecognized filter comparison operator '" + std::string(str) + "'");
 }
 
-bool cmpop_to_str(cmpop op, std::string& out) {
-	switch(op) {
+comparator str_to_cmpop_with_modifier(std::string_view str) {
+	comparator res;
+	auto idx = str.find(" ");
+	if(idx == std::string_view::npos) {
+		res.op = str_to_cmpop(str);
+	} else {
+		res.op = str_to_cmpop(str.substr(0, idx));
+		res.mod = str_to_cmpop_mod(str.substr(idx + 1));
+	}
+	return res;
+}
+
+bool cmpop_to_str(comparator cmp, std::string& out) {
+	switch(cmp.op) {
 	case CO_NONE: {
 		out = "none";
 		return true;
@@ -211,8 +235,8 @@ std::string std::to_string(cmpop c) {
 	}
 };
 
-static inline bool flt_is_comparable_numeric(cmpop op, std::string& err) {
-	switch(op) {
+static inline bool flt_is_comparable_numeric(comparator cmp, std::string& err) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_NE:
 	case CO_LT:
@@ -225,14 +249,14 @@ static inline bool flt_is_comparable_numeric(cmpop op, std::string& err) {
 		return true;
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported for numeric filters";
 		return false;
 	}
 }
 
-static inline bool flt_is_comparable_bool(cmpop op, std::string& err) {
-	switch(op) {
+static inline bool flt_is_comparable_bool(comparator cmp, std::string& err) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_NE:
 	case CO_IN:
@@ -241,14 +265,14 @@ static inline bool flt_is_comparable_bool(cmpop op, std::string& err) {
 		return true;
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported for numeric filters";
 		return false;
 	}
 }
 
-static inline bool flt_is_comparable_string(cmpop op, std::string& err) {
-	switch(op) {
+static inline bool flt_is_comparable_string(comparator cmp, std::string& err) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_NE:
 	case CO_LT:
@@ -269,14 +293,14 @@ static inline bool flt_is_comparable_string(cmpop op, std::string& err) {
 		return true;
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported for string filters";
 		return false;
 	}
 }
 
-static inline bool flt_is_comparable_buffer(cmpop op, std::string& err) {
-	switch(op) {
+static inline bool flt_is_comparable_buffer(comparator cmp, std::string& err) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_NE:
 	case CO_CONTAINS:
@@ -290,14 +314,14 @@ static inline bool flt_is_comparable_buffer(cmpop op, std::string& err) {
 		return true;
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported for buffer filters";
 		return false;
 	}
 }
 
-static inline bool flt_is_comparable_ip_or_net(cmpop op, std::string& err) {
-	switch(op) {
+static inline bool flt_is_comparable_ip_or_net(comparator cmp, std::string& err) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_NE:
 	case CO_IN:
@@ -306,28 +330,28 @@ static inline bool flt_is_comparable_ip_or_net(cmpop op, std::string& err) {
 		return true;
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported for ip address and network filters";
 		return false;
 	}
 }
 
-static inline bool flt_is_comparable_any_list(cmpop op, std::string& err) {
-	switch(op) {
+static inline bool flt_is_comparable_any_list(comparator cmp, std::string& err) {
+	switch(cmp.op) {
 	case CO_IN:
 	case CO_EXISTS:
 	case CO_INTERSECTS:
 		return true;
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported list filters";
 		return false;
 	}
 }
 
-bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& err) {
-	if(op == CO_EXISTS) {
+bool flt_is_comparable(comparator cmp, ppm_param_type t, bool is_list, std::string& err) {
+	if(cmp.op == CO_EXISTS) {
 		return true;
 	}
 
@@ -340,7 +364,7 @@ bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& er
 		case PT_BOOL:
 		case PT_IPADDR:
 		case PT_IPNET:
-			return flt_is_comparable_any_list(op, err);
+			return flt_is_comparable_any_list(cmp, err);
 		default:
 			err = "list filters are not supported for type '" +
 			      std::string(param_type_to_string(t)) + "'";
@@ -373,25 +397,25 @@ bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& er
 	case PT_ENUMFLAGS8:
 	case PT_ENUMFLAGS16:
 	case PT_ENUMFLAGS32:
-		return flt_is_comparable_numeric(op, err);
+		return flt_is_comparable_numeric(cmp, err);
 	case PT_BOOL:
-		return flt_is_comparable_bool(op, err);
+		return flt_is_comparable_bool(cmp, err);
 	case PT_IPV4ADDR:
 	case PT_IPV4NET:
 	case PT_IPV6ADDR:
 	case PT_IPV6NET:
 	case PT_IPADDR:
 	case PT_IPNET:
-		return flt_is_comparable_ip_or_net(op, err);
+		return flt_is_comparable_ip_or_net(cmp, err);
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH:
-		return flt_is_comparable_string(op, err);
+		return flt_is_comparable_string(cmp, err);
 	case PT_BYTEBUF:
-		return flt_is_comparable_buffer(op, err);
+		return flt_is_comparable_buffer(cmp, err);
 	default:
 		std::string opname;
-		cmpop_to_str(op, opname);
+		cmpop_to_str(cmp, opname);
 		err = "'" + opname + "' operator not supported for type '" +
 		      std::string(param_type_to_string(t)) + "'";
 		return false;
@@ -400,16 +424,16 @@ bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& er
 
 // little helper for functions below
 template<typename Check>
-static inline void _throw_if_not_comparable(cmpop op, Check c) {
+static inline void _throw_if_not_comparable(comparator cmp, Check c) {
 	std::string err;
-	if(!c(op, err)) {
+	if(!c(cmp, err)) {
 		throw sinsp_exception(err);
 	}
 }
 
 template<typename T>
-static inline bool flt_compare_numeric(cmpop op, T operand1, T operand2) {
-	switch(op) {
+static inline bool flt_compare_numeric(comparator cmp, T operand1, T operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -425,13 +449,13 @@ static inline bool flt_compare_numeric(cmpop op, T operand1, T operand2) {
 	case CO_GE:
 		return (operand1 >= operand2);
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_numeric);
+		_throw_if_not_comparable(cmp, flt_is_comparable_numeric);
 		return false;
 	}
 }
 
-static inline bool flt_compare_string(cmpop op, char* operand1, char* operand2) {
-	switch(op) {
+static inline bool flt_compare_string(comparator cmp, char* operand1, char* operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -477,17 +501,17 @@ static inline bool flt_compare_string(cmpop op, char* operand1, char* operand2) 
 		// note: pmatch and regex operators are not handled here
 		return false;
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_string);
+		_throw_if_not_comparable(cmp, flt_is_comparable_string);
 		return false;
 	}
 }
 
-static inline bool flt_compare_buffer(cmpop op,
+static inline bool flt_compare_buffer(comparator cmp,
                                       char* operand1,
                                       char* operand2,
                                       uint32_t op1_len,
                                       uint32_t op2_len) {
-	switch(op) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -505,13 +529,13 @@ static inline bool flt_compare_buffer(cmpop op,
 	case CO_ENDSWITH:
 		return (sinsp_utils::endswith(operand1, operand2, op1_len, op2_len));
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_buffer);
+		_throw_if_not_comparable(cmp, flt_is_comparable_buffer);
 		return false;
 	}
 }
 
-static inline bool flt_compare_bool(cmpop op, uint64_t operand1, uint64_t operand2) {
-	switch(op) {
+static inline bool flt_compare_bool(comparator cmp, uint64_t operand1, uint64_t operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -519,13 +543,13 @@ static inline bool flt_compare_bool(cmpop op, uint64_t operand1, uint64_t operan
 	case CO_NE:
 		return (operand1 != operand2);
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_numeric);
+		_throw_if_not_comparable(cmp, flt_is_comparable_numeric);
 		return false;
 	}
 }
 
-static inline bool flt_compare_ipv4addr(cmpop op, uint64_t operand1, uint64_t operand2) {
-	switch(op) {
+static inline bool flt_compare_ipv4addr(comparator cmp, uint64_t operand1, uint64_t operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -533,13 +557,13 @@ static inline bool flt_compare_ipv4addr(cmpop op, uint64_t operand1, uint64_t op
 	case CO_NE:
 		return operand1 != operand2;
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_ip_or_net);
+		_throw_if_not_comparable(cmp, flt_is_comparable_ip_or_net);
 		return false;
 	}
 }
 
-static inline bool flt_compare_ipv6addr(cmpop op, ipv6addr* operand1, ipv6addr* operand2) {
-	switch(op) {
+static inline bool flt_compare_ipv6addr(comparator cmp, ipv6addr* operand1, ipv6addr* operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -547,13 +571,13 @@ static inline bool flt_compare_ipv6addr(cmpop op, ipv6addr* operand1, ipv6addr* 
 	case CO_NE:
 		return *operand1 != *operand2;
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_ip_or_net);
+		_throw_if_not_comparable(cmp, flt_is_comparable_ip_or_net);
 		return false;
 	}
 }
 
-bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2) {
-	switch(op) {
+bool flt_compare_ipv4net(comparator cmp, uint64_t operand1, const ipv4net* operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -561,13 +585,13 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2) {
 	case CO_NE:
 		return ((operand1 & operand2->m_netmask) != (operand2->m_ip & operand2->m_netmask));
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_ip_or_net);
+		_throw_if_not_comparable(cmp, flt_is_comparable_ip_or_net);
 		return false;
 	}
 }
 
-bool flt_compare_ipv6net(cmpop op, const ipv6addr* operand1, const ipv6net* operand2) {
-	switch(op) {
+bool flt_compare_ipv6net(comparator cmp, const ipv6addr* operand1, const ipv6net* operand2) {
+	switch(cmp.op) {
 	case CO_EQ:
 	case CO_IN:
 	case CO_INTERSECTS:
@@ -575,7 +599,7 @@ bool flt_compare_ipv6net(cmpop op, const ipv6addr* operand1, const ipv6net* oper
 	case CO_NE:
 		return !operand2->in_cidr(*operand1);
 	default:
-		_throw_if_not_comparable(op, flt_is_comparable_ip_or_net);
+		_throw_if_not_comparable(cmp, flt_is_comparable_ip_or_net);
 		return false;
 	}
 }
@@ -617,7 +641,7 @@ static inline toT flt_cast(const void* ptr, uint32_t len) {
 	return static_cast<toT>(val);
 }
 
-bool flt_compare(cmpop op,
+bool flt_compare(comparator cmp,
                  ppm_param_type type,
                  const void* operand1,
                  const void* operand2,
@@ -627,35 +651,35 @@ bool flt_compare(cmpop op,
 	// sinsp_filter_check_*::compare
 	// already discard NULL values
 	//
-	if(op == CO_EXISTS) {
+	if(cmp.op == CO_EXISTS) {
 		return true;
 	}
 
 	switch(type) {
 	case PT_INT8:
-		return flt_compare_numeric<int64_t>(op,
+		return flt_compare_numeric<int64_t>(cmp,
 		                                    flt_cast<int8_t, int64_t>(operand1, op1_len),
 		                                    flt_cast<int8_t, int64_t>(operand2, op2_len));
 	case PT_INT16:
-		return flt_compare_numeric<int64_t>(op,
+		return flt_compare_numeric<int64_t>(cmp,
 		                                    flt_cast<int16_t, int64_t>(operand1, op1_len),
 		                                    flt_cast<int16_t, int64_t>(operand2, op2_len));
 	case PT_INT32:
-		return flt_compare_numeric<int64_t>(op,
+		return flt_compare_numeric<int64_t>(cmp,
 		                                    flt_cast<int32_t, int64_t>(operand1, op1_len),
 		                                    flt_cast<int32_t, int64_t>(operand2, op2_len));
 	case PT_INT64:
 	case PT_FD:
 	case PT_PID:
 	case PT_ERRNO:
-		return flt_compare_numeric<int64_t>(op,
+		return flt_compare_numeric<int64_t>(cmp,
 		                                    flt_cast<int64_t, int64_t>(operand1, op1_len),
 		                                    flt_cast<int64_t, int64_t>(operand2, op2_len));
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		return flt_compare_numeric<uint64_t>(op,
+		return flt_compare_numeric<uint64_t>(cmp,
 		                                     flt_cast<uint8_t, uint64_t>(operand1, op1_len),
 		                                     flt_cast<uint8_t, uint64_t>(operand2, op2_len));
 	case PT_FLAGS16:
@@ -663,7 +687,7 @@ bool flt_compare(cmpop op,
 	case PT_ENUMFLAGS16:
 	case PT_PORT:
 	case PT_SYSCALLID:
-		return flt_compare_numeric<uint64_t>(op,
+		return flt_compare_numeric<uint64_t>(cmp,
 		                                     flt_cast<uint16_t, uint64_t>(operand1, op1_len),
 		                                     flt_cast<uint16_t, uint64_t>(operand2, op2_len));
 	case PT_UINT32:
@@ -672,46 +696,46 @@ bool flt_compare(cmpop op,
 	case PT_MODE:
 	case PT_UID:
 	case PT_GID:
-		return flt_compare_numeric<uint64_t>(op,
+		return flt_compare_numeric<uint64_t>(cmp,
 		                                     flt_cast<uint32_t, uint64_t>(operand1, op1_len),
 		                                     flt_cast<uint32_t, uint64_t>(operand2, op2_len));
 	case PT_BOOL:
-		return flt_compare_bool(op,
+		return flt_compare_bool(cmp,
 		                        flt_cast<uint32_t, uint64_t>(operand1, op1_len),
 		                        flt_cast<uint32_t, uint64_t>(operand2, op2_len));
 	case PT_IPV4ADDR:
 		if(op2_len != sizeof(struct in_addr)) {
-			return op == CO_NE;
+			return cmp.op == CO_NE;
 		}
-		return flt_compare_ipv4addr(op,
+		return flt_compare_ipv4addr(cmp,
 		                            flt_cast<uint32_t, uint64_t>(operand1, op1_len),
 		                            flt_cast<uint32_t, uint64_t>(operand2, op2_len));
 	case PT_IPV4NET:
 		if(op2_len != sizeof(ipv4net)) {
-			return op == CO_NE;
+			return cmp.op == CO_NE;
 		}
-		return flt_compare_ipv4net(op, (uint64_t) * (uint32_t*)operand1, (ipv4net*)operand2);
+		return flt_compare_ipv4net(cmp, (uint64_t) * (uint32_t*)operand1, (ipv4net*)operand2);
 	case PT_IPV6ADDR:
 		if(op2_len != sizeof(ipv6addr)) {
-			return op == CO_NE;
+			return cmp.op == CO_NE;
 		}
-		return flt_compare_ipv6addr(op, (ipv6addr*)operand1, (ipv6addr*)operand2);
+		return flt_compare_ipv6addr(cmp, (ipv6addr*)operand1, (ipv6addr*)operand2);
 	case PT_IPV6NET:
 		if(op2_len != sizeof(ipv6net)) {
-			return op == CO_NE;
+			return cmp.op == CO_NE;
 		}
-		return flt_compare_ipv6net(op, (ipv6addr*)operand1, (ipv6net*)operand2);
+		return flt_compare_ipv6net(cmp, (ipv6addr*)operand1, (ipv6net*)operand2);
 	case PT_IPADDR:
 		if(op1_len == sizeof(struct in_addr)) {
 			if(op2_len != sizeof(struct in_addr)) {
-				return op == CO_NE;
+				return cmp.op == CO_NE;
 			}
-			return flt_compare(op, PT_IPV4ADDR, operand1, operand2, op1_len, op2_len);
+			return flt_compare(cmp, PT_IPV4ADDR, operand1, operand2, op1_len, op2_len);
 		} else if(op1_len == sizeof(struct in6_addr)) {
 			if(op2_len != sizeof(ipv6addr)) {
-				return op == CO_NE;
+				return cmp.op == CO_NE;
 			}
-			return flt_compare(op, PT_IPV6ADDR, operand1, operand2, op1_len, op2_len);
+			return flt_compare(cmp, PT_IPV6ADDR, operand1, operand2, op1_len, op2_len);
 		} else {
 			throw sinsp_exception("rawval_to_string called with IP address of incorrect size " +
 			                      std::to_string(op1_len));
@@ -719,14 +743,14 @@ bool flt_compare(cmpop op,
 	case PT_IPNET:
 		if(op1_len == sizeof(struct in_addr)) {
 			if(op2_len != sizeof(ipv4net)) {
-				return op == CO_NE;
+				return cmp.op == CO_NE;
 			}
-			return flt_compare(op, PT_IPV4NET, operand1, operand2, op1_len, op2_len);
+			return flt_compare(cmp, PT_IPV4NET, operand1, operand2, op1_len, op2_len);
 		} else if(op1_len == sizeof(struct in6_addr)) {
 			if(op2_len != sizeof(ipv6net)) {
-				return op == CO_NE;
+				return cmp.op == CO_NE;
 			}
-			return flt_compare(op, PT_IPV6NET, operand1, operand2, op1_len, op2_len);
+			return flt_compare(cmp, PT_IPV6NET, operand1, operand2, op1_len, op2_len);
 		} else {
 			throw sinsp_exception("rawval_to_string called with IP network of incorrect size " +
 			                      std::to_string(op1_len));
@@ -734,17 +758,17 @@ bool flt_compare(cmpop op,
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
-		return flt_compare_numeric<uint64_t>(op,
+		return flt_compare_numeric<uint64_t>(cmp,
 		                                     flt_cast<uint64_t, uint64_t>(operand1, op1_len),
 		                                     flt_cast<uint64_t, uint64_t>(operand2, op2_len));
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH:
-		return flt_compare_string(op, (char*)operand1, (char*)operand2);
+		return flt_compare_string(cmp, (char*)operand1, (char*)operand2);
 	case PT_BYTEBUF:
-		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
+		return flt_compare_buffer(cmp, (char*)operand1, (char*)operand2, op1_len, op2_len);
 	case PT_DOUBLE:
-		return flt_compare_numeric<double>(op,
+		return flt_compare_numeric<double>(cmp,
 		                                   flt_cast<double, double>(operand1, op1_len),
 		                                   flt_cast<double, double>(operand2, op2_len));
 	default:
@@ -753,7 +777,7 @@ bool flt_compare(cmpop op,
 	}
 }
 
-bool flt_compare_avg(cmpop op,
+bool flt_compare_avg(comparator cmp,
                      ppm_param_type type,
                      const void* operand1,
                      const void* operand2,
@@ -783,19 +807,19 @@ bool flt_compare_avg(cmpop op,
 		i642 = ((int64_t) * (int8_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || i641 == 0);
 		ASSERT(cnt2 != 0 || i642 == 0);
-		return flt_compare_numeric<int64_t>(op, i641, i642);
+		return flt_compare_numeric<int64_t>(cmp, i641, i642);
 	case PT_INT16:
 		i641 = ((int64_t) * (int16_t*)operand1) / cnt1;
 		i642 = ((int64_t) * (int16_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || i641 == 0);
 		ASSERT(cnt2 != 0 || i642 == 0);
-		return flt_compare_numeric<int64_t>(op, i641, i642);
+		return flt_compare_numeric<int64_t>(cmp, i641, i642);
 	case PT_INT32:
 		i641 = ((int64_t) * (int32_t*)operand1) / cnt1;
 		i642 = ((int64_t) * (int32_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || i641 == 0);
 		ASSERT(cnt2 != 0 || i642 == 0);
-		return flt_compare_numeric<int64_t>(op, i641, i642);
+		return flt_compare_numeric<int64_t>(cmp, i641, i642);
 	case PT_INT64:
 	case PT_FD:
 	case PT_PID:
@@ -804,7 +828,7 @@ bool flt_compare_avg(cmpop op,
 		i642 = ((int64_t) * (int64_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || i641 == 0);
 		ASSERT(cnt2 != 0 || i642 == 0);
-		return flt_compare_numeric<int64_t>(op, i641, i642);
+		return flt_compare_numeric<int64_t>(cmp, i641, i642);
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_ENUMFLAGS8:
@@ -813,7 +837,7 @@ bool flt_compare_avg(cmpop op,
 		u642 = ((uint64_t) * (uint8_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || u641 == 0);
 		ASSERT(cnt2 != 0 || u642 == 0);
-		return flt_compare_numeric<uint64_t>(op, u641, u642);
+		return flt_compare_numeric<uint64_t>(cmp, u641, u642);
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_ENUMFLAGS16:
@@ -823,7 +847,7 @@ bool flt_compare_avg(cmpop op,
 		u642 = ((uint64_t) * (uint16_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || u641 == 0);
 		ASSERT(cnt2 != 0 || u642 == 0);
-		return flt_compare_numeric<uint64_t>(op, u641, u642);
+		return flt_compare_numeric<uint64_t>(cmp, u641, u642);
 	case PT_UINT32:
 	case PT_FLAGS32:
 	case PT_ENUMFLAGS32:
@@ -836,7 +860,7 @@ bool flt_compare_avg(cmpop op,
 		u642 = ((uint64_t) * (uint32_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || u641 == 0);
 		ASSERT(cnt2 != 0 || u642 == 0);
-		return flt_compare_numeric<uint64_t>(op, u641, u642);
+		return flt_compare_numeric<uint64_t>(cmp, u641, u642);
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -844,13 +868,13 @@ bool flt_compare_avg(cmpop op,
 		u642 = (*(uint64_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || u641 == 0);
 		ASSERT(cnt2 != 0 || u642 == 0);
-		return flt_compare_numeric<uint64_t>(op, u641, u642);
+		return flt_compare_numeric<uint64_t>(cmp, u641, u642);
 	case PT_DOUBLE:
 		d1 = (*(double*)operand1) / cnt1;
 		d2 = (*(double*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || d1 == 0);
 		ASSERT(cnt2 != 0 || d2 == 0);
-		return flt_compare_numeric<double>(op, d1, d2);
+		return flt_compare_numeric<double>(cmp, d1, d2);
 	default:
 		ASSERT(false);
 		return false;
