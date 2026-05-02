@@ -228,6 +228,9 @@ protected:
 	                 const void* operand1,
 	                 uint32_t op1_len = 0);
 	bool compare_rhs(comparator cmp, ppm_param_type type, std::vector<extract_value_t>& values);
+	bool compare_rhs_with_mod(comparator cmp,
+	                          ppm_param_type type,
+	                          std::vector<extract_value_t>& values);
 
 	Json::Value rawval_to_json(uint8_t* rawval,
 	                           ppm_param_type ptype,
@@ -359,7 +362,8 @@ private:
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
 
-	std::unique_ptr<re2::RE2> m_val_regex;
+	// One compiled RE2 per RHS value; populated by add_filter_value for CO_REGEX.
+	std::vector<std::unique_ptr<re2::RE2>> m_val_regexes;
 
 	static constexpr const size_t s_min_filter_value_buf_size = 16;
 	static constexpr const size_t s_max_filter_value_buf_size = 256;
