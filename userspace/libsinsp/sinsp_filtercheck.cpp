@@ -623,12 +623,12 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		ensure_unique_ptr_allocated(m_val_storages_paths);
 		m_val_storages_paths->add_search_path(item);
 	} else if(m_cmp.op == CO_REGEX) {
-		ensure_unique_ptr_allocated(m_val_regex,
-		                            re2::StringPiece((const char*)item.first),
-		                            re2::RE2::POSIX);
-		if(scap_unlikely(!m_val_regex->ok())) {
-			throw sinsp_exception("invalid regex pattern: " + m_val_regex->error());
+		auto re = std::make_unique<re2::RE2>(
+		        re2::StringPiece((const char*)item.first, item.second), re2::RE2::POSIX);
+		if(scap_unlikely(!re->ok())) {
+			throw sinsp_exception("invalid regex pattern: " + re->error());
 		}
+		m_val_regexes.push_back(std::move(re));
 	}
 }
 
@@ -951,10 +951,10 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 		case PT_CHARBUF:
 		case PT_FSPATH:
 		case PT_FSRELPATH:
-			if(m_val_regex) {
+			if(!m_val_regexes.empty() && m_val_regexes[0]) {
 				auto item = craft_filter_value(type, operand1, op1_len);
 				re2::StringPiece s((const char*)item.first, item.second);
-				return m_val_regex
+				return m_val_regexes[0]
 				        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
 			}
 			// fallthrough
@@ -992,6 +992,17 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 			}
 			return true;
 		}
+		if(cmp.op == CO_REGEX) {
+			// item is "in set" if it matches at least one compiled regex pattern
+			re2::StringPiece s((const char*)item.first, item.second);
+			for(const auto& re : m_val_regexes) {
+				if(re && re->ok() &&
+				   re->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0)) {
+					return true;
+				}
+			}
+			return false;
+		}
 		for(uint16_t i = 0; i < m_vals.size(); i++) {
 			if(::flt_compare(comparator{cmp.op},
 			                 type,
@@ -1011,6 +1022,19 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 	auto all_rhs = [&](const filter_value_t& item) -> bool {
 		if(cmp.op == CO_NE) {
 			return in_rhs(item);
+		}
+		if(cmp.op == CO_REGEX) {
+			if(m_val_regexes.empty()) {
+				return false;
+			}
+			re2::StringPiece s((const char*)item.first, item.second);
+			for(const auto& re : m_val_regexes) {
+				if(!re || !re->ok() ||
+				   !re->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0)) {
+					return false;
+				}
+			}
+			return true;
 		}
 		if(m_vals.empty()) {
 			return false;
