@@ -1354,3 +1354,88 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_cache_consistency) {
 		EXPECT_EQ(r1, r2);
 	}
 }
+
+// Tests for word-based string operators (contains, startswith, glob, endswith)
+// combined with modifiers. Uses the multi-value mock so we can control extracted values.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_word_ops) {
+	add_default_init_thread();
+	open_inspector();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	auto fac = std::make_shared<multi_value_mock_factory>(&m_inspector);
+	auto run = [&](const std::string& filter_str, const std::vector<std::string>& extracted) {
+		sinsp_filter_compiler compiler(fac, filter_str);
+		auto filter = compiler.compile();
+		fac->last_multi_check->m_configured_values = extracted;
+		return filter->run(evt);
+	};
+
+	// --- contains ---
+	// oneof: exactly 1 extracted value contains any of {cat, dog}
+	EXPECT_TRUE(run("c.multi contains oneof (cat, dog)", {"mycat"}));    // 1 match → true
+	EXPECT_FALSE(run("c.multi contains oneof (cat, dog)", {"foobar"}));  // 0 match → false
+	EXPECT_TRUE(run("c.multi contains oneof (cat, dog)", {"catfish", "foobar"}));    // 1 match
+	EXPECT_FALSE(run("c.multi contains oneof (cat, dog)", {"catfish", "dogfish"}));  // 2 → false
+
+	// anyof: at least 1 extracted value contains any of {cat, dog}
+	EXPECT_TRUE(run("c.multi contains anyof (cat, dog)", {"mycat"}));
+	EXPECT_FALSE(run("c.multi contains anyof (cat, dog)", {"foobar"}));
+	EXPECT_TRUE(run("c.multi contains anyof (cat, dog)", {"catfish", "dogfish"}));  // ≥1 match
+
+	// allof: every extracted value must contain ALL RHS patterns (AND over RHS)
+	EXPECT_TRUE(run("c.multi contains allof (cat, fish)", {"catfish"}));  // contains both
+	EXPECT_FALSE(run("c.multi contains allof (cat, dog)", {"foobar"}));   // missing both
+	EXPECT_FALSE(run("c.multi contains allof (cat, dog)", {"mycat"}));    // missing "dog"
+	EXPECT_FALSE(run("c.multi contains allof (cat, dog)",
+	                 {"catfish", "dogfish"}));  // catfish missing "dog"
+	EXPECT_FALSE(run("c.multi contains allof (cat, dog)", {"catfish", "foobar"}));  // both fail
+
+	// --- startswith ---
+	// anyof: at least 1 starts with any of {cat, dog}
+	EXPECT_TRUE(run("c.multi startswith anyof (cat, dog)", {"catfish"}));
+	EXPECT_TRUE(run("c.multi startswith anyof (cat, dog)", {"doggy"}));
+	EXPECT_FALSE(run("c.multi startswith anyof (cat, dog)", {"fishcat"}));  // suffix, not prefix
+	EXPECT_FALSE(run("c.multi startswith anyof (cat, dog)", {"other"}));
+	EXPECT_TRUE(run("c.multi startswith anyof (cat, dog)", {"other", "catfish"}));
+
+	// allof: every extracted value must start with ALL RHS elements (AND over RHS)
+	// use nested prefixes so a TRUE case exists
+	EXPECT_TRUE(run("c.multi startswith allof (ca, cat)", {"catfish", "catnap"}));
+	EXPECT_FALSE(run("c.multi startswith allof (cat, dog)", {"catfish", "other"}));
+
+	// --- endswith ---
+	EXPECT_TRUE(run("c.multi endswith anyof (.so, .txt)", {"libfoo.so"}));
+	EXPECT_TRUE(run("c.multi endswith anyof (.so, .txt)", {"readme.txt"}));
+	EXPECT_FALSE(run("c.multi endswith anyof (.so, .txt)", {"readme.md"}));
+	// allof: every extracted value must end with ALL RHS elements (AND over RHS)
+	// use nested suffixes so a TRUE case exists
+	EXPECT_TRUE(run("c.multi endswith allof (so, .so)", {"libfoo.so", "libbaz.so"}));
+	EXPECT_FALSE(run("c.multi endswith allof (.so, .txt)",
+	                 {"libfoo.so", "readme.md"}));  // readme.md fails
+
+	// --- glob ---
+	// anyof: at least 1 matches any glob in {cat*, *dog}
+	EXPECT_TRUE(run("c.multi glob anyof (cat*, *dog)", {"catfish"}));  // cat*
+	EXPECT_TRUE(run("c.multi glob anyof (cat*, *dog)", {"hotdog"}));   // *dog
+	EXPECT_FALSE(run("c.multi glob anyof (cat*, *dog)", {"other"}));
+	EXPECT_TRUE(run("c.multi glob anyof (cat*, *dog)", {"other", "catfish"}));
+
+	// oneof: exactly 1 extracted value matches any glob in {cat*, *dog}
+	EXPECT_TRUE(run("c.multi glob oneof (cat*, *dog)", {"catfish", "other"}));    // 1 match
+	EXPECT_FALSE(run("c.multi glob oneof (cat*, *dog)", {"catfish", "hotdog"}));  // 2 match
+
+	// --- icontains (case-insensitive) ---
+	EXPECT_TRUE(run("c.multi icontains anyof (CAT, DOG)", {"mycat"}));  // case-insensitive
+	EXPECT_FALSE(run("c.multi icontains anyof (CAT, DOG)", {"foobar"}));
+}
+
+// Verify that the regex operator with a modifier is rejected at compile time.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_regex_rejected) {
+	add_default_init_thread();
+	open_inspector();
+
+	// regex with modifier: parser accepts the syntax, compiler rejects it
+	EXPECT_THROW(eval_filter(nullptr, "proc.name regex oneof (cat.*, dog.*)"), sinsp_exception);
+	EXPECT_THROW(eval_filter(nullptr, "proc.name regex anyof (cat.*)"), sinsp_exception);
+	EXPECT_THROW(eval_filter(nullptr, "proc.name regex allof (cat.*)"), sinsp_exception);
+}

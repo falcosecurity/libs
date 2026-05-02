@@ -1261,6 +1261,21 @@ TEST(parser, parse_str_op_modifier_accept) {
 	test_accept("(proc.name == oneof (cat, nginx))");
 	test_accept("proc.name == oneof (cat) and proc.name == anyof (nginx, apache)");
 	test_accept("proc.name == oneof (cat) or proc.name != allof (nginx)");
+
+	// word-based string operators (contains, startswith, ...) also support modifiers;
+	// the trailing blank in their token is consumed by the operator lexer so the
+	// parser sees the modifier keyword immediately after
+	test_accept("proc.name contains oneof (cat, nginx)");
+	test_accept("proc.name contains anyof (cat, nginx)");
+	test_accept("proc.name contains allof (cat)");
+	test_accept("proc.name startswith oneof (/proc/, /sys/)");
+	test_accept("proc.name startswith anyof (/proc/, /sys/)");
+	test_accept("proc.name endswith allof (.so, .so.1)");
+	test_accept("proc.name glob oneof (cat*, *dog)");
+	test_accept("proc.name glob anyof (cat*, *nginx*)");
+	test_accept("proc.name iglob allof (cat*)");
+	test_accept("proc.name icontains anyof (cat, nginx)");
+	test_accept("proc.name != oneof (a) and proc.name contains anyof (x, y)");
 }
 
 TEST(parser, parse_str_op_modifier_reject) {
@@ -1306,6 +1321,10 @@ TEST(parser, parse_str_op_modifier_reject) {
 	// leftover, causing a parse error
 	test_reject("proc.name in oneof (cat)");
 	test_reject("proc.name intersects anyof (cat)");
+
+	// regex modifier combinations are parsed successfully but rejected at compile time;
+	// here we only verify the parser accepts them syntactically
+	// (compile-time rejection is tested in filter_compiler tests)
 }
 
 TEST(parser, parse_str_op_modifier_ast) {
@@ -1359,6 +1378,21 @@ TEST(parser, parse_str_op_modifier_ast) {
 		test_equal_ast("proc.name == oneof (cat, nginx) and fd.name exists",
 		               and_expr::create(and_children).get());
 	}
+
+	// word-based operator with modifier
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "contains oneof",
+		                                       list_expr::create({"cat", "nginx"}));
+		test_equal_ast("proc.name contains oneof (cat, nginx)", check.get());
+	}
+
+	{
+		auto check = binary_check_expr::create(field_expr::create("proc.name"),
+		                                       "startswith anyof",
+		                                       list_expr::create({"/etc/", "/tmp/"}));
+		test_equal_ast("proc.name startswith anyof (/etc/, /tmp/)", check.get());
+	}
 }
 
 TEST(parser, parse_str_op_modifier_as_string) {
@@ -1379,6 +1413,28 @@ TEST(parser, parse_str_op_modifier_as_string) {
 
 	{
 		const string input = "proc.name != anyof (cat, nginx, apache)";
+		parser p1(input);
+		auto e1 = p1.parse();
+		EXPECT_EQ(as_string(e1.get()), input);
+	}
+
+	// word-based operators with modifiers also round-trip
+	{
+		const string input = "proc.name contains oneof (cat, nginx)";
+		parser p1(input);
+		auto e1 = p1.parse();
+		EXPECT_EQ(as_string(e1.get()), input);
+	}
+
+	{
+		const string input = "proc.name startswith anyof (/etc/, /tmp/)";
+		parser p1(input);
+		auto e1 = p1.parse();
+		EXPECT_EQ(as_string(e1.get()), input);
+	}
+
+	{
+		const string input = "proc.name glob allof (cat*, *nginx*)";
 		parser p1(input);
 		auto e1 = p1.parse();
 		EXPECT_EQ(as_string(e1.get()), input);
