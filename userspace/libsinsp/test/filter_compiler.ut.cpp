@@ -1,3 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+/*
+Copyright (C) 2026 The Falco Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 #include <libsinsp/sinsp.h>
 #include <libsinsp/filter.h>
 #include <gtest/gtest.h>
@@ -1429,13 +1446,44 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_word_ops) {
 	EXPECT_FALSE(run("c.multi icontains anyof (CAT, DOG)", {"foobar"}));
 }
 
-// Verify that the regex operator with a modifier is rejected at compile time.
-TEST_F(sinsp_with_test_input, filter_str_op_modifier_regex_rejected) {
+// Tests for regex operator combined with modifiers.
+// Uses the multi-value mock so we can control extracted values.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_regex) {
 	add_default_init_thread();
 	open_inspector();
+	auto evt = generate_getcwd_failed_entry_event();
 
-	// regex with modifier: parser accepts the syntax, compiler rejects it
-	EXPECT_THROW(eval_filter(nullptr, "proc.name regex oneof (cat.*, dog.*)"), sinsp_exception);
-	EXPECT_THROW(eval_filter(nullptr, "proc.name regex anyof (cat.*)"), sinsp_exception);
-	EXPECT_THROW(eval_filter(nullptr, "proc.name regex allof (cat.*)"), sinsp_exception);
+	auto fac = std::make_shared<multi_value_mock_factory>(&m_inspector);
+	auto run = [&](const std::string& filter_str, const std::vector<std::string>& extracted) {
+		sinsp_filter_compiler compiler(fac, filter_str);
+		auto filter = compiler.compile();
+		fac->last_multi_check->m_configured_values = extracted;
+		return filter->run(evt);
+	};
+
+	// invalid pattern is rejected at compile time
+	EXPECT_THROW(run("c.multi regex oneof (\"[invalid\")", {}), sinsp_exception);
+
+	// anyof: at least 1 extracted value matches any of the patterns
+	EXPECT_TRUE(run("c.multi regex anyof (cat.*)", {"catfish"}));
+	EXPECT_FALSE(run("c.multi regex anyof (cat.*)", {"dogfish"}));
+	EXPECT_TRUE(run("c.multi regex anyof (cat.*, dog.*)", {"catfish", "foobar"}));  // 1 match
+	EXPECT_TRUE(run("c.multi regex anyof (cat.*, dog.*)", {"catfish", "dogfish"}));
+
+	// oneof: exactly 1 extracted value matches any of the patterns
+	EXPECT_TRUE(run("c.multi regex oneof (cat.*, dog.*)", {"catfish", "foobar"}));    // 1 match
+	EXPECT_FALSE(run("c.multi regex oneof (cat.*, dog.*)", {"catfish", "dogfish"}));  // 2 match
+	EXPECT_FALSE(run("c.multi regex oneof (cat.*, dog.*)", {"foobar"}));              // 0 match
+
+	// allof: every extracted value must match ALL patterns (AND over RHS)
+	EXPECT_TRUE(run("c.multi regex allof (cat.*, .*fish)", {"catfish"}));  // matches both
+	EXPECT_FALSE(run("c.multi regex allof (cat.*, dog.*)",
+	                 {"catfish", "dogfish"}));  // catfish misses dog.*
+	EXPECT_FALSE(run("c.multi regex allof (cat.*, dog.*)", {"catfish", "foobar"}));
+
+	// single extracted value: oneof/anyof/allof are all equivalent (one value to match)
+	EXPECT_TRUE(run("c.multi regex oneof (get.*)", {"getcwd"}));
+	EXPECT_FALSE(run("c.multi regex oneof (get.*)", {"open"}));
+	EXPECT_TRUE(run("c.multi regex anyof (get.*)", {"getcwd"}));
+	EXPECT_TRUE(run("c.multi regex allof (get.*)", {"getcwd"}));
 }
