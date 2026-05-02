@@ -1043,3 +1043,314 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		cf->captured_modifiers.clear();
 	}
 }
+
+// ──────────────────────────────────────────────────────────────
+// Evaluation tests
+// ──────────────────────────────────────────────────────────────
+
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_evaluation) {
+	add_default_init_thread();
+	open_inspector();
+
+	// evt.type for a getcwd entry event is "getcwd"
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// oneof: true iff exactly one extracted value is in the RHS set.
+	// For a single-value field this reduces to "the value is in the set".
+	EXPECT_TRUE(eval_filter(evt, "evt.type == oneof (getcwd, openat)"));
+	EXPECT_TRUE(eval_filter(evt, "evt.type == oneof (getcwd)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == oneof (openat, execve)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == oneof ()"));
+
+	// anyof: true iff at least one extracted value is in the RHS set.
+	// Same as oneof for single-value fields.
+	EXPECT_TRUE(eval_filter(evt, "evt.type == anyof (getcwd, openat)"));
+	EXPECT_TRUE(eval_filter(evt, "evt.type == anyof (getcwd)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == anyof (openat, execve)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == anyof ()"));
+
+	// allof: true iff every extracted value matches ALL RHS values (AND over RHS).
+	// For a single-value field the value must satisfy every RHS element.
+	EXPECT_TRUE(eval_filter(evt, "evt.type == allof (getcwd)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == allof (getcwd, openat)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == allof (openat)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == allof ()"));
+
+	// transformer on LHS
+	EXPECT_TRUE(eval_filter(evt, "toupper(evt.source) == oneof (SYSCALL, NA)"));
+	EXPECT_FALSE(eval_filter(evt, "toupper(evt.source) == oneof (UNKNOWN, NA)"));
+
+	// modifier inside a compound expression
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    "evt.type == oneof (getcwd, openat) and evt.source == anyof (syscall)"));
+	EXPECT_FALSE(
+	        eval_filter(evt,
+	                    "evt.type == oneof (openat, execve) and evt.source == anyof (syscall)"));
+}
+
+// A mock filtercheck that returns a configurable list of string values.
+// Does NOT override add_filter_value or compare() so the base class handles
+// RHS storage and the full compare_nocache → compare_rhs_with_mod path.
+class multi_value_mock_filter_check : public sinsp_filter_check {
+public:
+	std::vector<std::string> m_configured_values;
+	filtercheck_field_info m_field_info{PT_CHARBUF, 0, PF_NA, "c.multi", "", ""};
+
+	int32_t parse_field_name(std::string_view str, bool, bool) override {
+		if(str == "c.multi") {
+			return (int32_t)str.size();
+		}
+		return -1;
+	}
+
+	const filtercheck_field_info* get_field_info() const override { return &m_field_info; }
+
+	inline bool extract_nocache(sinsp_evt*,
+	                            std::vector<extract_value_t>& vals,
+	                            std::vector<extract_offset_t>*,
+	                            bool) override {
+		vals.clear();
+		for(const auto& s : m_configured_values) {
+			// std::string::data() is null-terminated in C++11 — required by flt_compare_string
+			vals.push_back({(uint8_t*)s.data(), (uint32_t)s.size()});
+		}
+		return !vals.empty();
+	}
+};
+
+// Factory that creates multi_value_mock_filter_check for "c.multi" and keeps a
+// raw pointer to the most recently created instance so tests can configure values.
+class multi_value_mock_factory : public mock_compiler_filter_factory {
+public:
+	mutable multi_value_mock_filter_check* last_multi_check = nullptr;
+
+	explicit multi_value_mock_factory(sinsp* inspector): mock_compiler_filter_factory(inspector) {}
+
+	std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const override {
+		if(fldname == "c.multi") {
+			auto check = std::make_unique<multi_value_mock_filter_check>();
+			last_multi_check = check.get();
+			return check;
+		}
+		return mock_compiler_filter_factory::new_filtercheck(fldname);
+	}
+};
+
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_multi_value) {
+	add_default_init_thread();
+	open_inspector();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	auto fac = std::make_shared<multi_value_mock_factory>(&m_inspector);
+
+	// Each call compiles a fresh filter (fresh cache) and runs it against a real
+	// event — the mock's extract_nocache ignores the event but the cache path works.
+	auto run = [&](const std::string& filter_str, const std::vector<std::string>& extracted) {
+		sinsp_filter_compiler compiler(fac, filter_str);
+		auto filter = compiler.compile();
+		fac->last_multi_check->m_configured_values = extracted;
+		return filter->run(evt);
+	};
+
+	auto oneof = [&](const std::vector<std::string>& e) {
+		return run("c.multi == oneof (cat, nginx)", e);
+	};
+	auto anyof = [&](const std::vector<std::string>& e) {
+		return run("c.multi == anyof (cat, nginx)", e);
+	};
+	auto allof = [&](const std::vector<std::string>& e) {
+		return run("c.multi == allof (cat)", e);
+	};
+
+	// oneof: exactly 1 extracted value must be in the RHS set
+	EXPECT_FALSE(oneof({}));                         // 0 match  → false
+	EXPECT_TRUE(oneof({"cat"}));                     // 1 match  → true
+	EXPECT_FALSE(oneof({"other"}));                  // 0 match  → false
+	EXPECT_TRUE(oneof({"cat", "other"}));            // 1 match  → true
+	EXPECT_FALSE(oneof({"cat", "nginx"}));           // 2 match  → false (not exactly one)
+	EXPECT_FALSE(oneof({"cat", "nginx", "other"}));  // 2 match  → false
+
+	// anyof: at least 1 extracted value must be in the RHS set
+	EXPECT_FALSE(anyof({}));                        // 0 match  → false
+	EXPECT_TRUE(anyof({"cat"}));                    // 1 match  → true
+	EXPECT_FALSE(anyof({"other"}));                 // 0 match  → false
+	EXPECT_TRUE(anyof({"cat", "other"}));           // 1 match  → true
+	EXPECT_TRUE(anyof({"cat", "nginx"}));           // 2 match  → true (at least one)
+	EXPECT_TRUE(anyof({"cat", "nginx", "other"}));  // 2 match  → true
+
+	// allof: every extracted value must match ALL RHS values (AND over RHS)
+	EXPECT_FALSE(allof({}));                  // no extraction → false
+	EXPECT_TRUE(allof({"cat"}));              // "cat" matches all RHS → true
+	EXPECT_FALSE(allof({"nginx"}));           // "nginx" != "cat" → false
+	EXPECT_TRUE(allof({"cat", "cat"}));       // both match all RHS → true
+	EXPECT_FALSE(allof({"cat", "nginx"}));    // "nginx" fails → false
+	EXPECT_FALSE(allof({"nginx", "other"}));  // both fail → false
+}
+
+// Deep tests for != modifier semantics on single-value fields.
+// evt.type = "getcwd"; RHS set = {getcwd, openat} unless stated otherwise.
+// For a single-value field all three modifiers produce identical outcomes because
+// there is exactly one extracted value to check.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_ne_single_value) {
+	add_default_init_thread();
+	open_inspector();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// != oneof: exactly 1 extracted value NOT in the RHS set
+	EXPECT_FALSE(eval_filter(evt, "evt.type != oneof (getcwd, openat)"));  // in set → false
+	EXPECT_FALSE(eval_filter(evt, "evt.type != oneof (getcwd)"));          // in set → false
+	EXPECT_TRUE(eval_filter(evt, "evt.type != oneof (openat, execve)"));   // not in set → true
+	EXPECT_TRUE(eval_filter(evt, "evt.type != oneof (openat)"));           // not in set → true
+
+	// != anyof: at least 1 extracted value NOT in the RHS set
+	EXPECT_FALSE(eval_filter(evt, "evt.type != anyof (getcwd, openat)"));  // in set → false
+	EXPECT_FALSE(eval_filter(evt, "evt.type != anyof (getcwd)"));          // in set → false
+	EXPECT_TRUE(eval_filter(evt, "evt.type != anyof (openat, execve)"));   // not in set → true
+
+	// != allof: every extracted value NOT in the RHS set
+	EXPECT_FALSE(eval_filter(evt, "evt.type != allof (getcwd, openat)"));  // in set → false
+	EXPECT_FALSE(eval_filter(evt, "evt.type != allof (getcwd)"));          // in set → false
+	EXPECT_TRUE(eval_filter(evt, "evt.type != allof (openat, execve)"));   // not in set → true
+	EXPECT_TRUE(eval_filter(evt, "evt.type != allof (openat)"));           // not in set → true
+
+	// transformer on LHS (toupper applied before comparison)
+	EXPECT_TRUE(eval_filter(evt, "toupper(evt.source) != oneof (UNKNOWN, NA)"));
+	EXPECT_FALSE(eval_filter(evt, "toupper(evt.source) != oneof (SYSCALL, NA)"));
+}
+
+// Deep tests for != modifier semantics on multi-value fields.
+// RHS set = {cat, nginx}.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_ne_multi_value) {
+	add_default_init_thread();
+	open_inspector();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	auto fac = std::make_shared<multi_value_mock_factory>(&m_inspector);
+	auto run = [&](const std::string& filter_str, const std::vector<std::string>& extracted) {
+		sinsp_filter_compiler compiler(fac, filter_str);
+		auto filter = compiler.compile();
+		fac->last_multi_check->m_configured_values = extracted;
+		return filter->run(evt);
+	};
+
+	// != oneof: exactly 1 extracted value is NOT in {cat, nginx}
+	EXPECT_FALSE(run("c.multi != oneof (cat, nginx)", {}));                  // 0 values
+	EXPECT_FALSE(run("c.multi != oneof (cat, nginx)", {"cat"}));             // 0 not-in → false
+	EXPECT_TRUE(run("c.multi != oneof (cat, nginx)", {"other"}));            // 1 not-in → true
+	EXPECT_TRUE(run("c.multi != oneof (cat, nginx)", {"cat", "other"}));     // 1 not-in → true
+	EXPECT_FALSE(run("c.multi != oneof (cat, nginx)", {"cat", "nginx"}));    // 0 not-in → false
+	EXPECT_FALSE(run("c.multi != oneof (cat, nginx)", {"other1", "other2"})  // 2 not-in → false
+	);
+
+	// != anyof: at least 1 extracted value is NOT in {cat, nginx}
+	EXPECT_FALSE(run("c.multi != anyof (cat, nginx)", {}));                   // 0 values
+	EXPECT_FALSE(run("c.multi != anyof (cat, nginx)", {"cat"}));              // all in set
+	EXPECT_FALSE(run("c.multi != anyof (cat, nginx)", {"cat", "nginx"}));     // all in set
+	EXPECT_TRUE(run("c.multi != anyof (cat, nginx)", {"other"}));             // 1 not-in
+	EXPECT_TRUE(run("c.multi != anyof (cat, nginx)", {"cat", "other"}));      // 1 not-in
+	EXPECT_TRUE(run("c.multi != anyof (cat, nginx)", {"other1", "other2"}));  // 2 not-in
+
+	// != allof: every extracted value is NOT in {cat, nginx}
+	EXPECT_FALSE(run("c.multi != allof (cat, nginx)", {"cat"}));              // cat in set
+	EXPECT_FALSE(run("c.multi != allof (cat, nginx)", {"cat", "other"}));     // cat in set
+	EXPECT_FALSE(run("c.multi != allof (cat, nginx)", {"cat", "nginx"}));     // both in set
+	EXPECT_TRUE(run("c.multi != allof (cat, nginx)", {"other"}));             // not in set
+	EXPECT_TRUE(run("c.multi != allof (cat, nginx)", {"other1", "other2"}));  // none in set
+}
+
+// Edge cases: empty RHS, duplicate extracted values, transformer on LHS with !=.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_edge_cases) {
+	add_default_init_thread();
+	open_inspector();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	auto fac = std::make_shared<multi_value_mock_factory>(&m_inspector);
+	auto run = [&](const std::string& filter_str, const std::vector<std::string>& extracted) {
+		sinsp_filter_compiler compiler(fac, filter_str);
+		auto filter = compiler.compile();
+		fac->last_multi_check->m_configured_values = extracted;
+		return filter->run(evt);
+	};
+
+	// --- empty RHS list ---
+	// == any_modifier (): in_rhs always returns false → 0 matches
+	EXPECT_FALSE(run("c.multi == oneof ()", {"cat"}));  // 0 match → oneof false
+	EXPECT_FALSE(run("c.multi == anyof ()", {"cat"}));  // 0 match → anyof false
+	EXPECT_FALSE(run("c.multi == allof ()", {"cat"}));  // all fail in_rhs → allof false
+
+	// empty extracted list: extract() returns false → compare_nocache returns false for all ops
+	EXPECT_FALSE(run("c.multi == oneof ()", {}));
+	EXPECT_FALSE(run("c.multi == anyof ()", {}));
+	EXPECT_FALSE(run("c.multi == allof ()", {}));
+
+	// != any_modifier (): in_rhs(CO_NE) on empty set always returns true (not in empty = true)
+	EXPECT_TRUE(run("c.multi != oneof ()", {"cat"}));  // 1 not-in-empty → true
+	EXPECT_TRUE(run("c.multi != anyof ()", {"cat"}));  // at least 1 not-in-empty → true
+	EXPECT_TRUE(run("c.multi != allof ()", {"cat"}));  // all not-in-empty → true
+
+	// --- duplicate extracted values ---
+	// oneof with duplicates: each duplicate counts separately
+	EXPECT_FALSE(run("c.multi == oneof (cat)", {"cat", "cat"}));  // 2 match → not exactly 1
+	EXPECT_TRUE(run("c.multi == anyof (cat)", {"cat", "cat"}));   // ≥1 match → true
+	EXPECT_TRUE(run("c.multi == allof (cat)", {"cat", "cat"}));   // all in set → true
+
+	// != oneof with duplicates
+	EXPECT_FALSE(run("c.multi != oneof (other)", {"other", "other"}));  // 0 not-in → false
+	EXPECT_FALSE(run("c.multi != oneof (cat)", {"cat", "cat"}));        // 0 not-in → false
+	EXPECT_FALSE(run("c.multi != oneof (cat)", {"other", "other"}));    // 2 not-in → false
+
+	// --- single-element RHS, single-element extracted ---
+	EXPECT_TRUE(run("c.multi == oneof (cat)", {"cat"}));
+	EXPECT_FALSE(run("c.multi == oneof (cat)", {"nginx"}));
+	EXPECT_FALSE(run("c.multi != oneof (cat)", {"cat"}));
+	EXPECT_TRUE(run("c.multi != oneof (cat)", {"nginx"}));
+
+	// --- multi-element RHS, larger extracted list ---
+	// oneof: exactly 1 of {cat, nginx, apache} must be in RHS
+	EXPECT_TRUE(run("c.multi == oneof (cat, nginx)", {"cat", "other", "more"}));    // 1 in set
+	EXPECT_FALSE(run("c.multi == oneof (cat, nginx)", {"cat", "nginx", "other"}));  // 2 in set
+
+	// --- transformer on LHS with != modifier ---
+	EXPECT_FALSE(eval_filter(evt, "toupper(evt.source) != oneof (SYSCALL)"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(evt.source) != oneof (UNKNOWN)"));
+	EXPECT_FALSE(eval_filter(evt, "tolower(evt.type) != oneof (getcwd, openat)"));
+	EXPECT_TRUE(eval_filter(evt, "tolower(evt.type) != oneof (openat, execve)"));
+
+	// --- compound expressions mixing == and != modifiers ---
+	EXPECT_TRUE(eval_filter(evt, "evt.type == oneof (getcwd) and evt.source != oneof (unknown)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.type == oneof (getcwd) and evt.source != oneof (syscall)"));
+}
+
+// Verifies compare-cache correctness: running a compiled filter on the same event
+// twice, then on a different event, should produce consistent results.
+TEST_F(sinsp_with_test_input, filter_str_op_modifier_cache_consistency) {
+	add_default_init_thread();
+	open_inspector();
+	auto evt1 = generate_getcwd_failed_entry_event();
+	auto evt2 = generate_getcwd_failed_entry_event();
+
+	// Compile once with the default cache factory (exprstr_sinsp_filter_cache_factory).
+	// The compare cache is keyed by expression string, so re-running on the same event
+	// should return the cached result without re-evaluating.
+	sinsp_filter_check_list flist;
+	auto ff = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type == oneof (getcwd, openat)");
+		auto filter = compiler.compile();
+		bool r1 = filter->run(evt1);
+		bool r2 = filter->run(evt1);  // same event → cache hit
+		bool r3 = filter->run(evt2);  // different event number → new evaluation
+		EXPECT_TRUE(r1);
+		EXPECT_EQ(r1, r2);
+		EXPECT_EQ(r1, r3);  // both events are getcwd, same result
+	}
+	{
+		sinsp_filter_compiler compiler(ff, "evt.type == anyof (openat, execve)");
+		auto filter = compiler.compile();
+		bool r1 = filter->run(evt1);
+		bool r2 = filter->run(evt1);  // cache hit
+		EXPECT_FALSE(r1);
+		EXPECT_EQ(r1, r2);
+	}
+}
