@@ -572,6 +572,11 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	}
 
 	check->m_cmp = str_to_cmpop_with_modifier(e->op);
+	if(check->m_cmp.op == CO_REGEX && check->m_cmp.mod != CM_NONE) {
+		throw sinsp_exception("filter error at " + e->get_pos().as_string() +
+		                      ": regex operator does not support list modifiers "
+		                      "(oneof/anyof/allof)");
+	}
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
 

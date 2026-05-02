@@ -494,8 +494,12 @@ std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> le
 		right = parse_num_value_or_transformer();
 	} else if(lex_str_op()) {
 		op = m_last_token;
-		if(lex_blank() && lex_str_op_modifier()) {
-			op.append(" ").append(m_last_token);
+		// Word-based operators (e.g. "contains ", "startswith ") are space-terminated
+		// in the operator list, so their mandatory blank was already consumed by the
+		// lexer; for symbol operators (e.g. "==", "!=") we still need to consume it.
+		bool had_blank = std::isalpha((unsigned char)op[0]) || lex_blank();
+		if(had_blank && lex_str_op_modifier()) {
+			op = trim_str(op) + " " + m_last_token;
 			right = parse_list_value();
 		} else {
 			right = parse_str_value_or_transformer(false);
