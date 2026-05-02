@@ -852,6 +852,8 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 			                      std::string(m_info->m_fields[m_field_id].m_name) +
 			                      "' only supports operators 'exists', 'in' and 'intersects'");
 		}
+	} else if(cmp.mod != none) {
+		return compare_rhs_with_mod(cmp, type, values);
 	} else if(values.size() > 1) {
 		ASSERT(false);
 		throw sinsp_exception("non-list filter '" +
@@ -962,6 +964,102 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 		};
 	default:
 		return (::flt_compare(cmp, type, operand1, filter_value_p(), op1_len, filter_value_len()));
+	}
+}
+
+bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
+                                              ppm_param_type type,
+                                              std::vector<extract_value_t>& values) {
+	// Returns true if 'item' satisfies the base op against the RHS set.
+	// For CO_NE we use equality-based membership and invert: "!= set" means
+	// the item is not equal to any element in the set, which gives consistent
+	// semantics and avoids the trivially-true problem of OR-ing CO_NE comparisons.
+	// note: m_val_storages_members is only populated for CO_IN/CO_INTERSECTS, so
+	// we always loop over m_vals here. An O(1) set optimisation could be added later
+	// by also populating the set in add_filter_value when mod != none.
+	auto in_rhs = [&](const filter_value_t& item) -> bool {
+		if(cmp.op == CO_NE) {
+			// item "satisfies != set" iff it is not equal to any RHS element
+			for(uint16_t i = 0; i < m_vals.size(); i++) {
+				if(::flt_compare(comparator{CO_EQ},
+				                 type,
+				                 item.first,
+				                 filter_value_p(i),
+				                 item.second,
+				                 filter_value_len(i))) {
+					return false;
+				}
+			}
+			return true;
+		}
+		for(uint16_t i = 0; i < m_vals.size(); i++) {
+			if(::flt_compare(comparator{cmp.op},
+			                 type,
+			                 item.first,
+			                 filter_value_p(i),
+			                 item.second,
+			                 filter_value_len(i))) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	// Returns true if 'item' satisfies the base op against ALL RHS elements (AND semantics).
+	// For CO_NE the "not in set" invariant is preserved: AND of != is equivalent to not-in-set,
+	// so we reuse in_rhs which already implements that.
+	auto all_rhs = [&](const filter_value_t& item) -> bool {
+		if(cmp.op == CO_NE) {
+			return in_rhs(item);
+		}
+		if(m_vals.empty()) {
+			return false;
+		}
+		for(uint16_t i = 0; i < m_vals.size(); i++) {
+			if(!::flt_compare(comparator{cmp.op},
+			                  type,
+			                  item.first,
+			                  filter_value_p(i),
+			                  item.second,
+			                  filter_value_len(i))) {
+				return false;
+			}
+		}
+		return true;
+	};
+
+	switch(cmp.mod) {
+	case oneof: {
+		// true if exactly one extracted value matches any RHS value
+		uint32_t count = 0;
+		for(const auto& it : values) {
+			if(in_rhs(craft_filter_value(type, it.ptr, it.len))) {
+				if(++count > 1) {
+					return false;
+				}
+			}
+		}
+		return count == 1;
+	}
+	case anyof:
+		// true if at least one extracted value matches any RHS value
+		for(const auto& it : values) {
+			if(in_rhs(craft_filter_value(type, it.ptr, it.len))) {
+				return true;
+			}
+		}
+		return false;
+	case allof:
+		// true if every extracted value matches ALL RHS values
+		for(const auto& it : values) {
+			if(!all_rhs(craft_filter_value(type, it.ptr, it.len))) {
+				return false;
+			}
+		}
+		return true;
+	default:
+		ASSERT(false);
+		throw sinsp_exception("unexpected modifier in compare_rhs_with_mod");
 	}
 }
 
