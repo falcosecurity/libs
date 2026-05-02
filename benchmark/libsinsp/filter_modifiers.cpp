@@ -181,6 +181,21 @@ static std::vector<std::string> make_regex_terms(int n) {
 	return terms;
 }
 
+// N terms where only the last one matches proc.name = "svc-last".
+// The first N-1 elements are ordinary non-matching svc-prefix-* terms.
+// Both variants must iterate every term before the match → O(N), returns true.
+static std::vector<std::string> make_terms_last(int n) {
+	auto terms = make_terms(n > 0 ? n - 1 : 0);
+	terms.emplace_back("svc-last");
+	return terms;
+}
+
+static std::vector<std::string> make_regex_terms_last(int n) {
+	auto terms = make_regex_terms(n > 0 ? n - 1 : 0);
+	terms.emplace_back("^svc-last$");
+	return terms;
+}
+
 // "proc.name OP oneof (t0, t1, ...)"
 static std::string modifier_filter(const std::string& op, const std::vector<std::string>& terms) {
 	std::string s = "proc.name " + op + " oneof (";
@@ -266,3 +281,17 @@ DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", contains, "contains", make_term
 DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", eq, "==", make_terms);
 
 DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", regex, "regex", make_regex_terms);
+
+// ─── last-match scenario ──────────────────────────────────────────────────────
+// proc.name = "svc-last" matches only the final term in an N-element list.
+// Both variants evaluate every term before the hit → O(N) comparisons, returns true.
+// Unlike no_match, this exercises the full O(N) scan for a successful lookup,
+// which is the true worst-case for a matching event.
+
+DEFINE_BENCH_PAIR(last_match, "svc-last", startswith, "startswith", make_terms_last);
+
+DEFINE_BENCH_PAIR(last_match, "svc-last", contains, "contains", make_terms_last);
+
+DEFINE_BENCH_PAIR(last_match, "svc-last", eq, "==", make_terms_last);
+
+DEFINE_BENCH_PAIR(last_match, "svc-last", regex, "regex", make_regex_terms_last);
