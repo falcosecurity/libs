@@ -231,6 +231,24 @@ protected:
 	bool compare_rhs_with_mod(comparator cmp,
 	                          ppm_param_type type,
 	                          std::vector<extract_value_t>& values);
+	bool matches_rhs_elem(const filter_value_t& item,
+	                      uint16_t i,
+	                      comparator elem_cmp,
+	                      bool is_ne,
+	                      bool is_regex,
+	                      ppm_param_type type);
+	bool matches_any_rhs(const filter_value_t& item,
+	                     uint16_t n_rhs,
+	                     comparator elem_cmp,
+	                     bool is_ne,
+	                     bool is_regex,
+	                     ppm_param_type type);
+	bool matches_all_rhs(const filter_value_t& item,
+	                     uint16_t n_rhs,
+	                     comparator elem_cmp,
+	                     bool is_ne,
+	                     bool is_regex,
+	                     ppm_param_type type);
 
 	Json::Value rawval_to_json(uint8_t* rawval,
 	                           ppm_param_type ptype,
