@@ -889,6 +889,22 @@ static inline filter_value_t craft_filter_value(ppm_param_type type,
 	return filter_value_t{(uint8_t*)value, len};
 }
 
+// Certain types only support equality-based comparison in flt_compare.
+static bool flt_type_is_eq_only(ppm_param_type type) {
+	switch(type) {
+	case PT_IPV4NET:
+	case PT_IPV6NET:
+	case PT_IPNET:
+	case PT_SOCKADDR:
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_SIGSET:
+		return true;
+	default:
+		return false;
+	}
+}
+
 bool sinsp_filter_check::compare_rhs(comparator cmp,
                                      ppm_param_type type,
                                      const void* operand1,
@@ -902,14 +918,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 		// Certain filterchecks can't be done as a set
 		// membership test/group match. For these, just loop over the
 		// values and see if any value is equal.
-		switch(type) {
-		case PT_IPV4NET:
-		case PT_IPV6NET:
-		case PT_IPNET:
-		case PT_SOCKADDR:
-		case PT_SOCKTUPLE:
-		case PT_FDLIST:
-		case PT_SIGSET:
+		if(flt_type_is_eq_only(type)) {
 			for(uint16_t i = 0; i < m_vals.size(); i++) {
 				if(::flt_compare(CO_EQ,
 				                 type,
@@ -921,7 +930,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 				}
 			}
 			return false;
-		default:
+		} else {
 			auto item = craft_filter_value(type, operand1, op1_len);
 
 			if(cmp.op == CO_IN || cmp.op == CO_INTERSECTS) {
@@ -970,6 +979,11 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
                                               ppm_param_type type,
                                               std::vector<extract_value_t>& values) {
+	// Certain types only support equality-based comparison in flt_compare (e.g. network
+	// and socket types); for all others the full operator is used. This mirrors the
+	// special-casing in compare_rhs for CO_IN/CO_INTERSECTS with those types.
+	const comparator elem_cmp{flt_type_is_eq_only(type) ? CO_EQ : cmp.op};
+
 	// Returns true if 'item' satisfies the base op against the RHS set.
 	// For CO_NE we use equality-based membership and invert: "!= set" means
 	// the item is not equal to any element in the set, which gives consistent
@@ -1004,7 +1018,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 			return false;
 		}
 		for(uint16_t i = 0; i < m_vals.size(); i++) {
-			if(::flt_compare(comparator{cmp.op},
+			if(::flt_compare(elem_cmp,
 			                 type,
 			                 item.first,
 			                 filter_value_p(i),
@@ -1040,7 +1054,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 			return false;
 		}
 		for(uint16_t i = 0; i < m_vals.size(); i++) {
-			if(!::flt_compare(comparator{cmp.op},
+			if(!::flt_compare(elem_cmp,
 			                  type,
 			                  item.first,
 			                  filter_value_p(i),

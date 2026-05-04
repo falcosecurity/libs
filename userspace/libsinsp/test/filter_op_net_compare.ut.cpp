@@ -66,6 +66,49 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	EXPECT_FALSE(eval_filter(evt, "fd.net == 2001:db8:abcd:0012::0/64"));
 }
 
+TEST_F(sinsp_with_test_input, net_modifier_ip_compare) {
+	add_default_init_thread();
+	open_inspector();
+	auto* evt = generate_socket_exit_event();
+	int64_t return_value = 0;
+
+	sockaddr_in client = test_utils::fill_sockaddr_in(54321, "172.40.111.222");
+	sockaddr_in server = test_utils::fill_sockaddr_in(443, "142.251.111.147");
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        return_value,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	// anyof: matches if field equals any value in the list
+	EXPECT_TRUE(eval_filter(evt, "fd.sip == anyof (142.251.111.147)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.sip == anyof (10.0.0.1, 142.251.111.147)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.sip == anyof (10.0.0.1, 192.168.0.1)"));
+
+	// allof: for a single-valued field, matches only if the field equals every value in the list
+	EXPECT_TRUE(eval_filter(evt, "fd.sip == allof (142.251.111.147)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.sip == allof (142.251.111.147, 10.0.0.1)"));
+
+	// oneof: matches if exactly one RHS value matches
+	EXPECT_TRUE(eval_filter(evt, "fd.sip == oneof (142.251.111.147)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.sip == oneof (10.0.0.1, 142.251.111.147)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.sip == oneof (10.0.0.1, 192.168.0.1)"));
+
+	// ne with modifier: field is not equal to any value in the list
+	EXPECT_TRUE(eval_filter(evt, "fd.sip != anyof (10.0.0.1)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.sip != anyof (142.251.111.147)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.sip != allof (10.0.0.1, 192.168.0.1)"));
+}
+
 TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	add_default_init_thread();
 	open_inspector();
