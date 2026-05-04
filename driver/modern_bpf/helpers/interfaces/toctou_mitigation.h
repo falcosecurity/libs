@@ -16,7 +16,12 @@ static __always_inline bool toctou_mitigation__sampling_logic_enter(uint32_t sys
 	 * - false: means don't drop the syscall
 	 * - true: means drop the syscall
 	 */
-	if(!maps__get_dropping_mode()) {
+	struct capture_settings *settings = maps__get_capture_settings();
+	if(settings == NULL) {
+		return false;
+	}
+
+	if(!settings->dropping_mode) {
 		return false;
 	}
 
@@ -31,7 +36,7 @@ static __always_inline bool toctou_mitigation__sampling_logic_enter(uint32_t sys
 	}
 
 	// If we are in the sampling period we drop the event.
-	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
+	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / settings->sampling_ratio)) {
 		return true;
 	}
 
