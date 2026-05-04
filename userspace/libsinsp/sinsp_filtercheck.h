@@ -59,7 +59,7 @@ std::string to_string(boolop);
 class sinsp_filter_check {
 public:
 	sinsp_filter_check();
-	virtual ~sinsp_filter_check() = default;
+	virtual ~sinsp_filter_check();
 
 	//
 	// Sets an inspector to be used internally.
@@ -356,10 +356,7 @@ private:
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
 
-	struct default_re2_deleter {
-		void operator()(re2::RE2* __ptr) const;
-	};
-	std::unique_ptr<re2::RE2, default_re2_deleter> m_val_regex;
+	std::unique_ptr<re2::RE2> m_val_regex;
 
 	static constexpr const size_t s_min_filter_value_buf_size = 16;
 	static constexpr const size_t s_max_filter_value_buf_size = 256;

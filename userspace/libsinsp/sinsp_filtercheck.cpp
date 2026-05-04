@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include <cinttypes>
+#include <utility>
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
@@ -49,27 +50,18 @@ std::string std::to_string(boolop b) {
 	return "<unset>";
 }
 
-void sinsp_filter_check::default_re2_deleter::operator()(re2::RE2* __ptr) const {
-	std::default_delete<re2::RE2>{}(__ptr);
-}
-
 template<typename Ptr, typename... Params>
-static inline void ensure_unique_ptr_allocated(Ptr& p, Params... args) {
+static inline void ensure_unique_ptr_allocated(Ptr& p, Params&&... args) {
 	if(!p) {
-		p = std::make_unique<typename Ptr::element_type>(args...);
-	}
-}
-
-template<typename Ptr, typename... Params>
-static inline void ensure_unique_ptr_allocated_deleter(Ptr& p, Params... args) {
-	if(!p) {
-		p.reset(new typename Ptr::element_type(args...));
+		p = std::make_unique<typename Ptr::element_type>(std::forward<Params>(args)...);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check implementation
 ///////////////////////////////////////////////////////////////////////////////
+sinsp_filter_check::~sinsp_filter_check() = default;
+
 sinsp_filter_check::sinsp_filter_check() {
 	m_boolop = BO_NONE;
 	m_cmpop = CO_NONE;
@@ -632,9 +624,9 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		ensure_unique_ptr_allocated(m_val_storages_paths);
 		m_val_storages_paths->add_search_path(item);
 	} else if(m_cmpop == CO_REGEX) {
-		ensure_unique_ptr_allocated_deleter(m_val_regex,
-		                                    re2::StringPiece((const char*)item.first),
-		                                    re2::RE2::POSIX);
+		ensure_unique_ptr_allocated(m_val_regex,
+		                            re2::StringPiece((const char*)item.first),
+		                            re2::RE2::POSIX);
 		if(scap_unlikely(!m_val_regex->ok())) {
 			throw sinsp_exception("invalid regex pattern: " + m_val_regex->error());
 		}
