@@ -40,6 +40,8 @@ Please remove the leading whitespace before the `/kind <>` you uncommented.
 
 > /area CI
 
+> /area drivers
+
 > /area driver-kmod
 
 > /area driver-modern-bpf

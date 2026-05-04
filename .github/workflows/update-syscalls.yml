@@ -33,7 +33,7 @@ jobs:
           title: 'update(driver): update syscalls tables and driver report.'
           body: |
             This PR updates the list of supported syscalls from the latest kernel. Do not edit this PR.
-            /area driver
+            /area drivers
             ```release-note
             NONE
             ```
