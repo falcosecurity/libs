@@ -406,6 +406,16 @@ bool flt_is_comparable(comparator cmp, ppm_param_type t, bool is_list, std::stri
 	case PT_IPV6NET:
 	case PT_IPADDR:
 	case PT_IPNET:
+		if(cmp.mod != none) {
+			std::string op_err;
+			if(!flt_is_comparable_ip_or_net(comparator{cmp.op}, op_err)) {
+				std::string opname;
+				cmpop_to_str(cmp, opname);
+				err = "'" + opname +
+				      "' with modifier not supported for ip address and network filters";
+				return false;
+			}
+		}
 		return flt_is_comparable_ip_or_net(cmp, err);
 	case PT_CHARBUF:
 	case PT_FSPATH:

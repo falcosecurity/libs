@@ -487,6 +487,13 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility) {
 	test_filter_compile(factory, "fd.ip bstartswith 3132372e302e302e3100", true);
 	test_filter_compile(factory, "fd.ip iglob 127.0.0.1", true);
 	test_filter_compile(factory, "fd.ip regex '.*'", true);
+	// with modifier: only == and != are allowed
+	test_filter_compile(factory, "fd.ip == anyof (127.0.0.1)");
+	test_filter_compile(factory, "fd.ip == allof (127.0.0.1)");
+	test_filter_compile(factory, "fd.ip != anyof (127.0.0.1)");
+	test_filter_compile(factory, "fd.ip != allof (127.0.0.1)");
+	test_filter_compile(factory, "fd.ip contains anyof (127.0.0.1)", true);
+	test_filter_compile(factory, "fd.ip regex allof ('.*')", true);
 
 	// PT_IPNET
 	test_filter_compile(factory, "fd.net exists");
@@ -508,6 +515,13 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility) {
 	test_filter_compile(factory, "fd.net bstartswith 3132372e302e302e312f333200", true);
 	test_filter_compile(factory, "fd.net iglob 127.0.0.1/32", true);
 	test_filter_compile(factory, "fd.net regex '.*'", true);
+	// with modifier: only == and != are allowed
+	test_filter_compile(factory, "fd.net == anyof (127.0.0.1/32)");
+	test_filter_compile(factory, "fd.net == allof (127.0.0.1/32)");
+	test_filter_compile(factory, "fd.net != anyof (127.0.0.1/32)");
+	test_filter_compile(factory, "fd.net != allof (127.0.0.1/32)");
+	test_filter_compile(factory, "fd.net contains anyof (127.0.0.1/32)", true);
+	test_filter_compile(factory, "fd.net startswith allof (127.0.0.1/32)", true);
 
 	// PT_PORT
 	test_filter_compile(factory, "fd.port exists");
