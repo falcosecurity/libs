@@ -16,7 +16,7 @@ jobs:
       is_latest_libs: ${{ steps.get_settings.outputs.is_latest_libs }}
     steps:
       - name: Get latest drivers release
-        uses: ekoops/actions-github-release@cdb90ce3211f19887bb83331ffca296da32b63b7 # 0.1.0
+        uses: rez0n/actions-github-release@05fabbd6b2b3ce3383299555ea518faea69b736d # v2.1
         id: latest_drivers_release
         env:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -25,7 +25,7 @@ jobs:
           filter: '^.*\+driver$' # Only include drivers releases.
 
       - name: Get latest libs release
-        uses: ekoops/actions-github-release@cdb90ce3211f19887bb83331ffca296da32b63b7 # 0.1.0
+        uses: rez0n/actions-github-release@05fabbd6b2b3ce3383299555ea518faea69b736d # v2.1
         id: latest_libs_release
         env:
           token: ${{ secrets.GITHUB_TOKEN }}
