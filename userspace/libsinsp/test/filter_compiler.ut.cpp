@@ -1021,7 +1021,7 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		sinsp_filter_compiler compiler(ff, "evt.type == oneof (getcwd, openat)", cf);
 		compiler.compile();
 		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
-		EXPECT_EQ(cf->captured_modifiers[0], oneof);
+		EXPECT_EQ(cf->captured_modifiers[0], CMPOP_MOD_ONEOF);
 		cf->captured_modifiers.clear();
 	}
 
@@ -1029,7 +1029,7 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		sinsp_filter_compiler compiler(ff, "evt.type == anyof (getcwd, openat)", cf);
 		compiler.compile();
 		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
-		EXPECT_EQ(cf->captured_modifiers[0], anyof);
+		EXPECT_EQ(cf->captured_modifiers[0], CMPOP_MOD_ANYOF);
 		cf->captured_modifiers.clear();
 	}
 
@@ -1037,7 +1037,7 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		sinsp_filter_compiler compiler(ff, "evt.type != allof (getcwd)", cf);
 		compiler.compile();
 		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
-		EXPECT_EQ(cf->captured_modifiers[0], allof);
+		EXPECT_EQ(cf->captured_modifiers[0], CMPOP_MOD_ALLOF);
 		cf->captured_modifiers.clear();
 	}
 
@@ -1046,7 +1046,7 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		sinsp_filter_compiler compiler(ff, "evt.type == getcwd", cf);
 		compiler.compile();
 		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
-		EXPECT_EQ(cf->captured_modifiers[0], none);
+		EXPECT_EQ(cf->captured_modifiers[0], CMPOP_MOD_NONE);
 		cf->captured_modifiers.clear();
 	}
 
@@ -1055,7 +1055,7 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		sinsp_filter_compiler compiler(ff, "evt.type in (getcwd, openat)", cf);
 		compiler.compile();
 		ASSERT_EQ(cf->captured_modifiers.size(), 1u);
-		EXPECT_EQ(cf->captured_modifiers[0], none);
+		EXPECT_EQ(cf->captured_modifiers[0], CMPOP_MOD_NONE);
 		cf->captured_modifiers.clear();
 	}
 
@@ -1068,9 +1068,9 @@ TEST_F(sinsp_with_test_input, filter_str_op_modifier_node_info) {
 		        cf);
 		compiler.compile();
 		ASSERT_EQ(cf->captured_modifiers.size(), 3u);
-		EXPECT_EQ(cf->captured_modifiers[0], oneof);
-		EXPECT_EQ(cf->captured_modifiers[1], anyof);
-		EXPECT_EQ(cf->captured_modifiers[2], none);
+		EXPECT_EQ(cf->captured_modifiers[0], CMPOP_MOD_ONEOF);
+		EXPECT_EQ(cf->captured_modifiers[1], CMPOP_MOD_ANYOF);
+		EXPECT_EQ(cf->captured_modifiers[2], CMPOP_MOD_NONE);
 		cf->captured_modifiers.clear();
 	}
 }
