@@ -52,17 +52,17 @@ enum cmpop : uint8_t {
 };
 
 enum cmpop_mod : uint8_t {
-	none = 0,
-	oneof = 1,
-	anyof = 2,
-	allof = 3,
+	CMPOP_MOD_NONE = 0,
+	CMPOP_MOD_ONEOF = 1,
+	CMPOP_MOD_ANYOF = 2,
+	CMPOP_MOD_ALLOF = 3,
 };
 
 cmpop str_to_cmpop(std::string_view str);
 cmpop_mod str_to_cmpop_mod(std::string_view str);
 struct comparator {
 	cmpop op = CO_NONE;
-	cmpop_mod mod = none;
+	cmpop_mod mod = CMPOP_MOD_NONE;
 	comparator() = default;
 	comparator(cmpop op): op(op) {}
 };

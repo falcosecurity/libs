@@ -32,11 +32,11 @@ limitations under the License.
 
 cmpop_mod str_to_cmpop_mod(std::string_view str) {
 	if(str == "oneof") {
-		return oneof;
+		return CMPOP_MOD_ONEOF;
 	} else if(str == "anyof") {
-		return anyof;
+		return CMPOP_MOD_ANYOF;
 	} else if(str == "allof") {
-		return allof;
+		return CMPOP_MOD_ALLOF;
 	}
 
 	throw sinsp_exception("unrecognized filter comparison modifier '" + std::string(str) + "'");
@@ -406,7 +406,7 @@ bool flt_is_comparable(comparator cmp, ppm_param_type t, bool is_list, std::stri
 	case PT_IPV6NET:
 	case PT_IPADDR:
 	case PT_IPNET:
-		if(cmp.mod != none) {
+		if(cmp.mod != CMPOP_MOD_NONE) {
 			std::string op_err;
 			if(!flt_is_comparable_ip_or_net(comparator{cmp.op}, op_err)) {
 				std::string opname;

@@ -852,7 +852,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 			                      std::string(m_info->m_fields[m_field_id].m_name) +
 			                      "' only supports operators 'exists', 'in' and 'intersects'");
 		}
-	} else if(cmp.mod != none) {
+	} else if(cmp.mod != CMPOP_MOD_NONE) {
 		return compare_rhs_with_mod(cmp, type, values);
 	} else if(values.size() > 1) {
 		ASSERT(false);
@@ -1041,7 +1041,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 	};
 
 	switch(cmp.mod) {
-	case oneof: {
+	case CMPOP_MOD_ONEOF: {
 		// true if exactly one extracted value matches any RHS value
 		uint32_t count = 0;
 		for(const auto& it : values) {
@@ -1053,7 +1053,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 		}
 		return count == 1;
 	}
-	case anyof:
+	case CMPOP_MOD_ANYOF:
 		// true if at least one extracted value matches any RHS value
 		for(const auto& it : values) {
 			if(in_rhs(craft_filter_value(type, it.ptr, it.len))) {
@@ -1061,7 +1061,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 			}
 		}
 		return false;
-	case allof:
+	case CMPOP_MOD_ALLOF:
 		// true if every extracted value matches ALL RHS values
 		for(const auto& it : values) {
 			if(!all_rhs(craft_filter_value(type, it.ptr, it.len))) {
