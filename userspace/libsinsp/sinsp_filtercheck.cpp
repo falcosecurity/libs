@@ -984,82 +984,56 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 	// special-casing in compare_rhs for CO_IN/CO_INTERSECTS with those types.
 	const comparator elem_cmp{flt_type_is_eq_only(type) ? CO_EQ : cmp.op};
 
-	// Returns true if 'item' satisfies the base op against the RHS set.
-	// For CO_NE we use equality-based membership and invert: "!= set" means
-	// the item is not equal to any element in the set, which gives consistent
-	// semantics and avoids the trivially-true problem of OR-ing CO_NE comparisons.
+	const bool is_ne = (cmp.op == CO_NE);
+	const bool is_regex = (cmp.op == CO_REGEX);
 	// note: m_val_storages_members is only populated for CO_IN/CO_INTERSECTS, so
 	// we always loop over m_vals here. An O(1) set optimisation could be added later
 	// by also populating the set in add_filter_value when mod != none.
-	auto in_rhs = [&](const filter_value_t& item) -> bool {
-		if(cmp.op == CO_NE) {
-			// item "satisfies != set" iff it is not equal to any RHS element
-			for(uint16_t i = 0; i < m_vals.size(); i++) {
-				if(::flt_compare(comparator{CO_EQ},
-				                 type,
-				                 item.first,
-				                 filter_value_p(i),
-				                 item.second,
-				                 filter_value_len(i))) {
-					return false;
-				}
-			}
-			return true;
-		}
-		if(cmp.op == CO_REGEX) {
-			// item is "in set" if it matches at least one compiled regex pattern
-			re2::StringPiece s((const char*)item.first, item.second);
-			for(const auto& re : m_val_regexes) {
-				if(re && re->ok() &&
-				   re->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0)) {
-					return true;
-				}
-			}
-			return false;
-		}
-		for(uint16_t i = 0; i < m_vals.size(); i++) {
-			if(::flt_compare(elem_cmp,
-			                 type,
-			                 item.first,
-			                 filter_value_p(i),
-			                 item.second,
-			                 filter_value_len(i))) {
-				return true;
-			}
-		}
-		return false;
-	};
+	const uint16_t n_rhs = is_regex ? static_cast<uint16_t>(m_val_regexes.size())
+	                                : static_cast<uint16_t>(m_vals.size());
 
-	// Returns true if 'item' satisfies the base op against ALL RHS elements (AND semantics).
-	// For CO_NE the "not in set" invariant is preserved: AND of != is equivalent to not-in-set,
-	// so we reuse in_rhs which already implements that.
-	auto all_rhs = [&](const filter_value_t& item) -> bool {
-		if(cmp.op == CO_NE) {
-			return in_rhs(item);
-		}
-		if(cmp.op == CO_REGEX) {
-			if(m_val_regexes.empty()) {
+	// Returns true if item matches RHS element i.
+	// For CO_NE, uses CO_EQ (the inversion is handled by the callers below).
+	auto rhs_elem_matches = [&](const filter_value_t& item, uint16_t i) -> bool {
+		if(is_regex) {
+			if(!m_val_regexes[i] || !m_val_regexes[i]->ok()) {
 				return false;
 			}
 			re2::StringPiece s((const char*)item.first, item.second);
-			for(const auto& re : m_val_regexes) {
-				if(!re || !re->ok() ||
-				   !re->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0)) {
-					return false;
-				}
-			}
-			return true;
+			return m_val_regexes[i]
+			        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
 		}
-		if(m_vals.empty()) {
+		const comparator c = is_ne ? comparator{CO_EQ} : elem_cmp;
+		return ::flt_compare(c,
+		                     type,
+		                     item.first,
+		                     filter_value_p(i),
+		                     item.second,
+		                     filter_value_len(i));
+	};
+
+	// True if item matches at least one RHS element.
+	// For CO_NE: true iff item is not equal to any RHS element ("not in set").
+	auto in_rhs = [&](const filter_value_t& item) -> bool {
+		for(uint16_t i = 0; i < n_rhs; i++) {
+			if(rhs_elem_matches(item, i)) {
+				return !is_ne;
+			}
+		}
+		return is_ne;
+	};
+
+	// True if item matches all RHS elements.
+	// For CO_NE: equivalent to in_rhs (AND of != is the same as not-in-set).
+	auto all_rhs = [&](const filter_value_t& item) -> bool {
+		if(is_ne) {
+			return in_rhs(item);
+		}
+		if(n_rhs == 0) {
 			return false;
 		}
-		for(uint16_t i = 0; i < m_vals.size(); i++) {
-			if(!::flt_compare(elem_cmp,
-			                  type,
-			                  item.first,
-			                  filter_value_p(i),
-			                  item.second,
-			                  filter_value_len(i))) {
+		for(uint16_t i = 0; i < n_rhs; i++) {
+			if(!rhs_elem_matches(item, i)) {
 				return false;
 			}
 		}
