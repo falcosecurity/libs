@@ -624,7 +624,8 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		m_val_storages_paths->add_search_path(item);
 	} else if(m_cmp.op == CO_REGEX) {
 		auto re = std::make_unique<re2::RE2>(
-		        re2::StringPiece((const char*)item.first, item.second), re2::RE2::POSIX);
+		        re2::StringPiece(reinterpret_cast<const char*>(item.first), item.second),
+		        re2::RE2::POSIX);
 		if(scap_unlikely(!re->ok())) {
 			throw sinsp_exception("invalid regex pattern: " + re->error());
 		}
@@ -962,7 +963,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 		case PT_FSRELPATH:
 			if(!m_val_regexes.empty() && m_val_regexes[0]) {
 				auto item = craft_filter_value(type, operand1, op1_len);
-				re2::StringPiece s((const char*)item.first, item.second);
+				re2::StringPiece s(reinterpret_cast<const char*>(item.first), item.second);
 				return m_val_regexes[0]
 				        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
 			}
@@ -988,7 +989,7 @@ bool sinsp_filter_check::matches_rhs_elem(const filter_value_t& item,
 		if(!m_val_regexes[i] || !m_val_regexes[i]->ok()) {
 			return false;
 		}
-		re2::StringPiece s((const char*)item.first, item.second);
+		re2::StringPiece s(reinterpret_cast<const char*>(item.first), item.second);
 		return m_val_regexes[i]
 		        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
 	}
