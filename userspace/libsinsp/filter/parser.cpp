@@ -558,6 +558,48 @@ std::unique_ptr<ast::expr> parser::parse_str_value_or_transformer(bool no_transf
 	                      token_list_to_str(supported_field_transformers(true)));
 }
 
+std::unique_ptr<ast::expr> parser::try_parse_list_expr() {
+	auto pos = get_pos();
+	if(!lex_helper_str("(")) {
+		return nullptr;
+	}
+
+	bool should_be_empty = false;
+	ast::value_expr* value_child = nullptr;
+	std::unique_ptr<ast::expr> child;
+	std::vector<std::string> values;
+
+	lex_blank();
+	try {
+		child = parse_str_value_or_transformer(true);
+	} catch(const sinsp_exception& e) {
+		should_be_empty = true;
+	}
+
+	if(!should_be_empty) {
+		value_child = dynamic_cast<ast::value_expr*>(child.get());
+		if(!value_child) {
+			throw sinsp_exception("parser fatal error: null value expr in head of list");
+		}
+		values.push_back(value_child->value);
+		lex_blank();
+		while(lex_helper_str(",")) {
+			child = parse_str_value_or_transformer(true);
+			value_child = dynamic_cast<ast::value_expr*>(child.get());
+			if(!value_child) {
+				throw sinsp_exception("parser fatal error: null value expr in body of list");
+			}
+			values.push_back(value_child->value);
+			lex_blank();
+		}
+	}
+
+	if(!lex_helper_str(")")) {
+		throw sinsp_exception("expected a ')' token");
+	}
+	return ast::list_expr::create(values, pos);
+}
+
 std::unique_ptr<ast::expr> parser::parse_list_value() {
 	depth_guard(m_max_depth, m_depth);
 
@@ -565,41 +607,8 @@ std::unique_ptr<ast::expr> parser::parse_list_value() {
 
 	auto pos = get_pos();
 
-	if(lex_helper_str("(")) {
-		bool should_be_empty = false;
-		ast::value_expr* value_child = nullptr;
-		std::unique_ptr<ast::expr> child;
-		std::vector<std::string> values;
-
-		lex_blank();
-		try {
-			child = parse_str_value_or_transformer(true);
-		} catch(const sinsp_exception& e) {
-			should_be_empty = true;
-		}
-
-		if(!should_be_empty) {
-			value_child = dynamic_cast<ast::value_expr*>(child.get());
-			if(!value_child) {
-				throw sinsp_exception("parser fatal error: null value expr in head of list");
-			}
-			values.push_back(value_child->value);
-			lex_blank();
-			while(lex_helper_str(",")) {
-				child = parse_str_value_or_transformer(true);
-				value_child = dynamic_cast<ast::value_expr*>(child.get());
-				if(!value_child) {
-					throw sinsp_exception("parser fatal error: null value expr in body of list");
-				}
-				values.push_back(value_child->value);
-				lex_blank();
-			}
-		}
-
-		if(!lex_helper_str(")")) {
-			throw sinsp_exception("expected a ')' token");
-		}
-		return ast::list_expr::create(values, pos);
+	if(auto res = try_parse_list_expr()) {
+		return res;
 	}
 
 	if(lex_identifier()) {
@@ -616,41 +625,8 @@ std::unique_ptr<ast::expr> parser::parse_list_value_or_transformer() {
 
 	auto pos = get_pos();
 
-	if(lex_helper_str("(")) {
-		bool should_be_empty = false;
-		ast::value_expr* value_child = nullptr;
-		std::unique_ptr<ast::expr> child;
-		std::vector<std::string> values;
-
-		lex_blank();
-		try {
-			child = parse_str_value_or_transformer(true);
-		} catch(const sinsp_exception& e) {
-			should_be_empty = true;
-		}
-
-		if(!should_be_empty) {
-			value_child = dynamic_cast<ast::value_expr*>(child.get());
-			if(!value_child) {
-				throw sinsp_exception("parser fatal error: null value expr in head of list");
-			}
-			values.push_back(value_child->value);
-			lex_blank();
-			while(lex_helper_str(",")) {
-				child = parse_str_value_or_transformer(true);
-				value_child = dynamic_cast<ast::value_expr*>(child.get());
-				if(!value_child) {
-					throw sinsp_exception("parser fatal error: null value expr in body of list");
-				}
-				values.push_back(value_child->value);
-				lex_blank();
-			}
-		}
-
-		if(!lex_helper_str(")")) {
-			throw sinsp_exception("expected a ')' token");
-		}
-		return ast::list_expr::create(values, pos);
+	if(auto res = try_parse_list_expr()) {
+		return res;
 	}
 
 	if(auto res = try_parse_transformer_or_val(); res != nullptr) {
