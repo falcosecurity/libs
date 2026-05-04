@@ -163,6 +163,7 @@ private:
 	std::unique_ptr<ast::expr> parse_embedded_remainder();
 	std::unique_ptr<ast::expr> parse_check();
 	std::unique_ptr<ast::expr> parse_list_value();
+	std::unique_ptr<ast::expr> try_parse_list_expr();
 	std::unique_ptr<ast::expr> parse_field_remainder(std::string fieldname,
 	                                                 const libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_field_or_transformer_remainder(
