@@ -1354,6 +1354,23 @@ TEST(parser, parse_str_op_modifier_reject) {
 	test_reject("proc.num > oneof (1, 2)");
 	test_reject("proc.num <= anyof (1, 2)");
 
+	// word-based operators follow the same rules: no space before list paren →
+	// modifier keyword is parsed as a plain string value and "(...)" is leftover
+	test_reject("proc.name contains oneof(cat, nginx)");
+	test_reject("proc.name startswith anyof(cat)");
+	test_reject("proc.name endswith allof(.so)");
+
+	// modifier keywords are case-sensitive for word-based operators too
+	test_reject("proc.name contains ONEOF (cat)");
+	test_reject("proc.name startswith Anyof (cat)");
+	test_reject("proc.name endswith ALLOF (.so)");
+
+	// words that merely start with a modifier prefix ("greedy prefix") are not
+	// modifiers; they are plain string values, so a following "(...)" is leftover
+	test_reject("proc.name == oneof_something (cat)");
+	test_reject("proc.name startswith oneof_something (cat)");
+	test_reject("proc.name contains anyof_extra (cat, nginx)");
+
 	// list operators (in/intersects/pmatch) cannot use modifiers in this way;
 	// "oneof" would be parsed as an identifier (macro name) and "(a)" would be
 	// leftover, causing a parse error
