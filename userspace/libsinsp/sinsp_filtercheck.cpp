@@ -618,6 +618,10 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		if(parsed_len > m_val_storages_max_size) {
 			m_val_storages_max_size = parsed_len;
 		}
+	} else if(m_cmp.mod != CMPOP_MOD_NONE && (m_cmp.op == CO_EQ || m_cmp.op == CO_NE)) {
+		// equality-based ops with a modifier also use hash-set lookup in matches_any_rhs
+		ensure_unique_ptr_allocated(m_val_storages_members);
+		m_val_storages_members->insert(item);
 	} else if(m_cmp.op == CO_PMATCH) {
 		// If the operator is CO_PMATCH, also add the value to the paths set.
 		ensure_unique_ptr_allocated(m_val_storages_paths);
@@ -1005,6 +1009,10 @@ bool sinsp_filter_check::matches_any_rhs(const filter_value_t& item,
                                          ppm_param_type type) {
 	// True if item matches at least one RHS element.
 	// For CO_NE: true iff item is not equal to any RHS element ("not in set").
+	if(m_val_storages_members && !is_regex) {
+		bool found = m_val_storages_members->find(item) != m_val_storages_members->end();
+		return is_ne ? !found : found;
+	}
 	for(uint16_t i = 0; i < n_rhs; i++) {
 		if(matches_rhs_elem(item, i, elem_cmp, is_ne, is_regex, type)) {
 			return !is_ne;
@@ -1045,9 +1053,6 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 
 	const bool is_ne = (cmp.op == CO_NE);
 	const bool is_regex = (cmp.op == CO_REGEX);
-	// note: m_val_storages_members is only populated for CO_IN/CO_INTERSECTS, so
-	// we always loop over m_vals here. An O(1) set optimisation could be added later
-	// by also populating the set in add_filter_value when mod != none.
 	const uint16_t n_rhs = is_regex ? static_cast<uint16_t>(m_val_regexes.size())
 	                                : static_cast<uint16_t>(m_vals.size());
 
