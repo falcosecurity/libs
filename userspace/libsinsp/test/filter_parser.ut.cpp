@@ -1229,9 +1229,6 @@ TEST(parser, parse_str_op_modifier_accept) {
 	test_accept("proc.name != anyof (cat, nginx)");
 	test_accept("proc.name != allof (cat, nginx)");
 
-	// no space between modifier and opening paren is still valid (space before modifier is enough)
-	test_accept("proc.name == oneof(cat, nginx)");
-
 	// single-element and empty list
 	test_accept("proc.name == oneof (cat)");
 	test_accept("proc.name == oneof ()");
@@ -1271,13 +1268,35 @@ TEST(parser, parse_str_op_modifier_accept) {
 	test_accept("proc.name == 'oneof'");
 	test_accept("proc.name == \"anyof\"");
 
-	// inside complex expressions
+	// bare modifier keywords not followed by a blank are plain string values
+	test_accept("proc.name == oneof");
+	test_accept("proc.name == anyof");
+	test_accept("proc.name == allof");
+
+	// words that merely start with a modifier prefix are also plain string values
+	test_accept("proc.name == oneof_something");
+	test_accept("proc.name == anyof_extra");
+
+	// inside complex expressions (modifier with list)
 	test_accept("proc.name == oneof (cat, nginx) and fd.name exists");
 	test_accept("proc.name == oneof (cat, nginx) or fd.name exists");
 	test_accept("not proc.name == oneof (cat, nginx)");
 	test_accept("(proc.name == oneof (cat, nginx))");
 	test_accept("proc.name == oneof (cat) and proc.name == anyof (nginx, apache)");
 	test_accept("proc.name == oneof (cat) or proc.name != allof (nginx)");
+
+	// bare modifier keyword followed by a boolean conjunction is parsed as a
+	// plain string value; the conjunction is not mistaken for a list identifier
+	test_accept("proc.name == anyof and fd.name exists");
+	test_accept("proc.name == oneof or fd.name exists");
+	test_accept("proc.name == allof and fd.name exists");
+	test_accept("proc.name == anyof and proc.name == allof");
+	test_accept("proc.name == oneof and proc.name == anyof (cat)");
+
+	// bare modifier keyword followed by a closing paren is also a plain string value
+	test_accept("(proc.name == oneof)");
+	test_accept("(proc.name == anyof) and fd.name exists");
+	test_accept("(proc.name == allof) or (proc.name == oneof)");
 
 	// word-based string operators (contains, startswith, ...) also support modifiers;
 	// the trailing blank in their token is consumed by the operator lexer so the
@@ -1296,10 +1315,9 @@ TEST(parser, parse_str_op_modifier_accept) {
 }
 
 TEST(parser, parse_str_op_modifier_reject) {
-	// missing right-hand value after modifier
-	test_reject("proc.name == oneof");
-	test_reject("proc.name == anyof");
-	test_reject("proc.name == allof");
+	// bare modifier keywords without a following blank are parsed as plain string
+	// values, so these are valid (they compare proc.name against the string "oneof" etc.)
+	// test_accept equivalents appear in parse_str_op_modifier_accept
 
 	// malformed list: trailing / double / leading commas
 	test_reject("proc.name == oneof (cat,)");
@@ -1316,6 +1334,11 @@ TEST(parser, parse_str_op_modifier_reject) {
 	test_reject("proc.name =allof (cat, nginx)");
 	// same rule: no space before modifier, no space before paren → also rejected
 	test_reject("proc.name ==oneof(cat, nginx)");
+	// a space between modifier and list is required; no space before the list
+	// means the modifier keyword is parsed as a plain string value and "(cat)" is leftover
+	test_reject("proc.name == oneof(cat, nginx)");
+	test_reject("proc.name == anyof(cat, nginx)");
+	test_reject("proc.name == allof(cat)");
 
 	// modifier keywords are case-sensitive; uppercase variants are not modifiers
 	// and end up parsed as bare string values, leaving "(cat)" as leftover
@@ -1323,11 +1346,9 @@ TEST(parser, parse_str_op_modifier_reject) {
 	test_reject("proc.name == Anyof (cat)");
 	test_reject("proc.name == ALLOF (cat)");
 
-	// a bare word starting with a modifier prefix is greedily consumed as the
-	// modifier keyword (when the required space is present), leaving the suffix
-	// unparseable as a list
-	test_reject("proc.name == oneof_something");
-	test_reject("proc.name == anyof_extra");
+	// a bare word starting with a modifier prefix but not followed by a space
+	// is not consumed as a modifier keyword; it's parsed as a plain string value
+	// test_accept equivalents appear in parse_str_op_modifier_accept
 
 	// numeric operators cannot use modifiers
 	test_reject("proc.num > oneof (1, 2)");
@@ -1390,6 +1411,30 @@ TEST(parser, parse_str_op_modifier_ast) {
 		                                                 list_expr::create({"cat", "nginx"})));
 		and_children.push_back(unary_check_expr::create(field_expr::create("fd.name"), "exists"));
 		test_equal_ast("proc.name == oneof (cat, nginx) and fd.name exists",
+		               and_expr::create(and_children).get());
+	}
+
+	// bare modifier keyword followed by 'and'/'or' is a plain string value, not a list reference
+	{
+		std::vector<std::unique_ptr<expr>> and_children;
+		and_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
+		                                                 "==",
+		                                                 value_expr::create("anyof")));
+		and_children.push_back(unary_check_expr::create(field_expr::create("fd.name"), "exists"));
+		test_equal_ast("proc.name == anyof and fd.name exists",
+		               and_expr::create(and_children).get());
+	}
+
+	// mixing: first condition uses modifier with list, second uses bare modifier keyword
+	{
+		std::vector<std::unique_ptr<expr>> and_children;
+		and_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
+		                                                 "== oneof",
+		                                                 list_expr::create({"cat"})));
+		and_children.push_back(binary_check_expr::create(field_expr::create("proc.name"),
+		                                                 "==",
+		                                                 value_expr::create("anyof")));
+		test_equal_ast("proc.name == oneof (cat) and proc.name == anyof",
 		               and_expr::create(and_children).get());
 	}
 
