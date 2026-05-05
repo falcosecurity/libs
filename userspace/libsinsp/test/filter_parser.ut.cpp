@@ -1338,6 +1338,7 @@ TEST(parser, parse_str_op_modifier_reject) {
 	// leftover, causing a parse error
 	test_reject("proc.name in oneof (cat)");
 	test_reject("proc.name intersects anyof (cat)");
+	test_reject("proc.name pmatch allof (cat)");
 }
 
 TEST(parser, parse_str_op_modifier_ast) {
