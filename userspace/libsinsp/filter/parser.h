@@ -76,7 +76,7 @@ class RE2;
 //                             | 'iglob '
 //                             | 'startswith '
 //                             | 'regex '
-//     StrOperatorModifier ::= 'oneof' | 'anyof' | 'allof'
+//     StrOperatorModifier ::= 'oneof ' | 'anyof ' | 'allof '
 //     ListOperator        ::= 'in' | 'intersects' | 'pmatch'
 //     FieldTransformerVal    ::= 'val('
 //     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename(' | 'len('
@@ -191,6 +191,8 @@ private:
 	inline bool lex_num_op();
 	inline bool lex_str_op();
 	inline bool lex_str_op_modifier();
+	inline bool list_value_follows();
+	inline bool bool_keyword_follows();
 	inline bool lex_list_op();
 	inline bool lex_field_transformer_val();
 	inline bool lex_field_transformer_type();

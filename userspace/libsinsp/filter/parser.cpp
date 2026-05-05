@@ -83,9 +83,9 @@ static const std::vector<std::string> s_binary_str_ops = {
 };
 
 static const std::vector<std::string> s_str_modifier_ops = {
-        "oneof",
-        "anyof",
-        "allof",
+        "oneof ",
+        "anyof ",
+        "allof ",
 };
 
 static const std::vector<std::string> s_binary_list_ops = {
@@ -497,11 +497,15 @@ std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> le
 		// Word-based operators (e.g. "contains ", "startswith ") are space-terminated
 		// in the operator list, so their mandatory blank was already consumed by the
 		// lexer; for symbol operators (e.g. "==", "!=") we still need to consume it.
-		bool had_blank = std::isalpha((unsigned char)op[0]) || lex_blank();
-		if(had_blank && lex_str_op_modifier()) {
+		bool had_blank = std::isalpha(static_cast<unsigned char>(op[0])) || lex_blank();
+		auto saved_pos = m_pos;
+		auto saved_token = m_last_token;
+		if(had_blank && lex_str_op_modifier() && list_value_follows() && !bool_keyword_follows()) {
 			op = trim_str(op) + " " + m_last_token;
 			right = parse_list_value();
 		} else {
+			m_pos = saved_pos;
+			m_last_token = saved_token;
 			right = parse_str_value_or_transformer(false);
 		}
 	} else if(lex_list_op()) {
@@ -755,6 +759,19 @@ inline bool parser::lex_str_op_modifier() {
 	return lex_helper_operator_list(s_str_modifier_ops);
 }
 
+inline bool parser::list_value_follows() {
+	return *cursor() == '(' || std::isalpha(static_cast<unsigned char>(*cursor()));
+}
+
+inline bool parser::bool_keyword_follows() {
+	constexpr std::string_view keywords[] = {"and", "or", "not"};
+	std::string_view s(cursor());
+	return std::any_of(std::begin(keywords), std::end(keywords), [s](std::string_view kw) {
+		return s.substr(0, kw.size()) == kw &&
+		       (s.size() == kw.size() || !std::isalnum(static_cast<unsigned char>(s[kw.size()])));
+	});
+}
+
 inline bool parser::lex_list_op() {
 	return lex_helper_operator_list(s_binary_list_ops);
 }
@@ -805,10 +822,16 @@ bool parser::lex_helper_operator_list(const std::vector<std::string>& list) {
 			continue;
 		}
 
-		// if there's an ending whitespace, we need to make sure there's
-		// a blank after the operator (as long as we have an operator lexer match)
+		// if there's an ending whitespace, the operator requires a blank after it;
+		// backtrack if the keyword matched but no blank follows.
+		auto saved_pos = m_pos;
+		auto saved_token = m_last_token;
 		if(lex_helper_str(trim_str(op))) {
-			return lex_blank();
+			if(lex_blank()) {
+				return true;
+			}
+			m_pos = saved_pos;
+			m_last_token = saved_token;
 		}
 	}
 	return false;
