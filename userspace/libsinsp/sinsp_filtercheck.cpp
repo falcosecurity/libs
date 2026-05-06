@@ -983,60 +983,66 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 
 bool sinsp_filter_check::matches_rhs_elem(const filter_value_t& item,
                                           uint16_t i,
-                                          comparator elem_cmp,
-                                          bool is_ne,
-                                          bool is_regex,
+                                          comparator cmp,
                                           ppm_param_type type) {
 	// Returns true if item matches RHS element i.
-	// For CO_NE, uses CO_EQ (the inversion is handled by the callers).
-	if(is_regex) {
-		if(!m_val_regexes[i] || !m_val_regexes[i]->ok()) {
-			return false;
-		}
+	if(cmp.op == CO_REGEX) {
 		re2::StringPiece s(reinterpret_cast<const char*>(item.first), item.second);
 		return m_val_regexes[i]
 		        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
 	}
-	const comparator c = is_ne ? comparator{CO_EQ} : elem_cmp;
-	return ::flt_compare(c, type, item.first, filter_value_p(i), item.second, filter_value_len(i));
+	return ::flt_compare(cmp,
+	                     type,
+	                     item.first,
+	                     filter_value_p(i),
+	                     item.second,
+	                     filter_value_len(i));
 }
 
 bool sinsp_filter_check::matches_any_rhs(const filter_value_t& item,
                                          uint16_t n_rhs,
-                                         comparator elem_cmp,
-                                         bool is_ne,
-                                         bool is_regex,
+                                         comparator cmp,
                                          ppm_param_type type) {
-	// True if item matches at least one RHS element.
-	// For CO_NE: true iff item is not equal to any RHS element ("not in set").
-	if(m_val_storages_members && !is_regex) {
-		bool found = m_val_storages_members->find(item) != m_val_storages_members->end();
-		return is_ne ? !found : found;
+	// "item not in set": iterate as membership (item == element[i]) and negate the
+	// aggregate. Passing CO_NE through to flt_compare per element would test inequality
+	// per element instead, which is not the intended semantics.
+	if(cmp.op == CO_NE) {
+		if(m_val_storages_members) {
+			return m_val_storages_members->find(item) == m_val_storages_members->end();
+		}
+		for(uint16_t i = 0; i < n_rhs; i++) {
+			if(matches_rhs_elem(item, i, comparator{CO_EQ}, type)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	// "item matches some element" under cmp.
+	if(m_val_storages_members && cmp.op != CO_REGEX) {
+		return m_val_storages_members->find(item) != m_val_storages_members->end();
 	}
 	for(uint16_t i = 0; i < n_rhs; i++) {
-		if(matches_rhs_elem(item, i, elem_cmp, is_ne, is_regex, type)) {
-			return !is_ne;
+		if(matches_rhs_elem(item, i, cmp, type)) {
+			return true;
 		}
 	}
-	return is_ne;
+	return false;
 }
 
 bool sinsp_filter_check::matches_all_rhs(const filter_value_t& item,
                                          uint16_t n_rhs,
-                                         comparator elem_cmp,
-                                         bool is_ne,
-                                         bool is_regex,
+                                         comparator cmp,
                                          ppm_param_type type) {
 	// True if item matches all RHS elements.
 	// For CO_NE: equivalent to matches_any_rhs (AND of != is the same as not-in-set).
-	if(is_ne) {
-		return matches_any_rhs(item, n_rhs, elem_cmp, is_ne, is_regex, type);
+	if(cmp.op == CO_NE) {
+		return matches_any_rhs(item, n_rhs, cmp, type);
 	}
 	if(n_rhs == 0) {
 		return false;
 	}
 	for(uint16_t i = 0; i < n_rhs; i++) {
-		if(!matches_rhs_elem(item, i, elem_cmp, is_ne, is_regex, type)) {
+		if(!matches_rhs_elem(item, i, cmp, type)) {
 			return false;
 		}
 	}
@@ -1048,25 +1054,21 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
                                               std::vector<extract_value_t>& values) {
 	// Certain types only support equality-based comparison in flt_compare (e.g. network
 	// and socket types); for all others the full operator is used. This mirrors the
-	// special-casing in compare_rhs for CO_IN/CO_INTERSECTS with those types.
-	const comparator elem_cmp{flt_type_is_eq_only(type) ? CO_EQ : cmp.op};
-
-	const bool is_ne = (cmp.op == CO_NE);
-	const bool is_regex = (cmp.op == CO_REGEX);
-	const uint16_t n_rhs = is_regex ? static_cast<uint16_t>(m_val_regexes.size())
-	                                : static_cast<uint16_t>(m_vals.size());
+	// special-casing in compare_rhs for CO_IN/CO_INTERSECTS with those types. CO_NE is
+	// preserved so matches_any_rhs can apply the membership-inversion fast path; CO_REGEX
+	// is preserved because it has its own per-element path.
+	if(flt_type_is_eq_only(type) && cmp.op != CO_EQ && cmp.op != CO_NE && cmp.op != CO_REGEX) {
+		cmp.op = CO_EQ;
+	}
+	const uint16_t n_rhs = cmp.op == CO_REGEX ? static_cast<uint16_t>(m_val_regexes.size())
+	                                          : static_cast<uint16_t>(m_vals.size());
 
 	switch(cmp.mod) {
 	case CMPOP_MOD_ONEOF: {
 		// true if exactly one extracted value matches any RHS value
 		uint32_t count = 0;
 		for(const auto& it : values) {
-			if(matches_any_rhs(craft_filter_value(type, it.ptr, it.len),
-			                   n_rhs,
-			                   elem_cmp,
-			                   is_ne,
-			                   is_regex,
-			                   type)) {
+			if(matches_any_rhs(craft_filter_value(type, it.ptr, it.len), n_rhs, cmp, type)) {
 				if(++count > 1) {
 					return false;
 				}
@@ -1077,12 +1079,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 	case CMPOP_MOD_ANYOF:
 		// true if at least one extracted value matches any RHS value
 		for(const auto& it : values) {
-			if(matches_any_rhs(craft_filter_value(type, it.ptr, it.len),
-			                   n_rhs,
-			                   elem_cmp,
-			                   is_ne,
-			                   is_regex,
-			                   type)) {
+			if(matches_any_rhs(craft_filter_value(type, it.ptr, it.len), n_rhs, cmp, type)) {
 				return true;
 			}
 		}
@@ -1090,12 +1087,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 	case CMPOP_MOD_ALLOF:
 		// true if every extracted value matches ALL RHS values
 		for(const auto& it : values) {
-			if(!matches_all_rhs(craft_filter_value(type, it.ptr, it.len),
-			                    n_rhs,
-			                    elem_cmp,
-			                    is_ne,
-			                    is_regex,
-			                    type)) {
+			if(!matches_all_rhs(craft_filter_value(type, it.ptr, it.len), n_rhs, cmp, type)) {
 				return false;
 			}
 		}
