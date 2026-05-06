@@ -760,7 +760,15 @@ inline bool parser::lex_str_op_modifier() {
 }
 
 inline bool parser::list_value_follows() {
-	return *cursor() == '(' || std::isalpha(static_cast<unsigned char>(*cursor()));
+	if(*cursor() == '(') {
+		return true;
+	}
+	auto saved_pos = m_pos;
+	auto saved_token = m_last_token;
+	bool is_identifier = lex_identifier();
+	m_pos = saved_pos;
+	m_last_token = saved_token;
+	return is_identifier;
 }
 
 inline bool parser::bool_keyword_follows() {
