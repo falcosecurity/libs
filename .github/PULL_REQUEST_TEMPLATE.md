@@ -38,7 +38,7 @@ Please remove the leading whitespace before the `/kind <>` you uncommented.
 
 > /area build
 
-> /area CI
+> /area automation
 
 > /area drivers
 
