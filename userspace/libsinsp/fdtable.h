@@ -78,6 +78,16 @@ public:
 		return true;
 	}
 
+	void retain(const fdtable_const_visitor_t& callback) {
+		for(auto it = m_table.begin(); it != m_table.end();) {
+			if(!callback(it->first, *it->second)) {
+				it = m_table.erase(it);
+			} else {
+				++it;
+			}
+		}
+	}
+
 	// If the key is present, returns true, otherwise returns false.
 	bool erase(int64_t fd);
 
