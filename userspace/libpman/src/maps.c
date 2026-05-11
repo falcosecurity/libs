@@ -267,7 +267,17 @@ static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog
 	return 0;
 }
 
-int pman_fill_syscalls_tail_table() {
+/**
+ * @brief The syscall exit dispatcher will look into this table to understand which programs it has
+ * to call:
+ *
+ * -> SYSCALL EXIT TAIL TABLE
+ * syscall_exit_tail_table(syscall_id, exit_program_fd).
+ * Returns the fd of the right bpf program to call.
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+static int fill_syscalls_tail_table() {
 	const int syscall_exit_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_exit_tail_table);
 	if(syscall_exit_tail_table_fd < 0) {
 		const int last_errno = errno;
@@ -304,7 +314,18 @@ int pman_fill_syscalls_tail_table() {
 	return 0;
 }
 
-int pman_fill_syscall_exit_extra_tail_table() {
+/**
+ * @brief Some sys exit bpf programs exceed the maximum complexity so they have to tail-call other
+ * programs. To do that, they need a particular tail table that we call
+ * `syscall_exit_extra_tail_table`.
+ *
+ * syscall_exit_extra_tail_table(sys_exit_extra_code, program_fd).
+ *
+ * `sys_exit_extra_code` is an enum defined in `/driver/ppm_events_public.h`
+ *
+ * @return `0` on success, `errno` in case of error.
+ */
+static int fill_syscall_exit_extra_tail_table() {
 	const int extra_sys_exit_tail_table_fd =
 	        bpf_map__fd(g_state.skel->maps.syscall_exit_extra_tail_table);
 	if(extra_sys_exit_tail_table_fd < 0) {
@@ -422,7 +443,7 @@ int pman_finalize_maps_after_loading() {
 
 	/* We have to fill all ours tail tables. */
 	pman_fill_interesting_syscalls_table_64bit();
-	err = pman_fill_syscalls_tail_table();
-	err = err ?: pman_fill_syscall_exit_extra_tail_table();
+	err = fill_syscalls_tail_table();
+	err = err ?: fill_syscall_exit_extra_tail_table();
 	return err;
 }
