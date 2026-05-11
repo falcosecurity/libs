@@ -83,25 +83,25 @@ static void convert_to_string(char *dest, size_t len, uint32_t addr) {
 
 TEST(sinsp_network_interfaces, fd_is_of_wrong_type) {
 	sinsp_fdinfo fd;
-	fd.m_type = SCAP_FD_UNKNOWN;
+	fd.set_type(SCAP_FD_UNKNOWN);
 	sinsp_network_interfaces interfaces;
 	interfaces.update_fd(fd);
 }
 
 TEST(sinsp_network_interfaces, socket_is_of_wrong_type) {
 	sinsp_fdinfo fd;
-	fd.m_type = SCAP_FD_IPV4_SOCK;
-	fd.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
+	fd.init_socket(SCAP_FD_IPV4_SOCK, SCAP_L4_TCP);
 	sinsp_network_interfaces interfaces;
 	interfaces.update_fd(fd);
 }
 
 TEST(sinsp_network_interfaces, sip_and_dip_are_not_zero) {
 	sinsp_fdinfo fd;
-	fd.m_type = SCAP_FD_IPV4_SOCK;
-	fd.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
-	fd.m_sockinfo.m_ipv4info.m_fields.m_sip = 1;
-	fd.m_sockinfo.m_ipv4info.m_fields.m_dip = 1;
+	fd.init_socket(SCAP_FD_IPV4_SOCK, SCAP_L4_UDP);
+	sinsp_sockinfo si = fd.get_sockinfo();
+	si.m_ipv4info.m_fields.m_sip = 1;
+	si.m_ipv4info.m_fields.m_dip = 1;
+	fd.set_sockinfo(si);
 	sinsp_network_interfaces interfaces;
 	interfaces.update_fd(fd);
 }

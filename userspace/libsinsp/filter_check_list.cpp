@@ -86,6 +86,14 @@ std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fld
 	return nullptr;
 }
 
+std::unique_ptr<filter_check_list> filter_check_list::clone() const {
+	auto copy = std::make_unique<filter_check_list>();
+	for(const auto& chk : m_check_list) {
+		copy->add_filter_check(chk->allocate_new());
+	}
+	return copy;
+}
+
 sinsp_filter_check_list::sinsp_filter_check_list() {
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE

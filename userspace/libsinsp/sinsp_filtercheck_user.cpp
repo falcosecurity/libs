@@ -65,11 +65,11 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_user::allocate_new() {
 	return std::make_unique<sinsp_filter_check_user>();
 }
 
-uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
-                                                 uint32_t* len,
+uint8_t *sinsp_filter_check_user::extract_single(sinsp_evt *evt,
+                                                 uint32_t *len,
                                                  bool sanitize_strings) {
 	*len = 0;
-	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	sinsp_threadinfo *tinfo = evt->get_thread_info();
 	if(tinfo == NULL) {
 		return NULL;
 	}
@@ -93,50 +93,43 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	}
 
 	auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-	auto user = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_uid);
-	auto loginuser = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_loginuid);
+	auto *mgr = m_inspector->m_usergroup_manager.get();
 	switch(m_field_id) {
 	case TYPE_UID:
-		m_val.u32 = tinfo->m_uid;
+		m_val.u32 = tinfo->get_uid();
 		return extract_single_val(m_val.u32, len);
 	case TYPE_NAME:
-		if(user) {
-			m_strval = user->name;
-		} else if(tinfo->m_uid == 0) {
-			m_strval = "root";
-		} else {
-			m_strval = "<NA>";
+		if(!mgr->with_user(container_id, tinfo->get_uid(), [this](const scap_userinfo &u) {
+			   m_strval = u.name;
+		   })) {
+			m_strval = (tinfo->get_uid() == 0) ? "root" : "<NA>";
 		}
 		return extract_single_string(m_strval, len, sanitize_strings);
 	case TYPE_HOMEDIR:
-		if(user) {
-			m_strval = user->homedir;
-		} else if(tinfo->m_uid == 0) {
-			m_strval = "/root";
-		} else {
-			m_strval = "<NA>";
+		if(!mgr->with_user(container_id, tinfo->get_uid(), [this](const scap_userinfo &u) {
+			   m_strval = u.homedir;
+		   })) {
+			m_strval = (tinfo->get_uid() == 0) ? "/root" : "<NA>";
 		}
 		return extract_single_string(m_strval, len, sanitize_strings);
 	case TYPE_SHELL:
-		if(user) {
-			m_strval = user->shell;
-		} else {
+		if(!mgr->with_user(container_id, tinfo->get_uid(), [this](const scap_userinfo &u) {
+			   m_strval = u.shell;
+		   })) {
 			m_strval = "<NA>";
 		}
 		return extract_single_string(m_strval, len, sanitize_strings);
 	case TYPE_LOGINUID:
 		m_val.s64 = (int64_t)-1;
-		if(tinfo->m_loginuid < UINT32_MAX) {
-			m_val.s64 = (int64_t)tinfo->m_loginuid;
+		if(tinfo->get_loginuid() < UINT32_MAX) {
+			m_val.s64 = (int64_t)tinfo->get_loginuid();
 		}
 		return extract_single_val(m_val.s64, len);
 	case TYPE_LOGINNAME:
-		if(loginuser) {
-			m_strval = loginuser->name;
-		} else if(tinfo->m_loginuid == 0) {
-			m_strval = "root";
-		} else {
-			m_strval = "<NA>";
+		if(!mgr->with_user(container_id, tinfo->get_loginuid(), [this](const scap_userinfo &u) {
+			   m_strval = u.name;
+		   })) {
+			m_strval = (tinfo->get_loginuid() == 0) ? "root" : "<NA>";
 		}
 		return extract_single_string(m_strval, len, sanitize_strings);
 	default:
