@@ -29,6 +29,7 @@ limitations under the License.
 #include <libsinsp/threadinfo.h>
 #include <libsinsp/sinsp_parser_verdict.h>
 #include <memory>
+#include <unordered_map>
 
 class sinsp_plugin_manager;
 
@@ -60,6 +61,48 @@ public:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	sinsp_observer* const& m_observer;
 	scap_platform* const& m_scap_platform;
+	bool m_multi_thread_mode = false;
+};
+
+struct per_tid_lastevent {
+	uint8_t* data = nullptr;
+	uint16_t cpuid = static_cast<uint16_t>(-1);
+	uint16_t type = static_cast<uint16_t>(-1);
+	int64_t fd = -1;
+
+	bool is_valid() const { return cpuid != static_cast<uint16_t>(-1); }
+	void invalidate() {
+		cpuid = static_cast<uint16_t>(-1);
+		fd = -1;
+	}
+	void clear() {
+		free(data);
+		data = nullptr;
+		invalidate();
+	}
+
+	per_tid_lastevent() = default;
+	~per_tid_lastevent() { free(data); }
+	per_tid_lastevent(const per_tid_lastevent&) = delete;
+	per_tid_lastevent& operator=(const per_tid_lastevent&) = delete;
+	per_tid_lastevent(per_tid_lastevent&& o) noexcept:
+	        data(o.data),
+	        cpuid(o.cpuid),
+	        type(o.type),
+	        fd(o.fd) {
+		o.data = nullptr;
+	}
+	per_tid_lastevent& operator=(per_tid_lastevent&& o) noexcept {
+		if(this != &o) {
+			free(data);
+			data = o.data;
+			cpuid = o.cpuid;
+			type = o.type;
+			fd = o.fd;
+			o.data = nullptr;
+		}
+		return *this;
+	}
 };
 
 class sinsp_parser {
@@ -72,7 +115,7 @@ public:
 	// Processing entry point
 	//
 	void process_event(sinsp_evt& evt, sinsp_parser_verdict& verdict) const;
-	static void event_cleanup(sinsp_evt& evt);
+	void event_cleanup(sinsp_evt& evt);
 
 	bool reset(sinsp_evt& evt) const;
 
@@ -272,8 +315,16 @@ private:
 	// Notice 2: this should be a plain const reference, but use a shared_ptr or the compiler will
 	// complain about referencing a member whose lifetime is shorter than the ctor_params object in
 	// sinsp constructor.
+	per_tid_lastevent& get_lastevent(int64_t tid) { return m_lastevent_by_tid[tid]; }
+	const per_tid_lastevent& get_lastevent(int64_t tid) const {
+		static const per_tid_lastevent empty{};
+		auto it = m_lastevent_by_tid.find(tid);
+		return it != m_lastevent_by_tid.end() ? it->second : empty;
+	}
+
 	const std::shared_ptr<sinsp_parser_shared_params> m_params;
 	sinsp_evt& m_tmp_evt_storage;
+	mutable std::unordered_map<int64_t, per_tid_lastevent> m_lastevent_by_tid;
 
 	bool m_track_connection_status = false;
 };
