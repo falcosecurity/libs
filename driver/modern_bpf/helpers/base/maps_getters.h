@@ -238,4 +238,23 @@ static __always_inline struct ringbuf_map *maps__get_ringbuf_map() {
 	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &ringbuf_id);
 }
 
+/**
+ * @brief Look up the ring buffer for an explicit TGID rather than `current`.
+ *
+ * Needed by sched_process_fork: the event describes the *child* but the
+ * tracepoint fires in the *parent* context, so bpf_get_current_pid_tgid()
+ * returns the parent TGID.  Routing the child clone-exit event to the
+ * parent's ring buffer causes it to be processed by the wrong worker in
+ * multi-buffer mode, leading to massive fake-thread-entry creation.
+ */
+static __always_inline struct ringbuf_map *maps__get_ringbuf_map_for_tgid(uint32_t tgid) {
+	uint32_t ringbuf_id;
+	if(ringbufs_num == 0) {
+		ringbuf_id = (uint32_t)bpf_get_smp_processor_id();
+	} else {
+		ringbuf_id = tgid % ringbufs_num;
+	}
+	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &ringbuf_id);
+}
+
 /*=============================== RINGBUF MAPS ===========================*/

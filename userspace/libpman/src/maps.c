@@ -481,7 +481,7 @@ int pman_prepare_maps_before_loading() {
 #ifdef BPF_ITERATOR_SUPPORT
 // Variant of `pman_prepare_maps_before_loading()` used for testing BPF iterator programs support.
 int iter_support_probing__prepare_maps_before_loading(struct iter_support_probing_ctx* ctx) {
-	set_max_iters_num(1);
+	ctx->probe->rodata->max_iters_num = 1;
 	int err = size_auxiliary_maps(ctx->probe, 1);
 	err = err ?: size_counter_maps(ctx->probe, 1);
 	err = err ?: configure_iter_auxiliary_maps(ctx->probe, 1);

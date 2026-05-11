@@ -16,12 +16,11 @@ limitations under the License.
 
 */
 
-#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/syscall.h>
-#ifdef __GLIBC_PREREQ
+#if defined(__GLIBC_PREREQ)
 #if __GLIBC_PREREQ(2, 30)
 #define HAS_GETTID 1
 #endif
@@ -34,7 +33,6 @@ static inline pid_t compat_gettid(void) {
 #endif
 #include <bpf/libbpf.h>
 #include <netinet/in.h>
-
 #include <state.h>
 #include <driver/ppm_events_public.h>
 #include <driver/ppm_param_helpers.h>
@@ -43,6 +41,47 @@ static inline pid_t compat_gettid(void) {
 #include <libscap/strl.h>
 #include <libscap/scap_likely.h>
 #include <libscap/strerror.h>
+
+/* Return the root-namespace TID of the calling thread. BPF iterator maps
+ * are keyed by TID, and the BPF side always uses the root-namespace value
+ * (bpf_get_current_pid_tgid()). In a PID-namespaced container gettid()
+ * returns a different value, so we read NSpid from procfs to get the
+ * root-namespace TID. Called once per thread at iterator init time.
+ */
+static uint32_t get_root_ns_tid(void) {
+	uint32_t root_tid = (uint32_t)gettid();
+
+	/* When running inside a PID-namespaced container, the container's own
+	 * /proc only exposes the innermost namespace TID. The host procfs
+	 * (typically bind-mounted at $HOST_ROOT/proc) exposes all levels, with
+	 * the root-namespace TID listed first in NSpid.
+	 */
+	char path[512];
+	const char *host_root = getenv("HOST_ROOT");
+	if(host_root && host_root[0] != '\0') {
+		snprintf(path, sizeof(path), "%s/proc/thread-self/status", host_root);
+	} else {
+		snprintf(path, sizeof(path), "/proc/thread-self/status");
+	}
+
+	FILE *f = fopen(path, "r");
+	if(!f) {
+		return root_tid;
+	}
+
+	char line[256];
+	while(fgets(line, sizeof(line), f)) {
+		if(strncmp(line, "NSpid:", 6) == 0) {
+			unsigned int tid;
+			if(sscanf(line + 6, " %u", &tid) == 1) {
+				root_tid = tid;
+			}
+			break;
+		}
+	}
+	fclose(f);
+	return root_tid;
+}
 
 #ifdef BPF_ITERATOR_DEBUG
 
@@ -835,7 +874,7 @@ static int32_t fetch(const struct prog_info *prog_info,
 	// flag that becomes true once the corresponding map entries have been successfully configured.
 	static _Thread_local bool iter_maps_configured = false;
 	if(!iter_maps_configured) {
-		const uint32_t caller_tid = gettid();
+		const uint32_t caller_tid = get_root_ns_tid();
 		if((res = configure_iter_maps(caller_tid, error)) != SCAP_SUCCESS) {
 			goto cleanup;
 		}
@@ -876,10 +915,12 @@ static int32_t fetch(const struct prog_info *prog_info,
 
 cleanup:
 	if(iter_fd >= 0 && close(iter_fd) < 0) {
-		log_errorf("failed to close iter FD for `%s` program", prog_info->name);
+		log_msgf(FALCOSECURITY_LOG_SEV_ERROR,
+		         "failed to close iter FD for `%s` program",
+		         prog_info->name);
 	}
 	if(link && bpf_link__destroy(link)) {
-		log_errorf("failed to detach the `%s` program", prog_info->name);
+		log_msgf(FALCOSECURITY_LOG_SEV_ERROR, "failed to detach the `%s` program", prog_info->name);
 	}
 	return res;
 }

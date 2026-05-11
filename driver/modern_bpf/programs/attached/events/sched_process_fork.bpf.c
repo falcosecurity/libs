@@ -249,7 +249,15 @@ int BPF_PROG(t2_sched_p_fork, struct task_struct *parent, struct task_struct *ch
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap);
+	/* Route the child clone-exit event to the child's ring buffer, not
+	 * the parent's.  sched_process_fork fires in the parent context, so
+	 * the default maps__get_ringbuf_map() would use the parent's TGID.
+	 * The child's subsequent syscall events will be routed by the child's
+	 * own TGID; placing the clone-exit in the same buffer ensures the
+	 * worker sees the thread-creation event before any other child event.
+	 */
+	uint32_t child_tgid = READ_TASK_FIELD(child, tgid);
+	auxmap__submit_event_for_tgid(auxmap, child_tgid);
 	return 0;
 }
 #endif /* CAPTURE_SCHED_PROC_FORK */
