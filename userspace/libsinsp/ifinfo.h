@@ -28,7 +28,6 @@ limitations under the License.
 typedef struct scap_addrlist scap_addrlist;
 typedef struct scap_ifinfo_ipv4 scap_ifinfo_ipv4;
 typedef struct scap_ifinfo_ipv6 scap_ifinfo_ipv6;
-class sinsp_threadinfo;
 class plugin_tables;
 
 //
@@ -66,7 +65,8 @@ public:
 	std::string m_name;
 };
 
-class sinsp_thread_manager;
+template<typename SyncPolicy>
+class sinsp_thread_manager_impl;
 
 class SINSP_PUBLIC sinsp_network_interfaces {
 public:

@@ -50,7 +50,9 @@ limitations under the License.
 #define CHAR_FD_MEMFD 'm'
 #define CHAR_FD_PIDFD 'P'
 
-class sinsp_threadinfo;
+template<typename SyncPolicy>
+class sinsp_threadinfo_impl;
+using sinsp_threadinfo = sinsp_threadinfo_impl<>;
 
 /** @defgroup state State management
  * A collection of classes to query process and FD state.
