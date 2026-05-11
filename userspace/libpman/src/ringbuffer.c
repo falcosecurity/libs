@@ -39,15 +39,15 @@ static int ringbuf_array_set_inner_map(const struct bpf_probe *probe,
 	const int inner_map_fd =
 	        bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, buffer_bytes_dim, NULL);
 	if(inner_map_fd < 0) {
-		pman_print_errorf("failed to create the dummy inner map with buffer bytes dim %lu",
-		                  buffer_bytes_dim);
+		log_errorf("failed to create the dummy inner map with buffer bytes dim %lu",
+		           buffer_bytes_dim);
 		return errno;
 	}
 
 	/* Set the inner map file descriptor into the outer map. */
 	const int err = bpf_map__set_inner_map_fd(probe->maps.ringbuf_maps, inner_map_fd);
 	if(err) {
-		pman_print_errorf("failed to set the dummy inner map inside the ringbuf array");
+		log_errorf("failed to set the dummy inner map inside the ringbuf array");
 		close(inner_map_fd);
 		return errno;
 	}
@@ -60,7 +60,7 @@ static int ringbuf_array_set_inner_map(const struct bpf_probe *probe,
 static int ringbuf_array_set_max_entries(const struct bpf_probe *probe,
                                          const uint32_t max_entries) {
 	if(bpf_map__set_max_entries(probe->maps.ringbuf_maps, max_entries)) {
-		pman_print_errorf("unable to set max entries to %u for the ringbuf_array", max_entries);
+		log_errorf("unable to set max entries to %u for the ringbuf_array", max_entries);
 		return errno;
 	}
 	return 0;
@@ -71,7 +71,7 @@ static int allocate_consumer_producer_positions() {
 	g_state.cons_pos = (unsigned long *)calloc(g_state.n_required_buffers, sizeof(unsigned long));
 	g_state.prod_pos = (unsigned long *)calloc(g_state.n_required_buffers, sizeof(unsigned long));
 	if(g_state.cons_pos == NULL || g_state.prod_pos == NULL) {
-		pman_print_errorf("failed to alloc memory for cons_pos and prod_pos");
+		log_errorf("failed to alloc memory for cons_pos and prod_pos");
 		return errno;
 	}
 	return 0;
@@ -145,7 +145,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	int *ringbufs_fds = (int *)malloc(g_state.n_required_buffers * sizeof(int));
 	if(ringbufs_fds == NULL) {
 		last_errno = errno;
-		pman_print_errorf("failed to allocate the ringbufs_fds array");
+		log_errorf("failed to allocate the ringbufs_fds array");
 		return last_errno;
 	}
 
@@ -162,7 +162,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 		        bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, g_state.buffer_bytes_dim, NULL);
 		if(ringbufs_fds[i] < 0) {
 			last_errno = errno;
-			pman_print_errorf(
+			log_errorf(
 			        "failed to create the ringbuf map for CPU '%d'. (If you get memory allocation "
 			        "errors try to reduce the buffer dimension)",
 			        i);
@@ -174,7 +174,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	g_state.rb_manager = ring_buffer__new(ringbufs_fds[0], NULL, NULL, NULL);
 	if(!g_state.rb_manager) {
 		last_errno = errno;
-		pman_print_errorf("failed to instantiate the ringbuf manager.");
+		log_errorf("failed to instantiate the ringbuf manager.");
 		goto clean_percpu_ring_buffers;
 	}
 
@@ -185,7 +185,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	for(int i = 1; i < g_state.n_required_buffers; i++) {
 		if(ring_buffer__add(g_state.rb_manager, ringbufs_fds[i], NULL, NULL)) {
 			last_errno = errno;
-			pman_print_errorf("failed to add the ringbuf map for CPU %d into the manager", i);
+			log_errorf("failed to add the ringbuf map for CPU %d into the manager", i);
 			goto clean_percpu_ring_buffers;
 		}
 	}
@@ -194,7 +194,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	ringbuf_array_fd = bpf_map__fd(g_state.skel->maps.ringbuf_maps);
 	if(ringbuf_array_fd < 0) {
 		last_errno = errno;
-		pman_print_errorf("failed to get the ringbuf_array");
+		log_errorf("failed to get the ringbuf_array");
 		goto clean_percpu_ring_buffers;
 	}
 
@@ -213,17 +213,14 @@ int pman_finalize_ringbuf_array_after_loading() {
 			/* If we arrive here it means that we have too many CPUs for our allocated ring buffers
 			 * so probably we faced a CPU hotplug.
 			 */
-			pman_print_errorf(
-			        "the actual system configuration requires more than '%d' ring buffers",
-			        g_state.n_required_buffers);
+			log_errorf("the actual system configuration requires more than '%d' ring buffers",
+			           g_state.n_required_buffers);
 			goto clean_percpu_ring_buffers;
 		}
 
 		if(bpf_map_update_elem(ringbuf_array_fd, &i, &ringbufs_fds[ringbuf_id], BPF_ANY)) {
 			last_errno = errno;
-			pman_print_errorf("failed to add the ringbuf map for CPU '%d' to ringbuf '%d'",
-			                  i,
-			                  ringbuf_id);
+			log_errorf("failed to add the ringbuf map for CPU '%d' to ringbuf '%d'", i, ringbuf_id);
 			goto clean_percpu_ring_buffers;
 		}
 

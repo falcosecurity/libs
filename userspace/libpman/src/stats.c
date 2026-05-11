@@ -127,14 +127,14 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 	struct counter_map cnt_map;
 
 	if(!stats) {
-		pman_print_errorf("pointer to scap_stats is empty");
+		log_errorf("pointer to scap_stats is empty");
 		return EINVAL;
 	}
 
 	const int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd < 0) {
 		const int last_errno = errno;
-		pman_print_errorf("unable to get counter maps");
+		log_errorf("unable to get counter maps");
 		return last_errno;
 	}
 
@@ -150,7 +150,7 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 	for(int index = 0; index < g_state.n_possible_cpus; index++) {
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
 			const int last_errno = errno;
-			pman_print_errorf("unable to get the counter map for CPU %d", index);
+			log_errorf("unable to get the counter map for CPU %d", index);
 			return last_errno;
 		}
 
@@ -175,7 +175,7 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 // Initializes global v2 metrics. Returns 0 on success, -1 otherwise.
 static int init_metrics_v2(const uint32_t flags) {
 	if(g_state.stats) {
-		pman_print_errorf("bug: 'metrics_v2' array is already allocated");
+		log_errorf("bug: 'metrics_v2' array is already allocated");
 		return -1;
 	}
 
@@ -208,7 +208,7 @@ static int init_metrics_v2(const uint32_t flags) {
 	                         (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS) + iter_stats;
 	struct metrics_v2 *stats = (metrics_v2 *)calloc(n_stats, sizeof(metrics_v2));
 	if(!stats) {
-		pman_print_errorf("unable to allocate memory for 'metrics_v2' array");
+		log_errorf("unable to allocate memory for 'metrics_v2' array");
 		return -1;
 	}
 
@@ -242,7 +242,7 @@ static int collect_kernel_counter_stats(const int counter_maps_fd, const bool co
 	struct counter_map cnt_map = {};
 	for(uint32_t index = 0; index < g_state.n_possible_cpus; index++) {
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
-			pman_print_errorf("unable to get the counter map for CPU %d", index);
+			log_errorf("unable to get the counter map for CPU %d", index);
 			return -1;
 		}
 		g_state.stats[MODERN_BPF_N_EVTS].value.u64 += cnt_map.n_evts;
@@ -320,7 +320,7 @@ static int collect_libbpf_stats(const int base_offset) {
 		for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++) {
 			if(offset >= g_state.nstats) {
 				/* This should never happen, we are doing something wrong */
-				pman_print_errorf("no enough space for all the stats");
+				log_errorf("no enough space for all the stats");
 				return -1;
 			}
 			g_state.stats[offset].type = METRIC_VALUE_TYPE_U64;
@@ -378,7 +378,7 @@ static int collect_kernel_iter_counter_stats(const int counters_map_fd, const in
 	struct iter_counters counters = {};
 	const uint32_t key = 0;  // Just a single entry.
 	if(bpf_map_lookup_elem(counters_map_fd, &key, &counters) < 0) {
-		pman_print_errorf("unable to get BPF iterator programs counters");
+		log_errorf("unable to get BPF iterator programs counters");
 		return -1;
 	}
 
@@ -464,7 +464,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	if(flags & METRICS_V2_KERNEL_COUNTERS) {
 		const int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 		if(counter_maps_fd < 0) {
-			pman_print_errorf("unable to get 'counter_maps' fd during kernel stats processing");
+			log_errorf("unable to get 'counter_maps' fd during kernel stats processing");
 			return NULL;
 		}
 
@@ -497,8 +497,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
 		const int counters_map_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
 		if(counters_map_fd < 0) {
-			pman_print_errorf(
-			        "unable to get 'iter_counters_map' fd during kernel stats processing");
+			log_errorf("unable to get 'iter_counters_map' fd during kernel stats processing");
 			return NULL;
 		}
 
@@ -520,7 +519,7 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu) {
 	const int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd < 0) {
 		const int last_errno = errno;
-		pman_print_errorf("unable to get counter maps");
+		log_errorf("unable to get counter maps");
 		return last_errno;
 	}
 
@@ -531,7 +530,7 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu) {
 	for(int index = 0; index < g_state.n_possible_cpus; index++) {
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
 			const int last_errno = errno;
-			pman_print_errorf("unbale to get the counter map for CPU %d", index);
+			log_errorf("unbale to get the counter map for CPU %d", index);
 			return last_errno;
 		}
 		n_events_per_cpu[index] = cnt_map.n_evts;

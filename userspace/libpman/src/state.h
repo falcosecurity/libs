@@ -82,6 +82,6 @@ struct internal_state {
 
 extern struct internal_state g_state;
 
-extern void pman_print_errorf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
-extern void pman_print_msgf(enum falcosecurity_log_severity level, const char* fmt, ...)
+extern void log_errorf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+extern void log_msgf(enum falcosecurity_log_severity level, const char* fmt, ...)
         __attribute__((format(printf, 2, 3)));

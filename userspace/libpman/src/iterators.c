@@ -326,14 +326,14 @@ static void handle_task_evt(const struct ppm_evt_hdr *evt,
 	                                             NULL,
 	                                             tinfo_out);
 	if(scap_unlikely(res != SCAP_SUCCESS)) {
-		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-		                "process entry callback failed with error code %d for thread (pid: %u, "
-		                "tid: %u): %.*s",
-		                res,
-		                pid,
-		                tid,
-		                (int)cb_err_buff->size,
-		                (char *)cb_err_buff->buf);
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "process entry callback failed with error code %d for thread (pid: %u, "
+		         "tid: %u): %.*s",
+		         res,
+		         pid,
+		         tid,
+		         (int)cb_err_buff->size,
+		         (char *)cb_err_buff->buf);
 	}
 }
 
@@ -552,12 +552,12 @@ static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
 
 	const uint16_t evt_type = evt->type;
 	if(!must_fetch_sockets && is_task_file_socket_evt(evt_type)) {
-		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-		                "received socket event type %d with socket fetching disabled for thread "
-		                "(pid: %u, tid: %u)",
-		                evt_type,
-		                pid,
-		                tid);
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "received socket event type %d with socket fetching disabled for thread "
+		         "(pid: %u, tid: %u)",
+		         evt_type,
+		         pid,
+		         tid);
 	}
 
 	scap_fdinfo fdinfo = {};
@@ -591,11 +591,11 @@ static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
 		fdinfo_from_task_file_memfd_evt(&fdinfo, evt_params);
 		break;
 	default:
-		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-		                "unknown file event type %d for thread (pid: %u, tid: %u)",
-		                evt_type,
-		                pid,
-		                tid);
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "unknown file event type %d for thread (pid: %u, tid: %u)",
+		         evt_type,
+		         pid,
+		         tid);
 		return;
 	}
 
@@ -609,15 +609,15 @@ static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
 	                                             NULL);
 
 	if(scap_unlikely(res != SCAP_SUCCESS)) {
-		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-		                "process entry callback failed with error code %d for file (pid: %u, "
-		                "tid: %u, fd: %ld): %.*s",
-		                res,
-		                pid,
-		                tid,
-		                fdinfo.fd,
-		                (int)cb_err_buff->size,
-		                (char *)cb_err_buff->buf);
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "process entry callback failed with error code %d for file (pid: %u, "
+		         "tid: %u, fd: %ld): %.*s",
+		         res,
+		         pid,
+		         tid,
+		         fdinfo.fd,
+		         (int)cb_err_buff->size,
+		         (char *)cb_err_buff->buf);
 	}
 
 	if(num_files_fetched) {
@@ -811,10 +811,10 @@ static int32_t fetch(const struct prog_info *prog_info,
 
 cleanup:
 	if(iter_fd >= 0 && close(iter_fd) < 0) {
-		pman_print_errorf("failed to close iter FD for `%s` program", prog_info->name);
+		log_errorf("failed to close iter FD for `%s` program", prog_info->name);
 	}
 	if(*prog_info->link && bpf_link__destroy(*prog_info->link)) {
-		pman_print_errorf("failed to detach the `%s` program", prog_info->name);
+		log_errorf("failed to detach the `%s` program", prog_info->name);
 	}
 	*prog_info->link = NULL;
 	return res;

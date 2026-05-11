@@ -53,14 +53,14 @@ static void log_msg_v(const enum falcosecurity_log_severity level, const char* f
 	}
 }
 
-void pman_print_errorf(const char* fmt, ...) {
+void log_errorf(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	log_msg_v(FALCOSECURITY_LOG_SEV_ERROR, fmt, args);
 	va_end(args);
 }
 
-void pman_print_msgf(const enum falcosecurity_log_severity level, const char* fmt, ...) {
+void log_msgf(const enum falcosecurity_log_severity level, const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	log_msg_v(level, fmt, args);

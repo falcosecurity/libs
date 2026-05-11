@@ -28,11 +28,10 @@ static int ignore_and_log_enoent(const char* sc_name, const int err) {
 		return err;
 	}
 
-	pman_print_msgf(
-	        FALCOSECURITY_LOG_SEV_WARNING,
-	        "failure while attaching TOCTOU mitigation program for '%s' system call. Detection "
-	        "will continue to work, but TOCTOU mitigation may not properly work",
-	        sc_name);
+	log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+	         "failure while attaching TOCTOU mitigation program for '%s' system call. Detection "
+	         "will continue to work, but TOCTOU mitigation may not properly work",
+	         sc_name);
 	return 0;
 }
 
