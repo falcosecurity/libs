@@ -290,7 +290,7 @@ TEST_F(sys_call_test, poll_timeout) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto ti = evt->get_thread_info();
-		return evt->get_type() == PPME_SYSCALL_POLL_X && ti->m_comm == "test_helper";
+		return evt->get_type() == PPME_SYSCALL_POLL_X && ti->get_comm() == "test_helper";
 	};
 
 	std::string my_pipe[2];
@@ -559,8 +559,8 @@ TEST_F(sys_call_test, brk) {
 			uint32_t vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			uint32_t vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 
-			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, vmsize);
-			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, vmrss);
+			EXPECT_EQ(e->get_thread_info()->get_vmsize_kb(), vmsize);
+			EXPECT_EQ(e->get_thread_info()->get_vmrss_kb(), vmrss);
 
 			if(callnum == 0) {
 				before_brk_vmsize = vmsize;
@@ -614,9 +614,9 @@ TEST_F(sys_call_test, mmap) {
 			const auto exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			const auto exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			const auto exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->get_vmsize_kb(), exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->get_vmrss_kb(), exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->get_vmswap_kb(), exit_vmswap);
 
 			switch(callnum) {
 			case 1:
@@ -645,9 +645,9 @@ TEST_F(sys_call_test, mmap) {
 			const auto exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			const auto exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			const auto exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->get_vmsize_kb(), exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->get_vmrss_kb(), exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->get_vmswap_kb(), exit_vmswap);
 
 			switch(callnum) {
 			case 2: {
@@ -1147,7 +1147,7 @@ TEST_F(sys_call_test, ppoll_timeout) {
 	int callnum = 0;
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return evt->get_type() == PPME_SYSCALL_PPOLL_X &&
-		       evt->get_thread_info()->m_comm == "test_helper";
+		       evt->get_thread_info()->get_comm() == "test_helper";
 	};
 
 	run_callback_t test = [&](sinsp* inspector) {
@@ -1208,7 +1208,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 			auto sinsp = evt->get_inspector();
 			tinfo = sinsp->m_thread_manager->get_thread(evt->get_tid()).get();
 		}
-		return tinfo->m_comm != "sudo" && tinfo->m_pid == self &&
+		return tinfo->get_comm() != "sudo" && tinfo->get_pid() == self &&
 		       (type == PPME_USER_ADDED_E || type == PPME_USER_ADDED_X ||
 		        type == PPME_GROUP_ADDED_E || type == PPME_GROUP_ADDED_X ||
 		        type == PPME_SYSCALL_GETRESUID_X || type == PPME_SYSCALL_GETRESGID_X ||
@@ -1519,7 +1519,7 @@ TEST_F(sys_call_test32, mmap) {
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto tinfo = evt->get_thread_info();
-		return tinfo && tinfo->m_comm == "test_helper_32" && ps_filter(evt);
+		return tinfo && tinfo->get_comm() == "test_helper_32" && ps_filter(evt);
 	};
 
 	uint64_t p = -1;
@@ -1560,9 +1560,9 @@ TEST_F(sys_call_test32, mmap) {
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->get_vmsize_kb(), exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->get_vmrss_kb(), exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->get_vmswap_kb(), exit_vmswap);
 
 			switch(callnum) {
 			case 1:
@@ -1591,9 +1591,9 @@ TEST_F(sys_call_test32, mmap) {
 			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
 			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			exit_vmswap = e->get_param_by_name("vm_swap")->as<uint32_t>();
-			EXPECT_EQ(e->get_thread_info()->m_vmsize_kb, exit_vmsize);
-			EXPECT_EQ(e->get_thread_info()->m_vmrss_kb, exit_vmrss);
-			EXPECT_EQ(e->get_thread_info()->m_vmswap_kb, exit_vmswap);
+			EXPECT_EQ(e->get_thread_info()->get_vmsize_kb(), exit_vmsize);
+			EXPECT_EQ(e->get_thread_info()->get_vmrss_kb(), exit_vmrss);
+			EXPECT_EQ(e->get_thread_info()->get_vmswap_kb(), exit_vmswap);
 
 			switch(callnum) {
 			case 2: {
@@ -1653,7 +1653,7 @@ TEST_F(sys_call_test32, ppoll_timeout) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto tinfo = evt->get_thread_info();
 		return evt->get_type() == PPME_SYSCALL_PPOLL_X && tinfo != nullptr &&
-		       tinfo->m_comm == "test_helper_32";
+		       tinfo->get_comm() == "test_helper_32";
 	};
 
 	std::string my_pipe[2];
@@ -1722,7 +1722,7 @@ TEST_F(sys_call_test32, fs_preadv) {
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto tinfo = evt->get_thread_info();
-		if(tinfo && tinfo->m_comm == "test_helper_32") {
+		if(tinfo && tinfo->get_comm() == "test_helper_32") {
 			auto type = evt->get_type();
 			return type == PPME_SYSCALL_PREADV_X || type == PPME_SYSCALL_PWRITEV_X;
 		}
@@ -1833,25 +1833,25 @@ TEST_F(sys_call_test, thread_lookup_static) {
 		auto tinfo = param.m_inspector->m_thread_manager->find_thread(1, true);
 
 		EXPECT_EQ(1, tinfo->m_tid);
-		EXPECT_EQ(1, tinfo->m_pid);
-		EXPECT_EQ(1, tinfo->m_vtid);
-		EXPECT_EQ(0, tinfo->m_ptid);
+		EXPECT_EQ(1, tinfo->get_pid());
+		EXPECT_EQ(1, tinfo->get_vtid());
+		EXPECT_EQ(0, tinfo->get_ptid());
 
 		ASSERT_EQ(SCAP_SUCCESS,
 		          scap_proc_read_thread(linux_platform, proclist, proc, 62725, err_buf, false));
 		tinfo = param.m_inspector->m_thread_manager->find_thread(62725, true);
 		EXPECT_EQ(62725, tinfo->m_tid);
-		EXPECT_EQ(62725, tinfo->m_pid);
-		EXPECT_EQ(62725, tinfo->m_vtid);
-		EXPECT_EQ(1, tinfo->m_ptid);
+		EXPECT_EQ(62725, tinfo->get_pid());
+		EXPECT_EQ(62725, tinfo->get_vtid());
+		EXPECT_EQ(1, tinfo->get_ptid());
 
 		ASSERT_EQ(SCAP_SUCCESS,
 		          scap_proc_read_thread(linux_platform, proclist, proc, 62727, err_buf, false));
 		tinfo = param.m_inspector->m_thread_manager->find_thread(62727, true);
 		EXPECT_EQ(62727, tinfo->m_tid);
-		EXPECT_EQ(62725, tinfo->m_pid);
-		EXPECT_EQ(62727, tinfo->m_vtid);
-		EXPECT_EQ(1, tinfo->m_ptid);
+		EXPECT_EQ(62725, tinfo->get_pid());
+		EXPECT_EQ(62727, tinfo->get_vtid());
+		EXPECT_EQ(1, tinfo->get_ptid());
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
@@ -1894,8 +1894,8 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		}
 
 		const auto evt_thread_tid = evt_tinfo->m_tid;
-		const auto evt_thread_pid = evt_tinfo->m_pid;
-		const auto evt_thread_vtid = evt_tinfo->m_vtid;
+		const auto evt_thread_pid = evt_tinfo->get_pid();
+		const auto evt_thread_vtid = evt_tinfo->get_vtid();
 
 		if(scap_proc_read_thread(linux_platform, proclist, proc, tid, err_buf, false) ==
 		   SCAP_SUCCESS) {
@@ -1904,12 +1904,12 @@ TEST_F(sys_call_test, thread_lookup_live) {
 				return;
 			}
 			EXPECT_NE(0, tinfo->m_tid);
-			EXPECT_NE(0, tinfo->m_pid);
-			EXPECT_NE(0, tinfo->m_vtid);
+			EXPECT_NE(0, tinfo->get_pid());
+			EXPECT_NE(0, tinfo->get_vtid());
 			EXPECT_EQ(evt_thread_tid, tinfo->m_tid);
-			EXPECT_EQ(evt_thread_pid, tinfo->m_pid);
-			EXPECT_EQ(evt_thread_vtid, tinfo->m_vtid);
-			// Do not test tinfo->m_ptid because it can change in between event and lookup.
+			EXPECT_EQ(evt_thread_pid, tinfo->get_pid());
+			EXPECT_EQ(evt_thread_vtid, tinfo->get_vtid());
+			// Do not test tinfo->get_ptid() because it can change in between event and lookup.
 		}
 	};
 
@@ -1924,17 +1924,17 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		          scap_proc_read_thread(linux_platform, proclist, proc, getpid(), err_buf, false));
 		auto tinfo = inspector->m_thread_manager->find_thread(getpid(), true);
 		EXPECT_EQ(getpid(), tinfo->m_tid);
-		EXPECT_EQ(getpid(), tinfo->m_pid);
-		EXPECT_EQ(getpid(), tinfo->m_vtid);
-		EXPECT_EQ(getppid(), tinfo->m_ptid);
+		EXPECT_EQ(getpid(), tinfo->get_pid());
+		EXPECT_EQ(getpid(), tinfo->get_vtid());
+		EXPECT_EQ(getppid(), tinfo->get_ptid());
 
 		ASSERT_EQ(SCAP_SUCCESS,
 		          scap_proc_read_thread(linux_platform, proclist, proc, 1, err_buf, false));
 		tinfo = inspector->m_thread_manager->find_thread(1, true);
 		EXPECT_EQ(1, tinfo->m_tid);
-		EXPECT_EQ(1, tinfo->m_pid);
-		EXPECT_EQ(1, tinfo->m_vtid);
-		EXPECT_EQ(0, tinfo->m_ptid);
+		EXPECT_EQ(1, tinfo->get_pid());
+		EXPECT_EQ(1, tinfo->get_vtid());
+		EXPECT_EQ(0, tinfo->get_ptid());
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
