@@ -64,12 +64,6 @@ int pman_init_state(falcosecurity_log_fn log_fn,
                     bool allocate_online_only);
 
 /**
- * @brief Clear the `libpman` global state before it is used.
- * This API could be useful if we open the modern bpf engine multiple times.
- */
-void pman_clear_state(void);
-
-/**
  * @brief Return the number of allocated ring buffers.
  *
  * @return number of allocated ring buffers.
