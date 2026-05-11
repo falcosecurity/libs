@@ -24,7 +24,7 @@ limitations under the License.
 static int init_iter_ctx(struct iter_support_probing_ctx *ctx) {
 	struct bpf_probe *probe = bpf_probe__open();
 	if(!probe) {
-		pman_print_errorf("failed to open BPF probe for iter support probing");
+		log_errorf("failed to open BPF probe for iter support probing");
 		return -1;
 	}
 
@@ -76,7 +76,7 @@ int iter_support_probing__probe(const char *prog_name) {
 	// Retrieve the program we are probing support for.
 	struct bpf_program *prog_to_test = bpf_object__find_program_by_name(ctx.probe->obj, prog_name);
 	if(!prog_to_test) {
-		pman_print_errorf("failed to find BPF program '%s' to test in BPF probe", prog_name);
+		log_errorf("failed to find BPF program '%s' to test in BPF probe", prog_name);
 		destroy_iter_ctx(&ctx);
 		return -1;
 	}
@@ -89,7 +89,7 @@ int iter_support_probing__probe(const char *prog_name) {
 	err = iter_support_probing__prepare_ringbuf_array_before_loading(&ctx);
 	err = err ?: iter_support_probing__prepare_maps_before_loading(&ctx);
 	if(err) {
-		pman_print_errorf("encountered error before loading BPF probe for iter support probing");
+		log_errorf("encountered error before loading BPF probe for iter support probing");
 		destroy_iter_ctx(&ctx);
 		return -1;
 	}
