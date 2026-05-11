@@ -19,12 +19,14 @@ limitations under the License.
 #pragma once
 
 #include <libscap/scap.h>
+#include <libscap/scap_const.h>
 #include <libsinsp/event.h>
 #include <libsinsp/sinsp_parser_verdict.h>
 
 typedef uint16_t sinsp_buffer_t;
 class sinsp_parser;
 class sinsp_parser_shared_params;
+class sinsp_filter;
 
 extern sinsp_buffer_t SINSP_INVALID_BUFFER_HANDLE;
 
@@ -35,7 +37,7 @@ extern sinsp_buffer_t SINSP_INVALID_BUFFER_HANDLE;
  */
 class sinsp_buffer {
 	const sinsp_buffer_t m_sinsp_buffer_h;
-	const scap_buffer_t m_scap_buffer_h;
+	scap_buffer_t m_scap_buffer_h;
 
 	friend sinsp;
 
@@ -44,7 +46,9 @@ class sinsp_buffer {
 
 	sinsp_evt m_evt;
 
-	std::string m_lasterr;
+	/** Per-buffer error buffer for scap; when set as thread-local, scap writes here. getlasterr()
+	 * returns this as std::string. */
+	char m_lasterr_buf[SCAP_LASTERR_SIZE];
 
 	// temporary storage for the parser event to avoid memory allocation
 	sinsp_evt m_parser_tmp_evt;
@@ -52,6 +56,8 @@ class sinsp_buffer {
 	std::unique_ptr<sinsp_parser> m_parser;
 
 	sinsp_parser_verdict m_parser_verdict;
+
+	std::unique_ptr<sinsp_filter> m_filter;
 
 	// TODO: compare_evt_timestamps is copied from sinsp... Avoid duplication
 	// regulates the logic behind event timestamp ordering.
@@ -83,12 +89,11 @@ class sinsp_buffer {
 	public:
 		explicit delayed_scap_evt(sinsp_buffer& buffer): m_buffer{buffer} {}
 		inline auto next(scap_t* h) {
-			const auto scap_buffer_h = m_buffer.m_scap_buffer_h;
 			int32_t res;
-			if(scap_buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
+			if(m_buffer.m_scap_buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
 				res = scap_next(h, &m_pevt, &m_cpuid, &m_dump_flags);
 			} else {
-				res = scap_buffer_next(h, scap_buffer_h, &m_pevt, &m_dump_flags);
+				res = scap_buffer_next(h, &m_buffer.m_scap_buffer_h, &m_pevt, &m_dump_flags);
 				m_cpuid = 0;  // TODO: what should we set here?
 			}
 			if(res != SCAP_SUCCESS) {
@@ -119,6 +124,10 @@ class sinsp_buffer {
 	// used only
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
+
+	// Per-buffer event count and first-event timestamp (avoids contended atomics).
+	uint64_t m_nevts{0};
+	uint64_t m_firstevent_ts{0};
 
 	// An instance of scap_evt to be used during the next call to sinsp::next().
 	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().

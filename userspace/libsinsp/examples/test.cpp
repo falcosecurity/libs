@@ -1005,6 +1005,9 @@ int main(int argc, char** argv) {
 	sinsp inspector;
 	g_inspector = &inspector;
 	atexit(cleanup_resources);
+	struct guard {
+		~guard() { g_inspector = nullptr; }
+	} inspector_guard;
 
 	filter_list.reset(new sinsp_filter_check_list());
 	filter_factory.reset(new sinsp_filter_factory(&inspector, *filter_list.get()));
@@ -1150,7 +1153,6 @@ int main(int argc, char** argv) {
 		          << std::endl;
 	}
 
-	g_inspector = nullptr;
 	return 0;
 }
 

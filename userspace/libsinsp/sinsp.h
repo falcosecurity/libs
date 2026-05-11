@@ -222,6 +222,12 @@ public:
 	uint64_t get_num_events() const;
 
 	/*!
+	  \brief First-event timestamp for the current thread's buffer (for evt.time / evt.reltime).
+	  Thread-local so filter/format can read it without storing on every event.
+	*/
+	uint64_t get_firstevent_ts() const;
+
+	/*!
 	  \brief Set the capture snaplen, i.e. the maximum size an event
 	  parameter can reach before the driver starts truncating it.
 
@@ -299,6 +305,8 @@ public:
 	  \param filter the runtime filter object
 	*/
 	void set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& filterstring = "");
+
+	void compile_per_buffer_filters();
 
 	/*!
 	  \brief Return the filter set for this capture.
@@ -475,7 +483,7 @@ public:
 	  \brief get last library error.
 	*/
 	std::string getlasterr(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
-		return m_buffers.at(buffer_h).m_lasterr;
+		return std::string(m_buffers.at(buffer_h).m_lasterr_buf);
 	}
 
 	/*!
@@ -864,12 +872,10 @@ private:
 	int32_t fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer);
 
 	//
-	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
+	// Note: lookup_only when false updates the thread's m_lastaccess_ts;
+	//       use true for lookups that are not event-driven.
 	//
-	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only) {
+	inline typename threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only) {
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
 
@@ -903,7 +909,8 @@ private:
 	scap_t* m_h;
 	struct scap_platform* m_platform{};
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
-	std::atomic<uint64_t> m_nevts;
+	// Base added to buffer.m_nevts for event numbering (used by restart_capture only).
+	uint64_t m_nevts_base{0};
 	int64_t m_filesize;
 	sinsp_mode m_mode = SINSP_MODE_NONE;
 
@@ -972,7 +979,6 @@ public:
 	std::shared_ptr<sinsp_thread_manager> m_thread_manager;
 	std::shared_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
-	std::atomic<uint64_t> m_firstevent_ts;
 	std::unique_ptr<sinsp_filter> m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
@@ -1082,8 +1088,8 @@ public:
 	// can be called from multiple threads (e.g. parallel event processing).
 	std::atomic<sinsp_buffer_t> m_next_reservable_buffer_handle;
 
-	// The following mutex is used in next().
-	std::mutex m_global_next_mutex;
+	// First-event timestamp per thread; set in next() from current buffer, read by filter/format.
+	static thread_local uint64_t s_firstevent_ts;
 };
 
 /*@}*/

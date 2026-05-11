@@ -441,11 +441,13 @@ public:
 
 	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
-	const sinsp_fdinfo* get_fd_info() const { return m_fdinfo; }
+	inline const sinsp_fdinfo* get_fd_info() const { return m_fdinfo_ref.get(); }
 
-	sinsp_fdinfo* get_fd_info() { return m_fdinfo; }
+	inline sinsp_fdinfo* get_fd_info() { return m_fdinfo_ref.get(); }
 
-	void set_fd_info(sinsp_fdinfo* v) { m_fdinfo = v; }
+	inline void set_fd_info(std::shared_ptr<sinsp_fdinfo> v) { m_fdinfo_ref = std::move(v); }
+
+	inline void set_fd_info(std::nullptr_t) { m_fdinfo_ref.reset(); }
 
 	bool fdinfo_name_changed() const { return m_fdinfo_name_changed; }
 
@@ -577,9 +579,7 @@ public:
 		m_flags = EF_NONE;
 		m_info = &m_event_info_table[m_pevt->type];
 		m_tinfo_ref.reset();
-		m_tinfo = nullptr;
 		m_fdinfo_ref.reset();
-		m_fdinfo = nullptr;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_source_idx = sinsp_no_event_source_idx;
@@ -590,9 +590,7 @@ public:
 		m_pevt = reinterpret_cast<scap_evt*>(evdata);
 		m_info = &m_event_info_table[m_pevt->type];
 		m_tinfo_ref.reset();
-		m_tinfo = nullptr;
 		m_fdinfo_ref.reset();
-		m_fdinfo = nullptr;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_cpuid = cpuid;
@@ -654,11 +652,13 @@ public:
 
 	void set_tinfo_ref(const std::shared_ptr<sinsp_threadinfo>& v) { m_tinfo_ref = v; }
 
-	const sinsp_threadinfo* get_tinfo() const { return m_tinfo; }
+	inline const sinsp_threadinfo* get_tinfo() const { return m_tinfo_ref.get(); }
 
-	sinsp_threadinfo* get_tinfo() { return m_tinfo; }
+	inline sinsp_threadinfo* get_tinfo() { return m_tinfo_ref.get(); }
 
-	void set_tinfo(sinsp_threadinfo* v) { m_tinfo = v; }
+	inline void set_tinfo(std::shared_ptr<sinsp_threadinfo> v) { m_tinfo_ref = std::move(v); }
+
+	inline void set_tinfo(std::nullptr_t) { m_tinfo_ref.reset(); }
 
 	std::shared_ptr<const sinsp_fdinfo> get_fdinfo_ref() const { return m_fdinfo_ref; }
 
@@ -784,8 +784,6 @@ private:
 	// reference to keep threadinfo alive. currently only used for synthetic container event thread
 	// info it should either be null, or point to the same place as m_tinfo
 	std::shared_ptr<sinsp_threadinfo> m_tinfo_ref;
-	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo* m_fdinfo;
 
 	// If true, then the associated fdinfo changed names as a part
 	// of parsing this event.
@@ -795,8 +793,7 @@ private:
 	int32_t m_errorcode;
 	int32_t m_rawbuf_str_len;
 	bool m_filtered_out;
-	const ppm_event_info* m_event_info_table;
-
+	const struct ppm_event_info* m_event_info_table;
 	std::shared_ptr<sinsp_fdinfo> m_fdinfo_ref;
 
 	size_t m_source_idx;
