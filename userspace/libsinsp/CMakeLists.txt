@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2023 The Falco Authors.
+# Copyright (C) 2026 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -15,6 +15,9 @@
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 option(ENABLE_THREAD_POOL "Enable inspector thread pool" OFF)
+option(ENABLE_MULTI_THREAD "Enable multi-threaded event processing (real mutexes, concurrent maps)"
+	   OFF
+)
 
 if(NOT MSVC)
 	add_definitions(-DHAVE_PWD_H)
@@ -143,6 +146,20 @@ if(NOT EMSCRIPTEN)
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
 endif()
 
+if(ENABLE_MULTI_THREAD)
+	target_compile_definitions(sinsp PUBLIC ENABLE_MULTI_THREAD)
+	if(NOT WIN32)
+		# Folly ConcurrentHashMap for thread-safe thread manager (see
+		# proposals/20260212-thread-safe-thread-manager.md and cmake/modules/folly.cmake)
+		target_link_libraries(sinsp PUBLIC folly_minimal)
+		target_compile_definitions(sinsp PUBLIC LIBSINSP_USE_FOLLY)
+		# Suppress sign-compare warnings from glog when used inside Folly templates
+		if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+			target_compile_options(sinsp PRIVATE -Wno-sign-compare)
+		endif()
+	endif()
+endif()
+
 if(USE_BUNDLED_VALIJSON)
 	add_dependencies(sinsp valijson)
 endif()
@@ -229,6 +246,12 @@ set(SINSP_PKG_CONFIG_INCLUDES "")
 foreach(sinsp_include_directory ${LIBSINSP_INCLUDE_DIRS})
 	list(APPEND SINSP_PKG_CONFIG_INCLUDES -I${sinsp_include_directory})
 endforeach()
+get_target_property(_sinsp_pub_defs sinsp INTERFACE_COMPILE_DEFINITIONS)
+if(_sinsp_pub_defs)
+	foreach(_def ${_sinsp_pub_defs})
+		list(APPEND SINSP_PKG_CONFIG_INCLUDES -D${_def})
+	endforeach()
+endif()
 
 file(RELATIVE_PATH PKGCONFIG_RELATIVE_PREFIX
 	 ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig ${CMAKE_INSTALL_PREFIX}

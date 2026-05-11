@@ -26,6 +26,6 @@ build*
 CMakeUserPresets.json
 cscope.out
 tags
-third_party
+third_party/*
 *.vagrant*
 .DS_Store
