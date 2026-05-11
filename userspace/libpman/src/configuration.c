@@ -62,7 +62,8 @@ static int libbpf_print(enum libbpf_print_level level, const char *format, va_li
 	return rc;
 }
 
-void pman_clear_state() {
+/* Clear global state. */
+static void clear_state() {
 	g_state.skel = NULL;
 	g_state.rb_manager = NULL;
 	g_state.n_possible_cpus = 0;
@@ -104,6 +105,8 @@ int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     uint16_t cpus_for_each_buffer,
                     bool allocate_online_only) {
+	clear_state();
+
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
 	 * of libbpf to simulate libbpf v1.0 behavior.
 	 * `libbpf_set_strict_mode` returns always 0.

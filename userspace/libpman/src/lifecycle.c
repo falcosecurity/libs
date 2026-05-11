@@ -266,10 +266,12 @@ void pman_close_probe() {
 	if(g_state.skel) {
 		bpf_probe__detach(g_state.skel);
 		bpf_probe__destroy(g_state.skel);
+		g_state.skel = NULL;
 	}
 
 	if(g_state.rb_manager) {
 		ring_buffer__free(g_state.rb_manager);
+		g_state.rb_manager = NULL;
 	}
 
 #ifdef BPF_ITERATOR_SUPPORT
