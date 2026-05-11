@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ limitations under the License.
 
 /*=============================== ATTACH PROGRAMS ===============================*/
 
-int pman_attach_syscall_exit_dispatcher() {
+int attach_syscall_exit_dispatcher() {
 	/* The program is already attached. */
 	if(g_state.skel->links.sys_exit != NULL) {
 		return 0;
@@ -40,7 +40,7 @@ int pman_attach_syscall_exit_dispatcher() {
 	return 0;
 }
 
-int pman_attach_sched_proc_exit() {
+int attach_sched_proc_exit() {
 	/* The program is already attached. */
 	if(g_state.skel->links.sched_proc_exit != NULL) {
 		return 0;
@@ -54,7 +54,7 @@ int pman_attach_sched_proc_exit() {
 	return 0;
 }
 
-int pman_attach_sched_switch() {
+int attach_sched_switch() {
 	/* The program is already attached. */
 	if(g_state.skel->links.sched_switch != NULL) {
 		return 0;
@@ -68,7 +68,7 @@ int pman_attach_sched_switch() {
 	return 0;
 }
 
-int pman_attach_sched_proc_exec() {
+int attach_sched_proc_exec() {
 	/* The program is already attached. */
 	if(g_state.skel->links.sched_p_exec != NULL) {
 		return 0;
@@ -82,7 +82,7 @@ int pman_attach_sched_proc_exec() {
 	return 0;
 }
 
-int pman_attach_sched_proc_fork() {
+int attach_sched_proc_fork() {
 #ifdef CAPTURE_SCHED_PROC_FORK
 	/* The program is already attached. */
 	if(g_state.skel->links.sched_p_fork != NULL) {
@@ -98,7 +98,7 @@ int pman_attach_sched_proc_fork() {
 	return 0;
 }
 
-int pman_attach_page_fault_user() {
+int attach_page_fault_user() {
 #ifdef CAPTURE_PAGE_FAULTS
 	/* The program is already attached. */
 	if(g_state.skel->links.pf_user != NULL) {
@@ -114,7 +114,7 @@ int pman_attach_page_fault_user() {
 	return 0;
 }
 
-int pman_attach_page_fault_kernel() {
+int attach_page_fault_kernel() {
 #ifdef CAPTURE_PAGE_FAULTS
 	/* The program is already attached. */
 	if(g_state.skel->links.pf_kernel != NULL) {
@@ -130,7 +130,7 @@ int pman_attach_page_fault_kernel() {
 	return 0;
 }
 
-int pman_attach_signal_deliver() {
+int attach_signal_deliver() {
 	/* The program is already attached. */
 	if(g_state.skel->links.signal_deliver != NULL) {
 		return 0;
@@ -178,7 +178,7 @@ static int attach_ia32_toctou_prog(const struct bpf_program* ia32_compat_prog,
 	return 0;
 }
 
-int pman_attach_connect_toctou_mitigation_progs() {
+int attach_connect_toctou_mitigation_progs() {
 	const int res =
 	        attach_64bit_toctou_prog(g_state.skel->progs.connect_e, &g_state.skel->links.connect_e);
 	if(res) {
@@ -190,7 +190,7 @@ int pman_attach_connect_toctou_mitigation_progs() {
 	                               &g_state.skel->links.ia32_connect_e);
 }
 
-int pman_attach_creat_toctou_mitigation_progs() {
+int attach_creat_toctou_mitigation_progs() {
 	const int res =
 	        attach_64bit_toctou_prog(g_state.skel->progs.creat_e, &g_state.skel->links.creat_e);
 	if(res) {
@@ -202,7 +202,7 @@ int pman_attach_creat_toctou_mitigation_progs() {
 	                               &g_state.skel->links.ia32_creat_e);
 }
 
-int pman_attach_open_toctou_mitigation_progs() {
+int attach_open_toctou_mitigation_progs() {
 	const int res =
 	        attach_64bit_toctou_prog(g_state.skel->progs.open_e, &g_state.skel->links.open_e);
 	if(res) {
@@ -214,7 +214,7 @@ int pman_attach_open_toctou_mitigation_progs() {
 	                               &g_state.skel->links.ia32_open_e);
 }
 
-int pman_attach_openat_toctou_mitigation_progs() {
+int attach_openat_toctou_mitigation_progs() {
 	// Attach ia-32 programs before 64 bit program, otherwise the 64 bit program will generate
 	// events for the ia-32 programs attachment attempts.
 	const int res = attach_ia32_toctou_prog(g_state.skel->progs.ia32_compat_openat_e,
@@ -227,7 +227,7 @@ int pman_attach_openat_toctou_mitigation_progs() {
 	return attach_64bit_toctou_prog(g_state.skel->progs.openat_e, &g_state.skel->links.openat_e);
 }
 
-int pman_attach_openat2_toctou_mitigation_progs() {
+int attach_openat2_toctou_mitigation_progs() {
 	const int res =
 	        attach_64bit_toctou_prog(g_state.skel->progs.openat2_e, &g_state.skel->links.openat2_e);
 	if(res) {
@@ -243,7 +243,7 @@ int pman_attach_openat2_toctou_mitigation_progs() {
 
 /*=============================== DETACH PROGRAMS ===============================*/
 
-int pman_detach_syscall_exit_dispatcher() {
+int detach_syscall_exit_dispatcher() {
 	if(g_state.skel->links.sys_exit && bpf_link__destroy(g_state.skel->links.sys_exit)) {
 		pman_print_errorf("failed to detach the 'sys_exit' program");
 		return errno;
@@ -252,7 +252,7 @@ int pman_detach_syscall_exit_dispatcher() {
 	return 0;
 }
 
-int pman_detach_sched_proc_exit() {
+int detach_sched_proc_exit() {
 	if(g_state.skel->links.sched_proc_exit &&
 	   bpf_link__destroy(g_state.skel->links.sched_proc_exit)) {
 		pman_print_errorf("failed to detach the 'sched_proc_exit' program");
@@ -262,7 +262,7 @@ int pman_detach_sched_proc_exit() {
 	return 0;
 }
 
-int pman_detach_sched_switch() {
+int detach_sched_switch() {
 	if(g_state.skel->links.sched_switch && bpf_link__destroy(g_state.skel->links.sched_switch)) {
 		pman_print_errorf("failed to detach the 'sched_switch' program");
 		return errno;
@@ -271,7 +271,7 @@ int pman_detach_sched_switch() {
 	return 0;
 }
 
-int pman_detach_sched_proc_exec() {
+int detach_sched_proc_exec() {
 	if(g_state.skel->links.sched_p_exec && bpf_link__destroy(g_state.skel->links.sched_p_exec)) {
 		pman_print_errorf("failed to detach the 'sched_proc_exec' program");
 		return errno;
@@ -280,7 +280,7 @@ int pman_detach_sched_proc_exec() {
 	return 0;
 }
 
-int pman_detach_sched_proc_fork() {
+int detach_sched_proc_fork() {
 #ifdef CAPTURE_SCHED_PROC_FORK
 	if(g_state.skel->links.sched_p_fork && bpf_link__destroy(g_state.skel->links.sched_p_fork)) {
 		pman_print_errorf("failed to detach the 'sched_proc_fork' program");
@@ -291,7 +291,7 @@ int pman_detach_sched_proc_fork() {
 	return 0;
 }
 
-int pman_detach_page_fault_user() {
+int detach_page_fault_user() {
 #ifdef CAPTURE_PAGE_FAULTS
 	if(g_state.skel->links.pf_user && bpf_link__destroy(g_state.skel->links.pf_user)) {
 		pman_print_errorf("failed to detach the 'pf_user' program");
@@ -302,7 +302,7 @@ int pman_detach_page_fault_user() {
 	return 0;
 }
 
-int pman_detach_page_fault_kernel() {
+int detach_page_fault_kernel() {
 #ifdef CAPTURE_PAGE_FAULTS
 	if(g_state.skel->links.pf_kernel && bpf_link__destroy(g_state.skel->links.pf_kernel)) {
 		pman_print_errorf("failed to detach the 'pf_kernel' program");
@@ -313,7 +313,7 @@ int pman_detach_page_fault_kernel() {
 	return 0;
 }
 
-int pman_detach_signal_deliver() {
+int detach_signal_deliver() {
 	if(g_state.skel->links.signal_deliver &&
 	   bpf_link__destroy(g_state.skel->links.signal_deliver)) {
 		pman_print_errorf("failed to detach the 'signal_deliver' program");
@@ -355,7 +355,7 @@ static int detach_toctou_progs(const struct bpf_program* prog,
 	return 0;
 }
 
-int pman_detach_connect_toctou_mitigation_progs() {
+int detach_connect_toctou_mitigation_progs() {
 	return detach_toctou_progs(g_state.skel->progs.connect_e,
 	                           g_state.skel->progs.ia32_compat_connect_e,
 	                           g_state.skel->progs.ia32_connect_e,
@@ -364,7 +364,7 @@ int pman_detach_connect_toctou_mitigation_progs() {
 	                           &g_state.skel->links.ia32_connect_e);
 }
 
-int pman_detach_creat_toctou_mitigation_progs() {
+int detach_creat_toctou_mitigation_progs() {
 	return detach_toctou_progs(g_state.skel->progs.creat_e,
 	                           g_state.skel->progs.ia32_compat_creat_e,
 	                           g_state.skel->progs.ia32_creat_e,
@@ -373,7 +373,7 @@ int pman_detach_creat_toctou_mitigation_progs() {
 	                           &g_state.skel->links.ia32_creat_e);
 }
 
-int pman_detach_open_toctou_mitigation_progs() {
+int detach_open_toctou_mitigation_progs() {
 	return detach_toctou_progs(g_state.skel->progs.open_e,
 	                           g_state.skel->progs.ia32_compat_open_e,
 	                           g_state.skel->progs.ia32_open_e,
@@ -382,7 +382,7 @@ int pman_detach_open_toctou_mitigation_progs() {
 	                           &g_state.skel->links.ia32_open_e);
 }
 
-int pman_detach_openat_toctou_mitigation_progs() {
+int detach_openat_toctou_mitigation_progs() {
 	return detach_toctou_progs(g_state.skel->progs.openat_e,
 	                           g_state.skel->progs.ia32_compat_openat_e,
 	                           g_state.skel->progs.ia32_openat_e,
@@ -391,7 +391,7 @@ int pman_detach_openat_toctou_mitigation_progs() {
 	                           &g_state.skel->links.ia32_openat_e);
 }
 
-int pman_detach_openat2_toctou_mitigation_progs() {
+int detach_openat2_toctou_mitigation_progs() {
 	return detach_toctou_progs(g_state.skel->progs.openat2_e,
 	                           g_state.skel->progs.ia32_compat_openat2_e,
 	                           g_state.skel->progs.ia32_openat2_e,
