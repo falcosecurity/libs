@@ -35,7 +35,7 @@ int32_t noop_next(struct scap_engine_handle handle,
                   uint16_t* pdevid,
                   uint32_t* pflags);
 int32_t noop_next_from_buffer(struct scap_engine_handle engine,
-                              scap_buffer_t buffer_h,
+                              scap_buffer_t* buffer_h,
                               scap_evt** pevent,
                               uint32_t* pflags);
 uint16_t noop_get_n_allocated_buffer_handles(struct scap_engine_handle engine);

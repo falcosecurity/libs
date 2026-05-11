@@ -80,20 +80,20 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine,
 #define SET_RETRY_US(x, r) (x = ((x & 0x0000FFFF) | ((r & 0x0000FFFF) << 16)))
 
 static int32_t scap_modern_bpf__next_from_buffer(struct scap_engine_handle engine,
-                                                 scap_buffer_t buffer_h,
+                                                 scap_buffer_t* buffer_h,
                                                  scap_evt** pevent,
                                                  uint32_t* pflags) {
-	pman_consume_first_event_from_ringbuf(BUFFER(buffer_h), (void**)pevent);
+	pman_consume_first_event_from_ringbuf(BUFFER(*buffer_h), (void**)pevent);
 
 	if(*pevent == NULL) {
 		/* The first time we sleep 500 us, if we have consecutive timeouts we can reach also 30 ms.
 		 */
-		uint16_t const retry_us = RETRY_US(buffer_h);
+		uint16_t const retry_us = RETRY_US(*buffer_h);
 		usleep(retry_us);
-		SET_RETRY_US(buffer_h, MIN(retry_us * 2, BUFFER_EMPTY_WAIT_TIME_US_MAX));
+		SET_RETRY_US(*buffer_h, MIN(retry_us * 2, BUFFER_EMPTY_WAIT_TIME_US_MAX));
 		return SCAP_TIMEOUT;
 	}
-	SET_RETRY_US(buffer_h, BUFFER_EMPTY_WAIT_TIME_US_START);
+	SET_RETRY_US(*buffer_h, BUFFER_EMPTY_WAIT_TIME_US_START);
 	*pflags = 0;
 	return SCAP_SUCCESS;
 }

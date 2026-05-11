@@ -37,13 +37,45 @@ limitations under the License.
 #define strerror_r(errnum, buf, size) strerror_s(buf, size, errnum)
 #endif
 
+#ifdef __linux__
+static __thread char* g_scap_tls_lasterr;
+#endif
+
+void scap_set_thread_lasterr(char* buf) {
+#ifdef __linux__
+	g_scap_tls_lasterr = buf;
+#else
+	(void)buf;
+#endif
+}
+
+void scap_clear_thread_lasterr(void) {
+#ifdef __linux__
+	g_scap_tls_lasterr = NULL;
+#endif
+}
+
+const char* scap_get_thread_lasterr(void) {
+#ifdef __linux__
+	return g_scap_tls_lasterr;
+#else
+	return NULL;
+#endif
+}
+
 int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...) {
 	int len;
+	char* write_buf = buf;
+#ifdef __linux__
+	if(g_scap_tls_lasterr != NULL) {
+		write_buf = g_scap_tls_lasterr;
+	}
+#endif
 
 	va_list va;
 	va_start(va, fmt);
 	// no error, just print the message
-	len = vsnprintf(buf, SCAP_LASTERR_SIZE, fmt, va);
+	len = vsnprintf(write_buf, SCAP_LASTERR_SIZE, fmt, va);
 	va_end(va);
 
 	if(errnum > 0 && len < SCAP_LASTERR_SIZE - 1) {
@@ -51,7 +83,7 @@ int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...) {
 		if(strerror_r(errnum, err_buf, sizeof(err_buf)) < 0) {
 			snprintf(err_buf, sizeof(err_buf), "Unknown error %d", errnum);
 		}
-		snprintf(buf + len, SCAP_LASTERR_SIZE - len, ": %s", err_buf);
+		snprintf(write_buf + len, SCAP_LASTERR_SIZE - len, ": %s", err_buf);
 	}
 
 	// so you can return scap_errprintf(...) directly

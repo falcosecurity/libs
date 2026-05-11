@@ -26,6 +26,10 @@ extern "C" {
 typedef uint32_t scap_buffer_t;
 extern scap_buffer_t SCAP_INVALID_BUFFER_HANDLE;
 
+// The lower 16 bits of a scap_buffer_t encode the ring-buffer index;
+// upper bits are reserved for engine-private state (e.g. retry backoff).
+#define SCAP_BUFFER_INDEX(h) ((uint16_t)(h))
+
 #ifdef __cplusplus
 }
 #endif

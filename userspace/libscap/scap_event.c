@@ -57,7 +57,17 @@ uint32_t scap_event_getlen(scap_evt *e) {
 }
 
 uint64_t scap_event_get_num(scap_t *handle) {
-	return atomic_load(&handle->m_evtcnt);
+	uint64_t total = handle->m_evtcnt;
+	if(handle->m_evtcnt_per_buffer) {
+		for(uint16_t i = 0; i < handle->m_n_buffer_handles; i++) {
+#ifdef _MSC_VER
+			total += atomic_load(handle->m_evtcnt_per_buffer + i);
+#else
+			total += atomic_load_explicit(handle->m_evtcnt_per_buffer + i, memory_order_relaxed);
+#endif
+		}
+	}
+	return total;
 }
 
 uint16_t scap_event_get_type(scap_evt *e) {

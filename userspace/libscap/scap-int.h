@@ -59,7 +59,11 @@ struct scap {
 
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
-	atomic_uint_fast64_t m_evtcnt;
+	// Event counter for scap_next path (single stream, single-threaded; plain counter is enough)
+	uint64_t m_evtcnt;
+	// Per-buffer counters for scap_buffer_next (multi-threaded multi-buffer path only)
+	atomic_uint_fast64_t* m_evtcnt_per_buffer;
+	uint16_t m_n_buffer_handles;
 
 	// Function which may be called to log an event
 	falcosecurity_log_fn m_log_fn;

@@ -201,7 +201,7 @@ struct scap_vtable {
 	 * and must remain valid at least until the next call to next()
 	 */
 	int32_t (*next_from_buffer)(struct scap_engine_handle engine,
-	                            scap_buffer_t buffer_h,
+	                            scap_buffer_t* buffer_h,
 	                            scap_evt** pevent,
 	                            uint32_t* pflags);
 

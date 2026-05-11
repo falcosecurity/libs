@@ -54,7 +54,7 @@ int32_t noop_next(struct scap_engine_handle handle,
 }
 
 int32_t noop_next_from_buffer(struct scap_engine_handle engine,
-                              scap_buffer_t buffer_h,
+                              scap_buffer_t* buffer_h,
                               scap_evt** pevent,
                               uint32_t* pflags) {
 	// TODO: implement
