@@ -583,7 +583,7 @@ public:
 	friend class sinsp_thread_manager_impl;
 	friend class sinsp_network_interfaces;
 
-public:
+private:
 	scap_fd_type m_type = SCAP_FD_UNINITIALIZED;
 	uint32_t m_openflags = 0;
 	sinsp_sockinfo m_sockinfo = {};
@@ -598,6 +598,7 @@ public:
 	int64_t m_pid = 0;
 	int64_t m_fd = -1;
 
+public:
 	// Per-fdinfo mutex for thread-safe access. Mutable so const methods can lock.
 	// Wrapped in a struct with no-op copy/move so default copy/move constructors
 	// and assignments of sinsp_fdinfo work (each copy gets a fresh mutex).

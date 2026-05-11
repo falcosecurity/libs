@@ -654,7 +654,6 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
-public:
 	// Mutex protecting exec-info group (strings, vectors, and related fields)
 	mutable typename traits::thread_state_mutex m_state_mutex;
 
