@@ -268,32 +268,6 @@ uint64_t pman_get_probe_api_ver(void);
 uint64_t pman_get_probe_schema_ver(void);
 
 /**
- * @brief Some sys exit bpf programs exceed the maximum complexity
- * so they have to tail-call other programs. To do that, they
- * need a particular tail table that we call `syscall_exit_extra_tail_table`.
- *
- * syscall_exit_extra_tail_table(sys_exit_extra_code, program_fd).
- *
- * `sys_exit_extra_code` is an enum defined in
- * `/driver/ppm_events_public.h`
- *
- * @return `0` on success, `errno` in case of error.
- */
-int pman_fill_syscall_exit_extra_tail_table(void);
-
-/**
- * @brief The syscall exit dispatcher will look into this table
- * to understand which programs it has to call:
- *
- * -> SYSCALL EXIT TAIL TABLE
- * syscall_exit_tail_table(syscall_id, exit_program_fd).
- * Returns the fd of the right bpf program to call.
- *
- * @return `0` on success, `errno` in case of error.
- */
-int pman_fill_syscalls_tail_table(void);
-
-/**
  * @brief Performs all necessary operations on maps before the
  * loading phase:
  * - Fill read-only global variables.
