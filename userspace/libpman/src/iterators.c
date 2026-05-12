@@ -16,7 +16,9 @@ limitations under the License.
 
 */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <unistd.h>
 #include <sys/syscall.h>
 #ifdef __GLIBC_PREREQ
