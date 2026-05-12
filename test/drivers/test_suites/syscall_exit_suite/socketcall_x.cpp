@@ -84,9 +84,12 @@ TEST(SyscallExit, socketcall_socketX) {
 	/* Parameter 4: proto (type: PT_UINT32) */
 	evt_test->assert_numeric_param(4, (uint32_t)-1);
 
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(5, (uint32_t)(PPM_O_NONBLOCK | PPM_O_CLOEXEC));
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
 
