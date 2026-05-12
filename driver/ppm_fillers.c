@@ -1939,6 +1939,7 @@ int f_sys_accept4_x(struct event_filler_arguments *args) {
 	unsigned long srvskfd;
 	int err = 0;
 	struct socket *sock;
+	unsigned long flags = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
 	fd = (int64_t)(int32_t)syscall_get_return_value(current, args->regs);
@@ -1990,7 +1991,6 @@ int f_sys_accept4_x(struct event_filler_arguments *args) {
 	CHECK_RES(res);
 
 	/* Parameter 6: flags (type: PT_FLAGS32) */
-	unsigned long flags;
 	syscall_get_arguments_deprecated(args, 3, 1, &flags);
 	res = val_to_ring(args, socket_flags_to_scap(flags), 0, false, 0);
 	CHECK_RES(res);
