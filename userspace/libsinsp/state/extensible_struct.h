@@ -68,19 +68,6 @@ protected:
 	}
 
 private:
-	inline void _check_defsptr(const dynamic_field_info& i, bool write) const {
-		if(!i.valid()) {
-			throw sinsp_exception("can't set invalid field in dynamic struct");
-		}
-		if(m_dynamic_fields->id() != i.m_defs_id) {
-			throw sinsp_exception(
-			        "using dynamic field accessor on struct it was not created from: " + i.name());
-		}
-		if(write && i.readonly()) {
-			throw sinsp_exception("can't set a read-only dynamic struct field: " + i.name());
-		}
-	}
-
 	inline dynamic_field_value* _access_dynamic_field_for_write(size_t index) {
 		if(!m_dynamic_fields) {
 			throw sinsp_exception("dynamic struct has no field definitions");
@@ -141,76 +128,43 @@ private:
 	std::shared_ptr<dynamic_field_infos> m_dynamic_fields;
 	// end of dynamic_struct interface
 
-	[[nodiscard]] borrowed_state_data raw_read_field(const accessor& a) const override {
-		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			return static_acc->info().read(this, 0);
-		}
-
-		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			_check_defsptr(dynamic_acc->info(), false);
-			if(auto ptr = _access_dynamic_field_for_read(dynamic_acc->info().index())) {
-				return borrowed_state_data(ptr->m_data);
-			}
-			return {};
-		}
-
-#ifdef _MSC_VER
-		_assume(0);
-#else
-		__builtin_unreachable();
-#endif
-	}
-
 protected:
-	void raw_write_field(const accessor& a, const borrowed_state_data& in) override {
-		if(auto static_acc = dynamic_cast<const static_field_accessor*>(&a)) {
-			static_acc->info().write(this, 0, in);
-			return;
-		}
+	template<typename T>
+	friend borrowed_state_data read_dynamic_field(const void* obj, size_t index);
 
-		if(auto dynamic_acc = dynamic_cast<const dynamic_field_accessor*>(&a)) {
-			auto ptr = _access_dynamic_field_for_write(dynamic_acc->info().index());
-			ptr->update(in);
-			return;
-		}
-
-#ifdef _MSC_VER
-		_assume(0);
-#else
-		__builtin_unreachable();
-#endif
-	}
+	template<typename T>
+	friend void write_dynamic_field(void* obj, size_t index, const borrowed_state_data& in);
 };
 
 /**
  * @brief A group of field infos, describing all the ones available
  * in a static struct.
  */
-using static_field_infos = std::unordered_map<std::string, static_field_info>;
+using static_field_infos = std::unordered_map<std::string, accessor>;
 
 /**
  * @brief Defines the information about a field defined in the class or struct.
  * An exception is thrown if two fields are defined with the same name.
  *
- * @tparam T Type of the field.
  * @param fields Fields group to which to add the new field.
  * @param name Display name of the field.
+ * @param type_id Type of the field.
  * @param reader Function to read the field's value from an instance of the class/struct.
  * @param writer Function to write the field's value in an instance of the class/struct.
  * @param readonly Read-only field annotation.
  */
-template<typename T>
-constexpr static const static_field_info& define_static_field(static_field_infos& fields,
-                                                              const std::string& name,
-                                                              accessor::reader_fn reader,
-                                                              accessor::writer_fn writer,
-                                                              const bool readonly = false) {
+static inline const accessor& define_static_field(static_field_infos& fields,
+                                                  const std::string& name,
+                                                  ss_plugin_state_type type_id,
+                                                  accessor::reader_fn reader,
+                                                  accessor::writer_fn writer,
+                                                  const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
 	}
 
-	fields.insert({name, static_field_info(name, type_id_of<T>(), readonly, reader, writer)});
+	fields.insert({name, accessor(name, type_id, reader, writer, 0, readonly)});
 	return fields.at(name);
 }
 

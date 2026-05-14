@@ -84,7 +84,21 @@ public:
 		std::unique_ptr<const accessor> m_ptr;
 	};
 
-	explicit accessor(ss_plugin_state_type type_id): m_type_id(type_id) {}
+	explicit accessor(const std::string& name,
+	                  ss_plugin_state_type type_id,
+	                  reader_fn reader,
+	                  writer_fn writer,
+	                  size_t index,
+	                  bool readonly):
+	        m_name(std::make_shared<const std::string>(name)),
+	        m_type_id(type_id),
+	        m_reader(reader),
+	        m_writer(writer),
+	        m_index(index),
+	        m_readonly(readonly) {}
+
+	accessor(const accessor& other) = default;
+
 	virtual ~accessor() = default;
 
 	[[nodiscard]] ss_plugin_state_type type_id() const { return m_type_id; }
@@ -105,8 +119,41 @@ public:
 		return typed_ref<T>(*this);
 	}
 
+	borrowed_state_data read(const void* obj) const {
+		if(m_reader == nullptr) {
+			throw sinsp_exception("accessor has no reader function");
+		}
+		return m_reader(obj, m_index);
+	}
+
+	void write(void* obj, const borrowed_state_data& in) const {
+		if(m_writer == nullptr) {
+			throw sinsp_exception("accessor has no writer function");
+		}
+		m_writer(obj, m_index, in);
+	}
+
+	inline const std::string& name() const { return *m_name; }
+
+	inline bool readonly() const { return m_readonly; }
+
+	size_t index() const { return m_index; }
+
+	ptr clone() const { return ptr(std::make_unique<accessor>(*this)); }
+
+	template<typename T>
+	typed_ptr<T> into() const {
+		assert_type<T>();
+		return typed_ptr<T>(std::make_unique<accessor>(*this));
+	}
+
 protected:
+	std::shared_ptr<const std::string> m_name;
 	ss_plugin_state_type m_type_id;
+	reader_fn m_reader;
+	writer_fn m_writer;
+	size_t m_index;
+	bool m_readonly;
 };
 
 /**
@@ -119,7 +166,8 @@ public:
 	template<typename T>
 	T read_field(const accessor::typed_ref<T>& a) const {
 		T val{};
-		this->raw_read_field(a).template borrow_to<libsinsp::state::type_id_of<T>(), T>(val);
+		const auto& acc = static_cast<const accessor&>(a);
+		acc.read(this).borrow_to<libsinsp::state::type_id_of<T>(), T>(val);
 		return val;
 	}
 
@@ -142,22 +190,21 @@ public:
 	void write_field(const accessor::typed_ref<T>& a, const Val& in) {
 		borrowed_state_data in_val =
 		        borrowed_state_data::from<libsinsp::state::type_id_of<T>(), Val>(in);
-		this->raw_write_field(a, in_val);
+		const auto& acc = static_cast<const accessor&>(a);
+		acc.write(this, in_val);
 	}
 
 	template<typename T, typename Val = T>
 	void write_field(const accessor::typed_ptr<T>& a, const Val& in) {
 		write_field(a.as_ref(), in);
 	}
-
-	[[nodiscard]] virtual borrowed_state_data raw_read_field(const accessor& a) const = 0;
-	virtual void raw_write_field(const accessor& a, const borrowed_state_data& in) = 0;
 };
 
 template<>
 inline void table_entry::read_field(const accessor::typed_ref<std::string>& a,
                                     const char*& out) const {
-	const auto val = this->raw_read_field(a);
+	const auto& acc = static_cast<const accessor&>(a);
+	const auto val = acc.read(this);
 	if(val.data().str == nullptr) {
 		out = "";
 	} else {

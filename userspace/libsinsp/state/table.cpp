@@ -99,13 +99,19 @@ void extract_key<int64_t>(const ss_plugin_state_data& key, int64_t& out) {
 //
 // table_accessor implementation
 //
-template<typename T>
-void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state::table<T>* t) {
+void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state::base_table* t) {
 	if(!t) {
 		throw sinsp_exception("null table assigned to sinsp table wrapper");
 	}
 	if(!p) {
 		throw sinsp_exception("null plugin assigned to sinsp table wrapper");
+	}
+	auto key_type = t->key_type();
+	if(key_type == SS_PLUGIN_ST_TABLE) {
+		// a table cannot be used as a key for another table
+		ASSERT(false);
+		throw sinsp_exception(
+		        "unsupported libsinsp::state::table_accessor::set usage with table-type key");
 	}
 
 	m_table = t;
@@ -114,37 +120,6 @@ void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state:
 	input.name = m_table->name();
 	input.table = this;
 	input.key_type = m_table->key_type();
-}
-
-template void libsinsp::state::table_accessor::set<int8_t>(sinsp_table_owner* p,
-                                                           libsinsp::state::table<int8_t>* t);
-template void libsinsp::state::table_accessor::set<int16_t>(sinsp_table_owner* p,
-                                                            libsinsp::state::table<int16_t>* t);
-template void libsinsp::state::table_accessor::set<int32_t>(sinsp_table_owner* p,
-                                                            libsinsp::state::table<int32_t>* t);
-template void libsinsp::state::table_accessor::set<int64_t>(sinsp_table_owner* p,
-                                                            libsinsp::state::table<int64_t>* t);
-template void libsinsp::state::table_accessor::set<uint8_t>(sinsp_table_owner* p,
-                                                            libsinsp::state::table<uint8_t>* t);
-template void libsinsp::state::table_accessor::set<uint16_t>(sinsp_table_owner* p,
-                                                             libsinsp::state::table<uint16_t>* t);
-template void libsinsp::state::table_accessor::set<uint32_t>(sinsp_table_owner* p,
-                                                             libsinsp::state::table<uint32_t>* t);
-template void libsinsp::state::table_accessor::set<uint64_t>(sinsp_table_owner* p,
-                                                             libsinsp::state::table<uint64_t>* t);
-template void libsinsp::state::table_accessor::set<std::string>(
-        sinsp_table_owner* p,
-        libsinsp::state::table<std::string>* t);
-template void libsinsp::state::table_accessor::set<bool>(sinsp_table_owner* p,
-                                                         libsinsp::state::table<bool>* t);
-template<>
-void libsinsp::state::table_accessor::set<libsinsp::state::base_table*>(
-        sinsp_table_owner* p,
-        libsinsp::state::table<libsinsp::state::base_table*>* t) {
-	// a table cannot be used as a key for another table
-	ASSERT(false);
-	throw sinsp_exception(
-	        "unsupported libsinsp::state::table_accessor::set usage with table-type key");
 }
 
 void libsinsp::state::table_accessor::unset() {
@@ -389,7 +364,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 		if(type_id != fixed_it->second.type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 		}
-		return fixed_it->second.new_accessor();
+		return fixed_it->second.clone();
 	}
 
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
@@ -397,7 +372,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 			throw sinsp_exception("incompatible data types for dynamic field: " +
 			                      std::string(name));
 		}
-		return libsinsp::state::accessor::ptr(dyn_it->second.new_accessor());
+		return libsinsp::state::accessor::ptr(dyn_it->second.clone());
 	}
 	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
 	                      std::string(this->name()) + "'");
@@ -562,23 +537,18 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->type_id()); });
 #undef _X
 
-#define _X(_type, _dtype)                                                    \
-	{                                                                        \
-		auto st = static_cast<libsinsp::state::table<_type>*>(subtable_ptr); \
-		auto& slot = owner->find_unset_ephemeral_table();                    \
-		slot.set<_type>(owner, st);                                          \
-		out->table = &slot.input;                                            \
-	};
 	if(a->type_id() == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		auto* subtable_ptr = static_cast<libsinsp::state::base_table*>(out->table);
 		if(!subtable_ptr) {
 			owner->m_last_owner_err.clear();
 			return SS_PLUGIN_FAILURE;
 		}
-		__CATCH_ERR_MSG(owner->m_last_owner_err,
-		                { __PLUGIN_STATETYPE_SWITCH(subtable_ptr->key_type()); });
+		__CATCH_ERR_MSG(owner->m_last_owner_err, {
+			auto& slot = owner->find_unset_ephemeral_table();
+			slot.set(owner, subtable_ptr);
+			out->table = &slot.input;
+		});
 	}
-#undef _X
 
 	return res;
 }
