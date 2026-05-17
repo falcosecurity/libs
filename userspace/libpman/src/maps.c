@@ -38,6 +38,8 @@ static const char* sys_exit_extra_event_names[SYS_EXIT_EXTRA_CODE_MAX] = {
         [T1_OPEN_BY_HANDLE_AT_X] = "t1_open_by_handle_at_x",
         [T2_EXECVE_X] = "t2_execve_x",
         [T2_EXECVEAT_X] = "t2_execveat_x",
+        [T3_EXECVE_X] = "t3_execve_x",
+        [T3_EXECVEAT_X] = "t3_execveat_x",
 };
 
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
