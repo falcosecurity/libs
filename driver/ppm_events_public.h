@@ -1608,6 +1608,8 @@ enum sys_exit_extra_code {
 	T1_OPEN_BY_HANDLE_AT_X,
 	T2_EXECVE_X,
 	T2_EXECVEAT_X,
+	T3_EXECVE_X,
+	T3_EXECVEAT_X,
 	// Add new codes here...
 	SYS_EXIT_EXTRA_CODE_MAX,
 };
