@@ -578,8 +578,7 @@ static __always_inline void auxmap__store_user_task_charbufarray_param(struct au
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param charbuf pointer array, obtained directly from the syscall (`argv`).
  */
-static __always_inline void auxmap__store_exe_args_failure(struct auxiliary_map *auxmap,
-                                                           char **array) {
+static __noinline void auxmap__store_exe_args_failure(struct auxiliary_map *auxmap, char **array) {
 	unsigned long charbuf_pointer = 0;
 	uint16_t exe_len = 0;
 
@@ -614,6 +613,10 @@ static __always_inline void auxmap__store_exe_args_failure(struct auxiliary_map 
 	 */
 	uint64_t initial_payload_pos = auxmap->payload_pos;
 	uint16_t args_len = 0;
+	/* Precompute the budget for args so the loop only tracks one variable,
+	 * reducing verifier range-tracking complexity on kernel 7.0+.
+	 */
+	uint16_t args_space = (exe_len < MAX_PROC_ARG_ENV) ? (MAX_PROC_ARG_ENV - exe_len) : 0;
 	/* Index 1 because we skip the `exe` */
 	for(uint8_t index = 1; index < MAX_CHARBUF_POINTERS; ++index) {
 		if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[index])) {
@@ -631,8 +634,8 @@ static __always_inline void auxmap__store_exe_args_failure(struct auxiliary_map 
 		                          USER);
 
 		/* the sum of `exe` + `args` should be `<= MAX_PROC_ARG_ENV` */
-		if(args_len + exe_len >= MAX_PROC_ARG_ENV) {
-			args_len = MAX_PROC_ARG_ENV - exe_len;
+		if(args_len >= args_space) {
+			args_len = args_space;
 			break;
 		}
 	}

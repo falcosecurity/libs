@@ -34,42 +34,43 @@ int BPF_PROG(execve_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
+	/* On failure, the heavy auxmap__store_exe_args_failure loop (16 iterations of
+	 * push__charbuf) would be verified together with the success path, pushing
+	 * execve_x over the BPF verifier's 1M-instruction complexity budget on
+	 * kernel 7.0. Split the two paths: tail-call T1 for the failure case so
+	 * each BPF program only carries one heavy branch.
+	 */
+	if(ret != 0) {
+		bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_EXECVE_X);
+		return 0;
+	}
+
+	/* SUCCESS PATH ONLY from here */
 	struct task_struct *task = get_current_task();
 
-	/* In case of success we take `exe` and `args` directly from the kernel
-	 * otherwise we get them from the syscall arguments.
+	unsigned long arg_start_pointer = 0;
+	unsigned long arg_end_pointer = 0;
+
+	/* `arg_start` points to the memory area where arguments start.
+	 * We directly read charbufs from there, not pointers to charbufs!
+	 * We will store charbufs directly from memory.
 	 */
-	if(ret == 0) {
-		unsigned long arg_start_pointer = 0;
-		unsigned long arg_end_pointer = 0;
+	READ_TASK_FIELD_INTO(&arg_start_pointer, task, mm, arg_start);
+	READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
-		/* `arg_start` points to the memory area where arguments start.
-		 * We directly read charbufs from there, not pointers to charbufs!
-		 * We will store charbufs directly from memory.
-		 */
-		READ_TASK_FIELD_INTO(&arg_start_pointer, task, mm, arg_start);
-		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	/* We need to extract the len of `exe` arg so we can understand
+	 * the overall length of the remaining args.
+	 */
+	uint16_t exe_arg_len =
+	        auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
-		/* Parameter 2: exe (type: PT_CHARBUF) */
-		/* We need to extract the len of `exe` arg so we can understand
-		 * the overall length of the remaining args.
-		 */
-		uint16_t exe_arg_len =
-		        auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
-
-		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-		auxmap__store_charbufarray_as_bytebuf(auxmap,
-		                                      arg_start_pointer + exe_arg_len,
-		                                      total_args_len - exe_arg_len,
-		                                      MAX_PROC_ARG_ENV - exe_arg_len);
-	} else {
-		unsigned long argv = extract__syscall_argument(regs, 1);
-
-		/* Parameter 2: exe (type: PT_CHARBUF) */
-		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		auxmap__store_exe_args_failure(auxmap, (char **)argv);
-	}
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+	unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
+	auxmap__store_charbufarray_as_bytebuf(auxmap,
+	                                      arg_start_pointer + exe_arg_len,
+	                                      total_args_len - exe_arg_len,
+	                                      MAX_PROC_ARG_ENV - exe_arg_len);
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
@@ -124,12 +125,84 @@ int BPF_PROG(execve_x, struct pt_regs *regs, long ret) {
 	/* We have to split here the bpf program, otherwise, it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_EXECVE_X);
+	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_EXECVE_X);
+	return 0;
+}
+
+/* FAILURE PATH ONLY: reached via tail call when ret != 0 */
+SEC("tp_btf/sys_exit")
+int BPF_PROG(t1_execve_x, struct pt_regs *regs, long ret) {
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap) {
+		return 0;
+	}
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	struct task_struct *task = get_current_task();
+	unsigned long argv = extract__syscall_argument(regs, 1);
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+	auxmap__store_exe_args_failure(auxmap, (char **)argv);
+
+	/* Parameter 4: tid (type: PT_PID) */
+	/* this is called `tid` but it is the `pid`. */
+	int64_t pid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PID);
+	auxmap__store_s64_param(auxmap, pid);
+
+	/* Parameter 5: pid (type: PT_PID) */
+	/* this is called `pid` but it is the `tgid`. */
+	int64_t tgid = (int64_t)extract__task_xid_nr(task, PIDTYPE_TGID);
+	auxmap__store_s64_param(auxmap, tgid);
+
+	/* Parameter 6: ptid (type: PT_PID) */
+	/* this is called `ptid` but it is the `pgid`. */
+	int64_t pgid_val = (int64_t)extract__task_xid_nr(task, PIDTYPE_PGID);
+	auxmap__store_s64_param(auxmap, pgid_val);
+
+	/* Parameter 7: cwd (type: PT_CHARBUF) */
+	/// TODO: right now we leave the current working directory empty like in the old probe.
+	auxmap__store_empty_param(auxmap);
+
+	/* Parameter 8: fdlimit (type: PT_UINT64) */
+	unsigned long fdlimit = extract__fdlimit(task);
+	auxmap__store_u64_param(auxmap, fdlimit);
+
+	/* Parameter 9: pgft_maj (type: PT_UINT64) */
+	unsigned long pgft_maj = extract__pgft_maj(task);
+	auxmap__store_u64_param(auxmap, pgft_maj);
+
+	/* Parameter 10: pgft_min (type: PT_UINT64) */
+	unsigned long pgft_min = extract__pgft_min(task);
+	auxmap__store_u64_param(auxmap, pgft_min);
+
+	struct mm_struct *mm = NULL;
+	READ_TASK_FIELD_INTO(&mm, task, mm);
+
+	/* Parameter 11: vm_size (type: PT_UINT32) */
+	uint32_t vm_size = extract__vm_size(mm);
+	auxmap__store_u32_param(auxmap, vm_size);
+
+	/* Parameter 12: vm_rss (type: PT_UINT32) */
+	uint32_t vm_rss = extract__vm_rss(mm);
+	auxmap__store_u32_param(auxmap, vm_rss);
+
+	/* Parameter 13: vm_swap (type: PT_UINT32) */
+	uint32_t vm_swap = extract__vm_swap(mm);
+	auxmap__store_u32_param(auxmap, vm_swap);
+
+	/* Parameter 14: comm (type: PT_CHARBUF) */
+	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, TASK_COMM_LEN, KERNEL);
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_EXECVE_X);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t1_execve_x, struct pt_regs *regs, long ret) {
+int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {
 		return 0;
@@ -228,12 +301,12 @@ int BPF_PROG(t1_execve_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_EXECVE_X);
+	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T3_EXECVE_X);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret) {
+int BPF_PROG(t3_execve_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {
 		return 0;
