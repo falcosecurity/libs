@@ -15,6 +15,7 @@
 
 include(cxxopts)
 include(jsoncpp)
+include(zlib)
 
 set(sources util.cpp platform.cpp test.cpp)
 
@@ -27,8 +28,8 @@ endif()
 add_executable(sinsp-example ${sources})
 
 add_dependencies(sinsp-example cxxopts)
-target_include_directories(sinsp-example PRIVATE "${CXXOPTS_INCLUDE_DIR}")
-target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}")
+target_include_directories(sinsp-example PRIVATE "${CXXOPTS_INCLUDE_DIR}" "${ZLIB_INCLUDE}")
+target_link_libraries(sinsp-example sinsp "${JSONCPP_LIB}" "${ZLIB_LIB}")
 
 if(EMSCRIPTEN)
 	target_compile_options(sinsp-example PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")

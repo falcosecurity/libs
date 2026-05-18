@@ -1870,13 +1870,13 @@ static int32_t _scap_read_init(struct savefile_engine *handle,
 //
 // Parse the headers of a trace file and load the tables
 //
-static int32_t scap_read_init(struct savefile_engine *handle,
-                              scap_reader_t *r,
-                              scap_machine_info *machine_info_p,
-                              struct scap_proclist *proclist_p,
-                              scap_addrlist **addrlist_p,
-                              scap_userlist **userlist_p,
-                              char *error) {
+int32_t scap_savefile_read_init(struct savefile_engine *handle,
+                                scap_reader_t *r,
+                                scap_machine_info *machine_info_p,
+                                struct scap_proclist *proclist_p,
+                                scap_addrlist **addrlist_p,
+                                scap_userlist **userlist_p,
+                                char *error) {
 	proclist_p->m_callbacks.m_refresh_start_cb(proclist_p->m_callbacks.m_callback_context);
 	int32_t rc =
 	        _scap_read_init(handle, r, machine_info_p, proclist_p, addrlist_p, userlist_p, error);
@@ -1884,10 +1884,10 @@ static int32_t scap_read_init(struct savefile_engine *handle,
 	return rc;
 }
 
-static int32_t next_event_from_file(struct savefile_engine *handle,
-                                    scap_evt **pevent,
-                                    uint16_t *pdevid,
-                                    uint32_t *pflags) {
+int32_t scap_savefile_next_event_from_file(struct savefile_engine *handle,
+                                           scap_evt **pevent,
+                                           uint16_t *pdevid,
+                                           uint32_t *pflags) {
 	block_header bh;
 	size_t readsize;
 	uint32_t readlen;
@@ -2132,7 +2132,7 @@ static int32_t next(struct scap_engine_handle engine,
                     uint16_t *pdevid,
                     uint32_t *pflags) {
 	struct savefile_engine *handle = engine.m_handle;
-	int32_t res = next_event_from_file(handle, pevent, pdevid, pflags);
+	int32_t res = scap_savefile_next_event_from_file(handle, pevent, pdevid, pflags);
 	// If we fail we don't convert the event.
 	if(res != SCAP_SUCCESS) {
 		return res;
@@ -2376,13 +2376,13 @@ static int32_t init(struct scap *main_handle, struct scap_open_args *oargs) {
 
 	handle->m_use_last_block_header = false;
 
-	res = scap_read_init(handle,
-	                     reader,
-	                     &platform->m_machine_info,
-	                     &platform->m_proclist,
-	                     &platform->m_addrlist,
-	                     &platform->m_userlist,
-	                     main_handle->m_lasterr);
+	res = scap_savefile_read_init(handle,
+	                              reader,
+	                              &platform->m_machine_info,
+	                              &platform->m_proclist,
+	                              &platform->m_addrlist,
+	                              &platform->m_userlist,
+	                              main_handle->m_lasterr);
 
 	if(res != SCAP_SUCCESS) {
 		reader->close(reader);
@@ -2452,13 +2452,13 @@ static int32_t scap_savefile_restart_capture(scap_t *handle) {
 
 	scap_platform_close(platform);
 
-	if((res = scap_read_init(engine,
-	                         engine->m_reader,
-	                         &platform->m_machine_info,
-	                         &platform->m_proclist,
-	                         &platform->m_addrlist,
-	                         &platform->m_userlist,
-	                         handle->m_lasterr)) != SCAP_SUCCESS) {
+	if((res = scap_savefile_read_init(engine,
+	                                  engine->m_reader,
+	                                  &platform->m_machine_info,
+	                                  &platform->m_proclist,
+	                                  &platform->m_addrlist,
+	                                  &platform->m_userlist,
+	                                  handle->m_lasterr)) != SCAP_SUCCESS) {
 		char error_copy[SCAP_LASTERR_SIZE];
 		scap_errprintf(error_copy, 0, "%s", scap_getlasterr(handle));
 		scap_errprintf(handle->m_lasterr, 0, "could not restart capture: %s", error_copy);

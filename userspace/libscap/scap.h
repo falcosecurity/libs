@@ -81,6 +81,7 @@ struct scap_vtable;
 #include <libscap/engine/kmod/kmod_public.h>
 #include <libscap/engine/modern_bpf/modern_bpf_public.h>
 #include <libscap/engine/nodriver/nodriver_public.h>
+#include <libscap/engine/raw_block/raw_block_public.h>
 #include <libscap/engine/savefile/savefile_public.h>
 #include <libscap/engine/source_plugin/source_plugin_public.h>
 #include <libscap/engine/test_input/test_input_public.h>

@@ -75,6 +75,8 @@ jobs:
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google.txt
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google_comments.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_comments.txt
           diff -u /tmp/curl_google.txt /tmp/curl_google_comments.txt
+          libsinsp/examples/sinsp-example --raw_block ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_raw_block.txt
+          diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google.txt /tmp/curl_google_raw_block.txt
 
       # On zig, check the glibc versions linked to unit-test-libsinsp to make sure we are actually using the correct
       # glibc version.

@@ -18,22 +18,21 @@ limitations under the License.
 #include <cstdio>
 #include <cinttypes>
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <cxxopts.hpp>
 #include <csignal>
 #include <libsinsp/sinsp.h>
 #include <libscap/scap_engines.h>
 #include <functional>
-#include <memory>
 #include "util.h"
 
 #include <iomanip>
 #include <libsinsp/filter/ppm_codes.h>
 #include <libsinsp/state/table_registry.h>
-#include <unordered_set>
-#include <memory>
 #include <thread>
 #include <json/json.h>
+#include <zlib.h>
 
 #ifndef _WIN32
 extern "C" {
@@ -70,6 +69,11 @@ static string table_mode = "";
 static string engine_string;
 static string filter_string = "";
 static string file_path = "";
+// Backing storage for the raw_block engine. These must outlive the capture, so
+// the buffer pointer and size are kept here and handed to open_raw_block().
+static std::vector<uint8_t> raw_block_buffer;
+static uint8_t* raw_block_buffer_ptr = nullptr;
+static uint64_t raw_block_buffer_size = 0;
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 static bool all_cpus = false;
@@ -346,6 +350,10 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		("s,scap_file",
 			"Scap file",
 			cxxopts::value<std::string>())
+		("R,raw_block",
+			"Raw block engine. Reads a scap file fully into memory and replays its "
+			"blocks through the raw_block engine.",
+			cxxopts::value<std::string>())
 		("p,plugin",
 			"Plugin. Path can follow the pattern \"filepath.so|init_cfg|open_params\". "
 			"Must come after the \"-s\" option when reading events from a file.",
@@ -435,6 +443,11 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		if(result.count("scap_file")) {
 			select_engine(SAVEFILE_ENGINE);
 			file_path = result["scap_file"].as<std::string>();
+		}
+
+		if(result.count("raw_block")) {
+			select_engine(RAW_BLOCK_ENGINE);
+			file_path = result["raw_block"].as<std::string>();
 		}
 
 		if(result.count("plugin")) {
@@ -550,6 +563,58 @@ libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector) {
 	return {};
 }
 
+// Load a scap file fully into `raw_block_buffer` so it can be replayed through the
+// raw_block engine. The engine consumes raw (uncompressed) scap blocks, so gzip-compressed
+// scap files are transparently inflated here.
+static void load_raw_block_buffer(const std::string& path) {
+	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	if(!file) {
+		std::cerr << "Unable to open file: " << path << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	const std::streamsize size = file.tellg();
+	file.seekg(0, std::ios::beg);
+	std::vector<uint8_t> file_data(static_cast<size_t>(size));
+	if(size > 0 && !file.read(reinterpret_cast<char*>(file_data.data()), size)) {
+		std::cerr << "Unable to read file: " << path << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// The gzip magic number is 0x1f8b.
+	const bool is_gzip = file_data.size() >= 2 && file_data[0] == 0x1f && file_data[1] == 0x8b;
+	if(!is_gzip) {
+		raw_block_buffer = std::move(file_data);
+		return;
+	}
+
+	z_stream strm{};
+	// 16 + MAX_WBITS selects gzip decoding.
+	if(inflateInit2(&strm, 16 + MAX_WBITS) != Z_OK) {
+		std::cerr << "Unable to initialize zlib for: " << path << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	strm.next_in = file_data.data();
+	strm.avail_in = static_cast<uInt>(file_data.size());
+
+	raw_block_buffer.clear();
+	std::vector<uint8_t> chunk(1 << 16);
+	int ret = Z_OK;
+	do {
+		strm.next_out = chunk.data();
+		strm.avail_out = static_cast<uInt>(chunk.size());
+		ret = inflate(&strm, Z_NO_FLUSH);
+		if(ret != Z_OK && ret != Z_STREAM_END) {
+			inflateEnd(&strm);
+			std::cerr << "Unable to decompress file: " << path << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		raw_block_buffer.insert(raw_block_buffer.end(),
+		                        chunk.data(),
+		                        chunk.data() + (chunk.size() - strm.avail_out));
+	} while(ret != Z_STREAM_END);
+	inflateEnd(&strm);
+}
+
 void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_codes) {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
 	libsinsp::events::set<ppm_sc_code>
@@ -612,6 +677,19 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		                          !all_cpus,
 		                          ppm_sc,
 		                          disable_iterators);
+	}
+#endif
+#ifdef HAS_ENGINE_RAW_BLOCK
+	else if(!engine_string.compare(RAW_BLOCK_ENGINE)) {
+		if(file_path.empty()) {
+			std::cerr << "You must specify the path to the file if you use the 'raw_block' engine"
+			          << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		load_raw_block_buffer(file_path);
+		raw_block_buffer_ptr = raw_block_buffer.data();
+		raw_block_buffer_size = static_cast<uint64_t>(raw_block_buffer.size());
+		inspector.open_raw_block(&raw_block_buffer_ptr, &raw_block_buffer_size);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
