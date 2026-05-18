@@ -49,6 +49,10 @@ extern const struct scap_vtable scap_modern_bpf_engine;
 extern const struct scap_vtable scap_test_input_engine;
 #endif
 
+#ifdef HAS_ENGINE_RAW_BLOCK
+extern const struct scap_vtable scap_raw_block_engine;
+#endif
+
 #ifdef __cplusplus
 }
 #endif

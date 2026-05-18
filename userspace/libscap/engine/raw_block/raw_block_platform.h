@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,10 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#cmakedefine HAS_ENGINE_TEST_INPUT
-#cmakedefine HAS_ENGINE_NODRIVER
-#cmakedefine HAS_ENGINE_SAVEFILE
-#cmakedefine HAS_ENGINE_SOURCE_PLUGIN
-#cmakedefine HAS_ENGINE_KMOD
-#cmakedefine HAS_ENGINE_MODERN_BPF
-#cmakedefine HAS_ENGINE_RAW_BLOCK
+#include <libscap/scap_platform_impl.h>
+
+struct scap_raw_block_platform {
+	struct scap_platform m_generic;
+};
