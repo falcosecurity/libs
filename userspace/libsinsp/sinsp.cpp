@@ -768,6 +768,25 @@ void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode) {
 #endif
 }
 
+void sinsp::open_raw_block(uint8_t** buffer_ptr, uint64_t* buffer_size_ptr) {
+#ifdef HAS_ENGINE_RAW_BLOCK
+	scap_open_args oargs{};
+	scap_raw_block_engine_params params;
+	params.buffer_ptr = buffer_ptr;
+	params.buffer_size_ptr = buffer_size_ptr;
+
+	scap_platform* platform = scap_raw_block_alloc_platform({::on_proc_table_refresh_start,
+	                                                         ::on_proc_table_refresh_end,
+	                                                         ::on_new_entry_from_proc,
+	                                                         this});
+	params.platform = platform;
+	oargs.engine_params = &params;
+	try_open_common(&oargs, &scap_raw_block_engine, platform, SINSP_MODE_CAPTURE);
+#else
+	throw sinsp_exception("RAW_BLOCK engine is not supported in this build");
+#endif
+}
+
 /*=============================== OPEN METHODS ===============================*/
 
 /*=============================== Engine related ===============================*/
