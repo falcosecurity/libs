@@ -23,6 +23,15 @@
 #    in a way that is safe but noisy for TSAN.
 #
 
+# 3) sinsp_seqlock speculative reads: The seqlock reader speculatively copies
+#    data, then validates the sequence counter. If a writer was active during
+#    the read, the reader retries. TSAN cannot model this retry-based
+#    correctness and reports false-positive races between the writer (under
+#    write_guard) and the reader (inside sinsp_seqlock::read). Suppressed
+#    because the seqlock invariant guarantees the reader never observes a
+#    partial write without retrying.
+#
+
 # The patterns below match Folly TLS/registry and ConcurrentHashMap hazptr reclamation only.
 race:folly::threadlocal_detail
 race:folly::SingletonThreadLocal
@@ -37,3 +46,6 @@ race:onThreadExit
 race:unlink_and_reclaim_nodes
 race:concurrenthashmap::HazptrDeleter
 race:ConcurrentHashMap-detail.h
+
+# Seqlock speculative reader vs. writer (see comment 3 above).
+race:sinsp_seqlock::read

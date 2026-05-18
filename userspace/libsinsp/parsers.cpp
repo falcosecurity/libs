@@ -2248,13 +2248,13 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		memcpy(&port, packed::in_sockaddr::port(packed_data), sizeof(port));
 		if(port > 0) {
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->exclusive_lock();
+			auto lock = fdi->write_guard();
 			fdi->m_type = SCAP_FD_IPV4_SERVSOCK;
 			fdi->m_sockinfo.m_ipv4serverinfo.m_ip = ip;
 			fdi->m_sockinfo.m_ipv4serverinfo.m_port = port;
 			fdi->m_sockinfo.m_ipv4serverinfo.m_l4proto =
 			        fdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
-			fdi->m_flags |= sinsp_fdinfo::FLAGS_ROLE_SERVER;
+			fetch_or_relaxed(fdi->m_flags, (uint32_t)sinsp_fdinfo::FLAGS_ROLE_SERVER);
 		}
 	} else if(family == PPM_AF_INET6) {
 		const auto *const ip = packed::in6_sockaddr::ip(packed_data);
@@ -2262,7 +2262,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		memcpy(&port, packed::in6_sockaddr::port(packed_data), sizeof(uint16_t));
 		if(port > 0) {
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->exclusive_lock();
+			auto lock = fdi->write_guard();
 			if(sinsp_utils::is_ipv4_mapped_ipv6(ip)) {
 				fdi->m_type = SCAP_FD_IPV4_SERVSOCK;
 				fdi->m_sockinfo.m_ipv4serverinfo.m_l4proto =
@@ -2278,7 +2278,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 				fdi->m_sockinfo.m_ipv6serverinfo.m_l4proto =
 				        fdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 			}
-			fdi->m_flags |= sinsp_fdinfo::FLAGS_ROLE_SERVER;
+			fetch_or_relaxed(fdi->m_flags, (uint32_t)sinsp_fdinfo::FLAGS_ROLE_SERVER);
 		}
 	}
 	const char *parstr;
@@ -2293,7 +2293,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 
 void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8_t *packed_data) {
 	const auto fdinfo = evt.get_fd_info();
-	auto lock = fdinfo->exclusive_lock();
+	auto lock = fdinfo->write_guard();
 	auto &sockinfo = fdinfo->m_sockinfo;
 	switch(const uint8_t family = *packed::generic_sockaddr::family(packed_data); family) {
 	case PPM_AF_INET: {
@@ -2322,7 +2322,7 @@ void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8
 	}
 	default: {
 		const char *parstr;
-		fdinfo->set_name_locked(evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE));
+		fdinfo->set_name_inner(evt.get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE));
 		break;
 	}
 	}
@@ -2463,7 +2463,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->exclusive_lock();
+			auto lock = fdi->write_guard();
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
 				fdi->m_type = SCAP_FD_IPV6_SOCK;
 				changed =
@@ -2491,10 +2491,10 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			                             &evt.get_paramstr_storage()[0],
 			                             evt.get_paramstr_storage().size(),
 			                             can_resolve_hostname_and_port);
-			fdi->set_name_locked(&evt.get_paramstr_storage()[0]);
+			fdi->set_name_inner(&evt.get_paramstr_storage()[0]);
 		} else {
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->exclusive_lock();
+			auto lock = fdi->write_guard();
 			const auto *const sip = packed::in_socktuple::sip(exit_tuple_data);
 			const auto *const sport = packed::in_socktuple::sport(exit_tuple_data);
 			const uint8_t *dip;
@@ -2518,7 +2518,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			                             &evt.get_paramstr_storage()[0],
 			                             evt.get_paramstr_storage().size(),
 			                             can_resolve_hostname_and_port);
-			fdi->set_name_locked(&evt.get_paramstr_storage()[0]);
+			fdi->set_name_inner(&evt.get_paramstr_storage()[0]);
 		}
 	} else {
 		auto fdi = evt.get_fd_info();
@@ -2530,14 +2530,14 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		const char *dpath;
 		resolve_connect_unix_destination(exit_tuple_data, exit_addr_data, enter_addr_data, dpath);
 
-		auto lock = fdi->exclusive_lock();
+		auto lock = fdi->write_guard();
 		const auto *raw = packed::un_socktuple::source(exit_tuple_data);
 		const auto *raw_dest = packed::un_socktuple::dest(exit_tuple_data);
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_source, raw, sizeof(uint64_t));
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_dest, raw_dest, sizeof(uint64_t));
 		const auto source = fdi->m_sockinfo.m_unixinfo.m_fields.m_source;
 		const auto dest = fdi->m_sockinfo.m_unixinfo.m_fields.m_dest;
-		fdi->set_name_locked(encode_unix_tuple_fd_name(evt, source, dest, dpath));
+		fdi->set_name_inner(encode_unix_tuple_fd_name(evt, source, dest, dpath));
 	}
 
 	if(evt.get_fd_info()->is_role_none()) {
@@ -2801,42 +2801,6 @@ void sinsp_parser::parse_close_range_exit(sinsp_evt &evt) const {
 	}
 }
 
-static bool fd_in_range(int64_t fd, uint32_t first, uint32_t last) {
-	return fd >= 0 && static_cast<uint64_t>(fd) >= first && static_cast<uint64_t>(fd) <= last;
-}
-
-void sinsp_parser::parse_close_range_exit(sinsp_evt &evt) const {
-	if(evt.get_tinfo() == nullptr) {
-		return;
-	}
-
-	const int64_t retval = evt.get_syscall_return_value();
-	if(retval < 0) {
-		return;
-	}
-
-	auto *fd_table = evt.get_tinfo()->get_fd_table();
-	if(fd_table == nullptr) {
-		return;
-	}
-
-	const uint32_t first = evt.get_param(1)->as<uint32_t>();
-	const uint32_t last = evt.get_param(2)->as<uint32_t>();
-	const uint32_t flags = evt.get_param(3)->as<uint32_t>();
-
-	if(flags & PPM_CLOSE_RANGE_CLOEXEC) {
-		fd_table->loop([&](int64_t fd, sinsp_fdinfo &fdinfo) {
-			if(fd_in_range(fd, first, last)) {
-				fdinfo.m_openflags |= PPM_O_CLOEXEC;
-			}
-			return true;
-		});
-	} else {
-		fd_table->retain(
-		        [&](int64_t fd, const sinsp_fdinfo &) { return !fd_in_range(fd, first, last); });
-	}
-}
-
 void sinsp_parser::add_pipe(sinsp_evt &evt,
                             const int64_t fd,
                             const uint64_t ino,
@@ -3087,7 +3051,7 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo.data());
 	const auto family = *packed::generic_tuple::family(packed_data);
 	auto fdi = evt.get_fd_info();
-	auto lock = fdi->exclusive_lock();
+	auto lock = fdi->write_guard();
 
 	if(family == PPM_AF_INET) {
 		if(fdi->m_type == SCAP_FD_IPV4_SERVSOCK) {
@@ -3130,7 +3094,7 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 		const auto *dst = packed::un_socktuple::dest(packed_data);
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_source, src, sizeof(uint64_t));
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_dest, dst, sizeof(uint64_t));
-		fdi->set_name_locked(
+		fdi->set_name_inner(
 		        reinterpret_cast<const char *>(packed::un_socktuple::dpath(packed_data)));
 		return true;
 	}
@@ -3478,7 +3442,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
 	    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
-	   (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+	   (fdinfo.get_name().empty() || !fdinfo.is_tcp_socket())) {
 		// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event. If the fd
 		// still doesn't contain tuple info (because the socket is a datagram one or because
 		// some event was lost), add it here.

@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <mutex>
 #include <shared_mutex>
+#include <libsinsp/seqlock.h>
 
 /*!
  * \brief Tag: single-threaded access to libsinsp state for this inspector (no inter-thread
@@ -70,7 +71,8 @@ struct sync_policy_traits<sync_policy_single> {
 	using shared_mutex = sinsp_null_shared_mutex;
 	using thread_state_mutex = sinsp_null_shared_mutex;
 	using thread_children_mutex = sinsp_null_mutex;
-	using fdinfo_inner_mutex = sinsp_null_shared_mutex;
+	using fdinfo_seqlock = sinsp_null_seqlock;
+	using fdinfo_seqlock_write_guard = sinsp_null_seqlock_write_guard;
 	using thread_group_mutex = sinsp_null_shared_mutex;
 	/// Always held around fdtable map ops; no-op type for single-threaded policy.
 	using fdtable_outer_mutex = sinsp_null_shared_mutex;
@@ -89,7 +91,8 @@ struct sync_policy_traits<sync_policy_concurrent> {
 	using shared_mutex = std::shared_mutex;
 	using thread_state_mutex = std::shared_mutex;
 	using thread_children_mutex = std::mutex;
-	using fdinfo_inner_mutex = std::shared_mutex;
+	using fdinfo_seqlock = sinsp_seqlock;
+	using fdinfo_seqlock_write_guard = sinsp_seqlock_write_guard;
 	using thread_group_mutex = std::shared_mutex;
 #ifdef LIBSINSP_USE_FOLLY
 	using fdtable_outer_mutex = sinsp_null_shared_mutex;

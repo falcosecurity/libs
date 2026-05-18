@@ -21,6 +21,7 @@ limitations under the License.
 #include <libsinsp/state/table_entry.h>
 #include <libsinsp/state/type_info.h>
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 

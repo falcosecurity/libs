@@ -47,8 +47,7 @@ static void set_ipv6_addr_high(ipv6addr& a,
 
 template<typename SyncPolicy>
 char sinsp_fdinfo_impl<SyncPolicy>::get_typechar() const {
-	std::shared_lock l(m_mutex.m);
-	switch(m_type) {
+	switch(load_relaxed(m_type)) {
 	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
 		return CHAR_FD_FILE;
@@ -100,8 +99,7 @@ char sinsp_fdinfo_impl<SyncPolicy>::get_typechar() const {
 
 template<typename SyncPolicy>
 const char* sinsp_fdinfo_impl<SyncPolicy>::get_typestring() const {
-	std::shared_lock l(m_mutex.m);
-	switch(m_type) {
+	switch(load_relaxed(m_type)) {
 	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
 		return "file";
@@ -176,9 +174,69 @@ sinsp_fdinfo_impl<SyncPolicy>::get_static_fields() {
 
 	// the rest fo the fields are more trivial to expose
 	DEFINE_STATIC_FIELD(ret, self, m_openflags, "open_flags");
-	DEFINE_STATIC_FIELD(ret, self, m_name, "name");
-	DEFINE_STATIC_FIELD(ret, self, m_name_raw, "name_raw");
-	DEFINE_STATIC_FIELD(ret, self, m_oldname, "old_name");
+	libsinsp::state::define_static_field<std::string>(
+	        ret,
+	        "name",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        auto p = std::atomic_load(&c->m_name);
+		        if(p) {
+			        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING,
+			                                                          std::string>(*p);
+		        }
+		        static const std::string s_empty;
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING, std::string>(
+		                s_empty);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        std::string val;
+		        in_data.copy_to<SS_PLUGIN_ST_STRING, std::string>(val);
+		        std::atomic_store(&c->m_name,
+		                          std::make_shared<const std::string>(std::move(val)));
+	        });
+	libsinsp::state::define_static_field<std::string>(
+	        ret,
+	        "name_raw",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        auto p = std::atomic_load(&c->m_name_raw);
+		        if(p) {
+			        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING,
+			                                                          std::string>(*p);
+		        }
+		        static const std::string s_empty;
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING, std::string>(
+		                s_empty);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        std::string val;
+		        in_data.copy_to<SS_PLUGIN_ST_STRING, std::string>(val);
+		        std::atomic_store(&c->m_name_raw,
+		                          std::make_shared<const std::string>(std::move(val)));
+	        });
+	libsinsp::state::define_static_field<std::string>(
+	        ret,
+	        "old_name",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        auto p = std::atomic_load(&c->m_oldname);
+		        if(p) {
+			        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING,
+			                                                          std::string>(*p);
+		        }
+		        static const std::string s_empty;
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING, std::string>(
+		                s_empty);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        std::string val;
+		        in_data.copy_to<SS_PLUGIN_ST_STRING, std::string>(val);
+		        std::atomic_store(&c->m_oldname,
+		                          std::make_shared<const std::string>(std::move(val)));
+	        });
 	DEFINE_STATIC_FIELD(ret, self, m_flags, "flags");
 	DEFINE_STATIC_FIELD(ret, self, m_dev, "dev");
 	DEFINE_STATIC_FIELD(ret, self, m_mount_id, "mount_id");
@@ -287,89 +345,92 @@ sinsp_fdinfo_impl<SyncPolicy>::get_static_fields() {
 
 template<typename SyncPolicy>
 std::string sinsp_fdinfo_impl<SyncPolicy>::tostring_clean() const {
-	std::shared_lock l(m_mutex.m);
-	std::string tstr = m_name;
-	l.unlock();
+	auto p = std::atomic_load(&m_name);
+	std::string tstr = p ? *p : std::string{};
 	std::string storage;
 	return std::string(sanitize_string(tstr, storage));
 }
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::add_filename_raw(std::string_view rawpath) {
-	std::unique_lock l(m_mutex.m);
-	m_name_raw = std::string(rawpath);
+	auto new_ptr = std::make_shared<const std::string>(rawpath);
+	write_guard_type g(m_seq);
+	std::atomic_store(&m_name_raw, std::move(new_ptr));
 }
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::add_filename(std::string_view fullpath) {
-	std::unique_lock l(m_mutex.m);
-	m_name = std::string(fullpath);
+	auto new_ptr = std::make_shared<const std::string>(fullpath);
+	write_guard_type g(m_seq);
+	set_name_inner(std::move(new_ptr));
 }
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::set_net_role_by_guessing(const sinsp_threadinfo& ptinfo,
                                                              const bool incoming) {
-	// Read port numbers under shared lock, then release. Do not hold fdinfo lock
+	// Read port numbers under seqlock, then release. Do not hold fdinfo protection
 	// while calling ptinfo.is_bound_to_port/uses_client_port — they take the
 	// fdtable lock, and find_ref() elsewhere takes fdtable then fdinfo, so
 	// holding fdinfo here would create lock-order inversion (potential deadlock).
 	uint16_t dport, sport;
-	{
-		std::shared_lock l(m_mutex.m);
+	m_seq.read([&] {
 		dport = m_sockinfo.m_ipv4info.m_fields.m_dport;
 		sport = m_sockinfo.m_ipv4info.m_fields.m_sport;
-	}
+	});
 	const bool bound = ptinfo.is_bound_to_port(dport);
 	const bool uses_client = ptinfo.uses_client_port(sport);
 
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	if(!bound) {
-		m_flags |= FLAGS_ROLE_CLIENT;
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_ROLE_CLIENT);
 		return;
 	}
 	if(!uses_client) {
-		m_flags |= FLAGS_ROLE_SERVER;
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_ROLE_SERVER);
 		return;
 	}
-	if(!(m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER))) {
+	auto f = load_relaxed(m_flags);
+	if(!(f & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER))) {
 		if(incoming) {
-			m_flags |= FLAGS_ROLE_SERVER;
+			fetch_or_relaxed(m_flags, (uint32_t)FLAGS_ROLE_SERVER);
 		} else {
-			m_flags |= FLAGS_ROLE_CLIENT;
+			fetch_or_relaxed(m_flags, (uint32_t)FLAGS_ROLE_CLIENT);
 		}
 	}
 }
 
 template<typename SyncPolicy>
 scap_l4_proto sinsp_fdinfo_impl<SyncPolicy>::get_l4proto() const {
-	std::shared_lock l(m_mutex.m);
-	scap_fd_type evt_type = m_type;
-	bool role_none = (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
+	scap_fd_type evt_type;
+	sinsp_sockinfo si;
+	uint32_t f;
+	m_seq.read([&] {
+		evt_type = m_type;
+		si = m_sockinfo;
+		f = m_flags;
+	});
+	bool role_none = (f & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
 
 	if(evt_type == SCAP_FD_IPV4_SOCK) {
-		if((scap_l4_proto)m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW) {
+		if((scap_l4_proto)si.m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW) {
 			return SCAP_L4_RAW;
 		}
-
 		if(role_none) {
 			return SCAP_L4_NA;
 		}
-
-		return (scap_l4_proto)(m_sockinfo.m_ipv4info.m_fields.m_l4proto);
+		return (scap_l4_proto)(si.m_ipv4info.m_fields.m_l4proto);
 	} else if(evt_type == SCAP_FD_IPV4_SERVSOCK) {
-		return (scap_l4_proto)(m_sockinfo.m_ipv4serverinfo.m_l4proto);
+		return (scap_l4_proto)(si.m_ipv4serverinfo.m_l4proto);
 	} else if(evt_type == SCAP_FD_IPV6_SOCK) {
-		if((scap_l4_proto)m_sockinfo.m_ipv6info.m_fields.m_l4proto == SCAP_L4_RAW) {
+		if((scap_l4_proto)si.m_ipv6info.m_fields.m_l4proto == SCAP_L4_RAW) {
 			return SCAP_L4_RAW;
 		}
-
 		if(role_none) {
 			return SCAP_L4_NA;
 		}
-
-		return (scap_l4_proto)(m_sockinfo.m_ipv6info.m_fields.m_l4proto);
+		return (scap_l4_proto)(si.m_ipv6info.m_fields.m_l4proto);
 	} else if(evt_type == SCAP_FD_IPV6_SERVSOCK) {
-		return (scap_l4_proto)(m_sockinfo.m_ipv6serverinfo.m_l4proto);
+		return (scap_l4_proto)(si.m_ipv6serverinfo.m_l4proto);
 	} else {
 		return SCAP_L4_NA;
 	}
@@ -381,7 +442,7 @@ void sinsp_fdinfo_impl<SyncPolicy>::set_file_info(scap_fd_type type,
                                                   uint32_t mount_id,
                                                   uint32_t dev,
                                                   uint64_t ino) {
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	m_type = type;
 	m_openflags = openflags;
 	m_mount_id = mount_id;
@@ -391,7 +452,7 @@ void sinsp_fdinfo_impl<SyncPolicy>::set_file_info(scap_fd_type type,
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::init_socket(scap_fd_type type, scap_l4_proto l4proto) {
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	m_type = type;
 	m_sockinfo = {};
 	if(type == SCAP_FD_IPV4_SOCK || type == SCAP_FD_IPV4_SERVSOCK) {
@@ -403,7 +464,7 @@ void sinsp_fdinfo_impl<SyncPolicy>::init_socket(scap_fd_type type, scap_l4_proto
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::set_pipe_info(uint64_t ino, uint32_t openflags) {
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	m_type = SCAP_FD_FIFO;
 	m_ino = ino;
 	m_openflags = openflags;
@@ -411,14 +472,14 @@ void sinsp_fdinfo_impl<SyncPolicy>::set_pipe_info(uint64_t ino, uint32_t openfla
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::set_memfd_info(uint32_t flags) {
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	m_type = SCAP_FD_MEMFD;
 	m_openflags = flags;
 }
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::set_pidfd_info(int64_t pid, uint32_t flags) {
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	m_type = SCAP_FD_PIDFD;
 	m_pid = pid;
 	m_openflags = flags;
@@ -426,23 +487,24 @@ void sinsp_fdinfo_impl<SyncPolicy>::set_pidfd_info(int64_t pid, uint32_t flags) 
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::set_cloexec(bool enable) {
-	std::unique_lock l(m_mutex.m);
+	write_guard_type g(m_seq);
 	if(enable) {
-		m_openflags |= PPM_O_CLOEXEC;
+		fetch_or_relaxed(m_openflags, (uint32_t)PPM_O_CLOEXEC);
 	} else {
-		m_openflags &= ~PPM_O_CLOEXEC;
+		fetch_and_relaxed(m_openflags, ~(uint32_t)PPM_O_CLOEXEC);
 	}
 }
 
 template<typename SyncPolicy>
 void sinsp_fdinfo_impl<SyncPolicy>::set_unix_socket_info(const uint8_t* packed_data,
                                                          std::string name) {
-	std::unique_lock l(m_mutex.m);
+	auto new_name = std::make_shared<const std::string>(std::move(name));
+	write_guard_type g(m_seq);
 	const auto* source = packed::un_socktuple::source(packed_data);
 	const auto* dest = packed::un_socktuple::dest(packed_data);
 	memcpy(&m_sockinfo.m_unixinfo.m_fields.m_source, source, sizeof(uint64_t));
 	memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, dest, sizeof(uint64_t));
-	m_name = std::move(name);
+	set_name_inner(std::move(new_name));
 }
 
 template class sinsp_fdinfo_impl<sync_policy_default>;

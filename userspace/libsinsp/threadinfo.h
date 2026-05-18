@@ -582,8 +582,7 @@ public:
 
 	inline void update_main_fdtable() {
 		auto fdtable = get_fd_table();
-		auto val = !fdtable ? nullptr
-		                    : static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+		auto val = !fdtable ? nullptr : static_cast<const libsinsp::state::base_table*>(fdtable);
 		store_relaxed(m_main_fdtable, val);
 	}
 
@@ -604,7 +603,7 @@ public:
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.
 	 */
-	static extensible_struct::field_infos get_static_fields();
+	static libsinsp::state::static_field_infos get_static_fields();
 
 protected:
 	// Parameters provided at thread info construction phase.

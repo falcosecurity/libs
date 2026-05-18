@@ -110,7 +110,8 @@ template<typename SyncPolicy = sync_policy_default>
 class SINSP_PUBLIC sinsp_fdinfo_impl : public libsinsp::state::extensible_struct {
 public:
 	using traits = libsinsp::sync_policy_traits<SyncPolicy>;
-	using inner_mutex_type = typename traits::fdinfo_inner_mutex;
+	using seqlock_type = typename traits::fdinfo_seqlock;
+	using write_guard_type = typename traits::fdinfo_seqlock_write_guard;
 
 	/*!
 	  \brief FD flags.
@@ -148,130 +149,171 @@ public:
 	virtual ~sinsp_fdinfo_impl() = default;
 
 	virtual std::unique_ptr<sinsp_fdinfo_impl> clone() const {
-		std::shared_lock lock(m_mutex.m);
-		return std::make_unique<sinsp_fdinfo_impl>(*this);
+		auto c = std::make_unique<sinsp_fdinfo_impl>();
+		static_cast<libsinsp::state::extensible_struct&>(*c) =
+		        static_cast<const libsinsp::state::extensible_struct&>(*this);
+		m_seq.read([&] {
+			c->m_type = m_type;
+			c->m_sockinfo = m_sockinfo;
+			c->m_openflags = m_openflags;
+			c->m_flags = m_flags;
+			c->m_dev = m_dev;
+			c->m_mount_id = m_mount_id;
+			c->m_ino = m_ino;
+			c->m_pid = m_pid;
+			c->m_fd = m_fd;
+			c->m_name = std::atomic_load(&m_name);
+			c->m_name_raw = std::atomic_load(&m_name_raw);
+			c->m_oldname = std::atomic_load(&m_oldname);
+		});
+		c->m_name_changed = m_name_changed;
+		return c;
 	}
 
-	inline std::unique_lock<inner_mutex_type> exclusive_lock() const {
-		return std::unique_lock(m_mutex.m);
-	}
+	inline write_guard_type write_guard() const { return write_guard_type(m_seq); }
 
 	inline void snapshot_oldname() {
-		std::unique_lock lock(m_mutex.m);
-		m_oldname = m_name;
+		write_guard_type g(m_seq);
+		std::atomic_store(&m_oldname, std::atomic_load(&m_name));
 	}
 
 	inline bool consume_name_changed() {
 		return m_name_changed.exchange(false, std::memory_order_relaxed);
 	}
 
-	// --- Thread-safe getters (return by value, shared_lock) ---
-	inline scap_fd_type get_type() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type;
-	}
-	inline uint32_t get_openflags() const {
-		std::shared_lock l(m_mutex.m);
-		return m_openflags;
-	}
-	inline std::string get_name() const {
-		std::shared_lock l(m_mutex.m);
-		return m_name;
-	}
-	inline std::string get_name_raw() const {
-		std::shared_lock l(m_mutex.m);
-		return m_name_raw;
-	}
-	inline std::string get_oldname() const {
-		std::shared_lock l(m_mutex.m);
-		return m_oldname;
-	}
-	inline uint32_t get_flags_value() const {
-		std::shared_lock l(m_mutex.m);
-		return m_flags;
-	}
-	inline sinsp_sockinfo get_sockinfo() const {
-		std::shared_lock l(m_mutex.m);
-		return m_sockinfo;
-	}
-	inline uint32_t get_dev() const {
-		std::shared_lock l(m_mutex.m);
-		return m_dev;
-	}
-	inline uint32_t get_mount_id() const {
-		std::shared_lock l(m_mutex.m);
-		return m_mount_id;
-	}
-	inline int64_t get_fd_num() const {
-		std::shared_lock l(m_mutex.m);
-		return m_fd;
+	// =====================================================================
+	// Scalar getters -- lock-free via load_relaxed
+	// =====================================================================
+
+	inline scap_fd_type get_type() const { return load_relaxed(m_type); }
+	inline uint32_t get_openflags() const { return load_relaxed(m_openflags); }
+	inline uint32_t get_flags_value() const { return load_relaxed(m_flags); }
+	inline uint32_t get_dev() const { return load_relaxed(m_dev); }
+	inline uint32_t get_mount_id() const { return load_relaxed(m_mount_id); }
+	inline uint64_t get_ino() const { return load_relaxed(m_ino); }
+	inline int64_t get_pid() const { return load_relaxed(m_pid); }
+	inline int64_t get_fd_num() const { return load_relaxed(m_fd); }
+
+	inline uint32_t get_device() const { return load_relaxed(m_dev); }
+	inline uint32_t get_device_major() const { return (load_relaxed(m_dev) & 0xfff00) >> 8; }
+	inline uint32_t get_device_minor() const {
+		auto d = load_relaxed(m_dev);
+		return (d & 0xff) | ((d >> 12) & 0xfff00);
 	}
 
-	// --- Thread-safe setters (unique_lock) ---
+	// =====================================================================
+	// COW string getters -- lock-free via atomic_load
+	// =====================================================================
+
+	inline std::string get_name() const {
+		auto p = std::atomic_load(&m_name);
+		return p ? *p : std::string{};
+	}
+	inline std::string get_name_raw() const {
+		auto p = std::atomic_load(&m_name_raw);
+		return p ? *p : std::string{};
+	}
+	inline std::string get_oldname() const {
+		auto p = std::atomic_load(&m_oldname);
+		return p ? *p : std::string{};
+	}
+
+	// =====================================================================
+	// Seqlock-consistent getters (type + sockinfo)
+	// =====================================================================
+
+	inline sinsp_sockinfo get_sockinfo() const {
+		sinsp_sockinfo si;
+		m_seq.read([&] { si = m_sockinfo; });
+		return si;
+	}
+
+	// =====================================================================
+	// Scalar setters -- RAII write guard + relaxed atomic store
+	// =====================================================================
+
 	inline void set_type(scap_fd_type t) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_type = t;
 	}
 	inline void set_openflags(uint32_t f) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_openflags = f;
 	}
 	inline void or_openflags(uint32_t f) {
-		std::unique_lock l(m_mutex.m);
-		m_openflags |= f;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_openflags, f);
 	}
 	inline void and_openflags(uint32_t f) {
-		std::unique_lock l(m_mutex.m);
-		m_openflags &= f;
-	}
-	inline void set_name(std::string n) {
-		std::unique_lock l(m_mutex.m);
-		set_name_locked(std::move(n));
-	}
-	inline void set_name_locked(std::string n) {
-		if(m_name != n) {
-			m_name = std::move(n);
-			m_name_changed.store(true, std::memory_order_relaxed);
-		}
-	}
-	inline void set_name_raw(std::string n) {
-		std::unique_lock l(m_mutex.m);
-		m_name_raw = std::move(n);
-	}
-	inline void set_oldname(std::string n) {
-		std::unique_lock l(m_mutex.m);
-		m_oldname = std::move(n);
+		write_guard_type g(m_seq);
+		fetch_and_relaxed(m_openflags, f);
 	}
 	inline void set_flags_value(uint32_t f) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_flags = f;
 	}
-	inline void set_sockinfo(sinsp_sockinfo si) {
-		std::unique_lock l(m_mutex.m);
-		m_sockinfo = si;
-	}
 	inline void set_dev(uint32_t d) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_dev = d;
 	}
 	inline void set_mount_id(uint32_t m) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_mount_id = m;
 	}
 	inline void set_ino(uint64_t i) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_ino = i;
 	}
 	inline void set_pid_fd(int64_t p) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_pid = p;
 	}
 	inline void set_fd_num(int64_t f) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		m_fd = f;
 	}
+	inline void set_sockinfo(sinsp_sockinfo si) {
+		write_guard_type g(m_seq);
+		m_sockinfo = si;
+	}
 
-	// --- Compound setters (unique_lock, multi-field atomic mutations) ---
+	// =====================================================================
+	// COW string setters -- RAII write guard + atomic_store
+	// =====================================================================
+
+	inline void set_name(std::string n) {
+		auto new_ptr = std::make_shared<const std::string>(std::move(n));
+		write_guard_type g(m_seq);
+		set_name_inner(std::move(new_ptr));
+	}
+
+	inline void set_name_inner(std::string n) {
+		set_name_inner(std::make_shared<const std::string>(std::move(n)));
+	}
+
+	inline void set_name_inner(std::shared_ptr<const std::string> new_ptr) {
+		auto old = std::atomic_load(&m_name);
+		if(!old || *old != *new_ptr) {
+			std::atomic_store(&m_name, std::move(new_ptr));
+			m_name_changed.store(true, std::memory_order_relaxed);
+		}
+	}
+
+	inline void set_name_raw(std::string n) {
+		auto new_ptr = std::make_shared<const std::string>(std::move(n));
+		write_guard_type g(m_seq);
+		std::atomic_store(&m_name_raw, std::move(new_ptr));
+	}
+	inline void set_oldname(std::string n) {
+		auto new_ptr = std::make_shared<const std::string>(std::move(n));
+		write_guard_type g(m_seq);
+		std::atomic_store(&m_oldname, std::move(new_ptr));
+	}
+
+	// =====================================================================
+	// Compound setters (defined in fdinfo.cpp; multi-field mutations under write_guard)
+	// =====================================================================
+
 	void set_file_info(scap_fd_type type,
 	                   uint32_t openflags,
 	                   uint32_t mount_id,
@@ -284,289 +326,218 @@ public:
 	void set_cloexec(bool enable);
 	void set_unix_socket_info(const uint8_t* packed_data, std::string name);
 
-	// --- Existing query methods (now with shared_lock) ---
+	// =====================================================================
+	// Query methods
+	// =====================================================================
 
 	char get_typechar() const;
-
 	const char* get_typestring() const;
-
 	std::string tostring_clean() const;
 
 	inline bool is_syslog() const {
-		std::shared_lock l(m_mutex.m);
-		return m_name.find("/dev/log") != std::string::npos;
+		auto p = std::atomic_load(&m_name);
+		return p && p->find("/dev/log") != std::string::npos;
 	}
 
-	inline bool is_unix_socket() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_UNIX_SOCK;
+	inline bool is_unix_socket() const { return load_relaxed(m_type) == SCAP_FD_UNIX_SOCK; }
+	inline bool is_ipv4_socket() const { return load_relaxed(m_type) == SCAP_FD_IPV4_SOCK; }
+	inline bool is_ipv6_socket() const { return load_relaxed(m_type) == SCAP_FD_IPV6_SOCK; }
+	inline bool is_pipe() const { return load_relaxed(m_type) == SCAP_FD_FIFO; }
+	inline bool is_file() const {
+		auto t = load_relaxed(m_type);
+		return t == SCAP_FD_FILE || t == SCAP_FD_FILE_V2;
 	}
-
-	inline bool is_ipv4_socket() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_IPV4_SOCK;
-	}
-
-	inline bool is_ipv6_socket() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_IPV6_SOCK;
-	}
+	inline bool is_directory() const { return load_relaxed(m_type) == SCAP_FD_DIRECTORY; }
+	inline bool is_pidfd() const { return load_relaxed(m_type) == SCAP_FD_PIDFD; }
 
 	inline bool is_udp_socket() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_IPV4_SOCK &&
-		       m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP;
+		scap_fd_type t;
+		sinsp_sockinfo si;
+		m_seq.read([&] {
+			t = m_type;
+			si = m_sockinfo;
+		});
+		return t == SCAP_FD_IPV4_SOCK && si.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP;
 	}
 
 	inline bool is_tcp_socket() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_IPV4_SOCK &&
-		       m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP;
-	}
-
-	inline bool is_pipe() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_FIFO;
-	}
-
-	inline bool is_file() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_FILE || m_type == SCAP_FD_FILE_V2;
-	}
-
-	inline bool is_directory() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_DIRECTORY;
-	}
-
-	inline bool is_pidfd() const {
-		std::shared_lock l(m_mutex.m);
-		return m_type == SCAP_FD_PIDFD;
+		scap_fd_type t;
+		sinsp_sockinfo si;
+		m_seq.read([&] {
+			t = m_type;
+			si = m_sockinfo;
+		});
+		return t == SCAP_FD_IPV4_SOCK && si.m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP;
 	}
 
 	inline uint16_t get_serverport() const {
-		std::shared_lock l(m_mutex.m);
-		if(m_type == SCAP_FD_IPV4_SOCK) {
-			return m_sockinfo.m_ipv4info.m_fields.m_dport;
-		} else if(m_type == SCAP_FD_IPV6_SOCK) {
-			return m_sockinfo.m_ipv6info.m_fields.m_dport;
-		} else {
-			return 0;
+		scap_fd_type t;
+		sinsp_sockinfo si;
+		m_seq.read([&] {
+			t = m_type;
+			si = m_sockinfo;
+		});
+		if(t == SCAP_FD_IPV4_SOCK) {
+			return si.m_ipv4info.m_fields.m_dport;
+		} else if(t == SCAP_FD_IPV6_SOCK) {
+			return si.m_ipv6info.m_fields.m_dport;
 		}
+		return 0;
 	}
 
-	inline uint32_t get_device() const {
-		std::shared_lock l(m_mutex.m);
-		return m_dev;
-	}
-
-	inline uint32_t get_device_major() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_dev & 0xfff00) >> 8;
-	}
-
-	inline uint32_t get_device_minor() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_dev & 0xff) | ((m_dev >> 12) & 0xfff00);
-	}
-
-	inline uint64_t get_ino() const {
-		std::shared_lock l(m_mutex.m);
-		return m_ino;
-	}
-
-	inline int64_t get_pid() const {
-		std::shared_lock l(m_mutex.m);
-		return m_pid;
-	}
+	scap_l4_proto get_l4proto() const;
 
 	inline void set_unix_info(const uint8_t* packed_data) {
-		std::unique_lock l(m_mutex.m);
+		write_guard_type g(m_seq);
 		const auto* source = packed::un_socktuple::source(packed_data);
 		const auto* dest = packed::un_socktuple::dest(packed_data);
 		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_source, source, sizeof(uint64_t));
 		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, dest, sizeof(uint64_t));
 	}
 
-	scap_l4_proto get_l4proto() const;
+	// =====================================================================
+	// Flag query methods -- lock-free via load_relaxed
+	// =====================================================================
 
 	inline bool is_role_server() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_ROLE_SERVER) == FLAGS_ROLE_SERVER;
+		return (load_relaxed(m_flags) & FLAGS_ROLE_SERVER) == FLAGS_ROLE_SERVER;
 	}
-
 	inline bool is_role_client() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_ROLE_CLIENT) == FLAGS_ROLE_CLIENT;
+		return (load_relaxed(m_flags) & FLAGS_ROLE_CLIENT) == FLAGS_ROLE_CLIENT;
 	}
-
 	inline bool is_role_none() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
+		return (load_relaxed(m_flags) & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
 	}
-
 	inline bool is_socket_connected() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
+		return (load_relaxed(m_flags) & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
 	}
-
 	inline bool is_socket_pending() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_CONNECTION_PENDING) == FLAGS_CONNECTION_PENDING;
+		return (load_relaxed(m_flags) & FLAGS_CONNECTION_PENDING) == FLAGS_CONNECTION_PENDING;
 	}
-
 	inline bool is_socket_failed() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_CONNECTION_FAILED) == FLAGS_CONNECTION_FAILED;
+		return (load_relaxed(m_flags) & FLAGS_CONNECTION_FAILED) == FLAGS_CONNECTION_FAILED;
 	}
-
 	inline bool is_cloned() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
+		return (load_relaxed(m_flags) & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
 	}
-
 	inline bool is_overlay_upper() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_OVERLAY_UPPER) == FLAGS_OVERLAY_UPPER;
+		return (load_relaxed(m_flags) & FLAGS_OVERLAY_UPPER) == FLAGS_OVERLAY_UPPER;
 	}
-
 	inline bool is_overlay_lower() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_OVERLAY_LOWER) == FLAGS_OVERLAY_LOWER;
+		return (load_relaxed(m_flags) & FLAGS_OVERLAY_LOWER) == FLAGS_OVERLAY_LOWER;
+	}
+	inline bool is_socketpipe() const {
+		return (load_relaxed(m_flags) & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE;
+	}
+	inline bool has_no_role() const {
+		auto f = load_relaxed(m_flags);
+		return !(f & FLAGS_ROLE_CLIENT) && !(f & FLAGS_ROLE_SERVER);
+	}
+	inline bool is_inpipeline_r() const {
+		return (load_relaxed(m_flags) & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R;
+	}
+	inline bool is_inpipeline_rw() const {
+		return (load_relaxed(m_flags) & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW;
+	}
+	inline bool is_inpipeline_other() const {
+		return (load_relaxed(m_flags) & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER;
 	}
 
 	inline bool is_close_on_exec() const {
-		if((m_openflags & PPM_O_CLOEXEC) == PPM_O_CLOEXEC) {
+		auto openflags = load_relaxed(m_openflags);
+		if((openflags & PPM_O_CLOEXEC) == PPM_O_CLOEXEC) {
 			return true;
 		}
-
-		if(m_type == SCAP_FD_EVENTPOLL && (m_openflags & PPM_EPOLL_CLOEXEC) == PPM_EPOLL_CLOEXEC) {
+		auto type = load_relaxed(m_type);
+		if(type == SCAP_FD_EVENTPOLL && (openflags & PPM_EPOLL_CLOEXEC) == PPM_EPOLL_CLOEXEC) {
 			return true;
 		}
-
-		if(m_type == SCAP_FD_MEMFD && (m_openflags & PPM_MFD_CLOEXEC) == PPM_MFD_CLOEXEC) {
+		if(type == SCAP_FD_MEMFD && (openflags & PPM_MFD_CLOEXEC) == PPM_MFD_CLOEXEC) {
 			return true;
 		}
-
 		return false;
 	}
 
-	void add_filename_raw(std::string_view rawpath);
-
-	void add_filename(std::string_view fullpath);
+	// =====================================================================
+	// Flag setters -- RAII write guard + atomic RMW
+	// =====================================================================
 
 	inline void set_role_server() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_ROLE_SERVER;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_ROLE_SERVER);
 	}
-
 	inline void set_role_client() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_ROLE_CLIENT;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_ROLE_CLIENT);
 	}
-
-	void set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, bool incoming);
-
 	inline void reset_flags() {
-		std::unique_lock l(m_mutex.m);
-		m_flags = FLAGS_NONE;
+		write_guard_type g(m_seq);
+		store_relaxed(m_flags, (uint32_t)FLAGS_NONE);
 	}
-
 	inline void set_socketpipe() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_IS_SOCKET_PIPE;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_IS_SOCKET_PIPE);
 	}
-
-	inline bool is_socketpipe() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE;
-	}
-
-	inline bool has_no_role() const {
-		std::shared_lock l(m_mutex.m);
-		return !(m_flags & FLAGS_ROLE_CLIENT) && !(m_flags & FLAGS_ROLE_SERVER);
-	}
-
 	inline void set_inpipeline_r() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_IN_BASELINE_R;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_IN_BASELINE_R);
 	}
-
 	inline void set_inpipeline_rw() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_IN_BASELINE_RW;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_IN_BASELINE_RW);
 	}
-
 	inline void set_inpipeline_other() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_IN_BASELINE_OTHER;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_IN_BASELINE_OTHER);
 	}
-
 	inline void reset_inpipeline() {
-		std::unique_lock l(m_mutex.m);
-		m_flags &= ~FLAGS_IN_BASELINE_R;
-		m_flags &= ~FLAGS_IN_BASELINE_RW;
-		m_flags &= ~FLAGS_IN_BASELINE_OTHER;
+		write_guard_type g(m_seq);
+		fetch_and_relaxed(
+		        m_flags,
+		        ~(uint32_t)(FLAGS_IN_BASELINE_R | FLAGS_IN_BASELINE_RW | FLAGS_IN_BASELINE_OTHER));
 	}
-
-	inline bool is_inpipeline_r() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R;
-	}
-
-	inline bool is_inpipeline_rw() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW;
-	}
-
-	inline bool is_inpipeline_other() const {
-		std::shared_lock l(m_mutex.m);
-		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER;
-	}
-
 	inline void set_socket_connected() {
 		constexpr uint32_t target = FLAGS_SOCKET_CONNECTED;
 		constexpr uint32_t stale = FLAGS_CONNECTION_PENDING | FLAGS_CONNECTION_FAILED;
 		if((load_relaxed(m_flags) & (target | stale)) == target) {
 			return;
 		}
-		std::unique_lock l(m_mutex.m);
-		m_flags &= ~stale;
-		m_flags |= target;
+		write_guard_type g(m_seq);
+		fetch_and_relaxed(m_flags, ~stale);
+		fetch_or_relaxed(m_flags, target);
 	}
-
 	inline void set_socket_pending() {
-		std::unique_lock l(m_mutex.m);
-		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_FAILED);
-		m_flags |= FLAGS_CONNECTION_PENDING;
+		write_guard_type g(m_seq);
+		fetch_and_relaxed(m_flags, ~(uint32_t)(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_FAILED));
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_CONNECTION_PENDING);
 	}
-
 	inline void set_socket_failed() {
-		std::unique_lock l(m_mutex.m);
-		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_PENDING);
-		m_flags |= FLAGS_CONNECTION_FAILED;
+		write_guard_type g(m_seq);
+		fetch_and_relaxed(m_flags, ~(uint32_t)(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_PENDING));
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_CONNECTION_FAILED);
 	}
-
 	inline void set_is_cloned() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_IS_CLONED;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_IS_CLONED);
 	}
-
 	inline void set_overlay_upper() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_OVERLAY_UPPER;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_OVERLAY_UPPER);
 	}
-
 	inline void set_overlay_lower() {
-		std::unique_lock l(m_mutex.m);
-		m_flags |= FLAGS_OVERLAY_LOWER;
+		write_guard_type g(m_seq);
+		fetch_or_relaxed(m_flags, (uint32_t)FLAGS_OVERLAY_LOWER);
+	}
+	inline void clear_close_on_exec_bits() {
+		write_guard_type g(m_seq);
+		fetch_and_relaxed(m_openflags,
+		                  ~(uint32_t)(PPM_O_CLOEXEC | PPM_EPOLL_CLOEXEC | PPM_MFD_CLOEXEC));
 	}
 
-	inline void clear_close_on_exec_bits() {
-		m_openflags &= ~PPM_O_CLOEXEC;
-		m_openflags &= ~PPM_EPOLL_CLOEXEC;
-		m_openflags &= ~PPM_MFD_CLOEXEC;
-	}
+	void add_filename_raw(std::string_view rawpath);
+	void add_filename(std::string_view fullpath);
+
+	void set_net_role_by_guessing(const sinsp_threadinfo& ptinfo, bool incoming);
 
 	/*!
 	  \brief A static version of static_fields()
@@ -584,13 +555,12 @@ public:
 	friend class sinsp_network_interfaces;
 
 private:
+	// Seqlock-protected group: all writes go through write_guard.
+	// Individual reads use load_relaxed (scalars), atomic_load (COW strings),
+	// or seqlock read loop (type+sockinfo consistency, clone).
 	scap_fd_type m_type = SCAP_FD_UNINITIALIZED;
 	uint32_t m_openflags = 0;
 	sinsp_sockinfo m_sockinfo = {};
-	std::string m_name;
-	std::string m_name_raw;
-	std::string m_oldname;
-	copyable_atomic_flag m_name_changed;
 	uint32_t m_flags = FLAGS_NONE;
 	uint32_t m_dev = 0;
 	uint32_t m_mount_id = 0;
@@ -598,11 +568,18 @@ private:
 	int64_t m_pid = 0;
 	int64_t m_fd = -1;
 
+	// COW strings: reads via std::atomic_load, writes via std::atomic_store.
+	std::shared_ptr<const std::string> m_name;
+	std::shared_ptr<const std::string> m_name_raw;
+	std::shared_ptr<const std::string> m_oldname;
+
+	copyable_atomic_flag m_name_changed;
+
 public:
-	// Per-fdinfo mutex for thread-safe access. Mutable so const methods can lock.
-	// Wrapped in a struct with no-op copy/move so default copy/move constructors
-	// and assignments of sinsp_fdinfo work (each copy gets a fresh mutex).
-	mutable libsinsp::sinsp_copyable_mutex<inner_mutex_type> m_mutex;
+	// Per-fdinfo seqlock for thread-safe access. Mutable so const methods can
+	// synchronize. Copy/move produce a fresh seqlock (see sinsp_seqlock), so
+	// default copy/move of sinsp_fdinfo remain valid.
+	mutable seqlock_type m_seq;
 };
 
 using sinsp_fdinfo = sinsp_fdinfo_impl<>;

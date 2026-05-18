@@ -97,9 +97,11 @@ sinsp_fdtable_impl<SyncPolicy>::add_ref(int64_t fd, std::shared_ptr<fdinfo_t>&& 
 		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
 	}
 
->>>>>>> 754781e85 (refactor(libsinsp): thread-safe fdtable and fdinfo with SyncPolicy)
-	fdinfo->m_fd = fd;
-	lookup_device(*fdinfo);
+	{
+		auto wg = fdinfo->write_guard();
+		fdinfo->m_fd = fd;
+		lookup_device(*fdinfo);
+	}
 
 	const uint32_t max_size = m_params ? m_params->m_max_table_size : 0xFFFFFFFFU;
 
