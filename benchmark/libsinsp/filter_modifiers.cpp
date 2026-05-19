@@ -229,8 +229,12 @@ static std::string chained_filter(const std::string& op, const std::vector<std::
 // TERM_FN     : function that produces the RHS term vector
 // CACHE       : boolean — true = exprstr cache on, false = no cache
 
+// OP_TOKEN controls the function-name prefix and therefore whether Google Benchmark
+// runs the benchmark:
+//   BM_startswith   → runs
+//   DISABLED_BM_startswith → skipped (Google Benchmark ignores names starting with DISABLED_)
 #define DEFINE_BENCH_PAIR_VARIANT(COMM_TOKEN, COMM_STR, OP_TOKEN, OP_STR, TERM_FN, CACHE, SUFFIX) \
-	static void BM_##OP_TOKEN##_modifier_##COMM_TOKEN##_##SUFFIX(benchmark::State& state) {       \
+	static void OP_TOKEN##_modifier_##COMM_TOKEN##_##SUFFIX(benchmark::State& state) {            \
 		const auto terms = TERM_FN(static_cast<int>(state.range(0)));                             \
 		SinspFilterFixture fixture(COMM_STR);                                                     \
 		auto filter = fixture.compile(modifier_filter(OP_STR, terms), CACHE);                     \
@@ -238,10 +242,8 @@ static std::string chained_filter(const std::string& op, const std::vector<std::
 			benchmark::DoNotOptimize(filter->run(fixture.evt));                                   \
 		}                                                                                         \
 	}                                                                                             \
-	BENCHMARK(BM_##OP_TOKEN##_modifier_##COMM_TOKEN##_##SUFFIX)                                   \
-	        ->RangeMultiplier(2)                                                                  \
-	        ->Range(1, 512);                                                                      \
-	static void BM_##OP_TOKEN##_chained_##COMM_TOKEN##_##SUFFIX(benchmark::State& state) {        \
+	BENCHMARK(OP_TOKEN##_modifier_##COMM_TOKEN##_##SUFFIX)->RangeMultiplier(2)->Range(1, 512);    \
+	static void OP_TOKEN##_chained_##COMM_TOKEN##_##SUFFIX(benchmark::State& state) {             \
 		const auto terms = TERM_FN(static_cast<int>(state.range(0)));                             \
 		SinspFilterFixture fixture(COMM_STR);                                                     \
 		auto filter = fixture.compile(chained_filter(OP_STR, terms), CACHE);                      \
@@ -249,9 +251,8 @@ static std::string chained_filter(const std::string& op, const std::vector<std::
 			benchmark::DoNotOptimize(filter->run(fixture.evt));                                   \
 		}                                                                                         \
 	}                                                                                             \
-	BENCHMARK(BM_##OP_TOKEN##_chained_##COMM_TOKEN##_##SUFFIX)->RangeMultiplier(2)->Range(1, 512)
+	BENCHMARK(OP_TOKEN##_chained_##COMM_TOKEN##_##SUFFIX)->RangeMultiplier(2)->Range(1, 512)
 
-// Both cache variants for a given benchmark group.
 #define DEFINE_BENCH_PAIR(COMM_TOKEN, COMM_STR, OP_TOKEN, OP_STR, TERM_FN)                      \
 	DEFINE_BENCH_PAIR_VARIANT(COMM_TOKEN, COMM_STR, OP_TOKEN, OP_STR, TERM_FN, false, nocache); \
 	DEFINE_BENCH_PAIR_VARIANT(COMM_TOKEN, COMM_STR, OP_TOKEN, OP_STR, TERM_FN, true, cached)
@@ -261,26 +262,26 @@ static std::string chained_filter(const std::string& op, const std::vector<std::
 // Both variants evaluate every term → worst-case O(N) comparisons.
 // The modifier pays field-extraction once; chained pays it N times.
 
-DEFINE_BENCH_PAIR(no_match, "bash", startswith, "startswith", make_terms);
+DEFINE_BENCH_PAIR(no_match, "bash", DISABLED_BM_startswith, "startswith", make_terms);
 
-DEFINE_BENCH_PAIR(no_match, "bash", contains, "contains", make_terms);
+DEFINE_BENCH_PAIR(no_match, "bash", DISABLED_BM_contains, "contains", make_terms);
 
-DEFINE_BENCH_PAIR(no_match, "bash", eq, "==", make_terms);
+DEFINE_BENCH_PAIR(no_match, "bash", DISABLED_BM_eq, "==", make_terms);
 
-DEFINE_BENCH_PAIR(no_match, "bash", regex, "regex", make_regex_terms);
+DEFINE_BENCH_PAIR(no_match, "bash", DISABLED_BM_regex, "regex", make_regex_terms);
 
 // ─── first-match scenario ─────────────────────────────────────────────────────
 // proc.name = "svc-prefix-000" matches the very first term.
 // Both variants short-circuit after one comparison.
 // This isolates compilation overhead: modifier builds 1 node, chained builds N.
 
-DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", startswith, "startswith", make_terms);
+DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", DISABLED_BM_startswith, "startswith", make_terms);
 
-DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", contains, "contains", make_terms);
+DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", DISABLED_BM_contains, "contains", make_terms);
 
-DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", eq, "==", make_terms);
+DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", DISABLED_BM_eq, "==", make_terms);
 
-DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", regex, "regex", make_regex_terms);
+DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", DISABLED_BM_regex, "regex", make_regex_terms);
 
 // ─── last-match scenario ──────────────────────────────────────────────────────
 // proc.name = "svc-last" matches only the final term in an N-element list.
@@ -288,10 +289,10 @@ DEFINE_BENCH_PAIR(first_match, "svc-prefix-000", regex, "regex", make_regex_term
 // Unlike no_match, this exercises the full O(N) scan for a successful lookup,
 // which is the true worst-case for a matching event.
 
-DEFINE_BENCH_PAIR(last_match, "svc-last", startswith, "startswith", make_terms_last);
+DEFINE_BENCH_PAIR(last_match, "svc-last", DISABLED_BM_startswith, "startswith", make_terms_last);
 
-DEFINE_BENCH_PAIR(last_match, "svc-last", contains, "contains", make_terms_last);
+DEFINE_BENCH_PAIR(last_match, "svc-last", DISABLED_BM_contains, "contains", make_terms_last);
 
-DEFINE_BENCH_PAIR(last_match, "svc-last", eq, "==", make_terms_last);
+DEFINE_BENCH_PAIR(last_match, "svc-last", DISABLED_BM_eq, "==", make_terms_last);
 
-DEFINE_BENCH_PAIR(last_match, "svc-last", regex, "regex", make_regex_terms_last);
+DEFINE_BENCH_PAIR(last_match, "svc-last", DISABLED_BM_regex, "regex", make_regex_terms_last);
