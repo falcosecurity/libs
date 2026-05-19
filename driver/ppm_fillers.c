@@ -1043,8 +1043,8 @@ cgroups_error:
 		/*
 		 * clone-only parameters
 		 */
-		uint32_t euid = from_kuid_munged(current_user_ns(), current_euid());
-		uint32_t egid = from_kgid_munged(current_user_ns(), current_egid());
+		uint32_t euid = from_kuid(&init_user_ns, current_euid());
+		uint32_t egid = from_kgid(&init_user_ns, current_egid());
 		int64_t in_pidns = 0;
 		struct pid_namespace *pidns = task_active_pid_ns(current);
 
@@ -1213,7 +1213,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 19: loginuid (type: PT_UID) */
-		loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
+		loginuid = from_kuid(&init_user_ns, audit_get_loginuid(current));
 		res = val_to_ring(args, loginuid, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1356,7 +1356,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 27: euid (type: PT_UID) */
-		euid = from_kuid_munged(current_user_ns(), current_euid());
+		euid = from_kuid(&init_user_ns, current_euid());
 		res = val_to_ring(args, euid, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1369,7 +1369,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 30: egid (type: PT_GID) */
-		egid = from_kgid_munged(current_user_ns(), current_egid());
+		egid = from_kgid(&init_user_ns, current_egid());
 		res = val_to_ring(args, egid, 0, false, 0);
 		CHECK_RES(res);
 
@@ -7756,7 +7756,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
-	loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
+	loginuid = from_kuid(&init_user_ns, audit_get_loginuid(current));
 	res = val_to_ring(args, loginuid, 0, false, 0);
 	CHECK_RES(res);
 
@@ -7895,7 +7895,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 27: euid (type: PT_UID) */
-	euid = from_kuid_munged(current_user_ns(), current_euid());
+	euid = from_kuid(&init_user_ns, current_euid());
 	res = val_to_ring(args, euid, 0, false, 0);
 	CHECK_RES(res);
 
@@ -7908,7 +7908,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 30: egid (type: PT_GID) */
-	egid = from_kgid_munged(current_user_ns(), current_egid());
+	egid = from_kgid(&init_user_ns, current_egid());
 	res = val_to_ring(args, egid, 0, false, 0);
 	CHECK_RES(res);
 
@@ -7941,8 +7941,8 @@ int f_sched_prog_fork(struct event_filler_arguments *args) {
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 	uint32_t flags = 0;
-	uint32_t euid = task_euid(child).val;
-	uint32_t egid = child->cred->egid.val;
+	uint32_t euid = from_kuid(&init_user_ns, task_euid(child));
+	uint32_t egid = from_kgid(&init_user_ns, child->cred->egid);
 	struct pid_namespace *pidns = task_active_pid_ns(child);
 	uint64_t pidns_init_start_time = 0;
 
