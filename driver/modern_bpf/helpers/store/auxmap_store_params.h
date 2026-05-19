@@ -617,6 +617,13 @@ static __noinline void auxmap__store_exe_args_failure(struct auxiliary_map *auxm
 	 * reducing verifier range-tracking complexity on kernel 7.0+.
 	 */
 	uint16_t args_space = (exe_len < MAX_PROC_ARG_ENV) ? (MAX_PROC_ARG_ENV - exe_len) : 0;
+	/* No room left for args. Skip the loop to avoid advancing `payload_pos`
+	 * without a matching length, which would desync subsequent params.
+	 */
+	if(args_space == 0) {
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
 	/* Index 1 because we skip the `exe` */
 	for(uint8_t index = 1; index < MAX_CHARBUF_POINTERS; ++index) {
 		if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[index])) {
