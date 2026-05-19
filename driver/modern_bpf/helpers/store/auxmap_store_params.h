@@ -578,7 +578,8 @@ static __always_inline void auxmap__store_user_task_charbufarray_param(struct au
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param charbuf pointer array, obtained directly from the syscall (`argv`).
  */
-static __noinline void auxmap__store_exe_args_failure(struct auxiliary_map *auxmap, char **array) {
+static __always_inline void auxmap__store_exe_args_failure(struct auxiliary_map *auxmap,
+                                                           char **array) {
 	unsigned long charbuf_pointer = 0;
 	uint16_t exe_len = 0;
 
