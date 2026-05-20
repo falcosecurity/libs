@@ -627,10 +627,12 @@ static inline toT flt_cast(const void* ptr, uint32_t len) {
 	 * for `evt.rawarg.*` fields.
 	 */
 	uint8_t shift = 0;
-#ifdef __s390x__
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 	// NOTE: c++20 has `constexpr (std::endian::native == std::endian::big)`
 	// that would be much better.
-	// To avoid perf hit, only compile this on s390x (our only big-endian supported arch).
+	// Compiled only on big-endian targets, so little-endian builds take no
+	// perf hit. This must cover every big-endian arch, not just s390x:
+	// e.g. big-endian PowerPC hits the same `evt.rawarg.*` edge case.
 	if(len > sizeof(fromT)) {
 		shift = len - sizeof(fromT);
 	}
