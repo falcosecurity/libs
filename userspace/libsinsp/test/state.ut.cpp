@@ -380,10 +380,10 @@ TEST(thread_manager, table_access) {
 	auto newt = table->new_entry();
 	auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
 
-	auto tid_acc = table->get_field("tid", SS_PLUGIN_ST_INT64).into<int64_t>();
-	auto comm_acc = table->get_field("comm", SS_PLUGIN_ST_STRING).into<std::string>();
+	auto tid_acc = table->get_field("tid", SS_PLUGIN_ST_INT64).as<int64_t>();
+	auto comm_acc = table->get_field("comm", SS_PLUGIN_ST_STRING).as<std::string>();
 	auto fdtable_acc = table->get_field("file_descriptors", SS_PLUGIN_ST_TABLE)
-	                           .into<libsinsp::state::base_table*>();
+	                           .as<libsinsp::state::base_table*>();
 
 	ASSERT_NE(newtinfo, nullptr);
 	newtinfo->m_tid = 999;
@@ -405,7 +405,7 @@ TEST(thread_manager, table_access) {
 	std::string tmpstr;
 	auto dynf_acc = table->dynamic_fields()
 	                        ->add_field("some_new_field", SS_PLUGIN_ST_STRING)
-	                        .into<std::string>();
+	                        .as<std::string>();
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
@@ -630,12 +630,12 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->key_type(), SS_PLUGIN_ST_UINT64);
 
 	// getting an existing field
-	auto sfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
-	// EXPECT_EQ(sfield->second.readonly(), false);
-	// EXPECT_EQ(sfield->second.valid(), true);
-	// EXPECT_EQ(sfield->second.name(), "value");
+	const auto& sfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
+	// EXPECT_EQ(sfield.readonly(), false);
+	// EXPECT_EQ(sfield.valid(), true);
+	// EXPECT_EQ(sfield.name(), "value");
 
-	auto fieldacc = sfield.into<std::string>();
+	auto fieldacc = sfield.as<std::string>();
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 10;

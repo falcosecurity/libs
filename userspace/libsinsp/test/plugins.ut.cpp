@@ -1038,12 +1038,11 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	ASSERT_EQ(subtable->entries_count(), 0);
 
 	// get an accessor to a dynamic field representing the array's values
-	auto dfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
-	// ASSERT_EQ(dfield->second.readonly(), false);
-	// ASSERT_EQ(dfield->second.valid(), true);
-	// ASSERT_EQ(dfield->second.name(), "value");
-	auto dfieldacc = dfield.into<std::string>();
-	ASSERT_NE(dfieldacc, nullptr);
+	const auto& dfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
+	// ASSERT_EQ(dfield.readonly(), false);
+	// ASSERT_EQ(dfield.valid(), true);
+	// ASSERT_EQ(dfield.name(), "value");
+	auto dfieldacc = dfield.as<std::string>();
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),
@@ -1140,17 +1139,17 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(subtable->entries_count(), 0);
 	// get an accessor to a dynamic field representing the array's values
 
-	auto dfield_first = subtable->get_field("first", SS_PLUGIN_ST_STRING);
-	// ASSERT_EQ(dfield_first->second.readonly(), false);
-	// ASSERT_EQ(dfield_first->second.valid(), true);
-	// ASSERT_EQ(dfield_first->second.name(), "first");
-	auto dfield_first_acc = dfield_first.into<std::string>();
+	const auto& dfield_first = subtable->get_field("first", SS_PLUGIN_ST_STRING);
+	// ASSERT_EQ(dfield_first.readonly(), false);
+	// ASSERT_EQ(dfield_first.valid(), true);
+	// ASSERT_EQ(dfield_first.name(), "first");
+	auto dfield_first_acc = dfield_first.as<std::string>();
 
-	auto dfield_second = subtable->get_field("second", SS_PLUGIN_ST_STRING);
-	// ASSERT_EQ(dfield_second->second.readonly(), false);
-	// ASSERT_EQ(dfield_second->second.valid(), true);
-	// ASSERT_EQ(dfield_second->second.name(), "second");
-	auto dfield_second_acc = dfield_second.into<std::string>();
+	const auto& dfield_second = subtable->get_field("second", SS_PLUGIN_ST_STRING);
+	// ASSERT_EQ(dfield_second.readonly(), false);
+	// ASSERT_EQ(dfield_second.valid(), true);
+	// ASSERT_EQ(dfield_second.name(), "second");
+	auto dfield_second_acc = dfield_second.as<std::string>();
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),
