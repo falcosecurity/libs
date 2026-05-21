@@ -67,9 +67,8 @@ if(NOT WIN32)
 endif()
 
 option(SCAP_FILES_SUITE_ENABLE "Enable scap-file tests in sinsp" "ON")
-# Scap-files on Big Endian systems are not supported. Detect endianness
-# directly instead of matching s390x, so other big-endian targets (e.g.
-# big-endian PowerPC) are covered too.
+# Scap-files on Big Endian systems are not supported. Detect endianness directly instead of matching
+# s390x, so other big-endian targets (e.g. big-endian PowerPC) are covered too.
 if((NOT CMAKE_CXX_BYTE_ORDER STREQUAL "BIG_ENDIAN")
    AND ${SCAP_FILES_SUITE_ENABLE}
    AND TARGET unit-test-libsinsp
