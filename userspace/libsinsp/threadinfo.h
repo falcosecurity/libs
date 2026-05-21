@@ -103,6 +103,28 @@ struct SINSP_PUBLIC sinsp_threadinfo_exec_state {
 	std::optional<uint64_t> exe_ino_ctime_duration_pidns_start;
 };
 
+/*!
+  \brief Immutable snapshot of all exec-info fields. Published via a single
+  atomic_store so that concurrent readers always see a fully consistent state.
+*/
+struct SINSP_PUBLIC sinsp_exec_info_snapshot {
+	std::string comm;
+	std::string exe;
+	std::string exepath;
+	std::string root;
+	std::string cmd_line;
+	bool exe_writable = false;
+	bool exe_upper_layer = false;
+	bool exe_lower_layer = false;
+	bool exe_from_memfd = false;
+	uint64_t exe_ino = 0;
+	uint64_t exe_ino_ctime = 0;
+	uint64_t exe_ino_mtime = 0;
+	uint64_t exe_ino_ctime_duration_clone_ts = 0;
+	uint64_t exe_ino_ctime_duration_pidns_start = 0;
+	uint64_t lastexec_ts = 0;
+};
+
 template<typename SyncPolicy = sync_policy_default>
 class SINSP_PUBLIC sinsp_threadinfo_impl : public libsinsp::state::extensible_struct {
 	using traits = libsinsp::sync_policy_traits<SyncPolicy>;
@@ -120,8 +142,7 @@ public:
 	std::string get_cwd();
 
 	inline void set_cwd(const std::string& v) {
-		std::unique_lock l(m_state_mutex);
-		m_cwd = v;
+		std::atomic_store(&m_cwd, std::make_shared<const std::string>(v));
 	}
 
 	/*!
@@ -387,7 +408,6 @@ public:
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
-	cgroups_t get_cgroups() const;
 	const cgroups_t& cgroups() const;
 
 	//
@@ -451,34 +471,86 @@ public:
 	inline uint64_t get_pfminor() const { return load_relaxed(m_pfminor); }
 	inline void set_pfminor(uint64_t v) { store_relaxed(m_pfminor, v); }
 
-	// --- Mutex-protected exec-info getters/setters ---
-	std::string get_comm() const;
-	void set_comm(std::string v);
-	std::string get_exe() const;
-	void set_exe(std::string v);
-	std::string get_exepath() const;
-	bool get_exe_writable() const;
-	void set_exe_writable(bool v);
-	bool get_exe_upper_layer() const;
-	void set_exe_upper_layer(bool v);
-	bool get_exe_lower_layer() const;
-	void set_exe_lower_layer(bool v);
-	bool get_exe_from_memfd() const;
-	void set_exe_from_memfd(bool v);
+	// --- Lock-free exec-info getters (read from immutable snapshot) ---
+	using exec_snapshot_t = sinsp_exec_info_snapshot;
+
+	inline std::string get_comm() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->comm : std::string{};
+	}
+	inline std::string get_exe() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe : std::string{};
+	}
+	inline std::string get_exepath() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exepath : std::string{};
+	}
+	inline std::string get_cmd_line() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->cmd_line : std::string{};
+	}
+	inline std::string get_root() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->root : std::string{};
+	}
 	std::vector<std::string> get_args() const;
-	std::string get_cmd_line() const;
-	std::string get_root() const;
+	cgroups_t get_cgroups() const;
+	inline bool get_exe_writable() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_writable : false;
+	}
+	inline bool get_exe_upper_layer() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_upper_layer : false;
+	}
+	inline bool get_exe_lower_layer() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_lower_layer : false;
+	}
+	inline bool get_exe_from_memfd() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_from_memfd : false;
+	}
+	inline uint64_t get_exe_ino() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_ino : 0;
+	}
+	inline uint64_t get_exe_ino_ctime() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_ino_ctime : 0;
+	}
+	inline uint64_t get_exe_ino_mtime() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_ino_mtime : 0;
+	}
+	inline uint64_t get_exe_ino_ctime_duration_clone_ts() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_ino_ctime_duration_clone_ts : 0;
+	}
+	inline uint64_t get_exe_ino_ctime_duration_pidns_start() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->exe_ino_ctime_duration_pidns_start : 0;
+	}
+	inline uint64_t get_lastexec_ts() const {
+		auto s = std::atomic_load(&m_exec_info);
+		return s ? s->lastexec_ts : 0;
+	}
+
+	// --- Exec-info setters (copy-modify-publish the snapshot) ---
+	void set_comm(std::string v);
+	void set_exe(std::string v);
 	void set_root(std::string v);
-	uint64_t get_exe_ino() const;
+	void set_exe_writable(bool v);
+	void set_exe_upper_layer(bool v);
+	void set_exe_lower_layer(bool v);
+	void set_exe_from_memfd(bool v);
 	void set_exe_ino(uint64_t v);
-	uint64_t get_exe_ino_ctime() const;
 	void set_exe_ino_ctime(uint64_t v);
-	uint64_t get_exe_ino_mtime() const;
 	void set_exe_ino_mtime(uint64_t v);
-	uint64_t get_exe_ino_ctime_duration_clone_ts() const;
 	void set_exe_ino_ctime_duration_clone_ts(uint64_t v);
-	uint64_t get_exe_ino_ctime_duration_pidns_start() const;
 	void set_exe_ino_ctime_duration_pidns_start(uint64_t v);
+	void set_lastexec_ts(uint64_t v);
 	void set_env(const std::vector<std::string>& env);
 
 	// --- Atomic tginfo getter/setter ---
@@ -504,9 +576,6 @@ public:
 
 	inline uint64_t get_clone_ts() const { return load_relaxed(m_clone_ts); }
 	inline void set_clone_ts(uint64_t v) { store_relaxed(m_clone_ts, v); }
-
-	uint64_t get_lastexec_ts() const;
-	void set_lastexec_ts(uint64_t v);
 
 	size_t args_len() const;
 	size_t env_len() const;
@@ -641,6 +710,8 @@ protected:
 private:
 	sinsp_threadinfo_impl* get_cwd_root();
 	bool set_env_from_proc();
+	std::shared_ptr<exec_snapshot_t> mutable_snapshot();
+	void publish_snapshot(std::shared_ptr<exec_snapshot_t>&& snap);
 	size_t strvec_len(const std::vector<std::string>& strs) const;
 	void strvec_to_iovec(const std::vector<std::string>& strs,
 	                     struct iovec** iov,
@@ -653,7 +724,7 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
-	// Mutex protecting exec-info group (strings, vectors, and related fields)
+	// Writer mutex protecting shadow vectors and read-modify-write on cwd.
 	mutable typename traits::thread_state_mutex m_state_mutex;
 
 	// Atomic identity fields
@@ -666,7 +737,7 @@ private:
 	int64_t m_vpgid;
 	int64_t m_pgid;
 
-	// Atomic flags/credentials/stats
+	// Atomic flags/credentials/stats (relaxed atomics)
 	uint32_t m_flags;
 	int64_t m_fdlimit;
 	uint32_t m_uid;
@@ -683,25 +754,15 @@ private:
 	uint32_t m_tty;
 	bool m_filtered_out;
 
-	// Mutex-protected exec-info group (guarded by m_state_mutex)
-	std::string m_comm;
-	std::string m_exe;
-	std::string m_exepath;
-	bool m_exe_writable;
-	bool m_exe_upper_layer;
-	bool m_exe_lower_layer;
-	bool m_exe_from_memfd;
-	uint64_t m_exe_ino;
-	uint64_t m_exe_ino_ctime;
-	uint64_t m_exe_ino_mtime;
-	uint64_t m_exe_ino_ctime_duration_clone_ts;
-	uint64_t m_exe_ino_ctime_duration_pidns_start;
-	std::string m_root;
-	std::string m_cmd_line;
+	// Exec-info snapshot: one atomic_load gets all fields consistently.
+	// All exec-info getters read from here. Writers build a new snapshot and atomic_store.
+	// State framework lambdas also read from here (with thread_local cache for string lifetime).
+	std::shared_ptr<const exec_snapshot_t> m_exec_info;
+
+	// Vectors for table adapter compatibility (protected by m_state_mutex).
 	std::vector<std::string> m_args;
 	std::vector<std::string> m_env;
 	cgroups_t m_cgroups;
-	uint64_t m_lastexec_ts{0};
 
 	// Thread group info (synchronized via std::atomic_load/store)
 	std::shared_ptr<thread_group_info> m_tginfo;
@@ -714,7 +775,7 @@ private:
 	// Internal state
 	sinsp_fdtable_impl<SyncPolicy> m_fdtable;
 	const libsinsp::state::base_table* m_main_fdtable;
-	std::string m_cwd;
+	std::shared_ptr<const std::string> m_cwd;
 	uint8_t* m_lastevent_data;
 
 	// Multi-event processing state (synchronized via relaxed atomics in getters/setters)

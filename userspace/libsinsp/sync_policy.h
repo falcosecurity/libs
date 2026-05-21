@@ -114,8 +114,4 @@ struct sinsp_copyable_mutex {
 	sinsp_copyable_mutex& operator=(sinsp_copyable_mutex&&) noexcept { return *this; }
 };
 
-template<typename SyncPolicy>
-using sinsp_fd_mutex_wrapper =
-        sinsp_copyable_mutex<typename sync_policy_traits<SyncPolicy>::fdinfo_inner_mutex>;
-
 }  // namespace libsinsp

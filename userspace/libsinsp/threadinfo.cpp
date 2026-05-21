@@ -63,13 +63,66 @@ sinsp_threadinfo_impl<SyncPolicy>::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_ptid, "ptid");
 	DEFINE_STATIC_FIELD(ret, self, m_reaper_tid, "reaper_tid");
 	DEFINE_STATIC_FIELD(ret, self, m_sid, "sid");
-	DEFINE_STATIC_FIELD(ret, self, m_comm, "comm");
-	DEFINE_STATIC_FIELD(ret, self, m_exe, "exe");
-	DEFINE_STATIC_FIELD(ret, self, m_exepath, "exe_path");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_writable, "exe_writable");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_upper_layer, "exe_upper_layer");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_lower_layer, "exe_lower_layer");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_from_memfd, "exe_from_memfd");
+
+	// Exec-info snapshot string fields — reader loads the snapshot atomically,
+	// caches it in thread_local to keep the borrowed const char* alive.
+	static thread_local std::shared_ptr<const exec_snapshot_t> s_snap_cache;
+	static const std::string s_empty;
+
+#define SNAP_STRING_READER(field_name)                                          \
+	[](const void* in, size_t) -> libsinsp::state::borrowed_state_data {        \
+		auto c = static_cast<const self*>(in);                                  \
+		s_snap_cache = std::atomic_load(&c->m_exec_info);                       \
+		return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING>( \
+		        s_snap_cache ? s_snap_cache->field_name : s_empty);             \
+	}
+
+#define SNAP_STRING_WRITER(setter_fn)                                     \
+	[](void* in, size_t, const libsinsp::state::borrowed_state_data& d) { \
+		std::string tmp;                                                  \
+		d.copy_to<SS_PLUGIN_ST_STRING>(tmp);                              \
+		static_cast<self*>(in)->setter_fn(std::move(tmp));                \
+	}
+
+	libsinsp::state::define_static_field<std::string>(ret,
+	                                                  "comm",
+	                                                  SNAP_STRING_READER(comm),
+	                                                  SNAP_STRING_WRITER(set_comm));
+	libsinsp::state::define_static_field<std::string>(ret,
+	                                                  "exe",
+	                                                  SNAP_STRING_READER(exe),
+	                                                  SNAP_STRING_WRITER(set_exe));
+	libsinsp::state::define_static_field<std::string>(ret,
+	                                                  "exe_path",
+	                                                  SNAP_STRING_READER(exepath),
+	                                                  SNAP_STRING_WRITER(set_exepath));
+
+#undef SNAP_STRING_READER
+#undef SNAP_STRING_WRITER
+
+	// Exec-info snapshot scalar fields — reader loads snapshot, value is copied so no lifetime
+	// issue
+#define SNAP_SCALAR_FIELD(ret, type, name, field, setter)                         \
+	libsinsp::state::define_static_field<type>(                                   \
+	        ret,                                                                  \
+	        name,                                                                 \
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {  \
+		        auto c = static_cast<const self*>(in);                            \
+		        auto s = std::atomic_load(&c->m_exec_info);                       \
+		        type val = s ? s->field : type{};                                 \
+		        return libsinsp::state::borrowed_state_data::from<                \
+		                libsinsp::state::type_id_of<type>()>(val);                \
+	        },                                                                    \
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& d) { \
+		        type tmp{};                                                       \
+		        d.copy_to<libsinsp::state::type_id_of<type>()>(tmp);              \
+		        static_cast<self*>(in)->setter(tmp);                              \
+	        });
+
+	SNAP_SCALAR_FIELD(ret, bool, "exe_writable", exe_writable, set_exe_writable);
+	SNAP_SCALAR_FIELD(ret, bool, "exe_upper_layer", exe_upper_layer, set_exe_upper_layer);
+	SNAP_SCALAR_FIELD(ret, bool, "exe_lower_layer", exe_lower_layer, set_exe_lower_layer);
+	SNAP_SCALAR_FIELD(ret, bool, "exe_from_memfd", exe_from_memfd, set_exe_from_memfd);
 	libsinsp::state::define_static_field<libsinsp::state::base_table*>(
 	        ret,
 	        "args",
@@ -117,9 +170,11 @@ sinsp_threadinfo_impl<SyncPolicy>::get_static_fields() {
 	// m_cap_permitted
 	// m_cap_effective
 	// m_cap_inheritable
-	DEFINE_STATIC_FIELD(ret, self, m_exe_ino, "exe_ino");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_ino_ctime, "exe_ino_ctime");
-	DEFINE_STATIC_FIELD(ret, self, m_exe_ino_mtime, "exe_ino_mtime");
+	SNAP_SCALAR_FIELD(ret, uint64_t, "exe_ino", exe_ino, set_exe_ino);
+	SNAP_SCALAR_FIELD(ret, uint64_t, "exe_ino_ctime", exe_ino_ctime, set_exe_ino_ctime);
+	SNAP_SCALAR_FIELD(ret, uint64_t, "exe_ino_mtime", exe_ino_mtime, set_exe_ino_mtime);
+
+#undef SNAP_SCALAR_FIELD
 	// m_exe_ino_ctime_duration_clone_ts
 	// m_exe_ino_ctime_duration_pidns_start
 	// m_vmsize_kb
@@ -132,14 +187,38 @@ sinsp_threadinfo_impl<SyncPolicy>::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_vpgid, "vpgid");
 	DEFINE_STATIC_FIELD(ret, self, m_pgid, "pgid");
 	DEFINE_STATIC_FIELD(ret, self, m_pidns_init_start_ts, "pidns_init_start_ts");
-	DEFINE_STATIC_FIELD(ret, self, m_root, "root");
+	libsinsp::state::define_static_field<std::string>(
+	        ret,
+	        "root",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        s_snap_cache = std::atomic_load(&c->m_exec_info);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING>(
+		                s_snap_cache ? s_snap_cache->root : s_empty);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& d) {
+		        std::string tmp;
+		        d.copy_to<SS_PLUGIN_ST_STRING>(tmp);
+		        static_cast<self*>(in)->set_root(std::move(tmp));
+	        });
 	DEFINE_STATIC_FIELD(ret, self, m_tty, "tty");
 	// m_category
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
 	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
-	DEFINE_STATIC_FIELD_READONLY(ret, self, m_cwd, "cwd");
+	libsinsp::state::define_static_field<std::string>(
+	        ret,
+	        "cwd",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        static thread_local std::shared_ptr<const std::string> s_cwd_cache;
+		        s_cwd_cache = std::atomic_load(&c->m_cwd);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING>(
+		                s_cwd_cache ? *s_cwd_cache : s_empty);
+	        },
+	        READONLY_WRITER_LAMBDA("cwd"),
+	        true);
 	// m_parent_loop_detected
 	return ret;
 }
@@ -181,16 +260,8 @@ void sinsp_threadinfo_impl<SyncPolicy>::init() {
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
 	m_cap_effective = 0;
-	m_exe_ino = 0;
-	m_exe_ino_ctime = 0;
-	m_exe_ino_mtime = 0;
-	m_exe_ino_ctime_duration_clone_ts = 0;
-	m_exe_ino_ctime_duration_pidns_start = 0;
 	m_filtered_out = false;
-	m_exe_writable = false;
-	m_exe_upper_layer = false;
-	m_exe_lower_layer = false;
-	m_exe_from_memfd = false;
+	m_exec_info.reset();
 }
 
 template<typename SyncPolicy>
@@ -225,7 +296,7 @@ void sinsp_threadinfo_impl<SyncPolicy>::fix_sockets_coming_from_proc(
 		ipv4_tuple_fields.m_dport = tport;
 		auto name_str = ipv4tuple_to_string(si.m_ipv4info, resolve_hostname_and_port);
 		{
-			auto lock = fdi.write_guard();
+			[[maybe_unused]] auto lock = fdi.write_guard();
 			fdi.m_sockinfo = si;
 			fdi.set_name_inner(std::move(name_str));
 		}
@@ -242,7 +313,7 @@ std::shared_ptr<sinsp_fdinfo> sinsp_threadinfo_impl<SyncPolicy>::add_fd_from_sca
 	bool is_unix_empty_name = false;
 
 	{
-		auto lock = newfdi->write_guard();
+		[[maybe_unused]] auto lock = newfdi->write_guard();
 		newfdi->m_type = fdi.type;
 		newfdi->m_openflags = 0;
 		newfdi->m_flags = sinsp_fdinfo::FLAGS_FROM_PROC;
@@ -374,14 +445,14 @@ void sinsp_threadinfo_impl<SyncPolicy>::init(const scap_threadinfo& pinfo,
 	m_vpgid = pinfo.vpgid;
 	m_pgid = pinfo.pgid;
 
-	m_comm = pinfo.comm;
-	m_exe = pinfo.exe;
+	set_comm(std::string(pinfo.comm));
+	set_exe(std::string(pinfo.exe));
 	/* The exepath is extracted from `/proc/pid/exe`. */
 	set_exepath(std::string(pinfo.exepath));
-	m_exe_writable = pinfo.exe_writable;
-	m_exe_upper_layer = pinfo.exe_upper_layer;
-	m_exe_lower_layer = pinfo.exe_lower_layer;
-	m_exe_from_memfd = pinfo.exe_from_memfd;
+	set_exe_writable(pinfo.exe_writable);
+	set_exe_upper_layer(pinfo.exe_upper_layer);
+	set_exe_lower_layer(pinfo.exe_lower_layer);
+	set_exe_from_memfd(pinfo.exe_from_memfd);
 
 	/* We cannot obtain the reaper_tid from a /proc scan */
 	m_reaper_tid = -1;
@@ -403,11 +474,11 @@ void sinsp_threadinfo_impl<SyncPolicy>::init(const scap_threadinfo& pinfo,
 	m_cap_effective = pinfo.cap_effective;
 	m_cap_inheritable = pinfo.cap_inheritable;
 
-	m_exe_ino = pinfo.exe_ino;
-	m_exe_ino_ctime = pinfo.exe_ino_ctime;
-	m_exe_ino_mtime = pinfo.exe_ino_mtime;
-	m_exe_ino_ctime_duration_clone_ts = pinfo.exe_ino_ctime_duration_clone_ts;
-	m_exe_ino_ctime_duration_pidns_start = pinfo.exe_ino_ctime_duration_pidns_start;
+	set_exe_ino(pinfo.exe_ino);
+	set_exe_ino_ctime(pinfo.exe_ino_ctime);
+	set_exe_ino_mtime(pinfo.exe_ino_mtime);
+	set_exe_ino_ctime_duration_clone_ts(pinfo.exe_ino_ctime_duration_clone_ts);
+	set_exe_ino_ctime_duration_pidns_start(pinfo.exe_ino_ctime_duration_pidns_start);
 
 	m_vmsize_kb = pinfo.vmsize_kb;
 	m_vmrss_kb = pinfo.vmrss_kb;
@@ -422,7 +493,7 @@ void sinsp_threadinfo_impl<SyncPolicy>::init(const scap_threadinfo& pinfo,
 	m_tty = pinfo.tty;
 
 	set_cgroups(pinfo.cgroups.path, pinfo.cgroups.len);
-	m_root = pinfo.root;
+	set_root(std::string(pinfo.root));
 
 	m_gid = pinfo.gid;
 	m_uid = pinfo.uid;
@@ -436,88 +507,14 @@ sinsp_threadinfo_impl<SyncPolicy>::cgroups() const {
 }
 
 template<typename SyncPolicy>
-typename sinsp_threadinfo_impl<SyncPolicy>::cgroups_t
-sinsp_threadinfo_impl<SyncPolicy>::get_cgroups() const {
-	std::shared_lock l(m_state_mutex);
-	return m_cgroups;
+std::shared_ptr<sinsp_exec_info_snapshot> sinsp_threadinfo_impl<SyncPolicy>::mutable_snapshot() {
+	auto old = std::atomic_load(&m_exec_info);
+	return old ? std::make_shared<exec_snapshot_t>(*old) : std::make_shared<exec_snapshot_t>();
 }
 
 template<typename SyncPolicy>
-std::string sinsp_threadinfo_impl<SyncPolicy>::get_comm() const {
-	std::shared_lock l(m_state_mutex);
-	return m_comm;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_comm(std::string v) {
-	std::unique_lock l(m_state_mutex);
-	m_comm = std::move(v);
-}
-
-template<typename SyncPolicy>
-std::string sinsp_threadinfo_impl<SyncPolicy>::get_exe() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe(std::string v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe = std::move(v);
-}
-
-template<typename SyncPolicy>
-std::string sinsp_threadinfo_impl<SyncPolicy>::get_exepath() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exepath;
-}
-
-template<typename SyncPolicy>
-bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_writable() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_writable;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_writable(bool v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_writable = v;
-}
-
-template<typename SyncPolicy>
-bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_upper_layer() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_upper_layer;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_upper_layer(bool v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_upper_layer = v;
-}
-
-template<typename SyncPolicy>
-bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_lower_layer() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_lower_layer;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_lower_layer(bool v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_lower_layer = v;
-}
-
-template<typename SyncPolicy>
-bool sinsp_threadinfo_impl<SyncPolicy>::get_exe_from_memfd() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_from_memfd;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_from_memfd(bool v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_from_memfd = v;
+void sinsp_threadinfo_impl<SyncPolicy>::publish_snapshot(std::shared_ptr<exec_snapshot_t>&& snap) {
+	std::atomic_store(&m_exec_info, std::shared_ptr<const exec_snapshot_t>(std::move(snap)));
 }
 
 template<typename SyncPolicy>
@@ -527,81 +524,10 @@ std::vector<std::string> sinsp_threadinfo_impl<SyncPolicy>::get_args() const {
 }
 
 template<typename SyncPolicy>
-std::string sinsp_threadinfo_impl<SyncPolicy>::get_cmd_line() const {
+typename sinsp_threadinfo_impl<SyncPolicy>::cgroups_t
+sinsp_threadinfo_impl<SyncPolicy>::get_cgroups() const {
 	std::shared_lock l(m_state_mutex);
-	return m_cmd_line;
-}
-
-template<typename SyncPolicy>
-std::string sinsp_threadinfo_impl<SyncPolicy>::get_root() const {
-	std::shared_lock l(m_state_mutex);
-	return m_root;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_root(std::string v) {
-	std::unique_lock l(m_state_mutex);
-	m_root = std::move(v);
-}
-
-template<typename SyncPolicy>
-uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_ino;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino(uint64_t v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_ino = v;
-}
-
-template<typename SyncPolicy>
-uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_ctime() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_ino_ctime;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_ctime(uint64_t v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_ino_ctime = v;
-}
-
-template<typename SyncPolicy>
-uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_mtime() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_ino_mtime;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_mtime(uint64_t v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_ino_mtime = v;
-}
-
-template<typename SyncPolicy>
-uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_ctime_duration_clone_ts() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_ino_ctime_duration_clone_ts;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_ctime_duration_clone_ts(uint64_t v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_ino_ctime_duration_clone_ts = v;
-}
-
-template<typename SyncPolicy>
-uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_exe_ino_ctime_duration_pidns_start() const {
-	std::shared_lock l(m_state_mutex);
-	return m_exe_ino_ctime_duration_pidns_start;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_exe_ino_ctime_duration_pidns_start(uint64_t v) {
-	std::unique_lock l(m_state_mutex);
-	m_exe_ino_ctime_duration_pidns_start = v;
+	return m_cgroups;
 }
 
 template<typename SyncPolicy>
@@ -609,6 +535,35 @@ void sinsp_threadinfo_impl<SyncPolicy>::set_env(const std::vector<std::string>& 
 	std::unique_lock l(m_state_mutex);
 	m_env = env;
 }
+
+// --- Individual exec-info setters (copy-modify-publish the snapshot) ---
+#define DEFINE_SNAPSHOT_SETTER(type, name, field)          \
+	template<typename SyncPolicy>                          \
+	void sinsp_threadinfo_impl<SyncPolicy>::name(type v) { \
+		auto snap = mutable_snapshot();                    \
+		snap->field = std::move(v);                        \
+		publish_snapshot(std::move(snap));                 \
+	}
+
+DEFINE_SNAPSHOT_SETTER(std::string, set_comm, comm)
+DEFINE_SNAPSHOT_SETTER(std::string, set_exe, exe)
+DEFINE_SNAPSHOT_SETTER(std::string, set_root, root)
+DEFINE_SNAPSHOT_SETTER(bool, set_exe_writable, exe_writable)
+DEFINE_SNAPSHOT_SETTER(bool, set_exe_upper_layer, exe_upper_layer)
+DEFINE_SNAPSHOT_SETTER(bool, set_exe_lower_layer, exe_lower_layer)
+DEFINE_SNAPSHOT_SETTER(bool, set_exe_from_memfd, exe_from_memfd)
+DEFINE_SNAPSHOT_SETTER(uint64_t, set_exe_ino, exe_ino)
+DEFINE_SNAPSHOT_SETTER(uint64_t, set_exe_ino_ctime, exe_ino_ctime)
+DEFINE_SNAPSHOT_SETTER(uint64_t, set_exe_ino_mtime, exe_ino_mtime)
+DEFINE_SNAPSHOT_SETTER(uint64_t,
+                       set_exe_ino_ctime_duration_clone_ts,
+                       exe_ino_ctime_duration_clone_ts)
+DEFINE_SNAPSHOT_SETTER(uint64_t,
+                       set_exe_ino_ctime_duration_pidns_start,
+                       exe_ino_ctime_duration_pidns_start)
+DEFINE_SNAPSHOT_SETTER(uint64_t, set_lastexec_ts, lastexec_ts)
+
+#undef DEFINE_SNAPSHOT_SETTER
 
 template<typename SyncPolicy>
 void sinsp_threadinfo_impl<SyncPolicy>::set_args(const char* args, size_t len) {
@@ -621,15 +576,19 @@ void sinsp_threadinfo_impl<SyncPolicy>::set_args(const char* args, size_t len) {
 
 template<typename SyncPolicy>
 void sinsp_threadinfo_impl<SyncPolicy>::set_args(const std::vector<std::string>& args) {
-	std::unique_lock l(m_state_mutex);
-	m_args = args;
-	m_cmd_line = m_comm;
-	if(!m_cmd_line.empty()) {
-		for(const auto& arg : m_args) {
-			m_cmd_line += " ";
-			m_cmd_line += arg;
+	// Rebuild cmd_line in snapshot from current comm + new args
+	auto snap = mutable_snapshot();
+	snap->cmd_line = snap->comm;
+	if(!snap->cmd_line.empty()) {
+		for(const auto& arg : args) {
+			snap->cmd_line += " ";
+			snap->cmd_line += arg;
 		}
 	}
+	publish_snapshot(std::move(snap));
+
+	std::unique_lock l(m_state_mutex);
+	m_args = args;
 }
 
 template<typename SyncPolicy>
@@ -638,18 +597,20 @@ void sinsp_threadinfo_impl<SyncPolicy>::set_env(const char* const env,
                                                 const bool can_load_from_proc) {
 	if(len == SCAP_MAX_ENV_SIZE && can_load_from_proc) {
 		if(set_env_from_proc()) {
+			auto comm = get_comm();
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Large environment for process %lu [%s], loaded from /proc",
-			                          m_pid,
-			                          m_comm.c_str());
+			                          load_relaxed(m_pid),
+			                          comm.c_str());
 			return;
 		}
 
+		auto comm = get_comm();
 		libsinsp_logger()->format(sinsp_logger::SEV_INFO,
 		                          "Failed to load environment for process %lu [%s] from /proc, "
 		                          "using first %d bytes",
-		                          m_pid,
-		                          m_comm.c_str(),
+		                          load_relaxed(m_pid),
+		                          comm.c_str(),
 		                          SCAP_MAX_ENV_SIZE);
 	}
 
@@ -664,8 +625,8 @@ void sinsp_threadinfo_impl<SyncPolicy>::set_env(const char* const env,
 
 template<typename SyncPolicy>
 bool sinsp_threadinfo_impl<SyncPolicy>::set_env_from_proc() {
-	std::string environ_path =
-	        std::string(scap_get_host_root()) + "/proc/" + std::to_string(m_pid) + "/environ";
+	std::string environ_path = std::string(scap_get_host_root()) + "/proc/" +
+	                           std::to_string(load_relaxed(m_pid)) + "/environ";
 
 	std::ifstream environment(environ_path);
 	if(!environment) {
@@ -791,87 +752,88 @@ void sinsp_threadinfo_impl<SyncPolicy>::set_cgroups(const cgroups_t& cgroups) {
 }
 
 template<typename SyncPolicy>
-uint64_t sinsp_threadinfo_impl<SyncPolicy>::get_lastexec_ts() const {
-	std::shared_lock l(m_state_mutex);
-	return m_lastexec_ts;
-}
-
-template<typename SyncPolicy>
-void sinsp_threadinfo_impl<SyncPolicy>::set_lastexec_ts(uint64_t v) {
-	std::unique_lock l(m_state_mutex);
-	m_lastexec_ts = v;
-}
-
-template<typename SyncPolicy>
 void sinsp_threadinfo_impl<SyncPolicy>::apply_exec_state(const exec_state_t& state) {
-	std::unique_lock l(m_state_mutex);
+	auto snap = mutable_snapshot();
 
-	// Mutex-protected exec-info only. Caller must set m_pid before this if using
-	// load_env_from_proc.
-	m_exe = state.exe;
-	m_lastexec_ts = state.lastexec_ts;
-	m_comm = state.comm;
-	m_args = state.args;
-	m_cmd_line = m_comm;
-	if(!m_cmd_line.empty()) {
-		for(const auto& arg : m_args) {
-			m_cmd_line += " ";
-			m_cmd_line += arg;
+	snap->exe = state.exe;
+	snap->comm = state.comm;
+	snap->lastexec_ts = state.lastexec_ts;
+
+	// Build cmd_line from comm + args (args go into snapshot's cmd_line but live in vector)
+	snap->cmd_line = snap->comm;
+	if(!snap->cmd_line.empty()) {
+		for(const auto& arg : state.args) {
+			snap->cmd_line += " ";
+			snap->cmd_line += arg;
 		}
 	}
+
 	if(state.exepath.has_value()) {
-		m_exepath = *state.exepath;
+		snap->exepath = *state.exepath;
 		constexpr char suffix[] = " (deleted)";
 		constexpr size_t suffix_len = sizeof(suffix) - 1;
-		if(m_exepath.size() > suffix_len &&
-		   m_exepath.compare(m_exepath.size() - suffix_len, suffix_len, suffix) == 0) {
-			m_exepath.resize(m_exepath.size() - suffix_len);
+		if(snap->exepath.size() > suffix_len &&
+		   snap->exepath.compare(snap->exepath.size() - suffix_len, suffix_len, suffix) == 0) {
+			snap->exepath.resize(snap->exepath.size() - suffix_len);
 		}
 	}
+
 	if(state.exe_writable.has_value()) {
-		m_exe_writable = *state.exe_writable;
+		snap->exe_writable = *state.exe_writable;
 	}
 	if(state.exe_upper_layer.has_value()) {
-		m_exe_upper_layer = *state.exe_upper_layer;
+		snap->exe_upper_layer = *state.exe_upper_layer;
 	}
 	if(state.exe_lower_layer.has_value()) {
-		m_exe_lower_layer = *state.exe_lower_layer;
+		snap->exe_lower_layer = *state.exe_lower_layer;
 	}
 	if(state.exe_from_memfd.has_value()) {
-		m_exe_from_memfd = *state.exe_from_memfd;
+		snap->exe_from_memfd = *state.exe_from_memfd;
 	}
 	if(state.exe_ino.has_value()) {
-		m_exe_ino = *state.exe_ino;
+		snap->exe_ino = *state.exe_ino;
 	}
 	if(state.exe_ino_ctime.has_value()) {
-		m_exe_ino_ctime = *state.exe_ino_ctime;
+		snap->exe_ino_ctime = *state.exe_ino_ctime;
 	}
 	if(state.exe_ino_mtime.has_value()) {
-		m_exe_ino_mtime = *state.exe_ino_mtime;
+		snap->exe_ino_mtime = *state.exe_ino_mtime;
 	}
 	if(state.exe_ino_ctime_duration_clone_ts.has_value()) {
-		m_exe_ino_ctime_duration_clone_ts = *state.exe_ino_ctime_duration_clone_ts;
+		snap->exe_ino_ctime_duration_clone_ts = *state.exe_ino_ctime_duration_clone_ts;
 	}
 	if(state.exe_ino_ctime_duration_pidns_start.has_value()) {
-		m_exe_ino_ctime_duration_pidns_start = *state.exe_ino_ctime_duration_pidns_start;
+		snap->exe_ino_ctime_duration_pidns_start = *state.exe_ino_ctime_duration_pidns_start;
 	}
-	if(state.cgroups.has_value()) {
-		m_cgroups = *state.cgroups;
+
+	// Publish snapshot (strings + scalars become atomically visible)
+	publish_snapshot(std::move(snap));
+
+	// Update mutex-protected vectors (args/env/cgroups)
+	{
+		std::unique_lock l(m_state_mutex);
+		m_args = state.args;
+		if(state.cgroups.has_value()) {
+			m_cgroups = *state.cgroups;
+		}
+		if(state.env.has_value()) {
+			m_env = *state.env;
+		}
 	}
-	if(state.env.has_value()) {
-		m_env = *state.env;
-	} else if(state.load_env_from_proc) {
+
+	// Load env from proc outside the lock to avoid deadlock with set_env_from_proc
+	if(!state.env.has_value() && state.load_env_from_proc) {
 		if(set_env_from_proc()) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "Large environment for process %lu [%s], loaded from /proc",
-			                          m_pid,
-			                          m_comm.c_str());
+			                          load_relaxed(m_pid),
+			                          state.comm.c_str());
 		} else {
 			libsinsp_logger()->format(sinsp_logger::SEV_INFO,
 			                          "Failed to load environment for process %lu [%s] from /proc, "
 			                          "using first %d bytes",
-			                          m_pid,
-			                          m_comm.c_str(),
+			                          load_relaxed(m_pid),
+			                          state.comm.c_str(),
 			                          SCAP_MAX_ENV_SIZE);
 		}
 	}
@@ -991,8 +953,9 @@ template<typename SyncPolicy>
 std::string sinsp_threadinfo_impl<SyncPolicy>::get_cwd() {
 	auto tinfo = get_main_thread();
 	if(tinfo) {
-		std::shared_lock l(tinfo->m_state_mutex);
-		return tinfo->m_cwd;
+		auto p = std::atomic_load(&tinfo->m_cwd);
+		return p ? *p : std::string{"./"};
+		;
 	}
 	return "./";
 }
@@ -1003,11 +966,14 @@ void sinsp_threadinfo_impl<SyncPolicy>::update_cwd(std::string_view cwd) {
 	if(!tinfo) {
 		return;
 	}
+	// Writer mutex for read-modify-write on m_cwd
 	std::unique_lock l(tinfo->m_state_mutex);
-	tinfo->m_cwd = sinsp_utils::concatenate_paths(tinfo->m_cwd, cwd);
-	if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/') {
-		tinfo->m_cwd += '/';
+	auto old_cwd = std::atomic_load(&tinfo->m_cwd);
+	std::string new_cwd = sinsp_utils::concatenate_paths(old_cwd ? *old_cwd : std::string{}, cwd);
+	if(new_cwd.empty() || new_cwd.back() != '/') {
+		new_cwd += '/';
 	}
+	std::atomic_store(&tinfo->m_cwd, std::make_shared<const std::string>(std::move(new_cwd)));
 }
 
 template<typename SyncPolicy>
@@ -1150,15 +1116,20 @@ void sinsp_threadinfo_impl<SyncPolicy>::assign_children_to_reaper(sinsp_threadin
 template<typename SyncPolicy>
 void sinsp_threadinfo_impl<SyncPolicy>::populate_cmdline(std::string& cmdline,
                                                          const sinsp_threadinfo_impl* tinfo) {
-	std::shared_lock l(tinfo->m_state_mutex);
-	if(tinfo->m_cmd_line.empty()) {
-		cmdline = tinfo->m_comm;
+	auto s = std::atomic_load(&tinfo->m_exec_info);
+	if(!s) {
+		cmdline.clear();
+		return;
+	}
+	if(s->cmd_line.empty()) {
+		cmdline = s->comm;
+		std::shared_lock l(tinfo->m_state_mutex);
 		for(const auto& arg : tinfo->m_args) {
 			cmdline += " ";
 			cmdline += arg;
 		}
 	} else {
-		cmdline = tinfo->m_cmd_line;
+		cmdline = s->cmd_line;
 	}
 }
 
@@ -1167,7 +1138,6 @@ void sinsp_threadinfo_impl<SyncPolicy>::populate_args(std::string& args,
                                                       const sinsp_threadinfo_impl* tinfo) {
 	std::shared_lock l(tinfo->m_state_mutex);
 	uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
 	for(uint32_t j = 0; j < nargs; j++) {
 		args += tinfo->m_args[j];
 		if(j < nargs - 1) {
@@ -1340,12 +1310,13 @@ void sinsp_threadinfo_impl<SyncPolicy>::set_exepath(std::string&& exepath) {
 	constexpr char suffix[] = " (deleted)";
 	constexpr size_t suffix_len = sizeof(suffix) - 1;
 
-	std::unique_lock l(m_state_mutex);
-	m_exepath = std::move(exepath);
-	if(m_exepath.size() > suffix_len &&
-	   m_exepath.compare(m_exepath.size() - suffix_len, suffix_len, suffix) == 0) {
-		m_exepath.resize(m_exepath.size() - suffix_len);
+	if(exepath.size() > suffix_len &&
+	   exepath.compare(exepath.size() - suffix_len, suffix_len, suffix) == 0) {
+		exepath.resize(exepath.size() - suffix_len);
 	}
+	auto snap = mutable_snapshot();
+	snap->exepath = std::move(exepath);
+	publish_snapshot(std::move(snap));
 }
 
 template class sinsp_threadinfo_impl<sync_policy_default>;

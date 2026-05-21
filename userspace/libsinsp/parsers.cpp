@@ -2248,7 +2248,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		memcpy(&port, packed::in_sockaddr::port(packed_data), sizeof(port));
 		if(port > 0) {
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->write_guard();
+			[[maybe_unused]] auto lock = fdi->write_guard();
 			fdi->m_type = SCAP_FD_IPV4_SERVSOCK;
 			fdi->m_sockinfo.m_ipv4serverinfo.m_ip = ip;
 			fdi->m_sockinfo.m_ipv4serverinfo.m_port = port;
@@ -2262,7 +2262,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		memcpy(&port, packed::in6_sockaddr::port(packed_data), sizeof(uint16_t));
 		if(port > 0) {
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->write_guard();
+			[[maybe_unused]] auto lock = fdi->write_guard();
 			if(sinsp_utils::is_ipv4_mapped_ipv6(ip)) {
 				fdi->m_type = SCAP_FD_IPV4_SERVSOCK;
 				fdi->m_sockinfo.m_ipv4serverinfo.m_l4proto =
@@ -2293,7 +2293,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 
 void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8_t *packed_data) {
 	const auto fdinfo = evt.get_fd_info();
-	auto lock = fdinfo->write_guard();
+	[[maybe_unused]] auto lock = fdinfo->write_guard();
 	auto &sockinfo = fdinfo->m_sockinfo;
 	switch(const uint8_t family = *packed::generic_sockaddr::family(packed_data); family) {
 	case PPM_AF_INET: {
@@ -2463,7 +2463,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			// Check to see if it's an IPv4-mapped IPv6 address
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->write_guard();
+			[[maybe_unused]] auto lock = fdi->write_guard();
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))) {
 				fdi->m_type = SCAP_FD_IPV6_SOCK;
 				changed =
@@ -2494,7 +2494,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 			fdi->set_name_inner(&evt.get_paramstr_storage()[0]);
 		} else {
 			auto fdi = evt.get_fd_info();
-			auto lock = fdi->write_guard();
+			[[maybe_unused]] auto lock = fdi->write_guard();
 			const auto *const sip = packed::in_socktuple::sip(exit_tuple_data);
 			const auto *const sport = packed::in_socktuple::sport(exit_tuple_data);
 			const uint8_t *dip;
@@ -2530,7 +2530,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		const char *dpath;
 		resolve_connect_unix_destination(exit_tuple_data, exit_addr_data, enter_addr_data, dpath);
 
-		auto lock = fdi->write_guard();
+		[[maybe_unused]] auto lock = fdi->write_guard();
 		const auto *raw = packed::un_socktuple::source(exit_tuple_data);
 		const auto *raw_dest = packed::un_socktuple::dest(exit_tuple_data);
 		memcpy(&fdi->m_sockinfo.m_unixinfo.m_fields.m_source, raw, sizeof(uint64_t));
@@ -3051,7 +3051,7 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 	const auto packed_data = reinterpret_cast<const uint8_t *>(parinfo.data());
 	const auto family = *packed::generic_tuple::family(packed_data);
 	auto fdi = evt.get_fd_info();
-	auto lock = fdi->write_guard();
+	[[maybe_unused]] auto lock = fdi->write_guard();
 
 	if(family == PPM_AF_INET) {
 		if(fdi->m_type == SCAP_FD_IPV4_SERVSOCK) {

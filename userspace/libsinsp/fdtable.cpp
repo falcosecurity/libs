@@ -98,7 +98,7 @@ sinsp_fdtable_impl<SyncPolicy>::add_ref(int64_t fd, std::shared_ptr<fdinfo_t>&& 
 	}
 
 	{
-		auto wg = fdinfo->write_guard();
+		[[maybe_unused]] auto wg = fdinfo->write_guard();
 		fdinfo->m_fd = fd;
 		lookup_device(*fdinfo);
 	}
