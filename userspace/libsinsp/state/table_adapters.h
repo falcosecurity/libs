@@ -48,13 +48,11 @@ public:
 
 	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "value") == 0) {
-			auto tinfo = type_id_of<T>();
-			if(type_id != tinfo) {
+			if(type_id != type_id_of<T>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(
-			        std::make_unique<accessor>("value", tinfo, read_value, write_value, 0, false));
+			return s_value_accessor.clone();
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
@@ -69,6 +67,13 @@ private:
 		auto* v = static_cast<value_table_entry_adapter*>(obj);
 		in.copy_to<type_id_of<T>(), T>(*v->m_value);
 	}
+
+	inline static const accessor s_value_accessor{"value",
+	                                              type_id_of<T>(),
+	                                              read_value,
+	                                              write_value,
+	                                              0,
+	                                              false};
 
 	T* m_value;
 };
@@ -99,21 +104,17 @@ public:
 
 	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "first") == 0) {
-			auto tinfo = type_id_of<Tfirst>();
-			if(type_id != tinfo) {
+			if(type_id != type_id_of<Tfirst>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(
-			        std::make_unique<accessor>("first", tinfo, read_key, write_key, 0, false));
+			return s_first_accessor.clone();
 		} else if(strcmp(name, "second") == 0) {
-			auto tinfo = type_id_of<Tsecond>();
-			if(type_id != tinfo) {
+			if(type_id != type_id_of<Tsecond>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(
-			        std::make_unique<accessor>("second", tinfo, read_value, write_value, 1, false));
+			return s_second_accessor.clone();
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
@@ -137,6 +138,19 @@ private:
 		auto* v = static_cast<value_table_entry_adapter*>(obj);
 		in.copy_to<type_id_of<Tsecond>(), Tsecond>(v->m_value->second);
 	}
+
+	inline static const accessor s_first_accessor{"first",
+	                                              type_id_of<Tfirst>(),
+	                                              read_key,
+	                                              write_key,
+	                                              0,
+	                                              false};
+	inline static const accessor s_second_accessor{"second",
+	                                               type_id_of<Tsecond>(),
+	                                               read_value,
+	                                               write_value,
+	                                               1,
+	                                               false};
 
 	std::pair<Tfirst, Tsecond>* m_value;
 };
