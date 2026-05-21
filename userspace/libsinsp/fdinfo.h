@@ -293,7 +293,11 @@ public:
 
 	inline void set_name_inner(std::shared_ptr<const std::string> new_ptr) {
 		auto old = std::atomic_load(&m_name);
-		if(!old || *old != *new_ptr) {
+		// Treat absent m_name like the pre-COW default empty string so we do not
+		// spuriously set name_changed on the first store of "".
+		static const std::string k_empty_name;
+		const std::string& old_name = old ? *old : k_empty_name;
+		if(old_name != *new_ptr) {
 			std::atomic_store(&m_name, std::move(new_ptr));
 			m_name_changed.store(true, std::memory_order_relaxed);
 		}
