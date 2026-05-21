@@ -178,11 +178,11 @@ public:
 		wrapper_t::list_fields(out);
 	}
 
-	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override {
-		return wrapper_t::get_field(name, type_id).clone();
+	const accessor& get_field(const char* name, ss_plugin_state_type type_id) override {
+		return wrapper_t::get_field(name, type_id);
 	}
 
-	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override {
+	const accessor& add_field(const char* name, ss_plugin_state_type type_id) override {
 		throw sinsp_exception("can't add dynamic fields to stl_container_table_adapter");
 	}
 

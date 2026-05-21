@@ -337,17 +337,16 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 			return cast(it->second);
 		}
 
-		auto acc = this->get_field(name, data_type);
-		owner->m_accessed_table_fields.push_back(std::move(acc));
-		this->m_field_accessors[name] = owner->m_accessed_table_fields.back().raw_ptr();
-		return cast(this->m_field_accessors[name]);
+		const auto& acc = this->get_field(name, data_type);
+		this->m_field_accessors[name] = &acc;
+		return cast(&acc);
 	});
 
 	return NULL;
 }
 
 template<typename KeyType>
-libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_field(
+const libsinsp::state::accessor& libsinsp::state::extensible_table<KeyType>::get_field(
         const char* name,
         ss_plugin_state_type type_id) {
 	auto fixed_it = this->static_fields()->find(name);
@@ -364,7 +363,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 		if(type_id != fixed_it->second.type_id()) {
 			throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 		}
-		return fixed_it->second.clone();
+		return fixed_it->second;
 	}
 
 	if(dyn_it != this->dynamic_fields()->fields().end()) {
@@ -372,7 +371,7 @@ libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::get_f
 			throw sinsp_exception("incompatible data types for dynamic field: " +
 			                      std::string(name));
 		}
-		return libsinsp::state::accessor::ptr(dyn_it->second->clone());
+		return *dyn_it->second;
 	}
 	throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
 	                      std::string(this->name()) + "'");
@@ -391,7 +390,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 }
 
 template<typename KeyType>
-libsinsp::state::accessor::ptr libsinsp::state::extensible_table<KeyType>::add_field(
+const libsinsp::state::accessor& libsinsp::state::extensible_table<KeyType>::add_field(
         const char* name,
         ss_plugin_state_type type_id) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
