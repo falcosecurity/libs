@@ -46,13 +46,13 @@ public:
 		out.emplace_back(value);
 	}
 
-	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
+	static const accessor& get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "value") == 0) {
 			if(type_id != type_id_of<T>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return s_value_accessor.clone();
+			return s_value_accessor;
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
@@ -102,19 +102,19 @@ public:
 		out.emplace_back(second);
 	}
 
-	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
+	static const accessor& get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "first") == 0) {
 			if(type_id != type_id_of<Tfirst>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return s_first_accessor.clone();
+			return s_first_accessor;
 		} else if(strcmp(name, "second") == 0) {
 			if(type_id != type_id_of<Tsecond>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return s_second_accessor.clone();
+			return s_second_accessor;
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
@@ -179,7 +179,7 @@ public:
 	}
 
 	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override {
-		return wrapper_t::get_field(name, type_id);
+		return wrapper_t::get_field(name, type_id).clone();
 	}
 
 	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override {
