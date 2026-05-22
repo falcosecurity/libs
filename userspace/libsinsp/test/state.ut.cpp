@@ -444,6 +444,30 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(table->entries_count(), 0);
 }
 
+// Regression test: built_in_table::get_field caches the accessor in
+// m_field_accessors keyed by name. A second plugin-API lookup of the same
+// name with a different data_type must be rejected, otherwise the plugin
+// would silently get a wrong-typed accessor and read/write the field
+// through it.
+TEST(built_in_table, get_field_type_mismatch_on_cached_accessor) {
+	sinsp inspector;
+	auto table = static_cast<libsinsp::state::extensible_table<int64_t>*>(
+	        inspector.m_thread_manager.get());
+	libsinsp::state::sinsp_table_owner owner;
+
+	// First lookup with the correct type populates the cache.
+	auto* tid_field = table->get_field(&owner, "tid", SS_PLUGIN_ST_INT64);
+	ASSERT_NE(tid_field, nullptr);
+	ASSERT_TRUE(owner.m_last_owner_err.empty()) << owner.m_last_owner_err;
+
+	// Second lookup with a mismatched type must fail, even though the
+	// accessor for "tid" is now cached.
+	auto* mistyped = table->get_field(&owner, "tid", SS_PLUGIN_ST_STRING);
+	EXPECT_EQ(mistyped, nullptr);
+	EXPECT_NE(owner.m_last_owner_err.find("doesn't match"), std::string::npos)
+	        << "expected type-mismatch error, got: " << owner.m_last_owner_err;
+}
+
 TEST(thread_manager, fdtable_access) {
 	// note: used for regression checks, keep this updated as we make new fields available
 	static const int s_fdinfo_static_fields_count = 32;
