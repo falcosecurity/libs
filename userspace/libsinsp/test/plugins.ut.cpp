@@ -938,7 +938,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
 	auto dfield = subtable->dynamic_fields()->fields().find("custom");
 	ASSERT_NE(dfield, subtable->dynamic_fields()->fields().end());
-	auto dfieldacc = dfield->second.into<std::string>();
+	auto dfieldacc = dfield->second->into<std::string>();
 
 	// step #0: the plugin should populate the fdtable
 	add_event_advance_ts(increasing_ts(),

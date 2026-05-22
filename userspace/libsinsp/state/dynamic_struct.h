@@ -26,7 +26,7 @@ limitations under the License.
 #include <unordered_map>
 #include <memory>
 #include <cstring>
-#include <vector>
+#include <deque>
 
 namespace libsinsp::state {
 
@@ -142,34 +142,37 @@ public:
 	 * @param type_id Type of the field.
 	 */
 	inline const accessor& add_field(const std::string& name, ss_plugin_state_type type_id) {
-		auto field = accessor(name, type_id, m_reader, m_writer, m_definitions.size(), false);
+		auto field =
+		        accessor(name, type_id, m_reader, m_writer, m_definitions_ordered.size(), false);
 		if(field.type_id() == SS_PLUGIN_ST_TABLE) {
 			throw sinsp_exception("dynamic fields of type table are not supported");
 		}
-		const auto& it = m_definitions.find(field.name());
+		const auto it = m_definitions.find(field.name());
 		if(it != m_definitions.end()) {
 			const auto& t = field.type_id();
-			if(it->second.type_id() != t) {
-				auto prevtype = type_name(it->second.type_id());
+			if(it->second->type_id() != t) {
+				auto prevtype = type_name(it->second->type_id());
 				auto newtype = type_name(t);
 				throw sinsp_exception(
 				        "multiple definitions of dynamic field with different types in "
 				        "struct: " +
 				        field.name() + ", prevtype=" + prevtype + ", newtype=" + newtype);
 			}
-			return it->second;
+			return *it->second;
 		}
-		m_definitions.insert({field.name(), field});
-		const auto& def = m_definitions.at(field.name());
-		m_definitions_ordered.push_back(&def);
+		// std::deque guarantees stable element addresses across push_back, so
+		// pointers stored in m_definitions (and cached by callers) remain valid.
+		m_definitions_ordered.push_back(std::move(field));
+		const auto& def = m_definitions_ordered.back();
+		m_definitions[def.name()] = &def;
 		return def;
 	}
 
-	const std::unordered_map<std::string, accessor>& fields() { return m_definitions; }
+	const std::unordered_map<std::string, const accessor*>& fields() const { return m_definitions; }
 
 protected:
-	std::unordered_map<std::string, accessor> m_definitions;
-	std::vector<const accessor*> m_definitions_ordered;
+	std::deque<accessor> m_definitions_ordered;
+	std::unordered_map<std::string, const accessor*> m_definitions;
 	accessor::reader_fn m_reader;
 	accessor::writer_fn m_writer;
 
