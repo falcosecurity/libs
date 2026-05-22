@@ -334,6 +334,13 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto it = this->m_field_accessors.find(name);
 		if(it != this->m_field_accessors.end()) {
+			if(it->second->type_id() != data_type) {
+				const auto requested_type = type_name(data_type);
+				const auto actual_type = type_name(it->second->type_id());
+				throw sinsp_exception("data type for field: " + std::string(name) +
+				                      ", requested type " + requested_type +
+				                      " doesn't match actual type " + actual_type);
+			}
 			return cast(it->second);
 		}
 
