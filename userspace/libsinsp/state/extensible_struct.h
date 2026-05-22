@@ -21,6 +21,8 @@ limitations under the License.
 #include <libsinsp/state/dynamic_struct.h>
 #include <libsinsp/state/static_struct.h>
 
+#include <vector>
+
 namespace libsinsp::state {
 class extensible_struct : public table_entry {
 public:
@@ -76,8 +78,8 @@ private:
 			throw sinsp_exception("dynamic struct access overflow: " + std::to_string(index));
 		}
 		while(m_fields.size() <= index) {
-			auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
-			m_fields.emplace_back(def->type_id());
+			const auto& def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
+			m_fields.emplace_back(def.type_id());
 		}
 		return &m_fields[index];
 	}
@@ -119,8 +121,8 @@ private:
 		// deep copy of all the fields
 		m_fields.clear();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
-			const auto info = m_dynamic_fields->m_definitions_ordered[i];
-			dispatch_lambda(info->type_id(), cloner{this, &other, i});
+			const auto& info = m_dynamic_fields->m_definitions_ordered[i];
+			dispatch_lambda(info.type_id(), cloner{this, &other, i});
 		}
 	}
 
