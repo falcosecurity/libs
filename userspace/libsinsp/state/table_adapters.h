@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <libsinsp/state/table.h>
 #include <cstring>
+#include <deque>
 
 namespace libsinsp {
 namespace state {
@@ -264,7 +265,8 @@ private:
 	}
 
 	T& m_container;
-	std::list<wrapper_t> m_wrappers;  // using lists for ptr stability
+	// deque: stable element addresses across emplace_back, and we never erase.
+	std::deque<wrapper_t> m_wrappers;
 };
 
 // Simple adapter for ss_plugin_table_input that implements the base_table interface
