@@ -18,19 +18,11 @@ limitations under the License.
 
 // End-to-end filtercheck tests for every comparator × modifier combination.
 //
-// proc.name is a single-value string field (PT_CHARBUF). For a single extracted value v:
-//   oneof  : true iff exactly one extracted value satisfies in_rhs(v)   — same as anyof for one
-//   value anyof  : true iff at least one extracted value satisfies in_rhs(v)  — same as oneof for
-//   one value allof  : true iff every extracted value satisfies in_rhs(v)         — same as oneof
-//   for one value
-//
-// in_rhs semantics (given RHS set R):
-//   CO_EQ/CO_CONTAINS/etc. : ∃ r∈R : v op r  — v satisfies op against some element of R
-//   CO_NE                  : ∀ r∈R : v ≠ r   — v is not equal to any element of R (membership
-//   negation) CO_REGEX               : ∃ r∈R : r matches v  — any regex pattern in R matches v
-//
-// Multi-value modifier semantics (oneof=exactly-one / anyof=at-least-one / allof=all) are
-// exercised against mock filter checks in filter_compiler.ut.cpp.
+// proc.name is a single-value string field (PT_CHARBUF). For the extracted value v and an RHS list
+// R = (r1, r2, ...), modifiers compose per-element:
+//   oneof  : true iff exactly one r ∈ R satisfies v op r
+//   anyof  : true iff at least one r ∈ R satisfies v op r
+//   allof  : true iff every r ∈ R satisfies v op r
 
 #include <helpers/threads_helpers.h>
 
@@ -47,19 +39,22 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_eq) {
 	                                                 "/myexe",
 	                                                 "myexe");
 
-	// oneof: field value must be in the RHS set
+	// oneof: exactly one RHS value must equal the field.
 	EXPECT_TRUE(eval_filter(evt, "proc.name == oneof (myexe, bash)"));
 	EXPECT_TRUE(eval_filter(evt, "proc.name == oneof (myexe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name == oneof (bash, sh)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name == oneof (myexe, myexe)"));
 
-	// anyof: identical semantics to oneof for a single-value field
+	// anyof: at least one RHS value must equal the field.
 	EXPECT_TRUE(eval_filter(evt, "proc.name == anyof (myexe, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name == anyof (bash, sh)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name == anyof (myexe, myexe)"));
 
-	// allof: field must equal ALL listed values (only possible with a single distinct value)
+	// allof: every RHS value must equal the field (only possible with a single distinct value).
 	EXPECT_TRUE(eval_filter(evt, "proc.name == allof (myexe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name == allof (myexe, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name == allof (bash, sh)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name == allof (myexe, myexe)"));
 }
 
 // ── != ───────────────────────────────────────────────────────────────────────
@@ -75,13 +70,17 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_ne) {
 	                                                 "/myexe",
 	                                                 "myexe");
 
-	// in_rhs for !=: v ∉ RHS (not equal to any element)
-	EXPECT_TRUE(eval_filter(evt, "proc.name != oneof (bash, sh)"));
-	EXPECT_FALSE(eval_filter(evt, "proc.name != oneof (myexe, bash)"));
+	// oneof: exactly one RHS value must differ from the field.
+	EXPECT_TRUE(eval_filter(evt, "proc.name != oneof (myexe, myexe, bash)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name != oneof (myexe, myexe)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name != oneof (bash, sh)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name != oneof (myexe, bash)"));
 
+	// anyof: at least one RHS value must differ from the field.
 	EXPECT_TRUE(eval_filter(evt, "proc.name != anyof (bash, sh)"));
-	EXPECT_FALSE(eval_filter(evt, "proc.name != anyof (myexe, bash)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name != anyof (myexe, bash)"));
 
+	// allof: every RHS value must differ from the field (equivalent to "v not in RHS").
 	EXPECT_TRUE(eval_filter(evt, "proc.name != allof (bash, sh)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name != allof (myexe, bash)"));
 }
@@ -102,9 +101,11 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_contains) {
 	EXPECT_TRUE(eval_filter(evt, "proc.name contains oneof (myex, bash)"));
 	EXPECT_TRUE(eval_filter(evt, "proc.name contains oneof (exe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name contains oneof (bash, sh)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name contains oneof (my, exe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name contains anyof (myex, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name contains anyof (bash, sh)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name contains anyof (my, exe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name contains allof (my, exe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name contains allof (myex, bash)"));
@@ -126,9 +127,11 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_icontains) {
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name icontains oneof (MYEX, BASH)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name icontains oneof (BASH, SH)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name icontains oneof (MY, EXE)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name icontains anyof (MYEX, BASH)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name icontains anyof (BASH, SH)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name icontains anyof (MY, EXE)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name icontains allof (MY, EXE)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name icontains allof (MYEX, BASH)"));
@@ -150,9 +153,11 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_startswith) {
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name startswith oneof (my, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name startswith oneof (bash, sh)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name startswith oneof (my, mye)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name startswith anyof (my, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name startswith anyof (bash, sh)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name startswith anyof (my, mye)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name startswith allof (my, mye)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name startswith allof (my, bash)"));
@@ -174,9 +179,11 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_endswith) {
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name endswith oneof (exe, sh)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name endswith oneof (sh, bash)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name endswith oneof (exe, yexe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name endswith anyof (exe, sh)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name endswith anyof (sh, bash)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name endswith anyof (exe, yexe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name endswith allof (exe, yexe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name endswith allof (exe, sh)"));
@@ -198,9 +205,11 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_glob) {
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name glob oneof (my*, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name glob oneof (bash, sh*)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name glob oneof (my*, *exe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name glob anyof (my*, bash)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name glob anyof (bash, sh*)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name glob anyof (my*, *exe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name glob allof (my*, *exe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name glob allof (bash, sh*)"));
@@ -221,9 +230,11 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_iglob) {
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name iglob oneof (MY*, BASH)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name iglob oneof (BASH, SH*)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name iglob oneof (MY*, *EXE)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name iglob anyof (MY*, BASH)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name iglob anyof (BASH, SH*)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name iglob anyof (MY*, *EXE)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name iglob allof (MY*, *EXE)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name iglob allof (BASH, SH*)"));
@@ -244,11 +255,74 @@ TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_regex) {
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name regex oneof (my.*, b.*)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name regex oneof (b.*, sh.*)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name regex oneof (my.*, .*exe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name regex anyof (my.*, b.*)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name regex anyof (b.*, sh.*)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name regex anyof (my.*, .*exe)"));
 
 	EXPECT_TRUE(eval_filter(evt, "proc.name regex allof (my.*, .*exe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name regex allof (my.*, b.*)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.name regex allof (b.*, sh.*)"));
+}
+
+// ── transformer on LHS ───────────────────────────────────────────────────────
+
+TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_transformer_lhs) {
+	add_default_init_thread();
+	open_inspector();
+	auto* evt = generate_execve_enter_and_exit_event(0,
+	                                                 INIT_TID,
+	                                                 INIT_TID,
+	                                                 INIT_PID,
+	                                                 INIT_PTID,
+	                                                 "/myexe",
+	                                                 "myexe");
+
+	EXPECT_TRUE(eval_filter(evt, "toupper(proc.name) == oneof (MYEXE, BASH)"));
+	EXPECT_FALSE(eval_filter(evt, "toupper(proc.name) == oneof (BASH, SH)"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(proc.name) != oneof (MYEXE, BASH)"));
+	EXPECT_FALSE(eval_filter(evt, "toupper(proc.name) != oneof (BASH, SH)"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(proc.name) != allof (BASH, SH)"));
+	EXPECT_FALSE(eval_filter(evt, "toupper(proc.name) != allof (MYEXE, BASH)"));
+}
+
+// ── compound expressions ─────────────────────────────────────────────────────
+
+TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_compound) {
+	add_default_init_thread();
+	open_inspector();
+	auto* evt = generate_execve_enter_and_exit_event(0,
+	                                                 INIT_TID,
+	                                                 INIT_TID,
+	                                                 INIT_PID,
+	                                                 INIT_PTID,
+	                                                 "/myexe",
+	                                                 "myexe");
+
+	EXPECT_TRUE(eval_filter(evt, "proc.name == oneof (myexe) and proc.name != allof (bash, sh)"));
+	EXPECT_FALSE(
+	        eval_filter(evt, "proc.name == oneof (myexe) and proc.name != allof (myexe, bash)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.name == anyof (myexe, bash) or proc.name != oneof (myexe)"));
+}
+
+// ── empty RHS ────────────────────────────────────────────────────────────────
+
+TEST_F(sinsp_with_test_input, FILTERCHECK_MOD_empty_rhs) {
+	add_default_init_thread();
+	open_inspector();
+	auto* evt = generate_execve_enter_and_exit_event(0,
+	                                                 INIT_TID,
+	                                                 INIT_TID,
+	                                                 INIT_PID,
+	                                                 INIT_PTID,
+	                                                 "/myexe",
+	                                                 "myexe");
+
+	EXPECT_FALSE(eval_filter(evt, "proc.name == oneof ()"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name == anyof ()"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name == allof ()"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name != oneof ()"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name != anyof ()"));
+	EXPECT_FALSE(eval_filter(evt, "proc.name != allof ()"));
 }
