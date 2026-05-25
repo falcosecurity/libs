@@ -53,8 +53,7 @@ struct table_accessor {
 
 	void unset();
 	bool is_set() const;
-	template<typename T>
-	void set(sinsp_table_owner* p, libsinsp::state::table<T>* t);
+	void set(sinsp_table_owner* p, libsinsp::state::base_table* t);
 
 	// static functions, will be used to populate vtable functions where
 	// ss_plugin_table_t* will point to a `table_accessor` instance
@@ -205,7 +204,7 @@ public:
 	 * @param type_id Type of the field to be retrieved.
 	 * @return The accessor for * the requested field.
 	 */
-	virtual accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) = 0;
+	virtual const accessor& get_field(const char* name, ss_plugin_state_type type_id) = 0;
 
 	/**
 	 * @brief Adds a new field to the table with the given name and type.
@@ -214,7 +213,7 @@ public:
 	 * @param type_id Type of the field to be added.
 	 * @return The accessor for the newly-added field.
 	 */
-	virtual accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) = 0;
+	virtual const accessor& add_field(const char* name, ss_plugin_state_type type_id) = 0;
 
 	/**
 	 * @brief Returns the number of entries present in the table.
@@ -391,10 +390,10 @@ public:
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override;
 
 	using built_in_table<KeyType>::get_field;
-	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override;
+	const accessor& get_field(const char* name, ss_plugin_state_type type_id) override;
 
 	using built_in_table<KeyType>::add_field;
-	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override;
+	const accessor& add_field(const char* name, ss_plugin_state_type type_id) override;
 
 private:
 	const static_field_infos* m_static_fields = nullptr;
@@ -419,7 +418,6 @@ protected:
 	std::deque<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;          // pool of reusable table_accessor slots
 	size_t m_ephemeral_tables_used = 0;  // number of slots in use (reset between events)
-	std::vector<accessor::ptr> m_accessed_table_fields;
 
 	inline void clear_ephemeral_tables() { m_ephemeral_tables_used = 0; }
 

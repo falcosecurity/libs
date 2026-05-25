@@ -15,75 +15,11 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/state/table.h>
+#include <cstring>
+#include <deque>
 
 namespace libsinsp {
 namespace state {
-
-/**
- * @brief An adapter for the libsinsp::state::table_entry interface
- * that wraps a non-owning pointer of arbitrary pair of type T. The underlying pointer
- * can be set and unset arbitrarily, making this wrapper suitable for optimized
- * allocations. Instances of table_entry from this adapter have no static fields,
- * and make the wrapped value available as a single dynamic field. The dynamic
- * fields definitions of this wrapper are fixed and immutable.
- */
-template<typename Tfirst, typename Tsecond>
-class pair_table_entry_adapter : public libsinsp::state::table_entry {
-public:
-	inline explicit pair_table_entry_adapter(): m_value(nullptr) {}
-
-	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
-	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
-	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
-
-	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
-		ss_plugin_table_fieldinfo first = {"first", type_id_of<Tfirst>(), false};
-		out.emplace_back(first);
-		ss_plugin_table_fieldinfo second = {"second", type_id_of<Tsecond>(), false};
-		out.emplace_back(second);
-	}
-
-	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
-		if(strcmp(name, "first") == 0) {
-			auto tinfo = type_id_of<Tfirst>();
-			if(type_id != tinfo) {
-				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-				                      std::string(name));
-			}
-			return accessor::ptr(std::make_unique<accessor>(tinfo, read_key, write_key, 0));
-		} else if(strcmp(name, "second") == 0) {
-			auto tinfo = type_id_of<Tsecond>();
-			if(type_id != tinfo) {
-				throw sinsp_exception("incompatible type for pair_table_entry_adapter field: " +
-				                      std::string(name));
-			}
-			return accessor::ptr(std::make_unique<accessor>(tinfo, read_value, write_value, 1));
-		}
-		throw sinsp_exception(std::string("field ") + name + " not found");
-	}
-
-private:
-	[[nodiscard]] static borrowed_state_data read_key(const void* obj, size_t) {
-		const auto* v = static_cast<const pair_table_entry_adapter*>(obj);
-		return borrowed_state_data::from<type_id_of<Tfirst>(), Tfirst>(v->m_value->first);
-	}
-
-	[[nodiscard]] static borrowed_state_data read_value(const void* obj, size_t) {
-		const auto* v = static_cast<const pair_table_entry_adapter*>(obj);
-		return borrowed_state_data::from<type_id_of<Tsecond>(), Tfirst>(v->m_value->second);
-	}
-
-	static void write_key(void* obj, size_t, const borrowed_state_data& in) {
-		auto* v = static_cast<pair_table_entry_adapter*>(obj);
-		in.copy_to<type_id_of<Tfirst>(), Tfirst>(v->m_value->first);
-	}
-	static void write_value(void* obj, size_t, const borrowed_state_data& in) {
-		auto* v = static_cast<pair_table_entry_adapter*>(obj);
-		in.copy_to<type_id_of<Tsecond>(), Tsecond>(v->m_value->second);
-	}
-
-	std::pair<Tfirst, Tsecond>* m_value;
-};
 
 /**
  * @brief An adapter for the libsinsp::state::table_entry interface
@@ -111,14 +47,13 @@ public:
 		out.emplace_back(value);
 	}
 
-	static accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) {
+	static const accessor& get_field(const char* name, ss_plugin_state_type type_id) {
 		if(strcmp(name, "value") == 0) {
-			auto tinfo = type_id_of<T>();
-			if(type_id != tinfo) {
+			if(type_id != type_id_of<T>()) {
 				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
 				                      std::string(name));
 			}
-			return accessor::ptr(std::make_unique<accessor>(tinfo, read_value, write_value, 0));
+			return s_value_accessor;
 		}
 		throw sinsp_exception(std::string("field ") + name + " not found");
 	}
@@ -134,7 +69,91 @@ private:
 		in.copy_to<type_id_of<T>(), T>(*v->m_value);
 	}
 
+	inline static const accessor s_value_accessor{"value",
+	                                              type_id_of<T>(),
+	                                              read_value,
+	                                              write_value,
+	                                              0,
+	                                              false};
+
 	T* m_value;
+};
+
+/**
+ * @brief An adapter for the libsinsp::state::table_entry interface
+ * that wraps a non-owning pointer of arbitrary pair of type T. The underlying pointer
+ * can be set and unset arbitrarily, making this wrapper suitable for optimized
+ * allocations. Instances of table_entry from this adapter have no static fields,
+ * and expose the wrapped pair as two dynamic fields named "first" and "second".
+ * The dynamic fields definitions of this wrapper are fixed and immutable.
+ */
+template<typename Tfirst, typename Tsecond>
+class value_table_entry_adapter<std::pair<Tfirst, Tsecond>> : public libsinsp::state::table_entry {
+public:
+	inline explicit value_table_entry_adapter(): m_value(nullptr) {}
+
+	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
+	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
+	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
+
+	static void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) {
+		ss_plugin_table_fieldinfo first = {"first", type_id_of<Tfirst>(), false};
+		out.emplace_back(first);
+		ss_plugin_table_fieldinfo second = {"second", type_id_of<Tsecond>(), false};
+		out.emplace_back(second);
+	}
+
+	static const accessor& get_field(const char* name, ss_plugin_state_type type_id) {
+		if(strcmp(name, "first") == 0) {
+			if(type_id != type_id_of<Tfirst>()) {
+				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
+				                      std::string(name));
+			}
+			return s_first_accessor;
+		} else if(strcmp(name, "second") == 0) {
+			if(type_id != type_id_of<Tsecond>()) {
+				throw sinsp_exception("incompatible type for value_table_entry_adapter field: " +
+				                      std::string(name));
+			}
+			return s_second_accessor;
+		}
+		throw sinsp_exception(std::string("field ") + name + " not found");
+	}
+
+private:
+	[[nodiscard]] static borrowed_state_data read_key(const void* obj, size_t) {
+		const auto* v = static_cast<const value_table_entry_adapter*>(obj);
+		return borrowed_state_data::from<type_id_of<Tfirst>(), Tfirst>(v->m_value->first);
+	}
+
+	[[nodiscard]] static borrowed_state_data read_value(const void* obj, size_t) {
+		const auto* v = static_cast<const value_table_entry_adapter*>(obj);
+		return borrowed_state_data::from<type_id_of<Tsecond>(), Tsecond>(v->m_value->second);
+	}
+
+	static void write_key(void* obj, size_t, const borrowed_state_data& in) {
+		auto* v = static_cast<value_table_entry_adapter*>(obj);
+		in.copy_to<type_id_of<Tfirst>(), Tfirst>(v->m_value->first);
+	}
+	static void write_value(void* obj, size_t, const borrowed_state_data& in) {
+		auto* v = static_cast<value_table_entry_adapter*>(obj);
+		in.copy_to<type_id_of<Tsecond>(), Tsecond>(v->m_value->second);
+	}
+
+	inline static const accessor s_first_accessor{"first",
+	                                              type_id_of<Tfirst>(),
+	                                              read_key,
+	                                              write_key,
+	                                              0,
+	                                              false};
+	inline static const accessor s_second_accessor{"second",
+	                                               type_id_of<Tsecond>(),
+	                                               read_value,
+	                                               write_value,
+	                                               1,
+	                                               false};
+
+	std::pair<Tfirst, Tsecond>* m_value;
 };
 
 /**
@@ -147,22 +166,24 @@ private:
  * be extra careful when performing addition or deletion operations, as that
  * can lead to expensive sparse array operations or results.
  */
-template<typename T, typename TWrap = value_table_entry_adapter<typename T::value_type>>
+template<typename T>
 class stl_container_table_adapter : public libsinsp::state::built_in_table<uint64_t> {
 public:
+	using wrapper_t = value_table_entry_adapter<typename T::value_type>;
+
 	stl_container_table_adapter(const std::string& name, T& container):
 	        built_in_table(name),
 	        m_container(container) {}
 
 	void list_fields(std::vector<ss_plugin_table_fieldinfo>& out) override {
-		TWrap::list_fields(out);
+		wrapper_t::list_fields(out);
 	}
 
-	accessor::ptr get_field(const char* name, ss_plugin_state_type type_id) override {
-		return TWrap::get_field(name, type_id);
+	const accessor& get_field(const char* name, ss_plugin_state_type type_id) override {
+		return wrapper_t::get_field(name, type_id);
 	}
 
-	accessor::ptr add_field(const char* name, ss_plugin_state_type type_id) override {
+	const accessor& add_field(const char* name, ss_plugin_state_type type_id) override {
 		throw sinsp_exception("can't add dynamic fields to stl_container_table_adapter");
 	}
 
@@ -171,12 +192,12 @@ public:
 	void clear_entries() override { m_container.clear(); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
-		auto ret = std::make_unique<TWrap>();
+		auto ret = std::make_unique<wrapper_t>();
 		return ret;
 	}
 
 	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
-		TWrap w;
+		wrapper_t w;
 		for(auto& v : m_container) {
 			w.set_value(&v);
 			if(!pred(w)) {
@@ -201,7 +222,7 @@ public:
 			        std::string("null entry added to table: " + std::string(this->name())));
 		}
 
-		auto value = dynamic_cast<TWrap*>(entry.get());
+		auto value = dynamic_cast<wrapper_t*>(entry.get());
 		if(!value) {
 			throw sinsp_exception("entry with mismatching type added to table: " +
 			                      std::string(this->name()));
@@ -224,7 +245,7 @@ public:
 	}
 
 private:
-	static inline void wrap_deleter(TWrap* v) { v->set_value(nullptr); }
+	static inline void wrap_deleter(wrapper_t* v) { v->set_value(nullptr); }
 
 	// helps us dynamically allocate a batch of wrappers, creating new ones
 	// only if we need them. Wrappers are reused for multiple entries, and
@@ -244,7 +265,8 @@ private:
 	}
 
 	T& m_container;
-	std::list<TWrap> m_wrappers;  // using lists for ptr stability
+	// deque: stable element addresses across emplace_back, and we never erase.
+	std::deque<wrapper_t> m_wrappers;
 };
 
 // Simple adapter for ss_plugin_table_input that implements the base_table interface

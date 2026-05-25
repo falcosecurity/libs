@@ -94,7 +94,6 @@ TEST(static_struct, defs_and_access) {
 	auto field_num = fields.find("num");
 	auto field_str = fields.find("str");
 	ASSERT_EQ(fields.size(), 2);
-	ASSERT_EQ(fields, sample_struct::get_static_fields());
 
 	ASSERT_NE(field_num, fields.end());
 	ASSERT_EQ(field_num->second.name(), "num");
@@ -107,10 +106,10 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_EQ(field_str->second.type_id(), SS_PLUGIN_ST_STRING);
 
 	// check field access
-	auto acc_num = field_num->second.new_accessor().into<uint32_t>();
-	auto acc_str = field_str->second.new_accessor().into<std::string>();
-	ASSERT_ANY_THROW((void)field_num->second.new_accessor().into<uint64_t>());
-	ASSERT_ANY_THROW((void)field_str->second.new_accessor().into<uint64_t>());
+	auto acc_num = field_num->second.into<uint32_t>();
+	auto acc_str = field_str->second.into<std::string>();
+	ASSERT_ANY_THROW((void)field_num->second.into<uint64_t>());
+	ASSERT_ANY_THROW((void)field_str->second.into<uint64_t>());
 
 	ASSERT_EQ(s.get_num(), 0);
 	ASSERT_EQ(s.read_field(acc_num), 0);
@@ -151,8 +150,7 @@ TEST(static_struct, defs_and_access) {
 	//
 	// Note: With clang, ASAN actually catches this and aborts, so don't check
 	// this with ASAN enabled (even if GCC lets this through)
-	auto acc_num2 =
-	        sample_struct2::get_static_fields().find("num")->second.new_accessor().into<uint32_t>();
+	auto acc_num2 = sample_struct2::get_static_fields().find("num")->second.into<uint32_t>();
 	ASSERT_NO_THROW(s.read_field(acc_num2));
 #endif
 }
@@ -192,25 +190,25 @@ TEST(dynamic_struct, defs_and_access) {
 	// adding new fields
 	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
 	ASSERT_EQ(fields->fields().size(), 1);
-	ASSERT_EQ(field_num, fields->fields().find("num")->second);
+	ASSERT_EQ(field_num.index(), fields->fields().find("num")->second->index());
 	ASSERT_EQ(field_num.name(), "num");
 	ASSERT_EQ(field_num.type_id(), SS_PLUGIN_ST_UINT64);
-	ASSERT_EQ(field_num, fields->add_field("num", SS_PLUGIN_ST_UINT64));
+	ASSERT_EQ(field_num.index(), fields->add_field("num", SS_PLUGIN_ST_UINT64).index());
 	ASSERT_ANY_THROW(fields->add_field("num", SS_PLUGIN_ST_UINT32));
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	ASSERT_EQ(fields->fields().size(), 2);
-	ASSERT_EQ(field_str, fields->fields().find("str")->second);
+	ASSERT_EQ(field_str.index(), fields->fields().find("str")->second->index());
 	ASSERT_EQ(field_str.name(), "str");
 	ASSERT_EQ(field_str.type_id(), SS_PLUGIN_ST_STRING);
-	ASSERT_EQ(field_str, fields->add_field("str", SS_PLUGIN_ST_STRING));
+	ASSERT_EQ(field_str.index(), fields->add_field("str", SS_PLUGIN_ST_STRING).index());
 	ASSERT_ANY_THROW(fields->add_field("str", SS_PLUGIN_ST_UINT32));
 
 	// check field access
-	auto acc_num = field_num.new_accessor().into<uint64_t>();
-	auto acc_str = field_str.new_accessor().into<std::string>();
-	ASSERT_ANY_THROW((void)field_num.new_accessor().into<uint32_t>());
-	ASSERT_ANY_THROW((void)field_str.new_accessor().into<uint32_t>());
+	auto acc_num = field_num.into<uint64_t>();
+	auto acc_str = field_str.into<std::string>();
+	ASSERT_ANY_THROW((void)field_num.into<uint32_t>());
+	ASSERT_ANY_THROW((void)field_str.into<uint32_t>());
 
 	uint64_t tmp;
 	s.read_field(acc_num, tmp);
@@ -258,7 +256,7 @@ TEST(dynamic_struct, mem_ownership) {
 
 	// define a string dynamic field
 	auto field_str = defs1->add_field("str", SS_PLUGIN_ST_STRING);
-	auto field_str_acc = field_str.new_accessor().into<std::string>();
+	auto field_str_acc = field_str.into<std::string>();
 
 	// write same value in both structs, ensure they have two distinct copies
 	s1.write_field(field_str_acc, std::string("hello"));
@@ -372,7 +370,6 @@ TEST(thread_manager, table_access) {
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->key_type(), SS_PLUGIN_ST_INT64);
-	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo::get_static_fields());
 	ASSERT_NE(table->dynamic_fields(), nullptr);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 	ASSERT_EQ(table->entries_count(), 0);
@@ -383,10 +380,10 @@ TEST(thread_manager, table_access) {
 	auto newt = table->new_entry();
 	auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
 
-	auto tid_acc = table->get_field("tid", SS_PLUGIN_ST_INT64).into<int64_t>();
-	auto comm_acc = table->get_field("comm", SS_PLUGIN_ST_STRING).into<std::string>();
+	auto tid_acc = table->get_field("tid", SS_PLUGIN_ST_INT64).as<int64_t>();
+	auto comm_acc = table->get_field("comm", SS_PLUGIN_ST_STRING).as<std::string>();
 	auto fdtable_acc = table->get_field("file_descriptors", SS_PLUGIN_ST_TABLE)
-	                           .into<libsinsp::state::base_table*>();
+	                           .as<libsinsp::state::base_table*>();
 
 	ASSERT_NE(newtinfo, nullptr);
 	newtinfo->m_tid = 999;
@@ -408,8 +405,7 @@ TEST(thread_manager, table_access) {
 	std::string tmpstr;
 	auto dynf_acc = table->dynamic_fields()
 	                        ->add_field("some_new_field", SS_PLUGIN_ST_STRING)
-	                        .new_accessor()
-	                        .into<std::string>();
+	                        .as<std::string>();
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
 	addedt->read_field(dynf_acc, tmpstr);
 	ASSERT_EQ(tmpstr, "");
@@ -446,6 +442,30 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(table->entries_count(), 1);
 	table->clear_entries();
 	ASSERT_EQ(table->entries_count(), 0);
+}
+
+// Regression test: built_in_table::get_field caches the accessor in
+// m_field_accessors keyed by name. A second plugin-API lookup of the same
+// name with a different data_type must be rejected, otherwise the plugin
+// would silently get a wrong-typed accessor and read/write the field
+// through it.
+TEST(built_in_table, get_field_type_mismatch_on_cached_accessor) {
+	sinsp inspector;
+	auto table = static_cast<libsinsp::state::extensible_table<int64_t>*>(
+	        inspector.m_thread_manager.get());
+	libsinsp::state::sinsp_table_owner owner;
+
+	// First lookup with the correct type populates the cache.
+	auto* tid_field = table->get_field(&owner, "tid", SS_PLUGIN_ST_INT64);
+	ASSERT_NE(tid_field, nullptr);
+	ASSERT_TRUE(owner.m_last_owner_err.empty()) << owner.m_last_owner_err;
+
+	// Second lookup with a mismatched type must fail, even though the
+	// accessor for "tid" is now cached.
+	auto* mistyped = table->get_field(&owner, "tid", SS_PLUGIN_ST_STRING);
+	EXPECT_EQ(mistyped, nullptr);
+	EXPECT_NE(owner.m_last_owner_err.find("doesn't match"), std::string::npos)
+	        << "expected type-mismatch error, got: " << owner.m_last_owner_err;
 }
 
 TEST(thread_manager, fdtable_access) {
@@ -485,7 +505,7 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(table->entries_count(), 2);
 
 	// getting the fd tables from the newly created threads
-	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.into<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->read_field(subtable_acc));
 	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->read_field(subtable_acc));
 
@@ -507,9 +527,9 @@ TEST(thread_manager, fdtable_access) {
 
 	// adding a new dynamic field
 	const auto& dfield = subtable->dynamic_fields()->add_field("str_val", SS_PLUGIN_ST_STRING);
-	ASSERT_EQ(dfield, subtable->dynamic_fields()->fields().find("str_val")->second);
+	ASSERT_EQ(dfield.index(),
+	          subtable->dynamic_fields()->fields().find("str_val")->second->index());
 	ASSERT_EQ(dfield.readonly(), false);
-	ASSERT_EQ(dfield.valid(), true);
 	ASSERT_EQ(dfield.index(), 0);
 	ASSERT_EQ(dfield.name(), "str_val");
 	ASSERT_EQ(dfield.type_id(), SS_PLUGIN_ST_STRING);
@@ -524,8 +544,8 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"),
 	          subtable2->dynamic_fields()->fields().end());
 
-	auto sfieldacc = sfield->second.new_accessor().into<int64_t>();
-	auto dfieldacc = dfield.new_accessor().into<std::string>();
+	auto sfieldacc = sfield->second.into<int64_t>();
+	auto dfieldacc = dfield.into<std::string>();
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 4096;  // note: configured max entries in fd tables
@@ -624,7 +644,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(table->entries_count(), 1);
 
 	// getting the "env" tables from the newly created threads
-	auto subtable_acc = field->second.new_accessor().into<libsinsp::state::base_table*>();
+	auto subtable_acc = field->second.into<libsinsp::state::base_table*>();
 	auto subtable =
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
 	                entry->read_field(subtable_acc));
@@ -634,12 +654,12 @@ TEST(thread_manager, env_vars_access) {
 	EXPECT_EQ(subtable->key_type(), SS_PLUGIN_ST_UINT64);
 
 	// getting an existing field
-	auto sfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
-	// EXPECT_EQ(sfield->second.readonly(), false);
-	// EXPECT_EQ(sfield->second.valid(), true);
-	// EXPECT_EQ(sfield->second.name(), "value");
+	const auto& sfield = subtable->get_field("value", SS_PLUGIN_ST_STRING);
+	// EXPECT_EQ(sfield.readonly(), false);
+	// EXPECT_EQ(sfield.valid(), true);
+	// EXPECT_EQ(sfield.name(), "value");
 
-	auto fieldacc = sfield.into<std::string>();
+	auto fieldacc = sfield.as<std::string>();
 
 	// adding new entries to the subtable
 	uint64_t max_iterations = 10;
@@ -749,8 +769,8 @@ TEST(dynamic_struct, thread_local_string_dangling_pointer_regression) {
 	auto field_a = fields->add_field("field_a", SS_PLUGIN_ST_STRING);
 	auto field_b = fields->add_field("field_b", SS_PLUGIN_ST_STRING);
 
-	auto acc_a = field_a.new_accessor().into<std::string>();
-	auto acc_b = field_b.new_accessor().into<std::string>();
+	auto acc_a = field_a.into<std::string>();
+	auto acc_b = field_b.into<std::string>();
 
 	sample_struct s(fields);
 
@@ -803,7 +823,7 @@ TEST(dynamic_struct, thread_local_string_cross_entry_dangling_pointer) {
 	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
-	auto acc_str = field_str.new_accessor().into<std::string>();
+	auto acc_str = field_str.into<std::string>();
 
 	sample_struct entry1(fields);
 	sample_struct entry2(fields);
@@ -853,8 +873,8 @@ TEST(dynamic_struct, read_null_string_field_after_lazy_materialization) {
 	// Define two fields: string at index 0, uint64 at index 1.
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
-	auto acc_str = field_str.new_accessor().into<std::string>();
-	auto acc_num = field_num.new_accessor().into<uint64_t>();
+	auto acc_str = field_str.into<std::string>();
+	auto acc_num = field_num.into<uint64_t>();
 
 	sample_struct s1(fields);
 
@@ -884,8 +904,8 @@ TEST(dynamic_struct, strdup_nullptr_on_copy_with_uninitialized_string_field) {
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
 	auto field_num = fields->add_field("num", SS_PLUGIN_ST_UINT64);
-	auto acc_str = field_str.new_accessor().into<std::string>();
-	auto acc_num = field_num.new_accessor().into<uint64_t>();
+	auto acc_str = field_str.into<std::string>();
+	auto acc_num = field_num.into<uint64_t>();
 
 	sample_struct s1(fields);
 
@@ -937,7 +957,7 @@ TEST(dynamic_struct, copy_entry_with_empty_string_field) {
 	auto fields = libsinsp::state::dynamic_field_infos::make<sample_struct>();
 
 	auto field_str = fields->add_field("str", SS_PLUGIN_ST_STRING);
-	auto acc_str = field_str.new_accessor().into<std::string>();
+	auto acc_str = field_str.into<std::string>();
 
 	sample_struct s1(fields);
 	s1.write_field(acc_str, std::string(""));

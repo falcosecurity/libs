@@ -21,6 +21,8 @@ limitations under the License.
 #include <libsinsp/state/dynamic_struct.h>
 #include <libsinsp/state/static_struct.h>
 
+#include <vector>
+
 namespace libsinsp::state {
 class extensible_struct : public table_entry {
 public:
@@ -76,8 +78,8 @@ private:
 			throw sinsp_exception("dynamic struct access overflow: " + std::to_string(index));
 		}
 		while(m_fields.size() <= index) {
-			auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
-			m_fields.emplace_back(def->type_id());
+			const auto& def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
+			m_fields.emplace_back(def.type_id());
 		}
 		return &m_fields[index];
 	}
@@ -119,8 +121,8 @@ private:
 		// deep copy of all the fields
 		m_fields.clear();
 		for(size_t i = 0; i < other.m_fields.size(); i++) {
-			const auto info = m_dynamic_fields->m_definitions_ordered[i];
-			dispatch_lambda(info->type_id(), cloner{this, &other, i});
+			const auto& info = m_dynamic_fields->m_definitions_ordered[i];
+			dispatch_lambda(info.type_id(), cloner{this, &other, i});
 		}
 	}
 
@@ -140,7 +142,7 @@ protected:
  * @brief A group of field infos, describing all the ones available
  * in a static struct.
  */
-using static_field_infos = std::unordered_map<std::string, static_field_info>;
+using static_field_infos = std::unordered_map<std::string, accessor>;
 
 /**
  * @brief Defines the information about a field defined in the class or struct.
@@ -154,17 +156,17 @@ using static_field_infos = std::unordered_map<std::string, static_field_info>;
  * @param readonly Read-only field annotation.
  */
 template<typename T>
-constexpr static const static_field_info& define_static_field(static_field_infos& fields,
-                                                              const std::string& name,
-                                                              accessor::reader_fn reader,
-                                                              accessor::writer_fn writer,
-                                                              const bool readonly = false) {
+constexpr static const accessor& define_static_field(static_field_infos& fields,
+                                                     const std::string& name,
+                                                     accessor::reader_fn reader,
+                                                     accessor::writer_fn writer,
+                                                     const bool readonly = false) {
 	const auto& it = fields.find(name);
 	if(it != fields.end()) {
 		throw sinsp_exception("multiple definitions of static field in struct: " + name);
 	}
 
-	fields.insert({name, static_field_info(name, type_id_of<T>(), readonly, reader, writer)});
+	fields.insert({name, accessor(name, type_id_of<T>(), reader, writer, 0, readonly)});
 	return fields.at(name);
 }
 
