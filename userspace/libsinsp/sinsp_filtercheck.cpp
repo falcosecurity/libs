@@ -619,7 +619,9 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 			m_val_storages_max_size = parsed_len;
 		}
 	} else if(m_cmp.mod != CMPOP_MOD_NONE && (m_cmp.op == CO_EQ || m_cmp.op == CO_NE)) {
-		// equality-based ops with a modifier also use hash-set lookup in matches_any_rhs
+		// equality-based ops with a modifier use hash-set lookup:
+		//   "== anyof (...)" → set membership in matches_any_rhs
+		//   "!= allof (...)" → set non-membership in matches_all_rhs
 		ensure_unique_ptr_allocated(m_val_storages_members);
 		m_val_storages_members->insert(item);
 	} else if(m_cmp.op == CO_PMATCH) {
@@ -857,16 +859,21 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 			                      std::string(m_info->m_fields[m_field_id].m_name) +
 			                      "' only supports operators 'exists', 'in' and 'intersects'");
 		}
-	} else if(cmp.mod != CMPOP_MOD_NONE) {
-		return compare_rhs_with_mod(cmp, type, values);
-	} else if(values.size() > 1) {
+	}
+
+	if(values.size() > 1) {
 		ASSERT(false);
 		throw sinsp_exception("non-list filter '" +
 		                      std::string(m_info->m_fields[m_field_id].m_name) +
 		                      "' expected to extract a single value, but " +
 		                      std::to_string(values.size()) + " were found");
 	}
-
+	if(values.empty()) {
+		return false;
+	}
+	if(cmp.mod != CMPOP_MOD_NONE) {
+		return compare_rhs_with_mod(cmp, type, values);
+	}
 	return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
 }
 
@@ -999,28 +1006,33 @@ bool sinsp_filter_check::matches_rhs_elem(const filter_value_t& item,
 	                     filter_value_len(i));
 }
 
+bool sinsp_filter_check::matches_one_rhs(const filter_value_t& item,
+                                         uint16_t n_rhs,
+                                         comparator cmp,
+                                         ppm_param_type type) {
+	ASSERT(n_rhs > 0);
+	int num_matches = 0;
+	for(uint16_t i = 0; i < n_rhs; i++) {
+		if(!matches_rhs_elem(item, i, cmp, type)) {
+			continue;
+		}
+		if(++num_matches > 1) {
+			return false;
+		}
+	}
+	return num_matches == 1;
+}
+
 bool sinsp_filter_check::matches_any_rhs(const filter_value_t& item,
                                          uint16_t n_rhs,
                                          comparator cmp,
                                          ppm_param_type type) {
-	// "item not in set": iterate as membership (item == element[i]) and negate the
-	// aggregate. Passing CO_NE through to flt_compare per element would test inequality
-	// per element instead, which is not the intended semantics.
-	if(cmp.op == CO_NE) {
-		if(m_val_storages_members) {
-			return m_val_storages_members->find(item) == m_val_storages_members->end();
-		}
-		for(uint16_t i = 0; i < n_rhs; i++) {
-			if(matches_rhs_elem(item, i, comparator{CO_EQ}, type)) {
-				return false;
-			}
-		}
-		return true;
-	}
-	// "item matches some element" under cmp.
-	if(m_val_storages_members && cmp.op != CO_REGEX) {
+	ASSERT(n_rhs > 0);
+	// "== anyof (...)" can be interpreted as "is in set {...}".
+	if(cmp.op == CO_EQ && m_val_storages_members) {
 		return m_val_storages_members->find(item) != m_val_storages_members->end();
 	}
+
 	for(uint16_t i = 0; i < n_rhs; i++) {
 		if(matches_rhs_elem(item, i, cmp, type)) {
 			return true;
@@ -1033,14 +1045,12 @@ bool sinsp_filter_check::matches_all_rhs(const filter_value_t& item,
                                          uint16_t n_rhs,
                                          comparator cmp,
                                          ppm_param_type type) {
-	// True if item matches all RHS elements.
-	// For CO_NE: equivalent to matches_any_rhs (AND of != is the same as not-in-set).
-	if(cmp.op == CO_NE) {
-		return matches_any_rhs(item, n_rhs, cmp, type);
+	ASSERT(n_rhs > 0);
+	// "!= allof (...)" can be interpreted as "not in set {...}".
+	if(cmp.op == CO_NE && m_val_storages_members) {
+		return m_val_storages_members->find(item) == m_val_storages_members->end();
 	}
-	if(n_rhs == 0) {
-		return false;
-	}
+
 	for(uint16_t i = 0; i < n_rhs; i++) {
 		if(!matches_rhs_elem(item, i, cmp, type)) {
 			return false;
@@ -1054,44 +1064,28 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
                                               std::vector<extract_value_t>& values) {
 	// Certain types only support equality-based comparison in flt_compare (e.g. network
 	// and socket types); for all others the full operator is used. This mirrors the
-	// special-casing in compare_rhs for CO_IN/CO_INTERSECTS with those types. CO_NE is
-	// preserved so matches_any_rhs can apply the membership-inversion fast path; CO_REGEX
+	// special-casing in compare_rhs for CO_IN/CO_INTERSECTS with those types. CO_NE
+	// is preserved so matches_all_rhs can apply its "v ∉ R" fast path, and CO_REGEX
 	// is preserved because it has its own per-element path.
 	if(flt_type_is_eq_only(type) && cmp.op != CO_EQ && cmp.op != CO_NE && cmp.op != CO_REGEX) {
 		cmp.op = CO_EQ;
 	}
 	const uint16_t n_rhs = cmp.op == CO_REGEX ? static_cast<uint16_t>(m_val_regexes.size())
 	                                          : static_cast<uint16_t>(m_vals.size());
-
-	switch(cmp.mod) {
-	case CMPOP_MOD_ONEOF: {
-		// true if exactly one extracted value matches any RHS value
-		uint32_t count = 0;
-		for(const auto& it : values) {
-			if(matches_any_rhs(craft_filter_value(type, it.ptr, it.len), n_rhs, cmp, type)) {
-				if(++count > 1) {
-					return false;
-				}
-			}
-		}
-		return count == 1;
-	}
-	case CMPOP_MOD_ANYOF:
-		// true if at least one extracted value matches any RHS value
-		for(const auto& it : values) {
-			if(matches_any_rhs(craft_filter_value(type, it.ptr, it.len), n_rhs, cmp, type)) {
-				return true;
-			}
-		}
+	if(n_rhs == 0) {
 		return false;
+	}
+
+	ASSERT(values.size() == 1);
+	const auto& [value_ptr, value_len] = values[0];
+	const auto filter_value = craft_filter_value(type, value_ptr, value_len);
+	switch(cmp.mod) {
+	case CMPOP_MOD_ONEOF:
+		return matches_one_rhs(filter_value, n_rhs, cmp, type);
+	case CMPOP_MOD_ANYOF:
+		return matches_any_rhs(filter_value, n_rhs, cmp, type);
 	case CMPOP_MOD_ALLOF:
-		// true if every extracted value matches ALL RHS values
-		for(const auto& it : values) {
-			if(!matches_all_rhs(craft_filter_value(type, it.ptr, it.len), n_rhs, cmp, type)) {
-				return false;
-			}
-		}
-		return true;
+		return matches_all_rhs(filter_value, n_rhs, cmp, type);
 	default:
 		ASSERT(false);
 		throw sinsp_exception("unexpected modifier in compare_rhs_with_mod");
