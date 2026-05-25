@@ -235,10 +235,20 @@ protected:
 	                      uint16_t i,
 	                      comparator cmp,
 	                      ppm_param_type type);
+	// Return true if the extracted value matches exactly one RHS value.
+	// note: `n_rhs` must be greater than 0.
+	bool matches_one_rhs(const filter_value_t& item,
+	                     uint16_t n_rhs,
+	                     comparator cmp,
+	                     ppm_param_type type);
+	// Return true if the extracted value matches at least one RHS value.
+	// note: `n_rhs` must be greater than 0.
 	bool matches_any_rhs(const filter_value_t& item,
 	                     uint16_t n_rhs,
 	                     comparator cmp,
 	                     ppm_param_type type);
+	// Return true if the extracted value matches all RHS values.
+	// note: `n_rhs` must be greater than 0.
 	bool matches_all_rhs(const filter_value_t& item,
 	                     uint16_t n_rhs,
 	                     comparator cmp,
