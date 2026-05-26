@@ -79,3 +79,102 @@ TEST(thread_group_info, populate_thread_group_info) {
 	ASSERT_EQ(tginfo.get_thread_list().back().lock().get(), tinfo2.get());
 	EXPECT_EQ(tginfo.get_thread_count(), 4);
 }
+
+TEST(thread_group_info, for_each_thread) {
+	const sinsp inspector;
+	const auto& threadinfo_factory = inspector.get_threadinfo_factory();
+
+	auto tinfo1 = threadinfo_factory.create_shared();
+	tinfo1->m_tid = 100;
+	tinfo1->set_pid(100);
+
+	thread_group_info tginfo(tinfo1->get_pid(), false, tinfo1);
+
+	auto tinfo2 = threadinfo_factory.create_shared();
+	tinfo2->m_tid = 101;
+	tinfo2->set_pid(100);
+	tginfo.add_thread_to_group(tinfo2, false);
+
+	auto tinfo3 = threadinfo_factory.create_shared();
+	tinfo3->m_tid = 102;
+	tinfo3->set_pid(100);
+	tginfo.add_thread_to_group(tinfo3, false);
+
+	/* Iterate all threads and collect TIDs */
+	std::vector<int64_t> tids;
+	bool completed = tginfo.for_each_thread([&tids](const std::shared_ptr<sinsp_threadinfo>& t) {
+		tids.push_back(t->m_tid);
+		return true;
+	});
+	ASSERT_TRUE(completed);
+	ASSERT_EQ(tids.size(), 3);
+	EXPECT_EQ(tids[0], 100);
+	EXPECT_EQ(tids[1], 101);
+	EXPECT_EQ(tids[2], 102);
+
+	/* Early exit: stop after first element */
+	tids.clear();
+	completed = tginfo.for_each_thread([&tids](const std::shared_ptr<sinsp_threadinfo>& t) {
+		tids.push_back(t->m_tid);
+		return false;
+	});
+	ASSERT_FALSE(completed);
+	ASSERT_EQ(tids.size(), 1);
+	EXPECT_EQ(tids[0], 100);
+
+	/* Expired threads are skipped */
+	tinfo2.reset();
+	tids.clear();
+	tginfo.for_each_thread([&tids](const std::shared_ptr<sinsp_threadinfo>& t) {
+		tids.push_back(t->m_tid);
+		return true;
+	});
+	ASSERT_EQ(tids.size(), 2);
+	EXPECT_EQ(tids[0], 100);
+	EXPECT_EQ(tids[1], 102);
+}
+
+TEST(thread_group_info, find_thread) {
+	const sinsp inspector;
+	const auto& threadinfo_factory = inspector.get_threadinfo_factory();
+
+	auto tinfo1 = threadinfo_factory.create_shared();
+	tinfo1->m_tid = 200;
+	tinfo1->set_pid(200);
+
+	thread_group_info tginfo(tinfo1->get_pid(), false, tinfo1);
+
+	auto tinfo2 = threadinfo_factory.create_shared();
+	tinfo2->m_tid = 201;
+	tinfo2->set_pid(200);
+	tginfo.add_thread_to_group(tinfo2, false);
+
+	auto tinfo3 = threadinfo_factory.create_shared();
+	tinfo3->m_tid = 202;
+	tinfo3->set_pid(200);
+	tginfo.add_thread_to_group(tinfo3, false);
+
+	/* Find by TID */
+	auto result = tginfo.find_thread(
+	        [](const std::shared_ptr<sinsp_threadinfo>& t) { return t->m_tid == 201; });
+	ASSERT_NE(result, nullptr);
+	EXPECT_EQ(result->m_tid, 201);
+
+	/* Find with exclusion (like find_new_reaper) */
+	result = tginfo.find_thread([&tinfo1](const std::shared_ptr<sinsp_threadinfo>& t) {
+		return t.get() != tinfo1.get();
+	});
+	ASSERT_NE(result, nullptr);
+	EXPECT_EQ(result->m_tid, 201);
+
+	/* No match returns nullptr */
+	result = tginfo.find_thread(
+	        [](const std::shared_ptr<sinsp_threadinfo>& t) { return t->m_tid == 999; });
+	ASSERT_EQ(result, nullptr);
+
+	/* Expired threads are skipped */
+	tinfo2.reset();
+	result = tginfo.find_thread(
+	        [](const std::shared_ptr<sinsp_threadinfo>& t) { return t->m_tid == 201; });
+	ASSERT_EQ(result, nullptr);
+}

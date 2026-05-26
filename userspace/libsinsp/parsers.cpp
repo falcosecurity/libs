@@ -1785,26 +1785,26 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	if(evt.get_tinfo()->get_tginfo() != nullptr &&
 	   evt.get_tinfo()->get_tginfo()->get_thread_count() > 1) {
 		std::vector<int64_t> tids_to_remove;
-		for(const auto &thread : evt.get_tinfo()->get_tginfo()->get_thread_list()) {
-			auto thread_ptr = thread.lock().get();
-			/* we don't want to remove the main thread since it is the one
-			 * running in this parser!
-			 *
-			 * Also make sure the thread to be removed is not the one
-			 * associated with the event. Under normal conditions this
-			 * should not happen, since the kernel will reassign tid before
-			 * returning from the exec syscall. But there are crash reports,
-			 * indicating possibility the original tid is kept in place, but
-			 * the syscall still returns a success.
-			 *
-			 * To handle such cases gracefully, keep the event thread.
-			 */
-			if(thread_ptr == nullptr || thread_ptr->is_main_thread() ||
-			   thread_ptr->m_tid == evt.get_tinfo()->m_tid) {
-				continue;
-			}
-			tids_to_remove.push_back(thread_ptr->m_tid);
-		}
+		int64_t evt_tid = evt.get_tinfo()->m_tid;
+		evt.get_tinfo()->get_tginfo()->for_each_thread(
+		        [&tids_to_remove, evt_tid](const std::shared_ptr<sinsp_threadinfo> &thread_ptr) {
+			        /* we don't want to remove the main thread since it is the one
+			         * running in this parser!
+			         *
+			         * Also make sure the thread to be removed is not the one
+			         * associated with the event. Under normal conditions this
+			         * should not happen, since the kernel will reassign tid before
+			         * returning from the exec syscall. But there are crash reports,
+			         * indicating possibility the original tid is kept in place, but
+			         * the syscall still returns a success.
+			         *
+			         * To handle such cases gracefully, keep the event thread.
+			         */
+			        if(!thread_ptr->is_main_thread() && thread_ptr->m_tid != evt_tid) {
+				        tids_to_remove.push_back(thread_ptr->m_tid);
+			        }
+			        return true;
+		        });
 		for(int64_t tid : tids_to_remove) {
 			m_params->m_thread_manager->remove_thread(tid);
 		}

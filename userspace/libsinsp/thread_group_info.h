@@ -102,6 +102,40 @@ public:
 		return m_threads;
 	}
 
+	/** Iterate over non-expired threads under a shared lock, without copying the list.
+	 *  The callback receives a shared_ptr to each live thread. Return true to continue
+	 *  iteration, false to stop early. Returns true if all elements were visited.
+	 */
+	template<typename F>
+	inline bool for_each_thread(F&& fn) const {
+		std::shared_lock lock(m_mutex);
+		for(const auto& wp : m_threads) {
+			if(auto sp = wp.lock()) {
+				if(!fn(sp)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/** Find the first thread matching a predicate, without copying the list.
+	 *  The predicate receives a const shared_ptr<sinsp_threadinfo>&.
+	 *  Returns the matching thread or nullptr if none matches.
+	 */
+	template<typename Pred>
+	inline std::shared_ptr<sinsp_threadinfo> find_thread(Pred&& pred) const {
+		std::shared_lock lock(m_mutex);
+		for(const auto& wp : m_threads) {
+			if(auto sp = wp.lock()) {
+				if(pred(sp)) {
+					return sp;
+				}
+			}
+		}
+		return nullptr;
+	}
+
 	inline void add_thread_to_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main) {
 		std::unique_lock lock(m_mutex);
 		/* The main thread should always be the first element of the list, if present.

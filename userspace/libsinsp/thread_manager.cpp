@@ -231,11 +231,10 @@ void sinsp_thread_manager_impl<SyncPolicy>::create_thread_dependencies(
 	// update fdtable cached pointer for all threads in the group (which includes
 	// the current thread), as their leader might have changed or we simply need
 	// to first initialize it. Then we do the same with the thread's children.
-	for(const auto& thread : tginfo->get_thread_list()) {
-		if(auto thread_ptr = thread.lock().get(); thread_ptr != nullptr) {
-			thread_ptr->update_main_fdtable();
-		}
-	}
+	tginfo->for_each_thread([](const std::shared_ptr<sinsp_threadinfo>& thread_ptr) {
+		thread_ptr->update_main_fdtable();
+		return true;
+	});
 	tinfo->for_each_child([](const std::shared_ptr<sinsp_threadinfo_impl<SyncPolicy>>& child) {
 		child->update_main_fdtable();
 	});
@@ -341,14 +340,12 @@ sinsp_thread_manager_impl<SyncPolicy>::find_new_reaper(sinsp_threadinfo_impl<Syn
 
 	/* First we check in our thread group for alive threads */
 	if(tinfo->get_tginfo() != nullptr && tinfo->get_tginfo()->get_thread_count() > 0) {
-		for(const auto& thread_weak : tinfo->get_tginfo()->get_thread_list()) {
-			if(thread_weak.expired()) {
-				continue;
-			}
-			auto thread_ptr = thread_weak.lock();
-			if(!thread_ptr->is_dead() && thread_ptr.get() != tinfo) {
-				return thread_ptr;
-			}
+		auto result = tinfo->get_tginfo()->find_thread(
+		        [tinfo](const std::shared_ptr<sinsp_threadinfo>& thread_ptr) {
+			        return !thread_ptr->is_dead() && thread_ptr.get() != tinfo;
+		        });
+		if(result) {
+			return result;
 		}
 	}
 
@@ -389,14 +386,12 @@ sinsp_thread_manager_impl<SyncPolicy>::find_new_reaper(sinsp_threadinfo_impl<Syn
 
 		if(parent_tinfo->get_tginfo() != nullptr && parent_tinfo->get_tginfo()->is_reaper() &&
 		   parent_tinfo->get_tginfo()->get_thread_count() > 0) {
-			for(const auto& thread_weak : parent_tinfo->get_tginfo()->get_thread_list()) {
-				if(thread_weak.expired()) {
-					continue;
-				}
-				auto thread_ptr = thread_weak.lock();
-				if(!thread_ptr->is_dead()) {
-					return thread_ptr;
-				}
+			auto result = parent_tinfo->get_tginfo()->find_thread(
+			        [](const std::shared_ptr<sinsp_threadinfo>& thread_ptr) {
+				        return !thread_ptr->is_dead();
+			        });
+			if(result) {
+				return result;
 			}
 		}
 		parent_ptr = find_thread(parent_tinfo->get_ptid(), true);
