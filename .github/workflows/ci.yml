@@ -76,8 +76,8 @@ jobs:
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google_comments.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_comments.txt
           diff -u /tmp/curl_google.txt /tmp/curl_google_comments.txt
 
-      # On zig, build also sinsp-example and check the glibc linked versions
-      # to make sure we are actually using the correct glibc version.
+      # On zig, check the glibc versions linked to unit-test-libsinsp to make sure we are actually using the correct
+      # glibc version.
       - name: Test zig build glibc version
         if: matrix.name == 'zig'
         run: |
@@ -109,7 +109,7 @@ jobs:
       - name: Install cmake
         uses: ./.github/actions/install-cmake
 
-      - name: Install bpftool
+      - name: Install bpftool 🐝
         uses: ./.github/actions/install-bpftool
         with:
           arch: 'amd64'
