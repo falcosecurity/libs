@@ -325,54 +325,87 @@ jobs:
         run: |
           cmake --build build --target scap-open --parallel $(nproc)
 
+  # Build the matrix for `build-scap-open-w-zig`. The matrix doesn't contain s390x/ppc64le entries if the workflow run
+  # on forks, as the corresponding runners don't support unauthenticated usage.
+  # See: https://github.com/IBM/actionspz/blob/main/docs/FAQ.md#what-about-forked-repos.
+  build-matrix-for-build-scap-open-w-zig:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+    steps:
+      - id: build
+        name: Build matrix for `build-scap-open-w-zig`
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          base=$(jq -nc '[
+            {"arch": "amd64", "runner": "ubuntu-24.04",     "zig_target": "x86_64-linux-gnu.2.17",  "is_ibm_arch": "false", "use_bundled_libelf": "ON"},
+            {"arch": "arm64", "runner": "ubuntu-24.04-arm", "zig_target": "aarch64-linux-gnu.2.17", "is_ibm_arch": "false", "use_bundled_libelf": "ON"}
+          ]')
+          # note: glibc added upstream support for `ppc64le` on 2.19
+          ibm=$(jq -nc '[
+            {"arch": "s390x",   "runner": "ubuntu-24.04-s390x",   "zig_target": "s390x-linux-gnu.2.17",       "is_ibm_arch": "true", "use_bundled_libelf": "ON"},
+            {"arch": "ppc64le", "runner": "ubuntu-24.04-ppc64le", "zig_target": "powerpc64le-linux-gnu.2.19", "is_ibm_arch": "true", "use_bundled_libelf": "OFF"}
+          ]')
+          if [[ "$EVENT_NAME" == "push" || "$PR_HEAD_REPO" == "falcosecurity/libs" ]]; then
+            matrix=$(jq -nc --argjson a "$base" --argjson b "$ibm" '$a + $b')
+          else
+            matrix="$base"
+          fi
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   build-scap-open-w-zig:
     name: build-scap-open-w-zig-${{ matrix.arch }} 🎯 (bundled_deps, glibc-check)
     runs-on: ${{ matrix.runner }}
-    needs: paths-filter
+    needs: [paths-filter, build-matrix-for-build-scap-open-w-zig]
+    env:
+      MUST_RUN: ${{ needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true' }}
     strategy:
       matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-24.04
-            zig_target: x86_64-linux-gnu.2.17
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            zig_target: aarch64-linux-gnu.2.17
+        include: ${{ fromJSON(needs.build-matrix-for-build-scap-open-w-zig.outputs.matrix) }}
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        if: env.MUST_RUN == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Install deps ⛓️
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+      - name: Install deps ⛓️ (non-IBM archs)
+        if: env.MUST_RUN == 'true' && matrix.is_ibm_arch == 'false'
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
           sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
 
-      - name: Install cmake 🌊
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+      - name: Install deps ⛓️ (IBM archs)
+        if: env.MUST_RUN == 'true' && matrix.is_ibm_arch == 'true'
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang llvm libtool
+
+      - name: Install cmake 🌊 (non-IBM archs)
+        if: env.MUST_RUN == 'true' && matrix.is_ibm_arch == 'false'
         uses: ./.github/actions/install-cmake
 
       - name: Install bpftool 🐝
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        if: env.MUST_RUN == 'true'
         uses: ./.github/actions/install-bpftool
         with:
           arch: ${{ matrix.arch }}
 
       - name: Install zig
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        if: env.MUST_RUN == 'true'
         uses: ./.github/actions/install-zig
         with:
           target: ${{ matrix.zig_target }}
 
       - name: Build scap-open with zig 🏗️
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        if: env.MUST_RUN == 'true'
         run: |
           cmake -B build -S . \
             -DUSE_BUNDLED_DEPS=ON \
@@ -381,18 +414,21 @@ jobs:
             -DBUILD_LIBSCAP_MODERN_BPF=ON \
             -DCREATE_TEST_TARGETS=Off \
             -DENABLE_LIBSCAP_TESTS=Off \
-            -DCMAKE_TOOLCHAIN_FILE=$ZIG_TOOLCHAIN_FILE
+            -DCMAKE_TOOLCHAIN_FILE=$ZIG_TOOLCHAIN_FILE \
+            -DUSE_BUNDLED_LIBELF="${{ matrix.use_bundled_libelf }}"
           cmake --build build --target scap-open --parallel $(nproc)
 
       # Check the glibc versions linked to scap-open to make sure we are actually using the correct glibc version.
       - name: Test zig build glibc version
-        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        if: env.MUST_RUN == 'true'
         run: |
+          TARGET_GLIBC="GLIBC_2.17"
           cd build
           objdump -T libscap/examples/01-open/scap-open | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n
-          linked_glibc=$(objdump -T libscap/examples/01-open/scap-open | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n | tail -n1 | tr -d ')')
-          if [ "$linked_glibc" != "GLIBC_2.17" ]; then
-            echo "Expected glibc 2.17; found $linked_glibc"
+          LINKED_GLIBC=$(objdump -T libscap/examples/01-open/scap-open | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n | tail -n1 | tr -d ')')
+          MAX_GLIBC=$(printf '%s\n%s\n' "$TARGET_GLIBC" "$LINKED_GLIBC" | sort -V | tail -1)
+          if [ "$MAX_GLIBC" != "$TARGET_GLIBC" ]; then
+            echo "Binary links $LINKED_GLIBC which exceeds ceiling $TARGET_GLIBC"
             exit 1
           fi
 
