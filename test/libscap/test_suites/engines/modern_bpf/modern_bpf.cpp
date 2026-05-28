@@ -24,7 +24,8 @@ static void test_open_log_fn(const char* component,
 scap_t* open_modern_bpf_engine(char* error_buf,
                                int32_t* rc,
                                unsigned long buffer_dim,
-                               uint16_t cpus_for_each_buffer,
+                               double buffers_num,
+                               int iters_num,
                                bool online_only,
                                std::unordered_set<uint32_t> ppm_sc_set = {}) {
 	struct scap_open_args oargs {};
@@ -41,7 +42,8 @@ scap_t* open_modern_bpf_engine(char* error_buf,
 	}
 
 	struct scap_modern_bpf_engine_params modern_bpf_params = {
-	        .cpus_for_each_buffer = cpus_for_each_buffer,
+	        .buffers_num = buffers_num,
+	        .iters_num = iters_num,
 	        .allocate_online_only = online_only,
 	        .buffer_bytes_dim = buffer_dim,
 	};
@@ -55,7 +57,7 @@ TEST(modern_bpf, open_engine) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* we want 1 ring buffer for each CPU */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, true);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, 1, true);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine: " << error_buffer << std::endl;
 	scap_close(h);
@@ -64,7 +66,7 @@ TEST(modern_bpf, open_engine) {
 TEST(modern_bpf, empty_buffer_dim) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 0, 1, true);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 0, 1, 1, true);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
 	        << "the buffer dimension is 0, we should fail: " << error_buffer << std::endl;
 	/* In case of failure the `scap_close(h)` is already called in the vtable `init` method */
@@ -74,7 +76,7 @@ TEST(modern_bpf, wrong_buffer_dim) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* ring buffer dim is not a multiple of PAGE_SIZE */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 + 4 * 4096, 1, true);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 + 4 * 4096, 1, 1, true);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
 	        << "the buffer dimension is not a multiple of the page size, we should fail: "
 	        << error_buffer << std::endl;
@@ -85,7 +87,12 @@ TEST(modern_bpf, not_enough_possible_CPUs) {
 	int ret = 0;
 
 	ssize_t num_possible_CPUs = num_possible_cpus();
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, num_possible_CPUs + 1, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer,
+	                                   &ret,
+	                                   4 * 4096,
+	                                   1.0 / (num_possible_CPUs + 1),
+	                                   1,
+	                                   false);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS) << "the CPUs required for each ring buffer are greater "
 	                                          "than the system possible CPUs, we should fail: "
 	                                       << error_buffer << std::endl;
@@ -97,7 +104,12 @@ TEST(modern_bpf, not_enough_online_CPUs) {
 
 	ssize_t num_online_CPUs = sysconf(_SC_NPROCESSORS_ONLN);
 
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, num_online_CPUs + 1, true);
+	scap_t* h = open_modern_bpf_engine(error_buffer,
+	                                   &ret,
+	                                   4 * 4096,
+	                                   1.0 / (num_online_CPUs + 1),
+	                                   1,
+	                                   true);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS) << "the CPUs required for each ring buffer are greater "
 	                                          "than the system online CPUs, we should fail: "
 	                                       << error_buffer << std::endl;
@@ -106,7 +118,7 @@ TEST(modern_bpf, not_enough_online_CPUs) {
 TEST(modern_bpf, one_buffer_per_possible_CPU) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, 1, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine with one ring buffer per CPU: " << error_buffer
 	        << std::endl;
@@ -123,7 +135,7 @@ TEST(modern_bpf, one_buffer_per_possible_CPU) {
 TEST(modern_bpf, one_buffer_every_two_possible_CPUs) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 2, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 0.5, 1, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine with one ring buffer every 2 CPUs: "
 	        << error_buffer << std::endl;
@@ -145,7 +157,7 @@ TEST(modern_bpf, one_buffer_shared_between_all_possible_CPUs_with_special_value)
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* `0` is a special value that means one single shared ring buffer */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 0, 1, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -168,7 +180,8 @@ TEST(modern_bpf, one_buffer_shared_between_all_online_CPUs_with_explicit_CPUs_nu
 
 	ssize_t num_possible_CPUs = sysconf(_SC_NPROCESSORS_ONLN);
 
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, num_possible_CPUs, true);
+	scap_t* h =
+	        open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1.0 / num_possible_CPUs, 1, true);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -184,7 +197,7 @@ TEST(modern_bpf, read_in_order_one_buffer_per_online_CPU) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 1, true);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 1, 1, true);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine with one ring buffer per CPU: " << error_buffer
 	        << std::endl;
@@ -197,7 +210,7 @@ TEST(modern_bpf, read_in_order_one_buffer_every_two_online_CPUs) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 2, true);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0.5, 1, true);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine with one ring buffer every 2 CPUs: "
 	        << error_buffer << std::endl;
@@ -210,7 +223,7 @@ TEST(modern_bpf, read_in_order_one_buffer_shared_between_all_possible_CPUs) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -223,7 +236,7 @@ TEST(modern_bpf, scap_stats_check) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -241,7 +254,7 @@ TEST(modern_bpf, double_scap_stats_call) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -263,7 +276,7 @@ TEST(modern_bpf, double_scap_stats_call) {
 TEST(modern_bpf, metrics_v2_check_per_CPU_stats) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -327,7 +340,7 @@ TEST(modern_bpf, metrics_v2_check_kernel_iter_stats) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -387,7 +400,7 @@ TEST(modern_bpf, metrics_v2_check_results) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -439,7 +452,7 @@ TEST(modern_bpf, metrics_v2_check_empty) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;
@@ -457,7 +470,7 @@ TEST(modern_bpf, double_metrics_v2_call) {
 	char error_buffer[FILENAME_MAX]{};
 	int ret = 0;
 	/* We use buffers of 1 MB to be sure that we don't have drops */
-	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, 1, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false)
 	        << "unable to open modern bpf engine with one single shared ring buffer: "
 	        << error_buffer << std::endl;

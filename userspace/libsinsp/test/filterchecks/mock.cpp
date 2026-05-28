@@ -375,8 +375,8 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	}
 
 	{
-		// fd.types with const values
-		ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(ipv6,file)");
+		// fd.types with const values (order is sorted for deterministic output)
+		ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(file,ipv6)");
 		auto chk = create_filtercheck_from_field(&m_inspector, "fd.types", CO_IN);
 		add_filtercheck_value_vec(chk.get(), {"file", "ipv6"});
 		ASSERT_TRUE(chk->compare(evt));
@@ -384,7 +384,7 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 
 	{
 		// fd.types with rhs filter check
-		ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(ipv6,file)");
+		ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(file,ipv6)");
 		auto chk = create_filtercheck_from_field(&m_inspector, "fd.types", CO_IN);
 		ASSERT_ANY_THROW(
 		        chk->add_filter_value(create_filtercheck_from_field(&m_inspector, "fd.types")));

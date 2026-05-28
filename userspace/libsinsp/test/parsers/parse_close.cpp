@@ -34,7 +34,7 @@ TEST_F(sinsp_with_test_input, CLOSE_success) {
 	// in the thread fd table.
 	const auto fdinfo = socket_evt->get_fd_info();
 	ASSERT_TRUE(fdinfo);
-	const auto socket_fd = fdinfo->m_fd;
+	const auto socket_fd = fdinfo->get_fd_num();
 	ASSERT_EQ(socket_fd, sock_params.fd);
 	ASSERT_TRUE(tinfo->get_fd(socket_fd));
 

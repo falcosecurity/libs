@@ -85,9 +85,10 @@ TEST_F(sys_call_test, unix_client_server) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* ti = evt->get_thread_info();
 		if(ti) {
-			if(ti->get_comm() == "python3" && ti->m_args.size() >= 1) {
-				return ends_with(ti->m_args[0], "unix_client_server.py") ||
-				       ends_with(ti->m_args[0], "unix_client_server.py");
+			auto args = ti->get_args();
+			if(ti->get_comm() == "python3" && args.size() >= 1) {
+				return ends_with(args[0], "unix_client_server.py") ||
+				       ends_with(args[0], "unix_client_server.py");
 			}
 		}
 		return false;

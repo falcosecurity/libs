@@ -10,8 +10,12 @@
  * sinsp in order to start receiving appropriate callbacks.
  */
 
+#include <libsinsp/sync_policy.h>
+
 class sinsp;
-class sinsp_threadinfo;
+template<typename SyncPolicy>
+class sinsp_threadinfo_impl;
+using sinsp_threadinfo = sinsp_threadinfo_impl<sync_policy_default>;
 struct sinsp_threadinfo_ctor_params;
 
 namespace libsinsp {

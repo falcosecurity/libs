@@ -424,7 +424,7 @@ void runtest_ipv4m(iotype iot,
 
 			EXPECT_NE((sinsp_fdinfo*)NULL, evt->get_fd_info());
 
-			if(evt->get_fd_info()->m_type != SCAP_FD_IPV4_SOCK) {
+			if(evt->get_fd_info()->get_type() != SCAP_FD_IPV4_SOCK) {
 				//
 				// Skip non-tcp sockets. Python opens unix sockets
 				// to god knows what.

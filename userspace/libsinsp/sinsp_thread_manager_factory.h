@@ -73,4 +73,24 @@ public:
 		                                              m_thread_manager_dyn_fields,
 		                                              m_fdtable_dyn_fields);
 	}
+
+	template<typename SyncPolicy>
+	std::shared_ptr<sinsp_thread_manager_impl<SyncPolicy>> create_for_policy() const {
+		if constexpr(std::is_same_v<SyncPolicy, sync_policy_default>) {
+			return create();
+		} else {
+			return std::make_shared<sinsp_thread_manager_impl<SyncPolicy>>(
+			        m_threadinfo_factory,
+			        m_observer,
+			        m_timestamper,
+			        m_sinsp_pid,
+			        m_threads_purging_scan_time_ns,
+			        m_thread_timeout_ns,
+			        m_sinsp_stats_v2,
+			        m_scap_platform,
+			        m_scap_handle,
+			        m_thread_manager_dyn_fields,
+			        m_fdtable_dyn_fields);
+		}
+	}
 };

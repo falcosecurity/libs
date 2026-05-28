@@ -32,7 +32,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads) {
 	/* we remove the thread group info from the thread so we should obtain a count equal to 0 */
 	auto p2_t2_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
 	ASSERT_TRUE(p2_t2_tinfo);
-	p2_t2_tinfo->m_tginfo.reset();
+	p2_t2_tinfo->set_tginfo(nullptr);
 
 	evt = generate_random_event(p2_t2_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "0");
@@ -57,7 +57,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds) {
 	/* we remove the thread group info from the thread so we should obtain a count equal to 0 */
 	auto p2_t2_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
 	ASSERT_TRUE(p2_t2_tinfo);
-	p2_t2_tinfo->m_tginfo.reset();
+	p2_t2_tinfo->set_tginfo(nullptr);
 
 	evt = generate_random_event(p2_t2_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.nchilds"), "0");
@@ -181,11 +181,11 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
 	//
 
 	// manually set the pgid to p1_t1
-	p3_t1_tinfo->m_pgid = p1_t1_pid;
+	p3_t1_tinfo->set_pgid(p1_t1_pid);
 	// Be sure we will obtain specific values not shared by other threads
-	p1_t1_tinfo->m_comm = "p1_t1_comm";
-	p1_t1_tinfo->m_exe = "p1_t1_exe";
-	p1_t1_tinfo->m_exepath = "p1_t1_exepath";
+	p1_t1_tinfo->set_comm("p1_t1_comm");
+	p1_t1_tinfo->set_exe("p1_t1_exe");
+	p1_t1_tinfo->set_exepath(std::string("p1_t1_exepath"));
 
 	// Generate random event to call filter-checks
 	auto evt = generate_random_event(p3_t1_tid);
@@ -200,10 +200,10 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
 	// Current process is leader
 	//
 
-	p3_t1_tinfo->m_pgid = p3_t1_pid;
-	p3_t1_tinfo->m_comm = "p3_t1_comm";
-	p3_t1_tinfo->m_exe = "p3_t1_exe";
-	p3_t1_tinfo->m_exepath = "p3_t1_exepath";
+	p3_t1_tinfo->set_pgid(p3_t1_pid);
+	p3_t1_tinfo->set_comm("p3_t1_comm");
+	p3_t1_tinfo->set_exe("p3_t1_exe");
+	p3_t1_tinfo->set_exepath(std::string("p3_t1_exepath"));
 	evt = generate_random_event(p3_t1_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.pgid"), std::to_string(p3_t1_tid));
 	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.name"), p3_t1_tinfo->get_comm());
@@ -219,12 +219,12 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
 	ASSERT_TRUE(p2_t1_tinfo);
 
 	int64_t random_pgid = 100000;
-	p3_t1_tinfo->m_pgid = random_pgid;
+	p3_t1_tinfo->set_pgid(random_pgid);
 	// p2_t1 is the last ancestor with the same pgid
-	p2_t1_tinfo->m_pgid = random_pgid;
-	p2_t1_tinfo->m_comm = "p2_t1_comm";
-	p2_t1_tinfo->m_exe = "p2_t1_exe";
-	p2_t1_tinfo->m_exepath = "p2_t1_exepath";
+	p2_t1_tinfo->set_pgid(random_pgid);
+	p2_t1_tinfo->set_comm("p2_t1_comm");
+	p2_t1_tinfo->set_exe("p2_t1_exe");
+	p2_t1_tinfo->set_exepath(std::string("p2_t1_exepath"));
 	evt = generate_random_event(p3_t1_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.pgid"), std::to_string(random_pgid));
 	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.name"), p2_t1_tinfo->get_comm());

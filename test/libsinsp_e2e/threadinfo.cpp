@@ -56,12 +56,18 @@ static void run_test(test_type ttype,
 
 	for(auto& val : vals) {
 		switch(ttype) {
-		case TEST_ARGS:
-			ti->m_args.push_back(val.c_str());
+		case TEST_ARGS: {
+			auto args = ti->get_args();
+			args.push_back(val);
+			ti->set_args(args);
 			break;
-		case TEST_ENV:
-			ti->m_env.push_back(val.c_str());
+		}
+		case TEST_ENV: {
+			std::vector<std::string> env = ti->get_env();
+			env.push_back(val);
+			ti->set_env(env);
 			break;
+		}
 		case TEST_CGROUPS:
 			size_t pos = val.find("=");
 			ASSERT_NE(pos, std::string::npos);

@@ -23,11 +23,16 @@ limitations under the License.
   \brief Factory hiding sinsp_fdtable creation details.
 */
 class sinsp_fdtable_factory {
-	const std::shared_ptr<sinsp_fdtable::ctor_params>& m_params;
+	const std::shared_ptr<sinsp_fdtable_ctor_params>& m_params;
 
 public:
-	explicit sinsp_fdtable_factory(const std::shared_ptr<sinsp_fdtable::ctor_params>& params):
+	explicit sinsp_fdtable_factory(const std::shared_ptr<sinsp_fdtable_ctor_params>& params):
 	        m_params{params} {}
 
 	sinsp_fdtable create() const { return sinsp_fdtable{m_params}; }
+
+	template<typename SyncPolicy>
+	sinsp_fdtable_impl<SyncPolicy> create_for_policy() const {
+		return sinsp_fdtable_impl<SyncPolicy>{m_params};
+	}
 };

@@ -1,0 +1,114 @@
+--- a/folly/functional/Invoke.h	2026-02-23 16:23:23.000000000 +0100
++++ b/folly/functional/Invoke.h	2026-04-08 15:24:33.102580675 +0200
+@@ -19,12 +19,6 @@
+ #include <functional>
+ #include <type_traits>
+ 
+-#include <boost/preprocessor/control/expr_iif.hpp>
+-#include <boost/preprocessor/facilities/is_empty_variadic.hpp>
+-#include <boost/preprocessor/list/for_each.hpp>
+-#include <boost/preprocessor/logical/not.hpp>
+-#include <boost/preprocessor/tuple/to_list.hpp>
+-
+ #include <folly/CppAttributes.h>
+ #include <folly/Portability.h>
+ #include <folly/Preprocessor.h>
+@@ -442,16 +436,11 @@
+ 
+ } // namespace folly
+ 
+-#define FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING_1(_, funcname, ns) \
+-  using ns::funcname;
+-
++// Simplified for vendored Folly: supports 0 or 1 namespace argument.
++// With 1 namespace (e.g., std): expands to `using std::funcname;`
++// With 0 namespaces: expands to nothing.
+ #define FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING(_, funcname, ...) \
+-  BOOST_PP_EXPR_IIF(                                                   \
+-      BOOST_PP_NOT(BOOST_PP_IS_EMPTY(__VA_ARGS__)),                    \
+-      BOOST_PP_LIST_FOR_EACH(                                          \
+-          FOLLY_DETAIL_CREATE_FREE_INVOKE_TRAITS_USING_1,              \
+-          funcname,                                                    \
+-          BOOST_PP_TUPLE_TO_LIST((__VA_ARGS__))))
++  __VA_OPT__(using __VA_ARGS__::funcname;)
+ 
+ /***
+  *  FOLLY_CREATE_FREE_INVOKER
+--- a/folly/Demangle.cpp	2026-02-23 16:23:23.000000000 +0100
++++ b/folly/Demangle.cpp	2026-04-08 15:24:33.096593332 +0200
+@@ -63,7 +63,9 @@
+ //
+ //  for rust_demangle_callback, detect its declaration in the header
+ 
+-#if __has_include(<demangle.h>)
++// Use DMGL_PARAMS as a sentinel for libiberty's <demangle.h>.  Other headers
++// with the same filename (e.g. glog's internal demangle.h) do not define it.
++#ifdef DMGL_PARAMS
+ 
+ namespace {
+ struct poison {};
+@@ -113,7 +115,7 @@
+     DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES | //
+     liberty_demangle_options_no_recurse_limit;
+ 
+-#else // __has_include(<demangle.h>)
++#else // DMGL_PARAMS
+ 
+ using liberty_demangle_t = int(...);
+ 
+@@ -121,7 +123,7 @@
+ static constexpr liberty_demangle_t* liberty_rust_demangle = nullptr;
+ static constexpr auto liberty_demangle_options = 0;
+ 
+-#endif // __has_include(<demangle.h>)
++#endif // DMGL_PARAMS
+ 
+ //  implementations
+ 
+--- a/folly/hash/HsiehHash.h	2026-02-23 16:23:23.000000000 +0100
++++ b/folly/hash/HsiehHash.h	2026-04-08 15:24:33.102784671 +0200
+@@ -32,7 +32,7 @@
+ //
+ //  Discouraged for suboptimal performance in the smhasher suite.
+ 
+-#define get16bits(d) folly::loadUnaligned<uint16_t>(d)
++#define folly_get16bits(d) folly::loadUnaligned<uint16_t>(d)
+ 
+ /**
+  * hsieh hash a byte-range.
+@@ -57,8 +57,8 @@
+ 
+   /* Main loop */
+   for (; len > 0; len--) {
+-    hash += get16bits(s);
+-    tmp = (get16bits(s + 2) << 11) ^ hash;
++    hash += folly_get16bits(s);
++    tmp = (folly_get16bits(s + 2) << 11) ^ hash;
+     hash = (hash << 16) ^ tmp;
+     s += 2 * sizeof(uint16_t);
+     hash += hash >> 11;
+@@ -67,13 +67,13 @@
+   /* Handle end cases */
+   switch (rem) {
+     case 3:
+-      hash += get16bits(s);
++      hash += folly_get16bits(s);
+       hash ^= hash << 16;
+       hash ^= s[sizeof(uint16_t)] << 18;
+       hash += hash >> 11;
+       break;
+     case 2:
+-      hash += get16bits(s);
++      hash += folly_get16bits(s);
+       hash ^= hash << 11;
+       hash += hash >> 17;
+       break;
+@@ -97,7 +97,7 @@
+   return hash;
+ }
+ 
+-#undef get16bits
++#undef folly_get16bits
+ 
+ /**
+  * hsieh hash a void* byte-range.

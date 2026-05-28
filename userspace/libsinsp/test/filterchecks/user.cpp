@@ -78,7 +78,7 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_default_user_entry) {
 
 	// ensure the root user does not exist to test defaults for uid 0
 	m_inspector.m_usergroup_manager->rm_user("", 0);
-	ASSERT_EQ(m_inspector.m_usergroup_manager->get_user("", 0), nullptr);
+	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user("", 0).has_value());
 
 	std::string path = "/home/file.txt";
 

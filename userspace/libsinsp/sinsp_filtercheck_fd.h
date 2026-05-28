@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/fdinfo.h>
 
 class sinsp_filter_check_fd : public sinsp_filter_check {
 public:
@@ -98,7 +99,8 @@ private:
 	bool compare_domain(sinsp_evt* evt);
 
 	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo* m_fdinfo;
+	std::shared_ptr<sinsp_fdinfo> m_fdinfo;
+	sinsp_sockinfo m_sockinfo_cache;
 	std::string m_tstr;
 	uint8_t m_tcstr[2];
 	int64_t m_argid;
