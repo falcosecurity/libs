@@ -14,20 +14,29 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Store zig version as local output
+    - name: Store zig version and architecture as local output
       shell: bash
       id: store
       env:
         ZIG_VERSION: '0.15.1'
       run: |
+        ZIG_ARCH="$(uname -m)"
+        if [[ "$ZIG_ARCH" == "ppc64le" ]]; then
+        ZIG_ARCH=powerpc64le
+        fi
+
         echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "zig_arch=${ZIG_ARCH}" >> "$GITHUB_OUTPUT"
 
     - name: Download zig
       shell: bash
       run: |
-        wget --tries=${{ inputs.zig_download_retries }} -O zig.tar.xz https://ziglang.org/download/${{ steps.store.outputs.zig_version }}/zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}.tar.xz
+        ATTEMPTS="${{ inputs.zig_download_retries }}"
+        ZIG_VERSION="${{ steps.store.outputs.zig_version }}"
+        ZIG_ARCHIVE_NAME="zig-${{ steps.store.outputs.zig_arch }}-linux-$ZIG_VERSION"
+        wget --tries="$ATTEMPTS" -O "zig.tar.xz" "https://ziglang.org/download/$ZIG_VERSION/$ZIG_ARCHIVE_NAME.tar.xz"
         tar -xvf zig.tar.xz
-        mv zig-$(uname -m)-linux-${{ steps.store.outputs.zig_version }}/ zig
+        mv "$ZIG_ARCHIVE_NAME/" zig
 
     - name: Setup zig
       shell: bash
@@ -39,7 +48,7 @@ runs:
         if [ -n "${{ inputs.target }}" ]; then
           echo "ZIG_TARGET=${{ inputs.target }}" >> $GITHUB_ENV
         else
-          echo "ZIG_TARGET=$(uname -m)-linux-gnu.2.17" >> $GITHUB_ENV
+          echo "ZIG_TARGET=${{ steps.store.outputs.zig_arch }}-linux-gnu.2.17" >> $GITHUB_ENV
         fi
         ACTION_DIR="${{ github.action_path }}"
         if [ -f "${ACTION_DIR}/zig.cmake" ]; then
