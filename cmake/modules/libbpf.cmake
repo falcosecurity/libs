@@ -42,7 +42,13 @@ else()
 	set(LIBBPF_INCLUDE "${LIBBPF_BUILD_DIR}/root/usr/include")
 	set(LIBBPF_LIB "${LIBBPF_BUILD_DIR}/root/usr/lib64/libbpf.a")
 
+	# The bundled libelf exposes its headers through INCLUDE_DIRECTORIES, while a system libelf is
+	# an IMPORTED target that exposes them through INTERFACE_INCLUDE_DIRECTORIES; fall back to the
+	# latter so libbpf can find <libelf.h>.
 	get_target_property(LIBELF_INCLUDE_DIR elf INCLUDE_DIRECTORIES)
+	if(NOT LIBELF_INCLUDE_DIR)
+		get_target_property(LIBELF_INCLUDE_DIR elf INTERFACE_INCLUDE_DIRECTORIES)
+	endif()
 
 	foreach(dir ${LIBELF_INCLUDE_DIR})
 		string(APPEND LIBELF_COMPILER_STRING "-I${dir} ")
