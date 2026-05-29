@@ -323,6 +323,136 @@ TEST_CODES(filter_ppm_codes, check_properties) {
 	                 "not fd.type=file or not proc.name=cat");
 }
 
+// Statically-known leaves: conditions on `evt.num` resolve either to the
+// empty set (unsatisfiable) or the universal set (tautology) under the
+// runtime invariant `evt.num >= 1`. Other patterns must stay indeterminate
+// and over-approximate to all events without being flipped under negation.
+TEST_CODES(filter_ppm_codes, check_evt_num_invariants) {
+	T t;
+	auto all_events = t.all_set();
+	auto no_events = t.all_set();
+	no_events.clear();
+
+	// Unsatisfiable: no event has evt.num < 1.
+	ASSERT_FILTER_SET_EQ(t, "evt.num=0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num == 0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<1", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<=0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num in (0)", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num in (0, 0)", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num in ()", no_events);
+
+	// Tautology: evt.num is always >= 1.
+	ASSERT_FILTER_SET_EQ(t, "evt.num!=0", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num>0", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num>=0", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num>=1", all_events);
+
+	// Indeterminate: satisfiable but non-narrowing. Must over-approximate
+	// to all events and must NOT be flipped under negation (otherwise
+	// `not evt.num=1` would collapse to the empty set).
+	ASSERT_FILTER_SET_EQ(t, "evt.num=1", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num=42", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<100", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<=1", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num>5", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num>=2", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num in (1, 2, 3)", all_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num=1", all_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num in (1, 2)", all_events);
+
+	// Indeterminate by design: `evt.num` is unsigned (PT_UINT64), so
+	// negative, hexadecimal, and fractional literals are deliberately not
+	// reasoned about (a negative literal wraps to a huge unsigned value at
+	// runtime). These must fall back to the safe over-approximation rather
+	// than being mistaken for unsatisfiable.
+	ASSERT_FILTER_SET_EQ(t, "evt.num=-1", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num=-100", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<-5", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num<=-5", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num!=-1", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num>-5", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num=0x0", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num=1.5", all_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num in (0, -1, -2)", all_events);
+
+	// Indeterminate: a transformer on the left-hand side is not a bare
+	// `evt.num` field and must not be statically resolved.
+	ASSERT_FILTER_SET_EQ(t, "b64(evt.num)=0", all_events);
+}
+
+// Negation of statically-known leaves must invert at the leaf level (the
+// visitor pushes negation down via De Morgan's laws). Without leaf-level
+// try_inversion, `not evt.num=0` would stay empty instead of becoming
+// the universal set.
+TEST_CODES(filter_ppm_codes, check_evt_num_invariants_negation) {
+	T t;
+	auto all_events = t.all_set();
+	auto no_events = t.all_set();
+	no_events.clear();
+
+	// not(empty) = all
+	ASSERT_FILTER_SET_EQ(t, "not evt.num=0", all_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num<1", all_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num<=0", all_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num in (0)", all_events);
+
+	// not(all) = empty
+	ASSERT_FILTER_SET_EQ(t, "not evt.num!=0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num>0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "not evt.num>=1", no_events);
+
+	// Double negation returns to the original set.
+	ASSERT_FILTER_SET_EQ(t, "not not evt.num=0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "not not evt.num!=0", all_events);
+
+	// Negation isomorphism via the != operator on evt.num.
+	ASSERT_FILTER_EQ(t, "not evt.num=0", "evt.num!=0");
+	ASSERT_FILTER_EQ(t, "not evt.num!=0", "evt.num=0");
+}
+
+// Composition with other operators: AND/OR over a statically-known leaf
+// must propagate cleanly through the existing set algebra, including the
+// canonical `never_true` idiom (a placeholder macro defined as
+// `(evt.num=0)`) used across the falcosecurity/rules ruleset for tuning.
+TEST_CODES(filter_ppm_codes, check_evt_num_invariants_composition) {
+	T t;
+	auto all_events = t.all_set();
+	auto openat_only = t.openat_set;
+	auto not_openat = t.all_set().diff(openat_only);
+	auto no_events = t.all_set();
+	no_events.clear();
+
+	// A * 0 = 0 (intersection with empty)
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and evt.num=0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.num=0 and evt.type=openat", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and evt.num<=0", no_events);
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and (evt.num=0)", no_events);
+
+	// A + 0 = A (union with empty)
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat or evt.num=0", openat_only);
+	ASSERT_FILTER_SET_EQ(t, "evt.num=0 or evt.type=openat", openat_only);
+
+	// A * 1 = A, A + 1 = 1 (intersection / union with tautology)
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and evt.num!=0", openat_only);
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat or evt.num!=0", all_events);
+
+	// De Morgan: not (A and 0) = not A or not 0 = not A or 1 = 1
+	ASSERT_FILTER_SET_EQ(t, "not (evt.type=openat and evt.num=0)", all_events);
+	// De Morgan: not (A or 0) = not A and not 0 = not A and 1 = not A
+	ASSERT_FILTER_SET_EQ(t, "not (evt.type=openat or evt.num=0)", not_openat);
+
+	// The `never_true` idiom (placeholder for tuning), used as the
+	// right-hand side of `and not (user_known_...)` macros.
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and not (evt.num=0)", openat_only);
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat or not (evt.num=0)", all_events);
+
+	// Indeterminate leaves on evt.num do not narrow the outcome.
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and evt.num=1", openat_only);
+	ASSERT_FILTER_SET_EQ(t, "evt.type=openat and not evt.num=1", openat_only);
+}
+
 TEST_CODES(filter_ppm_codes, field_transformers) {
 	auto parse = [](const std::string& f) {
 		libsinsp::filter::ast::ppm_event_codes(libsinsp::filter::parser(f).parse().get());
