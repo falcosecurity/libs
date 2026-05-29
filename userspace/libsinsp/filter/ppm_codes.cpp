@@ -17,6 +17,9 @@ limitations under the License.
 
 #include <libsinsp/filter/ppm_codes.h>
 
+#include <cerrno>
+#include <cstdlib>
+
 /**
  * NOTE: the following code has been ported from Falco and updated with the
  * new definitions and API of libsinsp::events. See previous code:
@@ -37,6 +40,11 @@ limitations under the License.
  *   * checks based on evt types (e.g. =xxx, != xxx, in (xxx)) give a clear
  *     definition of the matched event types. The "evt.type exists" check
  *     matches every evt type.
+ *   * checks on fields with a known runtime invariant (e.g. evt.num, whose
+ *     values start at 1) can be statically resolved to either the empty
+ *     set (when the condition is unsatisfiable, like "evt.num=0") or the
+ *     universal set (when the condition is a tautology, like "evt.num>0").
+ *     See evaluate_field_invariant().
  *   * checks non-related to evt types are neutral and match all evt types
  *     (e.g. proc.name=cat).
  *
@@ -57,6 +65,124 @@ limitations under the License.
 
 static bool is_evttype_operator(const std::string& op) {
 	return op == "==" || op == "=" || op == "!=" || op == "in";
+}
+
+// Outcome of a static evaluation of a binary_check_expr against the runtime
+// invariants of the fields it references.
+enum class invariant_result {
+	known_empty,   // condition is provably false; matches no event type
+	known_all,     // condition is provably true; matches every event type
+	indeterminate  // analyzer cannot decide; caller must over-approximate
+};
+
+// Parses the textual value of a value_expr/list_expr literal as an unsigned
+// decimal integer, mirroring how libsinsp parses values for PT_UINT64 fields
+// like `evt.num` at runtime (see sinsp_numparser::parseu64). Only plain
+// decimal digits are accepted: a sign, whitespace, hexadecimal, or a
+// fractional part all cause a rejection. This is deliberately strict — the
+// field is unsigned, so reasoning about negative or non-decimal literals
+// would not match runtime semantics (e.g. a negative literal wraps around to
+// a huge unsigned value at runtime). Rejected input leaves the caller in the
+// conservative `indeterminate` state.
+static bool parse_uint_literal(const std::string& s, uint64_t& out) {
+	if(s.empty()) {
+		return false;
+	}
+	for(const char c : s) {
+		if(c < '0' || c > '9') {
+			return false;
+		}
+	}
+	char* end = nullptr;
+	errno = 0;
+	unsigned long long v = std::strtoull(s.c_str(), &end, 10);
+	if(errno != 0 || *end != '\0') {
+		return false;
+	}
+	out = static_cast<uint64_t>(v);
+	return true;
+}
+
+// Statically evaluates a binary_check_expr against the runtime invariants of
+// known fields. Currently the only field with a documented invariant is
+// `evt.num`, whose values are monotonically increasing and start at 1 for
+// every event delivered through the live/replay event loop (see sinsp::next(),
+// which pre-increments m_nevts before calling sinsp_evt::set_num()). This lets
+// us resolve conditions like "evt.num=0" or "evt.num<1" to known_empty
+// (unsatisfiable), and their duals like "evt.num!=0" or "evt.num>=1" to
+// known_all (tautology), without claiming general satisfiability analysis.
+//
+// Anything we cannot decide (unknown field, non-decimal literal, unsupported
+// operator, transformer on either side, etc.) yields indeterminate so the
+// caller falls back to the existing over-approximation.
+static invariant_result evaluate_field_invariant(
+        const libsinsp::filter::ast::binary_check_expr* e) {
+	// Only a bare `evt.num` field is recognized. A transformer on the
+	// left, an argument, or any other field name short-circuits to
+	// indeterminate.
+	auto field = dynamic_cast<const libsinsp::filter::ast::field_expr*>(e->left.get());
+	if(field == nullptr || field->field != "evt.num" || field->arg) {
+		return invariant_result::indeterminate;
+	}
+
+	const auto& op = e->op;
+
+	// List operator: "evt.num in (...)". Since evt.num >= 1, the condition
+	// matches nothing iff every listed value is 0 (the only non-positive
+	// value an unsigned literal can take). An empty list never matches either.
+	if(op == "in") {
+		auto list = dynamic_cast<const libsinsp::filter::ast::list_expr*>(e->right.get());
+		if(list == nullptr) {
+			return invariant_result::indeterminate;
+		}
+		if(list->values.empty()) {
+			return invariant_result::known_empty;
+		}
+		for(const auto& v : list->values) {
+			uint64_t n;
+			if(!parse_uint_literal(v, n) || n != 0) {
+				return invariant_result::indeterminate;
+			}
+		}
+		return invariant_result::known_empty;
+	}
+
+	// Scalar operators: the right-hand side must be a literal value.
+	auto value = dynamic_cast<const libsinsp::filter::ast::value_expr*>(e->right.get());
+	if(value == nullptr) {
+		return invariant_result::indeterminate;
+	}
+	uint64_t n;
+	if(!parse_uint_literal(value->value, n)) {
+		return invariant_result::indeterminate;
+	}
+
+	// Given evt.num >= 1 (with n unsigned):
+	//   evt.num =  N , N == 0  is unsatisfiable
+	//   evt.num != N , N == 0  is a tautology
+	//   evt.num <  N , N <= 1  is unsatisfiable (no value < 1)
+	//   evt.num <= N , N == 0  is unsatisfiable
+	//   evt.num >  N , N == 0  is a tautology
+	//   evt.num >= N , N <= 1  is a tautology
+	if(op == "=" || op == "==") {
+		return n == 0 ? invariant_result::known_empty : invariant_result::indeterminate;
+	}
+	if(op == "!=") {
+		return n == 0 ? invariant_result::known_all : invariant_result::indeterminate;
+	}
+	if(op == "<") {
+		return n <= 1 ? invariant_result::known_empty : invariant_result::indeterminate;
+	}
+	if(op == "<=") {
+		return n == 0 ? invariant_result::known_empty : invariant_result::indeterminate;
+	}
+	if(op == ">") {
+		return n == 0 ? invariant_result::known_all : invariant_result::indeterminate;
+	}
+	if(op == ">=") {
+		return n <= 1 ? invariant_result::known_all : invariant_result::indeterminate;
+	}
+	return invariant_result::indeterminate;
 }
 
 using name_set_t = std::unordered_set<std::string>;
@@ -140,6 +266,28 @@ struct ppm_code_visitor : public libsinsp::filter::ast::const_expr_visitor {
 
 	void visit(const libsinsp::filter::ast::binary_check_expr* e) override {
 		m_last_node_has_codes = false;
+
+		// If a field invariant proves the leaf is statically true or false,
+		// short-circuit with the corresponding set and apply leaf-level
+		// inversion (the visitor pushes negation down to leaves via De
+		// Morgan's laws, so try_inversion must run here too).
+		switch(evaluate_field_invariant(e)) {
+		case invariant_result::known_empty:
+			m_last_node_codes = code_set_t{};
+			m_last_node_has_codes = true;
+			m_last_node_is_evttype_field = false;
+			try_inversion(m_last_node_codes);
+			return;
+		case invariant_result::known_all:
+			m_last_node_codes = all_codes_set();
+			m_last_node_has_codes = true;
+			m_last_node_is_evttype_field = false;
+			try_inversion(m_last_node_codes);
+			return;
+		case invariant_result::indeterminate:
+			break;
+		}
+
 		if(is_evttype_operator(e->op)) {
 			e->left->accept(this);
 			if(m_last_node_is_evttype_field) {
