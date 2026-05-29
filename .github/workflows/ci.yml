@@ -80,14 +80,7 @@ jobs:
       # glibc version.
       - name: Test zig build glibc version
         if: matrix.name == 'zig'
-        run: |
-          cd build
-          objdump -T libsinsp/test/unit-test-libsinsp | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n
-          linked_glibc=$(objdump -T libsinsp/test/unit-test-libsinsp | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n | tail -n1 | tr -d ')')
-          if [ "$linked_glibc" != "GLIBC_2.17" ]; then
-            echo "Expected glibc 2.17; found $linked_glibc" 
-            exit 1
-          fi
+        run: .github/check-glibc-version.sh build/libsinsp/test/unit-test-libsinsp
 
   build-libs-linux-amd64-cross-arm64:
     name: build-libs-linux-amd64-cross-arm64 (bundled_deps)

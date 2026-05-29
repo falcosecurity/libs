@@ -421,16 +421,7 @@ jobs:
       # Check the glibc versions linked to scap-open to make sure we are actually using the correct glibc version.
       - name: Test zig build glibc version
         if: env.MUST_RUN == 'true'
-        run: |
-          TARGET_GLIBC="GLIBC_2.17"
-          cd build
-          objdump -T libscap/examples/01-open/scap-open | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n
-          LINKED_GLIBC=$(objdump -T libscap/examples/01-open/scap-open | grep -Eo 'GLIBC_\S+' | sort -u -t "." -k1,1n -k2,2n -k3,3n | tail -n1 | tr -d ')')
-          MAX_GLIBC=$(printf '%s\n%s\n' "$TARGET_GLIBC" "$LINKED_GLIBC" | sort -V | tail -1)
-          if [ "$MAX_GLIBC" != "$TARGET_GLIBC" ]; then
-            echo "Binary links $LINKED_GLIBC which exceeds ceiling $TARGET_GLIBC"
-            exit 1
-          fi
+        run: .github/check-glibc-version.sh build/libscap/examples/01-open/scap-open
 
   # Only runs on pull request since on master branch it is already triggered by pages CI.
   kernel-tests-dev:
