@@ -18,7 +18,7 @@ add_subdirectory(converter)
 add_library(scap_engine_savefile STATIC scap_savefile.c scap_reader_gzfile.c scap_reader_buffered.c)
 
 add_dependencies(scap_engine_savefile zlib scap_savefile_converter)
+target_sources(scap_engine_savefile PRIVATE $<TARGET_OBJECTS:scap_savefile_converter>)
 target_link_libraries(
-	scap_engine_savefile PRIVATE scap_engine_noop scap_platform_util scap_savefile_converter
-								 ${ZLIB_LIB} scap_error
+	scap_engine_savefile PRIVATE scap_engine_noop scap_platform_util ${ZLIB_LIB} scap_error
 )
