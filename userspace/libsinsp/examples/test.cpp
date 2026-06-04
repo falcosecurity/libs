@@ -73,6 +73,7 @@ static string file_path = "";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 static bool all_cpus = false;
+static bool disable_iterators = false;
 static uint64_t max_events = UINT64_MAX;
 static std::shared_ptr<sinsp_plugin> plugin;
 static std::string open_params;  // for source plugins, its open params
@@ -359,6 +360,8 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		("A,all-cpus",
 			"(modern eBPF probe only) Allocate ring buffers for all available CPUs "
 			"(default: allocate ring buffers for online CPU(s) only).")
+	("i,disable-iterators",
+		"(modern eBPF probe only) Disable BPF iterator support (default: enable support).")
 		("o,output-fields",
 			"Output fields string (see <filter> for supported display fields) that "
 			"overwrites default output fields for all events. * at the beginning "
@@ -475,6 +478,10 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 
 		if(result.count("all-cpus")) {
 			all_cpus = true;
+		}
+
+		if(result.count("disable-iterators")) {
+			disable_iterators = true;
 		}
 
 		if(result.count("output-fields")) {
@@ -602,7 +609,11 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
-		inspector.open_modern_bpf(buffer_bytes_dim, cpus_for_each_buffer, !all_cpus, ppm_sc);
+		inspector.open_modern_bpf(buffer_bytes_dim,
+		                          cpus_for_each_buffer,
+		                          !all_cpus,
+		                          ppm_sc,
+		                          disable_iterators);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN

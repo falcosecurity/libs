@@ -60,6 +60,7 @@ struct internal_state {
 	int16_t n_interesting_cpus;  /* according to userspace configuration we can consider only online
 	                    CPUs or all  available CPUs. */
 	bool allocate_online_only;   /* If true we allocate ring buffers only for online CPUs */
+	bool disable_iterators;      /* If true, BPF iterator support is disabled */
 	uint32_t n_required_buffers; /* number of ring buffers we need to allocate */
 	uint16_t cpus_for_each_buffer;  /* Users want a ring buffer every `cpus_for_each_buffer` CPUs */
 	int ringbuf_pos;                /* actual ringbuf we are considering. */

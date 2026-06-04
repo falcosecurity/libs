@@ -44,6 +44,7 @@ scap_t* open_modern_bpf_engine(char* error_buf,
 	        .cpus_for_each_buffer = cpus_for_each_buffer,
 	        .allocate_online_only = online_only,
 	        .buffer_bytes_dim = buffer_dim,
+	        .disable_iterators = false,
 	};
 	oargs.engine_params = &modern_bpf_params;
 	oargs.log_fn = test_open_log_fn;

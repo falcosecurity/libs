@@ -37,6 +37,9 @@ struct scap_modern_bpf_engine_params {
 	                           ///< allocated changes according to the `cpus_for_each_buffer` param.
 	                           ///< Please note: this buffer will be mapped twice both kernel and
 	                           ///< userspace-side, so pay attention to its size.
+	bool disable_iterators;    ///< If true, disable the BPF iterator support for synchronous
+	                           ///< information fetching, letting scap falling back to the procfs
+	                           ///< lookups.
 };
 
 extern const struct scap_linux_vtable scap_modern_bpf_linux_vtable;

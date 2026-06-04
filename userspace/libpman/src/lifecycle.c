@@ -56,6 +56,19 @@ static bool is_kernel_symbol_available(const char *symbol) {
 
 #ifdef BPF_ITERATOR_SUPPORT
 static void prepare_iter_progs_before_loading() {
+	// Disable everything if iterator support is disabled by configuration.
+	if(g_state.disable_iterators) {
+		for(int i = 0; i < ITER_PROG_MAX; i++) {
+			disable_prog_autoloading(iter_progs_table[i].name);
+			*iter_progs_table[i].feature_flag = false;
+		}
+		memset(&g_state.bpf_iter_link_info_supp_info,
+		       0,
+		       sizeof(g_state.bpf_iter_link_info_supp_info));
+		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "BPF iterators disabled by configuration");
+		return;
+	}
+
 	// Disable autoloading for unsupported iterator programs.
 	for(int i = 0; i < ITER_PROG_MAX; i++) {
 		const iter_prog_t *iter_prog = &iter_progs_table[i];
