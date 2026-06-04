@@ -61,7 +61,8 @@ struct scap_stats;
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     uint16_t cpus_for_each_buffer,
-                    bool allocate_online_only);
+                    bool allocate_online_only,
+                    bool disable_iterators);
 
 /**
  * @brief Return the number of allocated ring buffers.
