@@ -311,23 +311,26 @@ static void tinfo_from_task_evt(scap_threadinfo *tinfo,
 static void handle_task_evt(const struct ppm_evt_hdr *evt,
                             const scap_const_sized_buffer *evt_params,
                             const struct scap_fetch_callbacks *callbacks,
-                            scap_threadinfo **tinfo_out,
+                            scap_threadinfo *tinfo_storage,
                             uint64_t *num_tasks_fetched,
                             const scap_sized_buffer *cb_err_buff) {
 	uint32_t pid, tid;
 	get_evt_pid_tid(evt, &pid, &tid);
 
-	scap_threadinfo tinfo = {};
-	tinfo_from_task_evt(&tinfo, pid, tid, evt_params);
+	// Parse into the caller-provided storage when present; use a local storage otherwise.
+	scap_threadinfo local_tinfo;
+	scap_threadinfo *tinfo = tinfo_storage != NULL ? tinfo_storage : &local_tinfo;
+	memset(tinfo, 0, sizeof(*tinfo));
+	tinfo_from_task_evt(tinfo, pid, tid, evt_params);
 
-	DEBUG_PRINT_THREADINFO(&tinfo);
+	DEBUG_PRINT_THREADINFO(tinfo);
 
 	const int32_t res = callbacks->proc_entry_cb(callbacks->ctx,
 	                                             cb_err_buff->buf,
 	                                             (int64_t)tid,
-	                                             &tinfo,
+	                                             tinfo,
 	                                             NULL,
-	                                             tinfo_out);
+	                                             NULL);
 	if(scap_likely(res == SCAP_SUCCESS)) {
 		if(num_tasks_fetched) {
 			(*num_tasks_fetched)++;
@@ -644,7 +647,7 @@ enum evt_handler_selector {
 static int32_t fetch_evts(const int iter_fd,
                           const enum evt_handler_selector selector,
                           const struct scap_fetch_callbacks *callbacks,
-                          scap_threadinfo **tinfo,
+                          scap_threadinfo *tinfo,
                           uint64_t *num_tasks_fetched,
                           uint64_t *num_files_fetched,
                           const bool must_fetch_sockets,
@@ -763,7 +766,7 @@ static int32_t fetch(const struct prog_info *prog_info,
                      const struct scap_fetch_callbacks *callbacks,
                      const int pid_filter,
                      const int tid_filter,
-                     scap_threadinfo **tinfo,
+                     scap_threadinfo *tinfo,
                      uint64_t *num_tasks_fetched,
                      uint64_t *num_files_fetched,
                      const bool must_fetch_sockets,
@@ -867,7 +870,7 @@ static void fill_dump_task_file_prog_info(struct prog_info *info) {
 
 int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
                              const uint32_t tid,
-                             scap_threadinfo **tinfo,
+                             scap_threadinfo *tinfo,
                              char *error) {
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
