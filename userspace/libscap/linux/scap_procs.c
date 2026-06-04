@@ -830,7 +830,7 @@ static struct scap_fetch_callbacks linux_vtable_fetch_callbacks(
 static int32_t linux_vtable_fetch_thread(const struct scap_linux_platform* linux_platform,
                                          const struct scap_proclist* proclist,
                                          const int64_t tid,
-                                         scap_threadinfo** tinfo_out,
+                                         scap_threadinfo* tinfo_storage,
                                          char* error) {
 	if(!linux_platform->m_linux_vtable || !linux_platform->m_linux_vtable->fetch_thread) {
 		return SCAP_NOT_SUPPORTED;
@@ -840,7 +840,7 @@ static int32_t linux_vtable_fetch_thread(const struct scap_linux_platform* linux
 	return linux_platform->m_linux_vtable->fetch_thread(linux_platform->m_engine,
 	                                                    &callbacks,
 	                                                    tid,
-	                                                    tinfo_out,
+	                                                    tinfo_storage,
 	                                                    error);
 }
 
@@ -1617,9 +1617,9 @@ int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool sc
 		return scap_errprintf(error, 0, "expected positive thread id, got: %ld", tid);
 	}
 
-	// Try to fetch the thread leveraging linux vtable's API.
-	scap_threadinfo* tinfo = NULL;
-	int32_t res = linux_vtable_fetch_thread(linux_platform, proclist, tid, &tinfo, error);
+	scap_threadinfo tinfo_storage;
+	scap_threadinfo* tinfo = &tinfo_storage;
+	int32_t res = linux_vtable_fetch_thread(linux_platform, proclist, tid, tinfo, error);
 	if(res == SCAP_NOT_SUPPORTED) {
 		// Fall back to procfs process lookup.
 		char proc_dir[SCAP_MAX_PATH_SIZE];
@@ -1630,13 +1630,6 @@ int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool sc
 	// Do not proceed with file information gathering if we encountered an error.
 	if(res != SCAP_SUCCESS) {
 		return res;
-	}
-
-	if(scap_unlikely(!tinfo)) {
-		return scap_errprintf(
-		        error,
-		        0,
-		        "bug: `linux_vtable_fetch_thread()` didn't populate the threadinfo pointer");
 	}
 
 	// Retrieve files only if this is the main thread.

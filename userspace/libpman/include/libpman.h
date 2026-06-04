@@ -522,7 +522,7 @@ int pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
 
 int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks* callbacks,
                              uint32_t tid,
-                             scap_threadinfo** tinfo,
+                             scap_threadinfo* tinfo,
                              char* error);
 int32_t pman_iter_fetch_tasks(const struct scap_fetch_callbacks* callbacks, char* error);
 int32_t pman_iter_fetch_proc_file(const struct scap_fetch_callbacks* callbacks,
