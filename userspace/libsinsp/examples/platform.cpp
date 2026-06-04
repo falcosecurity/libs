@@ -167,7 +167,7 @@ static int linux_fetch_thread(const scap_linux_platform* platform,
 	}
 
 	std::cout << "-- Calling fetch_thread(tid=" << fetch_thread_tid << ")...\n";
-	scap_threadinfo* tinfo = nullptr;
+	scap_threadinfo tinfo{};
 	const auto rc = platform->m_linux_vtable->fetch_thread(platform->m_engine,
 	                                                       &callbacks,
 	                                                       fetch_thread_tid,
