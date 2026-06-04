@@ -96,6 +96,7 @@ void pman_clear_state() {
 	/* BPF iterators section */
 	g_state.is_tasks_dumping_supported = false;
 	g_state.is_task_files_dumping_supported = false;
+	memset(&g_state.bpf_iter_link_info_supp_info, 0, sizeof(g_state.bpf_iter_link_info_supp_info));
 
 #endif /* BPF_ITERATOR_SUPPORT */
 }

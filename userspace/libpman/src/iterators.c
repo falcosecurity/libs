@@ -45,6 +45,8 @@ static inline pid_t compat_gettid(void) {
 #include <bpf/libbpf.h>
 #include <netinet/in.h>
 
+#ifdef BPF_ITERATOR_SUPPORT
+
 #ifdef BPF_ITERATOR_DEBUG
 
 #if defined(BPF_ITERATOR_DEBUG_RAW) || defined(BPF_ITERATOR_DEBUG_PARSED)
@@ -756,6 +758,17 @@ static int32_t fetch(const struct prog_info *prog_info,
                      const bool must_fetch_sockets,
                      uint64_t *num_files_fetched,
                      char *error) {
+	if(!g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported &&
+	   (pid_filter != 0 || tid_filter != 0)) {
+		return scap_errprintf(
+		        error,
+		        0,
+		        "bug: wrong configuration: pid_filter (%d) and tid_filter (%d) "
+		        "must both be zero in case in-kernel task filtering support is not available",
+		        pid_filter,
+		        tid_filter);
+	}
+
 	if(pid_filter != 0 && tid_filter != 0) {
 		return scap_errprintf(error,
 		                      0,
@@ -778,14 +791,19 @@ static int32_t fetch(const struct prog_info *prog_info,
 	int iter_fd = -1;
 
 	// Attach the program.
-	LIBBPF_OPTS(bpf_iter_attach_opts, opts);
-	union bpf_iter_link_info linfo;
-	memset(&linfo, 0, sizeof(linfo));
-	linfo.task.pid = pid_filter;  // If the pid is set to zero, no filtering logic is applied.
-	linfo.task.tid = tid_filter;  // If the tid is set to zero, no filtering logic is applied.
-	opts.link_info = &linfo;
-	opts.link_info_len = sizeof(linfo);
-	*prog_info->link = bpf_program__attach_iter(prog_info->prog, &opts);
+	if(g_state.bpf_iter_link_info_supp_info.is_available) {
+		LIBBPF_OPTS(bpf_iter_attach_opts, opts);
+		union bpf_iter_link_info linfo;
+		memset(&linfo, 0, sizeof(linfo));
+		linfo.task.pid = pid_filter;  // If the pid is set to zero, no filtering logic is applied.
+		linfo.task.tid = tid_filter;  // If the tid is set to zero, no filtering logic is applied.
+		opts.link_info = &linfo;
+		opts.link_info_len = sizeof(linfo);
+		*prog_info->link = bpf_program__attach_iter(prog_info->prog, &opts);
+	} else {
+		*prog_info->link = bpf_program__attach_iter(prog_info->prog, NULL);
+	}
+
 	if(!*prog_info->link) {
 		res = scap_errprintf(error, errno, "failed to attach the '%s' program", prog_info->name);
 		goto cleanup;
@@ -834,6 +852,8 @@ static void fill_dump_task_file_prog_info(struct prog_info *info) {
 	info->selector = EHS_TASK_FILE;
 }
 
+#endif /* BPF_ITERATOR_SUPPORT */
+
 int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
                              const uint32_t tid,
                              scap_threadinfo **tinfo,
@@ -841,7 +861,10 @@ int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
 #else
-	if(!g_state.is_tasks_dumping_supported) {
+	// Don't use iterators for fetching a single task if the kernel doesn't provide support for
+	// in-kernel task filtering.
+	if(!g_state.is_tasks_dumping_supported ||
+	   !g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported) {
 		return SCAP_NOT_SUPPORTED;
 	}
 
@@ -876,7 +899,10 @@ int32_t pman_iter_fetch_proc_file(const struct scap_fetch_callbacks *callbacks,
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
 #else
-	if(!g_state.is_task_files_dumping_supported) {
+	// Don't use iterators for fetching a single process' file if the kernel doesn't provide support
+	// for in-kernel task filtering.
+	if(!g_state.is_task_files_dumping_supported ||
+	   !g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported) {
 		return SCAP_NOT_SUPPORTED;
 	}
 
@@ -902,7 +928,10 @@ int32_t pman_iter_fetch_proc_files(const struct scap_fetch_callbacks *callbacks,
 #ifndef BPF_ITERATOR_SUPPORT
 	return SCAP_NOT_SUPPORTED;
 #else
-	if(!g_state.is_task_files_dumping_supported) {
+	// Don't use iterators for fetching a single process' files if the kernel doesn't provide
+	// support for in-kernel task filtering.
+	if(!g_state.is_task_files_dumping_supported ||
+	   !g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported) {
 		return SCAP_NOT_SUPPORTED;
 	}
 
