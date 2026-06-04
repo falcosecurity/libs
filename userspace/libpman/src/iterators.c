@@ -312,6 +312,7 @@ static void handle_task_evt(const struct ppm_evt_hdr *evt,
                             const scap_const_sized_buffer *evt_params,
                             const struct scap_fetch_callbacks *callbacks,
                             scap_threadinfo **tinfo_out,
+                            uint64_t *num_tasks_fetched,
                             const scap_sized_buffer *cb_err_buff) {
 	uint32_t pid, tid;
 	get_evt_pid_tid(evt, &pid, &tid);
@@ -327,7 +328,11 @@ static void handle_task_evt(const struct ppm_evt_hdr *evt,
 	                                             &tinfo,
 	                                             NULL,
 	                                             tinfo_out);
-	if(scap_unlikely(res != SCAP_SUCCESS)) {
+	if(scap_likely(res == SCAP_SUCCESS)) {
+		if(num_tasks_fetched) {
+			(*num_tasks_fetched)++;
+		}
+	} else {
 		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
 		                "process entry callback failed with error code %d for thread (pid: %u, "
 		                "tid: %u): %.*s",
@@ -609,8 +614,11 @@ static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
 	                                             NULL,
 	                                             &fdinfo,
 	                                             NULL);
-
-	if(scap_unlikely(res != SCAP_SUCCESS)) {
+	if(scap_likely(res == SCAP_SUCCESS)) {
+		if(num_files_fetched) {
+			(*num_files_fetched)++;
+		}
+	} else {
 		pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
 		                "process entry callback failed with error code %d for file (pid: %u, "
 		                "tid: %u, fd: %ld): %.*s",
@@ -620,10 +628,6 @@ static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
 		                fdinfo.fd,
 		                (int)cb_err_buff->size,
 		                (char *)cb_err_buff->buf);
-	}
-
-	if(num_files_fetched) {
-		(*num_files_fetched)++;
 	}
 }
 
@@ -641,8 +645,9 @@ static int32_t fetch_evts(const int iter_fd,
                           const enum evt_handler_selector selector,
                           const struct scap_fetch_callbacks *callbacks,
                           scap_threadinfo **tinfo,
-                          const bool must_fetch_sockets,
+                          uint64_t *num_tasks_fetched,
                           uint64_t *num_files_fetched,
+                          const bool must_fetch_sockets,
                           char *error) {
 	// Stack buffer to accommodate at least one event at the time.
 	char buff[MAX_ITER_EVENT_SIZE];
@@ -651,6 +656,10 @@ static int32_t fetch_evts(const int iter_fd,
 	// Buffer used to store any error resulting from callback invocation.
 	char cb_err[256] = {0};
 	const scap_sized_buffer cb_err_buff = {&cb_err, sizeof(cb_err)};
+
+	if(num_tasks_fetched) {
+		*num_tasks_fetched = 0;
+	}
 
 	if(num_files_fetched) {
 		*num_files_fetched = 0;
@@ -701,7 +710,7 @@ static int32_t fetch_evts(const int iter_fd,
 			cb_err[0] = 0;
 			switch(selector) {
 			case EHS_TASK:
-				handle_task_evt(evt, evt_params, callbacks, tinfo, &cb_err_buff);
+				handle_task_evt(evt, evt_params, callbacks, tinfo, num_tasks_fetched, &cb_err_buff);
 				break;
 			case EHS_TASK_FILE:
 				handle_task_file_evt(evt,
@@ -755,8 +764,9 @@ static int32_t fetch(const struct prog_info *prog_info,
                      const int pid_filter,
                      const int tid_filter,
                      scap_threadinfo **tinfo,
-                     const bool must_fetch_sockets,
+                     uint64_t *num_tasks_fetched,
                      uint64_t *num_files_fetched,
+                     const bool must_fetch_sockets,
                      char *error) {
 	if(!g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported &&
 	   (pid_filter != 0 || tid_filter != 0)) {
@@ -823,8 +833,9 @@ static int32_t fetch(const struct prog_info *prog_info,
 	                 prog_info->selector,
 	                 callbacks,
 	                 tinfo,
-	                 must_fetch_sockets,
+	                 num_tasks_fetched,
 	                 num_files_fetched,
+	                 must_fetch_sockets,
 	                 error);
 
 cleanup:
@@ -874,7 +885,10 @@ int32_t pman_iter_fetch_task(const struct scap_fetch_callbacks *callbacks,
 
 	struct prog_info prog_info;
 	fill_dump_task_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, 0, tid, tinfo, false, NULL, error);
+	uint64_t num_tasks_fetched = 0;
+	const int32_t res =
+	        fetch(&prog_info, callbacks, 0, tid, tinfo, &num_tasks_fetched, NULL, false, error);
+	return res == SCAP_SUCCESS && num_tasks_fetched != 1 ? SCAP_NOTFOUND : res;
 #endif
 }
 
@@ -888,7 +902,7 @@ int32_t pman_iter_fetch_tasks(const struct scap_fetch_callbacks *callbacks, char
 
 	struct prog_info prog_info;
 	fill_dump_task_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, 0, 0, NULL, false, NULL, error);
+	return fetch(&prog_info, callbacks, 0, 0, NULL, NULL, NULL, false, error);
 #endif
 }
 
@@ -916,7 +930,7 @@ int32_t pman_iter_fetch_proc_file(const struct scap_fetch_callbacks *callbacks,
 
 	struct prog_info prog_info;
 	fill_dump_task_file_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, pid, 0, NULL, must_fetch_sockets, NULL, error);
+	return fetch(&prog_info, callbacks, pid, 0, NULL, NULL, NULL, must_fetch_sockets, error);
 #endif
 }
 
@@ -944,7 +958,15 @@ int32_t pman_iter_fetch_proc_files(const struct scap_fetch_callbacks *callbacks,
 
 	struct prog_info prog_info;
 	fill_dump_task_file_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, pid, 0, NULL, must_fetch_sockets, num_files_fetched, error);
+	return fetch(&prog_info,
+	             callbacks,
+	             pid,
+	             0,
+	             NULL,
+	             NULL,
+	             num_files_fetched,
+	             must_fetch_sockets,
+	             error);
 #endif
 }
 
@@ -962,6 +984,6 @@ int32_t pman_iter_fetch_procs_files(const struct scap_fetch_callbacks *callbacks
 
 	struct prog_info prog_info;
 	fill_dump_task_file_prog_info(&prog_info);
-	return fetch(&prog_info, callbacks, 0, 0, NULL, must_fetch_sockets, NULL, error);
+	return fetch(&prog_info, callbacks, 0, 0, NULL, NULL, NULL, must_fetch_sockets, error);
 #endif
 }
