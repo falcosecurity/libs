@@ -72,7 +72,7 @@ struct scap_linux_vtable {
 	/**
 	 * @brief get the list of all threads in the system, with their cpu usage
 	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param procinfo_p pointer to pointer to the resulting list
+	 * @param procinfo_p pointer to a pointer to the resulting list
 	 * @param lasterr pointer to a buffer of SCAP_LASTERR_SIZE bytes
 	 *                for the error message (if any)
 	 * @return SCAP_SUCCESS or a failure code
@@ -89,7 +89,7 @@ struct scap_linux_vtable {
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @param callbacks pointer to fetch APIs callbacks
 	 * @param tid the thread id
-	 * @param tinfo pointer to a pointer that is updated, on success, to point to the fetched thread
+	 * @param tinfo pointer to thread that is populated, on success, with the fetched information
 	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
 	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported,
 	 * SCAP_NOTFOUND if the thread is not found or any other SCAP_* failure code
@@ -97,7 +97,7 @@ struct scap_linux_vtable {
 	int32_t (*fetch_thread)(struct scap_engine_handle engine,
 	                        const struct scap_fetch_callbacks* callbacks,
 	                        uint32_t tid,
-	                        scap_threadinfo** tinfo,
+	                        scap_threadinfo* tinfo,
 	                        char* error);
 
 	/**
