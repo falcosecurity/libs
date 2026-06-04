@@ -71,6 +71,15 @@ static void prepare_iter_progs_before_loading() {
 		// Update the corresponding feature flag in `g_state`.
 		*iter_prog->feature_flag = is_prog_supported;
 	}
+
+	// Probe support for `bpf_iter_link_info` union and its members.
+	iter_support_probing__probe_bpf_iter_link_info_support(&g_state.bpf_iter_link_info_supp_info);
+	pman_print_msgf(
+	        FALCOSECURITY_LOG_SEV_DEBUG,
+	        "Probed `bpf_iter_link_info` support for BPF iterators - support: %s, in-kernel "
+	        "task filtering: %s",
+	        g_state.bpf_iter_link_info_supp_info.is_available ? "yes" : "no",
+	        g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported ? "yes" : "no");
 }
 #endif
 
@@ -277,6 +286,7 @@ void pman_close_probe() {
 	/* BPF iterators section */
 	g_state.is_tasks_dumping_supported = false;
 	g_state.is_task_files_dumping_supported = false;
+	memset(&g_state.bpf_iter_link_info_supp_info, 0, sizeof(g_state.bpf_iter_link_info_supp_info));
 
 #endif /* BPF_ITERATOR_SUPPORT */
 }
