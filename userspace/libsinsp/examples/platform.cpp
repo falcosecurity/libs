@@ -47,6 +47,89 @@ static bool do_fetch_proc_files = false;
 static uint64_t fetch_proc_files_pid = 0;
 static bool fetch_proc_files_with_sockets = false;
 static bool do_fetch_procs_files = false;
+static struct fetch_counters_t {
+	uint64_t n_fetched_threads;
+	uint64_t n_fetched_files_pipe;
+	uint64_t n_fetched_files_memfd;
+	uint64_t n_fetched_files_regular;
+	uint64_t n_fetched_files_directory;
+	uint64_t n_fetched_files_socket_inet;
+	uint64_t n_fetched_files_socket_inet6;
+	uint64_t n_fetched_files_socket_unix;
+	uint64_t n_fetched_files_socket_netlink;
+	uint64_t n_fetched_files_anon_inode;
+	uint64_t n_fetched_files_unsupported;
+	uint64_t n_fetched_files_unknown;
+} fetch_counters = {};
+
+static void account_fetched_thread(fetch_counters_t* counters, const scap_threadinfo* /*tinfo*/) {
+	counters->n_fetched_threads++;
+}
+
+static void account_fetched_files(fetch_counters_t* counters, const scap_fdinfo* fdinfo) {
+	switch(fdinfo->type) {
+	case SCAP_FD_IPV4_SOCK:
+	case SCAP_FD_IPV4_SERVSOCK:
+		counters->n_fetched_files_socket_inet++;
+		break;
+	case SCAP_FD_IPV6_SOCK:
+	case SCAP_FD_IPV6_SERVSOCK:
+		counters->n_fetched_files_socket_inet6++;
+		break;
+	case SCAP_FD_UNIX_SOCK:
+		counters->n_fetched_files_socket_unix++;
+		break;
+	case SCAP_FD_NETLINK:
+		counters->n_fetched_files_socket_netlink++;
+		break;
+	case SCAP_FD_FIFO:
+		counters->n_fetched_files_pipe++;
+		break;
+	case SCAP_FD_DIRECTORY:
+		counters->n_fetched_files_directory++;
+		break;
+	case SCAP_FD_FILE_V2:
+		counters->n_fetched_files_regular++;
+		break;
+	case SCAP_FD_MEMFD:
+		counters->n_fetched_files_memfd++;
+		break;
+	case SCAP_FD_EVENT:
+	case SCAP_FD_EVENTPOLL:
+	case SCAP_FD_INOTIFY:
+	case SCAP_FD_SIGNALFD:
+	case SCAP_FD_TIMERFD:
+	case SCAP_FD_IOURING:
+	case SCAP_FD_USERFAULTFD:
+	case SCAP_FD_PIDFD:
+	case SCAP_FD_BPF:
+		counters->n_fetched_files_anon_inode++;
+		break;
+	case SCAP_FD_UNSUPPORTED:
+		counters->n_fetched_files_unsupported++;
+		break;
+	default:
+		counters->n_fetched_files_unknown++;
+		break;
+	}
+}
+
+static void print_fetch_counters(const fetch_counters_t* counters) {
+	std::cout << "--- Fetch counters:"
+	          << "\n--- n_fetched_threads: " << counters->n_fetched_threads
+	          << "\n--- n_fetched_files_pipe: " << counters->n_fetched_files_pipe
+	          << "\n--- n_fetched_files_memfd: " << counters->n_fetched_files_memfd
+	          << "\n--- n_fetched_files_regular: " << counters->n_fetched_files_regular
+	          << "\n--- n_fetched_files_directory: " << counters->n_fetched_files_directory
+	          << "\n--- n_fetched_files_socket_inet: " << counters->n_fetched_files_socket_inet
+	          << "\n--- n_fetched_files_socket_inet6: " << counters->n_fetched_files_socket_inet6
+	          << "\n--- n_fetched_files_socket_unix: " << counters->n_fetched_files_socket_unix
+	          << "\n--- n_fetched_files_socket_netlink: "
+	          << counters->n_fetched_files_socket_netlink
+	          << "\n--- n_fetched_files_anon_inode: " << counters->n_fetched_files_anon_inode
+	          << "\n--- n_fetched_files_unsupported: " << counters->n_fetched_files_unsupported
+	          << "\n--- n_fetched_files_unknown: " << counters->n_fetched_files_unknown << '\n';
+}
 
 static int32_t on_fetch_entry(void* /*context*/,
                               char* /*error*/,
@@ -54,8 +137,14 @@ static int32_t on_fetch_entry(void* /*context*/,
                               scap_threadinfo* tinfo,
                               scap_fdinfo* fdinfo,
                               scap_threadinfo** new_tinfo) {
+	// note: `tinfo` and `fdinfo` are mutually exclusive: if one is NULL, the other is not.
+	if(tinfo != nullptr) {
+		account_fetched_thread(&fetch_counters, tinfo);
+	} else {
+		account_fetched_files(&fetch_counters, fdinfo);
+	}
+
 	if(!do_fetch_silently) {
-		// `tinfo` and `fdinfo` are mutually exclusive: if one is NULL, the other is not.
 		if(tinfo != nullptr) {
 			scap_print_threadinfo(tinfo);
 		} else {
@@ -93,6 +182,7 @@ static int linux_fetch_thread(const scap_linux_platform* platform,
 		return -1;
 	}
 	std::cout << "-- fetch_thread() succeeded\n";
+	print_fetch_counters(&fetch_counters);
 	return 0;
 }
 
@@ -116,6 +206,7 @@ static int linux_fetch_threads(const scap_linux_platform* platform,
 	}
 
 	std::cout << "-- fetch_threads() succeeded\n";
+	print_fetch_counters(&fetch_counters);
 	return 0;
 }
 
@@ -144,6 +235,7 @@ static int linux_fetch_proc_file(const scap_linux_platform* platform,
 	}
 
 	std::cout << "-- fetch_proc_file() succeeded\n";
+	print_fetch_counters(&fetch_counters);
 	return 0;
 }
 
@@ -176,6 +268,7 @@ static int linux_fetch_proc_files(const scap_linux_platform* platform,
 	}
 
 	std::cout << "-- fetch_proc_files() succeeded: fetched " << num_files_fetched << " file(s)\n";
+	print_fetch_counters(&fetch_counters);
 	return 0;
 }
 
@@ -199,6 +292,7 @@ static int linux_fetch_procs_files(const scap_linux_platform* platform,
 		return -1;
 	}
 	std::cout << "-- fetch_procs_files() succeeded\n";
+	print_fetch_counters(&fetch_counters);
 	return 0;
 }
 
