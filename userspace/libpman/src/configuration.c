@@ -69,6 +69,7 @@ static void clear_state() {
 	g_state.n_possible_cpus = 0;
 	g_state.n_interesting_cpus = 0;
 	g_state.allocate_online_only = false;
+	g_state.disable_iterators = false;
 	g_state.n_required_buffers = 0;
 	g_state.cpus_for_each_buffer = 0;
 	g_state.ringbuf_pos = 0;
@@ -105,7 +106,8 @@ static void clear_state() {
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     uint16_t cpus_for_each_buffer,
-                    bool allocate_online_only) {
+                    bool allocate_online_only,
+                    bool disable_iterators) {
 	clear_state();
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
@@ -144,6 +146,7 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	}
 
 	g_state.allocate_online_only = allocate_online_only;
+	g_state.disable_iterators = disable_iterators;
 
 	if(g_state.allocate_online_only) {
 		ssize_t online_cpus = sysconf(_SC_NPROCESSORS_ONLN);
