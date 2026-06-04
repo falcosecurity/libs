@@ -40,6 +40,19 @@ limitations under the License.
 
 struct metrics_v2;
 
+#ifdef BPF_ITERATOR_SUPPORT
+
+// Store information about the support for `bpf_iter_link_info` or any of its members.
+struct bpf_iter_link_info_support_info {
+	// If true, the current kernel provides support for `bpf_iter_link_info` union.
+	bool is_available;
+	// If true, the current kernel provides support for the `task` member of `bpf_iter_link_info`
+	// (note: meaningful only if `is_available` is true).
+	bool is_task_filtering_supported;
+};
+
+#endif /* BPF_ITERATOR_SUPPORT */
+
 struct internal_state {
 	struct bpf_probe* skel;         /* bpf skeleton with all programs and maps. */
 	struct ring_buffer* rb_manager; /* ring_buffer manager with all per-CPU ringbufs. */
@@ -76,6 +89,18 @@ struct internal_state {
 	                                         gather tasks information */
 	bool is_task_files_dumping_supported; /* If true, use the corresponding BPF iterator program to
 	                                    gather task files information */
+	struct bpf_iter_link_info_support_info
+	        bpf_iter_link_info_supp_info; /* Store information about the support for
+	                                       * `bpf_iter_link_info` or any of its members. Used by
+	                                       * `pman_fetch_*()` APIs. `.is_available` is used to
+	                                       * determine if the BPF iterator attachment operation
+	                                       * provides support for passing filtering options.
+	                                       * `.is_task_filtering_supported` determines whether
+	                                       * in-kernel task filtering for BPF iterator programs is
+	                                       * available, and the kernel can perform the filtering: if
+	                                       * false, the support for operations that would require
+	                                       * task filtering is disabled.
+	                                       */
 
 #endif /* BPF_ITERATOR_SUPPORT */
 };
