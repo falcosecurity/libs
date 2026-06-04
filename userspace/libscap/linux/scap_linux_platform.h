@@ -91,8 +91,8 @@ struct scap_linux_vtable {
 	 * @param tid the thread id
 	 * @param tinfo pointer to a pointer that is updated, on success, to point to the fetched thread
 	 * @param error pointer to a buffer of SCAP_LASTERR_SIZE bytes for the error message (if any)
-	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported, or any
-	 * other SCAP_* failure code
+	 * @return SCAP_SUCCESS on success, SCAP_NOT_SUPPORTED if the operation is not supported,
+	 * SCAP_NOTFOUND if the thread is not found or any other SCAP_* failure code
 	 */
 	int32_t (*fetch_thread)(struct scap_engine_handle engine,
 	                        const struct scap_fetch_callbacks* callbacks,
