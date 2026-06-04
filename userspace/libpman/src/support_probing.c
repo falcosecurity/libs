@@ -17,9 +17,11 @@ limitations under the License.
 */
 
 #include "support_probing.h"
-#include "state.h"
 
 #ifdef BPF_ITERATOR_SUPPORT
+
+#include <bpf/btf.h>
+#include <string.h>
 
 static int init_iter_ctx(struct iter_support_probing_ctx *ctx) {
 	struct bpf_probe *probe = bpf_probe__open();
@@ -97,6 +99,37 @@ int iter_support_probing__probe(const char *prog_name) {
 	err = bpf_probe__load(ctx.probe);
 	destroy_iter_ctx(&ctx);
 	return err;
+}
+
+void iter_support_probing__probe_bpf_iter_link_info_support(
+        struct bpf_iter_link_info_support_info *info) {
+	memset(info, 0, sizeof(*info));
+
+	struct btf *btf = btf__load_vmlinux_btf();
+	if(!btf) {
+		log_errorf("failed to load vmlinux BTF while probing BPF iter link info support");
+		return;
+	}
+
+	const int32_t union_id = btf__find_by_name_kind(btf, "bpf_iter_link_info", BTF_KIND_UNION);
+	if(union_id <= 0) {
+		goto cleanup;
+	}
+
+	info->is_available = true;
+
+	const struct btf_type *union_type = btf__type_by_id(btf, union_id);
+	const struct btf_member *members = btf_members(union_type);
+	for(uint16_t i = 0; i < btf_vlen(union_type); i++) {
+		const char *member_name = btf__name_by_offset(btf, members[i].name_off);
+		if(member_name != NULL && strcmp(member_name, "task") == 0) {
+			info->is_task_filtering_supported = true;
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	btf__free(btf);
 }
 
 #endif  // BPF_ITERATOR_SUPPORT
