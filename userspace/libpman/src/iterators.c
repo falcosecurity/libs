@@ -562,12 +562,13 @@ static void handle_task_file_evt(const struct ppm_evt_hdr *evt,
 
 	const uint16_t evt_type = evt->type;
 	if(!must_fetch_sockets && is_task_file_socket_evt(evt_type)) {
-		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-		         "received socket event type %d with socket fetching disabled for thread "
-		         "(pid: %u, tid: %u)",
-		         evt_type,
-		         pid,
-		         tid);
+		log_errorf(
+		        "bug: received socket event type %d with socket fetching disabled for thread "
+		        "(pid: %u, tid: %u)",
+		        evt_type,
+		        pid,
+		        tid);
+		return;
 	}
 
 	scap_fdinfo fdinfo = {};
