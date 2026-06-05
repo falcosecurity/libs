@@ -56,21 +56,17 @@ static bool is_kernel_symbol_available(const char *symbol) {
 
 #ifdef BPF_ITERATOR_SUPPORT
 static void prepare_iter_progs_before_loading() {
-	// Disable everything if iterator support is disabled by configuration or the current process is
-	// not in the root PID namespace (i.e.: iterators would have full visibility on all host
-	// processes).
-	if(g_state.disable_iterators || !iter_support_probing__is_in_root_pid_namespace()) {
-		pman_print_msgf(FALCOSECURITY_LOG_SEV_INFO,
-		                "disabled BPF iterators (%s)",
-		                g_state.disable_iterators ? "requested by configuration"
-		                                          : "not running in the root PID namespace");
+	// Disable autoloading for all iterator programs if iterators support is disabled.
+	if(g_state.disable_iterators) {
 		for(int i = 0; i < ITER_PROG_MAX; i++) {
-			disable_prog_autoloading(iter_progs_table[i].name);
-			*iter_progs_table[i].feature_flag = false;
+			const iter_prog_t *iter_prog = &iter_progs_table[i];
+			const char *prog_name = iter_prog->name;
+			pman_print_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+			                "disabled BPF program '%s' (due to disabled BPF iterators support)",
+			                prog_name);
+			disable_prog_autoloading(prog_name);
+			*iter_prog->feature_flag = false;
 		}
-		memset(&g_state.bpf_iter_link_info_supp_info,
-		       0,
-		       sizeof(g_state.bpf_iter_link_info_supp_info));
 		return;
 	}
 
@@ -89,15 +85,6 @@ static void prepare_iter_progs_before_loading() {
 		// Update the corresponding feature flag in `g_state`.
 		*iter_prog->feature_flag = is_prog_supported;
 	}
-
-	// Probe support for `bpf_iter_link_info` union and its members.
-	iter_support_probing__probe_bpf_iter_link_info_support(&g_state.bpf_iter_link_info_supp_info);
-	pman_print_msgf(
-	        FALCOSECURITY_LOG_SEV_DEBUG,
-	        "Probed `bpf_iter_link_info` support for BPF iterators - support: %s, in-kernel "
-	        "task filtering: %s",
-	        g_state.bpf_iter_link_info_supp_info.is_available ? "yes" : "no",
-	        g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported ? "yes" : "no");
 }
 #endif
 
