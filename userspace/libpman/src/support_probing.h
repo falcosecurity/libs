@@ -35,6 +35,10 @@ int iter_support_probing__probe(const char *prog_name);
 void iter_support_probing__probe_bpf_iter_link_info_support(
         struct bpf_iter_link_info_support_info *info);
 
+// Probe whether the calling process runs in the root PID namespace. Return true if in the root PID
+// namespace, false otherwise (including when it cannot be determined).
+bool iter_support_probing__is_in_root_pid_namespace(void);
+
 // The following declarations are here just to avoid creating a separate header file. They are
 // called by `iter_support_probing__probe()`. Don't use them directly.
 
