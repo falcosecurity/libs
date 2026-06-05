@@ -17,6 +17,8 @@ limitations under the License.
 */
 
 #include "state.h"
+#include "support_probing.h"
+
 #include <sys/resource.h>
 #include <linux/limits.h>
 #include <sys/utsname.h>
@@ -62,6 +64,14 @@ static int libbpf_print(enum libbpf_print_level level, const char *format, va_li
 	return rc;
 }
 
+static void clear_iter_state() {
+#ifdef BPF_ITERATOR_SUPPORT
+	g_state.is_tasks_dumping_supported = false;
+	g_state.is_task_files_dumping_supported = false;
+	memset(&g_state.bpf_iter_link_info_supp_info, 0, sizeof(g_state.bpf_iter_link_info_supp_info));
+#endif /* BPF_ITERATOR_SUPPORT */
+}
+
 /* Clear global state. */
 static void clear_state() {
 	g_state.skel = NULL;
@@ -93,13 +103,37 @@ static void clear_state() {
 	g_state.log_buf = NULL;
 	g_state.log_buf_size = 0;
 
-#ifdef BPF_ITERATOR_SUPPORT
+	clear_iter_state();
+}
 
-	/* BPF iterators section */
-	g_state.is_tasks_dumping_supported = false;
-	g_state.is_task_files_dumping_supported = false;
-	memset(&g_state.bpf_iter_link_info_supp_info, 0, sizeof(g_state.bpf_iter_link_info_supp_info));
+static void init_iter_state(const bool disable_iterators) {
+#ifndef BPF_ITERATOR_SUPPORT
+	g_state.disable_iterators = true;
+#else
+	// Disable everything if iterator support is disabled by configuration or the current process is
+	// not in the root PID namespace (i.e.: iterators would have full visibility on all host
+	// processes).
+	errno = 0;  // Ensure that if any error occurs, it is not a stale one.
+	g_state.disable_iterators =
+	        disable_iterators || !iter_support_probing__is_in_root_pid_namespace();
+	if(g_state.disable_iterators) {
+		log_msgf(FALCOSECURITY_LOG_SEV_INFO,
+		         "disabled BPF iterators (%s)",
+		         disable_iterators
+		                 ? "requested by configuration"
+		                 : "not running in the root PID namespace, or failed to determine it");
+		clear_iter_state();
+		return;
+	}
 
+	// Probe support for `bpf_iter_link_info` union and its members.
+	iter_support_probing__probe_bpf_iter_link_info_support(&g_state.bpf_iter_link_info_supp_info);
+	errno = 0;  // Make logging cleaner.
+	log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+	         "Probed `bpf_iter_link_info` support for BPF iterators (support: %s, in-kernel "
+	         "task filtering: %s)",
+	         g_state.bpf_iter_link_info_supp_info.is_available ? "yes" : "no",
+	         g_state.bpf_iter_link_info_supp_info.is_task_filtering_supported ? "yes" : "no");
 #endif /* BPF_ITERATOR_SUPPORT */
 }
 
@@ -146,7 +180,6 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	}
 
 	g_state.allocate_online_only = allocate_online_only;
-	g_state.disable_iterators = disable_iterators;
 
 	if(g_state.allocate_online_only) {
 		ssize_t online_cpus = sysconf(_SC_NPROCESSORS_ONLN);
@@ -195,6 +228,10 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	/* These will be used during the ring buffer consumption phase. */
 	g_state.last_ring_read = -1;
 	g_state.last_event_size = 0;
+
+	/* BPF iterators state initialization. */
+	init_iter_state(disable_iterators);
+
 	return 0;
 }
 
