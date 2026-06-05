@@ -22,6 +22,11 @@ limitations under the License.
 
 #include <bpf/btf.h>
 #include <string.h>
+#include <sys/stat.h>
+
+// Inode number of the root PID namespace. This is only exposed by <linux/nsfs.h> header versions
+// that are recent enough as `PID_NS_INIT_INO`, so better to hardcode it here.
+#define ROOT_PID_NS_INO 0xEFFFFFFCU
 
 static int init_iter_ctx(struct iter_support_probing_ctx *ctx) {
 	struct bpf_probe *probe = bpf_probe__open();
@@ -130,6 +135,15 @@ void iter_support_probing__probe_bpf_iter_link_info_support(
 
 cleanup:
 	btf__free(btf);
+}
+
+bool iter_support_probing__is_in_root_pid_namespace(void) {
+	struct stat st;
+	if(stat("/proc/self/ns/pid", &st) != 0) {
+		pman_print_errorf("failed to stat /proc/self/ns/pid while probing the PID namespace");
+		return false;
+	}
+	return st.st_ino == ROOT_PID_NS_INO;
 }
 
 #endif  // BPF_ITERATOR_SUPPORT
