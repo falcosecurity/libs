@@ -40,6 +40,7 @@ public:
 	std::unique_ptr<sinsp_filter_check> new_filter_check_from_fldname(std::string_view name,
 	                                                                  sinsp*,
 	                                                                  bool do_exact_check) const;
+	std::unique_ptr<filter_check_list> clone() const;
 
 protected:
 	std::vector<std::unique_ptr<sinsp_filter_check>> m_check_list;

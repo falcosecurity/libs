@@ -28,7 +28,11 @@ elseif(NOT USE_BUNDLED_ZLIB)
 		message(FATAL_ERROR "Couldn't find system zlib")
 	endif()
 else()
-	set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
+	# Per-host prefix so Linux-built zlib is not reused when building on macOS (and vice versa)
+	set(ZLIB_PREFIX
+		"${PROJECT_BINARY_DIR}/zlib-prefix/${CMAKE_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}"
+	)
+	set(ZLIB_SRC "${ZLIB_PREFIX}/src/zlib")
 	set(ZLIB_INCLUDE "${ZLIB_SRC}")
 	set(ZLIB_HEADERS "")
 	list(
@@ -78,7 +82,7 @@ else()
 			falcosecurity_external_project_env(ZLIB_EXTERNAL_PROJECT_ENV)
 			ExternalProject_Add(
 				zlib
-				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
+				PREFIX "${ZLIB_PREFIX}"
 				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
 				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				CONFIGURE_COMMAND ${ZLIB_EXTERNAL_PROJECT_ENV} "CFLAGS=${ZLIB_CFLAGS}" ./configure
@@ -108,7 +112,7 @@ else()
 			endif()
 			ExternalProject_Add(
 				zlib
-				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
+				PREFIX "${ZLIB_PREFIX}"
 				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
 				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				BUILD_IN_SOURCE 1

@@ -213,7 +213,8 @@ void event_capture::open_engine(const std::string& engine_string,
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
 		m_inspector->open_modern_bpf(s_buffer_dim,
-		                             DEFAULT_CPU_FOR_EACH_BUFFER,
+		                             DEFAULT_BUFFERS_NUM,
+		                             DEFAULT_ITERS_NUM,
 		                             true,
 		                             events_sc_codes);
 	}

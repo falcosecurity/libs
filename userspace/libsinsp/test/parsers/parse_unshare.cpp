@@ -38,7 +38,7 @@ TEST_F(sinsp_with_test_input, UNSHARE_parse) {
 	// effective set.
 	const auto tinfo = m_inspector.m_thread_manager->find_thread(INIT_TID, true);
 	const auto max_caps = sinsp_utils::get_max_caps();
-	ASSERT_EQ(tinfo->m_cap_inheritable, max_caps);
-	ASSERT_EQ(tinfo->m_cap_permitted, max_caps);
-	ASSERT_EQ(tinfo->m_cap_effective, max_caps);
+	ASSERT_EQ(tinfo->get_cap_inheritable(), max_caps);
+	ASSERT_EQ(tinfo->get_cap_permitted(), max_caps);
+	ASSERT_EQ(tinfo->get_cap_effective(), max_caps);
 }

@@ -186,7 +186,7 @@ static __always_inline uint16_t maps__get_ppm_sc(uint16_t syscall_id) {
 #ifdef BPF_ITERATOR_SUPPORT
 
 static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
-	uint32_t key = 0;
+	uint32_t key = max_iters_num == 1 ? 0 : (uint32_t)bpf_get_current_pid_tgid();
 	return bpf_map_lookup_elem(&iter_auxiliary_map, &key);
 }
 
@@ -199,7 +199,7 @@ static __always_inline struct auxiliary_map *maps__get_iter_auxiliary_map() {
 #ifdef BPF_ITERATOR_SUPPORT
 
 static __always_inline struct iter_counters *maps__get_iter_counters() {
-	uint32_t key = 0;
+	uint32_t key = max_iters_num == 1 ? 0 : (uint32_t)bpf_get_current_pid_tgid();
 	return bpf_map_lookup_elem(&iter_counters_map, &key);
 }
 
@@ -228,8 +228,33 @@ static __always_inline struct counter_map *maps__get_counter_map() {
 /*=============================== RINGBUF MAPS ===========================*/
 
 static __always_inline struct ringbuf_map *maps__get_ringbuf_map() {
-	uint32_t cpu_id = (uint32_t)bpf_get_smp_processor_id();
-	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &cpu_id);
+	uint32_t ringbuf_id;
+	if(ringbufs_num == 0) {
+		ringbuf_id = (uint32_t)bpf_get_smp_processor_id();
+	} else {
+		uint32_t tgid = (uint32_t)(bpf_get_current_pid_tgid() >> 32);
+		ringbuf_id = tgid % ringbufs_num;
+	}
+	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &ringbuf_id);
+}
+
+/**
+ * @brief Look up the ring buffer for an explicit TGID rather than `current`.
+ *
+ * Needed by sched_process_fork: the event describes the *child* but the
+ * tracepoint fires in the *parent* context, so bpf_get_current_pid_tgid()
+ * returns the parent TGID.  Routing the child clone-exit event to the
+ * parent's ring buffer causes it to be processed by the wrong worker in
+ * multi-buffer mode, leading to massive fake-thread-entry creation.
+ */
+static __always_inline struct ringbuf_map *maps__get_ringbuf_map_for_tgid(uint32_t tgid) {
+	uint32_t ringbuf_id;
+	if(ringbufs_num == 0) {
+		ringbuf_id = (uint32_t)bpf_get_smp_processor_id();
+	} else {
+		ringbuf_id = tgid % ringbufs_num;
+	}
+	return (struct ringbuf_map *)bpf_map_lookup_elem(&ringbuf_maps, &ringbuf_id);
 }
 
 /*=============================== RINGBUF MAPS ===========================*/

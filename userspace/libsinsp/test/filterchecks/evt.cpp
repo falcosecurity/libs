@@ -39,7 +39,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "true");
 	ASSERT_TRUE(evt->get_fd_info());
 
-	ASSERT_EQ(evt->get_fd_info()->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
+	ASSERT_EQ(evt->get_fd_info()->get_openflags(), PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer) {
@@ -136,7 +136,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 
 	// We remove the user, and the fields should be empty again
 	m_inspector.m_usergroup_manager->rm_user(container_id, user_id);
-	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user(container_id, user_id));
+	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user(container_id, user_id).has_value());
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "<NA>");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[1]"), "<NA>");

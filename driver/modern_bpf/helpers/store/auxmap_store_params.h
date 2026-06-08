@@ -168,6 +168,27 @@ static __always_inline void auxmap_iter__finalize_event_header(struct auxiliary_
  *
  * @param auxmap pointer to the auxmap in which we have already written the entire event.
  */
+static __always_inline void auxmap__submit_event_to_ringbuf(struct auxiliary_map *auxmap,
+                                                            struct ringbuf_map *rb) {
+	struct counter_map *counter = maps__get_counter_map();
+	if(!counter) {
+		return;
+	}
+
+	counter->n_evts++;
+
+	if(auxmap->payload_pos > MAX_EVENT_SIZE) {
+		counter->n_drops_max_event_size++;
+		return;
+	}
+
+	int err = bpf_ringbuf_output(rb, auxmap->data, auxmap->payload_pos, BPF_RB_NO_WAKEUP);
+	if(err) {
+		counter->n_drops_buffer++;
+		compute_event_types_stats(auxmap->event_type, counter);
+	}
+}
+
 static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
@@ -176,29 +197,25 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 		bpf_printk("FAILURE: unable to obtain the ring buffer");
 		return;
 	}
+	auxmap__submit_event_to_ringbuf(auxmap, rb);
+}
 
-	struct counter_map *counter = maps__get_counter_map();
-	if(!counter) {
+/**
+ * @brief Submit event to the ring buffer associated with a specific TGID.
+ *
+ * Used by sched_process_fork to route the child's clone-exit event to the
+ * child's ring buffer rather than the parent's.  Without this, multi-buffer
+ * mode processes the child's first syscall events before its clone-exit,
+ * causing massive fake thread entry creation.
+ */
+static __always_inline void auxmap__submit_event_for_tgid(struct auxiliary_map *auxmap,
+                                                          uint32_t tgid) {
+	struct ringbuf_map *rb = maps__get_ringbuf_map_for_tgid(tgid);
+	if(!rb) {
+		bpf_printk("FAILURE: unable to obtain the ring buffer for tgid %u", tgid);
 		return;
 	}
-
-	/* This counts the event seen by the drivers even if they are dropped because the buffer is
-	 * full. */
-	counter->n_evts++;
-
-	if(auxmap->payload_pos > MAX_EVENT_SIZE) {
-		counter->n_drops_max_event_size++;
-		return;
-	}
-
-	/* `BPF_RB_NO_WAKEUP` means that we don't send to userspace a notification
-	 *  when a new event is in the buffer.
-	 */
-	int err = bpf_ringbuf_output(rb, auxmap->data, auxmap->payload_pos, BPF_RB_NO_WAKEUP);
-	if(err) {
-		counter->n_drops_buffer++;
-		compute_event_types_stats(auxmap->event_type, counter);
-	}
+	auxmap__submit_event_to_ringbuf(auxmap, rb);
 }
 
 #ifdef BPF_ITERATOR_SUPPORT

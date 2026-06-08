@@ -286,7 +286,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
 		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
 
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->get_name(), expected_string)
+		        << test_context;
 		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		dirfd++;
@@ -323,7 +324,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
 		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
 
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->get_name(), expected_string)
+		        << test_context;
 		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		dirfd++;
@@ -356,7 +358,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
 		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
 
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->get_name(), expected_string)
+		        << test_context;
 		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		new_fd++;
@@ -387,7 +390,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval) {
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
 		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
 
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->get_name(), expected_string)
+		        << test_context;
 		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		new_fd++;

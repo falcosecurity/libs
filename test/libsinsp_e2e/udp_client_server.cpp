@@ -512,9 +512,10 @@ TEST_F(sys_call_test, udp_client_server) {
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 				const auto fd_server_socket = std::stoll(e->get_param_value_str("fd", false));
-				sinsp_fdinfo* fdinfo = e->get_thread_info()->get_fd(fd_server_socket);
+				auto fdinfo = e->get_thread_info()->get_fd(fd_server_socket);
 				ASSERT_TRUE(fdinfo);
-				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				EXPECT_EQ(udps.server_ip_address(),
+				          fdinfo->get_sockinfo().m_ipv4info.m_fields.m_sip);
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 
@@ -537,9 +538,10 @@ TEST_F(sys_call_test, udp_client_server) {
 
 				EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 				const auto fd_server_socket = std::stoll(e->get_param_value_str("fd", false));
-				sinsp_fdinfo* fdinfo = e->get_thread_info()->get_fd(fd_server_socket);
+				auto fdinfo = e->get_thread_info()->get_fd(fd_server_socket);
 				ASSERT_TRUE(fdinfo);
-				EXPECT_EQ(udps.server_ip_address(), fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				EXPECT_EQ(udps.server_ip_address(),
+				          fdinfo->get_sockinfo().m_ipv4info.m_fields.m_sip);
 
 				state = 3;
 			}
@@ -635,7 +637,7 @@ TEST_F(sys_call_test, udp_client_server_sendmsg) {
 			EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 
 			EXPECT_EQ(udps.server_ip_address(),
-			          e->get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_sip);
+			          e->get_fd_info()->get_sockinfo().m_ipv4info.m_fields.m_sip);
 		} else if(type == PPME_SOCKET_SENDMSG_X) {
 			EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 
@@ -690,7 +692,7 @@ TEST_F(sys_call_test, udp_client_server_sendmsg_2buf) {
 			EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 
 			EXPECT_EQ(udps.server_ip_address(),
-			          e->get_fd_info()->m_sockinfo.m_ipv4info.m_fields.m_sip);
+			          e->get_fd_info()->get_sockinfo().m_ipv4info.m_fields.m_sip);
 		} else if(type == PPME_SOCKET_SENDMSG_X) {
 			EXPECT_EQ(PAYLOAD, e->get_param_value_str("data"));
 

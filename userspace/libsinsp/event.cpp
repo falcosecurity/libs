@@ -72,14 +72,14 @@ sinsp_evt::sinsp_evt():
         m_info(nullptr),
         m_paramstr_storage(1024),
         m_resolved_paramstr_storage(1024),
-        m_tinfo(nullptr),
-        m_fdinfo(nullptr),
+        m_tinfo_ref(nullptr),
         m_fdinfo_name_changed(false),
         m_iosize(0),
         m_errorcode(0),
         m_rawbuf_str_len(0),
         m_filtered_out(false),
         m_event_info_table(g_infotables.m_event_info),
+        m_fdinfo_ref(nullptr),
         m_source_idx(sinsp_no_event_source_idx),
         m_source_name(nullptr) {}
 
@@ -114,21 +114,17 @@ uint32_t sinsp_evt::get_iosize() const {
 }
 
 sinsp_threadinfo *sinsp_evt::get_thread_info() {
-	if(m_tinfo != nullptr) {
-		return m_tinfo;
-	}
-
 	if(m_tinfo_ref) {
-		m_tinfo = m_tinfo_ref.get();
-		return m_tinfo;
+		return m_tinfo_ref.get();
 	}
 
-	return m_inspector->m_thread_manager->find_thread(m_pevt->tid, false).get();
+	m_tinfo_ref = m_inspector->m_thread_manager->find_thread(m_pevt->tid, false);
+	return m_tinfo_ref.get();
 }
 
 int64_t sinsp_evt::get_fd_num() const {
-	if(m_fdinfo) {
-		return m_tinfo->m_lastevent_fd;
+	if(m_fdinfo_ref && m_tinfo_ref) {
+		return m_tinfo_ref->get_lastevent_fd();
 	} else {
 		return sinsp_evt::INVALID_FD_NUM;
 	}
@@ -555,13 +551,17 @@ int sinsp_evt::render_fd_json(Json::Value *ret,
 	}
 
 	if(fd >= 0) {
-		if(const auto *fdinfo = tinfo->get_fd(fd)) {
-			const auto tch = fdinfo->get_typechar();
+		auto fdinfo = tinfo->get_fd(fd);
+		if(fdinfo) {
+			char tch = fdinfo->get_typechar();
 			char ipprotoch = 0;
 
-			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK || fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-			   fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
-				switch(fdinfo->get_l4proto()) {
+			auto ftype = fdinfo->get_type();
+			if(ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+			   ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK) {
+				scap_l4_proto l4p = fdinfo->get_l4proto();
+
+				switch(l4p) {
 				case SCAP_L4_TCP:
 					ipprotoch = 't';
 					break;
@@ -584,8 +584,9 @@ int sinsp_evt::render_fd_json(Json::Value *ret,
 			//
 			// Make sure we remove invalid characters from the resolved name
 			//
-			std::string sanitized_name_storage;
-			const auto sanitized_name = sanitize_string(fdinfo->m_name, sanitized_name_storage);
+			std::string sanitized_storage;
+			const std::string name = fdinfo->get_name();
+			const auto sanitized_name = sanitize_string(name, sanitized_storage);
 
 			(*ret)["typechar"] = typestr;
 			(*ret)["name"] = sanitized_name.data();
@@ -624,13 +625,17 @@ char *sinsp_evt::render_fd(const int64_t fd, const char ** /*resolved_str*/, con
 	}
 
 	if(fd >= 0) {
-		if(const auto *fdinfo = tinfo->get_fd(fd)) {
-			const auto tch = fdinfo->get_typechar();
+		auto fdinfo = tinfo->get_fd(fd);
+		if(fdinfo) {
+			char tch = fdinfo->get_typechar();
 			char ipprotoch = 0;
 
-			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK || fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-			   fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
-				switch(fdinfo->get_l4proto()) {
+			auto ftype = fdinfo->get_type();
+			if(ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK ||
+			   ftype == SCAP_FD_IPV4_SERVSOCK || ftype == SCAP_FD_IPV6_SERVSOCK) {
+				scap_l4_proto l4p = fdinfo->get_l4proto();
+
+				switch(l4p) {
 				case SCAP_L4_TCP:
 					ipprotoch = 't';
 					break;
@@ -653,8 +658,9 @@ char *sinsp_evt::render_fd(const int64_t fd, const char ** /*resolved_str*/, con
 			//
 			// Make sure we remove invalid characters from the resolved name
 			//
-			std::string sanitized_name_storage;
-			const auto sanitized_name = sanitize_string(fdinfo->m_name, sanitized_name_storage);
+			std::string sanitized_storage;
+			const std::string name = fdinfo->get_name();
+			const auto sanitized_name = sanitize_string(name, sanitized_storage);
 
 			//
 			// Make sure the string will fit
@@ -721,7 +727,11 @@ std::string sinsp_evt::get_base_dir(const uint32_t id, sinsp_threadinfo *tinfo) 
 
 	// If the previous param is a fd with a value other than AT_FDCWD, get the path to that fd and
 	// use it in place of CWD
-	return tinfo->get_path_for_dir_fd(dirfd);
+	auto rel_path_base = tinfo->get_path_for_dir_fd(dirfd);
+	if(!rel_path_base.empty() && rel_path_base.back() != '/') {
+		rel_path_base.push_back('/');
+	}
+	return rel_path_base;
 }
 
 const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, param_fmt fmt) {
@@ -834,8 +844,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 
 		sinsp_threadinfo *atinfo =
 		        m_inspector->m_thread_manager->find_thread(param->as<int64_t>(), true).get();
-		if(atinfo != nullptr) {
-			std::string &tcomm = atinfo->m_comm;
+		if(atinfo != NULL) {
+			std::string tcomm = atinfo->get_comm();
 
 			//
 			// Make sure the string will fit
@@ -990,7 +1000,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 				ipv4serverinfo addr;
 				memcpy(&addr.m_ip, param_data + 1, sizeof(addr.m_ip));
 				memcpy(&addr.m_port, param_data + 5, sizeof(addr.m_port));
-				addr.m_l4proto = m_fdinfo != nullptr ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				addr.m_l4proto = (m_fdinfo_ref) ? m_fdinfo_ref->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv4serveraddr_to_string(
 				        addr,
 				        m_inspector->is_hostname_and_port_resolution_enabled());
@@ -1004,7 +1014,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 				ipv6serverinfo addr;
 				memcpy(addr.m_ip.m_b, param_data + 1, sizeof(addr.m_ip.m_b));
 				memcpy(&addr.m_port, param_data + 17, sizeof(addr.m_port));
-				addr.m_l4proto = m_fdinfo != nullptr ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				addr.m_l4proto = (m_fdinfo_ref) ? m_fdinfo_ref->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv6serveraddr_to_string(
 				        addr,
 				        m_inspector->is_hostname_and_port_resolution_enabled());
@@ -1030,7 +1040,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 				memcpy(&addr.m_fields.m_dip, param_data + 7, sizeof(uint32_t));
 				memcpy(&addr.m_fields.m_dport, param_data + 11, sizeof(uint16_t));
 				addr.m_fields.m_l4proto =
-				        m_fdinfo != nullptr ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				        (m_fdinfo_ref) ? m_fdinfo_ref->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr =
 				        ipv4tuple_to_string(addr,
 				                            m_inspector->is_hostname_and_port_resolution_enabled());
@@ -1054,7 +1064,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 					memcpy(&addr.m_fields.m_dip, dip, sizeof(uint32_t));
 					memcpy(&addr.m_fields.m_dport, param_data + 35, sizeof(uint16_t));
 					addr.m_fields.m_l4proto =
-					        m_fdinfo != nullptr ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+					        (m_fdinfo_ref) ? m_fdinfo_ref->get_l4proto() : SCAP_L4_UNKNOWN;
 					std::string straddr = ipv4tuple_to_string(
 					        addr,
 					        m_inspector->is_hostname_and_port_resolution_enabled());
@@ -1064,30 +1074,33 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 					         "%s",
 					         straddr.c_str());
 					break;
-				}
-				char srcstr[INET6_ADDRSTRLEN];
-				char dststr[INET6_ADDRSTRLEN];
-				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-				   inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr))) {
-					uint16_t srcport, dstport;
-					memcpy(&srcport, param_data + 17, sizeof(srcport));
-					memcpy(&dstport, param_data + 35, sizeof(dstport));
-					snprintf(&m_paramstr_storage[0],
-					         m_paramstr_storage.size(),
-					         "%s:%s->%s:%s",
-					         srcstr,
-					         port_to_string(srcport,
-					                        m_fdinfo != nullptr ? m_fdinfo->get_l4proto()
-					                                            : SCAP_L4_UNKNOWN,
-					                        m_inspector->is_hostname_and_port_resolution_enabled())
-					                 .c_str(),
-					         dststr,
-					         port_to_string(dstport,
-					                        m_fdinfo != nullptr ? m_fdinfo->get_l4proto()
-					                                            : SCAP_L4_UNKNOWN,
-					                        m_inspector->is_hostname_and_port_resolution_enabled())
-					                 .c_str());
-					break;
+				} else {
+					char srcstr[INET6_ADDRSTRLEN];
+					char dststr[INET6_ADDRSTRLEN];
+					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
+					   inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr))) {
+						uint16_t srcport, dstport;
+						memcpy(&srcport, param_data + 17, sizeof(srcport));
+						memcpy(&dstport, param_data + 35, sizeof(dstport));
+						snprintf(&m_paramstr_storage[0],
+						         m_paramstr_storage.size(),
+						         "%s:%s->%s:%s",
+						         srcstr,
+						         port_to_string(
+						                 srcport,
+						                 (m_fdinfo_ref) ? m_fdinfo_ref->get_l4proto()
+						                                : SCAP_L4_UNKNOWN,
+						                 m_inspector->is_hostname_and_port_resolution_enabled())
+						                 .c_str(),
+						         dststr,
+						         port_to_string(
+						                 dstport,
+						                 (m_fdinfo_ref != NULL) ? m_fdinfo_ref->get_l4proto()
+						                                        : SCAP_L4_UNKNOWN,
+						                 m_inspector->is_hostname_and_port_resolution_enabled())
+						                 .c_str());
+						break;
+					}
 				}
 			}
 
@@ -1139,7 +1152,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 			int64_t fd = 0;
 			memcpy(&fd, param_data + pos, sizeof(uint64_t));
 
-			if(const auto *fdinfo = tinfo->get_fd(fd)) {
+			auto fdinfo = tinfo->get_fd(fd);
+			if(fdinfo) {
 				tch = fdinfo->get_typechar();
 			} else {
 				tch = '?';
@@ -1353,14 +1367,23 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 			// therefore we cannot directly use tinfo->m_user here.
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
-			scap_userinfo *user_info = nullptr;
+			bool resolved = false;
 			if(tinfo) {
 				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-				user_info = m_inspector->m_usergroup_manager->get_user(container_id, val);
+				resolved = m_inspector->m_usergroup_manager->with_user(
+				        container_id,
+				        val,
+				        [this](const scap_userinfo &user_info) {
+					        if(user_info.name[0] != 0) {
+						        strcpy_sanitized(m_resolved_paramstr_storage, user_info.name);
+					        } else {
+						        snprintf(&m_resolved_paramstr_storage[0],
+						                 m_resolved_paramstr_storage.size(),
+						                 "<NA>");
+					        }
+				        });
 			}
-			if(user_info != nullptr && user_info->name[0] != 0) {
-				strcpy_sanitized(m_resolved_paramstr_storage, user_info->name);
-			} else {
+			if(!resolved) {
 				snprintf(&m_resolved_paramstr_storage[0],
 				         m_resolved_paramstr_storage.size(),
 				         "<NA>");
@@ -1380,14 +1403,23 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 			// therefore we cannot directly use tinfo->m_group here.
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
-			scap_groupinfo *group_info = nullptr;
+			bool resolved = false;
 			if(tinfo) {
 				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-				group_info = m_inspector->m_usergroup_manager->get_group(container_id, val);
+				resolved = m_inspector->m_usergroup_manager->with_group(
+				        container_id,
+				        val,
+				        [this](const scap_groupinfo &group_info) {
+					        if(group_info.name[0] != 0) {
+						        strcpy_sanitized(m_resolved_paramstr_storage, group_info.name);
+					        } else {
+						        snprintf(&m_resolved_paramstr_storage[0],
+						                 m_resolved_paramstr_storage.size(),
+						                 "<NA>");
+					        }
+				        });
 			}
-			if(group_info != nullptr && group_info->name[0] != 0) {
-				strcpy_sanitized(m_resolved_paramstr_storage, group_info->name);
-			} else {
+			if(!resolved) {
 				snprintf(&m_resolved_paramstr_storage[0],
 				         m_resolved_paramstr_storage.size(),
 				         "<NA>");
@@ -1602,51 +1634,52 @@ void sinsp_evt::get_category(category *cat) const {
 	// and fdtype
 	//
 	if(cat->m_category & EC_IO_BASE) {
-		if(!m_fdinfo) {
+		if(!m_fdinfo_ref) {
 			//
 			// The fd info is not present, likely because we missed its creation.
 			//
 			cat->m_subcategory = SC_UNKNOWN;
 			return;
-		}
-		switch(m_fdinfo->m_type) {
-		case SCAP_FD_FILE:
-		case SCAP_FD_FILE_V2:
-		case SCAP_FD_DIRECTORY:
-			cat->m_subcategory = SC_FILE;
-			break;
-		case SCAP_FD_IPV4_SOCK:
-		case SCAP_FD_IPV6_SOCK:
-			cat->m_subcategory = SC_NET;
-			break;
-		case SCAP_FD_IPV4_SERVSOCK:
-		case SCAP_FD_IPV6_SERVSOCK:
-			cat->m_subcategory = SC_NET;
-			break;
-		case SCAP_FD_FIFO:
-		case SCAP_FD_UNIX_SOCK:
-		case SCAP_FD_EVENT:
-		case SCAP_FD_SIGNALFD:
-		case SCAP_FD_INOTIFY:
-		case SCAP_FD_USERFAULTFD:
-			cat->m_subcategory = SC_IPC;
-			break;
-		case SCAP_FD_UNSUPPORTED:
-		case SCAP_FD_EVENTPOLL:
-		case SCAP_FD_TIMERFD:
-		case SCAP_FD_BPF:
-		case SCAP_FD_IOURING:
-		case SCAP_FD_NETLINK:
-		case SCAP_FD_MEMFD:
-		case SCAP_FD_PIDFD:
-			cat->m_subcategory = SC_OTHER;
-			break;
-		case SCAP_FD_UNKNOWN:
-			cat->m_subcategory = SC_OTHER;
-			break;
-		default:
-			cat->m_subcategory = SC_UNKNOWN;
-			break;
+		} else {
+			switch(m_fdinfo_ref->get_type()) {
+			case SCAP_FD_FILE:
+			case SCAP_FD_FILE_V2:
+			case SCAP_FD_DIRECTORY:
+				cat->m_subcategory = SC_FILE;
+				break;
+			case SCAP_FD_IPV4_SOCK:
+			case SCAP_FD_IPV6_SOCK:
+				cat->m_subcategory = SC_NET;
+				break;
+			case SCAP_FD_IPV4_SERVSOCK:
+			case SCAP_FD_IPV6_SERVSOCK:
+				cat->m_subcategory = SC_NET;
+				break;
+			case SCAP_FD_FIFO:
+			case SCAP_FD_UNIX_SOCK:
+			case SCAP_FD_EVENT:
+			case SCAP_FD_SIGNALFD:
+			case SCAP_FD_INOTIFY:
+			case SCAP_FD_USERFAULTFD:
+				cat->m_subcategory = SC_IPC;
+				break;
+			case SCAP_FD_UNSUPPORTED:
+			case SCAP_FD_EVENTPOLL:
+			case SCAP_FD_TIMERFD:
+			case SCAP_FD_BPF:
+			case SCAP_FD_IOURING:
+			case SCAP_FD_NETLINK:
+			case SCAP_FD_MEMFD:
+			case SCAP_FD_PIDFD:
+				cat->m_subcategory = SC_OTHER;
+				break;
+			case SCAP_FD_UNKNOWN:
+				cat->m_subcategory = SC_OTHER;
+				break;
+			default:
+				cat->m_subcategory = SC_UNKNOWN;
+				break;
+			}
 		}
 	} else {
 		cat->m_subcategory = SC_NONE;
@@ -1692,27 +1725,29 @@ bool sinsp_evt::is_syscall_error() const {
 }
 
 bool sinsp_evt::is_file_open_error() const {
-	return m_fdinfo == nullptr &&
-	       (m_pevt->type == PPME_SYSCALL_OPEN_X || m_pevt->type == PPME_SYSCALL_CREAT_X ||
-	        m_pevt->type == PPME_SYSCALL_OPENAT_2_X || m_pevt->type == PPME_SYSCALL_OPENAT2_X ||
-	        m_pevt->type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X);
+	return (!m_fdinfo_ref) &&
+	       ((m_pevt->type == PPME_SYSCALL_OPEN_X) || (m_pevt->type == PPME_SYSCALL_CREAT_X) ||
+	        (m_pevt->type == PPME_SYSCALL_OPENAT_2_X) || (m_pevt->type == PPME_SYSCALL_OPENAT2_X) ||
+	        (m_pevt->type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X));
 }
 
 bool sinsp_evt::is_file_error() const {
-	return is_file_open_error() || (m_fdinfo != nullptr && (m_fdinfo->m_type == SCAP_FD_FILE ||
-	                                                        m_fdinfo->m_type == SCAP_FD_FILE_V2));
+	return is_file_open_error() ||
+	       ((m_fdinfo_ref) && ((m_fdinfo_ref->get_type() == SCAP_FD_FILE) ||
+	                           (m_fdinfo_ref->get_type() == SCAP_FD_FILE_V2)));
 }
 
 bool sinsp_evt::is_network_error() const {
-	if(m_fdinfo != nullptr) {
-		return m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK;
+	if(m_fdinfo_ref) {
+		auto ftype = m_fdinfo_ref->get_type();
+		return ftype == SCAP_FD_IPV4_SOCK || ftype == SCAP_FD_IPV6_SOCK;
 	}
 	return m_pevt->type == PPME_SOCKET_ACCEPT_5_X || m_pevt->type == PPME_SOCKET_ACCEPT4_6_X ||
 	       m_pevt->type == PPME_SOCKET_CONNECT_X || m_pevt->type == PPME_SOCKET_BIND_X;
 }
 
 uint64_t sinsp_evt::get_lastevent_ts() const {
-	return m_tinfo->m_lastevent_ts;
+	return m_tinfo_ref->get_lastevent_ts();
 }
 
 void sinsp_evt_param::throw_invalid_len_error(const size_t requested_len) const {

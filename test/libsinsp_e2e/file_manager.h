@@ -38,7 +38,7 @@ limitations under the License.
 struct file_spec {
 	scap_fd_type fd_type;
 
-	bool matches(const sinsp_fdinfo& fdinfo) const { return fdinfo.m_type == fd_type; }
+	bool matches(const sinsp_fdinfo& fdinfo) const { return fdinfo.get_type() == fd_type; }
 };
 
 class file_counters {
