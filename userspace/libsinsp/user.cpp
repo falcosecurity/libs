@@ -125,6 +125,10 @@ static struct group *__getgrgid(uint32_t gid,
 
 using namespace std;
 
+static inline std::string_view sv_or_empty(const char *s) {
+	return s ? std::string_view(s) : std::string_view{};
+}
+
 // clang-format off
 sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector, const timestamper& timestamper)
 	: m_import_users(true)
@@ -309,9 +313,9 @@ scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid,
 			retval = userinfo_map_insert(m_userlist[""],
 			                             p->pw_uid,
 			                             p->pw_gid,
-			                             p->pw_name,
-			                             p->pw_dir,
-			                             p->pw_shell);
+			                             sv_or_empty(p->pw_name),
+			                             sv_or_empty(p->pw_dir),
+			                             sv_or_empty(p->pw_shell));
 		}
 #endif
 	}
@@ -353,9 +357,9 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 			auto *usr = userinfo_map_insert(userlist,
 			                                p->pw_uid,
 			                                p->pw_gid,
-			                                p->pw_name,
-			                                p->pw_dir,
-			                                p->pw_shell);
+			                                sv_or_empty(p->pw_name),
+			                                sv_or_empty(p->pw_dir),
+			                                sv_or_empty(p->pw_shell));
 
 			if(notify) {
 				notify_user_changed(usr, container_id);
@@ -441,7 +445,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid,
 		char grp_buf[4096];
 		auto *g = __getgrgid(gid, m_host_root, &grp_entry, grp_buf, sizeof(grp_buf));
 		if(g) {
-			gr = groupinfo_map_insert(m_grouplist[""], g->gr_gid, g->gr_name);
+			gr = groupinfo_map_insert(m_grouplist[""], g->gr_gid, sv_or_empty(g->gr_name));
 		}
 #endif
 	}
@@ -480,7 +484,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 				continue;  // skip malformed lines
 			}
 			// Here we cache all container groups
-			auto *gr = groupinfo_map_insert(grouplist, g->gr_gid, g->gr_name);
+			auto *gr = groupinfo_map_insert(grouplist, g->gr_gid, sv_or_empty(g->gr_name));
 
 			if(notify) {
 				notify_group_changed(gr, container_id, true);
