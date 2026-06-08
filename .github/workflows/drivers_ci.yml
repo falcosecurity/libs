@@ -24,7 +24,7 @@ jobs:
       libscap: ${{ steps.filter.outputs.libscap }}
       libpman: ${{ steps.filter.outputs.libpman }}
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
     - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
       id: filter
       with:
@@ -50,7 +50,7 @@ jobs:
         # We need to skip each step because of https://github.com/orgs/community/discussions/9141.
         # This avoids having a skipped job whose name is not the resolved matrix name, like "test-scap-${{ matrix.arch }} 😆 (bundled_deps)"
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
 
@@ -123,7 +123,7 @@ jobs:
     steps:
       - name: Checkout Libs ⤵️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
 
@@ -223,7 +223,7 @@ jobs:
     steps:
       - name: Checkout Libs ⤵️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
 
@@ -263,7 +263,7 @@ jobs:
           dnf install -y ca-certificates make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf libbpf-devel curl
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install cmake 🌊
         uses: ./.github/actions/install-cmake
@@ -301,7 +301,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install cmake 🌊
         uses: ./.github/actions/install-cmake
@@ -369,7 +369,7 @@ jobs:
     steps:
       - name: Checkout Libs ⤵️
         if: env.MUST_RUN == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
 
