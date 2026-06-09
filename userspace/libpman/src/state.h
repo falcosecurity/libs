@@ -57,11 +57,13 @@ struct internal_state {
 	struct bpf_probe* skel;         /* bpf skeleton with all programs and maps. */
 	struct ring_buffer* rb_manager; /* ring_buffer manager with all per-CPU ringbufs. */
 	int16_t n_possible_cpus;        /* number of possible system CPUs (online and not). */
-	int16_t n_interesting_cpus;  /* according to userspace configuration we can consider only online
-	                    CPUs or all  available CPUs. */
-	bool allocate_online_only;   /* If true we allocate ring buffers only for online CPUs */
-	bool disable_iterators;      /* If true, BPF iterator support is disabled */
-	uint32_t n_required_buffers; /* number of ring buffers we need to allocate */
+	int16_t n_interesting_cpus; /* according to userspace configuration we can consider only online
+	                               CPUs or all  available CPUs. */
+	bool allocate_online_only;  /* If true we allocate ring buffers only for online CPUs */
+	bool iterators_disabled; /* If true, BPF iterator support is disabled. This is true if the user
+	                            explicitly requested it or if the probe is not running in the root
+	                            PID namespace. */
+	uint32_t n_required_buffers;    /* number of ring buffers we need to allocate */
 	uint16_t cpus_for_each_buffer;  /* Users want a ring buffer every `cpus_for_each_buffer` CPUs */
 	int ringbuf_pos;                /* actual ringbuf we are considering. */
 	unsigned long* cons_pos;        /* every ringbuf has a consumer position. */
