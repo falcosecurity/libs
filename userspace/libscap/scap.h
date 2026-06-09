@@ -820,6 +820,16 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled);
 int32_t scap_set_dropfailed(scap_t* handle, bool enabled);
 
 /*!
+  \brief Enable/disable kernel-side fullpath resolution for `openat/openat2`.
+  When disabled, drivers must still emit the existing `fullpath` parameter as empty.
+
+  \param handle Handle to the capture instance.
+  \param enabled whether to enable or disable the feature
+  \note This function can only be called for live captures.
+*/
+int32_t scap_set_kern_full_path_resolution(scap_t* handle, bool enabled);
+
+/*!
   \brief Get the root directory of the system. This usually changes
   if running in a container, so that all the information for the
   host can be correctly extracted.
