@@ -199,7 +199,7 @@ static int init_metrics_v2(const uint32_t flags) {
 	// Account for statistics related to BPF iterator programs.
 	uint32_t iter_stats = 0;
 #ifdef BPF_ITERATOR_SUPPORT
-	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
+	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS && !g_state.iterators_disabled) {
 		iter_stats = MODERN_BPF_MAX_KERNEL_ITER_COUNTERS_STATS;
 	}
 #endif /* BPF_ITERATOR_SUPPORT */
@@ -494,7 +494,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 #ifdef BPF_ITERATOR_SUPPORT
 	/* BPF ITERATOR PROGRAMS STATS */
-	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS) {
+	if(flags & METRICS_V2_KERNEL_ITER_COUNTERS && !g_state.iterators_disabled) {
 		const int counters_map_fd = bpf_map__fd(g_state.skel->maps.iter_counters_map);
 		if(counters_map_fd < 0) {
 			log_errorf("unable to get 'iter_counters_map' fd during kernel stats processing");

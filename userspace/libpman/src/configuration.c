@@ -79,7 +79,7 @@ static void clear_state() {
 	g_state.n_possible_cpus = 0;
 	g_state.n_interesting_cpus = 0;
 	g_state.allocate_online_only = false;
-	g_state.disable_iterators = false;
+	g_state.iterators_disabled = false;
 	g_state.n_required_buffers = 0;
 	g_state.cpus_for_each_buffer = 0;
 	g_state.ringbuf_pos = 0;
@@ -108,15 +108,15 @@ static void clear_state() {
 
 static void init_iter_state(const bool disable_iterators) {
 #ifndef BPF_ITERATOR_SUPPORT
-	g_state.disable_iterators = true;
+	g_state.iterators_disabled = true;
 #else
 	// Disable everything if iterator support is disabled by configuration or the current process is
 	// not in the root PID namespace (i.e.: iterators would have full visibility on all host
 	// processes).
 	errno = 0;  // Ensure that if any error occurs, it is not a stale one.
-	g_state.disable_iterators =
+	g_state.iterators_disabled =
 	        disable_iterators || !iter_support_probing__is_in_root_pid_namespace();
-	if(g_state.disable_iterators) {
+	if(g_state.iterators_disabled) {
 		log_msgf(FALCOSECURITY_LOG_SEV_INFO,
 		         "disabled BPF iterators (%s)",
 		         disable_iterators
