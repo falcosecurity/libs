@@ -57,7 +57,7 @@ static bool is_kernel_symbol_available(const char *symbol) {
 #ifdef BPF_ITERATOR_SUPPORT
 static void prepare_iter_progs_before_loading() {
 	// Disable autoloading for all iterator programs if iterators support is disabled.
-	if(g_state.disable_iterators) {
+	if(g_state.iterators_disabled) {
 		for(int i = 0; i < ITER_PROG_MAX; i++) {
 			const iter_prog_t *iter_prog = &iter_progs_table[i];
 			const char *prog_name = iter_prog->name;
