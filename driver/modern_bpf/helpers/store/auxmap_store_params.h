@@ -1367,6 +1367,145 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 	}
 }
 
+/* bpf_loop()-based variant of the native iovec data store, for use inside the
+ * sendmmsg_x/recvmmsg_x bpf_loop callbacks.
+ *
+ * The plain for(j < MAX_IOVCNT) loop in auxmap__store_iovec_data_param_64 is a
+ * bounded loop. When it sits inside a bpf_loop callback, stricter kernel
+ * verifiers re-explore the whole 32-iteration loop on every fixed-point pass of
+ * the outer callback, multiplying processed instructions. Replacing it with a
+ * bpf_loop helper makes the verifier check the per-iteration body once instead,
+ * collapsing that multiplication and keeping the program under the
+ * processed-instruction limit.
+ *
+ * The loop callback cannot carry a map-value (auxmap) pointer through the
+ * bpf_loop context, so it re-fetches the per-cpu auxmap via auxmap__get() and
+ * re-derives the iovec scratch area. Mutable loop state lives in the context. */
+typedef struct {
+	unsigned long iov_cnt;
+	unsigned long len_to_read;
+	unsigned long total_size_to_read;
+	bool truncated;
+} iovec_data_loop_ctx_t;
+
+static long iovec_data_loop_callback(uint32_t index, void *ctx) {
+	iovec_data_loop_ctx_t *c = (iovec_data_loop_ctx_t *)ctx;
+
+	if(c->total_size_to_read > c->len_to_read) {
+		c->total_size_to_read = c->len_to_read;
+		return 1;
+	}
+	if(index >= c->iov_cnt) {
+		return 1;
+	}
+
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap) {
+		return 1;
+	}
+
+	/* Mask the index so the verifier can bound the map-value access. */
+	uint32_t j = index & (MAX_IOVCNT - 1);
+	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
+
+	uint16_t bytes_read = push__bytebuf(auxmap->data,
+	                                    &auxmap->payload_pos,
+	                                    (unsigned long)iovec[j].iov_base,
+	                                    iovec[j].iov_len,
+	                                    USER);
+	if(!bytes_read) {
+		c->truncated = true;
+		return 1;
+	}
+	c->total_size_to_read += bytes_read;
+	return 0;
+}
+
+static __noinline void auxmap__store_iovec_data_param_64_bpf_loop(struct auxiliary_map *auxmap,
+                                                                  unsigned long iov_pointer,
+                                                                  unsigned long iov_cnt,
+                                                                  unsigned long len_to_read) {
+	/* We use the second part of our auxmap as a scratch space. */
+	unsigned long total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+	                       SAFE_ACCESS(total_iovec_size),
+	                       (void *)iov_pointer)) {
+		/* in case of NULL iovec vector we return an empty param */
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
+	uint64_t initial_payload_pos = auxmap->payload_pos;
+	iovec_data_loop_ctx_t ctx = {
+	        .iov_cnt = iov_cnt,
+	        .len_to_read = len_to_read,
+	        .total_size_to_read = 0,
+	        .truncated = false,
+	};
+
+	bpf_loop(MAX_IOVCNT, iovec_data_loop_callback, &ctx, 0);
+
+	/* Same len enforcement as the for-loop version: when we did not stop early
+	 * on a failed read, clamp payload_pos so we never exceed len_to_read. */
+	if(!ctx.truncated) {
+		auxmap->payload_pos = initial_payload_pos + ctx.total_size_to_read;
+	}
+	push__param_len(auxmap->data, &auxmap->lengths_pos, ctx.total_size_to_read);
+}
+
+/* Native bpf_loop iovec store wrapped in a __noinline boundary. handle_exit()
+ * for sendmmsg_x/recvmmsg_x runs as a bpf_loop callback, and stricter verifiers
+ * re-explore everything INLINED into that callback on every SCC fixed-point
+ * pass. Keeping the ia32 dispatch and the bpf_loop call behind a __noinline
+ * function means they are verified once instead of being multiplied by that
+ * re-exploration — which is what keeps the program under the 1M
+ * processed-instruction limit. */
+static __noinline void auxmap__store_iovec_data_param_mmsg_bpf_loop(struct auxiliary_map *auxmap,
+                                                                    unsigned long iov_pointer,
+                                                                    unsigned long iov_cnt,
+                                                                    unsigned long len_to_read) {
+	if(bpf_in_ia32_syscall()) {
+		/* ia32 (compat) path keeps the bounded for-loop (rare; compat layout). */
+		auxmap__store_iovec_data_param_32(auxmap, iov_pointer, iov_cnt, len_to_read);
+	} else {
+		auxmap__store_iovec_data_param_64_bpf_loop(auxmap, iov_pointer, iov_cnt, len_to_read);
+	}
+}
+
+/* Defined later in this header; used by the selector below for the legacy path. */
+static __noinline void auxmap__store_iovec_data_param_noinline(struct auxiliary_map *auxmap,
+                                                               unsigned long iov_pointer,
+                                                               unsigned long iov_cnt,
+                                                               unsigned long len_to_read);
+
+/* mmsg iovec data store selector. handle_exit() is shared by the bpf_loop
+ * programs (sendmmsg_x/recvmmsg_x, loaded only when the bpf_loop helper is
+ * available) and the legacy single-message programs
+ * (sendmmsg_old_x/recvmmsg_old_x, loaded when it is NOT).
+ *
+ * `use_bpf_loop` is a compile-time constant supplied by each caller, NOT a CO-RE
+ * feature probe: some kernels expose BPF_FUNC_loop in their BTF enum without
+ * implementing the helper, so bpf_core_enum_value_exists() would wrongly route
+ * the legacy program through bpf_loop and fail to load with "invalid func
+ * unknown#181". Because the constant is propagated through this __always_inline
+ * selector, it collapses to a single call to the matching __noinline store: the
+ * legacy program references only the for-loop store (never the bpf_loop helper,
+ * independent of BTF), while the bpf_loop program keeps the __noinline boundary
+ * that bounds its verifier work. The legacy path handles a single message and is
+ * not subject to the SCC blowup, so the for-loop store is correct there. */
+static __always_inline void auxmap__store_iovec_data_param_mmsg(struct auxiliary_map *auxmap,
+                                                                unsigned long iov_pointer,
+                                                                unsigned long iov_cnt,
+                                                                unsigned long len_to_read,
+                                                                bool use_bpf_loop) {
+	if(use_bpf_loop) {
+		auxmap__store_iovec_data_param_mmsg_bpf_loop(auxmap, iov_pointer, iov_cnt, len_to_read);
+	} else {
+		auxmap__store_iovec_data_param_noinline(auxmap, iov_pointer, iov_cnt, len_to_read);
+	}
+}
+
 /**
  * @brief Store the size extracted from a `user_msghdr` struct.
  * Please note: the size is an unsigned 32 bit value so
