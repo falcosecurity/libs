@@ -92,12 +92,22 @@ static __always_inline struct auxiliary_map *auxmap_iter__get() {
  */
 static __always_inline void auxmap__preload_event_header(struct auxiliary_map *auxmap,
                                                          uint16_t event_type) {
-	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)auxmap->data;
 	uint8_t nparams = maps__get_event_num_params(event_type);
-	hdr->ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
-	hdr->tid = bpf_get_current_pid_tgid() & 0xffffffff;
-	hdr->type = event_type;
-	hdr->nparams = nparams;
+
+	/*
+	 * Avoid byte-by-byte stores from writing packed header fields directly.
+	 * `struct ppm_evt_hdr` is packed, so field assignments can be lowered to
+	 * byte stores. By building the header as a local value and copying it with
+	 * __builtin_memcpy, clang can lower the copy into wider stores at naturally
+	 * aligned destination offsets (ts/tid/len/type).
+	 */
+	struct ppm_evt_hdr hdr = {0};
+	hdr.ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
+	hdr.tid = bpf_get_current_pid_tgid() & 0xffffffff;
+	hdr.type = event_type;
+	hdr.nparams = nparams;
+	__builtin_memcpy(&auxmap->data[0], &hdr, sizeof(struct ppm_evt_hdr));
+
 	auxmap->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
 	auxmap->lengths_pos = sizeof(struct ppm_evt_hdr);
 	auxmap->event_type = event_type;
