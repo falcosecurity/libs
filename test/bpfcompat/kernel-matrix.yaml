@@ -1,0 +1,13 @@
+# Kernel/distro matrix for the modern_bpf compatibility gate. Profile ids
+# resolve to vendor cloud images defined in bpfcompat's profile catalog
+# (https://github.com/Kernel-Guard/bpfcompat/blob/main/docs/image-pipeline.md).
+# Kept small for the hosted-runner proof of concept; the catalog also covers
+# Amazon Linux, RHEL, Oracle UEK, openSUSE, lockdown profiles, and more.
+name: falco-modern-bpf-poc
+profiles:
+  - id: ubuntu-22.04-5.15
+    required: true
+  - id: debian-12-6.1
+    required: true
+  - id: ubuntu-24.04-6.8
+    required: true

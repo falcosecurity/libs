@@ -1,0 +1,83 @@
+# Proof-of-concept: VM-backed kernel compatibility matrix for the modern_bpf
+# probe using bpfcompat (https://github.com/Kernel-Guard/bpfcompat).
+#
+# Builds bpf_probe.o from this tree, then load/attach-validates it inside
+# disposable QEMU/KVM VMs running real distro kernels (vendor cloud images),
+# mirroring the libpman loader contract: runtime-sized maps, helper-gated
+# program variants (bpf_loop), and trial-probed BPF iterator programs. The
+# job summary shows the per-kernel pass/fail matrix including which program
+# variant each kernel selects; exit code 2 (a required kernel regressed)
+# fails the job.
+#
+# Scope note: this complements drivers_ci/bpfvalidator — it proves the probe
+# loads and attaches per kernel, not that events are captured.
+name: bpfcompat-compatibility
+
+# Non-blocking by design: scheduled + manually dispatched, never a merge
+# gate. Proposed in https://github.com/falcosecurity/libs/issues/3023.
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 06:00 UTC
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  modern-bpf-matrix:
+    name: modern_bpf kernel compatibility matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build and VM dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake clang llvm pkg-config autoconf automake \
+            libtool libelf-dev qemu-system-x86 qemu-utils jq
+          # Static bpftool release (needed for skeleton generation): Ubuntu's
+          # linux-tools wrapper can't match the runner's Azure kernel.
+          curl -fsSL -o /tmp/bpftool.tar.gz \
+            https://github.com/libbpf/bpftool/releases/download/v7.5.0/bpftool-v7.5.0-amd64.tar.gz
+          tar -xzf /tmp/bpftool.tar.gz -C /tmp
+          sudo install -m 0755 /tmp/bpftool /usr/local/bin/bpftool
+          bpftool version
+
+      - name: Enable KVM on the hosted runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -la /dev/kvm
+
+      - name: Build modern_bpf probe object
+        run: |
+          mkdir -p build && cd build
+          cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DMODERN_BPFTOOL_EXE=/usr/local/bin/bpftool \
+            -DCREATE_TEST_TARGETS=OFF -DBUILD_BPF=OFF -DBUILD_DRIVER=OFF ..
+          make ProbeSkeleton -j"$(nproc)"
+          ls -la driver/modern_bpf/bpf_probe.o
+
+      - name: Validate across the kernel matrix
+        uses: Kernel-Guard/bpfcompat@v0.1.5
+        with:
+          artifact: build/driver/modern_bpf/bpf_probe.o
+          manifest: test/bpfcompat/modern-bpf-manifest.yaml
+          matrix: test/bpfcompat/kernel-matrix.yaml
+          out: reports/modern-bpf-compat.json
+          markdown: reports/modern-bpf-compat.md
+          timeout: 10m
+          concurrency: "2"
+
+      - name: Upload compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modern-bpf-compatibility-report
+          path: reports/
+          if-no-files-found: warn
