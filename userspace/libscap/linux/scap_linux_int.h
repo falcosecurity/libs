@@ -46,7 +46,7 @@ int32_t scap_linux_create_iflist(struct scap_platform* platform);
 int32_t scap_linux_create_userlist(struct scap_platform* platform);
 
 uint32_t scap_linux_get_device_by_mount_id(struct scap_platform* platform,
-                                           const char* procdir,
+                                           int64_t tid,
                                            unsigned long requested_mount_id);
 int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets);
 int32_t scap_linux_refresh_proc_table(struct scap_platform* platform,
