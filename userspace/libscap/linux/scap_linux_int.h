@@ -66,6 +66,13 @@ int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
                               struct scap_threadinfo* tinfo,
                               int fd,
                               char* lasterr);
+int32_t scap_linux_get_file_path(struct scap_platform* platform,
+                                 int64_t pid,
+                                 int64_t fd,
+                                 char* path_buff,
+                                 size_t path_buff_len,
+                                 size_t* path_len,
+                                 char* lasterr);
 
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char* error);

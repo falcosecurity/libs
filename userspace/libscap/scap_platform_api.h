@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 // this header is designed to be useful to scap consumers,
 // using the scap_t wrapper functions
@@ -116,6 +117,27 @@ int32_t scap_get_fdinfo(struct scap_platform* platform,
                         struct scap_threadinfo* tinfo,
                         int fd,
                         char* error);
+
+/*!
+  \brief Get a file path and write it to `path_buff`.
+  \param platform Handle to the platform instance.
+  \param pid Identifier of the process owning the file descriptor.
+  \param fd Identifier of the file.
+  \param path_buff Buffer where the NUL-terminated file path is going to be stored.
+  \param path_buff_len Length of \ref path_buff.
+  \param path_len Pointer where the file path length, on success, is stored. Notice that it doesn't
+  account for the NUL terminator.
+  \param error Pointer to the error buffer where the error reason is stored in case of failure. The
+  buffer must be `SCAP_LASTERR_SIZE` long.
+  \return SCAP_SUCCESS on success, any other SCAP_* failure code otherwise.
+*/
+int32_t scap_get_file_path(struct scap_platform* platform,
+                           int64_t pid,
+                           int64_t fd,
+                           char* path_buff,
+                           size_t path_buff_len,
+                           size_t* path_len,
+                           char* error);
 
 #ifdef __cplusplus
 };

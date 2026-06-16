@@ -21,6 +21,7 @@ limitations under the License.
 #include <limits.h>
 #endif
 #include <stdio.h>
+#include <inttypes.h>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
@@ -872,33 +873,35 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 #ifdef _WIN32
 	return "";  // We will have to implement this for Windows.
 #else
-	char proc_path[PATH_MAX];
-	char dirfd_path[PATH_MAX + 1];  // +1 accounts for trailing '/' that will be added.
-	snprintf(proc_path,
-	         sizeof(proc_path),
-	         "%s/proc/%lld/fd/%lld",
-	         scap_get_host_root(),
-	         (long long)m_pid,
-	         (long long)dir_fd);
-
-	// Read up to `sizeof(dirfd_path) - 2` to leave room for '/' and '\0'.
-	const ssize_t bytes_read = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 2);
-	if(bytes_read < 0) {
-		libsinsp_logger()->log("Unable to determine path for file descriptor.",
-		                       sinsp_logger::SEV_INFO);
+	char dir_fd_path[PATH_MAX + 1];  // +1 accounts for trailing '/' that will be added.
+	// Pass `PATH_MAX` to leave room for '/'.
+	size_t dir_fd_path_len = 0;
+	if(scap_get_file_path(m_params->scap_plat,
+	                      m_pid,
+	                      dir_fd,
+	                      dir_fd_path,
+	                      PATH_MAX,
+	                      &dir_fd_path_len,
+	                      m_params->scap_plat_lasterr) != SCAP_SUCCESS) {
+		libsinsp_logger()->format(sinsp_logger::SEV_INFO,
+		                          "Unable to determine path for file descriptor %" PRId64
+		                          " (pid: %" PRId64 "): %s",
+		                          dir_fd,
+		                          m_pid,
+		                          m_params->scap_plat_lasterr);
 		return "";
 	}
-	dirfd_path[bytes_read] = '/';
-	dirfd_path[bytes_read + 1] = '\0';
+	dir_fd_path[dir_fd_path_len] = '/';
+	dir_fd_path[dir_fd_path_len + 1] = '\0';
 
 	// Sanitize the path.
-	const auto path_len = static_cast<size_t>(bytes_read + 1);  // +1 account for trailing '/'
+	dir_fd_path_len++;  // +1 account for trailing '/'
 	std::string sanitized_path_storage;
 	const auto sanitized_path =
-	        sanitize_string(std::string_view{dirfd_path, path_len}, sanitized_path_storage);
-	libsinsp_logger()->log(std::string("Translating to ") + sanitized_path.data());
-	if(sanitized_path.data() == dirfd_path) {
-		return dirfd_path;
+	        sanitize_string(std::string_view{dir_fd_path, dir_fd_path_len}, sanitized_path_storage);
+	libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Translating to %s", sanitized_path.data());
+	if(sanitized_path.data() == dir_fd_path) {
+		return dir_fd_path;
 	}
 	return sanitized_path_storage;
 #endif /* _WIN32 */

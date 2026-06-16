@@ -1943,3 +1943,47 @@ int32_t scap_linux_get_fdinfo(struct scap_platform* platform,
 	}
 	return res;
 }
+
+int32_t scap_linux_get_file_path(struct scap_platform* platform,
+                                 const int64_t pid,
+                                 const int64_t fd,
+                                 char* path_buff,
+                                 const size_t path_buff_len,
+                                 size_t* path_len,
+                                 char* lasterr) {
+	if(scap_unlikely(pid <= 0)) {
+		ASSERT(false);
+		return scap_errprintf(lasterr, 0, "bug: pid must be positive");
+	}
+	if(scap_unlikely(fd < 0)) {
+		ASSERT(false);
+		return scap_errprintf(lasterr, 0, "bug: fd must be non-negative");
+	}
+	if(scap_unlikely(!path_buff)) {
+		ASSERT(false);
+		return scap_errprintf(lasterr, 0, "bug: path buffer must be non-NULL");
+	}
+	if(scap_unlikely(!path_buff_len)) {
+		ASSERT(false);
+		return scap_errprintf(lasterr, 0, "bug: path buffer len must not be zero");
+	}
+	if(scap_unlikely(!path_len)) {
+		ASSERT(false);
+		return scap_errprintf(lasterr, 0, "bug: path len pointer must non-NULL");
+	}
+
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename,
+	         sizeof(filename),
+	         "%s/proc/%" PRId64 "/fd/%" PRId64,
+	         scap_get_host_root(),
+	         pid,
+	         fd);
+	const ssize_t bytes_read = readlink(filename, path_buff, path_buff_len - 1);
+	if(bytes_read <= 0) {
+		return scap_errprintf(lasterr, errno, "readlink() failed on %s", filename);
+	}
+	path_buff[bytes_read] = '\0';
+	*path_len = (size_t)bytes_read;
+	return SCAP_SUCCESS;
+}
