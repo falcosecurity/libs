@@ -301,7 +301,7 @@ static uint32_t scap_linux_get_device_by_mount_id_impl(struct scap_linux_platfor
 }
 
 uint32_t scap_linux_get_device_by_mount_id(struct scap_platform *platform,
-                                           const char *procdir,
+                                           const int64_t tid,
                                            unsigned long requested_mount_id) {
 	struct scap_linux_platform *linux_platform = (struct scap_linux_platform *)platform;
 
@@ -311,9 +311,13 @@ uint32_t scap_linux_get_device_by_mount_id(struct scap_platform *platform,
 		return mountinfo->dev;
 	}
 
-	char fd_dir_name[SCAP_MAX_PATH_SIZE];
-	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%smountinfo", procdir);
-	const int fd = open(fd_dir_name, O_RDONLY, 0);
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename,
+	         sizeof(filename),
+	         "%s/proc/%" PRIu64 "/mountinfo",
+	         scap_get_host_root(),
+	         tid);
+	const int fd = open(filename, O_RDONLY, 0);
 	if(fd < 0) {
 		return 0;
 	}

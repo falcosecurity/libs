@@ -59,11 +59,11 @@ void scap_refresh_iflist(struct scap_platform* platform);
 */
 struct scap_userlist* scap_get_user_list(struct scap_platform* platform);
 
-// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if
-// needed
-// XXX: procdir is Linux-specific
+// get the device major/minor number for the requested_mount_id, looking in
+// `<procfs_mount_path>/<tid>/mountinfo` if needed
+// XXX: this API is Linux-specific
 uint32_t scap_get_device_by_mount_id(struct scap_platform* platform,
-                                     const char* procdir,
+                                     int64_t tid,
                                      unsigned long requested_mount_id);
 
 // Get the information about a thread.

@@ -55,7 +55,7 @@ struct scap_platform_vtable {
 	// given a mount id, return the device major:minor
 	// XXX this is Linux-specific
 	uint32_t (*get_device_by_mount_id)(struct scap_platform*,
-	                                   const char* procdir,
+	                                   int64_t tid,
 	                                   unsigned long requested_mount_id);
 
 	int32_t (*get_proc)(struct scap_platform*, int64_t tid, bool scan_sockets);

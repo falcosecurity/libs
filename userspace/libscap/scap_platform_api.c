@@ -47,10 +47,10 @@ scap_userlist* scap_get_user_list(struct scap_platform* platform) {
 }
 
 uint32_t scap_get_device_by_mount_id(struct scap_platform* platform,
-                                     const char* procdir,
-                                     unsigned long requested_mount_id) {
+                                     const int64_t tid,
+                                     const unsigned long requested_mount_id) {
 	if(platform && platform->m_vtable->get_device_by_mount_id) {
-		return platform->m_vtable->get_device_by_mount_id(platform, procdir, requested_mount_id);
+		return platform->m_vtable->get_device_by_mount_id(platform, tid, requested_mount_id);
 	}
 
 	return 0;
