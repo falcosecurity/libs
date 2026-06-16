@@ -156,3 +156,18 @@ int32_t scap_get_fdinfo(struct scap_platform* platform,
 
 	return scap_err_opnotsup(error);
 }
+
+int32_t scap_get_file_path(struct scap_platform* platform,
+                           const int64_t pid,
+                           const int64_t fd,
+                           char* path_buff,
+                           const size_t path_buff_len,
+                           size_t* path_len,
+                           char* error) {
+	if(platform && platform->m_vtable->get_file_path) {
+		return platform->m_vtable
+		        ->get_file_path(platform, pid, fd, path_buff, path_buff_len, path_len, error);
+	}
+
+	return scap_err_opnotsup(error);
+}

@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 // this header is designed to be useful to platform *implementors*
 // i.e. different platforms
@@ -73,6 +74,13 @@ struct scap_platform_vtable {
 	                      struct scap_threadinfo* tinfo,
 	                      int fd,
 	                      char* lasterr);
+	int32_t (*get_file_path)(struct scap_platform* platform,
+	                         int64_t pid,
+	                         int64_t fd,
+	                         char* path_buff,
+	                         size_t path_buff_len,
+	                         size_t* path_len,
+	                         char* lasterr);
 
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`

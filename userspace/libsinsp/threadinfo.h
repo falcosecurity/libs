@@ -57,12 +57,15 @@ struct erase_fd_params {
   An instance of this struct is meant to be shared among all sinsp_threadinfo instances.
 */
 struct sinsp_threadinfo_ctor_params {
-	// The following fields are externally provided and access to them is expected to be
-	// read-only.
+	// The following fields are externally provided and access to them is expected to be read-only.
 	const sinsp_network_interfaces& network_interfaces;
 	const sinsp_fdinfo_factory& fdinfo_factory;
 	const sinsp_fdtable_factory& fdtable_factory;
 	const std::shared_ptr<libsinsp::state::dynamic_field_infos>& thread_manager_dyn_fields;
+	scap_platform* const& scap_plat;
+	// The following fields are externally provided and expected to be populated/updated by the
+	// threadinfo logic.
+	char* scap_plat_lasterr;
 };
 
 /*!

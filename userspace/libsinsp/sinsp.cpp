@@ -185,7 +185,9 @@ sinsp::sinsp(bool with_metrics):
                 sinsp_threadinfo::ctor_params{m_network_interfaces,
                                               m_fdinfo_factory,
                                               m_fdtable_factory,
-                                              m_thread_manager_dyn_fields})},
+                                              m_thread_manager_dyn_fields,
+                                              m_platform,
+                                              m_platform_lasterr})},
         m_threadinfo_factory{
                 m_threadinfo_ctor_params,
                 m_external_event_processor,
