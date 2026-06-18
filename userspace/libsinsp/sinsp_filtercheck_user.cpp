@@ -65,9 +65,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_user::allocate_new() {
 	return std::make_unique<sinsp_filter_check_user>();
 }
 
-uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
-                                                 uint32_t* len,
-                                                 bool sanitize_strings) {
+uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt, uint32_t* len) {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	if(tinfo == NULL) {
@@ -88,7 +86,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	   (evt->get_type() == PPME_CONTAINER_JSON_2_E || is_container_asyncevent)) {
 		m_strval = m_inspector->m_plugin_tables.get_container_user(*tinfo);
 		if(!m_strval.empty()) {
-			return extract_single_string(m_strval, len, sanitize_strings);
+			return extract_single_string(m_strval, len);
 		}
 	}
 
@@ -107,7 +105,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		} else {
 			m_strval = "<NA>";
 		}
-		return extract_single_string(m_strval, len, sanitize_strings);
+		return extract_single_string(m_strval, len);
 	case TYPE_HOMEDIR:
 		if(user) {
 			m_strval = user->homedir;
@@ -116,14 +114,14 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		} else {
 			m_strval = "<NA>";
 		}
-		return extract_single_string(m_strval, len, sanitize_strings);
+		return extract_single_string(m_strval, len);
 	case TYPE_SHELL:
 		if(user) {
 			m_strval = user->shell;
 		} else {
 			m_strval = "<NA>";
 		}
-		return extract_single_string(m_strval, len, sanitize_strings);
+		return extract_single_string(m_strval, len);
 	case TYPE_LOGINUID:
 		m_val.s64 = (int64_t)-1;
 		if(tinfo->m_loginuid < UINT32_MAX) {
@@ -138,7 +136,7 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		} else {
 			m_strval = "<NA>";
 		}
-		return extract_single_string(m_strval, len, sanitize_strings);
+		return extract_single_string(m_strval, len);
 	default:
 		ASSERT(false);
 		break;

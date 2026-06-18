@@ -181,9 +181,7 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt* evt, uint32_t
 	return Json::nullValue;
 }
 
-uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
-                                                      uint32_t* len,
-                                                      bool sanitize_strings) {
+uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt, uint32_t* len) {
 	const scap_machine_info* minfo;
 
 	*len = 0;
@@ -194,19 +192,19 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		} else {
 			sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
 		}
-		return extract_single_string(m_strstorage, len, sanitize_strings);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_TIME_S:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, false);
-		return extract_single_string(m_strstorage, len, sanitize_strings);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_TIME_ISO8601:
 		sinsp_utils::ts_to_iso_8601(evt->get_ts(), &m_strstorage);
-		return extract_single_string(m_strstorage, len, sanitize_strings);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_DATETIME:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
-		return extract_single_string(m_strstorage, len, sanitize_strings);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_DATETIME_S:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, false);
-		return extract_single_string(m_strstorage, len, sanitize_strings);
+		return extract_single_string(m_strstorage, len);
 	case TYPE_RAWTS:
 		m_val.u64 = evt->get_ts();
 		return extract_single_val(m_val.u64, len);
@@ -241,14 +239,14 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 			m_strstorage = plugin->event_to_string(evt);
 		}
 
-		return extract_single_string(m_strstorage, len, sanitize_strings);
+		return extract_single_string(m_strstorage, len);
 	}
 	case TYPE_SOURCE:
 		if(evt->get_source_idx() == sinsp_no_event_source_idx ||
 		   evt->get_source_name() == sinsp_no_event_source_name) {
 			return NULL;
 		}
-		return extract_single_cstring(evt->get_source_name(), len, sanitize_strings);
+		return extract_single_cstring(evt->get_source_name(), len);
 	case TYPE_ISASYNC:
 		if(libsinsp::events::is_metaevent((ppm_event_code)evt->get_type())) {
 			m_val.u32 = 1;
@@ -261,11 +259,11 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 			return NULL;
 		}
 		if(evt->get_type() != PPME_ASYNCEVENT_E) {
-			return extract_single_cstring(evt->get_name(), len, sanitize_strings);
+			return extract_single_cstring(evt->get_name(), len);
 		}
 		const auto name_param = evt->get_param(1);
 		const auto [data, _] = name_param->data_and_len_with_legacy_null_encoding();
-		return extract_single_cstring(data, len, sanitize_strings);
+		return extract_single_cstring(data, len);
 	}
 
 	case TYPE_HOSTNAME:
@@ -273,7 +271,7 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt* evt,
 		if(!minfo) {
 			return NULL;
 		}
-		return extract_single_cstring(minfo->hostname, len, sanitize_strings);
+		return extract_single_cstring(minfo->hostname, len);
 	default:
 		ASSERT(false);
 		return NULL;

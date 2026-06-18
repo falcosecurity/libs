@@ -98,9 +98,7 @@ public:
 
 protected:
 	Json::Value extract_as_js(sinsp_evt*, uint32_t* len) override;
-	virtual uint8_t* extract_single(sinsp_evt*,
-	                                uint32_t* len,
-	                                bool sanitize_strings = true) override;
+	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len) override;
 	virtual bool compare_nocache(sinsp_evt*) override;
 
 private:
@@ -108,7 +106,7 @@ private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val, const ppm_param_info**);
 	int32_t extract_type(std::string_view fldname, std::string_view val, const ppm_param_info**);
 	uint8_t* extract_error_count(sinsp_evt* evt, uint32_t* len);
-	uint8_t* extract_abspath(sinsp_evt* evt, uint32_t* len, bool sanitize_strings);
+	uint8_t* extract_abspath(sinsp_evt* evt, uint32_t* len);
 	inline uint8_t* extract_buflen(sinsp_evt* evt, uint32_t* len);
 	uint8_t* extract_argraw(sinsp_evt* evt, uint32_t* len, const char* argname);
 

@@ -43,9 +43,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_utils::allocate_new() {
 	return std::make_unique<sinsp_filter_check_utils>();
 }
 
-uint8_t* sinsp_filter_check_utils::extract_single(sinsp_evt* evt,
-                                                  uint32_t* len,
-                                                  bool sanitize_strings) {
+uint8_t* sinsp_filter_check_utils::extract_single(sinsp_evt* evt, uint32_t* len) {
 	*len = 0;
 	switch(m_field_id) {
 	case TYPE_CNT:

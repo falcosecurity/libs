@@ -82,9 +82,8 @@ public:
 protected:
 	bool extract_nocache(sinsp_evt*,
 	                     std::vector<extract_value_t>& values,
-	                     std::vector<extract_offset_t>*,
-	                     bool sanitize_strings = true) override;
-	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
+	                     std::vector<extract_offset_t>*) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len) override;
 	bool compare_nocache(sinsp_evt*) override;
 
 private:

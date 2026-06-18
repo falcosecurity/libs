@@ -73,8 +73,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_static::allocate_new() {
 
 bool sinsp_filter_check_static::extract_nocache(sinsp_evt* evt,
                                                 std::vector<extract_value_t>& values,
-                                                std::vector<extract_offset_t>* offsets,
-                                                bool sanitize_strings) {
+                                                std::vector<extract_offset_t>* offsets) {
 	// note: use non-transformed type, we'll apply transformations later on
 	auto type = sinsp_filter_check::get_field_info()->m_type;
 
