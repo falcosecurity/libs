@@ -135,19 +135,17 @@ public:
 	}
 
 	//
-	// Extract the field from the event. If sanitize_strings is true, any
-	// string values are sanitized to remove nonprintable characters.
+	// Extract the field from the event.
 	// By default, this fills the vector with only one value, retrieved by calling the single-result
 	// extract method.
 	// If a NULL value is returned by extract, the vector is emptied.
 	// Subclasses are meant to either override this, or the single-valued extract method.
 	//
 	// \param values [out] the values extracted from the filter check
-	bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	bool extract(sinsp_evt*, std::vector<extract_value_t>& values);
 
 	//
-	// Extract a field from the event along with its offsets. If sanitize_strings
-	// is true, any string values are sanitized to remove nonprintable characters.
+	// Extract a field from the event along with its offsets.
 	// By default, this fills the value and offset vectors with only one value,
 	// retrieved by calling the single-result extract method.
 	// If a NULL value is returned by extract, the vectors are emptied.
@@ -157,8 +155,7 @@ public:
 	// \param offsets [out] the field offsets extracted from the filter check
 	bool extract_with_offsets(sinsp_evt*,
 	                          std::vector<extract_value_t>& values,
-	                          std::vector<extract_offset_t>& offsets,
-	                          bool sanitize_strings = true);
+	                          std::vector<extract_offset_t>& offsets);
 
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
@@ -208,8 +205,7 @@ protected:
 	// Common implementation of extract and the public version of extract_with_offsets.
 	bool extract_with_offsets(sinsp_evt*,
 	                          std::vector<extract_value_t>& values,
-	                          std::vector<extract_offset_t>* offsets,
-	                          bool sanitize_strings = true);
+	                          std::vector<extract_offset_t>* offsets);
 
 	// This is a single-value version of extract for subclasses non supporting extracting
 	// multiple values. By default, this returns NULL.
@@ -218,10 +214,9 @@ protected:
 	// \param values [out] the values extracted from the filter check
 	virtual bool extract_nocache(sinsp_evt* evt,
 	                             std::vector<extract_value_t>& values,
-	                             std::vector<extract_offset_t>* offsets,
-	                             bool sanitize_strings = true);
+	                             std::vector<extract_offset_t>* offsets);
 	// \param len [out] length in bytes for the returned value
-	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true);
+	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len);
 
 	bool compare_rhs(comparator cmp,
 	                 ppm_param_type type,
@@ -280,46 +275,6 @@ protected:
 
 	inline void check_rhs_field_type_consistency() const;
 
-	// Storage for sanitized strings, lazily allocated on the first encountered invalid string.
-	// This is not a plain `std::string` to save space: `std::unique_ptr` adds 8 bytes to the filter
-	// check memory footprint on 64 bits platforms, while `std::string` adds 32 bytes. The smaller
-	// the objects are, the greater is the number of the ones that can fit in cache. The additional
-	// memory cost is only paid (on the heap) if the single filter check ever encounters an invalid
-	// string.
-	std::unique_ptr<std::string> m_sanitized_str_storage;
-
-	// Helper that must be used while extracting a single string value. It returns a pointer to the
-	// first character of `str` and sets `*len` to the string length. If `must_sanitize` is true and
-	// `str` contains invalid UTF-8 sequences, the sanitized copy is written into
-	// `m_sanitized_str_storage` (lazily allocated on first use) and a pointer to it is returned
-	// instead.
-	uint8_t* extract_single_string(const std::string& str,
-	                               uint32_t* len,
-	                               const bool must_sanitize) {
-		const auto* const ptr = str.data();
-		*len = str.size();
-		if(!must_sanitize) {
-			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
-		}
-		return extract_single_sanitized_string(ptr, *len, len, m_sanitized_str_storage);
-	}
-
-	// Helper that must be used while extracting a single C string value. It returns `str` and sets
-	// `*len` to `strlen(str)`. Returns nullptr if `str` is nullptr, leaving `*len` unset.
-	// If `must_sanitize` is true and the string contains invalid UTF-8 sequences, the sanitized
-	// copy is written into `m_sanitized_str_storage` (lazily allocated on first use) and a pointer
-	// to it is returned instead.
-	uint8_t* extract_single_cstring(const char* str, uint32_t* len, const bool must_sanitize) {
-		if(str == nullptr) {
-			return nullptr;
-		}
-		*len = strlen(str);
-		if(!must_sanitize) {
-			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
-		}
-		return extract_single_sanitized_string(str, *len, len, m_sanitized_str_storage);
-	}
-
 	// Helper that must be used while extracting a single value. It returns a pointer to `val` and
 	// sets `*len` to `sizeof(val)`.
 	template<typename T,
@@ -329,42 +284,28 @@ protected:
 		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&val));
 	}
 
+	// Helper that must be used while extracting a single string value. It returns a pointer to the
+	// first character of `str` and sets `*len` to the string length.
+	static uint8_t* extract_single_string(const std::string& str, uint32_t* len) {
+		*len = str.size();
+		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str.data()));
+	}
+
+	// Helper that must be used while extracting a single C string value. It returns `str` and sets
+	// `*len` to `strlen(str)`. Returns nullptr if `str` is nullptr, leaving `*len` unset.
+	static uint8_t* extract_single_cstring(const char* str, uint32_t* len) {
+		if(str == nullptr) {
+			return nullptr;
+		}
+		*len = strlen(str);
+		return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(str));
+	}
+
 	void set_transformed_field(std::unique_ptr<filtercheck_field_info> field) {
 		m_transformed_field = std::move(field);
 	}
 
 private:
-	// Checks `str` for invalid UTF-8:
-	// - if valid, returns the original pointer (leaving `*len` unchanged)
-	// - if invalid, writes the sanitized version into `*storage` (lazily allocated on first use),
-	//   updates `*len`, and returns a pointer to the sanitized data.
-	// Callers must set `*len` to `str_len` before calling.
-	static uint8_t* extract_single_sanitized_string(const char* str,
-	                                                const size_t str_len,
-	                                                uint32_t* len,
-	                                                std::unique_ptr<std::string>& storage) {
-		const auto* const ptr = reinterpret_cast<const unsigned char*>(str);
-		const auto* const end_ptr = ptr + str_len;
-		const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
-		// String already sanitized, return it.
-		if(first_invalid_ptr == end_ptr) {
-			return const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(ptr));
-		}
-
-		// String needs sanitization. Store the sanitized version in `*storage` and return a pointer
-		// to it.
-		if(!storage) {
-			storage = std::make_unique<std::string>();
-		}
-		const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
-		const std::string_view str_to_sanitize{str, str_len};
-		storage->clear();  // Reset to empty while preserving allocated capacity.
-		storage->reserve(str_len);
-		append_sanitized_string(*storage, str_to_sanitize, valid_prefix_len);
-		*len = static_cast<uint32_t>(storage->size());
-		return reinterpret_cast<uint8_t*>(storage->data());
-	}
-
 	//
 	// Instead of populating the filter check values with const values extracted at
 	// filter compile time, it populates the filter check values with values extracted

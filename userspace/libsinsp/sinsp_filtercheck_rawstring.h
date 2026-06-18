@@ -29,7 +29,7 @@ public:
 	int32_t parse_field_name(std::string_view,
 	                         bool alloc_state,
 	                         bool needed_for_filtering) override;
-	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len) override;
 
 private:
 	std::string m_text;
@@ -44,7 +44,7 @@ public:
 	int32_t parse_field_name(std::string_view,
 	                         bool alloc_state,
 	                         bool needed_for_filtering) override;
-	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len) override;
 
 private:
 	std::unique_ptr<sinsp_filter_check> m_chk;
@@ -65,8 +65,7 @@ public:
 	                         bool needed_for_filtering) override;
 	bool extract_nocache(sinsp_evt*,
 	                     std::vector<extract_value_t>& values,
-	                     std::vector<extract_offset_t>*,
-	                     bool sanitize_strings = true) override;
+	                     std::vector<extract_offset_t>*) override;
 
 private:
 	std::vector<std::unique_ptr<sinsp_filter_check>> m_list;

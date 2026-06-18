@@ -72,8 +72,7 @@ void sinsp_filter_multivalue_transformer::set_arg(std::optional<std::string> arg
 }
 
 bool sinsp_filter_multivalue_transformer::extract(sinsp_evt* evt,
-                                                  std::vector<extract_value_t>& values,
-                                                  bool sanitize_strings) {
+                                                  std::vector<extract_value_t>& values) {
 	return false;
 }
 
@@ -135,11 +134,10 @@ const filtercheck_field_info* multivalue_transformer_filter_check::get_field_inf
 
 bool multivalue_transformer_filter_check::extract_nocache(sinsp_evt* evt,
                                                           std::vector<extract_value_t>& values,
-                                                          std::vector<extract_offset_t>* offsets,
-                                                          bool sanitize_strings) {
+                                                          std::vector<extract_offset_t>* offsets) {
 	// Extract values from the multivalue transformer
 	// Outer transformers (e.g. len, b64) are applied by the base class extract()
-	return m_transformer->extract(evt, values, sanitize_strings);
+	return m_transformer->extract(evt, values);
 }
 
 // join
@@ -173,16 +171,15 @@ sinsp_filter_multivalue_transformer_join::sinsp_filter_multivalue_transformer_jo
 }
 
 bool sinsp_filter_multivalue_transformer_join::extract(sinsp_evt* evt,
-                                                       std::vector<extract_value_t>& values,
-                                                       bool sanitize_strings) {
+                                                       std::vector<extract_value_t>& values) {
 	values.clear();
-	if(!m_arguments.at(0)->extract(evt, values, sanitize_strings)) {
+	if(!m_arguments.at(0)->extract(evt, values)) {
 		return false;
 	}
 	std::string_view sep((char*)values[0].ptr, values[0].len);
 
 	values.clear();
-	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings)) {
+	if(!m_arguments.at(1)->extract(evt, values)) {
 		return false;
 	}
 	m_res.clear();
@@ -233,12 +230,11 @@ sinsp_filter_multivalue_transformer_concat::sinsp_filter_multivalue_transformer_
 }
 
 bool sinsp_filter_multivalue_transformer_concat::extract(sinsp_evt* evt,
-                                                         std::vector<extract_value_t>& values,
-                                                         bool sanitize_strings) {
+                                                         std::vector<extract_value_t>& values) {
 	m_res.clear();
 	for(const auto& arg : m_arguments) {
 		values.clear();
-		if(!arg->extract(evt, values, sanitize_strings)) {
+		if(!arg->extract(evt, values)) {
 			return false;
 		}
 		m_res.append((char*)values[0].ptr);
@@ -286,7 +282,7 @@ sinsp_filter_multivalue_transformer_getopt::sinsp_filter_multivalue_transformer_
 	if(auto* raw_optstring = dynamic_cast<rawstring_check*>(m_arguments[1].get());
 	   raw_optstring != nullptr) {
 		uint32_t len = 0;
-		auto* ptr = raw_optstring->extract_single(nullptr, &len, false);
+		auto* ptr = raw_optstring->extract_single(nullptr, &len);
 		m_constant_optinfo =
 		        parse_optstring(std::string_view(reinterpret_cast<const char*>(ptr), len));
 		m_has_constant_optinfo = true;
@@ -337,8 +333,7 @@ sinsp_filter_multivalue_transformer_getopt::parse_optstring(std::string_view opt
 
 const sinsp_filter_multivalue_transformer_getopt::getopt_optstring_info*
 sinsp_filter_multivalue_transformer_getopt::get_optinfo(sinsp_evt* evt,
-                                                        std::vector<extract_value_t>& values,
-                                                        bool sanitize_strings) {
+                                                        std::vector<extract_value_t>& values) {
 	if(m_has_constant_optinfo) {
 		return &m_constant_optinfo;
 	}
@@ -346,7 +341,7 @@ sinsp_filter_multivalue_transformer_getopt::get_optinfo(sinsp_evt* evt,
 	values.clear();
 	// getopt() needs one concrete optstring value. If extraction fails or
 	// yields no values, there is nothing meaningful to parse.
-	if(!m_arguments.at(1)->extract(evt, values, sanitize_strings) || values.empty()) {
+	if(!m_arguments.at(1)->extract(evt, values) || values.empty()) {
 		return nullptr;
 	}
 
@@ -408,8 +403,7 @@ void sinsp_filter_multivalue_transformer_getopt::emit_option_result(
 }
 
 bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
-                                                         std::vector<extract_value_t>& values,
-                                                         bool sanitize_strings) {
+                                                         std::vector<extract_value_t>& values) {
 	// The second argument is the getopt(3) optstring. Extract it first and
 	// decode it into two lookup tables:
 	// - which option characters are valid
@@ -417,7 +411,7 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 	//
 	// We also remember whether a leading ':' is present, because that changes
 	// the missing-argument error from '?' to ':'.
-	const getopt_optstring_info* optinfo = get_optinfo(evt, values, sanitize_strings);
+	const getopt_optstring_info* optinfo = get_optinfo(evt, values);
 	if(optinfo == nullptr) {
 		return false;
 	}
@@ -433,7 +427,7 @@ bool sinsp_filter_multivalue_transformer_getopt::extract(sinsp_evt* evt,
 	// We build extract_value_t views only at the end, once the storage buffer
 	// is stable and no further growth can invalidate pointers.
 	values.clear();
-	if(!m_arguments.at(0)->extract(evt, values, sanitize_strings)) {
+	if(!m_arguments.at(0)->extract(evt, values)) {
 		return false;
 	}
 

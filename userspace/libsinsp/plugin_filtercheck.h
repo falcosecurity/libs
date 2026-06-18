@@ -49,8 +49,7 @@ public:
 protected:
 	bool extract_nocache(sinsp_evt* evt,
 	                     std::vector<extract_value_t>& values,
-	                     std::vector<extract_offset_t>* offsets = nullptr,
-	                     bool sanitize_strings = true) override;
+	                     std::vector<extract_offset_t>* offsets = nullptr) override;
 
 private:
 	std::string m_argstr;

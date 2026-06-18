@@ -49,9 +49,7 @@ int32_t sinsp_filter_check_reference::parse_field_name(std::string_view,
 	return -1;
 }
 
-uint8_t* sinsp_filter_check_reference::extract_single(sinsp_evt* evt,
-                                                      uint32_t* len,
-                                                      bool sanitize_strings) {
+uint8_t* sinsp_filter_check_reference::extract_single(sinsp_evt* evt, uint32_t* len) {
 	*len = m_len;
 	return m_val;
 }

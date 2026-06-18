@@ -83,9 +83,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fdlist::allocate_new() {
 	return std::make_unique<sinsp_filter_check_fdlist>();
 }
 
-uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
-                                                   uint32_t *len,
-                                                   bool sanitize_strings) {
+uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt, uint32_t *len) {
 	*len = 0;
 	ASSERT(evt);
 	const sinsp_evt_param *parinfo;
@@ -230,7 +228,7 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 			m_strval = m_strval.substr(0, m_strval.size() - 1);
 		}
 
-		return extract_single_string(m_strval, len, sanitize_strings);
+		return extract_single_string(m_strval, len);
 	} else {
 		return NULL;
 	}

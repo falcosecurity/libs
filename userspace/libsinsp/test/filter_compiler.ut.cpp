@@ -77,8 +77,7 @@ public:
 
 	inline bool extract_nocache(sinsp_evt* e,
 	                            vector<extract_value_t>& v,
-	                            vector<extract_offset_t>*,
-	                            bool) override {
+	                            vector<extract_offset_t>*) override {
 		return false;
 	}
 
