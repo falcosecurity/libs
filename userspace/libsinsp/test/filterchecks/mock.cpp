@@ -61,8 +61,7 @@ public:
 protected:
 	bool extract_nocache(sinsp_evt* evt,
 	                     std::vector<extract_value_t>& values,
-	                     std::vector<extract_offset_t>*,
-	                     bool sanitize_strings) override {
+	                     std::vector<extract_offset_t>*) override {
 		static const char* list_value_1 = "value1";
 		static const char* list_value_2 = "charbuf";
 
@@ -80,10 +79,10 @@ protected:
 			values.push_back(val2);
 			return true;
 		}
-		return sinsp_filter_check::extract_nocache(evt, values, nullptr, sanitize_strings);
+		return sinsp_filter_check::extract_nocache(evt, values, nullptr);
 	}
 
-	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override {
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len) override {
 		*len = 0;
 		switch(m_field_id) {
 		case TYPE_INT64:
@@ -91,16 +90,16 @@ protected:
 			return extract_single_val(m_u64_val, len);
 		case TYPE_CHARBUF:
 			m_str_val = "charbuf";
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len);
 		case TYPE_BYTEBUF:
 			m_str_val = "bytebuf";
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len);
 		case TYPE_MORE_THAN_256:
 			m_str_val = std::string(257, 'a');
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len);
 		case TYPE_BASE64:
 			m_str_val = "Y2hhcmJ1Zg==";  // base64("charbuf")
-			return extract_single_string(m_str_val, len, sanitize_strings);
+			return extract_single_string(m_str_val, len);
 		default:
 			throw std::runtime_error("unknown field id: " + std::to_string(m_field_id));
 			break;

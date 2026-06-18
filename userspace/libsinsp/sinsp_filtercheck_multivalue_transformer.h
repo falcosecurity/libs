@@ -54,9 +54,7 @@ public:
 	virtual bool supports_arg() const;
 	virtual void set_arg(std::optional<std::string> arg);
 
-	virtual bool extract(sinsp_evt* evt,
-	                     std::vector<extract_value_t>& values,
-	                     bool sanitize_strings = true);
+	virtual bool extract(sinsp_evt* evt, std::vector<extract_value_t>& values);
 
 protected:
 	value_type_info m_result_type;
@@ -84,8 +82,7 @@ public:
 protected:
 	bool extract_nocache(sinsp_evt* evt,
 	                     std::vector<extract_value_t>& values,
-	                     std::vector<extract_offset_t>* offsets,
-	                     bool sanitize_strings = true) override;
+	                     std::vector<extract_offset_t>* offsets) override;
 
 private:
 	std::unique_ptr<sinsp_filter_multivalue_transformer> m_transformer;
@@ -99,9 +96,7 @@ public:
 
 	std::string name() const override;
 
-	bool extract(sinsp_evt* evt,
-	             std::vector<extract_value_t>& values,
-	             bool sanitize_strings = true) override;
+	bool extract(sinsp_evt* evt, std::vector<extract_value_t>& values) override;
 
 private:
 	std::string m_res;
@@ -116,9 +111,7 @@ public:
 
 	std::string name() const override;
 
-	bool extract(sinsp_evt* evt,
-	             std::vector<extract_value_t>& values,
-	             bool sanitize_strings = true) override;
+	bool extract(sinsp_evt* evt, std::vector<extract_value_t>& values) override;
 
 private:
 	std::string m_res;
@@ -141,9 +134,7 @@ public:
 	bool supports_arg() const override;
 	void set_arg(std::optional<std::string> arg) override;
 
-	bool extract(sinsp_evt* evt,
-	             std::vector<extract_value_t>& values,
-	             bool sanitize_strings = true) override;
+	bool extract(sinsp_evt* evt, std::vector<extract_value_t>& values) override;
 
 private:
 	struct getopt_optstring_info {
@@ -155,9 +146,7 @@ private:
 	using result_ref = std::pair<size_t, uint32_t>;
 
 	static getopt_optstring_info parse_optstring(std::string_view optstring);
-	const getopt_optstring_info* get_optinfo(sinsp_evt* evt,
-	                                         std::vector<extract_value_t>& values,
-	                                         bool sanitize_strings);
+	const getopt_optstring_info* get_optinfo(sinsp_evt* evt, std::vector<extract_value_t>& values);
 	std::optional<std::string_view> get_option_argument(
 	        size_t& arg_idx,
 	        size_t opt_idx,

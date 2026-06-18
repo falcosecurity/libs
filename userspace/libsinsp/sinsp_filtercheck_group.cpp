@@ -43,9 +43,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_group::allocate_new() {
 	return std::make_unique<sinsp_filter_check_group>();
 }
 
-uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt,
-                                                  uint32_t* len,
-                                                  bool sanitize_strings) {
+uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt, uint32_t* len) {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -67,7 +65,7 @@ uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt,
 		} else {
 			m_name = "<NA>";
 		}
-		return extract_single_string(m_name, len, sanitize_strings);
+		return extract_single_string(m_name, len);
 	}
 	default:
 		ASSERT(false);

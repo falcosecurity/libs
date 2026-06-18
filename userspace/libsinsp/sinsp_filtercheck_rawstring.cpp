@@ -51,7 +51,7 @@ int32_t rawstring_check::parse_field_name(std::string_view,
 	throw sinsp_exception("rawstring_check: unexpected parse_field_name call");
 }
 
-uint8_t* rawstring_check::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings) {
+uint8_t* rawstring_check::extract_single(sinsp_evt* evt, uint32_t* len) {
 	*len = m_text.size();
 	return (uint8_t*)m_text.c_str();
 }
@@ -89,10 +89,10 @@ int32_t rawnum_check::parse_field_name(std::string_view,
 	throw sinsp_exception("rawnum_check: unexpected parse_field_name call");
 }
 
-uint8_t* rawnum_check::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings) {
+uint8_t* rawnum_check::extract_single(sinsp_evt* evt, uint32_t* len) {
 	m_text.clear();
 	std::vector<extract_value_t> values;
-	m_chk->extract(evt, values, false);
+	m_chk->extract(evt, values);
 	char* tmp = rawval_to_string(values[0].ptr, m_pt, m_pf, values[0].len);
 	m_text = std::string(tmp);
 	*len = m_text.size();
@@ -158,12 +158,11 @@ int32_t list_check::parse_field_name(std::string_view,
 
 bool list_check::extract_nocache(sinsp_evt* evt,
                                  std::vector<extract_value_t>& values,
-                                 std::vector<extract_offset_t>*,
-                                 bool sanitize_strings) {
+                                 std::vector<extract_offset_t>*) {
 	std::vector<extract_value_t> tmp;
 	values.clear();
 	for(auto& chk : m_list) {
-		if(!chk->extract(evt, tmp, sanitize_strings)) {
+		if(!chk->extract(evt, tmp)) {
 			return false;
 		}
 
