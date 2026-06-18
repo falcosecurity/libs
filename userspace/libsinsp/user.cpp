@@ -21,9 +21,14 @@ limitations under the License.
 #include <libsinsp/utils.h>
 #include <libsinsp/logger.h>
 #include <libsinsp/sinsp.h>
-#include <libsinsp/fgetpwent_r.h>
 #include <libscap/strl.h>
 #include <sys/types.h>
+#include <charconv>
+#include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <string>
+#include <string_view>
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -32,6 +37,50 @@ limitations under the License.
 #ifdef HAVE_GRP_H
 #include <grp.h>
 #endif
+
+namespace {
+
+// Splits `line` into up to `max` colon-separated fields, storing each into
+// `out` (which must have room for at least `max` entries). Returns the number
+// of fields found; the final field captures the remainder of the line,
+// including any further colons.
+//
+// We parse /etc/passwd and /etc/group ourselves instead of relying on
+// fgetpwent_r()/fgetgrent_r(): those require the *entire* line to fit in a
+// fixed-size buffer and return ERANGE otherwise. A group with a large member
+// list can exceed any such buffer, and the previous "continue on error" loops
+// then spun forever, re-reading the same oversized line without ever advancing
+// or reaching EOF. We only need the leading fixed fields (name, uid/gid), so
+// reading whole lines with std::getline and parsing the prefix sidesteps the
+// overflow entirely.
+size_t split_fields(std::string_view line, std::string_view *out, size_t max) {
+	size_t n = 0;
+	size_t start = 0;
+	while(n < max) {
+		size_t pos = line.find(':', start);
+		if(pos == std::string_view::npos) {
+			out[n++] = line.substr(start);
+			break;
+		}
+		out[n++] = line.substr(start, pos - start);
+		start = pos + 1;
+	}
+	return n;
+}
+
+// Parses `s` as a base-10 uint32_t, requiring the *entire* field to be a valid
+// number. Returns false (without touching `out`) on empty input, non-numeric
+// characters, trailing garbage, or overflow. This matters because getpwent/
+// getgrent-style files are untrusted: a malformed id field must be rejected,
+// not silently coerced to 0 (which would alias to root's uid/gid).
+bool parse_uint32(std::string_view s, uint32_t &out) {
+	const char *begin = s.data();
+	const char *end = s.data() + s.size();
+	auto res = std::from_chars(begin, end, out);
+	return res.ec == std::errc{} && res.ptr == end;
+}
+
+}  // namespace
 
 #ifdef HAVE_PWD_H
 static struct passwd *__getpwuid(uint32_t uid,
@@ -52,28 +101,52 @@ static struct passwd *__getpwuid(uint32_t uid,
 		return nullptr;
 	}
 
-	// If we have a host root and we can use fgetpwent,
-	// we take the entry directly from file
-#ifdef HAVE_FGET__ENT
-	static std::string filename(host_root + "/etc/passwd");
-
-	auto f = fopen(filename.c_str(), "r");
-	if(!f) {
-		return nullptr;
-	}
-
-	struct passwd *p = nullptr;
-	while(!feof(f)) {
-		if(fgetpwent_r(f, pwd, buf, buflen, &p) != 0 || !p) {
+	// With a host root set, read /etc/passwd directly. We parse each line
+	// ourselves (rather than fgetpwent_r) so an over-long line cannot overflow
+	// the fixed-size buffer; see split_fields().
+	std::ifstream f(host_root + "/etc/passwd");
+	std::string line;
+	while(std::getline(f, line)) {
+		// name:passwd:uid:gid:gecos:home:shell
+		std::string_view fields[7];
+		if(split_fields(line, fields, 7) < 7) {
 			continue;  // skip malformed lines
 		}
-		if(uid == p->pw_uid) {
-			fclose(f);
-			return p;
+		uint32_t entry_uid;
+		uint32_t entry_gid;
+		if(!parse_uint32(fields[2], entry_uid) || !parse_uint32(fields[3], entry_gid)) {
+			continue;  // skip lines with a non-numeric uid/gid
 		}
+		if(uid != entry_uid) {
+			continue;
+		}
+		// `line` does not outlive this call, so copy the fields we keep into
+		// the caller-owned buffer and point the result at them.
+		char *w = buf;
+		char *bufend = buf + buflen;
+		auto stash = [&](std::string_view s) -> char * {
+			if(w + s.size() + 1 > bufend) {
+				return nullptr;
+			}
+			char *dst = w;
+			memcpy(w, s.data(), s.size());
+			w += s.size();
+			*w++ = '\0';
+			return dst;
+		};
+		char *name = stash(fields[0]);
+		char *home = stash(fields[5]);
+		char *shell = stash(fields[6]);
+		if(!name || !home || !shell) {
+			continue;  // does not fit (not expected for these fields)
+		}
+		pwd->pw_name = name;
+		pwd->pw_uid = entry_uid;
+		pwd->pw_gid = entry_gid;
+		pwd->pw_dir = home;
+		pwd->pw_shell = shell;
+		return pwd;
 	}
-	fclose(f);
-#endif
 	return nullptr;
 }
 #endif
@@ -97,29 +170,38 @@ static struct group *__getgrgid(uint32_t gid,
 		return nullptr;
 	}
 
-	// If we have a host root and we can use fgetgrent,
-	// we take the entry directly from file
-#ifdef HAVE_FGET__ENT
-	static std::string filename(host_root + "/etc/group");
-
-	auto f = fopen(filename.c_str(), "r");
-	if(!f) {
-		return nullptr;
-	}
-
-	struct group *p = nullptr;
-	while(!feof(f)) {
-		if(fgetgrent_r(f, grp, buf, buflen, &p) != 0 || !p) {
+	// With a host root set, read /etc/group directly. We parse each line
+	// ourselves (rather than fgetgrent_r) so a large member list cannot
+	// overflow the fixed-size buffer; see split_fields().
+	std::ifstream f(host_root + "/etc/group");
+	std::string line;
+	while(std::getline(f, line)) {
+		// name:passwd:gid:members
+		std::string_view fields[3];
+		if(split_fields(line, fields, 3) < 3) {
 			continue;  // skip malformed lines
 		}
-		if(gid == p->gr_gid) {
-			fclose(f);
-			return p;
+		uint32_t entry_gid;
+		if(!parse_uint32(fields[2], entry_gid)) {
+			continue;  // skip lines with a non-numeric gid
 		}
+		if(gid != entry_gid) {
+			continue;
+		}
+		// `line` does not outlive this call, so copy the name we keep into the
+		// caller-owned buffer and point the result at it.
+		std::string_view name = fields[0];
+		if(name.size() + 1 > buflen) {
+			return nullptr;
+		}
+		memcpy(buf, name.data(), name.size());
+		buf[name.size()] = '\0';
+		grp->gr_name = buf;
+		grp->gr_gid = gid;
+		grp->gr_mem = nullptr;
+		return grp;
 	}
-	fclose(f);
-#endif
-	return NULL;
+	return nullptr;
 }
 #endif
 
@@ -337,39 +419,39 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 
 	scap_userinfo *retval{nullptr};
 
-#if defined(__linux__) && defined HAVE_PWD_H && defined HAVE_FGET__ENT
+#if defined(__linux__) && defined HAVE_PWD_H
 	if(!m_ns_helper->in_own_ns_mnt(pid)) {
 		return retval;
 	}
 
 	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/passwd";
-	auto pwd_file = fopen(path.c_str(), "r");
+	std::ifstream pwd_file(path);
 	if(pwd_file) {
 		auto &userlist = m_userlist[container_id];
-		struct passwd pwd_entry;
-		char pwd_buf[4096];
-		struct passwd *p = nullptr;
-		while(!feof(pwd_file)) {
-			if(fgetpwent_r(pwd_file, &pwd_entry, pwd_buf, sizeof(pwd_buf), &p) != 0 || !p) {
+		std::string line;
+		while(std::getline(pwd_file, line)) {
+			// name:passwd:uid:gid:gecos:home:shell
+			std::string_view fields[7];
+			if(split_fields(line, fields, 7) < 7) {
 				continue;  // skip malformed lines
 			}
+			uint32_t u_uid;
+			uint32_t u_gid;
+			if(!parse_uint32(fields[2], u_uid) || !parse_uint32(fields[3], u_gid)) {
+				continue;  // skip lines with a non-numeric uid/gid
+			}
 			// Here we cache all container users
-			auto *usr = userinfo_map_insert(userlist,
-			                                p->pw_uid,
-			                                p->pw_gid,
-			                                sv_or_empty(p->pw_name),
-			                                sv_or_empty(p->pw_dir),
-			                                sv_or_empty(p->pw_shell));
+			auto *usr =
+			        userinfo_map_insert(userlist, u_uid, u_gid, fields[0], fields[5], fields[6]);
 
 			if(notify) {
 				notify_user_changed(usr, container_id);
 			}
 
-			if(uid == p->pw_uid) {
+			if(uid == u_uid) {
 				retval = usr;
 			}
 		}
-		fclose(pwd_file);
 	}
 #endif
 
@@ -467,34 +549,37 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 
 	scap_groupinfo *retval{nullptr};
 
-#if defined(__linux__) && defined HAVE_GRP_H && defined HAVE_FGET__ENT
+#if defined(__linux__) && defined HAVE_GRP_H
 	if(!m_ns_helper->in_own_ns_mnt(pid)) {
 		return retval;
 	}
 
 	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/group";
-	auto group_file = fopen(path.c_str(), "r");
+	std::ifstream group_file(path);
 	if(group_file) {
 		auto &grouplist = m_grouplist[container_id];
-		struct group grp_entry;
-		char grp_buf[4096];
-		struct group *g = nullptr;
-		while(!feof(group_file)) {
-			if(fgetgrent_r(group_file, &grp_entry, grp_buf, sizeof(grp_buf), &g) != 0 || !g) {
+		std::string line;
+		while(std::getline(group_file, line)) {
+			// name:passwd:gid:members
+			std::string_view fields[3];
+			if(split_fields(line, fields, 3) < 3) {
 				continue;  // skip malformed lines
 			}
+			uint32_t g_gid;
+			if(!parse_uint32(fields[2], g_gid)) {
+				continue;  // skip lines with a non-numeric gid
+			}
 			// Here we cache all container groups
-			auto *gr = groupinfo_map_insert(grouplist, g->gr_gid, sv_or_empty(g->gr_name));
+			auto *gr = groupinfo_map_insert(grouplist, g_gid, fields[0]);
 
 			if(notify) {
 				notify_group_changed(gr, container_id, true);
 			}
 
-			if(gid == g->gr_gid) {
+			if(gid == g_gid) {
 				retval = gr;
 			}
 		}
-		fclose(group_file);
 	}
 #endif
 

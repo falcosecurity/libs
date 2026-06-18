@@ -234,4 +234,155 @@ TEST_F(usergroup_manager_host_root_test, nss_user_lookup) {
 	auto* grp = mgr.add_group(container_id, -1, 0, std::string_view("+test_group"));
 	ASSERT_EQ(grp, nullptr);
 }
+
+// Fixture that lets each test write its own /etc/passwd and /etc/group under a
+// host root, to exercise the file-parsing edge cases in user.cpp.
+class usergroup_manager_host_root_parsing_test : public sinsp_with_test_input {
+protected:
+	void SetUp() override {
+		char pwd_buf[SCAP_MAX_PATH_SIZE];
+		auto pwd = getcwd(pwd_buf, SCAP_MAX_PATH_SIZE);
+		ASSERT_NE(pwd, nullptr);
+		m_host_root = pwd_buf;
+		m_host_root += "/host_parsing";
+
+		ASSERT_EQ(mkdir(m_host_root.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
+		m_inspector.set_host_root(m_host_root);
+
+		m_etc = m_host_root + "/etc";
+		ASSERT_EQ(mkdir(m_etc.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
+	}
+
+	void TearDown() override {
+		unlink((m_etc + "/passwd").c_str());
+		unlink((m_etc + "/group").c_str());
+		rmdir(m_etc.c_str());
+		rmdir(m_host_root.c_str());
+	}
+
+	void write_passwd(const std::string& content) {
+		std::ofstream ofs(m_etc + "/passwd");
+		ofs << content;
+	}
+
+	void write_group(const std::string& content) {
+		std::ofstream ofs(m_etc + "/group");
+		ofs << content;
+	}
+
+	std::string m_host_root;
+	std::string m_etc;
+};
+
+// Regression test for the infinite loop: a group with a very large member list
+// produces a line far bigger than the historical 4096-byte parse buffer. The
+// old fgetgrent_r loop returned ERANGE and spun forever; ensure we parse past
+// it and still resolve both it and a group defined after it.
+TEST_F(usergroup_manager_host_root_parsing_test, oversized_group_line_does_not_hang) {
+	std::string members;
+	for(int i = 0; i < 5000; i++) {
+		if(i) {
+			members += ",";
+		}
+		members += "user" + std::to_string(i);
+	}
+	ASSERT_GT(members.size(), 4096u);  // sanity: the line really is oversized
+	write_group(
+	        "root:x:0:\n"
+	        "bigteam:x:4242:" +
+	        members + "\n" + "after:x:4243:\n");
+
+	const std::string container_id;
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
+
+	// A group defined *after* the oversized line must still resolve.
+	mgr.add_group(container_id, -1, 4243, std::string_view{});
+	auto* after = mgr.get_group(container_id, 4243);
+	ASSERT_NE(after, nullptr);
+	ASSERT_EQ(after->gid, 4243);
+	ASSERT_STREQ(after->name, "after");
+
+	// The oversized group itself resolves by gid, with the correct name.
+	mgr.add_group(container_id, -1, 4242, std::string_view{});
+	auto* big = mgr.get_group(container_id, 4242);
+	ASSERT_NE(big, nullptr);
+	ASSERT_EQ(big->gid, 4242);
+	ASSERT_STREQ(big->name, "bigteam");
+}
+
+// A non-numeric gid must be skipped, not silently coerced to 0 (which would
+// alias to root and return the wrong group name).
+TEST_F(usergroup_manager_host_root_parsing_test, non_numeric_gid_is_rejected) {
+	write_group(
+	        "bogus:x:notanumber:\n"
+	        "realroot:x:0:\n");
+
+	const std::string container_id;
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
+
+	mgr.add_group(container_id, -1, 0, std::string_view{});
+	auto* group = mgr.get_group(container_id, 0);
+	ASSERT_NE(group, nullptr);
+	ASSERT_EQ(group->gid, 0);
+	ASSERT_STREQ(group->name, "realroot");
+}
+
+// Same for a non-numeric uid in /etc/passwd.
+TEST_F(usergroup_manager_host_root_parsing_test, non_numeric_uid_is_rejected) {
+	write_passwd(
+	        "bogus:x:notanumber:0:bogus:/bogus:/bin/bogus\n"
+	        "realroot:x:0:0:realroot:/root:/bin/bash\n");
+
+	const std::string container_id;
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
+
+	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
+	auto* user = mgr.get_user(container_id, 0);
+	ASSERT_NE(user, nullptr);
+	ASSERT_EQ(user->uid, 0);
+	ASSERT_STREQ(user->name, "realroot");
+	ASSERT_STREQ(user->homedir, "/root");
+	ASSERT_STREQ(user->shell, "/bin/bash");
+}
+
+// A gid with trailing garbage ("5x") is only a partial number and must be
+// rejected: from_chars must consume the entire field.
+TEST_F(usergroup_manager_host_root_parsing_test, gid_with_trailing_garbage_is_rejected) {
+	write_group(
+	        "weird:x:5x:\n"
+	        "normal:x:5:\n");
+
+	const std::string container_id;
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
+
+	mgr.add_group(container_id, -1, 5, std::string_view{});
+	auto* group = mgr.get_group(container_id, 5);
+	ASSERT_NE(group, nullptr);
+	ASSERT_STREQ(group->name, "normal");
+}
+
+// Empty and short (too few fields) lines are skipped; a gid that only appears
+// on such a line is not found.
+TEST_F(usergroup_manager_host_root_parsing_test, short_lines_are_skipped) {
+	write_group(
+	        "\n"
+	        "incomplete:x\n"
+	        "good:x:7:\n");
+
+	const std::string container_id;
+	const timestamper timestamper{0};
+	sinsp_usergroup_manager mgr{&m_inspector, timestamper};
+
+	mgr.add_group(container_id, -1, 7, std::string_view{});
+	auto* group = mgr.get_group(container_id, 7);
+	ASSERT_NE(group, nullptr);
+	ASSERT_STREQ(group->name, "good");
+
+	mgr.add_group(container_id, -1, 999, std::string_view{});
+	ASSERT_EQ(mgr.get_group(container_id, 999), nullptr);
+}
 #endif
