@@ -22,6 +22,7 @@ limitations under the License.
 extern "C" {
 #endif
 
+#include <stddef.h>
 #include <libscap/engine/savefile/converter/results.h>
 
 typedef struct ppm_evt_hdr scap_evt;
@@ -35,6 +36,7 @@ struct scap_convert_buffer* scap_convert_alloc_buffer();
 conversion_result scap_convert_event(struct scap_convert_buffer* buf,
                                      scap_evt* new_evt,
                                      scap_evt* evt_to_convert,
+                                     size_t new_evt_size,
                                      char* error);
 void scap_convert_free_buffer(struct scap_convert_buffer* buf);
 

@@ -226,14 +226,42 @@ static uint64_t get_default_value_from_type(const ppm_param_type t) {
 	}
 }
 
+static int ensure_evt_space(size_t offset, size_t len, size_t evt_size, char *error) {
+	if(offset > evt_size || len > evt_size - offset) {
+		scap_errprintf(error,
+		               0,
+		               "converted event length would exceed conversion buffer size %zu",
+		               evt_size);
+		return -1;
+	}
+	return 0;
+}
+
+static int ensure_param_len_slot(const scap_evt *evt,
+                                 const uint8_t param_num,
+                                 const size_t evt_size,
+                                 char *error) {
+	const auto len_size = get_param_len_size(evt);
+	const size_t len_offset = sizeof(scap_evt) + (size_t)param_num * len_size;
+	return ensure_evt_space(len_offset, len_size, evt_size, error);
+}
+
 // Writes parameter length and value and update the provided parameter offsets accordingly to the
 // written length.
-static void push_default_parameter(scap_evt *evt, size_t *params_offset, const uint8_t param_num) {
+static int push_default_parameter(scap_evt *evt,
+                                  size_t *params_offset,
+                                  const uint8_t param_num,
+                                  size_t evt_size,
+                                  char *error) {
 	// Please ensure that `evt->type` is already the final type you want to obtain.
 	// Otherwise, we will access the wrong entry in the event table.
 	const auto param_type = get_param_type(evt, param_num);
 	const auto len = get_default_value_size_bytes_from_type(param_type);
 	const auto len_size = get_param_len_size(evt);
+	if(ensure_param_len_slot(evt, param_num, evt_size, error) != 0 ||
+	   ensure_evt_space(*params_offset, len, evt_size, error) != 0) {
+		return -1;
+	}
 
 	PRINT_MESSAGE(
 	        "Push default parameter - (evt_type: %d, param_num: %d, param_type: %d, param_len: %d, "
@@ -250,12 +278,19 @@ static void push_default_parameter(scap_evt *evt, size_t *params_offset, const u
 	*params_offset += len;
 	set_param_len_unchecked(evt, param_num, len, len_size);
 	evt->len += len;
+	return 0;
 }
 
 // Writes parameter length and value and update the provided parameter offsets accordingly to the
 // written length.
-static void push_empty_parameter(scap_evt *evt, const uint8_t param_num) {
+static int push_empty_parameter(scap_evt *evt,
+                                const uint8_t param_num,
+                                size_t evt_size,
+                                char *error) {
 	const auto len_size = get_param_len_size(evt);
+	if(ensure_param_len_slot(evt, param_num, evt_size, error) != 0) {
+		return -1;
+	}
 
 	PRINT_MESSAGE(
 	        "Push empty parameter - (evt_type: %d, param_num: %d, param_type: %d, param_len: 0, "
@@ -267,6 +302,7 @@ static void push_empty_parameter(scap_evt *evt, const uint8_t param_num) {
 
 	// Just set the parameter length to 0.
 	set_param_len_unchecked(evt, param_num, 0, len_size);
+	return 0;
 }
 
 // Cap the provided parameter length to the maximum value allowed for the event parameter
@@ -283,11 +319,13 @@ static uint32_t cap_param_len(const scap_evt *evt,
 
 // Writes parameter length and value and update the provided parameter offsets accordingly to the
 // written length.
-static void push_parameter(scap_evt *new_evt,
-                           const scap_evt *tmp_evt,
-                           size_t *new_evt_params_offset,
-                           const uint8_t new_evt_param_num,
-                           const uint8_t tmp_evt_param_num) {
+static int push_parameter(scap_evt *new_evt,
+                          const scap_evt *tmp_evt,
+                          size_t *new_evt_params_offset,
+                          const uint8_t new_evt_param_num,
+                          const uint8_t tmp_evt_param_num,
+                          size_t new_evt_size,
+                          char *error) {
 	const auto new_evt_len_size = get_param_len_size(new_evt);
 	const auto tmp_evt_len_size = get_param_len_size(tmp_evt);
 	const auto tmp_evt_param_len = get_param_len(tmp_evt, tmp_evt_param_num, tmp_evt_len_size);
@@ -295,6 +333,10 @@ static void push_parameter(scap_evt *new_evt,
 	        get_param_ptr(tmp_evt, tmp_evt_param_num, tmp_evt_len_size);
 	const auto new_evt_param_len =
 	        cap_param_len(new_evt, new_evt_param_num, tmp_evt_param_len, new_evt_len_size);
+	if(ensure_param_len_slot(new_evt, new_evt_param_num, new_evt_size, error) != 0 ||
+	   ensure_evt_space(*new_evt_params_offset, new_evt_param_len, new_evt_size, error) != 0) {
+		return -1;
+	}
 	auto *const new_evt_param_ptr = reinterpret_cast<char *>(new_evt) + *new_evt_params_offset;
 
 	PRINT_MESSAGE(
@@ -320,15 +362,38 @@ static void push_parameter(scap_evt *new_evt,
 	*new_evt_params_offset += new_evt_param_len;
 	set_param_len_unchecked(new_evt, new_evt_param_num, new_evt_param_len, new_evt_len_size);
 	new_evt->len += new_evt_param_len;
+	return 0;
 }
 
-static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert) {
+static int copy_old_params(scap_evt *new_evt,
+                           const scap_evt *evt_to_convert,
+                           size_t new_evt_size,
+                           size_t *new_evt_params_offset,
+                           char *error) {
 	auto *const new_evt_ptr = reinterpret_cast<char *>(new_evt);
 	const auto *const old_evt_ptr = reinterpret_cast<const char *>(evt_to_convert);
 	size_t new_evt_offset = sizeof(scap_evt);
 	size_t old_evt_offset = sizeof(scap_evt);
 	const auto new_evt_len_size = get_param_len_size(new_evt);
 	const auto old_evt_len_size = get_param_len_size(evt_to_convert);
+	const uint64_t old_evt_params_offset =
+	        sizeof(scap_evt) + (uint64_t)evt_to_convert->nparams * old_evt_len_size;
+	if(old_evt_params_offset > evt_to_convert->len) {
+		scap_errprintf(error,
+		               0,
+		               "event length %u is smaller than its parameter length table",
+		               evt_to_convert->len);
+		return -1;
+	}
+	const uint64_t new_evt_params_offset_u64 =
+	        sizeof(scap_evt) + (uint64_t)new_evt->nparams * new_evt_len_size;
+	if(new_evt_params_offset_u64 > new_evt_size) {
+		scap_errprintf(error,
+		               0,
+		               "converted event length would exceed conversion buffer size %zu",
+		               new_evt_size);
+		return -1;
+	}
 
 	// Copy the lengths array.
 	if(new_evt_len_size == old_evt_len_size) {
@@ -354,10 +419,13 @@ static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert)
 	        evt_to_convert->nparams * old_evt_len_size);
 
 	// Copy the parameters (we left some space for the missing lengths)
-	new_evt_offset += new_evt->nparams * new_evt_len_size;
-	old_evt_offset += evt_to_convert->nparams * old_evt_len_size;
+	new_evt_offset = (size_t)new_evt_params_offset_u64;
+	old_evt_offset = (size_t)old_evt_params_offset;
 	const uint32_t params_len =
 	        evt_to_convert->len - (sizeof(scap_evt) + evt_to_convert->nparams * old_evt_len_size);
+	if(ensure_evt_space(new_evt_offset, params_len, new_evt_size, error) != 0) {
+		return -1;
+	}
 	memcpy(new_evt_ptr + new_evt_offset, old_evt_ptr + old_evt_offset, params_len);
 
 	PRINT_MESSAGE(
@@ -370,7 +438,9 @@ static size_t copy_old_params(scap_evt *new_evt, const scap_evt *evt_to_convert)
 	        old_evt_offset,
 	        params_len);
 
-	return new_evt_offset + params_len;
+	*new_evt_params_offset = new_evt_offset + params_len;
+	new_evt->len = *new_evt_params_offset;
+	return 0;
 }
 
 // note: the control flow of this function must always be kept in sync with the converter
@@ -422,7 +492,15 @@ extern "C" conversion_result test_event_convertibility(const scap_evt *evt_to_co
 	// If we are a new event type we need to check the number of parameters.
 	const uint32_t evt_params_num = evt_to_convert->nparams;
 	const uint32_t expected_params_num = evt_info->nparams;
-	assert(evt_params_num <= expected_params_num);
+	if(evt_params_num > expected_params_num) {
+		scap_errprintf(error,
+		               0,
+		               "Event (type: %d) has more parameters (%d) than expected (%d).",
+		               evt_type,
+		               evt_params_num,
+		               expected_params_num);
+		return CONVERSION_ERROR;
+	}
 
 	// If the number of parameters is different from the one in the event table we need a
 	// conversion.
@@ -474,6 +552,7 @@ int push_parameter_from_callback(scap_evt *new_evt,
                                  const uint8_t new_evt_param_num,
                                  const conversion_instruction_callback callback,
                                  const conversion_instruction_flags instr_flags,
+                                 size_t new_evt_size,
                                  char *error) {
 	if(callback == nullptr) {
 		scap_errprintf(error,
@@ -496,11 +575,13 @@ int push_parameter_from_callback(scap_evt *new_evt,
 	} catch(...) {
 		// todo: log info about exception.
 		if(instr_flags & CIF_FALLBACK_TO_EMPTY) {
-			push_empty_parameter(new_evt, new_evt_param_num);
-		} else {
-			push_default_parameter(new_evt, new_evt_params_offset, new_evt_param_num);
+			return push_empty_parameter(new_evt, new_evt_param_num, new_evt_size, error);
 		}
-		return 0;
+		return push_default_parameter(new_evt,
+		                              new_evt_params_offset,
+		                              new_evt_param_num,
+		                              new_evt_size,
+		                              error);
 	}
 
 	const auto *buffer_ptr = std::data(buffer);
@@ -516,6 +597,10 @@ int push_parameter_from_callback(scap_evt *new_evt,
 		               min_param_len,
 		               max_param_len,
 		               buffer_len);
+		return -1;
+	}
+	if(ensure_param_len_slot(new_evt, new_evt_param_num, new_evt_size, error) != 0 ||
+	   ensure_evt_space(*new_evt_params_offset, buffer_len, new_evt_size, error) != 0) {
 		return -1;
 	}
 
@@ -544,6 +629,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
                                        scap_evt *new_evt,
                                        scap_evt *evt_to_convert,
                                        const conversion_info &ci,
+                                       size_t new_evt_size,
                                        char *error) {
 	/////////////////////////////
 	// Dispatch the action
@@ -554,6 +640,14 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 	// We copy the entire event in any case so that we are ready to handle `CONVERSION_PASS` cases
 	// without further actions.
+	if(evt_to_convert->len > new_evt_size) {
+		scap_errprintf(error,
+		               0,
+		               "event length %u is larger than conversion buffer size %zu",
+		               evt_to_convert->len,
+		               new_evt_size);
+		return CONVERSION_ERROR;
+	}
 	memcpy(new_evt, evt_to_convert, evt_to_convert->len);
 
 	switch(ci.m_action) {
@@ -570,20 +664,41 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 	case C_ACTION_ADD_PARAMS:
 		// The new number of params is the previous one plus the number of conversion instructions.
+		if(ci.m_instrs.size() >
+		   (size_t)std::numeric_limits<uint32_t>::max() - evt_to_convert->nparams) {
+			scap_errprintf(error, 0, "converted event would have too many parameters");
+			return CONVERSION_ERROR;
+		}
 		new_evt->nparams = evt_to_convert->nparams + ci.m_instrs.size();
 		// Initial `new_evt->len` value set in `copy_old_params()`.
-		params_offset = copy_old_params(new_evt, evt_to_convert);
+		if(copy_old_params(new_evt, evt_to_convert, new_evt_size, &params_offset, error) != 0) {
+			return CONVERSION_ERROR;
+		}
 		param_to_populate = evt_to_convert->nparams;
 		break;
 
-	case C_ACTION_CHANGE_TYPE:
+	case C_ACTION_CHANGE_TYPE: {
 		// The new number of params is the number of conversion instructions.
+		if(ci.m_instrs.size() > (size_t)std::numeric_limits<uint32_t>::max()) {
+			scap_errprintf(error, 0, "converted event would have too many parameters");
+			return CONVERSION_ERROR;
+		}
 		new_evt->nparams = ci.m_instrs.size();
 		new_evt->type = ci.m_desired_type;
-		new_evt->len = 0;
-		params_offset = sizeof(scap_evt) + new_evt->nparams * get_param_len_size(new_evt);
+		const uint64_t params_offset_u64 =
+		        sizeof(scap_evt) + (uint64_t)new_evt->nparams * get_param_len_size(new_evt);
+		if(params_offset_u64 > new_evt_size) {
+			scap_errprintf(error,
+			               0,
+			               "converted event length would exceed conversion buffer size %zu",
+			               new_evt_size);
+			return CONVERSION_ERROR;
+		}
+		params_offset = (size_t)params_offset_u64;
+		new_evt->len = params_offset;
 		param_to_populate = 0;
 		break;
+	}
 
 	default:
 		scap_errprintf(error, 0, "Unhandled conversion action '%d'.", ci.m_action);
@@ -619,10 +734,18 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 		switch(instr.code) {
 		case C_INSTR_FROM_EMPTY:
-			push_empty_parameter(new_evt, param_to_populate);
+			if(push_empty_parameter(new_evt, param_to_populate, new_evt_size, error) != 0) {
+				return CONVERSION_ERROR;
+			}
 			continue;
 		case C_INSTR_FROM_DEFAULT:
-			push_default_parameter(new_evt, &params_offset, param_to_populate);
+			if(push_default_parameter(new_evt,
+			                          &params_offset,
+			                          param_to_populate,
+			                          new_evt_size,
+			                          error) != 0) {
+				return CONVERSION_ERROR;
+			}
 			continue;
 
 		case C_INSTR_FROM_ENTER:
@@ -688,6 +811,7 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 			                                param_to_populate,
 			                                instr.callback,
 			                                instr.flags,
+			                                new_evt_size,
 			                                error) != 0) {
 				return CONVERSION_ERROR;
 			}
@@ -704,14 +828,30 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 
 		if(!tmp_evt) {
 			if(instr.flags & CIF_FALLBACK_TO_EMPTY) {
-				push_empty_parameter(new_evt, param_to_populate);
+				if(push_empty_parameter(new_evt, param_to_populate, new_evt_size, error) != 0) {
+					return CONVERSION_ERROR;
+				}
 			} else {
-				push_default_parameter(new_evt, &params_offset, param_to_populate);
+				if(push_default_parameter(new_evt,
+				                          &params_offset,
+				                          param_to_populate,
+				                          new_evt_size,
+				                          error) != 0) {
+					return CONVERSION_ERROR;
+				}
 			}
 			continue;
 		}
 
-		push_parameter(new_evt, tmp_evt, &params_offset, param_to_populate, instr.param_num);
+		if(push_parameter(new_evt,
+		                  tmp_evt,
+		                  &params_offset,
+		                  param_to_populate,
+		                  instr.param_num,
+		                  new_evt_size,
+		                  error) != 0) {
+			return CONVERSION_ERROR;
+		}
 	}
 
 	if(used_enter_event) {
@@ -732,6 +872,7 @@ extern "C" struct scap_convert_buffer *scap_convert_alloc_buffer() {
 extern "C" conversion_result scap_convert_event(struct scap_convert_buffer *buf,
                                                 scap_evt *new_evt,
                                                 scap_evt *evt_to_convert,
+                                                size_t new_evt_size,
                                                 char *error) {
 	// This should be checked by the caller but just double check here.
 	switch(const auto conv_res = test_event_convertibility(evt_to_convert, error)) {
@@ -765,11 +906,8 @@ extern "C" conversion_result scap_convert_event(struct scap_convert_buffer *buf,
 	}
 
 	// If we reached this point we have for sure an entry in the conversion table.
-	return convert_event(buf->evt_storage,
-	                     new_evt,
-	                     evt_to_convert,
-	                     g_conversion_table.at(conv_key),
-	                     error);
+	const auto conv_info = g_conversion_table.at(conv_key);
+	return convert_event(buf->evt_storage, new_evt, evt_to_convert, conv_info, new_evt_size, error);
 }
 
 extern "C" void scap_convert_free_buffer(struct scap_convert_buffer *buf) {
