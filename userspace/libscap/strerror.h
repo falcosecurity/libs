@@ -21,6 +21,8 @@ limitations under the License.
 #include <stdint.h>
 
 #include <libscap/scap_const.h>
+#include <libscap/scap_likely.h>
+#include <libscap/scap_assert.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,6 +40,14 @@ int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...)
 	((void)sizeof(printf(__VA_ARGS__)), scap_errprintf_unchecked(BUF, ERRNUM, __VA_ARGS__))
 int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...);
 #endif
+
+#define SCAP_ASSERT_OR_RETURN(COND, BUF, ERRNUM, ...)        \
+	do {                                                     \
+		if(scap_unlikely(COND)) {                            \
+			ASSERT(!(#COND));                                \
+			return scap_errprintf(BUF, ERRNUM, __VA_ARGS__); \
+		}                                                    \
+	} while(0)
 
 static inline int32_t scap_err_opnotsup(char* error) {
 	(void)scap_errprintf(error, 0, "operation not supported");

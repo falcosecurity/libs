@@ -1951,26 +1951,11 @@ int32_t scap_linux_get_file_path(struct scap_platform* platform,
                                  const size_t path_buff_len,
                                  size_t* path_len,
                                  char* lasterr) {
-	if(scap_unlikely(pid <= 0)) {
-		ASSERT(false);
-		return scap_errprintf(lasterr, 0, "bug: pid must be positive");
-	}
-	if(scap_unlikely(fd < 0)) {
-		ASSERT(false);
-		return scap_errprintf(lasterr, 0, "bug: fd must be non-negative");
-	}
-	if(scap_unlikely(!path_buff)) {
-		ASSERT(false);
-		return scap_errprintf(lasterr, 0, "bug: path buffer must be non-NULL");
-	}
-	if(scap_unlikely(!path_buff_len)) {
-		ASSERT(false);
-		return scap_errprintf(lasterr, 0, "bug: path buffer len must not be zero");
-	}
-	if(scap_unlikely(!path_len)) {
-		ASSERT(false);
-		return scap_errprintf(lasterr, 0, "bug: path len pointer must non-NULL");
-	}
+	SCAP_ASSERT_OR_RETURN(pid <= 0, lasterr, 0, "bug: pid must be positive");
+	SCAP_ASSERT_OR_RETURN(fd < 0, lasterr, 0, "bug: fd must be non-negative");
+	SCAP_ASSERT_OR_RETURN(!path_buff, lasterr, 0, "bug: path buffer must be non-NULL");
+	SCAP_ASSERT_OR_RETURN(!path_buff_len, lasterr, 0, "bug: path buffer len must not be zero");
+	SCAP_ASSERT_OR_RETURN(!path_len, lasterr, 0, "bug: path len pointer must non-NULL");
 
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename,
