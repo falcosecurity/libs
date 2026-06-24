@@ -83,7 +83,11 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, expected_evt->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		ASSERT_EQ(scap_convert_event(m_converter_buf,
+		                             storage.get(),
+		                             evt_to_convert.get(),
+		                             expected_evt->len,
+		                             error),
 		          expected_res)
 		        << "Different conversion results: " << error;
 
@@ -101,7 +105,11 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		ASSERT_EQ(scap_convert_event(m_converter_buf,
+		                             storage.get(),
+		                             evt_to_convert.get(),
+		                             evt_to_convert->len,
+		                             error),
 		          CONVERSION_ERROR)
 		        << "The conversion is not failed: " << error;
 	}
@@ -111,7 +119,11 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		ASSERT_EQ(scap_convert_event(m_converter_buf,
+		                             storage.get(),
+		                             evt_to_convert.get(),
+		                             evt_to_convert->len,
+		                             error),
 		          CONVERSION_PASS)
 		        << "Event is not allowed to pass: " << error;
 	}
@@ -121,7 +133,11 @@ protected:
 		// We assume it's okay to create a new event with the same size as the expected event
 		auto storage = new_safe_scap_evt((scap_evt *)calloc(1, evt_to_convert->len));
 		// First we check the conversion result matches the expected result
-		ASSERT_EQ(scap_convert_event(m_converter_buf, storage.get(), evt_to_convert.get(), error),
+		ASSERT_EQ(scap_convert_event(m_converter_buf,
+		                             storage.get(),
+		                             evt_to_convert.get(),
+		                             evt_to_convert->len,
+		                             error),
 		          CONVERSION_DROP)
 		        << "Event is not dropped: " << error;
 	}
@@ -159,6 +175,7 @@ protected:
 			conv_res = scap_convert_event(m_converter_buf,
 			                              (scap_evt *)new_evt.get(),
 			                              (scap_evt *)to_convert_evt.get(),
+			                              expected_evt->len + convert_event_test::safe_margin,
 			                              error);
 		}
 		switch(conv_res) {

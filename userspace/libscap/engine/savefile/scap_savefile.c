@@ -60,6 +60,63 @@ inline static int read_block_header(struct savefile_engine *handle,
 	return res;
 }
 
+static int32_t validate_v2_event(struct savefile_engine *handle,
+                                 const scap_evt *event,
+                                 uint32_t avail) {
+	if(event->len < sizeof(struct ppm_evt_hdr)) {
+		return scap_errprintf(handle->m_lasterr,
+		                      0,
+		                      "invalid event: len %u is smaller than the event header size %zu",
+		                      event->len,
+		                      sizeof(struct ppm_evt_hdr));
+	}
+
+	if(event->len > avail) {
+		return scap_errprintf(handle->m_lasterr,
+		                      0,
+		                      "invalid event: len %u is larger than the %u bytes "
+		                      "available in the block",
+		                      event->len,
+		                      avail);
+	}
+
+	const uint32_t len_size = (g_event_info[event->type].flags & EF_LARGE_PAYLOAD)
+	                                  ? sizeof(uint32_t)
+	                                  : sizeof(uint16_t);
+	uint64_t param_offset = sizeof(struct ppm_evt_hdr) + (uint64_t)event->nparams * len_size;
+	if(param_offset > event->len) {
+		return scap_errprintf(handle->m_lasterr,
+		                      0,
+		                      "invalid event: nparams %u does not fit in event len %u",
+		                      event->nparams,
+		                      event->len);
+	}
+
+	const char *lens = (const char *)event + sizeof(struct ppm_evt_hdr);
+	for(uint32_t i = 0; i < event->nparams; i++) {
+		uint32_t param_len;
+		if(len_size == sizeof(uint32_t)) {
+			memcpy(&param_len, lens + i * len_size, sizeof(uint32_t));
+		} else {
+			uint16_t param_len16;
+			memcpy(&param_len16, lens + i * len_size, sizeof(uint16_t));
+			param_len = param_len16;
+		}
+
+		if(param_len > event->len - param_offset) {
+			return scap_errprintf(handle->m_lasterr,
+			                      0,
+			                      "invalid event: param %u len %u exceeds event len %u",
+			                      i,
+			                      param_len,
+			                      event->len);
+		}
+		param_offset += param_len;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Load the machine info block
 //
@@ -1903,6 +1960,8 @@ static int32_t next_event_from_file(struct savefile_engine *handle,
 		// Read the event
 		//
 		readlen = bh.block_total_length - sizeof(bh);
+		const uint32_t block_body_len =
+		        readlen >= sizeof(uint32_t) ? readlen - sizeof(uint32_t) : 0;
 		// Non-large block types have an uint16_max maximum size
 		if(bh.block_type != EV_BLOCK_TYPE_V2_LARGE && bh.block_type != EVF_BLOCK_TYPE_V2_LARGE) {
 			if(readlen > READER_BUF_SIZE) {
@@ -1945,6 +2004,23 @@ static int32_t next_event_from_file(struct savefile_engine *handle,
 		} else {
 			*pflags = 0;
 			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t));
+		}
+
+		// Number of block-body bytes that follow *pevent in the reader buffer, excluding the
+		// trailing block_total_length. Compute it with a guarded subtraction: readlen and evt_off
+		// both derive from the attacker-controlled block length, so avoid unsigned underflow.
+		uint32_t evt_off = (uint32_t)((char *)*pevent - handle->m_reader_evt_buf);
+		uint32_t avail = evt_off <= block_body_len ? block_body_len - evt_off : 0;
+		if(avail < hdr_len) {
+			return scap_errprintf(
+			        handle->m_lasterr,
+			        0,
+			        "event header exceeds block payload: block length %u, event offset %u, "
+			        "available %u, header size %u",
+			        (uint32_t)bh.block_total_length,
+			        evt_off,
+			        avail,
+			        (uint32_t)hdr_len);
 		}
 
 		if((*pevent)->type >= PPM_EVENT_MAX) {
@@ -2029,6 +2105,17 @@ static int32_t next_event_from_file(struct savefile_engine *handle,
 			// the event. To do so we'd have to check to see if the block data len exceeds
 			// (*pevent)->len and parse the excess as block options.
 			//
+		} else {
+			//
+			// For V2/V2_LARGE blocks the event header `len` (and `nparams`) are taken
+			// verbatim from the file and, unlike the old-format path above, are never
+			// recomputed. Validate the event shape before the event reaches conversion or
+			// downstream consumers.
+			//
+			int32_t res = validate_v2_event(handle, *pevent, avail);
+			if(res != SCAP_SUCCESS) {
+				return res;
+			}
 		}
 
 		break;
@@ -2086,11 +2173,25 @@ static int32_t next(struct scap_engine_handle engine,
 	conv_res = CONVERSION_CONTINUE;
 	for(conv_num = 0; conv_num < MAX_CONVERSION_BOUNDARY && conv_res == CONVERSION_CONTINUE;
 	    conv_num++) {
+		// The conversion staging buffers (m_to_convert_evt / m_new_evt) are MAX_EVENT_SIZE
+		// bytes. Refuse to convert any event whose len would overflow them. This guards
+		// against a crafted V2_LARGE block whose len exceeds MAX_EVENT_SIZE while all its
+		// bytes are present in the (reallocated) reader buffer: such an event passes the
+		// in-buffer bound checked in next_event_from_file() but would still overflow the
+		// fixed-size conversion storage here.
+		if((*pevent)->len > MAX_EVENT_SIZE) {
+			return scap_errprintf(handle->m_lasterr,
+			                      0,
+			                      "invalid event: len %u is larger than the maximum event size %u",
+			                      (*pevent)->len,
+			                      MAX_EVENT_SIZE);
+		}
 		// Before each conversion we move the current event into the storage.
 		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
 		conv_res = scap_convert_event(handle->m_converter_buf,
 		                              (scap_evt *)handle->m_new_evt,
 		                              (scap_evt *)handle->m_to_convert_evt,
+		                              MAX_EVENT_SIZE,
 		                              handle->m_lasterr);
 		// At the end of the conversion in any case we switch to the new event pointer.
 		*pevent = (scap_evt *)handle->m_new_evt;
