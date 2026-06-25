@@ -87,6 +87,21 @@ static void test_reject_msg(const std::string& in, const std::string& msg) {
 	}
 }
 
+// Regression test for the unbounded-recursion DoS in the filter parser.
+// Each recursive parse_* function instantiates a depth_guard to cap recursion
+// (default 100). The guard used to be created as an unnamed temporary, so it
+// was destroyed at the end of its own statement and never enforced the limit,
+// letting deeply nested expressions exhaust the stack and crash the process.
+// A crafted input must now be rejected with a clean error instead of crashing.
+TEST(parser, recursion_depth_limit) {
+	// A deeply nested expression must be rejected with a clean error, not
+	// crash the process via stack exhaustion.
+	test_reject_msg(std::string(100000, '('), "exceeded max depth limit of 100");
+
+	// Reasonably nested, valid expressions must still parse.
+	test_accept("((((((((((a))))))))))");
+}
+
 TEST(pos_info, equality_assignments) {
 	pos_info a;
 	pos_info b(5, 1, 3);
