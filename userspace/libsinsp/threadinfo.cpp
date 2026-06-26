@@ -843,29 +843,10 @@ void sinsp_threadinfo::populate_args(std::string& args, const sinsp_threadinfo* 
 	}
 }
 
-std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
+std::string sinsp_threadinfo::get_path_for_dir_fd(const int64_t dir_fd) {
 	if(const auto* dir_fdinfo = get_fd(dir_fd); dir_fdinfo && !dir_fdinfo->m_name.empty()) {
 		const auto& name = dir_fdinfo->m_name;
-		if(name.back() == '/') {
-			std::string sanitized_name_storage;
-			const auto sanitized_name = sanitize_string(name, sanitized_name_storage);
-			if(sanitized_name.data() == name.data()) {
-				return name;
-			}
-			return sanitized_name_storage;
-		}
-
-		// We need to copy the name as we must append '/'.
-		std::string copied_name;
-		copied_name.reserve(name.size() + 1);  // +1 accounts for the trailing '/'.
-		copied_name.append(name);
-		copied_name.append("/");
-		std::string sanitized_name_storage;
-		const auto sanitized_name = sanitize_string(copied_name, sanitized_name_storage);
-		if(sanitized_name.data() == copied_name.data()) {
-			return copied_name;
-		}
-		return sanitized_name_storage;
+		return name.back() == '/' ? name : name + '/';
 	}
 
 	// Sad day; we don't have the directory in the tinfo's fd cache.
@@ -891,19 +872,11 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd) {
 		                          m_params->scap_plat_lasterr);
 		return "";
 	}
-	dir_fd_path[dir_fd_path_len] = '/';
-	dir_fd_path[dir_fd_path_len + 1] = '\0';
-
-	// Sanitize the path.
-	dir_fd_path_len++;  // +1 account for trailing '/'
-	std::string sanitized_path_storage;
-	const auto sanitized_path =
-	        sanitize_string(std::string_view{dir_fd_path, dir_fd_path_len}, sanitized_path_storage);
-	libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Translating to %s", sanitized_path.data());
-	if(sanitized_path.data() == dir_fd_path) {
-		return dir_fd_path;
+	if(dir_fd_path_len > 0 && dir_fd_path[dir_fd_path_len - 1] != '/') {
+		dir_fd_path[dir_fd_path_len] = '/';
+		dir_fd_path_len++;  // +1 account for trailing '/'.
 	}
-	return sanitized_path_storage;
+	return {dir_fd_path, dir_fd_path_len};
 #endif /* _WIN32 */
 }
 
