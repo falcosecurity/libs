@@ -558,8 +558,6 @@ public:
 	void set_iosize(uint32_t size);
 	uint32_t get_iosize() const;
 
-	std::string get_base_dir(uint32_t id, sinsp_threadinfo*);
-
 	/*!
 	  \param resolved_str [out] the string representation of the parameter
 	*/
@@ -766,6 +764,7 @@ public:
 
 private:
 	char* render_fd(int64_t fd, const char** resolved_str, param_fmt fmt);
+	std::string get_base_dir(uint32_t id, sinsp_threadinfo*);
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;

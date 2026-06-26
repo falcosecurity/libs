@@ -552,6 +552,15 @@ static void ensure_storage_size(std::vector<char> &storage, const size_t size) {
 	}
 }
 
+// Write `str` and a trailing '\0' to `storage`, ensuring data fits into storage.
+static void write_to_storage(std::vector<char> &storage, const std::string_view str) {
+	const auto str_len = str.length();
+	// `+ 1` account for trailing '\0'.
+	ensure_storage_size(storage, str_len + 1);
+	memcpy(storage.data(), str.data(), str_len);
+	storage.data()[str_len] = '\0';
+}
+
 char *sinsp_evt::render_fd(const int64_t fd, const char ** /*resolved_str*/, const param_fmt fmt) {
 	//
 	// Add the fd number
@@ -841,25 +850,16 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 	case PT_FSPATH:
 	case PT_FSRELPATH: {
 		const auto path = param->as<std::string_view>();
-		if(path.length() + 1 > m_paramstr_storage.size()) {
-			m_paramstr_storage.resize(path.length() + 1);
-		}
-
-		strcpy_sanitized(m_paramstr_storage, path);
+		write_to_storage(m_paramstr_storage, path);
 
 		if(auto *tinfo = get_thread_info()) {
 			if(path != "<NA>") {
 				std::string cwd = get_base_dir(id, tinfo);
-
-				if(path.length() + cwd.length() + 1 >= m_resolved_paramstr_storage.size()) {
-					m_resolved_paramstr_storage.resize(path.length() + cwd.length() + 2, 0);
-				}
-
 				if(path.empty() || std::filesystem::path(path).is_absolute()) {
-					m_resolved_paramstr_storage[0] = 0;
+					write_to_storage(m_resolved_paramstr_storage, "");
 				} else {
 					std::string concatenated_path = sinsp_utils::concatenate_paths(cwd, path);
-					strcpy_sanitized(m_resolved_paramstr_storage, concatenated_path);
+					write_to_storage(m_resolved_paramstr_storage, concatenated_path);
 				}
 			}
 		} else {
