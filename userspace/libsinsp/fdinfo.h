@@ -130,9 +130,9 @@ public:
 	const char* get_typestring() const;
 
 	/*!
-	  \brief Return the fd name, after removing unprintable or invalid characters from it.
+	  \brief Return the string representation of this FD.
 	*/
-	std::string tostring_clean() const;
+	std::string tostring() const;
 
 	/*!
 	  \brief Return true if this is a log device.
