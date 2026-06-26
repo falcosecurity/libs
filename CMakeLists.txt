@@ -70,11 +70,6 @@ option(USE_TSAN "Build with ThreadSanitizer" OFF)
 option(ENABLE_COVERAGE "Build with code coverage" OFF)
 option(UBSAN_HALT_ON_ERROR "Halt on error when building with UBSan" ON)
 
-if(${CMAKE_VERSION} VERSION_LESS "3.1.0" AND BUILD_SHARED_LIBS)
-	# scap_engine_savefile uses target_sources
-	message(FATAL_ERROR "Shared libraries requires CMake 3.1 or later.")
-endif()
-
 include(GNUInstallDirs)
 
 # Add path for custom CMake modules.

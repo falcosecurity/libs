@@ -64,45 +64,22 @@ else()
 				BUILD_BYPRODUCTS ${JSONCPP_LIB}
 			)
 		else()
-			# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
-			if(CMAKE_VERSION VERSION_LESS 3.15.0)
-				ExternalProject_Add(
-					jsoncpp
-					PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
-					URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
-					URL_HASH
-						"SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
-					CMAKE_ARGS -DCMAKE_CXX_FLAGS_DEBUG=${FALCOSECURITY_LIBS_DEBUG_FLAGS}
-							   -DCMAKE_CXX_FLAGS_RELEASE=${FALCOSECURITY_LIBS_RELEASE_FLAGS}
-							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-							   -DBUILD_OBJECT_LIBS=Off
-							   ${JSONCPP_STATIC_OPTION}
-							   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-							   -DJSONCPP_WITH_TESTS=Off
-							   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
-							   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
-							   -DCMAKE_INSTALL_LIBDIR=lib
-					CMAKE_CACHE_ARGS ${JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS}
-				)
-			else()
-				ExternalProject_Add(
-					jsoncpp
-					PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
-					URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
-					URL_HASH
-						"SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
-					CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
-							   -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
-							   -DBUILD_OBJECT_LIBS=Off
-							   ${JSONCPP_STATIC_OPTION}
-							   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-							   -DJSONCPP_WITH_TESTS=Off
-							   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
-							   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
-							   -DCMAKE_INSTALL_LIBDIR=lib
-					CMAKE_CACHE_ARGS ${JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS}
-				)
-			endif()
+			ExternalProject_Add(
+				jsoncpp
+				PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
+				URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
+				URL_HASH "SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
+				CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+						   -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+						   -DBUILD_OBJECT_LIBS=Off
+						   ${JSONCPP_STATIC_OPTION}
+						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						   -DJSONCPP_WITH_TESTS=Off
+						   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
+						   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
+						   -DCMAKE_INSTALL_LIBDIR=lib
+				CMAKE_CACHE_ARGS ${JSONCPP_EXTERNAL_PROJECT_CACHE_ARGS}
+			)
 		endif()
 
 		install(
