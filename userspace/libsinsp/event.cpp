@@ -908,16 +908,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 		sockfamily = param_data[0];
 		if(sockfamily == PPM_AF_UNIX) {
 			ASSERT(param->len() > 1);
-
-			//
-			// Sanitize the file string.
-			//
-			std::string sanitized_path_storage;
-			const auto sanitized_path = sanitize_string(param_data + 1, sanitized_path_storage);
-			snprintf(&m_paramstr_storage[0],
-			         m_paramstr_storage.size(),
-			         "%s",
-			         sanitized_path.data());
+			ensure_storage_size(m_paramstr_storage, param_len - 1);
+			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%s", param_data + 1);
 		} else if(sockfamily == PPM_AF_INET) {
 			if(param_len == 1 + 4 + 2) {
 				ipv4serverinfo addr;
