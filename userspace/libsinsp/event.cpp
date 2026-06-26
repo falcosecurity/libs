@@ -465,86 +465,6 @@ uint32_t binary_buffer_to_string(char *dst,
 	return k;
 }
 
-// `dst` and `src` must both be non-empty.
-static void strcpy_sanitized(std::vector<char> &dst, const std::string_view src) {
-	auto *dst_ptr = reinterpret_cast<unsigned char *>(&dst[0]);
-	const auto dst_size = dst.size();
-	ASSERT(dst_size > 0);
-
-	const auto *src_ptr = reinterpret_cast<const unsigned char *>(src.data());
-	const size_t src_size = src.size();
-	ASSERT(src_size > 0);
-
-	auto *capped_src_end = src_ptr + std::min(src_size, dst_size);
-
-	// Find the first sequence in source needing replacement. For valid strings, this is the only
-	// pass that runs (no replacement needed), and the flow immediately returns after copying the
-	// maximum allowed amount of bytes.
-	auto *scan_src_ptr = utf8_first_invalid_seq(src_ptr, capped_src_end);
-	if(scan_src_ptr == capped_src_end) {
-		size_t bytes_to_copy;
-		if(src_size < dst_size) {
-			bytes_to_copy = src_size;
-		} else {
-			// The source string must be truncated (`src_size >= dst_size`). Find the boundary of
-			// the last valid UTF-8 sequence in source (a valid UTF-8 sequence is guaranteed to
-			// exist, given `src_size > 0`).
-			auto *scan_ptr = capped_src_end - 1;
-			while(utf8_seq_len(scan_ptr, capped_src_end) < 0) {
-				scan_ptr--;
-			}
-			const auto last_valid_seq_off = capped_src_end - scan_ptr;
-			bytes_to_copy = dst_size - last_valid_seq_off;
-		}
-		memcpy(dst_ptr, src_ptr, bytes_to_copy);
-		dst_ptr[bytes_to_copy] = 0;
-		return;
-	}
-
-	// Copy the valid prefix (note: can be empty) in one shot.
-	size_t bytes_to_copy = scan_src_ptr - src_ptr;
-	memcpy(dst_ptr, src_ptr, bytes_to_copy);
-
-	// Process the remainder. The assumption here is that, at the beginning of each iteration, there
-	// is an invalid sequence in source that should result into a single replacement character into
-	// destination: this requires at least 3 bytes for the replacement character. Moreover, the
-	// destination must be NUL terminated, so the destination must have at least 4 bytes (i.e.:
-	// `dst_left_bytes >= 4`).
-	auto *scan_dst_ptr = dst_ptr + bytes_to_copy;
-	size_t dst_left_bytes = dst_size - bytes_to_copy;
-	while(scan_src_ptr < capped_src_end && dst_left_bytes >= 4) {
-		// Replace the invalid sequence at the beginning of each iteration with the replacement
-		// character.
-		const int seq_len = utf8_seq_len(scan_src_ptr, capped_src_end);
-		ASSERT(seq_len < 0);
-		memcpy(scan_dst_ptr, "\xEF\xBF\xBD", 3);
-		scan_dst_ptr += 3;
-		dst_left_bytes -= 3;
-		scan_src_ptr += -seq_len;
-
-		// Find the next valid block of UTF-8 characters to copy. Its size must not be greater than
-		// `min(src_left_bytes, dst_left_bytes - 1)`. (-1 accounts for the NUL terminator).
-		const size_t src_left_bytes = capped_src_end - scan_src_ptr;
-		const auto *end_ptr = scan_src_ptr + std::min(dst_left_bytes - 1, src_left_bytes);
-		const auto *next_invalid = utf8_first_invalid_seq(scan_src_ptr, end_ptr);
-		bytes_to_copy = next_invalid - scan_src_ptr;
-		if(bytes_to_copy > 0) {
-			memcpy(scan_dst_ptr, scan_src_ptr, bytes_to_copy);
-			scan_dst_ptr += bytes_to_copy;
-			dst_left_bytes -= bytes_to_copy;
-		}
-		scan_src_ptr = next_invalid;
-
-		// `utf8_first_invalid_seq` could have stopped before the end of source due to the cap to
-		// `dst_left_bytes - 1`. In this case, the following UTF-8 sequence could still be valid,
-		// but there is no space left in the destination, so break.
-		if(scan_src_ptr < capped_src_end && utf8_seq_len(scan_src_ptr, capped_src_end) > 0) {
-			break;
-		}
-	}
-	*scan_dst_ptr = 0;
-}
-
 // Ensure `storage` has a size greater or equal than `size`.
 static void ensure_storage_size(std::vector<char> &storage, const size_t size) {
 	if(size > storage.size()) {
@@ -666,6 +586,7 @@ std::string sinsp_evt::get_base_dir(const uint32_t id, sinsp_threadinfo *tinfo) 
 	return tinfo->get_path_for_dir_fd(dirfd);
 }
 
+constexpr size_t MAX_UINT32_DEC_DIGITS = 10;
 constexpr size_t MAX_UINT64_HEX_DIGITS = 16;
 
 const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, param_fmt fmt) {
@@ -1271,11 +1192,10 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 		break;
 	case PT_UID: {
 		if(const auto val = param->as<uint32_t>(); val < std::numeric_limits<uint32_t>::max()) {
-			// Note: we want to resolve user given the uid
-			// from the event.
-			// Eg: for setuid() the requested uid is not
-			// the threadinfo one yet;
-			// therefore we cannot directly use tinfo->m_user here.
+			// Note: we want to resolve user given the uid from the event.
+			// Eg: for setuid() the requested uid is not the threadinfo one yet; therefore we cannot
+			// directly use tinfo->m_user here.
+			ensure_storage_size(m_paramstr_storage, MAX_UINT32_DEC_DIGITS + 1);
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
 			scap_userinfo *user_info = nullptr;
@@ -1284,25 +1204,22 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 				user_info = m_inspector->m_usergroup_manager->get_user(container_id, val);
 			}
 			if(user_info != nullptr && user_info->name[0] != 0) {
-				strcpy_sanitized(m_resolved_paramstr_storage, user_info->name);
+				write_to_storage(m_resolved_paramstr_storage, user_info->name);
 			} else {
-				snprintf(&m_resolved_paramstr_storage[0],
-				         m_resolved_paramstr_storage.size(),
-				         "<NA>");
+				write_to_storage(m_resolved_paramstr_storage, "<NA>");
 			}
 		} else {
-			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "-1");
-			snprintf(&m_resolved_paramstr_storage[0], m_resolved_paramstr_storage.size(), "<NONE>");
+			write_to_storage(m_paramstr_storage, "-1");
+			write_to_storage(m_resolved_paramstr_storage, "<NONE>");
 		}
 		break;
 	}
 	case PT_GID: {
 		if(const auto val = param->as<uint32_t>(); val < std::numeric_limits<uint32_t>::max()) {
-			// Note: we want to resolve group given the gid
-			// from the event.
-			// Eg: for setgid() the requested gid is not
-			// the threadinfo one yet;
-			// therefore we cannot directly use tinfo->m_group here.
+			// Note: we want to resolve group given the gid from the event.
+			// Eg: for setgid() the requested gid is not the threadinfo one yet; therefore we cannot
+			// directly use tinfo->m_group here.
+			ensure_storage_size(m_paramstr_storage, MAX_UINT32_DEC_DIGITS + 1);
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
 			scap_groupinfo *group_info = nullptr;
@@ -1311,15 +1228,13 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 				group_info = m_inspector->m_usergroup_manager->get_group(container_id, val);
 			}
 			if(group_info != nullptr && group_info->name[0] != 0) {
-				strcpy_sanitized(m_resolved_paramstr_storage, group_info->name);
+				write_to_storage(m_resolved_paramstr_storage, group_info->name);
 			} else {
-				snprintf(&m_resolved_paramstr_storage[0],
-				         m_resolved_paramstr_storage.size(),
-				         "<NA>");
+				write_to_storage(m_resolved_paramstr_storage, "<NA>");
 			}
 		} else {
-			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "-1");
-			snprintf(&m_resolved_paramstr_storage[0], m_resolved_paramstr_storage.size(), "<NONE>");
+			write_to_storage(m_paramstr_storage, "-1");
+			write_to_storage(m_resolved_paramstr_storage, "<NONE>");
 		}
 		break;
 	}
