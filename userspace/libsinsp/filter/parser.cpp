@@ -199,7 +199,7 @@ std::unique_ptr<ast::expr> parser::parse() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_field_or_transformer() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	if(lex_field_name()) {
@@ -216,7 +216,7 @@ std::unique_ptr<ast::expr> parser::parse_field_or_transformer() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_or() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	std::vector<std::unique_ptr<ast::expr>> children;
@@ -244,7 +244,7 @@ std::unique_ptr<ast::expr> parser::parse_or() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_and() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	std::unique_ptr<ast::expr> child;
@@ -272,7 +272,7 @@ std::unique_ptr<ast::expr> parser::parse_and() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_not() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	bool is_not = false;
@@ -293,7 +293,7 @@ std::unique_ptr<ast::expr> parser::parse_not() {
 // this is an internal helper to parse the remainder of a
 // self-embedding expression right after having parsed a "("
 std::unique_ptr<ast::expr> parser::parse_embedded_remainder() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 	std::unique_ptr<ast::expr> child = parse_or();
@@ -305,7 +305,7 @@ std::unique_ptr<ast::expr> parser::parse_embedded_remainder() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_check() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	lex_blank();
@@ -334,7 +334,7 @@ std::unique_ptr<ast::expr> parser::parse_check() {
 
 std::unique_ptr<ast::expr> parser::parse_field_remainder(std::string fieldname,
                                                          const ast::pos_info& pos) {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	auto field = std::make_unique<ast::field_expr>();
 	field->field = fieldname;
@@ -366,7 +366,7 @@ std::optional<std::string> parser::parse_optional_field_arg() {
 inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
         std::string transformer,
         const ast::pos_info& pos) {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
@@ -395,7 +395,7 @@ inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
 
 // FieldTransformerArg ::= FieldTransformer | Field | QuotedStr | NumValue | TransformerList
 inline std::unique_ptr<ast::expr> parser::parse_field_transformer_arg(const ast::pos_info& pos) {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
@@ -477,7 +477,7 @@ inline std::unique_ptr<ast::expr> parser::parse_transformer_list_arg(const ast::
 
 std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> left,
                                                    const ast::pos_info& pos) {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 	if(lex_unary_op()) {
@@ -520,7 +520,7 @@ std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> le
 }
 
 std::unique_ptr<ast::expr> parser::parse_num_value_or_transformer() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
@@ -539,7 +539,7 @@ std::unique_ptr<ast::expr> parser::parse_num_value_or_transformer() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_str_value_or_transformer(bool no_transformer) {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
@@ -605,7 +605,7 @@ std::unique_ptr<ast::expr> parser::try_parse_list_expr() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_list_value() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
@@ -623,7 +623,7 @@ std::unique_ptr<ast::expr> parser::parse_list_value() {
 }
 
 std::unique_ptr<ast::expr> parser::parse_list_value_or_transformer() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
@@ -647,7 +647,7 @@ std::unique_ptr<ast::expr> parser::parse_list_value_or_transformer() {
 
 // note: can return nullptr
 std::unique_ptr<ast::expr> parser::try_parse_transformer_or_val() {
-	depth_guard(m_max_depth, m_depth);
+	depth_guard dg(m_max_depth, m_depth);
 
 	lex_blank();
 
