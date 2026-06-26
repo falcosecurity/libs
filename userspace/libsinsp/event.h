@@ -766,7 +766,6 @@ public:
 
 private:
 	char* render_fd(int64_t fd, const char** resolved_str, param_fmt fmt);
-	int render_fd_json(Json::Value* ret, int64_t fd, const char** resolved_str, param_fmt fmt);
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
