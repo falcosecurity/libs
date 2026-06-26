@@ -112,11 +112,10 @@ public:
 	static bool unhex(std::string_view hex_chars, std::vector<char>& hex_bytes);
 
 	//
-	// Concatenate posix-style path1 and path2 up to max_len in size, normalizing the result.
-	// path1 MUST be '/' terminated and is not sanitized.
-	// If path2 is absolute, the result will be equivalent to path2.
-	// If the result would be too long, the output will contain the string
-	// "/DIR_TOO_LONG/FILENAME_TOO_LONG" instead.
+	// Concatenate posix-style path1 and path2 up to `SCAP_MAX_PATH_SIZE` in size, normalizing the
+	// result. `path1` MUST be '/' terminated and is not normalized. If `path2` is absolute, the
+	// result will be equivalent to `path2`. If the result would be too long, the output will
+	// contain the string "/DIR_TOO_LONG/FILENAME_TOO_LONG" instead.
 	//
 	static std::string concatenate_paths(std::string_view path1, std::string_view path2);
 
