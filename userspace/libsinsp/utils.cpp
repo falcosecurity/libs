@@ -701,44 +701,26 @@ static inline void copy_and_normalize_path(char* target,
 	}
 }
 
-/*
- * Return false if path2 is an absolute path.
- * path1 MUST be '/' terminated.
- * path1 is not normalized.
- * If path2 is absolute, we only account for it.
- */
-static inline bool concatenate_paths_(char* target,
-                                      uint32_t targetlen,
-                                      const char* path1,
-                                      uint32_t len1,
-                                      const char* path2,
-                                      uint32_t len2) {
-	if(targetlen < len1 + len2 + 1) {
-		strlcpy(target, "/DIR_TOO_LONG/FILENAME_TOO_LONG", targetlen);
-		return false;
+std::string sinsp_utils::concatenate_paths(const std::string_view path1,
+                                           const std::string_view path2) {
+	char target[SCAP_MAX_PATH_SIZE];
+	const auto path1_len = path1.length();
+	const auto path2_len = path2.length();
+	if(path1_len + path2_len + 1 > SCAP_MAX_PATH_SIZE) {
+		return "/DIR_TOO_LONG/FILENAME_TOO_LONG";
 	}
 
-	char* target_end = target + targetlen;
-	if(len2 != 0 && path2[0] != '/') {
-		memcpy(target, path1, len1);
-		copy_and_normalize_path(target + len1, target, target_end, path2, '/');
-		return true;
+	const auto path1_data = path1.data();
+	const auto path2_data = path2.data();
+	char* target_end = target + SCAP_MAX_PATH_SIZE;
+	if(path2_len != 0 && path2[0] != '/') {
+		memcpy(target, path1_data, path1_len);
+		copy_and_normalize_path(target + path1_len, target, target_end, path2_data, '/');
 	} else {
 		target[0] = 0;
-		copy_and_normalize_path(target, target, target_end, path2, '/');
-		return false;
+		copy_and_normalize_path(target, target, target_end, path2_data, '/');
 	}
-}
-
-std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2) {
-	char fullpath[SCAP_MAX_PATH_SIZE];
-	concatenate_paths_(fullpath,
-	                   SCAP_MAX_PATH_SIZE,
-	                   path1.data(),
-	                   (uint32_t)path1.length(),
-	                   path2.data(),
-	                   path2.size());
-	return std::string(fullpath);
+	return target;
 }
 
 bool sinsp_utils::is_ipv4_mapped_ipv6(const uint8_t* paddr) {
