@@ -1,0 +1,55 @@
+# bpfcompat manifest describing the modern_bpf loader contract, so the
+# validator loads the probe the way libpman does. Sources of truth:
+#   - maps: userspace/libpman/src/maps.c, ringbuffer.c
+#   - program_variants: userspace/libpman/src/events_prog_table.c,
+#     lifecycle.c (pman_prepare_progs_before_loading)
+#   - trial-load probing + companions: userspace/libpman/src/support_probing.c
+name: falco-modern-bpf
+programs:
+  - name: sys_enter
+    section: tp_btf/sys_enter
+    type: tracing
+  - name: sys_exit
+    section: tp_btf/sys_exit
+    type: tracing
+# Maps compiled with max_entries=0 and sized by userspace before load.
+maps:
+  - name: auxiliary_maps
+    max_entries: cpus
+  - name: counter_maps
+    max_entries: cpus
+  - name: ringbuf_maps
+    max_entries: cpus
+    inner_ringbuf_bytes: 8388608
+# Per-event program variants: first variant whose helper probe succeeds is
+# autoloaded, the rest are disabled (exit_event_progs_table pattern).
+program_variants:
+  - group: recvmmsg_x
+    programs:
+      - name: recvmmsg_x
+        requires_helper: bpf_loop
+      - name: recvmmsg_old_x
+  - group: sendmmsg_x
+    programs:
+      - name: sendmmsg_x
+        requires_helper: bpf_loop
+      - name: sendmmsg_old_x
+  # BPF iterator programs are gated by empirical trial loading; no fallback.
+  - group: dump_task
+    programs:
+      - name: dump_task
+        probe: trial_load
+  - group: dump_task_file
+    programs:
+      - name: dump_task_file
+        probe: trial_load
+# Statically referenced from prog-array slots; must stay autoloaded during
+# trial probes (mirrors support_probing.c disable_all_progs).
+probe_companions:
+  - t_hotplug
+  - t_drop_e
+  - t_drop_x
+  - t1_sched_p_fork
+  - t2_sched_p_fork
+  - t1_sched_p_exec
+  - t2_sched_p_exec
