@@ -545,6 +545,13 @@ static void strcpy_sanitized(std::vector<char> &dst, const std::string_view src)
 	*scan_dst_ptr = 0;
 }
 
+// Ensure `storage` has a size greater or equal than `size`.
+static void ensure_storage_size(std::vector<char> &storage, const size_t size) {
+	if(size > storage.size()) {
+		storage.resize(size);
+	}
+}
+
 char *sinsp_evt::render_fd(const int64_t fd, const char ** /*resolved_str*/, const param_fmt fmt) {
 	//
 	// Add the fd number
@@ -586,24 +593,14 @@ char *sinsp_evt::render_fd(const int64_t fd, const char ** /*resolved_str*/, con
 
 			char typestr[3] = {fmt & PF_SIMPLE ? static_cast<char>(0) : tch, ipprotoch, 0};
 
-			//
-			// Make sure we remove invalid characters from the resolved name
-			//
-			std::string sanitized_name_storage;
-			const auto sanitized_name = sanitize_string(fdinfo->m_name, sanitized_name_storage);
-
-			//
-			// Make sure the string will fit
-			//
-			if(sanitized_name.size() >= m_resolved_paramstr_storage.size()) {
-				m_resolved_paramstr_storage.resize(sanitized_name.size() + 1);
-			}
-
+			// `+ 2` accounts for '<' and '>', `+1` accounts for trailing '\0' (see sprintf format).
+			const auto size_to_request = (sizeof(typestr) - 1) + 2 + fdinfo->m_name.size() + 1;
+			ensure_storage_size(m_resolved_paramstr_storage, size_to_request);
 			snprintf(&m_resolved_paramstr_storage[0],
 			         m_resolved_paramstr_storage.size(),
 			         "<%s>%s",
 			         typestr,
-			         sanitized_name.data());
+			         fdinfo->m_name.c_str());
 		}
 	} else if(fd == PPM_AT_FDCWD) {
 		//
