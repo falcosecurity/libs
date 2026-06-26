@@ -184,10 +184,8 @@ private:
 	                                                    const uint8_t* exit_addr_data,
 	                                                    const uint8_t* enter_addr_data,
 	                                                    const char*& dpath);
-	// Encode a fd name by leveraging the provided unix tuple components. It uses `evt`'s underlying
-	// storage as fd name storage.
-	static inline const char* encode_unix_tuple_fd_name(sinsp_evt& evt,
-	                                                    uint64_t src,
+	// Encode a fd name by leveraging the provided unix tuple components and return it.
+	static inline std::string encode_unix_tuple_fd_name(uint64_t src,
 	                                                    uint64_t dst,
 	                                                    const char* path);
 

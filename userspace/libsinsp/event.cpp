@@ -657,6 +657,8 @@ std::string sinsp_evt::get_base_dir(const uint32_t id, sinsp_threadinfo *tinfo) 
 	return tinfo->get_path_for_dir_fd(dirfd);
 }
 
+constexpr size_t MAX_UINT64_HEX_DIGITS = 16;
+
 const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, param_fmt fmt) {
 	char *prfmt = nullptr;
 	const ppm_param_info *param_info = nullptr;
@@ -1020,25 +1022,23 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "INVALID IPv6");
 		} else if(sockfamily == PPM_AF_UNIX) {
 			ASSERT(param->len() > 17);
-
-			//
-			// Sanitize the file string.
-			//
-			std::string sanitized_path_storage;
-			const auto sanitized_path =
-			        sanitize_string(reinterpret_cast<const char *>(param_data) + 17,
-			                        sanitized_path_storage);
+			const auto *path = reinterpret_cast<const char *>(param_data) + 17;
 
 			uint64_t src, dst;
 			memcpy(&src, param_data + 1, sizeof(uint64_t));
 			memcpy(&dst, param_data + 9, sizeof(uint64_t));
 
+			const auto path_len = reinterpret_cast<const char *>(param_data) + param->len() - path;
+			// `+ 3` accounts for `->` and a space ' ', `+ 1` accounts for trailing '\0' (see printf
+			// format below).
+			const auto size_to_request = MAX_UINT64_HEX_DIGITS * 2 + 3 + path_len + 1;
+			ensure_storage_size(m_paramstr_storage, size_to_request);
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
 			         "%" PRIx64 "->%" PRIx64 " %s",
 			         src,
 			         dst,
-			         sanitized_path.data());
+			         path);
 		} else {
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "family %d", sockfamily);
 		}
