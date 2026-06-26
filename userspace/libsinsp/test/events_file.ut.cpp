@@ -40,7 +40,7 @@ limitations under the License.
 	ASSERT_EQ(x->m_name_raw, "");        \
 	ASSERT_EQ(x->m_oldname, "");         \
 	ASSERT_EQ(x->get_device(), 0);       \
-	ASSERT_EQ(x->tostring_clean(), "");  \
+	ASSERT_EQ(x->tostring(), "");        \
 	ASSERT_EQ(x->get_device_major(), 0); \
 	ASSERT_EQ(x->get_device_minor(), 0); \
 	ASSERT_FALSE(x->is_unix_socket());   \

@@ -415,8 +415,8 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 
 			if(ti->m_tid == ptid) {
 				sinsp_fdinfo* fdi = ti->get_fd(prfd);
-				if(fdi && fdi->tostring_clean().find(FILENAME) != std::string::npos) {
-					EXPECT_EQ(parent_res, res) << "filename: " << fdi->tostring_clean() << std::endl
+				if(fdi && fdi->tostring().find(FILENAME) != std::string::npos) {
+					EXPECT_EQ(parent_res, res) << "filename: " << fdi->tostring() << std::endl
 					                           << "res: " << res << std::endl
 					                           << "parent tid: " << ptid << std::endl
 					                           << "child  tid: " << child_tid << std::endl

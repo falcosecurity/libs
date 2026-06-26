@@ -274,13 +274,8 @@ libsinsp::state::static_field_infos sinsp_fdinfo::get_static_fields() {
 	return ret;
 }
 
-std::string sinsp_fdinfo::tostring_clean() const {
-	std::string sanitized_name_storage;
-	const auto sanitized_name = sanitize_string(m_name, sanitized_name_storage);
-	if(sanitized_name.data() == m_name.data()) {
-		return m_name;
-	}
-	return sanitized_name_storage;
+std::string sinsp_fdinfo::tostring() const {
+	return m_name;
 }
 
 void sinsp_fdinfo::add_filename_raw(std::string_view rawpath) {
