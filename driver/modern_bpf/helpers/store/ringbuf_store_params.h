@@ -139,13 +139,24 @@ static __always_inline uint32_t ringbuf__reserve_space(struct ringbuf_struct *ri
  * @param ringbuf pointer to the `ringbuf_struct`.
  */
 static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *ringbuf) {
-	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)ringbuf->data;
 	uint8_t nparams = maps__get_event_num_params(ringbuf->event_type);
+
+	/*
+	 * Avoid byte-by-byte stores when writing packed header fields directly.
+	 *
+	 * The ringbuf data pointer is expected to be naturally aligned.
+	 * Inform the compiler about 8-byte alignment so clang can emit
+	 * full-width stores (u64/u32/u16) instead of byte-by-byte stores,
+	 * without changing the packed ABI layout.
+	 */
+	void *aligned_ptr = __builtin_assume_aligned(ringbuf->data, 8);
+	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)aligned_ptr;
+
 	hdr->ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
 	hdr->tid = bpf_get_current_pid_tgid() & 0xffffffff;
+	hdr->len = ringbuf->reserved_event_size;
 	hdr->type = ringbuf->event_type;
 	hdr->nparams = nparams;
-	hdr->len = ringbuf->reserved_event_size;
 
 	ringbuf->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
 	ringbuf->lengths_pos = sizeof(struct ppm_evt_hdr);
