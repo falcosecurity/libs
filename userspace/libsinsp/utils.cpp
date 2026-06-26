@@ -601,14 +601,12 @@ static inline void rewind_to_parent_path(const char* targetbase,
 //                following parent directories
 //  - target_end: exclusive end of the output buffer (target + buffer_size)
 //  - path: the path to copy
-//  - path_end: exclusive end of the source buffer (path + path_len)
 //
-static inline void copy_and_sanitize_path(char* target,
-                                          char* targetbase,
-                                          char* target_end,
-                                          const char* path,
-                                          const char* path_end,
-                                          char separator) {
+static inline void copy_and_normalize_path(char* target,
+                                           char* targetbase,
+                                           char* target_end,
+                                           const char* path,
+                                           char separator) {
 	char* tc = target;
 	const char* pc = path;
 	const bool empty_base = target == targetbase;
@@ -628,97 +626,58 @@ static inline void copy_and_sanitize_path(char* target,
 			return;
 		}
 
-		if(const int seq_len = utf8_seq_len(reinterpret_cast<const unsigned char*>(pc),
-		                                    reinterpret_cast<const unsigned char*>(path_end));
-		   seq_len > 1) {
-			// Valid multibyte printable UTF-8 sequence. Copy all bytes as-is.
-			if(tc + seq_len >= target_end) {
-				*tc = 0;
-				return;
-			}
-			memcpy(tc, pc, static_cast<size_t>(seq_len));
-			tc += seq_len;
-			pc += seq_len;
-		} else if(seq_len < 0) {
-			// Invalid, broken, or valid-but-non-printable UTF-8 sequence `-seq_len` long. Replace
-			// with `U+FFFD` (EF BF BD) and advance by the number of bytes that form the sequence
-			// (i.e.: `-seq_len`).
-			if(tc + 3 >= target_end) {
-				*tc = 0;
-				return;
-			}
-			memcpy(tc, "\xEF\xBF\xBD", 3);
-			tc += 3;
-			pc += -seq_len;
-		} else {
-			// Printable ASCII (`seqlen == 1`). Apply path-aware logic.
-
-			// If path begins with '.' or '.' is the first char after a '/'
+		// If path begins with '.' or '.' is the first char after a '/'
+		if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator)) {
 			//
-			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator)) {
-				//
-				// '../', rewind to the previous separator
-				//
-				if(*(pc + 1) == '.' && *(pc + 2) == separator) {
-					rewind_to_parent_path(targetbase, &tc, &pc, 3);
+			// '../', rewind to the previous separator
+			//
+			if(*(pc + 1) == '.' && *(pc + 2) == separator) {
+				rewind_to_parent_path(targetbase, &tc, &pc, 3);
+			}
+			//
+			// '..', with no separator.
+			// This is valid if we are at the end of the string, and in that case we rewind.
+			//
+			else if(*(pc + 1) == '.' && *(pc + 2) == 0) {
+				rewind_to_parent_path(targetbase, &tc, &pc, 2);
+			}
+			//
+			// './', just skip it
+			//
+			else if(*(pc + 1) == separator) {
+				pc += 2;
+			}
+			//
+			// '.', with no separator.
+			// This is valid if we are at the end of the string, and in that case we rewind.
+			//
+			else if(*(pc + 1) == 0) {
+				pc++;
+			}
+			//
+			// Otherwise, we leave the string intact.
+			//
+			else {
+				if(tc + 1 >= target_end) {
+					*tc = 0;
+					return;
 				}
-				//
-				// '..', with no separator.
-				// This is valid if we are at the end of the string, and in that case we rewind.
-				//
-				else if(*(pc + 1) == '.' && *(pc + 2) == 0) {
-					rewind_to_parent_path(targetbase, &tc, &pc, 2);
-				}
-				//
-				// './', just skip it
-				//
-				else if(*(pc + 1) == separator) {
-					pc += 2;
-				}
-				//
-				// '.', with no separator.
-				// This is valid if we are at the end of the string, and in that case we rewind.
-				//
-				else if(*(pc + 1) == 0) {
-					pc++;
-				}
-				//
-				// Otherwise, we leave the string intact.
-				//
-				else {
-					if(tc + 1 >= target_end) {
-						*tc = 0;
-						return;
-					}
-					*tc = *pc;
-					pc++;
-					tc++;
-				}
-			} else if(*pc == separator) {
-				//
-				// separator:
-				// * if the last char is already a separator, skip it
-				// * if we are back at targetbase but targetbase was not empty before, it means we
-				//   fully rewinded back to targetbase and the string is now empty. Skip separator.
-				//   Example: "/foo/../a" -> "/a" BUT "foo/../a" -> "a"
-				//   -> Otherwise: "foo/../a" -> "/a"
-				//
-				if((tc > targetbase && *(tc - 1) == separator) ||
-				   (tc == targetbase && !empty_base)) {
-					pc++;
-				} else {
-					if(tc + 1 >= target_end) {
-						*tc = 0;
-						return;
-					}
-					*tc = *pc;
-					tc++;
-					pc++;
-				}
+				*tc = *pc;
+				pc++;
+				tc++;
+			}
+		} else if(*pc == separator) {
+			//
+			// separator:
+			// * if the last char is already a separator, skip it
+			// * if we are back at targetbase but targetbase was not empty before, it means we
+			//   fully rewinded back to targetbase and the string is now empty. Skip separator.
+			//   Example: "/foo/../a" -> "/a" BUT "foo/../a" -> "a"
+			//   -> Otherwise: "foo/../a" -> "/a"
+			//
+			if((tc > targetbase && *(tc - 1) == separator) || (tc == targetbase && !empty_base)) {
+				pc++;
 			} else {
-				//
-				// Normal char, copy it
-				//
 				if(tc + 1 >= target_end) {
 					*tc = 0;
 					return;
@@ -727,6 +686,17 @@ static inline void copy_and_sanitize_path(char* target,
 				tc++;
 				pc++;
 			}
+		} else {
+			//
+			// Normal char, copy it
+			//
+			if(tc + 1 >= target_end) {
+				*tc = 0;
+				return;
+			}
+			*tc = *pc;
+			tc++;
+			pc++;
 		}
 	}
 }
@@ -734,7 +704,7 @@ static inline void copy_and_sanitize_path(char* target,
 /*
  * Return false if path2 is an absolute path.
  * path1 MUST be '/' terminated.
- * path1 is not sanitized.
+ * path1 is not normalized.
  * If path2 is absolute, we only account for it.
  */
 static inline bool concatenate_paths_(char* target,
@@ -743,24 +713,19 @@ static inline bool concatenate_paths_(char* target,
                                       uint32_t len1,
                                       const char* path2,
                                       uint32_t len2) {
-	// note: this is a loose check, as `len2` doesn't account any replacement character (3 bytes
-	// long) that would replace any `path2`'s UTF-8 invalid, broken or non-printable sequence
-	// (1-to-4 bytes long) during sanitization. Keep this loose and truncate the final string in
-	// case it becomes longer than `targetlen` during sanitization.
-	if(targetlen < (len1 + len2 + 1)) {
+	if(targetlen < len1 + len2 + 1) {
 		strlcpy(target, "/DIR_TOO_LONG/FILENAME_TOO_LONG", targetlen);
 		return false;
 	}
 
 	char* target_end = target + targetlen;
-	const char* path2_end = path2 + len2;
 	if(len2 != 0 && path2[0] != '/') {
 		memcpy(target, path1, len1);
-		copy_and_sanitize_path(target + len1, target, target_end, path2, path2_end, '/');
+		copy_and_normalize_path(target + len1, target, target_end, path2, '/');
 		return true;
 	} else {
 		target[0] = 0;
-		copy_and_sanitize_path(target, target, target_end, path2, path2_end, '/');
+		copy_and_normalize_path(target, target, target_end, path2, '/');
 		return false;
 	}
 }

@@ -26,7 +26,7 @@ TEST(sinsp_utils_test, concatenate_paths) {
 
 	// PLEASE NOTE:
 	// * current impl supports UTF-8 encoding.
-	// * current impl does not sanitize path1
+	// * current impl does not normalize path1
 	// * current impl expects path1 to end with '/'
 	// * current impl skips path1 altogether if path2 is absolute
 
@@ -69,12 +69,12 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	path1 = "foo/";
 	path2 = "..//a";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("a", res);  // path2 has been sanitized, plus we moved up a folder because of ".."
+	EXPECT_EQ("a", res);  // path2 has been normalized, plus we moved up a folder because of ".."
 
 	path1 = "/foo/";
 	path2 = "..//a";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/a", res);  // path2 has been sanitized, plus we moved up a folder because of ".."
+	EXPECT_EQ("/a", res);  // path2 has been normalized, plus we moved up a folder because of ".."
 
 	path1 = "heolo";
 	path2 = "w////////////..//////.////////r.|";
@@ -166,7 +166,7 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("app/custom/term", res);
 
-	// We don't support sanitizing path1
+	// We don't support normalizing path1
 	path1 = "app/////";
 	path2 = "custom////term";
 	res = sinsp_utils::concatenate_paths(path1, path2);

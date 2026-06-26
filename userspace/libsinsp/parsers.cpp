@@ -1641,11 +1641,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 					fullpath = "<NA>";
 				}
 				/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just
-				 * need to sanitize it.
+				 * need to normalize it.
 				 */
 				else if(flags & PPM_EXVAT_AT_EMPTY_PATH) {
 					/* In this case `sdir` will always be an absolute path.
-					 * concatenate_paths takes care of resolving the path
+					 * concatenate_paths takes care of normalizing the path.
 					 */
 					fullpath = sinsp_utils::concatenate_paths("", sdir);
 
