@@ -2431,25 +2431,20 @@ void sinsp_parser::resolve_connect_unix_destination(const uint8_t *tuple_data,
 	dpath = reinterpret_cast<const char *>(packed::un_sockaddr::dpath(enter_addr_data));
 }
 
-const char *sinsp_parser::encode_unix_tuple_fd_name(sinsp_evt &evt,
-                                                    const uint64_t src,
+std::string sinsp_parser::encode_unix_tuple_fd_name(const uint64_t src,
                                                     const uint64_t dst,
                                                     const char *path) {
-	// Sanitize the file string.
-	std::string sanitized_path_storage;
-	const auto sanitized_path = sanitize_string(path, sanitized_path_storage);
-
-	auto &storage = evt.get_paramstr_storage();
-
-	// Taken from `sinsp_evt::get_param_as_str()` implementation.
-	snprintf(&storage[0],
-	         storage.size(),
-	         "%" PRIx64 "->%" PRIx64 " %s",
-	         src,
-	         dst,
-	         sanitized_path.data());
-
-	return &storage[0];
+	// Inspired by `sinsp_evt::get_param_as_str()` implementation. Notice that
+	// `sinsp_utils::is_socktuple_valid()` ensures that path is NUL-terminated.
+	constexpr size_t MAX_UINT64_HEX_DIGITS = 16;
+	// `+ 3` accounts for `->` and a space ' ', `+ 1` accounts for trailing '\0' (see printf format
+	// below).
+	const auto name_len = MAX_UINT64_HEX_DIGITS * 2 + 3 + strlen(path) + 1;
+	std::string name(name_len, '\0');
+	const auto written_bytes =
+	        snprintf(name.data(), name.size(), "%" PRIx64 "->%" PRIx64 " %s", src, dst, path);
+	name.resize(written_bytes < 0 ? 0 : std::min<size_t>(written_bytes, name_len));
+	return name;
 }
 
 inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
@@ -2542,7 +2537,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 		evt.get_fd_info()->set_unix_info(exit_tuple_data);
 		const auto source = evt.get_fd_info()->m_sockinfo.m_unixinfo.m_fields.m_source;
 		const auto dest = evt.get_fd_info()->m_sockinfo.m_unixinfo.m_fields.m_dest;
-		evt.get_fd_info()->m_name = encode_unix_tuple_fd_name(evt, source, dest, dpath);
+		evt.get_fd_info()->m_name = encode_unix_tuple_fd_name(source, dest, dpath);
 	}
 
 	if(evt.get_fd_info()->is_role_none()) {
