@@ -15,6 +15,8 @@
 
 message(STATUS "Libsinsp unit e2e tests build enabled")
 
+include(zlib)
+
 find_package(GTest REQUIRED)
 if(NOT DEFINED DRIVER_NAME)
 	set(DRIVER_NAME "scap")
@@ -51,12 +53,13 @@ add_executable(
 	unix_udp_client_server.cpp
 )
 
-add_dependencies(libsinsp_e2e_tests driver)
+add_dependencies(libsinsp_e2e_tests driver zlib)
 
 target_link_libraries(libsinsp_e2e_tests sinsp GTest::gtest GTest::gtest_main pthread)
 
 target_include_directories(
 	libsinsp_e2e_tests PRIVATE ${PROJECT_BINARY_DIR}/driver/src "${CMAKE_CURRENT_BINARY_DIR}"
+							   ${ZLIB_INCLUDE}
 )
 
 add_executable(test_helper test_helper.cpp)

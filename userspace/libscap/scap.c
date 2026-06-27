@@ -403,6 +403,22 @@ int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
 	return scap_err_opnotsup(handle->m_lasterr);
 }
 
+int32_t scap_set_kern_full_path_resolution(scap_t* handle, bool enabled) {
+	if(!handle) {
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_vtable) {
+		return handle->m_vtable->configure(handle->m_engine,
+		                                   SCAP_KERN_FULLPATH_RESOLUTION,
+		                                   enabled,
+		                                   0);
+	}
+
+	scap_err_opnotsup(handle->m_lasterr);
+	return SCAP_FAILURE;
+}
+
 int32_t scap_enable_dynamic_snaplen(scap_t* handle) {
 	if(!handle) {
 		return SCAP_FAILURE;

@@ -502,6 +502,7 @@ static int ppm_open(struct inode *inode, struct file *filp) {
 	consumer->is_dropping = 0;
 	consumer->do_dynamic_snaplen = false;
 	consumer->drop_failed = false;
+	consumer->do_full_path_resolution = true;
 	consumer->need_to_insert_drop_e = 0;
 	consumer->need_to_insert_drop_x = 0;
 	consumer->fullcapture_port_range_start = 0;
@@ -1097,6 +1098,18 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	}
 	case PPM_IOCTL_ENABLE_DROPFAILED: {
 		consumer->drop_failed = true;
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_DISABLE_FULLPATH: {
+		consumer->do_full_path_resolution = false;
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_ENABLE_FULLPATH: {
+		consumer->do_full_path_resolution = true;
 
 		ret = 0;
 		goto cleanup_ioctl;
