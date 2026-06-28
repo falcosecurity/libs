@@ -547,6 +547,7 @@ void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable) {
 	}
 }
 
+#if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_MODERN_BPF)
 static void fill_ppm_sc_of_interest(scap_open_args* oargs,
                                     const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest) {
 	for(int i = 0; i < PPM_SC_MAX; i++) {
@@ -558,6 +559,7 @@ static void fill_ppm_sc_of_interest(scap_open_args* oargs,
 		}
 	}
 }
+#endif
 
 void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim,
                       const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest) {

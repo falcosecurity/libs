@@ -880,25 +880,32 @@ void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns
 		Time = (sec + thiszone) - s;
 		tm = gmtime(&Time);
 		if(!tm) {
-			bufsize = sprintf(buf, "<date error> ");
+			bufsize = snprintf(buf, sizeof(buf), "<date error> ");
 		} else {
-			bufsize = sprintf(buf,
-			                  "%04d-%02d-%02d ",
-			                  tm->tm_year + 1900,
-			                  tm->tm_mon + 1,
-			                  tm->tm_mday);
+			bufsize = snprintf(buf,
+			                   sizeof(buf),
+			                   "%04d-%02d-%02d ",
+			                   tm->tm_year + 1900,
+			                   tm->tm_mon + 1,
+			                   tm->tm_mday);
 		}
 	}
 
 	if(ns) {
-		sprintf(buf + bufsize,
-		        "%02d:%02d:%02d.%09u",
-		        s / 3600,
-		        (s % 3600) / 60,
-		        s % 60,
-		        (unsigned)nsec);
+		snprintf(buf + bufsize,
+		         sizeof(buf) - bufsize,
+		         "%02d:%02d:%02d.%09u",
+		         s / 3600,
+		         (s % 3600) / 60,
+		         s % 60,
+		         (unsigned)nsec);
 	} else {
-		sprintf(buf + bufsize, "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60);
+		snprintf(buf + bufsize,
+		         sizeof(buf) - bufsize,
+		         "%02d:%02d:%02d",
+		         s / 3600,
+		         (s % 3600) / 60,
+		         s % 60);
 	}
 
 	*res = buf;
@@ -917,7 +924,7 @@ void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res) {
 	}
 
 	*res = buf;
-	if(sprintf(buf, ".%09u", (unsigned)ns) < 0) {
+	if(snprintf(buf, sizeof(buf), ".%09u", (unsigned)ns) < 0) {
 		*res = fmt;
 		return;
 	}
