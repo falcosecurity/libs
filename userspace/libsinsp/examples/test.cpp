@@ -564,8 +564,7 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		ppm_sc = libsinsp::events::sinsp_repair_state_sc_set(events_sc_codes);
 		if(!ppm_sc.empty()) {
 			auto events_sc_names = libsinsp::events::sc_set_to_sc_names(ppm_sc);
-			printf("-- Activated (%" PRIu64
-			       ") ppm sc names in kernel using `sinsp_repair_state_sc_set` "
+			printf("-- Activated (%zu) ppm sc names in kernel using `sinsp_repair_state_sc_set` "
 			       "enforcement: %s\n",
 			       events_sc_names.size(),
 			       concat_set_in_order(events_sc_names).c_str());
@@ -582,8 +581,7 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		ppm_sc = ppm_sc.merge(events_sc_codes);
 		if(!ppm_sc.empty()) {
 			auto events_sc_names = libsinsp::events::sc_set_to_sc_names(ppm_sc);
-			printf("-- Activated (%" PRIu64
-			       ") ppm sc names in kernel using `sinsp_state_sc_set` "
+			printf("-- Activated (%zu) ppm sc names in kernel using `sinsp_state_sc_set` "
 			       "enforcement: %s\n",
 			       events_sc_names.size(),
 			       concat_set_in_order(events_sc_names).c_str());
@@ -758,7 +756,7 @@ int main(int argc, char** argv) {
 	auto events_sc_codes = extract_filter_sc_codes(inspector);
 	if(!events_sc_codes.empty()) {
 		auto events_sc_names = libsinsp::events::sc_set_to_sc_names(events_sc_codes);
-		printf("-- Filter AST (%" PRIu64 ") ppm sc names: %s\n",
+		printf("-- Filter AST (%zu) ppm sc names: %s\n",
 		       events_sc_codes.size(),
 		       concat_set_in_order(events_sc_names).c_str());
 	}
