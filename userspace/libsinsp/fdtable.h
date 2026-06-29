@@ -81,6 +81,12 @@ public:
 	void retain(const fdtable_const_visitor_t& callback) {
 		for(auto it = m_table.begin(); it != m_table.end();) {
 			if(!callback(it->first, *it->second)) {
+				// Invalidate the cache if we are removing the cached fd, otherwise a
+				// later lookup would return a dangling reference to the removed entry
+				// (the same hazard erase() guards against).
+				if(it->first == m_last_accessed_fd) {
+					reset_cache();
+				}
 				it = m_table.erase(it);
 			} else {
 				++it;
