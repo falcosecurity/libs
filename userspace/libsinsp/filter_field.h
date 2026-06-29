@@ -130,6 +130,8 @@ public:
 		FL_NONE = 0,
 		FL_HIDDEN =
 		        (1 << 0),  ///< This filter check class won't be shown by fields/filter listings.
+		FL_GENERIC = (1 << 1),  ///< This filter check class applies to all event sources (not
+		                        ///< source-specific).
 	};
 
 	std::string m_name;       ///< Field class name.

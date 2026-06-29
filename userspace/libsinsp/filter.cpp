@@ -840,6 +840,7 @@ sinsp_filter_factory::check_infos_to_fieldclass_infos(
 		cinfo.name = fci->m_name;
 		cinfo.desc = fci->m_desc;
 		cinfo.shortdesc = fci->m_shortdesc;
+		cinfo.is_generic = static_cast<bool>(fci->m_flags & filter_check_info::FL_GENERIC);
 
 		for(auto fld = fci->m_fields; fld != fci->m_fields + fci->m_nfields; ++fld) {
 			// If a field is only used to organize events,
