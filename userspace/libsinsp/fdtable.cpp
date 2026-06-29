@@ -141,6 +141,7 @@ bool sinsp_fdtable::erase(int64_t fd) {
 
 void sinsp_fdtable::clear() {
 	m_table.clear();
+	reset_cache();
 }
 
 size_t sinsp_fdtable::size() const {
@@ -148,6 +149,12 @@ size_t sinsp_fdtable::size() const {
 }
 
 void sinsp_fdtable::reset_cache() {
+	// Only the cache key is cleared here; m_last_accessed_fdinfo is intentionally
+	// left untouched. Cache validity is keyed solely on m_last_accessed_fd (see
+	// find_ref()), so clearing the key is enough to disarm the cache. Do not null
+	// the shared_ptr to "tidy up": besides being unnecessary, it could free an
+	// fdinfo that a raw pointer (e.g. sinsp_evt::m_fdinfo) obtained earlier in the
+	// same event still points at, which is why erase() leaves it untouched too.
 	m_last_accessed_fd = -1;
 }
 
