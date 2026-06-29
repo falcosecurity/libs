@@ -148,7 +148,7 @@ sinsp_filter_check_gen_event::sinsp_filter_check_gen_event() {
 	        sizeof(sinsp_filter_check_gen_event_fields) /
 	                sizeof(sinsp_filter_check_gen_event_fields[0]),
 	        sinsp_filter_check_gen_event_fields,
-	        filter_check_info::FL_NONE,
+	        filter_check_info::FL_GENERIC,
 	};
 	m_info = &s_field_infos;
 	memset(&m_val, 0, sizeof(m_val));

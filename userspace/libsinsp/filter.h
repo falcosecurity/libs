@@ -146,6 +146,9 @@ public:
 
 		std::list<filter_field_info> fields;
 
+		// True if this field class applies to all event sources (not tied to any specific one).
+		bool is_generic = false;
+
 		// Print a terminal-friendly representation of this
 		// field class, including name, description, supported
 		// event sources, and the name and description of each field.
