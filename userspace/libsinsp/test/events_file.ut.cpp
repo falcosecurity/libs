@@ -75,6 +75,27 @@ TEST_F(sinsp_with_test_input, file_open) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
 }
 
+TEST_F(sinsp_with_test_input, file_open_invalid_utf8) {
+	add_default_init_thread();
+
+	open_inspector();
+
+	const auto evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      (uint64_t)3,
+	                                      "/tmp/bad\xff",
+	                                      (uint32_t)PPM_O_RDWR,
+	                                      (uint32_t)0,
+	                                      (uint32_t)5,
+	                                      (uint64_t)123);
+
+	// Check that invalid UTF-8 bytes in a path reach fd.name and evt.arg.name as they are.
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/bad\xff");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "/tmp/bad\xff");
+}
+
 TEST_F(sinsp_with_test_input, dup_dup2_dup3) {
 	add_default_init_thread();
 
