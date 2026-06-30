@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <libsinsp/filter/escaping.h>
 #include <libsinsp/sinsp_exception.h>
+#include <charconv>
 
 namespace libsinsp {
 namespace filter {
@@ -67,6 +68,10 @@ std::string escape_str(const std::string& str) {
 		case '\'':
 			should_escape = true;
 			res += "'";
+			break;
+		case '\0':
+			should_escape = true;
+			res += '\0';
 			break;
 		default:
 			res += str[i];
@@ -131,8 +136,21 @@ std::string unescape_str(const std::string& str) {
 				}
 				res += '\'';
 				break;
-			case 'x':
-				// todo(jasondellaluce): support hex num escaping (not needed for now)
+			case 'x': {
+				if(i + 2 >= len) {
+					throw sinsp_exception("truncated hex char escape sequence");
+				}
+				const char* const hex_digits = str.data() + i + 1;
+				unsigned char ch = 0;
+				if(const auto [ptr, ec] = std::from_chars(hex_digits, hex_digits + 2, ch, 16);
+				   ec != std::errc{} || ptr != hex_digits + 2) {
+					throw sinsp_exception("invalid hex char escape sequence: " +
+					                      str.substr(i + 1, 2));
+				}
+				res += static_cast<char>(ch);
+				i += 2;
+				break;
+			}
 			default:
 				throw sinsp_exception("unsupported string escape sequence: \\" +
 				                      std::string(1, str[i]));

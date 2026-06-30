@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, bcontains_bstartswith) {
+TEST_F(sinsp_with_test_input, bytebuf_bcontains_bstartswith) {
 	add_default_init_thread();
 
 	open_inspector();
@@ -57,4 +57,27 @@ TEST_F(sinsp_with_test_input, bcontains_bstartswith) {
 	EXPECT_FALSE(eval_filter(evt, "evt.buffer bstartswith 656c6C"));
 	EXPECT_FALSE(eval_filter(evt, "evt.buffer bstartswith 20"));
 	EXPECT_FALSE(eval_filter(evt, "evt.buffer bstartswith 656c6cAA"));
+}
+
+TEST_F(sinsp_with_test_input, bytebuf_matches_nul) {
+	add_default_init_thread();
+
+	open_inspector();
+
+	uint8_t read_buf[] = {'a', '\0', 'b'};
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_READ_X,
+	                                      4,
+	                                      (int64_t)0,
+	                                      scap_const_sized_buffer{read_buf, sizeof(read_buf)},
+	                                      (int64_t)0,
+	                                      (uint32_t)0);
+
+	EXPECT_TRUE(eval_filter(evt, "evt.buffer = \"a\\x00b\""));
+	EXPECT_FALSE(eval_filter(evt, "evt.buffer = \"ab\""));
+	EXPECT_TRUE(eval_filter(evt, "evt.buffer bcontains 610062"));
+	EXPECT_FALSE(eval_filter(evt, "evt.buffer bcontains 610162"));
+	EXPECT_TRUE(eval_filter(evt, "evt.buffer bstartswith 6100"));
+	EXPECT_FALSE(eval_filter(evt, "evt.buffer bstartswith 6101"));
 }

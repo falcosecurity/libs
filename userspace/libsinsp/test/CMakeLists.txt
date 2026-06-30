@@ -130,7 +130,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_fields_info.ut.cpp
 	filter_escaping.ut.cpp
 	filter_parser.ut.cpp
-	filter_op_bcontains.ut.cpp
+	filter_op_bytebuf.ut.cpp
 	filter_op_contains.ut.cpp
 	filter_op_pmatch.ut.cpp
 	filter_op_net_compare.ut.cpp
