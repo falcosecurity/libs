@@ -877,9 +877,10 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 	return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
 }
 
-static inline filter_value_t craft_filter_value(ppm_param_type type,
-                                                const void* value,
-                                                uint32_t len) {
+inline filter_value_t sinsp_filter_check::craft_filter_value(const ppm_param_type type,
+                                                             const void* value,
+                                                             uint32_t len,
+                                                             const cmpop op) {
 	// For raw strings, the length may not be set. So we do a strlen to find it.
 	switch(type) {
 	case PT_CHARBUF:
@@ -898,7 +899,18 @@ static inline filter_value_t craft_filter_value(ppm_param_type type,
 	default:
 		break;
 	}
-	return filter_value_t{(uint8_t*)value, len};
+
+	// Only values supplied to regex require sanitization.
+	if(op != CO_REGEX) {
+		return filter_value_t{(uint8_t*)value, len};
+	}
+
+	const std::string_view str_to_sanitize{static_cast<const char*>(value), len};
+	auto sanitized_str =
+	        sanitize_string_with_lazy_storage(str_to_sanitize, m_sanitized_str_storage);
+	auto ptr = reinterpret_cast<unsigned char*>(const_cast<char*>(sanitized_str.data()));
+	auto size = static_cast<uint32_t>(sanitized_str.size());
+	return filter_value_t{ptr, size};
 }
 
 // Certain types only support equality-based comparison in flt_compare.
@@ -915,6 +927,23 @@ static bool flt_type_is_eq_only(ppm_param_type type) {
 	default:
 		return false;
 	}
+}
+
+bool sinsp_filter_check::matches_rhs_regex(const filter_value_t& item,
+                                           const uint16_t regex_idx) const {
+	if(m_val_regexes.empty() || regex_idx >= m_val_regexes.size()) {
+		ASSERT(false);
+		return false;
+	}
+
+	const auto& regex = m_val_regexes[regex_idx];
+	if(!regex) {
+		ASSERT(false);
+		return false;
+	}
+
+	const re2::StringPiece text(reinterpret_cast<const char*>(item.first), item.second);
+	return regex->Match(text, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
 }
 
 bool sinsp_filter_check::compare_rhs(comparator cmp,
@@ -943,7 +972,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 			}
 			return false;
 		} else {
-			auto item = craft_filter_value(type, operand1, op1_len);
+			const auto item = craft_filter_value(type, operand1, op1_len, cmp.op);
 
 			if(cmp.op == CO_IN || cmp.op == CO_INTERSECTS) {
 				// CO_INTERSECTS is really more interesting when a filtercheck can extract
@@ -972,13 +1001,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 		case PT_CHARBUF:
 		case PT_FSPATH:
 		case PT_FSRELPATH:
-			if(!m_val_regexes.empty() && m_val_regexes[0]) {
-				auto item = craft_filter_value(type, operand1, op1_len);
-				re2::StringPiece s(reinterpret_cast<const char*>(item.first), item.second);
-				return m_val_regexes[0]
-				        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
-			}
-			// fallthrough
+			return matches_rhs_regex(craft_filter_value(type, operand1, op1_len, cmp.op), 0);
 		default:
 			ASSERT(false);
 			return false;
@@ -994,9 +1017,7 @@ bool sinsp_filter_check::matches_rhs_elem(const filter_value_t& item,
                                           ppm_param_type type) {
 	// Returns true if item matches RHS element i.
 	if(cmp.op == CO_REGEX) {
-		re2::StringPiece s(reinterpret_cast<const char*>(item.first), item.second);
-		return m_val_regexes[i]
-		        ->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
+		return matches_rhs_regex(item, i);
 	}
 	return ::flt_compare(cmp,
 	                     type,
@@ -1078,7 +1099,7 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 
 	ASSERT(values.size() == 1);
 	const auto& [value_ptr, value_len] = values[0];
-	const auto filter_value = craft_filter_value(type, value_ptr, value_len);
+	const auto filter_value = craft_filter_value(type, value_ptr, value_len, cmp.op);
 	switch(cmp.mod) {
 	case CMPOP_MOD_ONEOF:
 		return matches_one_rhs(filter_value, n_rhs, cmp, type);

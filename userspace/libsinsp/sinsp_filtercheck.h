@@ -226,6 +226,8 @@ protected:
 	bool compare_rhs_with_mod(comparator cmp,
 	                          ppm_param_type type,
 	                          std::vector<extract_value_t>& values);
+	[[nodiscard]] bool matches_rhs_regex(const filter_value_t& item,
+	                                     const uint16_t regex_idx) const;
 	bool matches_rhs_elem(const filter_value_t& item,
 	                      uint16_t i,
 	                      comparator cmp,
@@ -306,6 +308,17 @@ protected:
 	}
 
 private:
+	// Storage for sanitized strings, lazily allocated on the first encountered invalid string.
+	// This is not a plain `std::string` to save space: `std::unique_ptr` adds 8 bytes to the filter
+	// check memory footprint on 64 bits platforms, while `std::string` adds 32 bytes. The smaller
+	// the objects are, the greater is the number of the ones that can fit in cache. The additional
+	// memory cost is only paid (on the heap) if the single filter check ever encounters an invalid
+	// string.
+	std::unique_ptr<std::string> m_sanitized_str_storage;
+	inline filter_value_t craft_filter_value(ppm_param_type type,
+	                                         const void* value,
+	                                         uint32_t len,
+	                                         cmpop op);
 	//
 	// Instead of populating the filter check values with const values extracted at
 	// filter compile time, it populates the filter check values with values extracted
