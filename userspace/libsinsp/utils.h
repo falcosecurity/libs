@@ -379,6 +379,46 @@ inline void append_sanitized_string(std::string& storage,
 	return storage;
 }
 
+// Sanitizes `str`, returning a string view of its sanitized version. It returns:
+// - `str` itself, if already sanitized
+// - a string view of `*storage`, if `str` needs sanitization. In this case a sanitized version of
+// `str` is written into `*storage`, reusing its capacity. If `storage` hasn't been allocated yet,
+// it is allocated internally.
+// `*storage` and `str` must not alias the same memory region.
+[[nodiscard]] inline std::string_view sanitize_string_with_lazy_storage(
+        const std::string_view str,
+        std::unique_ptr<std::string>& storage) {
+	// If `storage` points to any allocated storage, assert `*storage` and `str` don't alias the
+	// same memory region.
+	ASSERT(!storage ||
+	       reinterpret_cast<uintptr_t>(str.data()) + str.size() <=
+	               reinterpret_cast<uintptr_t>(storage->data()) ||
+	       reinterpret_cast<uintptr_t>(storage->data()) + storage->capacity() <=
+	               reinterpret_cast<uintptr_t>(str.data()));
+
+	const auto* const ptr = reinterpret_cast<const unsigned char*>(str.data());
+	const auto* const end_ptr = ptr + str.size();
+
+	// First pass (note: this must be FAST).
+	// Find the first sequence needing replacement. For valid strings, this is the only pass that
+	// runs (no replacement needed), and the flow immediately returns after it.
+	const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+	if(first_invalid_ptr == end_ptr) {
+		return str;  // CLion false positive: no address escapes here.
+	}
+
+	// Second pass for strings needing replacements. Unfortunately, this is not as fast as the first
+	// pass.
+	if(!storage) {
+		storage = std::make_unique<std::string>();
+	}
+	const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
+	storage->clear();  // Reset to empty while preserving allocated capacity.
+	storage->reserve(str.size());
+	append_sanitized_string(*storage, str, valid_prefix_len);
+	return std::string_view{storage->data(), storage->size()};
+}
+
 inline void remove_duplicate_path_separators(std::string& str) {
 	// Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
 	if(str.size() < 2) {
