@@ -115,7 +115,7 @@ bool sinsp_fdtable::erase(int64_t fd) {
 	auto fdit = m_table.find(fd);
 
 	if(fd == m_last_accessed_fd) {
-		m_last_accessed_fd = -1;
+		reset_cache();
 	}
 
 	if(fdit == m_table.end()) {
