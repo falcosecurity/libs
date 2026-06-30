@@ -102,6 +102,33 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_EQ(fdinfo->m_name_raw, "");
 }
 
+TEST_F(sinsp_with_test_input, CONNECT_unix_socket_invalid_utf8) {
+	add_default_init_thread();
+	open_inspector();
+
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_STREAM));
+
+	const std::string sun_path{"/tmp/s\xff.sock"};
+	sockaddr_un server = test_utils::fill_sockaddr_un(sun_path.c_str());
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_unix_socktuple(0x9c758d0f, 0x9c758d0a, sun_path.c_str());
+	const auto evt = add_event_advance_ts(
+	        increasing_ts(),
+	        INIT_TID,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	const auto fdinfo = evt->get_fd_info();
+	ASSERT_TRUE(fdinfo);
+	ASSERT_NE(fdinfo->m_name.find(sun_path), std::string::npos);
+}
+
 TEST_F(sinsp_with_test_input, BIND_parse_unix_socket) {
 	add_default_init_thread();
 	open_inspector();
