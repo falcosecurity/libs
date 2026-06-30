@@ -250,21 +250,21 @@ TEST(sinsp_utils_test, sanitize_string) {
 	res = sanitize_string(str, storage);
 	EXPECT_EQ("hello 😀 world", res);
 
-	// Non-printable ASCII control characters (0x00-0x1F) are replaced with U+FFFD.
+	// Non-printable ASCII control characters (0x00-0x1F) pass through unchanged.
 	str = "foo\x01\x1Fxyz";
 	res = sanitize_string(str, storage);
-	EXPECT_EQ("foo\xEF\xBF\xBD\xEF\xBF\xBDxyz", res);
+	EXPECT_EQ("foo\x01\x1Fxyz", res);
 
-	// DEL (0x7F) is replaced with U+FFFD.
+	// DEL (0x7F) passes through unchanged.
 	str = "foo\x7Fxyz";
 	res = sanitize_string(str, storage);
-	EXPECT_EQ("foo\xEF\xBF\xBDxyz", res);
+	EXPECT_EQ("foo\x7Fxyz", res);
 
-	// C1 control character encoded as valid-but-non-printable UTF-8 (U+0085, NEL = C2 85) is
-	// replaced with U+FFFD.
+	// C1 control character encoded as valid-but-non-printable UTF-8 (U+0085, NEL = C2 85) passes
+	// through unchanged.
 	str = "foo\xC2\x85xyz";
 	res = sanitize_string(str, storage);
-	EXPECT_EQ("foo\xEF\xBF\xBDxyz", res);
+	EXPECT_EQ("foo\xC2\x85xyz", res);
 
 	// Invalid UTF-8 bytes are replaced with U+FFFD (EF BF BD).
 	str = "foo\xFF\xFExyz";
@@ -291,21 +291,21 @@ TEST(sinsp_utils_test, sanitize_string) {
 	res = sanitize_string(str, storage);
 	EXPECT_EQ("\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD", res);
 
-	// Unicode non-characters are replaced with U+FFFD.
+	// Unicode non-characters pass through unchanged.
 	// U+FDD0 (EF B7 90) - non-character in the range U+FDD0..U+FDEF.
 	str = "\xEF\xB7\x90";
 	res = sanitize_string(str, storage);
-	EXPECT_EQ("\xEF\xBF\xBD", res);
+	EXPECT_EQ("\xEF\xB7\x90", res);
 
-	// U+FFFF (EF BF BF) - non-character U+FFFF.
+	// U+FFFF (EF BF BF) - non-character U+FFFF .
 	str = "\xEF\xBF\xBF";
 	res = sanitize_string(str, storage);
-	EXPECT_EQ("\xEF\xBF\xBD", res);
+	EXPECT_EQ("\xEF\xBF\xBF", res);
 
 	// U+1FFFE (F0 9F BF BE) - end-of-plane non-character in plane 1.
 	str = "\xF0\x9F\xBF\xBE";
 	res = sanitize_string(str, storage);
-	EXPECT_EQ("\xEF\xBF\xBD", res);
+	EXPECT_EQ("\xF0\x9F\xBF\xBE", res);
 
 	// Maximal-subpart: 3-byte lead (E1) + valid first continuation (80) + bad second continuation
 	// (61 = 'a'). The maximal subpart is 2 bytes, so the pair is replaced with one U+FFFD.

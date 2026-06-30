@@ -174,10 +174,10 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 
 // Returns a nonzero integer describing the UTF-8 sequence starting at `p`:
-// - if > 0, indicates a valid and printable UTF-8 sequence; the returned value is the sequence
-//   length (in range [1; 4]).
-// - if < 0, indicates an invalid byte, a broken sequence, or a valid-but-non-printable sequence;
-//   the absolute value is the number of bytes to consume (in range [1; 4]).
+// - if > 0, indicates a valid UTF-8 sequence; the returned value is the sequence length (in range
+//   [1; 4]).
+// - if < 0, indicates an invalid byte or a broken sequence; the absolute value is the number of
+//   bytes to consume (in range [1; 4]).
 //
 // Broken sequences follow the maximal subpart substitution algorithm (Unicode Standard §3.9, U+FFFD
 // Substitution of Maximal Subparts): each continuation byte that falls within the valid range for
@@ -187,14 +187,12 @@ public:
 //   return value: -2
 // - sequence: 3-byte lead + bad first continuation; consumed 1 byte; return value: -1
 //
-// Valid-but-non-printable sequences (C1 controls U+0080..U+009F, Unicode non-characters) are
-// consumed in full (e.g. -2 for U+0085 = C2 85, -3 for U+FDD0 = EF B7 90).
 // `p_end` is the exclusive upper bound of the source buffer.
 inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
 	const unsigned char c = p[0];
 	if(c < 0x80) {
-		// ASCII: printable range is 0x20 (space) to 0x7E (tilde); reject control chars and DEL.
-		return c >= 0x20 && c != 0x7F ? 1 : -1;
+		// ASCII: every byte < 0x80 is a valid single-byte sequence (control chars included).
+		return 1;
 	}
 	if(c < 0xC2) {
 		// 0x80-0xBF: orphan continuation byte.
@@ -202,14 +200,11 @@ inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
 		return -1;
 	}
 	if(c < 0xE0) {
-		// 2-byte: 110xxxxx 10xxxxxx. Need 1 continuation byte.
+		// 2-byte: 110xxxxx 10xxxxxx. Need 1 continuation byte; overlongs excluded by c >= 0xC2.
 		if(p + 1 >= p_end || (p[1] & 0xC0) != 0x80) {
 			return -1;
 		}
-		const unsigned int cp =
-		        static_cast<unsigned int>(c & 0x1F) << 6 | static_cast<unsigned int>(p[1] & 0x3F);
-		// Reject C1 control characters (U+0080..U+009F) (non-printable).
-		return cp > 0x9F ? 2 : -2;
+		return 2;
 	}
 	if(c < 0xF0) {
 		// 3-byte: 1110xxxx 10xxxxxx 10xxxxxx.
@@ -226,14 +221,8 @@ inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
 		if(p + 2 >= p_end || (p[2] & 0xC0) != 0x80) {
 			return -2;  // Maximal subpart: lead + first continuation.
 		}
-		const unsigned int cp = static_cast<unsigned int>(c & 0x0F) << 12 |
-		                        static_cast<unsigned int>(p[1] & 0x3F) << 6 |
-		                        static_cast<unsigned int>(p[2] & 0x3F);
-		// Overlongs and surrogates are structurally excluded by the narrow ranges above.
-		// Reject Unicode non-characters (U+FDD0-U+FDEF, U+FFFE-U+FFFF).
-		if((cp >= 0xFDD0 && cp <= 0xFDEF) || cp >= 0xFFFE) {
-			return -3;
-		}
+		// Overlongs and surrogates are structurally excluded by the narrow ranges above;
+		// any remaining code point (non-characters included) is valid.
 		return 3;
 	}
 	if(c <= 0xF4) {
@@ -253,15 +242,8 @@ inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
 		if(p + 3 >= p_end || (p[3] & 0xC0) != 0x80) {
 			return -3;  // Maximal subpart: lead + first + second continuation.
 		}
-		const unsigned int cp = static_cast<unsigned int>(c & 0x07) << 18 |
-		                        static_cast<unsigned int>(p[1] & 0x3F) << 12 |
-		                        static_cast<unsigned int>(p[2] & 0x3F) << 6 |
-		                        static_cast<unsigned int>(p[3] & 0x3F);
-		// Overlongs and out-of-range values are structurally excluded by the narrow ranges above.
-		// Reject end-of-plane non-characters (U+xFFFE, U+xFFFF for planes 1-16).
-		if((cp & 0xFFFF) >= 0xFFFE) {
-			return -4;
-		}
+		// Overlongs and out-of-range values are structurally excluded by the narrow ranges above;
+		// any remaining code point (non-characters included) is valid.
 		return 4;
 	}
 
@@ -269,26 +251,17 @@ inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
 	return -1;
 }
 
-// Skips 8 printable ASCII bytes [0x20, 0x7E] at a time, until it finds a block of 8 bytes
-// containing a single byte not in that range or until it finds a block (at the end of the string)
-// shorter than 8 bytes. Returns the pointer to the next invalid block or to the final shorter
-// block.
-inline const unsigned char* skip_8_byte_printable_ascii_blocks(const unsigned char* ptr,
-                                                               const unsigned char* end_ptr) {
+// Skips 8 ASCII bytes at a time, until it finds a block of 8 bytes containing a single byte that is
+// not ASCII, or until it finds a block (at the end of the string) shorter than 8 bytes. Returns the
+// pointer to the next non-ASCII block or to the final shorter block.
+inline const unsigned char* skip_8_byte_ascii_blocks(const unsigned char* ptr,
+                                                     const unsigned char* end_ptr) {
 	while(ptr + 8 <= end_ptr) {
 		uint64_t word;
 		memcpy(&word, ptr, 8);
-		// Check all 8 bytes are printable ASCII [0x20, 0x7E] using word-at-a-time tricks.
-		// Each condition isolates the highest bit of each byte (by masking it with 0x80).
-		// Check 1: match any byte >= 0x80 (non-ASCII, having high bit == 1)
-		// Check 2: adding 0x60 maps [0x00,0x1F] to [0x60,0x7F] (high bit == 0) and [0x20,0x7F] to
-		//   [0x80,0xDF] (high bit == 1); no carry between bytes since all bytes are <= 0x7F after
-		//   check 1, so max per-byte result is 0x7F+0x60=0xDF < 0x100; match any byte of the first
-		//   group (high bit 0)
-		// Check 3: match any byte == 0x7F (DEL): adding 0x01 maps 0x7F to 0x80 (high bit == 1)
-		if(word & 0x8080808080808080ULL ||
-		   ((word + 0x6060606060606060ULL) & 0x8080808080808080ULL) != 0x8080808080808080ULL ||
-		   (word + 0x0101010101010101ULL) & 0x8080808080808080ULL) {
+		// A byte is valid ASCII if the highest bit is not set. Use an 8-byte mask to check 8 bytes
+		// in a single shot.
+		if(word & 0x8080808080808080ULL) {
 			break;
 		}
 		ptr += 8;
@@ -297,16 +270,15 @@ inline const unsigned char* skip_8_byte_printable_ascii_blocks(const unsigned ch
 }
 
 // Returns a pointer to the first invalid UTF-8 sequence of bytes between `ptr` and `end_ptr`. In
-// this context, an invalid sequence is an invalid byte, a broken sequence (e.g.: wrong continuation
-// byte) or a valid-but-non-printable sequence. If the input is a valid printable UTF-8 string, it
-// returns `end_ptr`; otherwise, the returned pointer is guaranteed to be in the range [ptr;
-// end_ptr).
+// this context, an invalid sequence is an invalid byte or a broken sequence (e.g.: wrong
+// continuation byte). If the input is a valid UTF-8 string, it returns `end_ptr`; otherwise, the
+// returned pointer is guaranteed to be in the range [ptr; end_ptr).
 inline const unsigned char* utf8_first_invalid_seq(const unsigned char* ptr,
                                                    const unsigned char* end_ptr) {
 	while(ptr < end_ptr) {
-		// If `ptr` is 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
+		// If `ptr` is 8-byte aligned, try to fast-skip 8-byte ASCII blocks.
 		if((reinterpret_cast<uintptr_t>(ptr) & 7u) == 0u) {
-			ptr = skip_8_byte_printable_ascii_blocks(ptr, end_ptr);
+			ptr = skip_8_byte_ascii_blocks(ptr, end_ptr);
 			if(ptr >= end_ptr) {
 				return end_ptr;
 			}
@@ -362,9 +334,9 @@ inline void append_sanitized_string(std::string& storage,
 			str_scan_ptr += -seq_len;
 			block_start = str_scan_ptr;
 		}
-		// If `str_scan_ptr` is now 8-byte aligned, try to fast-skip 8-byte printable ASCII blocks.
+		// If `str_scan_ptr` is now 8-byte aligned, try to fast-skip 8-byte ASCII blocks.
 		if((reinterpret_cast<uintptr_t>(str_scan_ptr) & 7u) == 0u) {
-			str_scan_ptr = skip_8_byte_printable_ascii_blocks(str_scan_ptr, str_end_ptr);
+			str_scan_ptr = skip_8_byte_ascii_blocks(str_scan_ptr, str_end_ptr);
 		}
 	} while(str_scan_ptr < str_end_ptr);
 
