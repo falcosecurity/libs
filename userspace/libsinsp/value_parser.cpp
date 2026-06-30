@@ -41,6 +41,10 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str,
                                                    uint8_t* storage,
                                                    std::string::size_type max_len,
                                                    ppm_param_type ptype) {
+	if(memchr(str, '\0', len) != nullptr) {
+		throw sinsp_exception("filter error: filter value cannot contain a NUL byte (\\x00)");
+	}
+
 	size_t parsed_len;
 
 	switch(ptype) {

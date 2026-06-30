@@ -673,9 +673,9 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async) {
 	std::unique_ptr<sinsp_filter_check> chk(
 	        filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
 	ASSERT_GT(chk->parse_field_name("evt.type", true, false), 0);
-	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat") + 1, 0));
-	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker") + 1, 1));
-	ASSERT_ANY_THROW(chk->add_filter_value("badname", strlen("badname") + 1, 2));
+	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat"), 0));
+	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker"), 1));
+	ASSERT_ANY_THROW(chk->add_filter_value("badname", strlen("badname"), 2));
 
 	// we will not use the test scap engine here, but open the no-driver instead
 	uint64_t count = 0;

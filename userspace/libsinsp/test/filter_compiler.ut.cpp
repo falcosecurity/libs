@@ -286,9 +286,6 @@ TEST(sinsp_filter_compiler, supported_operators) {
 	test_filter_compile(factory, "c.buffer bstartswith g", true);
 	test_filter_compile(factory, "c.buffer bstartswith 123Z", true);
 	test_filter_compile(factory, "c.buffer bstartswith abc_1", true);
-	test_filter_compile(factory, "c.buffer bstartswith g", true);
-	test_filter_compile(factory, "c.buffer bstartswith 123Z", true);
-	test_filter_compile(factory, "c.buffer bstartswith abc_1", true);
 }
 
 TEST(sinsp_filter_compiler, operators_field_types_compatibility) {
@@ -744,6 +741,26 @@ TEST_F(sinsp_with_test_input, filter_different_types) {
 	open_inspector();
 
 	ASSERT_FALSE(filter_compiles("syscall.type = val(evt.is_wait)"));
+}
+
+TEST_F(sinsp_with_test_input, filter_nul_byte_value) {
+	add_default_init_thread();
+	open_inspector();
+
+	ASSERT_FALSE(filter_compiles("proc.name = \"\\x00\""));
+	ASSERT_FALSE(filter_compiles("proc.name contains \"\\x00\""));
+	ASSERT_FALSE(filter_compiles("proc.name icontains \"\\x00\""));
+	ASSERT_FALSE(filter_compiles("proc.name startswith \"\\x00\""));
+	ASSERT_FALSE(filter_compiles("proc.name endswith \"\\x00\""));
+	ASSERT_FALSE(filter_compiles("proc.name pmatch (\"\\x00\")"));
+	ASSERT_FALSE(filter_compiles("proc.name glob \"\\x00?\""));
+	ASSERT_FALSE(filter_compiles("proc.name regex \"\\x00\""));
+	ASSERT_TRUE(filter_compiles("evt.buffer = \"\\x00\""));
+	// note: the following expression with `bcontains` and `bstartwidth` do no compile because
+	// `\x00` is interpreted as NUL byte, and the NUL byte does not encode any valid hexadecimal
+	// digit.
+	ASSERT_FALSE(filter_compiles("evt.buffer bcontains \"\\x00\""));
+	ASSERT_FALSE(filter_compiles("evt.buffer bstartswith \"\\x00\""));
 }
 
 TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field) {
