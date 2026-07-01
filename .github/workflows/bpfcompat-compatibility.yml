@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Install build and VM dependencies
         run: |
@@ -64,7 +64,7 @@ jobs:
           ls -la driver/modern_bpf/bpf_probe.o
 
       - name: Validate across the kernel matrix
-        uses: Kernel-Guard/bpfcompat@v0.1.5
+        uses: Kernel-Guard/bpfcompat@27ed0ee11099a409119c7c26f89431b2909d25ec # v0.1.5
         with:
           artifact: build/driver/modern_bpf/bpf_probe.o
           manifest: test/bpfcompat/modern-bpf-manifest.yaml
@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload compatibility report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: modern-bpf-compatibility-report
           path: reports/
