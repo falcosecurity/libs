@@ -125,6 +125,12 @@ struct savefile_engine {
 /**
  * Parse the headers of a scap file (SHB + metadata blocks) and populate tables.
  * Reads from the given reader until the first event block is encountered.
+ *
+ * Reaching a clean end of the reader after the metadata blocks, without an event
+ * block, is not an error: it leaves handle->m_use_last_block_header false so the
+ * caller can decide whether events are required. The savefile engine treats this
+ * as a "no events in file" error, while the raw_block engine accepts it (its event
+ * blocks arrive in a separate, later buffer).
  */
 int32_t scap_savefile_read_init(struct savefile_engine *handle,
                                 scap_reader_t *r,
