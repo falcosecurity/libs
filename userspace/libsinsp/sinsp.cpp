@@ -460,9 +460,6 @@ void sinsp::open_common(scap_open_args* oargs,
 	/* Reset the thread manager */
 	m_thread_manager->clear();
 
-	/* We need to save the actual mode and the engine used by the inspector. */
-	m_mode = mode;
-
 	oargs->import_users = m_usergroup_manager->m_import_users;
 	oargs->log_fn = &sinsp_scap_log_fn;
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
@@ -499,6 +496,10 @@ void sinsp::open_common(scap_open_args* oargs,
 	if(scap_rc != SCAP_SUCCESS) {
 		throw scap_open_exception(m_platform_lasterr, scap_rc);
 	}
+
+	// Our platform is initialized. Save the mode used by the inspector.
+	// (should this be a member of scap_platform instead?)
+	m_mode = mode;
 
 	init();
 
