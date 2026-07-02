@@ -906,8 +906,7 @@ inline filter_value_t sinsp_filter_check::craft_filter_value(const ppm_param_typ
 	}
 
 	const std::string_view str_to_sanitize{static_cast<const char*>(value), len};
-	auto sanitized_str =
-	        sanitize_string_with_lazy_storage(str_to_sanitize, m_sanitized_str_storage);
+	auto sanitized_str = utf8::sanitize_with_lazy_storage(str_to_sanitize, m_sanitized_str_storage);
 	auto ptr = reinterpret_cast<unsigned char*>(const_cast<char*>(sanitized_str.data()));
 	auto size = static_cast<uint32_t>(sanitized_str.size());
 	return filter_value_t{ptr, size};
