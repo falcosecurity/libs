@@ -173,6 +173,19 @@ public:
 // little STL thing to sanitize strings
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace utf8 {
+[[nodiscard]] inline int seq_len(const unsigned char* p, const unsigned char* p_end);
+[[nodiscard]] inline const unsigned char* skip_8_byte_ascii_blocks(const unsigned char* ptr,
+                                                                   const unsigned char* end_ptr);
+[[nodiscard]] inline const unsigned char* first_invalid_seq(const unsigned char* ptr,
+                                                            const unsigned char* end_ptr);
+inline void append_sanitized(std::string& storage, std::string_view str, size_t valid_prefix_len);
+[[nodiscard]] inline std::string_view sanitize(std::string_view str, std::string& storage);
+[[nodiscard]] inline std::string_view sanitize_with_lazy_storage(
+        std::string_view str,
+        std::unique_ptr<std::string>& storage);
+}  // namespace utf8
+
 // Returns a nonzero integer describing the UTF-8 sequence starting at `p`:
 // - if > 0, indicates a valid UTF-8 sequence; the returned value is the sequence length (in range
 //   [1; 4]).
@@ -188,7 +201,7 @@ public:
 // - sequence: 3-byte lead + bad first continuation; consumed 1 byte; return value: -1
 //
 // `p_end` is the exclusive upper bound of the source buffer.
-inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
+[[nodiscard]] inline int utf8::seq_len(const unsigned char* p, const unsigned char* p_end) {
 	const unsigned char c = p[0];
 	if(c < 0x80) {
 		// ASCII: every byte < 0x80 is a valid single-byte sequence (control chars included).
@@ -254,8 +267,9 @@ inline int utf8_seq_len(const unsigned char* p, const unsigned char* p_end) {
 // Skips 8 ASCII bytes at a time, until it finds a block of 8 bytes containing a single byte that is
 // not ASCII, or until it finds a block (at the end of the string) shorter than 8 bytes. Returns the
 // pointer to the next non-ASCII block or to the final shorter block.
-inline const unsigned char* skip_8_byte_ascii_blocks(const unsigned char* ptr,
-                                                     const unsigned char* end_ptr) {
+[[nodiscard]] inline const unsigned char* utf8::skip_8_byte_ascii_blocks(
+        const unsigned char* ptr,
+        const unsigned char* end_ptr) {
 	while(ptr + 8 <= end_ptr) {
 		uint64_t word;
 		memcpy(&word, ptr, 8);
@@ -273,18 +287,18 @@ inline const unsigned char* skip_8_byte_ascii_blocks(const unsigned char* ptr,
 // this context, an invalid sequence is an invalid byte or a broken sequence (e.g.: wrong
 // continuation byte). If the input is a valid UTF-8 string, it returns `end_ptr`; otherwise, the
 // returned pointer is guaranteed to be in the range [ptr; end_ptr).
-inline const unsigned char* utf8_first_invalid_seq(const unsigned char* ptr,
-                                                   const unsigned char* end_ptr) {
+inline const unsigned char* utf8::first_invalid_seq(const unsigned char* ptr,
+                                                    const unsigned char* end_ptr) {
 	while(ptr < end_ptr) {
 		// If `ptr` is 8-byte aligned, try to fast-skip 8-byte ASCII blocks.
 		if((reinterpret_cast<uintptr_t>(ptr) & 7u) == 0u) {
-			ptr = skip_8_byte_ascii_blocks(ptr, end_ptr);
+			ptr = utf8::skip_8_byte_ascii_blocks(ptr, end_ptr);
 			if(ptr >= end_ptr) {
 				return end_ptr;
 			}
 		}
 		// Check if the next sequence is invalid (i.e.: `seq_len` is negative).
-		const int seq_len = utf8_seq_len(ptr, end_ptr);
+		const int seq_len = utf8::seq_len(ptr, end_ptr);
 		if(seq_len < 0) {
 			return ptr;
 		}
@@ -296,9 +310,9 @@ inline const unsigned char* utf8_first_invalid_seq(const unsigned char* ptr,
 // Appends a sanitized version of `str` to `storage`. `valid_prefix_len` is the length of the prefix
 // in `str` that is assumed to be valid and copied as is. `valid_prefix_len` must be less than
 // str.size()`, and `storage` and `str` must not alias the same memory region.
-inline void append_sanitized_string(std::string& storage,
-                                    std::string_view str,
-                                    const size_t valid_prefix_len) {
+inline void utf8::append_sanitized(std::string& storage,
+                                   const std::string_view str,
+                                   const size_t valid_prefix_len) {
 	ASSERT(valid_prefix_len < str.size());
 	// Assert `storage` and `str` don't alias the same memory region.
 	ASSERT(reinterpret_cast<uintptr_t>(str.data()) + str.size() <=
@@ -321,7 +335,7 @@ inline void append_sanitized_string(std::string& storage,
 	do {
 		// Process the current sequence first (on the first iteration this is the one that must be
 		// replaced).
-		if(const int seq_len = utf8_seq_len(str_scan_ptr, str_end_ptr); seq_len > 0) {
+		if(const int seq_len = utf8::seq_len(str_scan_ptr, str_end_ptr); seq_len > 0) {
 			str_scan_ptr += seq_len;
 		} else {
 			// Found invalid sequence. Copy the last valid block (if any) and then append the
@@ -336,7 +350,7 @@ inline void append_sanitized_string(std::string& storage,
 		}
 		// If `str_scan_ptr` is now 8-byte aligned, try to fast-skip 8-byte ASCII blocks.
 		if((reinterpret_cast<uintptr_t>(str_scan_ptr) & 7u) == 0u) {
-			str_scan_ptr = skip_8_byte_ascii_blocks(str_scan_ptr, str_end_ptr);
+			str_scan_ptr = utf8::skip_8_byte_ascii_blocks(str_scan_ptr, str_end_ptr);
 		}
 	} while(str_scan_ptr < str_end_ptr);
 
@@ -347,12 +361,14 @@ inline void append_sanitized_string(std::string& storage,
 	}
 }
 
-// Sanitizes `str`, returning a string view of its sanitized version. It returns:
-// - `str` itself, if already sanitized
-// - a string view of `storage`, if `str` needs sanitization. In this case a sanitized version of
-// `str` is written into `storage`, reusing its capacity.
+// Replaces invalid UTF-8 sequences in `str` with `U+FFFD`, returning a view of the result. It
+// returns:
+// - `str` itself, if it contains no invalid UTF-8 sequence
+// - a view of `storage`, if `str` contains invalid sequences. In this case the replaced version of
+//   `str` is written into `storage`, reusing its capacity.
 // `storage` and `str` must not alias the same memory region.
-[[nodiscard]] inline std::string_view sanitize_string(std::string_view str, std::string& storage) {
+[[nodiscard]] inline std::string_view utf8::sanitize(const std::string_view str,
+                                                     std::string& storage) {
 	// Assert `storage` and `str` don't alias the same memory region.
 	ASSERT(reinterpret_cast<uintptr_t>(str.data()) + str.size() <=
 	               reinterpret_cast<uintptr_t>(storage.data()) ||
@@ -365,7 +381,7 @@ inline void append_sanitized_string(std::string& storage,
 	// First pass (note: this must be FAST).
 	// Find the first sequence needing replacement. For valid strings, this is the only pass that
 	// runs (no replacement needed), and the flow immediately returns after it.
-	const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+	const auto* const first_invalid_ptr = utf8::first_invalid_seq(ptr, end_ptr);
 	if(first_invalid_ptr == end_ptr) {
 		return str;  // CLion false positive: no address escapes here.
 	}
@@ -375,17 +391,18 @@ inline void append_sanitized_string(std::string& storage,
 	storage.clear();  // Reset to empty while preserving allocated capacity.
 	storage.reserve(str.size());
 	const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
-	append_sanitized_string(storage, str, valid_prefix_len);
+	utf8::append_sanitized(storage, str, valid_prefix_len);
 	return storage;
 }
 
-// Sanitizes `str`, returning a string view of its sanitized version. It returns:
-// - `str` itself, if already sanitized
-// - a string view of `*storage`, if `str` needs sanitization. In this case a sanitized version of
-// `str` is written into `*storage`, reusing its capacity. If `storage` hasn't been allocated yet,
-// it is allocated internally.
+// Replaces invalid UTF-8 sequences in `str` with `U+FFFD`, returning a view of the result. It
+// returns:
+// - `str` itself, if it contains no invalid UTF-8 sequence
+// - a view of `*storage`, if `str` contains invalid sequences. In this case the replaced version of
+//   `str` is written into `*storage`, reusing its capacity. If `storage` hasn't been allocated yet,
+//   it is allocated internally.
 // `*storage` and `str` must not alias the same memory region.
-[[nodiscard]] inline std::string_view sanitize_string_with_lazy_storage(
+[[nodiscard]] inline std::string_view utf8::sanitize_with_lazy_storage(
         const std::string_view str,
         std::unique_ptr<std::string>& storage) {
 	// If `storage` points to any allocated storage, assert `*storage` and `str` don't alias the
@@ -402,7 +419,7 @@ inline void append_sanitized_string(std::string& storage,
 	// First pass (note: this must be FAST).
 	// Find the first sequence needing replacement. For valid strings, this is the only pass that
 	// runs (no replacement needed), and the flow immediately returns after it.
-	const auto* const first_invalid_ptr = utf8_first_invalid_seq(ptr, end_ptr);
+	const auto* const first_invalid_ptr = utf8::first_invalid_seq(ptr, end_ptr);
 	if(first_invalid_ptr == end_ptr) {
 		return str;  // CLion false positive: no address escapes here.
 	}
@@ -415,7 +432,7 @@ inline void append_sanitized_string(std::string& storage,
 	const auto valid_prefix_len = static_cast<size_t>(first_invalid_ptr - ptr);
 	storage->clear();  // Reset to empty while preserving allocated capacity.
 	storage->reserve(str.size());
-	append_sanitized_string(*storage, str, valid_prefix_len);
+	utf8::append_sanitized(*storage, str, valid_prefix_len);
 	return std::string_view{storage->data(), storage->size()};
 }
 
