@@ -22,6 +22,7 @@ limitations under the License.
 #include <chrono>
 #include <cxxopts.hpp>
 #include <csignal>
+#include <vector>
 #include <libsinsp/sinsp.h>
 #include <libscap/scap_engines.h>
 #include <functional>
@@ -573,6 +574,10 @@ static void load_raw_block_buffer(const std::string& path) {
 		exit(EXIT_FAILURE);
 	}
 	const std::streamsize size = file.tellg();
+	if(size < 0) {
+		std::cerr << "Unable to determine file size: " << path << std::endl;
+		exit(EXIT_FAILURE);
+	}
 	file.seekg(0, std::ios::beg);
 	std::vector<uint8_t> file_data(static_cast<size_t>(size));
 	if(size > 0 && !file.read(reinterpret_cast<char*>(file_data.data()), size)) {
