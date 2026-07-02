@@ -1731,11 +1731,14 @@ static int32_t _scap_read_init(struct savefile_engine *handle,
 		readsize = read_block_header(handle, r, &bh);
 
 		//
-		// If we don't find the event block header,
-		// it means there is no event in the file.
+		// Clean end of the block stream after the metadata blocks, without any event
+		// block. This is a valid parse; on return handle->m_use_last_block_header is left
+		// false (no event block header was cached). Engines that require events (the
+		// savefile engine) detect this via that flag, while the raw_block engine expects
+		// it: its event blocks arrive in a separate, later buffer.
 		//
 		if(readsize == 0 && !found_ev) {
-			return scap_errprintf(error, 0, "no events in file");
+			return SCAP_SUCCESS;
 		}
 
 		CHECK_READ_SIZE_ERR(readsize, sizeof(bh), error);
@@ -2384,6 +2387,13 @@ static int32_t init(struct scap *main_handle, struct scap_open_args *oargs) {
 	                              &platform->m_userlist,
 	                              main_handle->m_lasterr);
 
+	// A savefile must contain at least one event block; read_init leaves
+	// m_use_last_block_header false when it reached the end of the file after the
+	// metadata blocks without finding one.
+	if(res == SCAP_SUCCESS && !handle->m_use_last_block_header) {
+		res = scap_errprintf(main_handle->m_lasterr, 0, "no events in file");
+	}
+
 	if(res != SCAP_SUCCESS) {
 		reader->close(reader);
 		return res;
@@ -2452,13 +2462,20 @@ static int32_t scap_savefile_restart_capture(scap_t *handle) {
 
 	scap_platform_close(platform);
 
-	if((res = scap_savefile_read_init(engine,
-	                                  engine->m_reader,
-	                                  &platform->m_machine_info,
-	                                  &platform->m_proclist,
-	                                  &platform->m_addrlist,
-	                                  &platform->m_userlist,
-	                                  handle->m_lasterr)) != SCAP_SUCCESS) {
+	res = scap_savefile_read_init(engine,
+	                              engine->m_reader,
+	                              &platform->m_machine_info,
+	                              &platform->m_proclist,
+	                              &platform->m_addrlist,
+	                              &platform->m_userlist,
+	                              handle->m_lasterr);
+
+	// A savefile must contain at least one event block (see scap_savefile init).
+	if(res == SCAP_SUCCESS && !engine->m_use_last_block_header) {
+		res = scap_errprintf(handle->m_lasterr, 0, "no events in file");
+	}
+
+	if(res != SCAP_SUCCESS) {
 		char error_copy[SCAP_LASTERR_SIZE];
 		scap_errprintf(error_copy, 0, "%s", scap_getlasterr(handle));
 		scap_errprintf(handle->m_lasterr, 0, "could not restart capture: %s", error_copy);

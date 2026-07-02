@@ -120,6 +120,9 @@ static int32_t init(struct scap *main_handle, struct scap_open_args *oargs) {
 
 	handle->m_use_last_block_header = false;
 
+	// The initial buffer holds the section header and metadata blocks; the event blocks
+	// arrive in subsequent buffers. Unlike the savefile engine, we don't require an event
+	// block to be present here, so a metadata-only buffer is accepted.
 	res = scap_savefile_read_init(handle,
 	                              reader,
 	                              &platform->m_machine_info,

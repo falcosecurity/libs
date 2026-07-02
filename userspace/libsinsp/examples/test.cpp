@@ -25,6 +25,7 @@ limitations under the License.
 #include <vector>
 #include <libsinsp/sinsp.h>
 #include <libscap/scap_engines.h>
+#include <libscap/scap_savefile.h>
 #include <functional>
 #include "util.h"
 
@@ -71,7 +72,9 @@ static string engine_string;
 static string filter_string = "";
 static string file_path = "";
 // Backing storage for the raw_block engine. These must outlive the capture, so
-// the buffer pointer and size are kept here and handed to open_raw_block().
+// the buffer pointer and size are kept here and handed to open_raw_block(). The whole
+// (decompressed) scap file lives in raw_block_buffer; we feed the engine incrementally
+// by growing raw_block_buffer_size to reveal more of it.
 static std::vector<uint8_t> raw_block_buffer;
 static uint8_t* raw_block_buffer_ptr = nullptr;
 static uint64_t raw_block_buffer_size = 0;
@@ -567,7 +570,7 @@ libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector) {
 // Load a scap file fully into `raw_block_buffer` so it can be replayed through the
 // raw_block engine. The engine consumes raw (uncompressed) scap blocks, so gzip-compressed
 // scap files are transparently inflated here.
-static void load_raw_block_buffer(const std::string& path) {
+static void load_raw_block_file(const std::string& path) {
 	std::ifstream file(path, std::ios::binary | std::ios::ate);
 	if(!file) {
 		std::cerr << "Unable to open file: " << path << std::endl;
@@ -618,6 +621,43 @@ static void load_raw_block_buffer(const std::string& path) {
 		                        chunk.data() + (chunk.size() - strm.avail_out));
 	} while(ret != Z_STREAM_END);
 	inflateEnd(&strm);
+}
+
+static bool is_event_block_type(uint32_t block_type) {
+	switch(block_type) {
+	case EV_BLOCK_TYPE:
+	case EV_BLOCK_TYPE_INT:
+	case EV_BLOCK_TYPE_V2:
+	case EV_BLOCK_TYPE_V2_LARGE:
+	case EVF_BLOCK_TYPE:
+	case EVF_BLOCK_TYPE_V2:
+	case EVF_BLOCK_TYPE_V2_LARGE:
+		return true;
+	default:
+		return false;
+	}
+}
+
+// Walk the pcapng block sequence and return the offset of the first event block, i.e. the
+// end of the section header + metadata blocks. This is where we split the file so the
+// raw_block engine can be opened with the header blocks and fed the events separately.
+static size_t find_first_event_block_offset(const std::vector<uint8_t>& data) {
+	size_t offset = 0;
+	while(offset + sizeof(block_header) <= data.size()) {
+		block_header bh;
+		memcpy(&bh, data.data() + offset, sizeof(bh));
+		if(is_event_block_type(bh.block_type)) {
+			return offset;
+		}
+		if(bh.block_total_length < sizeof(block_header) + sizeof(uint32_t)) {
+			std::cerr << "Corrupt block with length " << bh.block_total_length << " at offset "
+			          << offset << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		offset += bh.block_total_length;
+	}
+	// No event block found; the whole file is header/metadata.
+	return data.size();
 }
 
 void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_codes) {
@@ -691,10 +731,20 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 			          << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		load_raw_block_buffer(file_path);
+		// Demonstrate incremental feeding: open the engine with only the section header +
+		// metadata blocks visible, then reveal the event blocks by growing the buffer size.
+		// The reader's offset is left where init stopped, so it continues into the events
+		// with no rewind.
+		load_raw_block_file(file_path);
+		const size_t events_offset = find_first_event_block_offset(raw_block_buffer);
+
+		// Phase 1: only the section header + metadata blocks are visible.
 		raw_block_buffer_ptr = raw_block_buffer.data();
-		raw_block_buffer_size = static_cast<uint64_t>(raw_block_buffer.size());
+		raw_block_buffer_size = static_cast<uint64_t>(events_offset);
 		inspector.open_raw_block(&raw_block_buffer_ptr, &raw_block_buffer_size);
+
+		// Phase 2: reveal the event blocks by extending the visible size.
+		raw_block_buffer_size = static_cast<uint64_t>(raw_block_buffer.size());
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN

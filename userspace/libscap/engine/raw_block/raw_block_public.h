@@ -19,12 +19,29 @@ limitations under the License.
 /*
 
 This engine lets you process a scap file using a memory buffer. Buffers
-must be a sequence of pcapng blocks as defined at
-https://github.com/IETF-OPSAWG-WG/draft-ietf-opsawg-pcap, including the
-block type, block total length, block body, and block total length
-(again). When sinsp::next is called, the inspector will process each
-block, after which the buffer can be initialized with the next sequence
-of blocks.
+must be a sequence of whole pcapng blocks as defined at
+https://github.com/IETF-OPSAWG-WG/draft-ietf-opsawg-pcap,
+including the block type, block total length, block body, and block
+total length (again). The buffer must always end on a block boundary; a
+trailing partial block causes sinsp::next to return SCAP_FAILURE.
+
+Two modes of processing are supported:
+- Whole-file mode, where the buffer contains the entire file, including
+  the section header block, any metadata blocks, and all event blocks.
+  This is an in-memory equivalent to the savefile engine.
+- Incremental mode, where the buffer is fed a subset of blocks in a
+  capture session. The first buffer must contain the section header
+  block, any metadata blocks, and zero or more event blocks. The buffer
+  contents are processed by calling \ref sinsp::next until it returns
+  \ref SCAP_EOF, which signals that the current buffer has been
+  consumed. Additional blocks can besupplied in one of two ways:
+  - Append: extend the buffer in place with the next blocks and grow
+    *buffer_size_ptr. The reader continues from where it left off, so no
+    reset is needed. (buffer_ptr is a double pointer so the buffer may
+    be reallocated as it grows.)
+  - Replace: overwrite the buffer with the next sequence of blocks and
+    rewind the reader to the start of the new contents by calling
+    sinsp::fseek(0). This lets the buffer be reused rather than grown.
 
 */
 
