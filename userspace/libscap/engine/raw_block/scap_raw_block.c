@@ -91,14 +91,22 @@ static void *alloc_handle(struct scap *main_handle, char *lasterr_ptr) {
 }
 
 static int32_t init(struct scap *main_handle, struct scap_open_args *oargs) {
+	if(oargs == NULL || oargs->engine_params == NULL) {
+		return scap_errprintf(main_handle->m_lasterr, 0, "Invalid raw_block engine parameters");
+	}
+
 	int res;
 	raw_block_engine *handle = main_handle->m_engine.m_handle;
 	struct scap_raw_block_engine_params *params = oargs->engine_params;
 	uint8_t **buffer_ptr = params->buffer_ptr;
 	uint64_t *buffer_size_ptr = params->buffer_size_ptr;
-
 	struct scap_platform *platform = params->platform;
-	handle->m_platform = params->platform;
+
+	if(platform == NULL) {
+		return scap_errprintf(main_handle->m_lasterr, 0, "Invalid raw_block engine parameters");
+	}
+
+	handle->m_platform = platform;
 
 	if(buffer_ptr == NULL || *buffer_ptr == NULL || buffer_size_ptr == NULL ||
 	   *buffer_size_ptr == 0) {
@@ -224,6 +232,15 @@ static int32_t next(struct scap_engine_handle engine,
 	conv_res = CONVERSION_CONTINUE;
 	for(conv_num = 0; conv_num < MAX_CONVERSION_BOUNDARY && conv_res == CONVERSION_CONTINUE;
 	    conv_num++) {
+		// The conversion staging buffers (m_to_convert_evt / m_new_evt) are MAX_EVENT_SIZE
+		// bytes. Refuse to convert any event whose len would overflow them.
+		if((*pevent)->len > MAX_EVENT_SIZE) {
+			return scap_errprintf(handle->m_lasterr,
+			                      0,
+			                      "invalid event: len %u is larger than the maximum event size %u",
+			                      (*pevent)->len,
+			                      MAX_EVENT_SIZE);
+		}
 		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
 		conv_res = scap_convert_event(handle->m_converter_buf,
 		                              (scap_evt *)handle->m_new_evt,

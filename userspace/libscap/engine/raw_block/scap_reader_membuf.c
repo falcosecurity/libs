@@ -27,9 +27,14 @@ struct membuf_reader_handle {
 
 static int membuf_read(scap_reader_t* r, void* buf, uint32_t len) {
 	struct membuf_reader_handle* h = (struct membuf_reader_handle*)r->handle;
-	uint64_t available = *h->buffer_size_ptr - h->offset;
 	uint32_t to_read = len;
 
+	uint64_t buf_size = *h->buffer_size_ptr;
+	if(h->offset >= buf_size) {
+		return 0;
+	}
+
+	uint64_t available = buf_size - h->offset;
 	if(to_read > available) {
 		to_read = (uint32_t)available;
 	}
