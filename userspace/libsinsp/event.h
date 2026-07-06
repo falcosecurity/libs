@@ -765,6 +765,10 @@ public:
 private:
 	char* render_fd(int64_t fd, const char** resolved_str, param_fmt fmt);
 	std::string get_base_dir(uint32_t id, sinsp_threadinfo*);
+	void write_sockaddr_param_to_storage(std::vector<char>& storage,
+	                                     const sinsp_evt_param& param) const;
+	void write_socktuple_param_to_storage(std::vector<char>& storage,
+	                                      const sinsp_evt_param& param) const;
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;

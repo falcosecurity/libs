@@ -72,8 +72,8 @@ inline const uint8_t *source(const uint8_t *tuple) {
 inline const uint8_t *dest(const uint8_t *tuple) {
 	return tuple + 9;
 }
-inline const uint8_t *dpath(const uint8_t *tuple) {
-	return tuple + 17;
+inline const char *dpath(const uint8_t *tuple) {
+	return reinterpret_cast<const char *>(tuple + 17);
 }
 }  // namespace un_socktuple
 
@@ -106,8 +106,8 @@ inline const uint8_t *port(const uint8_t *addr) {
 }  // namespace in_sockaddr
 
 namespace un_sockaddr {
-inline const uint8_t *dpath(const uint8_t *addr) {
-	return addr + 1;
+inline const char *dpath(const uint8_t *addr) {
+	return reinterpret_cast<const char *>(addr + 1);
 }
 }  // namespace un_sockaddr
 
