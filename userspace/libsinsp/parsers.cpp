@@ -2411,16 +2411,14 @@ void sinsp_parser::resolve_connect_unix_destination(const uint8_t *tuple_data,
 	// the tuple destination path is taken from kernel data, so it is safe to use this latter one.
 	// Otherwise, always rely on the enter event path, which is not susceptible to changes in the
 	// context of TOCTOU attacks.
-	const auto *tuple_dpath =
-	        reinterpret_cast<const char *>(packed::un_socktuple::dpath(tuple_data));
+	const auto *tuple_dpath = packed::un_socktuple::dpath(tuple_data);
 
 	if(!exit_addr_data || !enter_addr_data) {
 		dpath = tuple_dpath;
 		return;
 	}
 
-	const auto *exit_addr_dpath =
-	        reinterpret_cast<const char *>(packed::un_sockaddr::dpath(exit_addr_data));
+	const auto *exit_addr_dpath = packed::un_sockaddr::dpath(exit_addr_data);
 #define UNIX_PATH_MAX 108  // Taken from kernel code.
 	if(std::strncmp(tuple_dpath, exit_addr_dpath, UNIX_PATH_MAX)) {
 		dpath = tuple_dpath;
@@ -2428,7 +2426,7 @@ void sinsp_parser::resolve_connect_unix_destination(const uint8_t *tuple_data,
 	}
 #undef UNIX_PATH_MAX
 
-	dpath = reinterpret_cast<const char *>(packed::un_sockaddr::dpath(enter_addr_data));
+	dpath = packed::un_sockaddr::dpath(enter_addr_data);
 }
 
 std::string sinsp_parser::encode_unix_tuple_fd_name(const uint64_t src,
@@ -3100,8 +3098,7 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 	} else if(family == PPM_AF_UNIX) {
 		evt.get_fd_info()->m_type = SCAP_FD_UNIX_SOCK;
 		evt.get_fd_info()->set_unix_info(packed_data);
-		evt.get_fd_info()->m_name =
-		        reinterpret_cast<const char *>(packed::un_socktuple::dpath(packed_data));
+		evt.get_fd_info()->m_name = packed::un_socktuple::dpath(packed_data);
 		return true;
 	}
 
