@@ -1,16 +1,20 @@
 # Proof-of-concept: VM-backed kernel compatibility matrix for the modern_bpf
 # probe using bpfcompat (https://github.com/Kernel-Guard/bpfcompat).
 #
-# Builds bpf_probe.o from this tree, then load/attach-validates it inside
-# disposable QEMU/KVM VMs running real distro kernels (vendor cloud images),
-# mirroring the libpman loader contract: runtime-sized maps, helper-gated
-# program variants (bpf_loop), and trial-probed BPF iterator programs. The
-# job summary shows the per-kernel pass/fail matrix including which program
-# variant each kernel selects; exit code 2 (a required kernel regressed)
-# fails the job.
+# Validates through the real loader path, as preferred by reviewers: builds
+# scap-open (statically linked, modern_bpf probe skeleton embedded) from this
+# tree, ships it into disposable QEMU/KVM VMs running unmodified vendor
+# distro cloud images, and runs it there with the modern_bpf engine.
+# scap-open's exit code is the per-kernel verdict: scap_open() exercises
+# libpman's full load path (runtime-sized maps, helper-gated program
+# variants, trial-probed iterators, attach), then captures a bounded number
+# of events. There is no manifest to keep in sync with the loader — the
+# loader is the contract. The job summary shows the per-kernel pass/fail
+# matrix; exit code 2 (a required kernel regressed) fails the job.
 #
 # Scope note: this complements drivers_ci/bpfvalidator — it proves the probe
-# loads and attaches per kernel, not that events are captured.
+# loads, attaches, and captures per kernel via the real userspace loader,
+# not full event-content testing.
 name: bpfcompat-compatibility
 
 # Non-blocking by design: scheduled + manually dispatched, never a merge
@@ -54,20 +58,24 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           ls -la /dev/kvm
 
-      - name: Build modern_bpf probe object
+      - name: Build scap-open (static, modern_bpf embedded)
         run: |
           mkdir -p build && cd build
+          # MUSL_OPTIMIZED_BUILD adds -static: the same binary must run
+          # unchanged on every guest in the matrix (RHEL-family glibc is
+          # older than the runner's), so it is fully statically linked.
           cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON \
+            -DMUSL_OPTIMIZED_BUILD=ON \
             -DMODERN_BPFTOOL_EXE=/usr/local/bin/bpftool \
             -DCREATE_TEST_TARGETS=OFF -DBUILD_BPF=OFF -DBUILD_DRIVER=OFF ..
-          make ProbeSkeleton -j"$(nproc)"
-          ls -la driver/modern_bpf/bpf_probe.o
+          make scap-open -j"$(nproc)"
+          file libscap/examples/01-open/scap-open
 
-      - name: Validate across the kernel matrix
-        uses: Kernel-Guard/bpfcompat@27ed0ee11099a409119c7c26f89431b2909d25ec # v0.1.5
+      - name: Validate scap-open across the kernel matrix
+        uses: Kernel-Guard/bpfcompat@c7ef4fbb39f0054876ab2d286b3a6aaf86d05499 # v0.3.0
         with:
-          artifact: build/driver/modern_bpf/bpf_probe.o
-          manifest: test/bpfcompat/modern-bpf-manifest.yaml
+          command: $BPFCOMPAT_BIN --modern_bpf --num_events 10
+          command-binary: build/libscap/examples/01-open/scap-open
           matrix: test/bpfcompat/kernel-matrix.yaml
           out: reports/modern-bpf-compat.json
           markdown: reports/modern-bpf-compat.md
