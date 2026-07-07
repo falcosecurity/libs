@@ -242,6 +242,12 @@ private:
 	bool m_inited;
 	ss_plugin_t* m_state;
 	plugin_handle_t* m_handle;
+	ss_plugin_init_tables_input m_tables_input = {};
+	ss_plugin_table_fields_vtable_ext m_tables_fields_ext = {};
+	ss_plugin_table_reader_vtable m_tables_reader = {};
+	ss_plugin_table_reader_vtable_ext m_tables_reader_ext = {};
+	ss_plugin_table_writer_vtable m_tables_writer = {};
+	ss_plugin_table_writer_vtable_ext m_tables_writer_ext = {};
 
 	/** Event Sourcing **/
 	scap_source_plugin m_scap_source_plugin;
