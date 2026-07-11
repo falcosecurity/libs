@@ -29,27 +29,27 @@ elseif(NOT USE_BUNDLED_ZLIB)
 	endif()
 else()
 	set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src")
-	set(ZLIB_SOURCE_DIR "${ZLIB_SRC}/zlib")
+	set(_zlib_source_dir "${ZLIB_SRC}/zlib")
 	set(ZLIB_INCLUDE "${ZLIB_SRC}/include")
-	set(ZLIB_HEADERS "")
+	set(_zlib_headers "")
 	list(
 		APPEND
-		ZLIB_HEADERS
-		"${ZLIB_SOURCE_DIR}/crc32.h"
-		"${ZLIB_SOURCE_DIR}/deflate.h"
-		"${ZLIB_SOURCE_DIR}/gzguts.h"
-		"${ZLIB_SOURCE_DIR}/inffast.h"
-		"${ZLIB_SOURCE_DIR}/inffixed.h"
-		"${ZLIB_SOURCE_DIR}/inflate.h"
-		"${ZLIB_SOURCE_DIR}/inftrees.h"
-		"${ZLIB_SOURCE_DIR}/trees.h"
+		_zlib_headers
+		"${_zlib_source_dir}/crc32.h"
+		"${_zlib_source_dir}/deflate.h"
+		"${_zlib_source_dir}/gzguts.h"
+		"${_zlib_source_dir}/inffast.h"
+		"${_zlib_source_dir}/inffixed.h"
+		"${_zlib_source_dir}/inflate.h"
+		"${_zlib_source_dir}/inftrees.h"
+		"${_zlib_source_dir}/trees.h"
 		"${ZLIB_INCLUDE}/zconf.h"
-		"${ZLIB_SOURCE_DIR}/zlib.h"
-		"${ZLIB_SOURCE_DIR}/zutil.h"
+		"${_zlib_source_dir}/zlib.h"
+		"${_zlib_source_dir}/zutil.h"
 	)
 	if(NOT TARGET zlib)
 		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
-		falcosecurity_external_project_cache_args(ZLIB_EXTERNAL_PROJECT_CACHE_ARGS)
+		falcosecurity_external_project_cache_args(_zlib_external_project_cache_args)
 		if(NOT WIN32)
 			# zlib's CMakeLists always defines both the shared ('zlib') and static ('zlibstatic')
 			# targets regardless of BUILD_SHARED_LIBS, so build and install only the one we actually
@@ -59,57 +59,59 @@ else()
 			# either case.
 			if(BUILD_SHARED_LIBS)
 				set(ZLIB_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
-				set(ZLIB_BUILD_TARGET zlib)
-				set(ZLIB_LIBRARY_INSTALL_TYPE SHARED_LIBRARY)
+				set(_zlib_build_target zlib)
+				set(_zlib_library_install_type SHARED_LIBRARY)
 			else()
 				set(ZLIB_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
-				set(ZLIB_BUILD_TARGET zlibstatic)
-				set(ZLIB_LIBRARY_INSTALL_TYPE STATIC_LIBRARY)
+				set(_zlib_build_target zlibstatic)
+				set(_zlib_library_install_type STATIC_LIBRARY)
 			endif()
-			set(ZLIB_BUILD_DIR "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib-build")
-			get_property(ZLIB_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-			if(ZLIB_IS_MULTI_CONFIG)
-				set(ZLIB_BUILD_CONFIG_SUBDIR "$<CONFIG>/")
+			set(_zlib_build_dir "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib-build")
+			get_property(_zlib_is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+			if(_zlib_is_multi_config)
+				set(_zlib_build_config_subdir "$<CONFIG>/")
+				set(_zlib_build_config_args --config $<CONFIG>)
 			else()
-				set(ZLIB_BUILD_CONFIG_SUBDIR "")
+				set(_zlib_build_config_subdir "")
+				set(_zlib_build_config_args)
 			endif()
-			set(ZLIB_BUILT_LIB
-				"${ZLIB_BUILD_DIR}/${ZLIB_BUILD_CONFIG_SUBDIR}libz${ZLIB_LIB_SUFFIX}"
+			set(_zlib_built_lib
+				"${_zlib_build_dir}/${_zlib_build_config_subdir}libz${ZLIB_LIB_SUFFIX}"
 			)
 			set(ZLIB_LIB "${ZLIB_SRC}/lib/libz${ZLIB_LIB_SUFFIX}")
-			set(ZLIB_INSTALL_SCRIPT "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib-install.cmake")
+			set(_zlib_install_script "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib-install.cmake")
 			file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/zlib-prefix/src")
 			file(
-				WRITE "${ZLIB_INSTALL_SCRIPT}"
+				WRITE "${_zlib_install_script}"
 				[=[
-if(NOT EXISTS "${ZLIB_BUILT_LIB}")
-	message(FATAL_ERROR "Built zlib library not found: ${ZLIB_BUILT_LIB}")
+if(NOT EXISTS "${_zlib_built_lib}")
+	message(FATAL_ERROR "Built zlib library not found: ${_zlib_built_lib}")
 endif()
-if(NOT EXISTS "${ZLIB_SOURCE_DIR}/zlib.h")
-	message(FATAL_ERROR "zlib.h not found: ${ZLIB_SOURCE_DIR}/zlib.h")
+if(NOT EXISTS "${_zlib_source_dir}/zlib.h")
+	message(FATAL_ERROR "zlib.h not found: ${_zlib_source_dir}/zlib.h")
 endif()
-if(NOT EXISTS "${ZLIB_BUILD_DIR}/zconf.h")
-	message(FATAL_ERROR "Generated zconf.h not found: ${ZLIB_BUILD_DIR}/zconf.h")
+if(NOT EXISTS "${_zlib_build_dir}/zconf.h")
+	message(FATAL_ERROR "Generated zconf.h not found: ${_zlib_build_dir}/zconf.h")
 endif()
 
-file(MAKE_DIRECTORY "${ZLIB_LIB_DIR}" "${ZLIB_INCLUDE}")
+file(MAKE_DIRECTORY "${_zlib_lib_dir}" "${ZLIB_INCLUDE}")
 file(
-	INSTALL DESTINATION "${ZLIB_LIB_DIR}"
-	TYPE "${ZLIB_LIBRARY_INSTALL_TYPE}"
+	INSTALL DESTINATION "${_zlib_lib_dir}"
+	TYPE "${_zlib_library_install_type}"
 	FOLLOW_SYMLINK_CHAIN
-	FILES "${ZLIB_BUILT_LIB}"
+	FILES "${_zlib_built_lib}"
 )
 file(
 	INSTALL DESTINATION "${ZLIB_INCLUDE}"
 	TYPE FILE
-	FILES "${ZLIB_SOURCE_DIR}/zlib.h" "${ZLIB_BUILD_DIR}/zconf.h"
+	FILES "${_zlib_source_dir}/zlib.h" "${_zlib_build_dir}/zconf.h"
 )
 ]=]
 			)
 			ExternalProject_Add(
 				zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				SOURCE_DIR "${ZLIB_SOURCE_DIR}"
+				SOURCE_DIR "${_zlib_source_dir}"
 				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
 				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -119,18 +121,18 @@ file(
 						   -DZLIB_BUILD_EXAMPLES=OFF
 						   -DCMAKE_INSTALL_PREFIX=${ZLIB_SRC}
 						   -DCMAKE_INSTALL_LIBDIR=lib
-				CMAKE_CACHE_ARGS ${ZLIB_EXTERNAL_PROJECT_CACHE_ARGS}
+				CMAKE_CACHE_ARGS ${_zlib_external_project_cache_args}
 				# Build only the target we need so the unused library type is never compiled.
-				BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIG> --target
-							  ${ZLIB_BUILD_TARGET}
+				BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> ${_zlib_build_config_args}
+							  --target ${_zlib_build_target}
 				# zlib's own install() installs both targets together, which would fail for the
 				# target we did not build; install just the built library + public headers.
 				INSTALL_COMMAND
-					${CMAKE_COMMAND} "-DZLIB_BUILT_LIB=${ZLIB_BUILT_LIB}"
-					"-DZLIB_LIBRARY_INSTALL_TYPE=${ZLIB_LIBRARY_INSTALL_TYPE}"
-					"-DZLIB_LIB_DIR=${ZLIB_SRC}/lib" "-DZLIB_INCLUDE=${ZLIB_INCLUDE}"
-					"-DZLIB_SOURCE_DIR=${ZLIB_SOURCE_DIR}" "-DZLIB_BUILD_DIR=${ZLIB_BUILD_DIR}" -P
-					"${ZLIB_INSTALL_SCRIPT}"
+					${CMAKE_COMMAND} "-D_zlib_built_lib=${_zlib_built_lib}"
+					"-D_zlib_library_install_type=${_zlib_library_install_type}"
+					"-D_zlib_lib_dir=${ZLIB_SRC}/lib" "-DZLIB_INCLUDE=${ZLIB_INCLUDE}"
+					"-D_zlib_source_dir=${_zlib_source_dir}" "-D_zlib_build_dir=${_zlib_build_dir}"
+					-P "${_zlib_install_script}"
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
 			)
 			install(
@@ -139,7 +141,7 @@ file(
 				COMPONENT "libs-deps"
 			)
 			install(
-				FILES ${ZLIB_HEADERS}
+				FILES ${_zlib_headers}
 				DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/zlib"
 				COMPONENT "libs-deps"
 			)
@@ -154,7 +156,7 @@ file(
 			ExternalProject_Add(
 				zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				SOURCE_DIR "${ZLIB_SOURCE_DIR}"
+				SOURCE_DIR "${_zlib_source_dir}"
 				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
 				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				BUILD_IN_SOURCE 1
@@ -168,7 +170,7 @@ file(
 						   -DZLIB_BUILD_EXAMPLES=OFF
 						   -DCMAKE_INSTALL_PREFIX=${ZLIB_SRC}
 						   -DCMAKE_INSTALL_LIBDIR=lib
-				CMAKE_CACHE_ARGS ${ZLIB_EXTERNAL_PROJECT_CACHE_ARGS}
+				CMAKE_CACHE_ARGS ${_zlib_external_project_cache_args}
 			)
 			install(
 				FILES "${ZLIB_LIB}"
@@ -176,7 +178,7 @@ file(
 				COMPONENT "libs-deps"
 			)
 			install(
-				FILES ${ZLIB_HEADERS}
+				FILES ${_zlib_headers}
 				DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/zlib"
 				COMPONENT "libs-deps"
 			)
