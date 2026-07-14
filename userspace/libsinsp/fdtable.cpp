@@ -36,6 +36,7 @@ sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
         extensible_table{type_tag<sinsp_fdinfo>{}, "file_descriptors", &s_fdtable_static_fields},
         m_params{params},
         m_table{empty_contents()},
+        m_entries_maybe_shared{false},
         m_tid{0} {
 	reset_cache();
 }
@@ -75,6 +76,12 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 
 void sinsp_fdtable::share_from(const sinsp_fdtable& other) {
 	m_table = other.m_table;
+	// From now on both tables' entries may be referenced across tables, so
+	// writable access must copy entries (see slot_mut()). An empty map
+	// has no entries to share, which keeps the flag off for tables still
+	// referencing the shared empty contents.
+	m_entries_maybe_shared = !m_table->empty();
+	other.m_entries_maybe_shared = m_entries_maybe_shared;
 	reset_cache();
 }
 
@@ -93,6 +100,8 @@ bool sinsp_fdtable::detach_if_shared() {
 		detached->emplace(fd, info->clone());
 	}
 	m_table = std::move(detached);
+	// The clones above are private to this table.
+	m_entries_maybe_shared = false;
 
 	// The cache points into the previously shared contents.
 	reset_cache();
@@ -185,6 +194,7 @@ void sinsp_fdtable::clear() {
 	} else {
 		m_table->clear();
 	}
+	m_entries_maybe_shared = false;
 	reset_cache();
 }
 
@@ -227,8 +237,36 @@ const sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) const {
 }
 
 sinsp_fdinfo* sinsp_fdtable::find_mut(const int64_t fd) {
+	// Fast path: cache hit on an entry that is already private (its only
+	// references are our slot and our cache). The paths that could move the
+	// slot away from the cached entry all reset the cache key first.
+	if(fd == m_last_accessed_fd && m_last_accessed_fd != -1 && !is_shared() &&
+	   m_last_accessed_fdinfo.use_count() == 2) {
+		if(m_params->m_sinsp_stats_v2) {
+			m_params->m_sinsp_stats_v2->m_n_cached_fd_lookups++;
+		}
+		return m_last_accessed_fdinfo.get();
+	}
+
 	detach_if_shared();
-	return find_ref(fd).get();
+
+	const auto it = m_table->find(fd);
+	if(it == m_table->end()) {
+		if(m_params->m_sinsp_stats_v2) {
+			m_params->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+		}
+		return nullptr;
+	}
+
+	auto* fdinfo = slot_mut(it);
+
+	if(m_params->m_sinsp_stats_v2 != nullptr) {
+		m_params->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+	}
+	m_last_accessed_fd = fd;
+	m_last_accessed_fdinfo = it->second;
+	lookup_device(*fdinfo);
+	return fdinfo;
 }
 
 sinsp_fdinfo* sinsp_fdtable::add(const int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
@@ -241,7 +279,22 @@ std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
 
 std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key) {
 	// Conservative: entries handed to the plugin API are writable through
-	// write_entry_field, so they must not live in shared contents.
+	// write_entry_field, so they must be private to this table at handout.
+	//
+	// The handle we hand out is an entry reference this table cannot tell apart
+	// from another table's slot, so on a once-shared table every later writable
+	// access to the same fd copies the entry again -- including a second
+	// get_entry(), or a loop(), from the same plugin callback, which leaves the
+	// earlier handle pointing at an orphaned copy. A handle is therefore only
+	// good until the next writable access through the table, which is well
+	// inside what it ever promised: it may already dangle across an erase, and
+	// the accessed-entry bookkeeping asserts that plugins release their handles
+	// before the callback returns.
 	detach_if_shared();
-	return find_ref(key);
+	const auto it = m_table->find(key);
+	if(it == m_table->end()) {
+		return nullptr;
+	}
+	slot_mut(it);
+	return it->second;
 }

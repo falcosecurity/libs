@@ -97,7 +97,7 @@ public:
 		}
 		detach_if_shared();
 		for(auto it = m_table->begin(); it != m_table->end(); ++it) {
-			if(!callback(it->first, *it->second)) {
+			if(!callback(it->first, *slot_mut(it))) {
 				return false;
 			}
 		}
@@ -196,6 +196,13 @@ private:
 	// place (see detach_if_shared()).
 	std::shared_ptr<table_t> m_table;
 
+	// True if this table's entries may be referenced by other fd tables,
+	// i.e. share_from() has ever put these contents in play. While false,
+	// entry reference counts have only private causes (caches, plugin
+	// entry handles) and writable access never copies. Sticky per contents
+	// generation; sharing metadata like the cache, hence mutable.
+	mutable bool m_entries_maybe_shared;
+
 	//
 	// Simple fd cache. This is per-owner memoization, not table content:
 	// it stays mutable so that read-only lookups on a const table can
@@ -220,6 +227,34 @@ private:
 	// Returns true if a detach actually took place (invalidating iterators
 	// and entry pointers previously obtained from this table).
 	bool detach_if_shared();
+
+	// Gives the slot a private entry before mutable access is handed out.
+	// The caller must already own private contents (detach_if_shared()).
+	inline sinsp_fdinfo* slot_mut(const table_t::iterator& it) {
+		auto& slot = it->second;
+		// Entries can only be referenced by other tables after share_from()
+		// has been involved; without that, extra references (plugin entry
+		// handles, caches) are private to this table and must keep observing
+		// in-place writes, so no copy may be made.
+		if(!m_entries_maybe_shared || slot.use_count() <= 1) {
+			return slot.get();
+		}
+		// Disarm our own cache reference first: it would both inflate the
+		// reference count below and keep serving the pre-copy entry
+		// afterwards. This cannot free the entry: the slot still owns it.
+		if(m_last_accessed_fdinfo == slot) {
+			m_last_accessed_fd = -1;
+			m_last_accessed_fdinfo.reset();
+		}
+		// Any remaining reference may be another table's slot or cache:
+		// copy before writing. Spurious copies (a stale cache elsewhere, a
+		// plugin entry handle on a once-shared table) are safe, just
+		// wasteful.
+		if(slot.use_count() > 1) {
+			slot = slot->clone();
+		}
+		return slot.get();
+	}
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
 	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd) const;
