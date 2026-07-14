@@ -247,7 +247,7 @@ public:
 			return NULL;
 		}
 
-		sinsp_fdtable* fdt = get_fd_table();
+		sinsp_fdtable* fdt = get_fd_table_mut();
 
 		if(fdt) {
 			sinsp_fdinfo* fdinfo = fdt->find_mut(fd);
@@ -436,18 +436,18 @@ public:
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
-	inline sinsp_fdtable* get_fd_table() {
+	inline const sinsp_fdtable* get_fd_table() const {
 		if(!(m_flags & PPM_CL_CLONE_FILES)) {
 			return &m_fdtable;
-		} else {
-			sinsp_threadinfo* root = get_main_thread();
-			return (root == nullptr) ? nullptr : &(root->get_fdtable());
 		}
+		const sinsp_threadinfo* root = get_main_thread();
+		return (root == nullptr) ? nullptr : &(root->get_fdtable());
 	}
 
-	inline const sinsp_fdtable* get_fd_table() const {
-		return const_cast<sinsp_threadinfo*>(this)->get_fd_table();
-	}
+	// Table access for modification: the chokepoint where copy-on-write
+	// will detach state shared with other processes' fd tables. Same
+	// CLONE_FILES routing as the const accessor, so delegate to it.
+	inline sinsp_fdtable* get_fd_table_mut() { return const_cast<sinsp_fdtable*>(get_fd_table()); }
 
 	void init();
 	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);

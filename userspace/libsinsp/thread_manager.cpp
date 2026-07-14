@@ -378,7 +378,9 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 		return;
 	}
 
-	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table();
+	// Writable: the fd_listener may mutate the entries handed to it during
+	// the erase notifications below.
+	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table_mut();
 	if(fd_table_ptr == nullptr) {
 		return;
 	}
@@ -531,7 +533,7 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostn
 }
 
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo) {
-	sinsp_fdtable* fdt = tinfo.get_fd_table();
+	const sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL) {
 		fdt->reset_cache();
 	}
@@ -830,13 +832,13 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 			//
 			// Add the FDs
 			//
-			sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
+			const sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
 			if(fd_table_ptr == NULL) {
 				return false;
 			}
 
 			bool should_exit = false;
-			fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& info) {
+			fd_table_ptr->const_loop([&](int64_t fd, const sinsp_fdinfo& info) {
 				//
 				// Allocate the scap fd info
 				//

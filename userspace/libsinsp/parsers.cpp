@@ -847,7 +847,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 			 * syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC
 			 * flag
 			 */
-			sinsp_fdtable *fd_table_ptr = caller_tinfo->get_fd_table();
+			const sinsp_fdtable *fd_table_ptr = caller_tinfo->get_fd_table();
 			if(fd_table_ptr != nullptr) {
 				child_tinfo->get_fdtable().clear();
 				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
@@ -1289,7 +1289,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			 * syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC
 			 * flag
 			 */
-			sinsp_fdtable *fd_table_ptr = lookup_tinfo->get_fd_table();
+			const sinsp_fdtable *fd_table_ptr = lookup_tinfo->get_fd_table();
 			if(fd_table_ptr != nullptr) {
 				child_tinfo->get_fdtable().clear();
 				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
@@ -1747,7 +1747,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	//
 	// Purge CLOEXEC FDs on successful execve/execveat
 	//
-	if(auto *fd_table = evt.get_tinfo()->get_fd_table(); fd_table != nullptr) {
+	if(auto *fd_table = evt.get_tinfo()->get_fd_table_mut(); fd_table != nullptr) {
 		fd_table->retain(
 		        [&](int64_t fd, const sinsp_fdinfo &info) { return !info.is_close_on_exec(); });
 	}
@@ -2780,7 +2780,7 @@ void sinsp_parser::parse_close_range_exit(sinsp_evt &evt) const {
 		return;
 	}
 
-	auto *fd_table = evt.get_tinfo()->get_fd_table();
+	auto *fd_table = evt.get_tinfo()->get_fd_table_mut();
 	if(fd_table == nullptr) {
 		return;
 	}

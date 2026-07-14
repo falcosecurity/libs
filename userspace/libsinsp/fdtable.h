@@ -58,7 +58,7 @@ public:
 
 	// Read-only lookup: the returned entry must not be modified, as it may be
 	// shared with other fd tables.
-	const sinsp_fdinfo* find(int64_t fd);
+	const sinsp_fdinfo* find(int64_t fd) const;
 
 	// Lookup for modification: the single chokepoint through which every
 	// mutable entry is handed out.
@@ -107,7 +107,7 @@ public:
 
 	size_t size() const;
 
-	void reset_cache();
+	void reset_cache() const;
 
 	inline uint64_t get_tid() const { return m_tid; }
 
@@ -155,10 +155,12 @@ private:
 	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
 
 	//
-	// Simple fd cache
+	// Simple fd cache. This is per-owner memoization, not table content:
+	// it stays mutable so that read-only lookups on a const table can
+	// still maintain it.
 	//
-	int64_t m_last_accessed_fd;
-	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
+	mutable int64_t m_last_accessed_fd;
+	mutable std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
 	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
 
@@ -167,7 +169,7 @@ private:
 	}
 
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
-	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);
+	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd) const;
 	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd,
 	                                             std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 };
