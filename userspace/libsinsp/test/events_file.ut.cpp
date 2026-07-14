@@ -38,7 +38,6 @@ limitations under the License.
 #define ASSERT_FD_GETTERS_NOT_FILE(x)    \
 	ASSERT_EQ(x->m_name, "");            \
 	ASSERT_EQ(x->m_name_raw, "");        \
-	ASSERT_EQ(x->m_oldname, "");         \
 	ASSERT_EQ(x->get_device(), 0);       \
 	ASSERT_EQ(x->tostring(), "");        \
 	ASSERT_EQ(x->get_device_major(), 0); \
@@ -73,6 +72,8 @@ TEST_F(sinsp_with_test_input, file_open) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/tmp");
 	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
+	// An fd created by the current event is not a name *change*.
+	ASSERT_EQ(get_field_as_string(evt, "fd.name_changed"), "false");
 }
 
 TEST_F(sinsp_with_test_input, file_open_invalid_utf8) {

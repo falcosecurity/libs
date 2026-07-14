@@ -371,8 +371,6 @@ public:
 	std::string m_name_raw;  // Human readable rendering of this FD. See m_name, only used if fd is
 	                         // a file path. Path is kept "raw" with limited sanitization and
 	                         // without absolute path derivation.
-	std::string m_oldname;  // The name of this fd at the beginning of event parsing. Used to detect
-	                        // name changes that result from parsing an event.
 	uint32_t m_flags = FLAGS_NONE;
 	uint32_t m_dev = 0;
 	uint32_t m_mount_id = 0;
