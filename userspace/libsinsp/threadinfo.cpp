@@ -581,7 +581,7 @@ void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
 }
 
 sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
-	sinsp_fdtable* fd_table_ptr = get_fd_table();
+	sinsp_fdtable* fd_table_ptr = get_fd_table_mut();
 	if(fd_table_ptr == NULL) {
 		return NULL;
 	}
@@ -596,7 +596,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::shared_ptr<sinsp_fdinfo>
 }
 
 void sinsp_threadinfo::remove_fd(int64_t fd) {
-	sinsp_fdtable* fd_table_ptr = get_fd_table();
+	sinsp_fdtable* fd_table_ptr = get_fd_table_mut();
 	if(fd_table_ptr == NULL) {
 		return;
 	}
@@ -604,7 +604,7 @@ void sinsp_threadinfo::remove_fd(int64_t fd) {
 }
 
 bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor) {
-	sinsp_fdtable* fdt = get_fd_table();
+	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL) {
 		return false;
 	}

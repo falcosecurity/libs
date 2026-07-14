@@ -34,7 +34,7 @@ sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
 	reset_cache();
 }
 
-inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) {
+inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) const {
 	//
 	// Try looking up in our simple cache
 	//
@@ -148,7 +148,7 @@ size_t sinsp_fdtable::size() const {
 	return m_table.size();
 }
 
-void sinsp_fdtable::reset_cache() {
+void sinsp_fdtable::reset_cache() const {
 	// Only the cache key is cleared here; m_last_accessed_fdinfo is intentionally
 	// left untouched. Cache validity is keyed solely on m_last_accessed_fd (see
 	// find_ref()), so clearing the key is enough to disarm the cache. Do not null
@@ -173,7 +173,7 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #endif  // _WIN32
 }
 
-const sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) {
+const sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) const {
 	return find_ref(fd).get();
 }
 
