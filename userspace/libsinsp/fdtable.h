@@ -56,7 +56,13 @@ public:
 
 	explicit sinsp_fdtable(const std::shared_ptr<ctor_params>& params);
 
-	sinsp_fdinfo* find(int64_t fd);
+	// Read-only lookup: the returned entry must not be modified, as it may be
+	// shared with other fd tables.
+	const sinsp_fdinfo* find(int64_t fd);
+
+	// Lookup for modification: the single chokepoint through which every
+	// mutable entry is handed out.
+	sinsp_fdinfo* find_mut(int64_t fd);
 
 	sinsp_fdinfo* add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
