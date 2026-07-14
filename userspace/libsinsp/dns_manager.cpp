@@ -99,7 +99,7 @@ inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string 
 }
 #endif
 
-bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts) {
+bool sinsp_dns_manager::match(const char *name, int af, const void *addr, uint64_t ts) {
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	if(!m_resolver) {
 		m_resolver = std::make_unique<std::thread>(sinsp_dns_resolver::refresh,
@@ -136,7 +136,7 @@ bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 	return false;
 }
 
-std::string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts) {
+std::string sinsp_dns_manager::name_of(int af, const void *addr, uint64_t ts) {
 	std::string ret;
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__)

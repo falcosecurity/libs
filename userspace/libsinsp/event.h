@@ -444,7 +444,9 @@ public:
 	*/
 	const sinsp_fdinfo* get_fd_info() const { return m_fdinfo; }
 
-	sinsp_fdinfo* get_fd_info() { return m_fdinfo; }
+	// Mutable access to the event's fd entry: the acquisition point where
+	// copy-on-write will detach an entry shared with other fd tables.
+	sinsp_fdinfo* get_fd_info_mut() { return m_fdinfo; }
 
 	void set_fd_info(sinsp_fdinfo* v) { m_fdinfo = v; }
 
