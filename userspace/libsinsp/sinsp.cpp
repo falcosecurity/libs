@@ -32,6 +32,8 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
+#include <unordered_set>
+
 #ifndef _WIN32
 #include <unistd.h>
 #include <poll.h>
@@ -1717,26 +1719,39 @@ void sinsp::stop_capture() {
 		print_capture_stats(sinsp_logger::SEV_DEBUG);
 	}
 
-	/* Print the number of threads and fds in our tables */
+	/* Print the number of threads and fds in our tables. The unique count bills
+	 * each distinct fd entry once, however many tables reference it, so the gap
+	 * to the logical count is what copy-on-write sharing saves. Entry identity
+	 * rather than contents identity, because a table that has been written to
+	 * once has its own map while still referencing shared entries. */
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
-	m_thread_manager->get_threads()->loop([&thread_cnt, &fd_cnt](sinsp_threadinfo& tinfo) {
+	uint64_t unique_fd_cnt = 0;
+	std::unordered_set<const sinsp_fdinfo*> seen_entries;
+	m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
 		thread_cnt++;
 
 		/* Only main threads have an associated fdtable */
 		if(tinfo.is_main_thread()) {
-			auto fdtable_ptr = tinfo.get_fd_table();
+			const auto* fdtable_ptr = tinfo.get_fd_table();
 			if(fdtable_ptr != nullptr) {
 				fd_cnt += fdtable_ptr->size();
+				fdtable_ptr->const_loop([&](int64_t, const sinsp_fdinfo& fdinfo) {
+					if(seen_entries.insert(&fdinfo).second) {
+						unique_fd_cnt++;
+					}
+					return true;
+				});
 			}
 		}
 		return true;
 	});
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "total threads in the table:%" PRIu64
-	                          ", total fds in all threads:%" PRIu64 "\n",
+	                          ", total fds in all threads:%" PRIu64 " (%" PRIu64 " unique)\n",
 	                          thread_cnt,
-	                          fd_cnt);
+	                          fd_cnt,
+	                          unique_fd_cnt);
 }
 
 void sinsp::start_capture() {
