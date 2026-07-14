@@ -95,7 +95,10 @@ public:
 		FLAGS_IN_BASELINE_RW = (1 << 11),
 		FLAGS_IN_BASELINE_OTHER = (1 << 12),
 		FLAGS_SOCKET_CONNECTED = (1 << 13),
-		FLAGS_IS_CLONED = (1 << 14),
+		// FLAGS_IS_CLONED = (1 << 14), // note: retired (fd tables are shared on fork
+		//                              // and copied on write; "still referenced by
+		//                              // another process" is now is_shared() on the
+		//                              // entry's table). Don't reuse the bit.
 		FLAGS_CONNECTION_PENDING = (1 << 15),
 		FLAGS_CONNECTION_FAILED = (1 << 16),
 		FLAGS_OVERLAY_UPPER = (1 << 17),
@@ -257,8 +260,6 @@ public:
 		return (m_flags & FLAGS_CONNECTION_FAILED) == FLAGS_CONNECTION_FAILED;
 	}
 
-	inline bool is_cloned() const { return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED; }
-
 	inline bool is_overlay_upper() const {
 		return (m_flags & FLAGS_OVERLAY_UPPER) == FLAGS_OVERLAY_UPPER;
 	}
@@ -341,8 +342,6 @@ public:
 		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_PENDING);
 		m_flags |= FLAGS_CONNECTION_FAILED;
 	}
-
-	inline void set_is_cloned() { m_flags |= FLAGS_IS_CLONED; }
 
 	inline void set_overlay_upper() { m_flags |= FLAGS_OVERLAY_UPPER; }
 
