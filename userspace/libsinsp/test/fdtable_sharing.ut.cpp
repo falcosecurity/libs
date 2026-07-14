@@ -20,16 +20,15 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-// Tests for the fd-table contents-sharing primitives (share_from /
-// detach-on-write). These exercise sinsp_fdtable directly; nothing in the
-// event parsers shares tables yet.
+// Tests for fd-table contents sharing: the clone parser shares the parent's
+// table with the child, and the first modification through either table
+// detaches a private copy (copy-on-write).
 class fdtable_sharing : public sinsp_with_test_input {
 protected:
-	// Creates a child process of init and returns its threadinfo. The parser
-	// currently populates the child's fd table with a deep copy of the
-	// parent's; tests overwrite that state via share_from().
-	sinsp_threadinfo* spawn_child(int64_t tid) {
-		generate_clone_x_event(0, tid, tid, INIT_TID);
+	// Creates a child process and returns its threadinfo. The clone parser
+	// shares the parent's fd-table contents with the child (copy-on-write).
+	sinsp_threadinfo* spawn_child(int64_t tid, int64_t parent_tid = INIT_TID) {
+		generate_clone_x_event(0, tid, tid, parent_tid);
 		auto child = m_inspector.m_thread_manager->find_thread(tid, true).get();
 		EXPECT_NE(child, nullptr);
 		return child;
@@ -64,19 +63,17 @@ TEST_F(fdtable_sharing, untouched_tables_reference_the_shared_empty_contents) {
 	ASSERT_NE(leader->get_fdtable().contents_id(), tt1.contents_id());
 }
 
-TEST_F(fdtable_sharing, share_and_lookup) {
+TEST_F(fdtable_sharing, fork_shares_the_parent_table) {
 	add_default_init_thread();
 	open_inspector();
 	generate_open_x_event();
 
 	auto* parent = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
-	auto* child = spawn_child(20);
-
 	auto& pt = parent->get_fdtable();
-	auto& ct = child->get_fdtable();
-
 	ASSERT_FALSE(pt.is_shared());
-	ct.share_from(pt);
+
+	auto* child = spawn_child(20);
+	auto& ct = child->get_fdtable();
 
 	ASSERT_TRUE(pt.is_shared());
 	ASSERT_TRUE(ct.is_shared());
@@ -95,7 +92,6 @@ TEST_F(fdtable_sharing, writable_lookup_detaches) {
 	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
-	ct.share_from(pt);
 
 	sinsp_fdinfo* w = ct.find_mut(s_fd);
 	ASSERT_NE(w, nullptr);
@@ -118,7 +114,6 @@ TEST_F(fdtable_sharing, const_lookup_does_not_detach) {
 	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
-	ct.share_from(pt);
 
 	ASSERT_NE(ct.find(s_fd), nullptr);
 	ASSERT_NE(pt.find(s_fd), nullptr);
@@ -135,7 +130,6 @@ TEST_F(fdtable_sharing, add_detaches) {
 	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
-	ct.share_from(pt);
 
 	auto fdi = m_inspector.get_fdinfo_factory().create();
 	fdi->m_type = SCAP_FD_FILE_V2;
@@ -157,7 +151,6 @@ TEST_F(fdtable_sharing, erase_detaches) {
 	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
-	ct.share_from(pt);
 
 	ASSERT_TRUE(ct.erase(s_fd));
 
@@ -179,7 +172,6 @@ TEST_F(fdtable_sharing, retain_builds_private_copy_from_survivors) {
 	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
-	ct.share_from(pt);
 
 	ct.retain([](int64_t fd, const sinsp_fdinfo&) { return fd == 5; });
 
@@ -201,7 +193,6 @@ TEST_F(fdtable_sharing, clear_leaves_other_sharers_intact) {
 	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
-	ct.share_from(pt);
 
 	ct.clear();
 
@@ -217,15 +208,13 @@ TEST_F(fdtable_sharing, chains_detach_independently) {
 
 	auto* grandparent = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	auto* parent = spawn_child(20);
-	auto* child = spawn_child(30);
+	auto* child = spawn_child(30, 20);
 
 	auto& gt = grandparent->get_fdtable();
 	auto& pt = parent->get_fdtable();
 	auto& ct = child->get_fdtable();
 
-	// G -> P -> C all share one map, no matter through whom they got it.
-	pt.share_from(gt);
-	ct.share_from(pt);
+	// G -> P -> C all share one map, inherited fork by fork.
 	ASSERT_TRUE(gt.is_shared());
 	ASSERT_TRUE(pt.is_shared());
 	ASSERT_TRUE(ct.is_shared());
@@ -244,19 +233,46 @@ TEST_F(fdtable_sharing, chains_detach_independently) {
 	ASSERT_FALSE(ct.is_shared());
 }
 
+TEST_F(fdtable_sharing, execve_purges_cloexec_without_touching_the_parent) {
+	add_default_init_thread();
+	open_inspector();
+	generate_open_x_event();
+	sinsp_test_input::open_params cloexec_open;
+	cloexec_open.fd = 5;
+	cloexec_open.path = "/cloexec";
+	cloexec_open.flags = PPM_O_CLOEXEC;
+	generate_open_x_event(cloexec_open);
+
+	auto* parent = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
+	auto& pt = parent->get_fdtable();
+	spawn_child(20);
+	generate_execve_enter_and_exit_event(0, 20, 20, 20, INIT_TID);
+
+	auto* child = m_inspector.m_thread_manager->find_thread(20, true).get();
+	auto& ct = child->get_fdtable();
+
+	// The purge kept only the non-CLOEXEC entry, without copying the rest.
+	ASSERT_FALSE(ct.is_shared());
+	ASSERT_NE(ct.find(s_fd), nullptr);
+	ASSERT_EQ(ct.find(5), nullptr);
+	// The parent still owns both.
+	ASSERT_FALSE(pt.is_shared());
+	ASSERT_NE(pt.find(s_fd), nullptr);
+	ASSERT_NE(pt.find(5), nullptr);
+}
+
 TEST_F(fdtable_sharing, lookup_cache_survives_share_and_detach) {
 	add_default_init_thread();
 	open_inspector();
 	generate_open_x_event();
 
 	auto* parent = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
-	auto* child = spawn_child(20);
 	auto& pt = parent->get_fdtable();
-	auto& ct = child->get_fdtable();
 
-	// Warm the parent's cache, then share and detach through the child.
+	// Warm the parent's cache, then fork and detach through the child.
 	ASSERT_NE(pt.find(s_fd), nullptr);
-	ct.share_from(pt);
+	auto* child = spawn_child(20);
+	auto& ct = child->get_fdtable();
 	ASSERT_NE(ct.find(s_fd), nullptr);  // warms the child's cache on the shared map
 	sinsp_fdinfo* w = ct.find_mut(s_fd);
 	w->m_name = "/changed";
