@@ -1268,7 +1268,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt, uint32_t* len)
 
 		ppm_event_flags eflags = evt->get_info_flags();
 		if(eflags & EF_WRITES_TO_FD) {
-			sinsp_fdinfo* fdinfo = evt->get_fd_info();
+			const sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 			if(fdinfo != NULL && fdinfo->is_syslog()) {
 				m_val.u32 = 1;
@@ -1284,7 +1284,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt, uint32_t* len)
 	case TYPE_COUNT_ERROR:
 		return extract_error_count(evt, len);
 	case TYPE_COUNT_ERROR_FILE: {
-		sinsp_fdinfo* fdinfo = evt->get_fd_info();
+		const sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 		if(fdinfo != NULL) {
 			if(fdinfo->m_type == SCAP_FD_FILE || fdinfo->m_type == SCAP_FD_FILE_V2 ||
@@ -1303,7 +1303,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt, uint32_t* len)
 		return NULL;
 	}
 	case TYPE_COUNT_ERROR_NET: {
-		sinsp_fdinfo* fdinfo = evt->get_fd_info();
+		const sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 		if(fdinfo != NULL) {
 			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK || fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
@@ -1330,7 +1330,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt, uint32_t* len)
 		}
 	}
 	case TYPE_COUNT_ERROR_OTHER: {
-		sinsp_fdinfo* fdinfo = evt->get_fd_info();
+		const sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 		if(fdinfo != NULL) {
 			if(!(fdinfo->m_type == SCAP_FD_FILE || fdinfo->m_type == SCAP_FD_FILE_V2 ||

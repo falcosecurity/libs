@@ -91,7 +91,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect) {
 	 * added the fdinfo into the thread. See `reset` logic, the fdinfo is recovered from the
 	 * `client_fd` (first parameter).
 	 */
-	auto* fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
+	const auto* fdinfo = tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_TRUE(fdinfo->is_ipv4_socket()); /* in `parse_connect_enter` we set `SCAP_FD_IPV4_SOCK` as
 	                                          type */
@@ -309,7 +309,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo* fdinfo = NULL;
+	const sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	generate_socket_exit_event();
@@ -467,7 +467,7 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo* fdinfo = NULL;
+	const sinsp_fdinfo* fdinfo = NULL;
 
 	generate_socket_exit_event();
 
@@ -653,7 +653,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo* fdinfo = NULL;
+	const sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET, SOCK_DGRAM));

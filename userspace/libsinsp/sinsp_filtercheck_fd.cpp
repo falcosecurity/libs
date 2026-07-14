@@ -1377,8 +1377,8 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt) {
 			return true;
 		}
 
-		uint16_t *sport;
-		uint16_t *dport;
+		const uint16_t *sport;
+		const uint16_t *dport;
 		scap_fd_type evt_type = m_fdinfo->m_type;
 
 		if(evt_type == SCAP_FD_IPV4_SOCK) {
@@ -1462,7 +1462,7 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt) {
 			return false;
 		}
 
-		uint32_t *addr;
+		const uint32_t *addr;
 		if(m_field_id == TYPE_CLIENTIP_NAME) {
 			if(evt_type == SCAP_FD_IPV4_SOCK) {
 				addr = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
