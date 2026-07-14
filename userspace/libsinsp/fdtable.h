@@ -109,16 +109,18 @@ public:
 			return;
 		}
 		if(is_shared()) {
-			// Build the private copy directly from the survivors instead of
-			// detaching everything first: the fork→execve path retains only
-			// the non-CLOEXEC subset of the entries.
+			// Build the private map directly from the surviving slots: the
+			// fork→execve path retains only the non-CLOEXEC subset. The
+			// entries themselves stay shared; copy-on-write covers later
+			// modifications.
 			auto retained = std::make_shared<table_t>();
 			for(const auto& [fd, info] : *m_table) {
 				if(callback(fd, *info)) {
-					retained->emplace(fd, info->clone());
+					retained->emplace(fd, info);
 				}
 			}
 			m_table = std::move(retained);
+			m_entries_maybe_shared = !m_table->empty();
 			reset_cache();
 			return;
 		}

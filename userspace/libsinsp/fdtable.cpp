@@ -90,20 +90,14 @@ bool sinsp_fdtable::detach_if_shared() {
 		return false;
 	}
 
-	// Deep detach: clone every entry into a private map. This is the
-	// deferred equivalent of the eager per-fork table copy it replaces.
-	// Deliberately not counted in the m_n_added_fds stat, which tracks fds
-	// added by events.
-	auto detached = std::make_shared<table_t>();
-	detached->reserve(m_table->size());
-	for(const auto& [fd, info] : *m_table) {
-		detached->emplace(fd, info->clone());
-	}
-	m_table = std::move(detached);
-	// The clones above are private to this table.
-	m_entries_maybe_shared = false;
+	// Shallow detach: this table gets a private map referencing the same
+	// entries. Entries are copied individually when handed out for
+	// modification (see slot_mut()), so inherited fds that are never
+	// modified stay shared for their whole life.
+	m_table = std::make_shared<table_t>(*m_table);
+	m_entries_maybe_shared = !m_table->empty();
 
-	// The cache points into the previously shared contents.
+	// The cache key refers to the previously shared contents.
 	reset_cache();
 	return true;
 }

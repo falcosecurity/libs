@@ -83,10 +83,14 @@ TEST_F(fdtable_sharing, fork_shares_the_parent_table) {
 	ASSERT_EQ(pt.find(s_fd)->m_name, sinsp_test_input::open_params::default_path);
 }
 
-TEST_F(fdtable_sharing, writable_lookup_detaches) {
+TEST_F(fdtable_sharing, writable_lookup_copies_only_the_touched_entry) {
 	add_default_init_thread();
 	open_inspector();
 	generate_open_x_event();
+	sinsp_test_input::open_params second_open;
+	second_open.fd = 5;
+	second_open.path = "/second";
+	generate_open_x_event(second_open);
 
 	auto* parent = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	auto* child = spawn_child(20);
@@ -97,12 +101,14 @@ TEST_F(fdtable_sharing, writable_lookup_detaches) {
 	ASSERT_NE(w, nullptr);
 	w->m_name = "/changed";
 
-	// The write detached the child's copy; the parent is untouched.
+	// The write detached the child's map and copied the touched entry; the
+	// parent is untouched and the other entry stays shared.
 	ASSERT_FALSE(pt.is_shared());
 	ASSERT_FALSE(ct.is_shared());
 	ASSERT_NE(ct.find(s_fd), pt.find(s_fd));
 	ASSERT_EQ(ct.find(s_fd)->m_name, "/changed");
 	ASSERT_EQ(pt.find(s_fd)->m_name, sinsp_test_input::open_params::default_path);
+	ASSERT_EQ(ct.find(5), pt.find(5));
 }
 
 TEST_F(fdtable_sharing, const_lookup_does_not_detach) {
@@ -176,7 +182,8 @@ TEST_F(fdtable_sharing, add_detaches) {
 	ASSERT_FALSE(ct.is_shared());
 	ASSERT_NE(ct.find(100), nullptr);
 	ASSERT_EQ(pt.find(100), nullptr);
-	ASSERT_NE(pt.find(s_fd), nullptr);
+	// The pre-existing entry stays shared: only the map was copied.
+	ASSERT_EQ(ct.find(s_fd), pt.find(s_fd));
 }
 
 TEST_F(fdtable_sharing, erase_detaches) {
@@ -215,10 +222,10 @@ TEST_F(fdtable_sharing, retain_builds_private_copy_from_survivors) {
 	ASSERT_FALSE(ct.is_shared());
 	ASSERT_EQ(ct.size(), 1);
 	ASSERT_EQ(ct.find(s_fd), nullptr);
+	// The survivor stays shared with the parent, which keeps everything.
 	ASSERT_NE(ct.find(5), nullptr);
-	// Parent keeps everything.
+	ASSERT_EQ(ct.find(5), pt.find(5));
 	ASSERT_NE(pt.find(s_fd), nullptr);
-	ASSERT_NE(pt.find(5), nullptr);
 }
 
 TEST_F(fdtable_sharing, clear_leaves_other_sharers_intact) {
@@ -288,9 +295,11 @@ TEST_F(fdtable_sharing, execve_purges_cloexec_without_touching_the_parent) {
 	auto* child = m_inspector.m_thread_manager->find_thread(20, true).get();
 	auto& ct = child->get_fdtable();
 
-	// The purge kept only the non-CLOEXEC entry, without copying the rest.
+	// The purge kept only the non-CLOEXEC entry, still shared with the
+	// parent: nothing was copied.
 	ASSERT_FALSE(ct.is_shared());
 	ASSERT_NE(ct.find(s_fd), nullptr);
+	ASSERT_EQ(ct.find(s_fd), pt.find(s_fd));
 	ASSERT_EQ(ct.find(5), nullptr);
 	// The parent still owns both.
 	ASSERT_FALSE(pt.is_shared());
