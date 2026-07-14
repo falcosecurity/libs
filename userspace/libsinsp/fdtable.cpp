@@ -85,6 +85,36 @@ void sinsp_fdtable::share_from(const sinsp_fdtable& other) {
 	reset_cache();
 }
 
+void sinsp_fdtable::deduplicate_into(dedup_registry& registry) {
+	if(m_table->empty() || is_shared()) {
+		// Wholesale-shared contents are already deduplicated; without private
+		// contents we must not rebind slots in place.
+		return;
+	}
+
+	for(auto& [fd, info] : *m_table) {
+		if(info->has_dynamic_field_values()) {
+			// Dynamic field values are not covered by content_equals().
+			continue;
+		}
+		auto& bucket = registry.m_candidates[{fd, info->m_dev, info->m_ino}];
+		bool deduplicated = false;
+		for(const auto& [canonical, owner] : bucket) {
+			if(canonical->content_equals(*info)) {
+				info = canonical;
+				m_entries_maybe_shared = true;
+				owner->m_entries_maybe_shared = true;
+				deduplicated = true;
+				break;
+			}
+		}
+		if(!deduplicated) {
+			bucket.emplace_back(info, this);
+		}
+	}
+	reset_cache();
+}
+
 bool sinsp_fdtable::detach_if_shared() {
 	if(!is_shared()) {
 		return false;

@@ -551,6 +551,16 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostn
 	});
 }
 
+void sinsp_thread_manager::deduplicate_fd_tables() {
+	sinsp_fdtable::dedup_registry registry;
+	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
+		if(tinfo.is_main_thread()) {
+			tinfo.get_fdtable().deduplicate_into(registry);
+		}
+		return true;
+	});
+}
+
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo) {
 	const sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL) {

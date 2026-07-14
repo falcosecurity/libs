@@ -380,6 +380,13 @@ void sinsp::init() {
 	m_thread_manager->fix_sockets_coming_from_proc(m_hostname_and_port_resolution_enabled);
 
 	//
+	// Share content-identical fd entries between the scanned tables:
+	// fork-inherited fds appear once per process in /proc, so the scan
+	// materializes duplicates the live fork path no longer creates.
+	//
+	m_thread_manager->deduplicate_fd_tables();
+
+	//
 	// Load state table API field accessors and tables
 	//
 	try {
