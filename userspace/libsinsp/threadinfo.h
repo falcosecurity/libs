@@ -250,7 +250,7 @@ public:
 		sinsp_fdtable* fdt = get_fd_table();
 
 		if(fdt) {
-			sinsp_fdinfo* fdinfo = fdt->find(fd);
+			sinsp_fdinfo* fdinfo = fdt->find_mut(fd);
 			if(fdinfo) {
 				// Its current name is now its old
 				// name. The name might change as a

@@ -173,7 +173,11 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #endif  // _WIN32
 }
 
-sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) {
+const sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) {
+	return find_ref(fd).get();
+}
+
+sinsp_fdinfo* sinsp_fdtable::find_mut(const int64_t fd) {
 	return find_ref(fd).get();
 }
 
