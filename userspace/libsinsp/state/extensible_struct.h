@@ -44,6 +44,12 @@ public:
 	// dynamic_struct interface
 
 	/**
+	 * @brief True if any dynamic field value has been materialized in this
+	 * struct (as opposed to fields merely being defined on the table).
+	 */
+	bool has_dynamic_field_values() const { return !m_fields.empty(); }
+
+	/**
 	 * @brief Sets the shared definitions for the dynamic fields accessible in a struct.
 	 * The definitions can be set to a non-null value only once, either at
 	 * construction time by invoking this method.

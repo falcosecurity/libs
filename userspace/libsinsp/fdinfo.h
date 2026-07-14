@@ -353,6 +353,19 @@ public:
 		m_openflags &= ~PPM_MFD_CLOEXEC;
 	}
 
+	// True if this entry describes the same fd state as `other`: same fd
+	// number, type, flags, identity and name, and (for sockets) the same
+	// tuple. Dynamic fields are not compared; callers deduplicating entries
+	// must exclude entries carrying dynamic field values.
+	//
+	// Virtual for the same reason clone() is: an event processor may build a
+	// subclass carrying extra data (see libsinsp::event_processor::build_fdinfo),
+	// and two entries differing only in that data are not interchangeable, so
+	// answering true for them would let a caller share one where two are needed.
+	// An override must chain to this implementation and compare its own state on
+	// top of it.
+	virtual bool content_equals(const sinsp_fdinfo& other) const;
+
 	/*!
 	  \brief A static version of static_fields()
 	  \return The group of field infos available.

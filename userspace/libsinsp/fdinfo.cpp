@@ -45,6 +45,45 @@ static void set_ipv6_addr_high(ipv6addr& a,
 	memcpy(&a.m_b[2], &state_data.data().u64, sizeof(uint64_t));
 };
 
+bool sinsp_fdinfo::content_equals(const sinsp_fdinfo& other) const {
+	if(m_type != other.m_type || m_openflags != other.m_openflags || m_flags != other.m_flags ||
+	   m_dev != other.m_dev || m_mount_id != other.m_mount_id || m_ino != other.m_ino ||
+	   m_pid != other.m_pid || m_fd != other.m_fd || m_name != other.m_name ||
+	   m_name_raw != other.m_name_raw) {
+		return false;
+	}
+
+	// Only the union member selected by m_type is meaningful; the tuple
+	// unions expose their bytes (m_all), the server infos are compared
+	// field by field to avoid padding.
+	switch(m_type) {
+	case SCAP_FD_IPV4_SOCK:
+		return memcmp(m_sockinfo.m_ipv4info.m_all,
+		              other.m_sockinfo.m_ipv4info.m_all,
+		              sizeof(m_sockinfo.m_ipv4info.m_all)) == 0;
+	case SCAP_FD_IPV6_SOCK:
+		return memcmp(m_sockinfo.m_ipv6info.m_all,
+		              other.m_sockinfo.m_ipv6info.m_all,
+		              sizeof(m_sockinfo.m_ipv6info.m_all)) == 0;
+	case SCAP_FD_UNIX_SOCK:
+		return memcmp(m_sockinfo.m_unixinfo.m_all,
+		              other.m_sockinfo.m_unixinfo.m_all,
+		              sizeof(m_sockinfo.m_unixinfo.m_all)) == 0;
+	case SCAP_FD_IPV4_SERVSOCK: {
+		const auto& a = m_sockinfo.m_ipv4serverinfo;
+		const auto& b = other.m_sockinfo.m_ipv4serverinfo;
+		return a.m_ip == b.m_ip && a.m_port == b.m_port && a.m_l4proto == b.m_l4proto;
+	}
+	case SCAP_FD_IPV6_SERVSOCK: {
+		const auto& a = m_sockinfo.m_ipv6serverinfo;
+		const auto& b = other.m_sockinfo.m_ipv6serverinfo;
+		return a.m_ip == b.m_ip && a.m_port == b.m_port && a.m_l4proto == b.m_l4proto;
+	}
+	default:
+		return true;
+	}
+}
+
 char sinsp_fdinfo::get_typechar() const {
 	switch(m_type) {
 	case SCAP_FD_FILE_V2:
