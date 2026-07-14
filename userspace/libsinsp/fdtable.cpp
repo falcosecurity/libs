@@ -158,6 +158,11 @@ void sinsp_fdtable::reset_cache() const {
 	m_last_accessed_fd = -1;
 }
 
+// Lazily resolves the device number of file entries coming from a proc scan.
+// This is the one entry write allowed on the read-only lookup path: it is an
+// idempotent, derived fill (same mount id resolves to the same device no
+// matter which table triggers it), so performing it on an entry shared with
+// other fd tables is safe and does not require copy-on-write.
 void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #ifndef _WIN32
 	if(m_params->m_sinsp_mode.is_offline() ||
