@@ -27,9 +27,15 @@ limitations under the License.
 
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
+const std::shared_ptr<sinsp_fdtable::table_t>& sinsp_fdtable::empty_contents() {
+	static const std::shared_ptr<table_t> s_empty = std::make_shared<table_t>();
+	return s_empty;
+}
+
 sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
         extensible_table{type_tag<sinsp_fdinfo>{}, "file_descriptors", &s_fdtable_static_fields},
         m_params{params},
+        m_table{empty_contents()},
         m_tid{0} {
 	reset_cache();
 }
@@ -48,9 +54,9 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 	//
 	// Caching failed, do a real lookup
 	//
-	auto fdit = m_table.find(fd);
+	auto fdit = m_table->find(fd);
 
-	if(fdit == m_table.end()) {
+	if(fdit == m_table->end()) {
 		if(m_params->m_sinsp_stats_v2) {
 			m_params->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
@@ -67,22 +73,49 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) 
 	}
 }
 
+void sinsp_fdtable::share_from(const sinsp_fdtable& other) {
+	m_table = other.m_table;
+	reset_cache();
+}
+
+bool sinsp_fdtable::detach_if_shared() {
+	if(!is_shared()) {
+		return false;
+	}
+
+	// Deep detach: clone every entry into a private map. This is the
+	// deferred equivalent of the eager per-fork table copy it replaces.
+	// Deliberately not counted in the m_n_added_fds stat, which tracks fds
+	// added by events.
+	auto detached = std::make_shared<table_t>();
+	detached->reserve(m_table->size());
+	for(const auto& [fd, info] : *m_table) {
+		detached->emplace(fd, info->clone());
+	}
+	m_table = std::move(detached);
+
+	// The cache points into the previously shared contents.
+	reset_cache();
+	return true;
+}
+
 inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
         int64_t fd,
         std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	fdinfo->m_fd = fd;
 
-	const auto it = m_table.find(fd);
+	auto it = m_table->find(fd);
 
 	// Three possible exits here:
 	// 1. fd is not on the table
 	//   a. the table size is under the limit so create a new entry
 	//   b. table size is over the limit, discard the fd
 	// 2. fd is already in the table, replace it
-	if(it == m_table.end()) {
-		if(m_table.size() == m_params->m_max_table_size) {
+	if(it == m_table->end()) {
+		if(m_table->size() == m_params->m_max_table_size) {
 			return m_nullptr_ret;
 		}
+		detach_if_shared();
 
 		// No entry in the table, this is the normal case.
 		m_last_accessed_fd = -1;
@@ -90,7 +123,7 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 			m_params->m_sinsp_stats_v2->m_n_added_fds++;
 		}
 
-		return m_table.emplace(fd, std::move(fdinfo)).first->second;
+		return m_table->emplace(fd, std::move(fdinfo)).first->second;
 	}
 
 	// the fd is already in the table. This can happen if:
@@ -106,19 +139,22 @@ inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
 	// ASSERT(false);
 
 	// Replace the fd as a struct copy.
+	if(detach_if_shared()) {
+		it = m_table->find(fd);
+	}
 	m_last_accessed_fd = -1;
 	it->second = std::move(fdinfo);
 	return it->second;
 }
 
 bool sinsp_fdtable::erase(int64_t fd) {
-	auto fdit = m_table.find(fd);
+	auto fdit = m_table->find(fd);
 
 	if(fd == m_last_accessed_fd) {
 		reset_cache();
 	}
 
-	if(fdit == m_table.end()) {
+	if(fdit == m_table->end()) {
 		//
 		// Looks like there's no fd to remove.
 		// Either the fd creation event was dropped or (more likely) our logic doesn't support the
@@ -130,7 +166,10 @@ bool sinsp_fdtable::erase(int64_t fd) {
 		}
 		return false;
 	} else {
-		m_table.erase(fdit);
+		if(detach_if_shared()) {
+			fdit = m_table->find(fd);
+		}
+		m_table->erase(fdit);
 		if(m_params->m_sinsp_stats_v2 != nullptr) {
 			m_params->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
 			m_params->m_sinsp_stats_v2->m_n_removed_fds++;
@@ -140,12 +179,17 @@ bool sinsp_fdtable::erase(int64_t fd) {
 }
 
 void sinsp_fdtable::clear() {
-	m_table.clear();
+	if(is_shared()) {
+		// No need to copy contents just to drop them.
+		m_table = empty_contents();
+	} else {
+		m_table->clear();
+	}
 	reset_cache();
 }
 
 size_t sinsp_fdtable::size() const {
-	return m_table.size();
+	return m_table->size();
 }
 
 void sinsp_fdtable::reset_cache() const {
@@ -183,6 +227,7 @@ const sinsp_fdinfo* sinsp_fdtable::find(const int64_t fd) const {
 }
 
 sinsp_fdinfo* sinsp_fdtable::find_mut(const int64_t fd) {
+	detach_if_shared();
 	return find_ref(fd).get();
 }
 
@@ -195,5 +240,8 @@ std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const {
 };
 
 std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key) {
+	// Conservative: entries handed to the plugin API are writable through
+	// write_entry_field, so they must not live in shared contents.
+	detach_if_shared();
 	return find_ref(key);
 }
