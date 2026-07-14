@@ -834,29 +834,20 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		 * of the main thread.
 		 */
 		if(valid_caller) {
-			/* Copy the fd list:
-			 * XXX this is a gross oversimplification that will need to be fixed.
-			 * What we do is: if the child is NOT a thread, we copy all the parent fds.
-			 * The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-			 * syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC
-			 * flag
+			/* Share the fd table:
+			 * The child sees the same entries as the parent; the first
+			 * modification through either table detaches a private copy
+			 * (copy-on-write), so no per-fork copy is paid here.
+			 * XXX like the eager copy this replaces, sharing for every
+			 * non-thread child is an oversimplification. The right thing to
+			 * do is looking at PPM_CL_CLONE_FILES, but there are syscalls
+			 * like open and pipe2 that can override PPM_CL_CLONE_FILES with
+			 * the O_CLOEXEC flag
 			 */
 			const sinsp_fdtable *fd_table_ptr = caller_tinfo->get_fd_table();
 			if(fd_table_ptr != nullptr) {
-				child_tinfo->get_fdtable().clear();
 				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
-				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo &info) {
-					/* Track down that those are cloned fds */
-					auto newinfo = info.clone();
-					newinfo->set_is_cloned();
-					child_tinfo->get_fdtable().add(fd, std::move(newinfo));
-					return true;
-				});
-
-				/* It's important to reset the cache of the child thread, to prevent it from
-				 * referring to an element in the parent's table.
-				 */
-				child_tinfo->get_fdtable().reset_cache();
+				child_tinfo->get_fdtable().share_from(*fd_table_ptr);
 			} else {
 				/* This should never happen */
 				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -1276,31 +1267,20 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			 * of the main thread.
 			 */
 
-			/* Copy the fd list:
-			 * XXX this is a gross oversimplification that will need to be fixed.
-			 * What we do is: if the child is NOT a thread, we copy all the parent fds.
-			 * The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-			 * syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC
-			 * flag
+			/* Share the fd table:
+			 * The child sees the same entries as the parent; the first
+			 * modification through either table detaches a private copy
+			 * (copy-on-write), so no per-fork copy is paid here.
+			 * XXX like the eager copy this replaces, sharing for every
+			 * non-thread child is an oversimplification. The right thing to
+			 * do is looking at PPM_CL_CLONE_FILES, but there are syscalls
+			 * like open and pipe2 that can override PPM_CL_CLONE_FILES with
+			 * the O_CLOEXEC flag
 			 */
 			const sinsp_fdtable *fd_table_ptr = lookup_tinfo->get_fd_table();
 			if(fd_table_ptr != nullptr) {
-				child_tinfo->get_fdtable().clear();
 				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
-				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo &info) {
-					/* Track down that those are cloned fds.
-					 * This flag `FLAGS_IS_CLONED` seems to be never used...
-					 */
-					auto newinfo = info.clone();
-					newinfo->set_is_cloned();
-					child_tinfo->get_fdtable().add(fd, std::move(newinfo));
-					return true;
-				});
-
-				/* It's important to reset the cache of the child thread, to prevent it from
-				 * referring to an element in the parent's table.
-				 */
-				child_tinfo->get_fdtable().reset_cache();
+				child_tinfo->get_fdtable().share_from(*fd_table_ptr);
 			} else {
 				/* This should never happen */
 				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
