@@ -74,7 +74,7 @@ sinsp_evt::sinsp_evt():
         m_resolved_paramstr_storage(1024),
         m_tinfo(nullptr),
         m_fdinfo(nullptr),
-        m_fdinfo_name_changed(false),
+        m_fdinfo_name_snapshot_valid(false),
         m_iosize(0),
         m_errorcode(0),
         m_rawbuf_str_len(0),

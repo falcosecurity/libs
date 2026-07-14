@@ -307,12 +307,6 @@ void sinsp_parser::process_event(sinsp_evt &evt, sinsp_parser_verdict &verdict) 
 	default:
 		break;
 	}
-
-	// Check to see if the name changed as a side effect of parsing this event. Try to avoid the
-	// overhead of a string compare for every event.
-	if(evt.get_fd_info()) {
-		evt.set_fdinfo_name_changed(evt.get_fd_info()->m_name != evt.get_fd_info()->m_oldname);
-	}
 }
 
 void sinsp_parser::event_cleanup(sinsp_evt &evt) {

@@ -167,7 +167,6 @@ libsinsp::state::static_field_infos sinsp_fdinfo::get_static_fields() {
 	DEFINE_STATIC_FIELD(ret, self, m_openflags, "open_flags");
 	DEFINE_STATIC_FIELD(ret, self, m_name, "name");
 	DEFINE_STATIC_FIELD(ret, self, m_name_raw, "name_raw");
-	DEFINE_STATIC_FIELD(ret, self, m_oldname, "old_name");
 	DEFINE_STATIC_FIELD(ret, self, m_flags, "flags");
 	DEFINE_STATIC_FIELD(ret, self, m_dev, "dev");
 	DEFINE_STATIC_FIELD(ret, self, m_mount_id, "mount_id");

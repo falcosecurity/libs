@@ -252,10 +252,6 @@ public:
 		if(fdt) {
 			sinsp_fdinfo* fdinfo = fdt->find_mut(fd);
 			if(fdinfo) {
-				// Its current name is now its old
-				// name. The name might change as a
-				// result of parsing.
-				fdinfo->m_oldname = fdinfo->m_name;
 				return fdinfo;
 			}
 		}

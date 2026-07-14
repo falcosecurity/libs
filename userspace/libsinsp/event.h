@@ -445,14 +445,31 @@ public:
 	const sinsp_fdinfo* get_fd_info() const { return m_fdinfo; }
 
 	// Mutable access to the event's fd entry: the acquisition point where
-	// copy-on-write will detach an entry shared with other fd tables.
-	sinsp_fdinfo* get_fd_info_mut() { return m_fdinfo; }
+	// copy-on-write will detach an entry shared with other fd tables. The
+	// entry's name is snapshotted on the first acquisition per event, so
+	// that fdinfo_name_changed() can detect changes made while parsing.
+	sinsp_fdinfo* get_fd_info_mut() {
+		if(m_fdinfo != nullptr && !m_fdinfo_name_snapshot_valid) {
+			m_fdinfo_name_snapshot = m_fdinfo->m_name;
+			m_fdinfo_name_snapshot_valid = true;
+		}
+		return m_fdinfo;
+	}
 
-	void set_fd_info(sinsp_fdinfo* v) { m_fdinfo = v; }
+	void set_fd_info(sinsp_fdinfo* v) {
+		if(v != m_fdinfo) {
+			m_fdinfo_name_snapshot_valid = false;
+		}
+		m_fdinfo = v;
+	}
 
-	bool fdinfo_name_changed() const { return m_fdinfo_name_changed; }
-
-	void set_fdinfo_name_changed(const bool changed) { m_fdinfo_name_changed = changed; }
+	// True if parsing the current event changed the name of the (pre-existing)
+	// fd the event refers to. Events that never modified their fd, and fds
+	// created by the current event, report false.
+	bool fdinfo_name_changed() const {
+		return m_fdinfo != nullptr && m_fdinfo_name_snapshot_valid &&
+		       m_fdinfo->m_name != m_fdinfo_name_snapshot;
+	}
 
 	/*!
 	  \brief Return the number of the FD associated with this event.
@@ -581,7 +598,7 @@ public:
 		m_tinfo = nullptr;
 		m_fdinfo_ref.reset();
 		m_fdinfo = nullptr;
-		m_fdinfo_name_changed = false;
+		m_fdinfo_name_snapshot_valid = false;
 		m_iosize = 0;
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
@@ -594,7 +611,7 @@ public:
 		m_tinfo = nullptr;
 		m_fdinfo_ref.reset();
 		m_fdinfo = nullptr;
-		m_fdinfo_name_changed = false;
+		m_fdinfo_name_snapshot_valid = false;
 		m_iosize = 0;
 		m_cpuid = cpuid;
 		m_source_idx = sinsp_no_event_source_idx;
@@ -794,7 +811,10 @@ private:
 
 	// If true, then the associated fdinfo changed names as a part
 	// of parsing this event.
-	bool m_fdinfo_name_changed;
+	// Name of the event's fd at its first writable acquisition; the string is
+	// reused across events, validity is tracked separately.
+	std::string m_fdinfo_name_snapshot;
+	bool m_fdinfo_name_snapshot_valid;
 
 	uint32_t m_iosize;
 	int32_t m_errorcode;

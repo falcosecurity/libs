@@ -470,7 +470,7 @@ TEST(built_in_table, get_field_type_mismatch_on_cached_accessor) {
 
 TEST(thread_manager, fdtable_access) {
 	// note: used for regression checks, keep this updated as we make new fields available
-	static const int s_fdinfo_static_fields_count = 32;
+	static const int s_fdinfo_static_fields_count = 31;
 
 	sinsp inspector;
 	auto& reg = inspector.get_table_registry();
