@@ -35,7 +35,73 @@ protected:
 	}
 
 	static constexpr int64_t s_fd = sinsp_test_input::open_params::default_fd;
+
+	// Adds (pre-open) a process whose scanned fd 0 mirrors the one
+	// add_default_init_thread() gives init, apart from the file name.
+	void add_scanned_process(int64_t tid, const char* fd_name = "/dev/null") {
+		scap_threadinfo tinfo = create_threadinfo(tid,
+		                                          tid,
+		                                          INIT_TID,
+		                                          tid,
+		                                          tid,
+		                                          tid,
+		                                          "worker",
+		                                          "/sbin/init",
+		                                          "/sbin/init",
+		                                          increasing_ts(),
+		                                          0,
+		                                          0,
+		                                          {},
+		                                          0,
+		                                          {},
+		                                          "/root/");
+		scap_fdinfo fdinfo;
+		fdinfo.fd = 0;
+		fdinfo.ino = 5;
+		fdinfo.type = SCAP_FD_FILE_V2;
+		fdinfo.info.regularinfo.open_flags = PPM_O_RDONLY;
+		fdinfo.info.regularinfo.mount_id = 25;
+		fdinfo.info.regularinfo.dev = 0;
+		strlcpy(fdinfo.info.regularinfo.fname, fd_name, sizeof(fdinfo.info.regularinfo.fname));
+		add_thread(tinfo, {fdinfo});
+	}
 };
+
+TEST_F(fdtable_sharing, proc_scan_dedup_shares_identical_entries) {
+	add_default_init_thread();  // init's scanned fd 0 is /dev/null, ino 5
+	add_scanned_process(30);
+	add_scanned_process(40);
+	open_inspector();  // runs the post-scan dedup pass
+
+	auto* init = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
+	auto* w30 = m_inspector.m_thread_manager->find_thread(30, true).get();
+	auto* w40 = m_inspector.m_thread_manager->find_thread(40, true).get();
+	ASSERT_NE(w30, nullptr);
+	ASSERT_NE(w40, nullptr);
+
+	// All three scanned tables share one entry for the identical fd.
+	ASSERT_EQ(init->get_fdtable().find(0), w30->get_fdtable().find(0));
+	ASSERT_EQ(w30->get_fdtable().find(0), w40->get_fdtable().find(0));
+
+	// Copy-on-write still isolates later divergence.
+	sinsp_fdinfo* w = w30->get_fdtable().find_mut(0);
+	ASSERT_NE(w, nullptr);
+	w->m_name = "/changed";
+	ASSERT_NE(w30->get_fdtable().find(0), init->get_fdtable().find(0));
+	ASSERT_EQ(init->get_fdtable().find(0), w40->get_fdtable().find(0));
+	ASSERT_EQ(init->get_fdtable().find(0)->m_name, "/dev/null");
+}
+
+TEST_F(fdtable_sharing, proc_scan_dedup_requires_identical_content) {
+	add_default_init_thread();
+	add_scanned_process(30, "/dev/zero");  // same fd number/dev/ino, different name
+	open_inspector();
+
+	auto* init = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
+	auto* w30 = m_inspector.m_thread_manager->find_thread(30, true).get();
+	ASSERT_NE(init->get_fdtable().find(0), w30->get_fdtable().find(0));
+	ASSERT_EQ(w30->get_fdtable().find(0)->m_name, "/dev/zero");
+}
 
 TEST_F(fdtable_sharing, untouched_tables_reference_the_shared_empty_contents) {
 	add_default_init_thread();

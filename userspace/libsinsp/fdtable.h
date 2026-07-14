@@ -18,6 +18,9 @@ limitations under the License.
 
 #pragma once
 
+#include <map>
+#include <tuple>
+
 #include <libsinsp/state/table.h>
 #include <libsinsp/fdinfo.h>
 #include <libsinsp/plugin.h>
@@ -138,6 +141,22 @@ public:
 			}
 		}
 	}
+
+	// Registry used to deduplicate content-identical entries across the fd
+	// tables built by the initial /proc scan (fork-inherited fds appear once
+	// per process there). Same fd number, device and inode across processes
+	// is the fork-inheritance signature; full content equality decides.
+	struct dedup_registry {
+		using key_t = std::tuple<int64_t, uint32_t, uint64_t>;  // fd, dev, ino
+		std::map<key_t, std::vector<std::pair<std::shared_ptr<sinsp_fdinfo>, sinsp_fdtable*>>>
+		        m_candidates;
+	};
+
+	// Replaces entries for which the registry already holds a
+	// content-identical canonical entry, and registers the rest as canonical
+	// candidates. Only meaningful right after the initial scan, before any
+	// event touches the tables; copy-on-write covers later divergence.
+	void deduplicate_into(dedup_registry& registry);
 
 	// If the key is present, returns true, otherwise returns false.
 	bool erase(int64_t fd);

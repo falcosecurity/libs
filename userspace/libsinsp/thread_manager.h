@@ -90,6 +90,12 @@ public:
 	inline bool remove_inactive_threads();
 	void fix_sockets_coming_from_proc(bool resolve_hostname_and_port);
 
+	// Shares content-identical fd entries between the tables built by the
+	// initial /proc scan (fork-inherited fds appear once per process there);
+	// copy-on-write covers any later divergence. Only meaningful right after
+	// the initial scan.
+	void deduplicate_fd_tables();
+
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
 	/*!
