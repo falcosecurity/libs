@@ -39,9 +39,13 @@ jobs:
       - name: Install build and VM dependencies
         run: |
           sudo apt-get update
+          # libbpf-dev + zlib1g-dev: the bpfcompat action is pinned by commit
+          # SHA (not a release tag), so it builds its in-guest validator from
+          # source on the runner, which needs libbpf headers + static libs.
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake clang llvm pkg-config autoconf automake \
-            libtool libelf-dev qemu-system-x86 qemu-utils jq
+            libtool libelf-dev libbpf-dev zlib1g-dev qemu-system-x86 \
+            qemu-utils jq
           # Static bpftool release (needed for skeleton generation): Ubuntu's
           # linux-tools wrapper can't match the runner's Azure kernel.
           curl -fsSL -o /tmp/bpftool.tar.gz \
