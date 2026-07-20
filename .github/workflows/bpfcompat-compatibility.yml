@@ -39,13 +39,17 @@ jobs:
       - name: Install build and VM dependencies
         run: |
           sudo apt-get update
-          # libbpf-dev + zlib1g-dev: the bpfcompat action is pinned by commit
-          # SHA (not a release tag), so it builds its in-guest validator from
-          # source on the runner, which needs libbpf headers + static libs.
+          # Since bpfcompat v0.3.1 a commit-SHA pin that matches a release tag
+          # resolves to prebuilt, checksum-verified release binaries, so the
+          # libbpf/zlib headers previously needed to build its in-guest
+          # validator from source are no longer required. The remaining
+          # packages build scap-open (bundled deps) and run the QEMU guests.
+          # cloud-image-utils provides cloud-localds: RHEL-family guests only
+          # boot from a genuine cidata seed ISO, not the vvfat fallback.
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake clang llvm pkg-config autoconf automake \
-            libtool libelf-dev libbpf-dev zlib1g-dev qemu-system-x86 \
-            qemu-utils jq
+            libtool libelf-dev qemu-system-x86 \
+            qemu-utils cloud-image-utils jq
           # Static bpftool release (needed for skeleton generation): Ubuntu's
           # linux-tools wrapper can't match the runner's Azure kernel.
           curl -fsSL -o /tmp/bpftool.tar.gz \

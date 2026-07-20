@@ -11,3 +11,16 @@ profiles:
     required: true
   - id: ubuntu-24.04-6.8
     required: true
+  # RHEL-family kernels, where uname-version heuristics break down: these
+  # boot the real vendor cloud images, so the matrix reflects what modern_bpf
+  # actually does on enterprise backport kernels (the drivers_ci /
+  # kernel-testing images cover upstream kernel versions instead).
+  #
+  # AlmaLinux 8 (RHEL 8 rebuild): 4.18 base with BPF ring buffer and BTF
+  # backported — modern_bpf works here despite 4.18 < the 5.8 upstream
+  # ring-buffer boundary.
+  - id: almalinux-8-4.18
+    required: true
+  # AlmaLinux 9 (RHEL 9 rebuild): 5.14 base with extensive eBPF backports.
+  - id: almalinux-9-5.14
+    required: true
