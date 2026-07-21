@@ -440,11 +440,22 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 			if(!parse_uint32(fields[2], u_uid) || !parse_uint32(fields[3], u_gid)) {
 				continue;  // skip lines with a non-numeric uid/gid
 			}
-			// Here we cache all container users
+			// Here we cache all container users. Compare against whatever
+			// was previously cached for this uid (if anything) *before*
+			// the insert overwrites it in place, so we can tell a
+			// genuinely new entry or a changed one (e.g. a rename) apart
+			// from a no-op rescan of an already-known, unchanged entry.
+			const auto existing_it = userlist.find(u_uid);
+			const scap_userinfo *previous =
+			        existing_it != userlist.end() ? &existing_it->second : nullptr;
+			const bool changed = !previous || previous->gid != u_gid ||
+			                     fields[0] != previous->name || fields[5] != previous->homedir ||
+			                     fields[6] != previous->shell;
+
 			auto *usr =
 			        userinfo_map_insert(userlist, u_uid, u_gid, fields[0], fields[5], fields[6]);
 
-			if(notify) {
+			if(notify && changed) {
 				notify_user_changed(usr, container_id);
 			}
 
@@ -569,10 +580,19 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 			if(!parse_uint32(fields[2], g_gid)) {
 				continue;  // skip lines with a non-numeric gid
 			}
-			// Here we cache all container groups
+			// Here we cache all container groups. Compare against whatever
+			// was previously cached for this gid (if anything) *before*
+			// the insert overwrites it in place, so we can tell a
+			// genuinely new entry or a changed one (e.g. a rename) apart
+			// from a no-op rescan of an already-known, unchanged entry.
+			const auto existing_it = grouplist.find(g_gid);
+			const scap_groupinfo *previous =
+			        existing_it != grouplist.end() ? &existing_it->second : nullptr;
+			const bool changed = !previous || fields[0] != previous->name;
+
 			auto *gr = groupinfo_map_insert(grouplist, g_gid, fields[0]);
 
-			if(notify) {
+			if(notify && changed) {
 				notify_group_changed(gr, container_id, true);
 			}
 
