@@ -15,10 +15,10 @@
 # the License.
 #
 
-from pathlib import Path
+import argparse
 import re
 import struct
-import sys
+from pathlib import Path
 
 
 # Build the deterministic seed corpus used by fuzz_scap_event_decode.
@@ -214,15 +214,26 @@ def write_synthetic_events(corpus_dir, event_codes):
     return len(synthetic_events)
 
 
-def main():
-    if len(sys.argv) != 4:
-        raise SystemExit(
-            f"usage: {Path(sys.argv[0]).name} <repo-root> <corpus-dir> <extracted-events-dir>"
-        )
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build the deterministic libscap fuzz seed corpus.")
+    parser.add_argument(
+        "--synthetic-only",
+        action="store_true",
+        help="skip real capture events and generate only synthetic seeds",
+    )
+    parser.add_argument("repo_root", type=Path)
+    parser.add_argument("corpus_dir", type=Path)
+    parser.add_argument("extracted_events_dir", type=Path, nargs="?")
+    args = parser.parse_args()
+    if not args.synthetic_only and args.extracted_events_dir is None:
+        parser.error("extracted_events_dir is required unless --synthetic-only is used")
+    return args
 
-    root_dir = Path(sys.argv[1])
-    corpus_dir = Path(sys.argv[2])
-    extracted_root = Path(sys.argv[3])
+
+def main():
+    args = parse_args()
+    root_dir = args.repo_root
+    corpus_dir = args.corpus_dir
 
     corpus_dir.mkdir(parents=True, exist_ok=True)
 
@@ -231,10 +242,13 @@ def main():
         set(REGULAR_EVENT_NAMES + LARGE_PAYLOAD_EVENT_NAMES),
     )
 
-    copy_real_events(corpus_dir, extracted_root)
+    real_event_count = 0
+    if not args.synthetic_only:
+        copy_real_events(corpus_dir, args.extracted_events_dir)
+        real_event_count = len(REAL_EVENT_SELECTIONS)
     synthetic_count = write_synthetic_events(corpus_dir, event_codes)
 
-    print(f"recreated {len(REAL_EVENT_SELECTIONS) + synthetic_count} files in {corpus_dir}")
+    print(f"recreated {real_event_count + synthetic_count} files in {corpus_dir}")
 
 
 if __name__ == "__main__":
