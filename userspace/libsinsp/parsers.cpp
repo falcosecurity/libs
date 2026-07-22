@@ -2723,7 +2723,10 @@ void sinsp_parser::parse_close_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 
 		erase_fd_params eparams;
 		eparams.m_fd = evt.get_tinfo()->m_lastevent_fd;
-		eparams.m_fdinfo = evt.get_fd_info_mut();
+		// Read-only view: a listener that needs to modify the entry re-fetches a
+		// writable copy itself, so a shared entry is not detached just to
+		// notify-and-delete it.
+		eparams.m_fdinfo = evt.get_fd_info();
 		eparams.m_remove_from_table = true;
 		eparams.m_tinfo = evt.get_tinfo();
 		erase_fd(eparams, verdict);

@@ -31,7 +31,7 @@ public:
 	void on_read(sinsp_evt* evt,
 	             int64_t tid,
 	             int64_t fd,
-	             sinsp_fdinfo* fdinfo,
+	             const sinsp_fdinfo* fdinfo,
 	             const char* data,
 	             uint32_t original_len,
 	             uint32_t len) override {
@@ -44,7 +44,7 @@ public:
 	void on_write(sinsp_evt* evt,
 	              int64_t tid,
 	              int64_t fd,
-	              sinsp_fdinfo* fdinfo,
+	              const sinsp_fdinfo* fdinfo,
 	              const char* data,
 	              uint32_t original_len,
 	              uint32_t len) override {}

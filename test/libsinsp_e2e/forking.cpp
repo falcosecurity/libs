@@ -414,7 +414,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 			int64_t res = std::stoll(e->get_param_value_str("res", false));
 
 			if(ti->m_tid == ptid) {
-				sinsp_fdinfo* fdi = ti->get_fd(prfd);
+				const sinsp_fdinfo* fdi = ti->get_fd(prfd);
 				if(fdi && fdi->tostring().find(FILENAME) != std::string::npos) {
 					EXPECT_EQ(parent_res, res) << "filename: " << fdi->tostring() << std::endl
 					                           << "res: " << res << std::endl
