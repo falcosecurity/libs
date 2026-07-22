@@ -126,6 +126,21 @@ sinsp_threadinfo *sinsp_evt::get_thread_info() {
 	return m_inspector->m_thread_manager->find_thread(m_pevt->tid, false).get();
 }
 
+void sinsp_evt::upgrade_fd_info_writable() {
+	// Re-fetch the event's fd through the writable lookup, which detaches a
+	// private copy if the entry is currently shared with other fd tables. The
+	// clone (if any) is attributed to this event's type. If the thread or fd is
+	// gone we keep the existing (read-only) pointer; callers cope with that the
+	// same way they cope with a null fd info.
+	if(m_tinfo == nullptr || m_fdinfo == nullptr) {
+		return;
+	}
+	sinsp_fdinfo *writable = m_tinfo->get_fd_mut(m_fdinfo->m_fd);
+	if(writable != nullptr) {
+		m_fdinfo = writable;
+	}
+}
+
 int64_t sinsp_evt::get_fd_num() const {
 	if(m_fdinfo) {
 		return m_tinfo->m_lastevent_fd;

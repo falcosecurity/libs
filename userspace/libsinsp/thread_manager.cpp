@@ -23,6 +23,7 @@ limitations under the License.
 #include <stdio.h>
 #include <algorithm>
 #include <cinttypes>
+#include <vector>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
@@ -378,8 +379,6 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 		return;
 	}
 
-	// Writable: the fd_listener may mutate the entries handed to it during
-	// the erase notifications below.
 	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table_mut();
 	if(fd_table_ptr == nullptr) {
 		return;
@@ -389,15 +388,35 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 	eparams.m_remove_from_table = false;
 	eparams.m_tinfo = main_thread;
 
-	fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& fdinfo) {
+	// Iterate read-only: on_erase_fd only reads the entry unless it has a live
+	// transaction to finalize, in which case it re-fetches a writable
+	// copy-on-write copy itself. This avoids cloning an entire fd table — which
+	// may be shared with other processes' tables via fork inheritance — every
+	// time a process exits, just to notify and then destroy it (historically
+	// the single largest source of cow detaches).
+	//
+	// The fd numbers are snapshotted up front because on_erase_fd's writable
+	// re-fetch may detach the underlying map, which must not happen while the
+	// table is being iterated.
+	std::vector<int64_t> fds;
+	fds.reserve(fd_table_ptr->size());
+	fd_table_ptr->const_loop([&fds](int64_t fd, const sinsp_fdinfo&) {
+		fds.push_back(fd);
+		return true;
+	});
+
+	for(const int64_t fd : fds) {
+		const sinsp_fdinfo* fdinfo = fd_table_ptr->find(fd);
+		if(fdinfo == nullptr) {
+			continue;
+		}
 		// The canceled fd should always be deleted immediately, so if it appears here it means we
 		// have a problem. Note: it looks like that the canceled FD may appear here in case of high
 		// drop, and we need to recover. This was an assertion failure, now removed.
 		eparams.m_fd = fd;
-		eparams.m_fdinfo = &fdinfo;
+		eparams.m_fdinfo = fdinfo;
 		m_observer->on_erase_fd(&eparams);
-		return true;
-	});
+	}
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid) {

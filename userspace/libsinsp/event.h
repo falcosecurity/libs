@@ -448,18 +448,36 @@ public:
 	// copy-on-write will detach an entry shared with other fd tables. The
 	// entry's name is snapshotted on the first acquisition per event, so
 	// that fdinfo_name_changed() can detect changes made while parsing.
-	sinsp_fdinfo* get_fd_info_mut() {
+	//
+	// The parse path now stores a *read-only* reference to the fd entry (see
+	// set_fd_info / sinsp_parser::reset), so events that only read the entry
+	// never detach a shared copy. The detach is performed lazily here, the
+	// first time a consumer actually asks for writable access.
+	inline sinsp_fdinfo* get_fd_info_mut() {
+		if(m_fdinfo != nullptr && !m_fdinfo_writable) {
+			// May replace m_fdinfo with a private (copy-on-write-detached)
+			// entry. Out-of-line because it needs the full sinsp_threadinfo
+			// definition, only forward-declared here.
+			upgrade_fd_info_writable();
+			m_fdinfo_writable = true;
+		}
 		if(m_fdinfo != nullptr && !m_fdinfo_name_snapshot_valid) {
 			m_fdinfo_name_snapshot = m_fdinfo->m_name;
 			m_fdinfo_name_snapshot_valid = true;
 		}
-		return m_fdinfo;
+		// Sound: after upgrade_fd_info_writable() m_fdinfo is a private
+		// (copy-on-write-detached) entry, so the write can't reach a shared one.
+		// This is the single point where a mutable fd pointer is handed out.
+		return const_cast<sinsp_fdinfo*>(m_fdinfo);
 	}
 
-	void set_fd_info(sinsp_fdinfo* v) {
+	inline void set_fd_info(const sinsp_fdinfo* v) {
 		if(v != m_fdinfo) {
 			m_fdinfo_name_snapshot_valid = false;
 		}
+		// The stored reference is treated as read-only until the first
+		// get_fd_info_mut() call detaches a private copy.
+		m_fdinfo_writable = false;
 		m_fdinfo = v;
 	}
 
@@ -599,6 +617,7 @@ public:
 		m_fdinfo_ref.reset();
 		m_fdinfo = nullptr;
 		m_fdinfo_name_snapshot_valid = false;
+		m_fdinfo_writable = false;
 		m_iosize = 0;
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
@@ -612,6 +631,7 @@ public:
 		m_fdinfo_ref.reset();
 		m_fdinfo = nullptr;
 		m_fdinfo_name_snapshot_valid = false;
+		m_fdinfo_writable = false;
 		m_iosize = 0;
 		m_cpuid = cpuid;
 		m_source_idx = sinsp_no_event_source_idx;
@@ -789,6 +809,10 @@ private:
 	void write_socktuple_param_to_storage(std::vector<char>& storage,
 	                                      const sinsp_evt_param& param) const;
 
+	// Detach a private (copy-on-write) copy of m_fdinfo from the owning fd
+	// table, replacing m_fdinfo with it. Called lazily by get_fd_info_mut.
+	void upgrade_fd_info_writable();
+
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
 	char* m_pevt_storage;  // In some cases an alternate buffer is used to hold m_pevt. This points
@@ -807,7 +831,9 @@ private:
 	// info it should either be null, or point to the same place as m_tinfo
 	std::shared_ptr<sinsp_threadinfo> m_tinfo_ref;
 	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo* m_fdinfo;
+	// Read-only by default; get_fd_info_mut() detaches a private copy and
+	// re-points this before handing out a mutable pointer.
+	const sinsp_fdinfo* m_fdinfo;
 
 	// If true, then the associated fdinfo changed names as a part
 	// of parsing this event.
@@ -815,6 +841,11 @@ private:
 	// reused across events, validity is tracked separately.
 	std::string m_fdinfo_name_snapshot;
 	bool m_fdinfo_name_snapshot_valid;
+
+	// True once get_fd_info_mut() has detached a private copy of m_fdinfo
+	// for this event; while false, m_fdinfo is a read-only (possibly shared)
+	// reference. Reset whenever m_fdinfo changes.
+	bool m_fdinfo_writable = false;
 
 	uint32_t m_iosize;
 	int32_t m_errorcode;
