@@ -166,6 +166,11 @@ if(HAS_ENGINE_SAVEFILE)
 	target_link_libraries(scap PUBLIC scap_engine_savefile)
 endif()
 
+if(HAS_ENGINE_RAW_BLOCK)
+	add_subdirectory(engine/raw_block)
+	target_link_libraries(scap PUBLIC scap_engine_raw_block)
+endif()
+
 if(HAS_ENGINE_SOURCE_PLUGIN)
 	add_subdirectory(engine/source_plugin)
 	target_link_libraries(scap PUBLIC scap_engine_source_plugin)

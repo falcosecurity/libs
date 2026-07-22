@@ -23,6 +23,13 @@ limitations under the License.
 #include <libscap/scap_savefile.h>
 #include <libscap/strerror.h>
 
+/* Forward declarations for types used by the public API below. */
+typedef struct _scap_machine_info scap_machine_info;
+struct scap_proclist;
+typedef struct scap_addrlist scap_addrlist;
+typedef struct scap_userlist scap_userlist;
+typedef struct ppm_evt_hdr scap_evt;
+
 #define READER_BUF_SIZE (1 << 16)  // UINT16_MAX + 1, ie: 65536
 
 #define CHECK_READ_SIZE_ERR(read_size, expected_size, error)                          \
@@ -101,16 +108,42 @@ typedef struct scap_ifinfo_ipv6_nolinkspeed {
 struct scap_platform;
 
 struct savefile_engine {
-	char* m_lasterr;
-	scap_reader_t* m_reader;
+	char *m_lasterr;
+	scap_reader_t *m_reader;
 	block_header m_last_block_header;
 	bool m_use_last_block_header;
-	char* m_reader_evt_buf;
+	char *m_reader_evt_buf;
 	size_t m_reader_evt_buf_size;
 	uint32_t m_last_evt_dump_flags;
-	struct scap_platform* m_platform;
+	struct scap_platform *m_platform;
 	// Used by the scap-file converter
-	char* m_new_evt;
-	char* m_to_convert_evt;
-	struct scap_convert_buffer* m_converter_buf;
+	char *m_new_evt;
+	char *m_to_convert_evt;
+	struct scap_convert_buffer *m_converter_buf;
 };
+
+/**
+ * Parse the headers of a scap file (SHB + metadata blocks) and populate tables.
+ * Reads from the given reader until the first event block is encountered.
+ *
+ * Reaching a clean end of the reader after the metadata blocks, without an event
+ * block, is not an error: it leaves handle->m_use_last_block_header false so the
+ * caller can decide whether events are required. The savefile engine treats this
+ * as a "no events in file" error, while the raw_block engine accepts it (its event
+ * blocks arrive in a separate, later buffer).
+ */
+int32_t scap_savefile_read_init(struct savefile_engine *handle,
+                                scap_reader_t *r,
+                                scap_machine_info *machine_info_p,
+                                struct scap_proclist *proclist_p,
+                                scap_addrlist **addrlist_p,
+                                scap_userlist **userlist_p,
+                                char *error);
+
+/**
+ * Read the next event from a scap block stream.
+ */
+int32_t scap_savefile_next_event_from_file(struct savefile_engine *handle,
+                                           scap_evt **pevent,
+                                           uint16_t *pdevid,
+                                           uint32_t *pflags);

@@ -460,9 +460,6 @@ void sinsp::open_common(scap_open_args* oargs,
 	/* Reset the thread manager */
 	m_thread_manager->clear();
 
-	/* We need to save the actual mode and the engine used by the inspector. */
-	m_mode = mode;
-
 	oargs->import_users = m_usergroup_manager->m_import_users;
 	oargs->log_fn = &sinsp_scap_log_fn;
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
@@ -499,6 +496,10 @@ void sinsp::open_common(scap_open_args* oargs,
 	if(scap_rc != SCAP_SUCCESS) {
 		throw scap_open_exception(m_platform_lasterr, scap_rc);
 	}
+
+	// Our platform is initialized. Save the mode used by the inspector.
+	// (should this be a member of scap_platform instead?)
+	m_mode = mode;
 
 	init();
 
@@ -765,6 +766,25 @@ void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode) {
 	set_get_procs_cpu_from_driver(false);
 #else
 	throw sinsp_exception("TEST_INPUT engine is not supported in this build");
+#endif
+}
+
+void sinsp::open_raw_block(uint8_t** buffer_ptr, uint64_t* buffer_size_ptr) {
+#ifdef HAS_ENGINE_RAW_BLOCK
+	scap_open_args oargs{};
+	scap_raw_block_engine_params params;
+	params.buffer_ptr = buffer_ptr;
+	params.buffer_size_ptr = buffer_size_ptr;
+
+	scap_platform* platform = scap_raw_block_alloc_platform({::on_proc_table_refresh_start,
+	                                                         ::on_proc_table_refresh_end,
+	                                                         ::on_new_entry_from_proc,
+	                                                         this});
+	params.platform = platform;
+	oargs.engine_params = &params;
+	try_open_common(&oargs, &scap_raw_block_engine, platform, SINSP_MODE_CAPTURE);
+#else
+	throw sinsp_exception("RAW_BLOCK engine is not supported in this build");
 #endif
 }
 
