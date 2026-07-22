@@ -3260,16 +3260,19 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		return;
 	}
 
-	// Fd info and type can change during event parsing.
-	auto &fdinfo = *evt.get_fd_info_mut();
-	auto fd_type = evt.get_fd_info()->m_type;
+	// The fd is looked up read-only; a private (copy-on-write) copy is detached
+	// only at the points below that actually modify the entry -- all of which are
+	// socket-only -- so a read on a shared inherited file/pipe fd leaves it
+	// shared.
+	const sinsp_fdinfo *fdinfo = evt.get_fd_info();
+	const auto fd_type = fdinfo->m_type;
 
 	if(evt.get_syscall_return_value() < 0) {
 		if(!m_track_connection_status) {
 			return;
 		}
 		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-			fdinfo.set_socket_failed();
+			evt.get_fd_info_mut()->set_socket_failed();
 			// If there's a listener, add a callback to later invoke it.
 			if(!m_observer) {
 				return;
@@ -3282,7 +3285,7 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	}
 
 	if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-		fdinfo.set_socket_connected();
+		evt.get_fd_info_mut()->set_socket_connected();
 	}
 
 	// This should never happen: if it happens, there is a bug in the code.
@@ -3299,32 +3302,38 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 	} else if(etype == PPME_SOCKET_RECVMMSG_X || etype == PPME_SOCKET_RECV_X) {
 		tupleparam = 4;
 	}
-	if(tupleparam != -1 && (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+	// Re-fetch read-only: a socket connect above may already have detached a copy.
+	const sinsp_fdinfo *cur_fdinfo = evt.get_fd_info();
+	if(tupleparam != -1 && (cur_fdinfo->m_name.length() == 0 || !cur_fdinfo->is_tcp_socket())) {
 		// recvfrom contains tuple info. If the fd still doesn't contain tuple info (because the
 		// socket is a datagram one or because some event was lost), add it here.
 		if(update_fd(evt, *evt.get_param(tupleparam))) {
-			// update_fd() can change the event's fd type.
-			fd_type = evt.get_fd_info()->m_type;
-			if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-				if(fdinfo.is_role_none()) {
-					fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), true);
+			// update_fd() detached a private writable copy and may have changed the event's fd
+			// type; finish the update on it. This is the first point on a plain (non-socket)
+			// read where a shared inherited entry would be detached, and it is gated on socket
+			// tuple params, so file/pipe reads leave the entry shared.
+			sinsp_fdinfo *wfdinfo = evt.get_fd_info_mut();
+			const auto new_fd_type = wfdinfo->m_type;
+			if(new_fd_type == SCAP_FD_IPV4_SOCK || new_fd_type == SCAP_FD_IPV6_SOCK) {
+				if(wfdinfo->is_role_none()) {
+					wfdinfo->set_net_role_by_guessing(*evt.get_tinfo(), true);
 				}
 
-				if(fdinfo.is_role_client()) {
-					swap_addresses(fdinfo);
+				if(wfdinfo->is_role_client()) {
+					swap_addresses(*wfdinfo);
 				}
 
 				auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
 				const auto str_storage_len = std::size(evt.get_paramstr_storage());
-				sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
-				                             fd_type,
+				sinsp_utils::sockinfo_to_str(&wfdinfo->m_sockinfo,
+				                             new_fd_type,
 				                             str_storage_ptr,
 				                             str_storage_len,
 				                             m_hostname_and_port_resolution_enabled);
-				fdinfo.m_name = str_storage_ptr;
+				wfdinfo->m_name = str_storage_ptr;
 			} else {
 				const char *parstr;
-				fdinfo.m_name = evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+				wfdinfo->m_name = evt.get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
 			}
 		}
 	}
@@ -3346,10 +3355,12 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 		verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
 		                                                  sinsp_evt *evt) {
 			const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
+			// The observer gets a read-only handle; a listener that needs to
+			// modify the entry re-fetches a writable copy-on-write copy itself.
 			observer->on_read(evt,
 			                  evt->get_tid(),
 			                  evt->get_tinfo()->m_lastevent_fd,
-			                  evt->get_fd_info_mut(),
+			                  evt->get_fd_info(),
 			                  data_ptr,
 			                  original_len,
 			                  data_len);
@@ -3359,8 +3370,8 @@ void sinsp_parser::parse_read_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict
 #ifndef _WIN32
 	// For unix sockets, check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS,
 	// which is used to pass FDs between processes, and update the sinsp state accordingly via
-	// procfs scan.
-	if(fdinfo.is_unix_socket()) {
+	// procfs scan. Re-fetch read-only: the tuple update above may have detached a copy.
+	if(evt.get_fd_info()->is_unix_socket()) {
 		int32_t msgctrl_param_id = -1;
 		if(etype == PPME_SOCKET_RECVMSG_X && evt.get_num_params() >= 5) {
 			msgctrl_param_id = 4;
@@ -3396,16 +3407,19 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		return;
 	}
 
-	// Fd info and type can change during event parsing.
-	auto &fdinfo = *evt.get_fd_info_mut();
-	auto fd_type = evt.get_fd_info()->m_type;
+	// The fd is looked up read-only; a private (copy-on-write) copy is detached
+	// only at the points below that actually modify the entry -- all of which are
+	// socket-only -- so a write on a shared inherited file/pipe fd leaves it
+	// shared.
+	const sinsp_fdinfo *fdinfo = evt.get_fd_info();
+	const auto fd_type = fdinfo->m_type;
 
 	if(evt.get_syscall_return_value() < 0) {
 		if(!m_track_connection_status) {
 			return;
 		}
 		if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-			fdinfo.set_socket_failed();
+			evt.get_fd_info_mut()->set_socket_failed();
 			// If there's a listener, add a callback to later invoke it.
 			if(!m_observer) {
 				return;
@@ -3418,7 +3432,7 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 	}
 
 	if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-		fdinfo.set_socket_connected();
+		evt.get_fd_info_mut()->set_socket_connected();
 	}
 
 	// This should never happen: if it happens, there is a bug in the code.
@@ -3427,37 +3441,43 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		return;
 	}
 
+	// Re-fetch read-only: a socket connect above may already have detached a copy.
+	const sinsp_fdinfo *cur_fdinfo = evt.get_fd_info();
 	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
 	    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
-	   (fdinfo.m_name.length() == 0 || !fdinfo.is_tcp_socket())) {
+	   (cur_fdinfo->m_name.length() == 0 || !cur_fdinfo->is_tcp_socket())) {
 		// send, sendto, sendmsg and sendmmsg contain tuple info in the exit event. If the fd
 		// still doesn't contain tuple info (because the socket is a datagram one or because
 		// some event was lost), add it here.
 		if(constexpr uint32_t SOCKET_TUPLE_PARAM_ID = 4;
 		   update_fd(evt, *evt.get_param(SOCKET_TUPLE_PARAM_ID))) {
-			// update_fd() can change the event's fd type.
-			fd_type = evt.get_fd_info()->m_type;
-			if(fd_type == SCAP_FD_IPV4_SOCK || fd_type == SCAP_FD_IPV6_SOCK) {
-				if(fdinfo.is_role_none()) {
-					fdinfo.set_net_role_by_guessing(*evt.get_tinfo(), false);
+			// update_fd() detached a private writable copy and may have changed the event's fd
+			// type; finish the update on it. This is the first point on a plain (non-socket)
+			// write where a shared inherited entry would be detached, and it is gated on socket
+			// send params, so file/pipe writes leave the entry shared.
+			sinsp_fdinfo *wfdinfo = evt.get_fd_info_mut();
+			const auto new_fd_type = wfdinfo->m_type;
+			if(new_fd_type == SCAP_FD_IPV4_SOCK || new_fd_type == SCAP_FD_IPV6_SOCK) {
+				if(wfdinfo->is_role_none()) {
+					wfdinfo->set_net_role_by_guessing(*evt.get_tinfo(), false);
 				}
 
-				if(fdinfo.is_role_server()) {
-					swap_addresses(fdinfo);
+				if(wfdinfo->is_role_server()) {
+					swap_addresses(*wfdinfo);
 				}
 
 				auto *const str_storage_ptr = &evt.get_paramstr_storage()[0];
 				const auto str_storage_len = std::size(evt.get_paramstr_storage());
-				sinsp_utils::sockinfo_to_str(&fdinfo.m_sockinfo,
-				                             fd_type,
+				sinsp_utils::sockinfo_to_str(&wfdinfo->m_sockinfo,
+				                             new_fd_type,
 				                             str_storage_ptr,
 				                             str_storage_len,
 				                             m_hostname_and_port_resolution_enabled);
 
-				fdinfo.m_name = str_storage_ptr;
+				wfdinfo->m_name = str_storage_ptr;
 			} else {
 				const char *parstr;
-				fdinfo.m_name =
+				wfdinfo->m_name =
 				        evt.get_param_as_str(SOCKET_TUPLE_PARAM_ID, &parstr, sinsp_evt::PF_SIMPLE);
 			}
 		}
@@ -3478,10 +3498,12 @@ void sinsp_parser::parse_write_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 		verdict.add_post_process_cbs([data_ptr, data_len](sinsp_observer *observer,
 		                                                  sinsp_evt *evt) {
 			const auto original_len = static_cast<uint32_t>(evt->get_syscall_return_value());
+			// The observer gets a read-only handle; a listener that needs to
+			// modify the entry re-fetches a writable copy-on-write copy itself.
 			observer->on_write(evt,
 			                   evt->get_tid(),
 			                   evt->get_tinfo()->m_lastevent_fd,
-			                   evt->get_fd_info_mut(),
+			                   evt->get_fd_info(),
 			                   data_ptr,
 			                   original_len,
 			                   data_len);
