@@ -121,6 +121,43 @@ TEST_F(fdtable_sharing, const_lookup_does_not_detach) {
 	ASSERT_TRUE(pt.is_shared());
 }
 
+// A plain read on an inherited file fd is a read-only event. Driven through the
+// full parser pipeline it must leave the child's table shared with the parent:
+// reset() populates the event fd via the const lookup, and get_fd_info_mut() --
+// the only writable acquisition -- is never reached because the read modifies
+// nothing. Regression guard: if reset() or an eager acquisition takes a writable
+// handle, the child detaches on this first fd event and the entry pointers diverge.
+TEST_F(fdtable_sharing, read_only_fd_event_keeps_tables_shared) {
+	add_default_init_thread();
+	open_inspector();
+	generate_open_x_event();
+
+	auto* parent = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
+	auto* child = spawn_child(20);
+	auto& pt = parent->get_fdtable();
+	auto& ct = child->get_fdtable();
+	ASSERT_TRUE(pt.is_shared());
+	ASSERT_TRUE(ct.is_shared());
+
+	// Successful read on the child's inherited file fd, through the pipeline.
+	uint8_t read_buf[] = {'x'};
+	uint32_t read_size = sizeof(read_buf);
+	add_event_advance_ts(increasing_ts(), 20, PPME_SYSCALL_READ_E, 2, s_fd, read_size);
+	add_event_advance_ts(increasing_ts(),
+	                     20,
+	                     PPME_SYSCALL_READ_X,
+	                     4,
+	                     (int64_t)read_size,
+	                     scap_const_sized_buffer{read_buf, read_size},
+	                     s_fd,
+	                     read_size);
+
+	// The read modified nothing, so both tables still share the same entry.
+	ASSERT_TRUE(pt.is_shared());
+	ASSERT_TRUE(ct.is_shared());
+	ASSERT_EQ(ct.find(s_fd), pt.find(s_fd));
+}
+
 TEST_F(fdtable_sharing, add_detaches) {
 	add_default_init_thread();
 	open_inspector();
