@@ -251,6 +251,7 @@ private:
 	ss_plugin_table_writer_vtable m_tables_writer = {};
 	ss_plugin_table_writer_vtable_ext m_tables_writer_ext = {};
 	ss_plugin_field_extract_input m_extract_input = {};
+	ss_plugin_event_parse_input m_parse_input = {};
 
 	/** Event Sourcing **/
 	scap_source_plugin m_scap_source_plugin;

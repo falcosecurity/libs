@@ -217,6 +217,14 @@ bool sinsp_plugin::init(const std::string& config, std::string& errstr) {
 	m_extract_input.table_reader_ext = &m_tables_reader_ext;
 	m_extract_input.table_reader = m_tables_reader;
 
+	// set up parse inputs just once
+	m_parse_input.owner = (ss_plugin_owner_t*)this;
+	m_parse_input.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	m_parse_input.table_reader_ext = &m_tables_reader_ext;
+	m_parse_input.table_reader = m_tables_reader;
+	m_parse_input.table_writer_ext = &m_tables_writer_ext;
+	m_parse_input.table_writer = m_tables_writer;
+
 	return true;
 }
 
@@ -1103,15 +1111,7 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) {
 	ev.evt = (const ss_plugin_event*)evt->get_scap_evt();
 	ev.evtnum = evt->get_num();
 	ev.evtsrc = evt->get_source_name();
-
-	ss_plugin_event_parse_input in;
-	in.owner = (ss_plugin_owner_t*)this;
-	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	in.table_reader_ext = &m_tables_reader_ext;
-	in.table_reader = m_tables_reader;
-	in.table_writer_ext = &m_tables_writer_ext;
-	in.table_writer = m_tables_writer;
-	auto res = m_handle->api.parse_event(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+	auto res = m_handle->api.parse_event(m_state, &ev, &m_parse_input) == SS_PLUGIN_SUCCESS;
 
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
