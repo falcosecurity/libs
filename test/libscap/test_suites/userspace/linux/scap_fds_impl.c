@@ -45,3 +45,31 @@ int32_t test_time_wait_socket_at_buffer_end(void) {
 
 	return result;
 }
+
+int32_t test_duplicate_socket_inodes(void) {
+	static char error[SCAP_LASTERR_SIZE];
+	scap_fdinfo* sockets = NULL;
+	scap_fdinfo* socket = NULL;
+	char filepath[PATH_MAX];
+	uint64_t inode = 811595122;
+
+	snprintf(filepath,
+	         sizeof(filepath),
+	         "%s/scap_test_duplicate_sockets.txt",
+	         LIBSCAP_TEST_DATA_PATH);
+
+	int32_t result = parse_procfs_proc_pid_socket_table_file(filepath,
+	                                                         AF_INET,
+	                                                         SCAP_L4_TCP,
+	                                                         &sockets,
+	                                                         error);
+	HASH_FIND_INT64(sockets, &inode, socket);
+	if(result == SCAP_SUCCESS &&
+	   (HASH_COUNT(sockets) != 1 || socket == NULL || socket->info.ipv4info.sport != 0x59)) {
+		result = SCAP_FAILURE;
+	}
+
+	scap_fd_free_table(&sockets);
+
+	return result;
+}
