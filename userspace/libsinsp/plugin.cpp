@@ -211,6 +211,12 @@ bool sinsp_plugin::init(const std::string& config, std::string& errstr) {
 	clear_accessed_entries();
 	clear_created_entries();
 
+	// set up extract inputs just once
+	m_extract_input.owner = (ss_plugin_owner_t*)this;
+	m_extract_input.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	m_extract_input.table_reader_ext = &m_tables_reader_ext;
+	m_extract_input.table_reader = m_tables_reader;
+
 	return true;
 }
 
@@ -1065,15 +1071,10 @@ bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
 	ev.evtnum = evt->get_num();
 	ev.evtsrc = evt->get_source_name();
 
-	ss_plugin_field_extract_input in;
-	in.num_fields = num_fields;
-	in.fields = fields;
-	in.owner = (ss_plugin_owner_t*)this;
-	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	in.table_reader_ext = &m_tables_reader_ext;
-	in.table_reader = m_tables_reader;
-	in.value_offsets = value_offsets;
-	auto res = m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+	m_extract_input.num_fields = num_fields;
+	m_extract_input.fields = fields;
+	m_extract_input.value_offsets = value_offsets;
+	auto res = m_handle->api.extract_fields(m_state, &ev, &m_extract_input) == SS_PLUGIN_SUCCESS;
 
 	// do some defensive garbage collection
 	clear_ephemeral_tables();

@@ -134,6 +134,8 @@ public:
 	virtual ~sinsp_plugin();
 	sinsp_plugin(const sinsp_plugin& s) = delete;
 	sinsp_plugin& operator=(const sinsp_plugin& s) = delete;
+	sinsp_plugin(sinsp_plugin&& s) = delete;
+	sinsp_plugin& operator=(sinsp_plugin&& s) = delete;
 
 	/** Common API **/
 	inline plugin_caps_t caps() const { return m_caps; }
@@ -248,6 +250,7 @@ private:
 	ss_plugin_table_reader_vtable_ext m_tables_reader_ext = {};
 	ss_plugin_table_writer_vtable m_tables_writer = {};
 	ss_plugin_table_writer_vtable_ext m_tables_writer_ext = {};
+	ss_plugin_field_extract_input m_extract_input = {};
 
 	/** Event Sourcing **/
 	scap_source_plugin m_scap_source_plugin;
