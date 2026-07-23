@@ -111,6 +111,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_eval_test.cpp
 	events_evt.ut.cpp
 	events_file.ut.cpp
+	fdtable_sharing.ut.cpp
 	events_fspath.ut.cpp
 	events_injection.ut.cpp
 	events_net.ut.cpp

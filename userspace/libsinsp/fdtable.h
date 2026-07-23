@@ -56,12 +56,32 @@ public:
 
 	explicit sinsp_fdtable(const std::shared_ptr<ctor_params>& params);
 
-	sinsp_fdinfo* find(int64_t fd);
+	// Read-only lookup: the returned entry must not be modified, as it may be
+	// shared with other fd tables.
+	const sinsp_fdinfo* find(int64_t fd) const;
+
+	// Lookup for modification: the single chokepoint through which every
+	// mutable entry is handed out.
+	sinsp_fdinfo* find_mut(int64_t fd);
 
 	sinsp_fdinfo* add(int64_t fd, std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 
+	// Shares table contents with `other` (typically the parent process's
+	// table at fork). Both tables then see the same entries; the first
+	// content modification through either table detaches a private copy
+	// (copy-on-write), leaving the other sharers untouched.
+	void share_from(const sinsp_fdtable& other);
+
+	// True if the contents are currently shared with at least one other fd
+	// table.
+	bool is_shared() const { return m_table.use_count() > 1; }
+
+	// Identity of the current contents: tables sharing contents report the
+	// same value, letting accountants count shared contents once.
+	const void* contents_id() const { return m_table.get(); }
+
 	inline bool const_loop(const fdtable_const_visitor_t callback) const {
-		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
+		for(auto it = m_table->begin(); it != m_table->end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
 			}
@@ -70,7 +90,13 @@ public:
 	}
 
 	inline bool loop(const fdtable_visitor_t callback) {
-		for(auto it = m_table.begin(); it != m_table.end(); ++it) {
+		if(m_table->empty()) {
+			// Nothing to visit; in particular, don't detach shared contents
+			// (proc-scan fixups run on freshly created, still-empty tables).
+			return true;
+		}
+		detach_if_shared();
+		for(auto it = m_table->begin(); it != m_table->end(); ++it) {
 			if(!callback(it->first, *it->second)) {
 				return false;
 			}
@@ -79,7 +105,24 @@ public:
 	}
 
 	void retain(const fdtable_const_visitor_t& callback) {
-		for(auto it = m_table.begin(); it != m_table.end();) {
+		if(m_table->empty()) {
+			return;
+		}
+		if(is_shared()) {
+			// Build the private copy directly from the survivors instead of
+			// detaching everything first: the fork→execve path retains only
+			// the non-CLOEXEC subset of the entries.
+			auto retained = std::make_shared<table_t>();
+			for(const auto& [fd, info] : *m_table) {
+				if(callback(fd, *info)) {
+					retained->emplace(fd, info->clone());
+				}
+			}
+			m_table = std::move(retained);
+			reset_cache();
+			return;
+		}
+		for(auto it = m_table->begin(); it != m_table->end();) {
 			if(!callback(it->first, *it->second)) {
 				// Invalidate the cache if we are removing the cached fd, otherwise a
 				// later lookup would return a dangling reference to the removed entry
@@ -87,7 +130,7 @@ public:
 				if(it->first == m_last_accessed_fd) {
 					reset_cache();
 				}
-				it = m_table.erase(it);
+				it = m_table->erase(it);
 			} else {
 				++it;
 			}
@@ -101,7 +144,7 @@ public:
 
 	size_t size() const;
 
-	void reset_cache();
+	void reset_cache() const;
 
 	inline uint64_t get_tid() const { return m_tid; }
 
@@ -146,13 +189,20 @@ private:
 	// ctor_params object in sinsp constructor.
 	const std::shared_ptr<ctor_params> m_params;
 
-	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+	using table_t = std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>>;
+
+	// The table contents. Held through a shared_ptr so that the fd tables of
+	// related processes can share them; a shared map is never modified in
+	// place (see detach_if_shared()).
+	std::shared_ptr<table_t> m_table;
 
 	//
-	// Simple fd cache
+	// Simple fd cache. This is per-owner memoization, not table content:
+	// it stays mutable so that read-only lookups on a const table can
+	// still maintain it.
 	//
-	int64_t m_last_accessed_fd;
-	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
+	mutable int64_t m_last_accessed_fd;
+	mutable std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
 	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret;  // needed for returning a reference
 
@@ -160,8 +210,19 @@ private:
 		return m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin->id() == 0;
 	}
 
+	// The shared immutable empty contents that every fd table starts out
+	// referencing: threads that never own fds (all non-main threads) pay no
+	// allocation. The first modification detaches a private map like any
+	// other write to shared contents.
+	static const std::shared_ptr<table_t>& empty_contents();
+
+	// Gives this table private contents before an in-place modification.
+	// Returns true if a detach actually took place (invalidating iterators
+	// and entry pointers previously obtained from this table).
+	bool detach_if_shared();
+
 	inline void lookup_device(sinsp_fdinfo& fdi) const;
-	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);
+	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd) const;
 	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd,
 	                                             std::shared_ptr<sinsp_fdinfo>&& fdinfo);
 };

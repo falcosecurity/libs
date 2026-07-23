@@ -45,7 +45,10 @@ struct erase_fd_params {
 	bool m_remove_from_table;
 	int64_t m_fd;
 	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo* m_fdinfo;
+	// Read-only view of the fd being erased. A consumer that needs to modify
+	// the entry (e.g. finalizing a transaction on a socket) re-fetches a
+	// writable copy-on-write copy via m_tinfo->get_fd_mut(m_fd).
+	const sinsp_fdinfo* m_fdinfo;
 };
 
 /** @defgroup state State management
@@ -242,20 +245,31 @@ public:
 	  \return Pointer to the FD information, or NULL if the given FD doesn't
 	   exist
 	*/
-	inline sinsp_fdinfo* get_fd(int64_t fd) {
+	// Read-only fd lookup: never detaches a copy-on-write-shared entry. This is
+	// the default; a caller that will modify the entry must use
+	// get_fd_mut() (or sinsp_evt::get_fd_info_mut()). Writing through
+	// a pointer obtained here would corrupt entries still shared with other fd
+	// tables.
+	inline const sinsp_fdinfo* get_fd(int64_t fd) const {
+		if(fd < 0) {
+			return nullptr;
+		}
+		const sinsp_fdtable* fdt = get_fd_table();
+		return (fdt != nullptr) ? fdt->find(fd) : nullptr;
+	}
+
+	// Writable fd lookup: detaches a private copy-on-write copy of a shared
+	// entry so the caller may modify it in place.
+	inline sinsp_fdinfo* get_fd_mut(int64_t fd) {
 		if(fd < 0) {
 			return NULL;
 		}
 
-		sinsp_fdtable* fdt = get_fd_table();
+		sinsp_fdtable* fdt = get_fd_table_mut();
 
 		if(fdt) {
-			sinsp_fdinfo* fdinfo = fdt->find(fd);
+			sinsp_fdinfo* fdinfo = fdt->find_mut(fd);
 			if(fdinfo) {
-				// Its current name is now its old
-				// name. The name might change as a
-				// result of parsing.
-				fdinfo->m_oldname = fdinfo->m_name;
 				return fdinfo;
 			}
 		}
@@ -436,18 +450,18 @@ public:
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
-	inline sinsp_fdtable* get_fd_table() {
+	inline const sinsp_fdtable* get_fd_table() const {
 		if(!(m_flags & PPM_CL_CLONE_FILES)) {
 			return &m_fdtable;
-		} else {
-			sinsp_threadinfo* root = get_main_thread();
-			return (root == nullptr) ? nullptr : &(root->get_fdtable());
 		}
+		const sinsp_threadinfo* root = get_main_thread();
+		return (root == nullptr) ? nullptr : &(root->get_fdtable());
 	}
 
-	inline const sinsp_fdtable* get_fd_table() const {
-		return const_cast<sinsp_threadinfo*>(this)->get_fd_table();
-	}
+	// Table access for modification: the chokepoint where copy-on-write
+	// will detach state shared with other processes' fd tables. Same
+	// CLONE_FILES routing as the const accessor, so delegate to it.
+	inline sinsp_fdtable* get_fd_table_mut() { return const_cast<sinsp_fdtable*>(get_fd_table()); }
 
 	void init();
 	void init(const scap_threadinfo& pinfo, bool can_load_env_from_proc);
