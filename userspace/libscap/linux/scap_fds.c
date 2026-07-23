@@ -619,6 +619,26 @@ static bool scan_ipv4_socket_table_address(char **str, uint32_t *ip_out, uint16_
 	return true;
 }
 
+// Insert `fdinfo` keyed by inode. Procfs socket scans can contain repeated inodes, while uthash
+// permits duplicate keys. If the inode already exists, update its socket metadata in place and
+// free `fdinfo`. On success, this function takes ownership of `fdinfo`; on failure, ownership
+// remains with the caller.
+static int32_t scap_fd_add_socket_to_table(scap_fdinfo **sockets, scap_fdinfo *fdinfo) {
+	int32_t uth_status = SCAP_SUCCESS;
+	scap_fdinfo *existing = NULL;
+
+	HASH_FIND_INT64(*sockets, &fdinfo->ino, existing);
+	if(existing != NULL) {
+		existing->type = fdinfo->type;
+		memcpy(&existing->info, &fdinfo->info, sizeof(existing->info));
+		free(fdinfo);
+		return SCAP_SUCCESS;
+	}
+
+	HASH_ADD_INT64(*sockets, ino, fdinfo);
+	return uth_status;
+}
+
 // Parse a single IPv4 socket table line and insert the obtained fdinfo into `sockets`. Return
 // `SCAP_SUCCESS` if it can correctly parse the line or encounters a recoverable error (e.g.: the
 // line could be simply skipped); return `SCAP_FAILURE` otherwise.
@@ -681,9 +701,7 @@ static int32_t parse_ipv4_socket_table_line(const char *const line_start,
 	}
 
 	// Add to the table.
-	int32_t uth_status = SCAP_SUCCESS;
-	HASH_ADD_INT64((*sockets), ino, fdinfo);
-	if(uth_status != SCAP_SUCCESS) {
+	if(scap_fd_add_socket_to_table(sockets, fdinfo) != SCAP_SUCCESS) {
 		free(fdinfo);
 		return scap_errprintf(error, 0, "IPv4 socket allocation error");
 	}
@@ -804,9 +822,7 @@ static int32_t parse_ipv6_socket_table_line(const char *const line_start,
 	}
 
 	// Add to the table.
-	int32_t uth_status = SCAP_SUCCESS;
-	HASH_ADD_INT64((*sockets), ino, fdinfo);
-	if(uth_status != SCAP_SUCCESS) {
+	if(scap_fd_add_socket_to_table(sockets, fdinfo) != SCAP_SUCCESS) {
 		free(fdinfo);
 		return scap_errprintf(error, 0, "IPv6 socket allocation error");
 	}
@@ -868,9 +884,7 @@ static int32_t parse_unix_socket_table_line(const char *const line_start,
 	}
 
 	// Add to the table.
-	int32_t uth_status = SCAP_SUCCESS;
-	HASH_ADD_INT64((*sockets), ino, fdinfo);
-	if(uth_status != SCAP_SUCCESS) {
+	if(scap_fd_add_socket_to_table(sockets, fdinfo) != SCAP_SUCCESS) {
 		free(fdinfo);
 		return scap_errprintf(error, 0, "unix socket allocation error");
 	}
@@ -920,9 +934,7 @@ static int32_t parse_netlink_socket_table_line(const char *const line_start,
 	fdinfo->ino = ino;
 
 	// Add to the table.
-	int32_t uth_status = SCAP_SUCCESS;
-	HASH_ADD_INT64((*sockets), ino, fdinfo);
-	if(uth_status != SCAP_SUCCESS) {
+	if(scap_fd_add_socket_to_table(sockets, fdinfo) != SCAP_SUCCESS) {
 		free(fdinfo);
 		return scap_errprintf(error, 0, "netlink socket allocation error");
 	}
