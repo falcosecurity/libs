@@ -161,24 +161,20 @@ bool sinsp_plugin::init(const std::string& config, std::string& errstr) {
 	in.config = conf.c_str();
 	in.log_fn = &plugin_log_fn;
 
-	ss_plugin_init_tables_input tables_in = {};
-	ss_plugin_table_fields_vtable_ext table_fields_ext = {};
-	ss_plugin_table_reader_vtable reader_deprecated = {};  // unused
-	ss_plugin_table_reader_vtable_ext table_reader_ext = {};
-	ss_plugin_table_writer_vtable writer_deprecated = {};  // unused
-	ss_plugin_table_writer_vtable_ext table_writer_ext = {};
+	// Fill the member vtables (see plugin.h: stable storage the adapter can
+	// park pointers to), regardless of caps -- they are cheap static tables.
+	sinsp_plugin::table_field_api(m_tables_input.fields, m_tables_fields_ext);
+	sinsp_plugin::table_read_api(m_tables_reader, m_tables_reader_ext);
+	sinsp_plugin::table_write_api(m_tables_writer, m_tables_writer_ext);
+	m_tables_input.fields_ext = &m_tables_fields_ext;
+	m_tables_input.reader_ext = &m_tables_reader_ext;
+	m_tables_input.writer_ext = &m_tables_writer_ext;
+	m_tables_input.list_tables = sinsp_plugin::table_api_list_tables;
+	m_tables_input.get_table = sinsp_plugin::table_api_get_table;
+	m_tables_input.add_table = sinsp_plugin::table_api_add_table;
 
 	if(m_caps & (CAP_PARSING | CAP_EXTRACTION)) {
-		tables_in.fields_ext = &table_fields_ext;
-		tables_in.reader_ext = &table_reader_ext;
-		tables_in.writer_ext = &table_writer_ext;
-		sinsp_plugin::table_field_api(tables_in.fields, table_fields_ext);
-		sinsp_plugin::table_read_api(reader_deprecated, table_reader_ext);
-		sinsp_plugin::table_write_api(writer_deprecated, table_writer_ext);
-		tables_in.list_tables = sinsp_plugin::table_api_list_tables;
-		tables_in.get_table = sinsp_plugin::table_api_get_table;
-		tables_in.add_table = sinsp_plugin::table_api_add_table;
-		in.tables = &tables_in;
+		in.tables = &m_tables_input;
 	}
 	ss_plugin_t* state = m_handle->api.init(&in, &rc);
 	if(state != NULL) {
@@ -214,6 +210,20 @@ bool sinsp_plugin::init(const std::string& config, std::string& errstr) {
 	clear_ephemeral_tables();
 	clear_accessed_entries();
 	clear_created_entries();
+
+	// set up extract inputs just once
+	m_extract_input.owner = (ss_plugin_owner_t*)this;
+	m_extract_input.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	m_extract_input.table_reader_ext = &m_tables_reader_ext;
+	m_extract_input.table_reader = m_tables_reader;
+
+	// set up parse inputs just once
+	m_parse_input.owner = (ss_plugin_owner_t*)this;
+	m_parse_input.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	m_parse_input.table_reader_ext = &m_tables_reader_ext;
+	m_parse_input.table_reader = m_tables_reader;
+	m_parse_input.table_writer_ext = &m_tables_writer_ext;
+	m_parse_input.table_writer = m_tables_writer;
 
 	return true;
 }
@@ -896,19 +906,11 @@ bool sinsp_plugin::capture_open() {
 	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
 
 	ss_plugin_capture_listen_input in;
-	ss_plugin_table_reader_vtable_ext table_reader_ext;
-	ss_plugin_table_writer_vtable_ext table_writer_ext;
-	ss_plugin_table_reader_vtable table_reader;
-	ss_plugin_table_writer_vtable table_writer;
-
 	in.owner = (ss_plugin_owner_t*)this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	in.table_reader_ext = &table_reader_ext;
-	in.table_writer_ext = &table_writer_ext;
+	in.table_reader_ext = &m_tables_reader_ext;
+	in.table_writer_ext = &m_tables_writer_ext;
 	in.routine = &routine_vtable;
-
-	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
-	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
 
 	return m_handle->api.capture_open(m_state, &in) == SS_PLUGIN_SUCCESS;
 }
@@ -927,19 +929,11 @@ bool sinsp_plugin::capture_close() {
 	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
 
 	ss_plugin_capture_listen_input in;
-	ss_plugin_table_reader_vtable_ext table_reader_ext;
-	ss_plugin_table_writer_vtable_ext table_writer_ext;
-	ss_plugin_table_reader_vtable table_reader;
-	ss_plugin_table_writer_vtable table_writer;
-
 	in.owner = (ss_plugin_owner_t*)this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	in.table_reader_ext = &table_reader_ext;
-	in.table_writer_ext = &table_writer_ext;
+	in.table_reader_ext = &m_tables_reader_ext;
+	in.table_writer_ext = &m_tables_writer_ext;
 	in.routine = &routine_vtable;
-
-	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
-	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
 
 	return m_handle->api.capture_close(m_state, &in) == SS_PLUGIN_SUCCESS;
 }
@@ -1085,16 +1079,10 @@ bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
 	ev.evtnum = evt->get_num();
 	ev.evtsrc = evt->get_source_name();
 
-	ss_plugin_field_extract_input in;
-	ss_plugin_table_reader_vtable_ext table_reader_ext;
-	in.num_fields = num_fields;
-	in.fields = fields;
-	in.owner = (ss_plugin_owner_t*)this;
-	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	in.table_reader_ext = &table_reader_ext;
-	in.value_offsets = value_offsets;
-	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
-	auto res = m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+	m_extract_input.num_fields = num_fields;
+	m_extract_input.fields = fields;
+	m_extract_input.value_offsets = value_offsets;
+	auto res = m_handle->api.extract_fields(m_state, &ev, &m_extract_input) == SS_PLUGIN_SUCCESS;
 
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
@@ -1123,17 +1111,7 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) {
 	ev.evt = (const ss_plugin_event*)evt->get_scap_evt();
 	ev.evtnum = evt->get_num();
 	ev.evtsrc = evt->get_source_name();
-
-	ss_plugin_event_parse_input in;
-	ss_plugin_table_reader_vtable_ext table_reader_ext;
-	ss_plugin_table_writer_vtable_ext table_writer_ext;
-	in.owner = (ss_plugin_owner_t*)this;
-	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	in.table_reader_ext = &table_reader_ext;
-	in.table_writer_ext = &table_writer_ext;
-	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
-	sinsp_plugin::table_write_api(in.table_writer, table_writer_ext);
-	auto res = m_handle->api.parse_event(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+	auto res = m_handle->api.parse_event(m_state, &ev, &m_parse_input) == SS_PLUGIN_SUCCESS;
 
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
