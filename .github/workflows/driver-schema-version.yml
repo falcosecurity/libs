@@ -19,7 +19,7 @@ jobs:
     outputs:
       driver_schema_changed: ${{ steps.filter.outputs.driver_schema }}
     steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
       id: filter
       with:
@@ -34,7 +34,7 @@ jobs:
     needs: paths-filter
     if: needs.paths-filter.outputs.driver_schema_changed == 'false'
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check driver SCHEMA_VERSION
         uses: mshick/add-pr-comment@ec328af66588ab8f77cdeb2c264f14aba45bbf59 # v3.12.0.8.3.12.0
