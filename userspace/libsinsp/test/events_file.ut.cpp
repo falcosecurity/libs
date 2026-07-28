@@ -968,3 +968,93 @@ TEST_F(sinsp_with_test_input, abspath_root_dirfd_single_separator) {
 	                           (uint32_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/etc/passwd");
 }
+
+// Characterization test for how evt.abspath resolves its dirfd, pinning the cases
+// where extract_abspath() and sinsp_parser::parse_dirfd() -- which computes the same
+// thing for the parser and the fspath check -- must agree, so that replacing the
+// former's open-coded copy with a call to the latter is provably behavior-preserving.
+//
+// Mind the separator when reading the unknown-dirfd expectations below.
+// concatenate_paths() does not insert one -- it copies the second path at the end of
+// the first verbatim -- so the prefix has to carry it. parse_dirfd() omits it for its
+// "<UNKNOWN>" answer, which is why fd.name and fs.path.name, which take that route
+// directly, report "<UNKNOWN>etc/passwd", while evt.abspath adds the separator and
+// reports "<UNKNOWN>/etc/passwd".
+TEST_F(sinsp_with_test_input, abspath_dirfd_resolution_cases) {
+	add_default_init_thread();
+	open_inspector();
+
+	constexpr int64_t unknown_dirfd = 99;
+	constexpr int64_t file_dirfd = 7;
+	int64_t fd = 10;
+
+	// An absolute path wins over the dirfd, which is not even looked up.
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPENAT_2_X,
+	                                7,
+	                                fd++,
+	                                unknown_dirfd,
+	                                "/etc/passwd",
+	                                (uint32_t)PPM_O_RDONLY,
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/etc/passwd");
+
+	// AT_FDCWD resolves against the thread's cwd.
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPENAT_2_X,
+	                           7,
+	                           fd++,
+	                           (int64_t)PPM_AT_FDCWD,
+	                           "etc/passwd",
+	                           (uint32_t)PPM_O_RDONLY,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/root/etc/passwd");
+
+	// A dirfd that is a plain file, not a directory: neither resolver checks, both
+	// concatenate against its name.
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPEN_X,
+	                     6,
+	                     file_dirfd,
+	                     "/tmp/afile",
+	                     (uint32_t)PPM_O_RDONLY,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint64_t)0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPENAT_2_X,
+	                           7,
+	                           fd++,
+	                           file_dirfd,
+	                           "etc/passwd",
+	                           (uint32_t)PPM_O_RDONLY,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/tmp/afile/etc/passwd");
+
+	// An unknown dirfd, as reported by the fields that already go through
+	// parse_dirfd()/format_dirfd(): no separator is inserted after "<UNKNOWN>".
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPENAT_2_X,
+	                           7,
+	                           fd++,
+	                           unknown_dirfd,
+	                           "etc/passwd",
+	                           (uint32_t)PPM_O_RDONLY,
+	                           (uint32_t)0,
+	                           (uint32_t)0,
+	                           (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "<UNKNOWN>etc/passwd");
+	ASSERT_EQ(get_field_as_string(evt, "fs.path.name"), "<UNKNOWN>etc/passwd");
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "<UNKNOWN>/etc/passwd");
+}
