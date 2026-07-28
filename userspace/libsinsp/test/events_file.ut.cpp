@@ -918,3 +918,53 @@ TEST_F(sinsp_with_test_input, abspath_extraction_leaves_event_fd_alone) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), dir_name);
 	ASSERT_EQ(get_field_as_string(evt, "fs.path.name"), file_name);
 }
+
+// A dirfd that is already the root directory must not yield a doubled separator.
+// The trailing-slash check used to index the string terminator, so a '/' was
+// appended unconditionally and abspath reported "//etc/passwd" for this case;
+// concatenate_paths() keeps the leading "//" rather than collapsing it.
+TEST_F(sinsp_with_test_input, abspath_root_dirfd_single_separator) {
+	add_default_init_thread();
+	open_inspector();
+
+	constexpr int64_t dirfd = 5;
+	constexpr int64_t fd = 6;
+
+	// A directory fd for "/".
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     8,
+	                     dirfd,
+	                     (int64_t)PPM_AT_FDCWD,
+	                     "/",
+	                     (uint32_t)(PPM_O_RDONLY | PPM_O_DIRECTORY),
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint64_t)0);
+
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPENAT_2_X,
+	                                7,
+	                                fd,
+	                                dirfd,
+	                                "etc/passwd",
+	                                (uint32_t)PPM_O_RDONLY,
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/etc/passwd");
+
+	// unlinkat carries the dirfd in its fd parameter; same requirement.
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_UNLINKAT_2_X,
+	                           4,
+	                           (int64_t)0,
+	                           dirfd,
+	                           "etc/passwd",
+	                           (uint32_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/etc/passwd");
+}
