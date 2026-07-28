@@ -760,16 +760,21 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 	} else if(dirfd == PPM_AT_FDCWD) {
 		sdir = evt->get_tinfo()->get_cwd();
 	} else {
-		evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+		// Resolve the dirfd locally: extraction must not write to the event. Note that
+		// this is *not* necessarily the event's own fd. For the `*at` events that carry
+		// the dirfd in their fd parameter (see get_exit_event_fd_location()) the two
+		// coincide, but on openat the event's fd is the newly opened file, and on
+		// linkat/renameat the event has no fd at all.
+		const sinsp_fdinfo* dir_fdinfo = evt->get_tinfo()->get_fd(dirfd);
 
-		if(evt->get_fd_info() == nullptr) {
+		if(dir_fdinfo == nullptr) {
 			ASSERT(false);
 			sdir = "<UNKNOWN>/";
 		} else {
-			if(evt->get_fd_info()->m_name[evt->get_fd_info()->m_name.length()] == '/') {
-				sdir = evt->get_fd_info()->m_name;
+			if(dir_fdinfo->m_name[dir_fdinfo->m_name.length()] == '/') {
+				sdir = dir_fdinfo->m_name;
 			} else {
-				sdir = evt->get_fd_info()->m_name + '/';
+				sdir = dir_fdinfo->m_name + '/';
 			}
 		}
 	}

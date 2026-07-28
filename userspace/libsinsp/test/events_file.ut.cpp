@@ -854,3 +854,66 @@ TEST_F(sinsp_with_test_input, test_pidfd) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "f");
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "file");
 }
+
+// `evt.abspath` resolves the path against the event's dirfd. That lookup must not
+// disturb the event's own fd: on openat the event's fdinfo is the newly opened file,
+// so an extraction that installed the dirfd there left every field extracted
+// afterwards describing the directory instead of the file.
+TEST_F(sinsp_with_test_input, abspath_extraction_leaves_event_fd_alone) {
+	add_default_init_thread();
+	open_inspector();
+
+	constexpr int64_t dirfd = 5;
+	constexpr int64_t fd = 6;
+	const std::string dir_name = "/tmp/dir";
+	const std::string file_name = dir_name + "/file.txt";
+
+	// A directory fd for the relative path to resolve against.
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPENAT2_X,
+	                     8,
+	                     dirfd,
+	                     (int64_t)PPM_AT_FDCWD,
+	                     dir_name.c_str(),
+	                     (uint32_t)(PPM_O_RDONLY | PPM_O_DIRECTORY),
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint64_t)0);
+
+	// openat(dirfd, "file.txt"): the event's fd is the file it just created.
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPENAT_2_X,
+	                                7,
+	                                fd,
+	                                dirfd,
+	                                "file.txt",
+	                                (uint32_t)PPM_O_RDWR,
+	                                (uint32_t)0,
+	                                (uint32_t)0,
+	                                (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), file_name);
+
+	// abspath resolves the relative name through the dirfd...
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), file_name);
+
+	// ...and the fields extracted after it still describe the file, not the directory.
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), file_name);
+	ASSERT_EQ(get_field_as_string(evt, "fs.path.name"), file_name);
+
+	// For the `*at` events that carry the dirfd in their fd parameter, the event's fd
+	// *is* the directory (see get_exit_event_fd_location()); abspath leaves it that way.
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_UNLINKAT_2_X,
+	                           4,
+	                           (int64_t)0,
+	                           dirfd,
+	                           "file.txt",
+	                           (uint32_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), file_name);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), dir_name);
+	ASSERT_EQ(get_field_as_string(evt, "fs.path.name"), file_name);
+}
