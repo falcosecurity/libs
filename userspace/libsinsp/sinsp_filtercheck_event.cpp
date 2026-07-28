@@ -23,6 +23,7 @@ limitations under the License.
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_manager.h>
+#include <libsinsp/parsers.h>
 #include <libsinsp/value_parser.h>
 
 using namespace std;
@@ -747,35 +748,13 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 	const auto dirfd = dirfd_param->as<int64_t>();
 	const auto path = path_param->as<std::string_view>();
 
-	string sdir;
-
-	bool is_absolute = (path[0] == '/');
-	if(is_absolute) {
-		//
-		// The path is absolute.
-		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
-		// and absolute path, and openat succeeds.
-		//
-		sdir = ".";
-	} else if(dirfd == PPM_AT_FDCWD) {
-		sdir = evt->get_tinfo()->get_cwd();
-	} else {
-		// Resolve the dirfd locally: extraction must not write to the event. Note that
-		// this is *not* necessarily the event's own fd. For the `*at` events that carry
-		// the dirfd in their fd parameter (see get_exit_event_fd_location()) the two
-		// coincide, but on openat the event's fd is the newly opened file, and on
-		// linkat/renameat the event has no fd at all.
-		const sinsp_fdinfo* dir_fdinfo = evt->get_tinfo()->get_fd(dirfd);
-
-		if(dir_fdinfo == nullptr) {
-			ASSERT(false);
-			sdir = "<UNKNOWN>/";
-		} else {
-			sdir = dir_fdinfo->m_name;
-			if(sdir.empty() || sdir.back() != '/') {
-				sdir += '/';
-			}
-		}
+	// The same dirfd resolution the parser and the fspath check use. Its result is a
+	// prefix for concatenate_paths(), which inserts no separator of its own, so make
+	// sure it ends with one: parse_dirfd() omits it for its "<UNKNOWN>" answer, and
+	// every other answer already carries it.
+	std::string sdir = sinsp_parser::parse_dirfd(*evt, path, dirfd);
+	if(!sdir.empty() && sdir.back() != '/') {
+		sdir += '/';
 	}
 
 	m_strstorage = sinsp_utils::concatenate_paths(sdir, path);
