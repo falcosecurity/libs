@@ -338,8 +338,9 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 				}
 				break;
 			}
-			// For the following syscalls, the event fdinfo is set to their dirfd.
-			// Set `sdir` to the dirfd info path.
+			// For the following syscalls the event fdinfo is set to their dirfd:
+			// their fd parameter *is* the dirfd (see get_exit_event_fd_location()),
+			// so sinsp_parser::reset() installs it. Set `sdir` to that dirfd's path.
 			case PPME_SYSCALL_NEWFSTATAT_X:
 			case PPME_SYSCALL_FCHOWNAT_X:
 			case PPME_SYSCALL_FCHMODAT_X:
