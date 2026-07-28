@@ -132,8 +132,8 @@ int pman_prepare_progs_before_loading() {
 		// In case we couldn't find any program satisfying required features, give an error.
 		// As of today, this will never happen, but better safe than sorry.
 		if(chosen_idx == -1 && progs[0].name != NULL) {
-			log_errorf("no program satisfies required features for event %d", ev);
 			errno = ENXIO;
+			log_errorf("no program satisfies required features for event %d", ev);
 			return errno;
 		}
 
