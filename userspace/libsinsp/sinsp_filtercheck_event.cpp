@@ -771,10 +771,9 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 			ASSERT(false);
 			sdir = "<UNKNOWN>/";
 		} else {
-			if(dir_fdinfo->m_name[dir_fdinfo->m_name.length()] == '/') {
-				sdir = dir_fdinfo->m_name;
-			} else {
-				sdir = dir_fdinfo->m_name + '/';
+			sdir = dir_fdinfo->m_name;
+			if(sdir.empty() || sdir.back() != '/') {
+				sdir += '/';
 			}
 		}
 	}
