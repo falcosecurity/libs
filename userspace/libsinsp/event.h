@@ -835,10 +835,12 @@ private:
 	// re-points this before handing out a mutable pointer.
 	const sinsp_fdinfo* m_fdinfo;
 
-	// If true, then the associated fdinfo changed names as a part
-	// of parsing this event.
-	// Name of the event's fd at its first writable acquisition; the string is
-	// reused across events, validity is tracked separately.
+	// Name of the event's fd at its first writable acquisition, against which
+	// fdinfo_name_changed() detects a rename during parsing. The string is reused
+	// across events, so validity is tracked separately -- and it is keyed on the
+	// fd pointer: set_fd_info() invalidates the snapshot whenever m_fdinfo
+	// changes, so anything that installs a different fd on the event mid-event
+	// also clears the name-change answer for it.
 	std::string m_fdinfo_name_snapshot;
 	bool m_fdinfo_name_snapshot_valid;
 

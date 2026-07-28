@@ -129,9 +129,15 @@ sinsp_threadinfo *sinsp_evt::get_thread_info() {
 void sinsp_evt::upgrade_fd_info_writable() {
 	// Re-fetch the event's fd through the writable lookup, which detaches a
 	// private copy if the entry is currently shared with other fd tables. The
-	// clone (if any) is attributed to this event's type. If the thread or fd is
-	// gone we keep the existing (read-only) pointer; callers cope with that the
-	// same way they cope with a null fd info.
+	// clone (if any) is attributed to this event's type.
+	//
+	// If the thread or the fd is gone we keep the existing (read-only) pointer
+	// instead of clearing it: callers have null-checked the fd earlier in the
+	// event and dereference what they get here unconditionally. Their write then
+	// lands on an entry that may still be shared, or that is no longer in the
+	// table -- i.e. it may leak into another table or be lost. That needs the fd
+	// to disappear between the read-only lookup in sinsp_parser::reset() and the
+	// first write in the same event, which no current path does.
 	if(m_tinfo == nullptr || m_fdinfo == nullptr) {
 		return;
 	}
