@@ -971,6 +971,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 	if(fdinfo == nullptr) {
 		ASSERT(tinfo != nullptr);
 
+		if(m_is_full_procfs_scan_in_progress) {
+			m_thread_manager->on_thread_scanned(tid);
+		}
 		threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
 		newti->init(*tinfo, large_envs_enabled());
@@ -1151,6 +1154,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 void sinsp::on_proc_table_refresh_start() {
 	m_is_full_procfs_scan_in_progress = true;
+	m_thread_manager->begin_full_proc_scan();
 	m_suppress.initialize();
 }
 

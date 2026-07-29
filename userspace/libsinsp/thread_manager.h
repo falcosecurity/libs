@@ -22,6 +22,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <set>
+#include <unordered_set>
 
 #include <libscap/scap_savefile_api.h>
 #include <libsinsp/fdtable.h>
@@ -95,6 +96,10 @@ public:
 	void deduplicate_fd_tables();
 
 	void reset_child_dependencies();
+	/* A full `/proc` scan starts: no thread is scanned yet. */
+	void begin_full_proc_scan() { m_scanned_tids.clear(); }
+	/* The full scan reported the thread `tid`, whether its entry is replaced or kept. */
+	void on_thread_scanned(int64_t tid) { m_scanned_tids.insert(tid); }
 	void create_thread_dependencies_after_proc_scan();
 	/*!
 	  \brief Look up a thread given its tid and return its information,
@@ -310,6 +315,13 @@ private:
 	                            const std::shared_ptr<thread_group_info>& tginfo,
 	                            int64_t ptid);
 
+	/* Give a thread that joined its group the fd table that it shares with the group, if any. */
+	void share_fd_table_of_group(sinsp_threadinfo& tinfo);
+	/* Whether the thread `tid` is in the thread table, alive, and holds `table`. */
+	bool is_live_holder_of(int64_t tid, const sinsp_fdtable& table);
+	/* Move the mount lookup of the table of `leaving` to another thread that holds the table. */
+	void move_fd_table_lookup_off(sinsp_threadinfo& leaving);
+
 	/* Link a group to `parent`. If the link is refused, leave the group unlinked, with `ptid`. */
 	void relink_group(thread_group_info& tginfo,
 	                  const std::shared_ptr<sinsp_threadinfo>& parent,
@@ -340,6 +352,10 @@ private:
 	threadinfo_map_t m_threadtable;
 	int64_t m_last_tid;
 	std::shared_ptr<sinsp_threadinfo> m_last_tinfo;
+	// The tids that the full scan in progress reported
+	std::unordered_set<int64_t> m_scanned_tids;
+	// While the groups join after a full refresh: the entries that the scan did not find again
+	const std::unordered_set<const sinsp_threadinfo*>* m_stale_threads = nullptr;
 	uint64_t m_last_flush_time_ns;
 	// Increased legacy default of 131072 in January 2024 to prevent
 	// possible drops due to full threadtable on more modern servers
