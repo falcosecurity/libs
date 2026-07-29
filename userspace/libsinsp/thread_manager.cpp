@@ -23,6 +23,7 @@ limitations under the License.
 #include <stdio.h>
 #include <algorithm>
 #include <cinttypes>
+#include <unordered_set>
 #include <vector>
 #include <libscap/strl.h>
 #include <libsinsp/sinsp.h>
@@ -713,9 +714,12 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostn
 
 void sinsp_thread_manager::deduplicate_fd_tables() {
 	sinsp_fdtable::dedup_registry registry;
+	// Each table once: the threads of a process share one.
+	std::unordered_set<const sinsp_fdtable*> seen;
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		if(tinfo.is_main_thread()) {
-			tinfo.get_fdtable().deduplicate_into(registry);
+		auto* fdtable = tinfo.get_fd_table_mut();
+		if(fdtable != nullptr && seen.insert(fdtable).second) {
+			fdtable->deduplicate_into(registry);
 		}
 		return true;
 	});
