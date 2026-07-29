@@ -195,12 +195,79 @@ void sinsp_thread_manager::create_thread_dependencies(
 		                       ptid);
 	}
 
+	share_fd_table_of_group(*tinfo);
+
 	// update fdtable cached pointer for all threads in the group (which includes
 	// the current thread), as their leader might have changed or we simply need
 	// to first initialize it.
 	for(const auto& thread : tinfo->m_tginfo->get_thread_list()) {
 		if(auto thread_ptr = thread.borrow(); thread_ptr != nullptr) {
 			thread_ptr->update_main_fdtable();
+		}
+	}
+}
+
+/* The main thread and the threads with PPM_CL_CLONE_FILES share one fd table. A thread without
+ * the flag has a table of its own, which nobody adopts.
+ *
+ * Usually the main thread joins first, and the others adopt its table. The order can differ,
+ * though: an on-demand `/proc` lookup can find a thread before its main thread, and a parent
+ * link can join a thread of a group without its main thread before the thread that holds the
+ * fds. So a thread that adopts a table moves the fds that it holds into that table.
+ */
+void sinsp_thread_manager::share_fd_table_of_group(sinsp_threadinfo& tinfo) {
+	const bool main_thread = tinfo.is_main_thread();
+	if(!main_thread && !(tinfo.m_flags & PPM_CL_CLONE_FILES)) {
+		return;
+	}
+
+	for(const auto& thread : tinfo.m_tginfo->get_thread_list()) {
+		/* Skip threads that have since left the group, or the thread table */
+		auto owner = thread.borrow();
+		if(owner == nullptr || owner == &tinfo || owner->m_tginfo != tinfo.m_tginfo ||
+		   m_threadtable.get_ref(owner->m_tid).get() != owner) {
+			continue;
+		}
+		if(!owner->is_main_thread() && !(owner->m_flags & PPM_CL_CLONE_FILES)) {
+			continue;
+		}
+		const auto& table = owner->get_fd_table_handle();
+		if(table != tinfo.get_fd_table_handle()) {
+			// The fds that the thread already has are fds of the process too.
+			tinfo.get_fdtable().const_loop([&](int64_t fd, const sinsp_fdinfo& fdinfo) {
+				if(table->find(fd) == nullptr) {
+					table->add(fd, fdinfo.clone());
+				}
+				return true;
+			});
+		}
+		tinfo.adopt_fd_table(table);
+		// The table reads mount information through a thread that holds it. A zombie leader
+		// cannot serve that.
+		if(!tinfo.is_dead() && !is_live_holder_of(table->get_tid(), *table)) {
+			table->set_tid(tinfo.m_tid);
+		}
+		return;
+	}
+}
+
+bool sinsp_thread_manager::is_live_holder_of(int64_t tid, const sinsp_fdtable& table) {
+	const auto& thread = m_threadtable.get_ref(tid);
+	return thread != nullptr && !thread->is_dead() && thread->get_fd_table() == &table;
+}
+
+/* The table of `leaving` keeps reading mount information through a thread that still holds it */
+void sinsp_thread_manager::move_fd_table_lookup_off(sinsp_threadinfo& leaving) {
+	sinsp_fdtable& table = leaving.get_fdtable();
+	if(table.get_tid() != static_cast<uint64_t>(leaving.m_tid)) {
+		return;
+	}
+	for(const auto& thread : leaving.m_tginfo->get_thread_list()) {
+		auto owner = thread.borrow();
+		if(owner != nullptr && owner != &leaving && owner->m_tginfo == leaving.m_tginfo &&
+		   is_live_holder_of(owner->m_tid, table)) {
+			table.set_tid(owner->m_tid);
+			return;
 		}
 	}
 }
@@ -532,6 +599,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * so it is marked as removed.
 	 */
 	thread_to_remove->set_removed();
+	move_fd_table_lookup_off(*thread_to_remove);
 
 	/* [Remove main thread]
 	 * We remove the main thread if there are no other threads in the group.
@@ -644,8 +712,13 @@ void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostname_and_port) {
+	// Each table once: the threads of a process share one, and a second pass over a socket
+	// would see its swapped ports.
+	std::unordered_set<const sinsp_fdtable*> seen;
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		tinfo.fix_sockets_coming_from_proc(m_server_ports, resolve_hostname_and_port);
+		if(seen.insert(tinfo.get_fd_table()).second) {
+			tinfo.fix_sockets_coming_from_proc(m_server_ports, resolve_hostname_and_port);
+		}
 		return true;
 	});
 }
@@ -682,10 +755,17 @@ void sinsp_thread_manager::reset_child_dependencies() {
 }
 
 void sinsp_thread_manager::create_thread_dependencies_after_proc_scan() {
-	m_threadtable.const_loop_shared_pointer([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
-		create_thread_dependencies(tinfo);
-		return true;
-	});
+	// Main threads first, so that the other threads adopt their fd table. The
+	// thread table is not in tid order.
+	for(const bool main_threads : {true, false}) {
+		m_threadtable.const_loop_shared_pointer(
+		        [&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+			        if(tinfo->is_main_thread() == main_threads) {
+				        create_thread_dependencies(tinfo);
+			        }
+			        return true;
+		        });
+	}
 }
 
 void sinsp_thread_manager::free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free) {

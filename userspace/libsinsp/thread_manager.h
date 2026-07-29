@@ -310,6 +310,13 @@ private:
 	                            const std::shared_ptr<thread_group_info>& tginfo,
 	                            int64_t ptid);
 
+	/* Give a thread that joined its group the fd table that it shares with the group, if any. */
+	void share_fd_table_of_group(sinsp_threadinfo& tinfo);
+	/* Whether the thread `tid` is in the thread table, alive, and holds `table`. */
+	bool is_live_holder_of(int64_t tid, const sinsp_fdtable& table);
+	/* Move the mount lookup of the table of `leaving` to another thread that holds the table. */
+	void move_fd_table_lookup_off(sinsp_threadinfo& leaving);
+
 	/* Link a group to `parent`. If the link is refused, leave the group unlinked, with `ptid`. */
 	void relink_group(thread_group_info& tginfo,
 	                  const std::shared_ptr<sinsp_threadinfo>& parent,

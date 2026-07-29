@@ -1346,3 +1346,261 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_capture_file_keeps_thread_state) {
 	replay.close();
 	remove(path);
 }
+
+/* A CLONE_FILES thread from the /proc scan shares the fd table of its process, also when its
+ * tid is lower than the tid of its main thread (after a pid wrap).
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_thread_shares_the_fd_table_of_its_process) {
+	add_default_init_thread();
+	constexpr int64_t processes = 16;
+	for(int64_t i = 0; i < processes; i++) {
+		const int64_t pid = 100 + 10 * i;
+		add_thread(create_threadinfo(pid,
+		                             pid,
+		                             INIT_TID,
+		                             pid,
+		                             pid,
+		                             pid,
+		                             "proc",
+		                             "/bin/proc",
+		                             "/bin/proc",
+		                             increasing_ts(),
+		                             0,
+		                             0,
+		                             {},
+		                             0,
+		                             {},
+		                             "/"),
+		           {});
+		auto thread = create_threadinfo(pid - 1,
+		                                pid,
+		                                INIT_TID,
+		                                pid,
+		                                pid - 1,
+		                                pid,
+		                                "proc",
+		                                "/bin/proc",
+		                                "/bin/proc",
+		                                increasing_ts(),
+		                                0,
+		                                0,
+		                                {},
+		                                0,
+		                                {},
+		                                "/");
+		thread.flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+		add_thread(thread, {});
+	}
+	open_inspector();
+
+	for(int64_t i = 0; i < processes; i++) {
+		const int64_t pid = 100 + 10 * i;
+		auto main_thread = m_inspector.m_thread_manager->find_thread(pid, true);
+		auto thread = m_inspector.m_thread_manager->find_thread(pid - 1, true);
+		ASSERT_NE(main_thread, nullptr);
+		ASSERT_NE(thread, nullptr);
+		EXPECT_EQ(main_thread->get_fd_table(), thread->get_fd_table()) << "pid " << pid;
+	}
+}
+
+/* The scan normalizes each socket once, though every thread of the process sees the table. A
+ * socket on a server port gets its ends swapped and the server role. A second pass would see the
+ * client port at the local end, and add the client role.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_fixes_a_shared_socket_once) {
+	add_default_init_thread();
+	const auto task = [this](int64_t tid, uint32_t flags) {
+		auto tinfo = create_threadinfo(tid,
+		                               100,
+		                               INIT_TID,
+		                               100,
+		                               tid,
+		                               100,
+		                               "server",
+		                               "/bin/server",
+		                               "/bin/server",
+		                               increasing_ts(),
+		                               0,
+		                               0,
+		                               {},
+		                               0,
+		                               {},
+		                               "/");
+		tinfo.flags = flags;
+		return tinfo;
+	};
+	constexpr uint16_t server_port = 8080;
+	constexpr uint16_t client_port = 40000;
+	scap_fdinfo listening{};
+	listening.fd = 3;
+	listening.type = SCAP_FD_IPV4_SERVSOCK;
+	listening.info.ipv4serverinfo.ip = 0x0100007f;
+	listening.info.ipv4serverinfo.port = server_port;
+	listening.info.ipv4serverinfo.l4proto = SCAP_L4_TCP;
+	// /proc reports an accepted connection with the local end first.
+	scap_fdinfo accepted{};
+	accepted.fd = 4;
+	accepted.type = SCAP_FD_IPV4_SOCK;
+	accepted.info.ipv4info.sip = 0x0100007f;
+	accepted.info.ipv4info.dip = 0x0200007f;
+	accepted.info.ipv4info.sport = server_port;
+	accepted.info.ipv4info.dport = client_port;
+	accepted.info.ipv4info.l4proto = SCAP_L4_TCP;
+	constexpr uint32_t sharing_thread = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	add_thread(task(100, 0), {listening, accepted});
+	add_thread(task(101, sharing_thread), {});
+	add_thread(task(102, sharing_thread), {});
+	open_inspector();
+
+	auto main_thread = m_inspector.m_thread_manager->find_thread(100, true);
+	ASSERT_NE(main_thread, nullptr);
+	const auto* socket = main_thread->get_fdtable().find(4);
+	ASSERT_NE(socket, nullptr);
+	EXPECT_TRUE(socket->is_role_server());
+	EXPECT_FALSE(socket->is_role_client());
+	EXPECT_EQ(socket->m_sockinfo.m_ipv4info.m_fields.m_sport, client_port);
+	EXPECT_EQ(socket->m_sockinfo.m_ipv4info.m_fields.m_dport, server_port);
+}
+
+namespace {
+scap_fdinfo scap_file(int64_t fd, const char* name) {
+	scap_fdinfo fdinfo{};
+	fdinfo.fd = fd;
+	fdinfo.ino = 100 + fd;
+	fdinfo.type = SCAP_FD_FILE_V2;
+	fdinfo.info.regularinfo.open_flags = PPM_O_RDONLY;
+	strlcpy(fdinfo.info.regularinfo.fname, name, sizeof(fdinfo.info.regularinfo.fname));
+	return fdinfo;
+}
+}  // namespace
+
+/* An on-demand /proc lookup can find a thread before its main thread. The main thread adopts the
+ * table of the threads that share files when it joins, so the fds known through either stay in
+ * one table.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_main_thread_found_after_its_thread_shares_its_table) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto task = [this](int64_t tid, uint32_t flags) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = 70;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "worker";
+		thread->m_flags = flags;
+		return thread;
+	};
+
+	manager.add_thread(task(71, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES), true);
+	auto thread = manager.find_thread(71, true);
+	ASSERT_NE(thread, nullptr);
+	manager.add_thread_fd_from_scap(*thread, scap_file(5, "/tmp/thread"), false);
+
+	// An fd that the main thread holds when it joins is an fd of the process too.
+	auto main_task = task(70, 0);
+	main_task->get_fdtable().add(4, m_inspector.get_fdinfo_factory().create());
+	manager.add_thread(std::move(main_task), true);
+	auto main_thread = manager.find_thread(70, true);
+	ASSERT_NE(main_thread, nullptr);
+	manager.add_thread_fd_from_scap(*main_thread, scap_file(3, "/tmp/process"), false);
+
+	EXPECT_EQ(main_thread->get_fd_table(), thread->get_fd_table());
+	EXPECT_NE(thread->get_fdtable().find(3), nullptr);
+	EXPECT_NE(thread->get_fdtable().find(4), nullptr);
+	EXPECT_NE(thread->get_fdtable().find(5), nullptr);
+}
+
+/* A thread without CLONE_FILES keeps a table that nobody adopts, also when it is the first thread
+ * of its group that sinsp finds.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_a_table_of_its_own_is_not_shared) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto task = [this](int64_t tid, uint32_t flags) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = 80;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "worker";
+		thread->m_flags = flags;
+		return thread;
+	};
+
+	manager.add_thread(task(81, PPM_CL_CLONE_THREAD), true);
+	auto own_table = manager.find_thread(81, true);
+	ASSERT_NE(own_table, nullptr);
+	manager.add_thread_fd_from_scap(*own_table, scap_file(6, "/tmp/own"), false);
+
+	manager.add_thread(task(82, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES), true);
+	manager.add_thread(task(80, 0), true);
+	auto sharing = manager.find_thread(82, true);
+	auto main_thread = manager.find_thread(80, true);
+	ASSERT_NE(sharing, nullptr);
+	ASSERT_NE(main_thread, nullptr);
+
+	EXPECT_NE(sharing->get_fd_table(), own_table->get_fd_table());
+	EXPECT_EQ(main_thread->get_fd_table(), sharing->get_fd_table());
+	EXPECT_EQ(sharing->get_fdtable().find(6), nullptr);
+	EXPECT_NE(own_table->get_fdtable().find(6), nullptr);
+}
+
+/* A table reads mount information through a live thread that holds it. When that thread leaves,
+ * the lookup moves to another thread of the table.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_fd_table_lookup_moves_to_a_live_holder) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto add = [&](int64_t tid, uint32_t flags) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = 70;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "proc";
+		thread->m_flags = flags;
+		thread->get_fdtable().set_tid(tid);
+		manager.add_thread(std::move(thread), true);
+	};
+	// The thread comes first, so the table reads through it.
+	add(71, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES);
+	add(70, 0);
+	auto main_thread = manager.find_thread(70, true);
+	ASSERT_NE(main_thread, nullptr);
+	EXPECT_EQ(main_thread->get_fdtable().get_tid(), 71);
+
+	manager.remove_thread(71);
+	EXPECT_EQ(main_thread->get_fdtable().get_tid(), 70);
+}
+
+/* A removed thread that a caller still holds gives its table to nobody. Here the group lives on
+ * with a thread that has a table of its own, and the main thread that sinsp finds later starts
+ * with a table of its own, not with the table that sinsp already reported as erased.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_a_held_removed_thread_gives_no_table) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto add = [&](int64_t tid, uint32_t flags) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = 600;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "proc";
+		thread->m_flags = flags;
+		manager.add_thread(std::move(thread), true);
+	};
+	add(601, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES);
+	add(603, PPM_CL_CLONE_THREAD);
+	const auto held = manager.find_thread(601, true);
+	ASSERT_NE(held, nullptr);
+	manager.add_thread_fd_from_scap(*held, scap_file(3, "/tmp/file"), false);
+	manager.remove_thread(601);
+
+	add(600, 0);
+	auto main_thread = manager.find_thread(600, true);
+	ASSERT_NE(main_thread, nullptr);
+	EXPECT_NE(main_thread->get_fd_table(), held->get_fd_table());
+	EXPECT_EQ(main_thread->get_fdtable().find(3), nullptr);
+}
