@@ -451,7 +451,7 @@ public:
 	 */
 	inline const sinsp_fdtable* get_fd_table() const {
 		if(!(m_flags & PPM_CL_CLONE_FILES)) {
-			return &m_fdtable;
+			return m_fdtable.get();
 		}
 		const sinsp_threadinfo* root = get_main_thread();
 		return (root == nullptr) ? nullptr : &(root->get_fdtable());
@@ -491,9 +491,9 @@ public:
 
 	inline void set_last_event_data(uint8_t* v) { m_lastevent_data = v; }
 
-	inline const sinsp_fdtable& get_fdtable() const { return m_fdtable; }
+	inline const sinsp_fdtable& get_fdtable() const { return *m_fdtable; }
 
-	inline sinsp_fdtable& get_fdtable() { return m_fdtable; }
+	inline sinsp_fdtable& get_fdtable() { return *m_fdtable; }
 
 	inline uint16_t get_lastevent_type() const { return m_lastevent_type; }
 
@@ -550,7 +550,7 @@ private:
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	sinsp_fdtable m_fdtable;  // The fd table of this thread
+	std::shared_ptr<sinsp_fdtable> m_fdtable;
 	const libsinsp::state::base_table*
 	        m_main_fdtable;     // Points to the base fd table of the current main thread
 	std::string m_cwd;          // current working directory
