@@ -40,7 +40,6 @@ sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
         m_fdtable{params->fdtable_factory.create_shared()},
-        m_main_fdtable(m_fdtable.get()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
         m_cgroups_table_adapter("cgroups", m_cgroups) {
@@ -157,7 +156,20 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
-	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
+	// Not DEFINE_STATIC_FIELD_READONLY: the member is a shared_ptr, not the
+	// field's type.
+	libsinsp::state::define_static_field<const libsinsp::state::base_table*>(
+	        ret,
+	        "file_descriptors",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        const auto* c = static_cast<const self*>(in);
+		        const auto* t = static_cast<const libsinsp::state::base_table*>(c->get_fd_table());
+		        return libsinsp::state::borrowed_state_data::from<
+		                libsinsp::state::type_id_of<const libsinsp::state::base_table*>(),
+		                const libsinsp::state::base_table*>(t);
+	        },
+	        READONLY_WRITER_LAMBDA("file_descriptors"),
+	        true);
 	libsinsp::state::define_static_field<std::string>(
 	        ret,
 	        "cwd",

@@ -512,12 +512,6 @@ public:
 
 	inline sinsp_evt::category& get_lastevent_category() { return m_lastevent_category; }
 
-	inline void update_main_fdtable() {
-		auto fdtable = get_fd_table();
-		m_main_fdtable =
-		        !fdtable ? nullptr : static_cast<const libsinsp::state::base_table*>(fdtable);
-	}
-
 	void set_exepath(std::string&& exepath);
 
 	/*!
@@ -556,8 +550,6 @@ private:
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	const libsinsp::state::base_table*
-	        m_main_fdtable;     // Points to the base fd table of the current main thread
 	std::string m_cwd;          // current working directory
 	uint8_t* m_lastevent_data;  // Used by some event parsers to store the last enter event
 

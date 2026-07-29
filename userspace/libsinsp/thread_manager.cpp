@@ -162,7 +162,6 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * We use them just to see which tid calls a syscall.
 	 */
 	if(tinfo->is_invalid()) {
-		tinfo->update_main_fdtable();
 		return;
 	}
 
@@ -170,7 +169,6 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * a thread that calls this method should never have a thread group info
 	 */
 	if(tinfo->m_tginfo != nullptr) {
-		tinfo->update_main_fdtable();
 		return;
 	}
 
@@ -196,15 +194,6 @@ void sinsp_thread_manager::create_thread_dependencies(
 	}
 
 	share_fd_table_of_group(*tinfo);
-
-	// update fdtable cached pointer for all threads in the group (which includes
-	// the current thread), as their leader might have changed or we simply need
-	// to first initialize it.
-	for(const auto& thread : tinfo->m_tginfo->get_thread_list()) {
-		if(auto thread_ptr = thread.borrow(); thread_ptr != nullptr) {
-			thread_ptr->update_main_fdtable();
-		}
-	}
 }
 
 /* The main thread and the threads with PPM_CL_CLONE_FILES share one fd table. A thread without
@@ -427,7 +416,6 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 		m_last_tinfo.reset();
 	}
 
-	tinfo_shared_ptr->update_main_fdtable();
 	return m_threadtable.put(tinfo_shared_ptr);
 }
 
@@ -1160,7 +1148,6 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 		// This allows us to avoid performing an actual timestamp lookup
 		// for something that may not need to be precise
 		m_last_tinfo->m_lastaccess_ts = m_timestamper.get_cached_ts();
-		m_last_tinfo->update_main_fdtable();
 		return m_last_tinfo;
 	}
 
@@ -1178,7 +1165,6 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 			m_last_tinfo = thr;
 			thr->m_lastaccess_ts = m_timestamper.get_cached_ts();
 		}
-		thr->update_main_fdtable();
 		return thr;
 	} else {
 		if(m_sinsp_stats_v2 != nullptr) {
@@ -1195,12 +1181,7 @@ sinsp_threadinfo* sinsp_thread_manager::get_parent_thread(const sinsp_threadinfo
 		return nullptr;
 	}
 
-	auto parent = tinfo.get_linked_parent();
-	if(parent != nullptr) {
-		/* As find_thread() does */
-		parent->update_main_fdtable();
-	}
-	return parent;
+	return tinfo.get_linked_parent();
 }
 
 sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n) {
