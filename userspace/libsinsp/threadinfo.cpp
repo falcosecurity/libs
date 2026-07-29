@@ -39,8 +39,8 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
-        m_fdtable{params->fdtable_factory.create()},
-        m_main_fdtable(&m_fdtable),
+        m_fdtable{params->fdtable_factory.create_shared()},
+        m_main_fdtable(m_fdtable.get()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
         m_cgroups_table_adapter("cgroups", m_cgroups) {
@@ -226,7 +226,7 @@ sinsp_threadinfo::~sinsp_threadinfo() {
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
                                                     const bool resolve_hostname_and_port) {
-	m_fdtable.loop([resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
+	m_fdtable->loop([resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
 		if(fdi.m_type != SCAP_FD_IPV4_SOCK) {
 			return true;
 		}
@@ -364,7 +364,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 	}
 
 	// Add the FD to the table and returns a pointer to it.
-	return m_fdtable.add(fdi.fd, std::move(newfdi));
+	return m_fdtable->add(fdi.fd, std::move(newfdi));
 }
 
 void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
@@ -397,8 +397,8 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_en
 	m_flags |= pinfo.flags;
 	m_flags |= PPM_CL_ACTIVE;  // Assume that all the threads coming from /proc are real, active
 	                           // threads
-	m_fdtable.clear();
-	m_fdtable.set_tid(m_tid);
+	m_fdtable->clear();
+	m_fdtable->set_tid(m_tid);
 	m_fdlimit = pinfo.fdlimit;
 
 	m_cap_permitted = pinfo.cap_permitted;
