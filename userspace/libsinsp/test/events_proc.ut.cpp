@@ -917,6 +917,32 @@ TEST_F(sinsp_with_test_input, chdir_fchdir) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory-fd/");
 }
 
+// A relative chdir from a secondary thread resolves against the cwd of the process
+TEST_F(sinsp_with_test_input, chdir_relative_from_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_CHDIR_X,
+	                     2,
+	                     (int64_t)0,
+	                     "/home/user");
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      thread_tid,
+	                                      PPME_SYSCALL_CHDIR_X,
+	                                      2,
+	                                      (int64_t)0,
+	                                      "subdir");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/home/user/subdir/");
+
+	evt = generate_random_event(INIT_TID);
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/home/user/subdir/");
+}
+
 // Falco libs allowed pid over 32bit, those were used in the past to hold extra values in the high
 // bits. These PIDs are not meaningful to the user and should not be displayed
 TEST_F(sinsp_with_test_input, pid_over_32bit) {
