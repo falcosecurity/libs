@@ -304,11 +304,6 @@ public:
 	double get_fd_usage_pct_d();
 
 	/*!
-	  \brief Return the number of open FDs for this thread.
-	*/
-	uint64_t get_fd_opencount() const;
-
-	/*!
 	  \brief Return the maximum number of FDs this thread can open.
 	*/
 	uint64_t get_fd_limit();
