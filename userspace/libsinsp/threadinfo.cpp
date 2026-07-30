@@ -686,7 +686,13 @@ void sinsp_threadinfo::update_cwd(std::string_view cwd) {
 		return;
 	}
 
-	tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, cwd);
+	// Resolve against the directory we are about to overwrite -- the process's,
+	// which is the main thread's -- and not against this thread's own copy of it.
+	// Only the main thread keeps that copy up to date, so for a chdir with a
+	// relative path from a secondary thread, m_cwd here is whatever the thread was
+	// created with, usually empty, and the process's directory was replaced by the
+	// relative path alone.
+	tinfo->m_cwd = sinsp_utils::concatenate_paths(tinfo->m_cwd, cwd);
 
 	if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/') {
 		tinfo->m_cwd += '/';
