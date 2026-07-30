@@ -41,6 +41,7 @@ EXPORTS
 		scap_get_readfile_offset
 		scap_set_ppm_sc
 		scap_set_dropfailed
+		scap_set_kern_full_path_resolution
 		scap_event_get_dump_flags
 		scap_enable_dynamic_snaplen
 		scap_disable_dynamic_snaplen

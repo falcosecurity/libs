@@ -6443,22 +6443,24 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_X_1_to_2_X_7_params_no_enter) {
 	constexpr auto mode = empty_value<uint32_t>();
 	constexpr auto dev = empty_value<uint32_t>();
 	constexpr auto ino = empty_value<uint64_t>();
+	constexpr auto dirfdpath = empty_value<char *>();
 
-	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3, 4, 5, 6);
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 1, 2, 3, 4, 5, 6, 7);
 
 	assert_full_conversion(create_safe_scap_event(ts, tid, PPME_SYSCALL_OPENAT_X, 1, fd),
 	                       create_safe_scap_event_with_empty_params(ts,
 	                                                                tid,
 	                                                                PPME_SYSCALL_OPENAT_2_X,
 	                                                                &empty_params_set,
-	                                                                7,
+	                                                                8,
 	                                                                fd,
 	                                                                dirfd,
 	                                                                name,
 	                                                                flags,
 	                                                                mode,
 	                                                                dev,
-	                                                                ino));
+	                                                                ino,
+	                                                                dirfdpath));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_X_1_to_2_X_7_params_with_enter) {
@@ -6474,8 +6476,9 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_X_1_to_2_X_7_params_with_enter) {
 	// Set to empty.
 	constexpr auto dev = empty_value<uint32_t>();
 	constexpr auto ino = empty_value<uint64_t>();
+	constexpr auto dirfdpath = empty_value<char *>();
 
-	SCAP_EMPTY_PARAMS_SET(empty_params_set, 5, 6);
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 5, 6, 7);
 
 	// After the first conversion we should have the storage.
 	const auto evt =
@@ -6488,14 +6491,15 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_X_1_to_2_X_7_params_with_enter) {
 	                                                                tid,
 	                                                                PPME_SYSCALL_OPENAT_2_X,
 	                                                                &empty_params_set,
-	                                                                7,
+	                                                                8,
 	                                                                fd,
 	                                                                dirfd,
 	                                                                name,
 	                                                                flags,
 	                                                                mode,
 	                                                                dev,
-	                                                                ino));
+	                                                                ino,
+	                                                                dirfdpath));
 }
 
 TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_2_E_0_to_4_params) {
@@ -6551,8 +6555,9 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_2_X_5_to_7_params) {
 	// Set to empty.
 	constexpr auto dev = empty_value<uint32_t>();
 	constexpr auto ino = empty_value<uint64_t>();
+	constexpr auto dirfdpath = empty_value<char *>();
 
-	SCAP_EMPTY_PARAMS_SET(empty_params_set, 5, 6);
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 5, 6, 7);
 
 	assert_full_conversion(create_safe_scap_event(ts,
 	                                              tid,
@@ -6567,14 +6572,15 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT_2_X_5_to_7_params) {
 	                                                                tid,
 	                                                                PPME_SYSCALL_OPENAT_2_X,
 	                                                                &empty_params_set,
-	                                                                7,
+	                                                                8,
 	                                                                fd,
 	                                                                dirfd,
 	                                                                name,
 	                                                                flags,
 	                                                                mode,
 	                                                                dev,
-	                                                                ino));
+	                                                                ino,
+	                                                                dirfdpath));
 }
 
 ////////////////////////////
@@ -7637,8 +7643,9 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT2_X_6_to_8_params) {
 	// Set to empty.
 	constexpr auto dev = empty_value<uint32_t>();
 	constexpr auto ino = empty_value<uint64_t>();
+	constexpr auto dirfdpath = empty_value<char *>();
 
-	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 7);
+	SCAP_EMPTY_PARAMS_SET(empty_params_set, 6, 7, 8);
 
 	assert_full_conversion(create_safe_scap_event(ts,
 	                                              tid,
@@ -7654,7 +7661,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT2_X_6_to_8_params) {
 	                                                                tid,
 	                                                                PPME_SYSCALL_OPENAT2_X,
 	                                                                &empty_params_set,
-	                                                                8,
+	                                                                9,
 	                                                                fd,
 	                                                                dirfd,
 	                                                                name,
@@ -7662,7 +7669,8 @@ TEST_F(convert_event_test, PPME_SYSCALL_OPENAT2_X_6_to_8_params) {
 	                                                                mode,
 	                                                                resolve,
 	                                                                dev,
-	                                                                ino));
+	                                                                ino,
+	                                                                dirfdpath));
 }
 
 ////////////////////////////

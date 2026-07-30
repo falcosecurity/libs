@@ -29,6 +29,7 @@ struct ppm_consumer_t {
 	int is_dropping;
 	int dropping_mode;
 	bool drop_failed;
+	bool do_full_path_resolution;
 	volatile int need_to_insert_drop_e;
 	volatile int need_to_insert_drop_x;
 	struct list_head node;

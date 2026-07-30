@@ -811,6 +811,16 @@ int32_t scap_kmod_handle_dynamic_snaplen(struct scap_engine_handle engine, bool 
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_kmod_handle_full_path_resolution(struct scap_engine_handle engine, bool enable) {
+	int req = enable ? PPM_IOCTL_ENABLE_FULLPATH : PPM_IOCTL_DISABLE_FULLPATH;
+	if(ioctl(HANDLE(engine)->m_dev_set.m_devs[0].m_fd, req)) {
+		return scap_errprintf(HANDLE(engine)->m_lasterr,
+		                      errno,
+		                      "scap_set_kern_full_path_resolution failed");
+	}
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_kmod_get_n_tracepoint_hit(struct scap_engine_handle engine, long *ret) {
 	if(ioctl(HANDLE(engine)->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret)) {
 		return scap_errprintf(HANDLE(engine)->m_lasterr, errno, "scap_get_n_tracepoint_hit failed");
@@ -900,6 +910,8 @@ static int32_t configure(struct scap_engine_handle engine,
 		return scap_kmod_handle_dropfailed(engine, arg1);
 	case SCAP_DYNAMIC_SNAPLEN:
 		return scap_kmod_handle_dynamic_snaplen(engine, arg1);
+	case SCAP_KERN_FULLPATH_RESOLUTION:
+		return scap_kmod_handle_full_path_resolution(engine, arg1);
 	case SCAP_FULLCAPTURE_PORT_RANGE:
 		return scap_kmod_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:

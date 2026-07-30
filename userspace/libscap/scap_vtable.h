@@ -81,6 +81,11 @@ enum scap_setting {
 	 * arg1: whether to enabled or disable the feature
 	 */
 	SCAP_DROP_FAILED,
+	/**
+	 * @brief enable/disable kernel-side fullpath resolution for openat/openat2
+	 * arg1: enabled?
+	 */
+	SCAP_KERN_FULLPATH_RESOLUTION,
 };
 
 struct scap_savefile_vtable {
