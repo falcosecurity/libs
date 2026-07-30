@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include <helpers/threads_helpers.h>
+#include <libsinsp/sinsp_observer.h>
 
 /* The debug log lines about parent links, from the last capture_parent_link_logs() on. The
  * fixture resets the logger at the end of each test.
@@ -1603,4 +1604,165 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_a_held_removed_thread_gives_no_table) {
 	ASSERT_NE(main_thread, nullptr);
 	EXPECT_NE(main_thread->get_fd_table(), held->get_fd_table());
 	EXPECT_EQ(main_thread->get_fdtable().find(3), nullptr);
+}
+
+namespace {
+/* Records the (tid, fd) pairs that sinsp reports as erased */
+class erased_fds_observer : public sinsp_observer {
+public:
+	std::vector<std::pair<int64_t, int64_t>> m_erased;
+
+	void on_erase_fd(erase_fd_params* params) override {
+		m_erased.emplace_back(params->m_tinfo->m_tid, params->m_fd);
+	}
+	void on_read(sinsp_evt*, int64_t, int64_t, const sinsp_fdinfo*, const char*, uint32_t, uint32_t)
+	        override {}
+	void on_write(sinsp_evt*,
+	              int64_t,
+	              int64_t,
+	              const sinsp_fdinfo*,
+	              const char*,
+	              uint32_t,
+	              uint32_t) override {}
+	void on_sendfile(sinsp_evt*, int64_t, uint32_t) override {}
+	void on_connect(sinsp_evt*, uint8_t*) override {}
+	void on_accept(sinsp_evt*, int64_t, uint8_t*, sinsp_fdinfo*) override {}
+	void on_file_open(sinsp_evt*, const std::string&, uint32_t) override {}
+	void on_error(sinsp_evt*) override {}
+	void on_socket_shutdown(sinsp_evt*) override {}
+	void on_execve(sinsp_evt*) override {}
+	void on_clone(sinsp_evt*, sinsp_threadinfo*, int64_t) override {}
+	void on_bind(sinsp_evt*) override {}
+	void on_socket_status_changed(sinsp_evt*) override {}
+};
+}  // namespace
+
+/* sinsp reports the fds of a table as erased when the last thread that holds the table leaves:
+ * a thread with a table of its own when it exits, and the table of the process when the process
+ * ends, whichever thread exits last.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_every_fd_table_is_reported_erased_once) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto add = [&](int64_t tid, int64_t pid, uint32_t flags, int64_t fd) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = pid;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "proc";
+		thread->m_flags = flags;
+		manager.add_thread(std::move(thread), true);
+		if(fd >= 0) {
+			auto added = manager.find_thread(tid, true);
+			ASSERT_NE(added, nullptr);
+			manager.add_thread_fd_from_scap(*added, scap_file(fd, "/tmp/file"), false);
+		}
+	};
+	constexpr uint32_t thread = PPM_CL_CLONE_THREAD;
+	constexpr uint32_t sharing_thread = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	// Process 100: a thread with a table of its own exits first.
+	add(100, 100, 0, 3);
+	add(101, 100, sharing_thread, -1);
+	add(102, 100, thread, 7);
+	// Process 200: the thread with a table of its own exits last.
+	add(200, 200, 0, 4);
+	add(201, 200, thread, 8);
+
+	erased_fds_observer observer;
+	m_inspector.set_observer(&observer);
+	using erased = std::vector<std::pair<int64_t, int64_t>>;
+
+	manager.remove_thread(102);
+	EXPECT_EQ(observer.m_erased, (erased{{102, 7}}));
+	manager.remove_thread(100);
+	EXPECT_EQ(observer.m_erased, (erased{{102, 7}}));
+	manager.remove_thread(101);
+	EXPECT_EQ(observer.m_erased, (erased{{102, 7}, {101, 3}}));
+
+	observer.m_erased.clear();
+	manager.remove_thread(200);
+	EXPECT_EQ(observer.m_erased, erased{});
+	manager.remove_thread(201);
+	EXPECT_EQ(observer.m_erased, (erased{{201, 8}, {200, 4}}));
+	m_inspector.set_observer(nullptr);
+}
+
+/* A removed thread can live on while someone holds it, but it no longer holds its fd table. Here
+ * the group lives on with a thread that has a table of its own, so the shared table is reported
+ * when its last thread in the thread table leaves.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_a_held_removed_thread_does_not_keep_its_table) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto add = [&](int64_t tid, uint32_t flags) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = 500;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "proc";
+		thread->m_flags = flags;
+		manager.add_thread(std::move(thread), true);
+	};
+	// No main thread 500.
+	add(501, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES);
+	add(502, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES);
+	add(503, PPM_CL_CLONE_THREAD);
+	auto first = manager.find_thread(501, true);
+	ASSERT_NE(first, nullptr);
+	manager.add_thread_fd_from_scap(*first, scap_file(3, "/tmp/file"), false);
+
+	erased_fds_observer observer;
+	m_inspector.set_observer(&observer);
+	using erased = std::vector<std::pair<int64_t, int64_t>>;
+
+	manager.remove_thread(501);
+	EXPECT_EQ(observer.m_erased, erased{});
+	// `first` still holds the removed thread.
+	manager.remove_thread(502);
+	EXPECT_EQ(observer.m_erased, (erased{{502, 3}}));
+	m_inspector.set_observer(nullptr);
+}
+
+/* Without automatic purging, every thread of a process can be dead before sinsp removes the
+ * first one. The table of the process is reported once, when the group dies.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_a_table_is_reported_once_after_its_threads_died) {
+	add_default_init_thread();
+	open_inspector();
+	auto& manager = *m_inspector.m_thread_manager;
+	const auto add = [&](int64_t tid, uint32_t flags) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = 400;
+		thread->set_ptid(INIT_TID);
+		thread->m_comm = "proc";
+		thread->m_flags = flags;
+		manager.add_thread(std::move(thread), true);
+	};
+	constexpr uint32_t sharing_thread = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	add(400, 0);
+	add(401, sharing_thread);
+	add(402, sharing_thread);
+	add(403, sharing_thread);
+	auto main_thread = manager.find_thread(400, true);
+	ASSERT_NE(main_thread, nullptr);
+	manager.add_thread_fd_from_scap(*main_thread, scap_file(9, "/tmp/file"), false);
+	for(const int64_t tid : {400, 401, 402, 403}) {
+		auto thread = manager.find_thread(tid, true);
+		ASSERT_NE(thread, nullptr);
+		thread->m_tginfo->decrement_thread_count();
+		thread->set_dead();
+	}
+
+	erased_fds_observer observer;
+	m_inspector.set_observer(&observer);
+	using erased = std::vector<std::pair<int64_t, int64_t>>;
+
+	for(const int64_t tid : {400, 401, 402, 403}) {
+		manager.remove_thread(tid);
+	}
+	EXPECT_EQ(observer.m_erased, (erased{{400, 9}}));
+	m_inspector.set_observer(nullptr);
 }

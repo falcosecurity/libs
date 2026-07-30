@@ -498,27 +498,22 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	return nullptr;
 }
 
-void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const {
+void sinsp_thread_manager::notify_process_fds_erased(sinsp_threadinfo& tinfo) const {
 	// All this logic is intended to just call the `m_observer->on_erase_fd` callback, so just
 	// returns if there is no observer.
 	if(m_observer == nullptr) {
 		return;
 	}
 
-	// Please note that the main thread is not always here, it is possible that for some reason we
-	// lose it!
-	if(main_thread == nullptr) {
-		return;
-	}
-
-	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table_mut();
+	// No other thread holds this table any more.
+	sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table_mut();
 	if(fd_table_ptr == nullptr) {
 		return;
 	}
 
 	erase_fd_params eparams;
 	eparams.m_remove_from_table = false;
-	eparams.m_tinfo = main_thread;
+	eparams.m_tinfo = &tinfo;
 
 	// Iterate read-only: on_erase_fd only reads the entry unless it has a live
 	// transaction to finalize, in which case it re-fetches a writable
@@ -548,6 +543,43 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 		eparams.m_fd = fd;
 		eparams.m_fdinfo = fdinfo;
 		m_observer->on_erase_fd(&eparams);
+	}
+}
+
+/* Whether a thread of the group of `tinfo`, other than `tinfo`, holds its fd table. Only the
+ * threads in the thread table count: a removed thread can live on while someone holds it.
+ */
+bool sinsp_thread_manager::fd_table_held_by_another_thread(const sinsp_threadinfo& tinfo) {
+	for(const auto& thread : tinfo.m_tginfo->get_thread_list()) {
+		auto owner = thread.borrow();
+		if(owner == nullptr || owner == &tinfo || owner->m_tginfo != tinfo.m_tginfo ||
+		   m_threadtable.get_ref(owner->m_tid).get() != owner) {
+			continue;
+		}
+		if(owner->get_fd_table() == tinfo.get_fd_table()) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* A group dies with `last_thread`. Report each distinct fd table of its threads once: the tables
+ * of the last thread and of the threads still in the thread table, that is the main thread and
+ * the dead threads that wait for their removal. Burial empties the thread list, so a later
+ * removal from the dead group cannot tell which tables remain.
+ */
+void sinsp_thread_manager::notify_group_fds_erased(sinsp_threadinfo& last_thread) {
+	std::unordered_set<const sinsp_fdtable*> seen{last_thread.get_fd_table()};
+	notify_process_fds_erased(last_thread);
+	for(const auto& thread : last_thread.m_tginfo->get_thread_list()) {
+		auto owner = thread.borrow();
+		if(owner == nullptr || owner == &last_thread || owner->m_tginfo != last_thread.m_tginfo ||
+		   m_threadtable.get_ref(owner->m_tid).get() != owner) {
+			continue;
+		}
+		if(seen.insert(owner->get_fd_table()).second) {
+			notify_process_fds_erased(*owner);
+		}
 	}
 }
 
@@ -596,9 +628,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * without automatic purging. The pid may belong to a new process by now, so the removal of
 	 * the thread removes only the thread itself.
 	 */
-	if(thread_to_remove->m_tginfo->get_thread_count() == 0 &&
-	   !thread_to_remove->m_tginfo->is_dead()) {
-		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
+	const bool group_dies = thread_to_remove->m_tginfo->get_thread_count() == 0 &&
+	                        !thread_to_remove->m_tginfo->is_dead();
+	if(group_dies) {
+		notify_group_fds_erased(*thread_to_remove);
 
 		/* The group stays as a tombstone while children link to it */
 		bury_thread_group(*thread_to_remove);
@@ -612,6 +645,13 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * in the previous `if`.
 	 */
 	if(!thread_to_remove->is_main_thread()) {
+		/* A thread with a table of its own takes the table with it. A group that died reported
+		 * its tables.
+		 */
+		if(!thread_to_remove->m_tginfo->is_dead() &&
+		   !fd_table_held_by_another_thread(*thread_to_remove)) {
+			notify_process_fds_erased(*thread_to_remove);
+		}
 		m_threadtable.erase(tid);
 	}
 

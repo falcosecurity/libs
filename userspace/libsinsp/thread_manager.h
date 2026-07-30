@@ -324,7 +324,14 @@ private:
 
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
-	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const;
+	// Reports the fds of the table of `tinfo` to the observer as erased, when
+	// the last thread that holds the table leaves. The table is not modified.
+	void notify_process_fds_erased(sinsp_threadinfo& tinfo) const;
+	// Whether another thread of the group, in the thread table, holds the fd
+	// table of `tinfo`.
+	bool fd_table_held_by_another_thread(const sinsp_threadinfo& tinfo);
+	// Reports each distinct fd table of a group that dies with `last_thread`.
+	void notify_group_fds_erased(sinsp_threadinfo& last_thread);
 
 	// The following fields are externally provided and access to them is expected to be read-only.
 	const sinsp_threadinfo_factory& m_threadinfo_factory;
