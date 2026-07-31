@@ -211,6 +211,11 @@ void sinsp_fdtable::reset_cache() const {
 // idempotent, derived fill (same mount id resolves to the same device no
 // matter which table triggers it), so performing it on an entry shared with
 // other fd tables is safe and does not require copy-on-write.
+//
+// That holds only for an answer. A failed lookup must leave the mount id in
+// place, or it would take the entry's last chance to ever resolve with it --
+// and on a shared entry it would take it away from every other table too,
+// including tables whose own tid can still be read.
 void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 #ifndef _WIN32
 	if(m_params->m_sinsp_mode.is_offline() ||
@@ -221,7 +226,9 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo& fdi) const {
 	if(m_tid != 0 && m_tid != static_cast<uint64_t>(-1) && fdi.is_file() && fdi.m_dev == 0 &&
 	   fdi.m_mount_id != 0) {
 		fdi.m_dev = scap_get_device_by_mount_id(m_params->m_scap_platform, m_tid, fdi.m_mount_id);
-		fdi.m_mount_id = 0;  // don't try again
+		if(fdi.m_dev != 0) {
+			fdi.m_mount_id = 0;  // resolved, don't ask again
+		}
 	}
 #endif  // _WIN32
 }
