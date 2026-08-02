@@ -80,7 +80,6 @@ else()
 			)
 			set(ZLIB_LIB "${ZLIB_SRC}/lib/libz${ZLIB_LIB_SUFFIX}")
 			set(_zlib_install_script "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib-install.cmake")
-			file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/zlib-prefix/src")
 			file(
 				WRITE "${_zlib_install_script}"
 				[=[
@@ -112,6 +111,7 @@ file(
 				zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
 				SOURCE_DIR "${_zlib_source_dir}"
+				BINARY_DIR "${_zlib_build_dir}"
 				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
 				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -120,7 +120,6 @@ file(
 						   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}"
 						   -DZLIB_BUILD_EXAMPLES=OFF
 						   -DCMAKE_INSTALL_PREFIX=${ZLIB_SRC}
-						   -DCMAKE_INSTALL_LIBDIR=lib
 				CMAKE_CACHE_ARGS ${_zlib_external_project_cache_args}
 				# Build only the target we need so the unused library type is never compiled.
 				BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> ${_zlib_build_config_args}
@@ -169,7 +168,6 @@ file(
 						   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}"
 						   -DZLIB_BUILD_EXAMPLES=OFF
 						   -DCMAKE_INSTALL_PREFIX=${ZLIB_SRC}
-						   -DCMAKE_INSTALL_LIBDIR=lib
 				CMAKE_CACHE_ARGS ${_zlib_external_project_cache_args}
 			)
 			install(
