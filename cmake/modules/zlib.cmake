@@ -93,7 +93,6 @@ if(NOT EXISTS "${_zlib_build_dir}/zconf.h")
 	message(FATAL_ERROR "Generated zconf.h not found: ${_zlib_build_dir}/zconf.h")
 endif()
 
-file(MAKE_DIRECTORY "${_zlib_lib_dir}" "${ZLIB_INCLUDE}")
 file(
 	INSTALL DESTINATION "${_zlib_lib_dir}"
 	TYPE "${_zlib_library_install_type}"
