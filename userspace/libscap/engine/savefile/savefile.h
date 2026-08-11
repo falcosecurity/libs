@@ -20,6 +20,7 @@ limitations under the License.
 #include <stdint.h>
 #include <libscap/scap_limits.h>
 #include <libscap/engine/savefile/scap_reader.h>
+#include <libscap/engine_handle.h>
 #include <libscap/scap_savefile.h>
 #include <libscap/strerror.h>
 
@@ -147,3 +148,13 @@ int32_t scap_savefile_next_event_from_file(struct savefile_engine *handle,
                                            scap_evt **pevent,
                                            uint16_t *pdevid,
                                            uint32_t *pflags);
+
+/**
+ * Read the next event and apply any needed scap event conversions. This is the
+ * savefile engine's vtable next() and is shared with the raw_block engine, which
+ * reuses the same block parsing and conversion logic.
+ */
+int32_t scap_savefile_next(struct scap_engine_handle engine,
+                           scap_evt **pevent,
+                           uint16_t *pdevid,
+                           uint32_t *pflags);

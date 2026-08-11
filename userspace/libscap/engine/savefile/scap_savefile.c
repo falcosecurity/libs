@@ -2130,10 +2130,10 @@ int32_t scap_savefile_next_event_from_file(struct savefile_engine *handle,
 //
 // Read an event from disk
 //
-static int32_t next(struct scap_engine_handle engine,
-                    scap_evt **pevent,
-                    uint16_t *pdevid,
-                    uint32_t *pflags) {
+int32_t scap_savefile_next(struct scap_engine_handle engine,
+                           scap_evt **pevent,
+                           uint16_t *pdevid,
+                           uint32_t *pflags) {
 	struct savefile_engine *handle = engine.m_handle;
 	int32_t res = scap_savefile_next_event_from_file(handle, pevent, pdevid, pflags);
 	// If we fail we don't convert the event.
@@ -2503,7 +2503,7 @@ struct scap_vtable scap_savefile_engine = {
         .init = init,
         .free_handle = free_handle,
         .close = scap_savefile_close,
-        .next = next,
+        .next = scap_savefile_next,
         .start_capture = noop_start_capture,
         .stop_capture = noop_stop_capture,
         .configure = noop_configure,
