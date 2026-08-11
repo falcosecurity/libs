@@ -34,7 +34,7 @@ Two modes of processing are supported:
   block, any metadata blocks, and zero or more event blocks. The buffer
   contents are processed by calling \ref sinsp::next until it returns
   \ref SCAP_EOF, which signals that the current buffer has been
-  consumed. Additional blocks can besupplied in one of two ways:
+  consumed. Additional blocks can be supplied in one of two ways:
   - Append: extend the buffer in place with the next blocks and grow
     *buffer_size_ptr. The reader continues from where it left off, so no
     reset is needed. (buffer_ptr is a double pointer so the buffer may
@@ -43,6 +43,9 @@ Two modes of processing are supported:
     rewind the reader to the start of the new contents by calling
     sinsp::fseek(0). This lets the buffer be reused rather than grown.
 
+Currently only host-endian buffers are supported. The engine does not
+support little-endian formatted buffers on big-endian hosts or vice versa.
+This capability may be added in the future.
 */
 
 #pragma once
