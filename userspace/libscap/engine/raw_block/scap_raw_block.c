@@ -21,7 +21,6 @@ limitations under the License.
 #include <string.h>
 
 #define HANDLE(engine) ((raw_block_engine *)(engine.m_handle))
-#define MAX_EVENT_SIZE 64 * 1024
 
 #include <libscap/engine/raw_block/raw_block.h>
 #include <libscap/engine/raw_block/raw_block_public.h>
@@ -193,127 +192,6 @@ static int32_t scap_raw_block_close(struct scap_engine_handle engine) {
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine,
-                    scap_evt **pevent,
-                    uint16_t *pdevid,
-                    uint32_t *pflags) {
-	raw_block_engine *handle = engine.m_handle;
-	int32_t res = scap_savefile_next_event_from_file(handle, pevent, pdevid, pflags);
-	if(res != SCAP_SUCCESS) {
-		return res;
-	}
-
-	conversion_result conv_res = test_event_convertibility(*pevent, handle->m_lasterr);
-	switch(conv_res) {
-	case CONVERSION_PASS:
-		return SCAP_SUCCESS;
-	case CONVERSION_DROP:
-		return SCAP_FILTERED_EVENT;
-	case CONVERSION_ERROR:
-		return SCAP_FAILURE;
-	case CONVERSION_CONTINUE:
-		break;
-	default:
-		scap_errprintf(handle->m_lasterr,
-		               0,
-		               "Bug. Unexpected conversion result '%d' while checking for event (type: %d, "
-		               "nparams: %d) convertibility.",
-		               conv_res,
-		               (*pevent)->type,
-		               (*pevent)->nparams);
-		return SCAP_FAILURE;
-	}
-
-	if(!handle->m_new_evt) {
-		handle->m_new_evt = calloc(1, MAX_EVENT_SIZE);
-	}
-	if(!handle->m_to_convert_evt) {
-		handle->m_to_convert_evt = calloc(1, MAX_EVENT_SIZE);
-	}
-
-	int conv_num = 0;
-	conv_res = CONVERSION_CONTINUE;
-	for(conv_num = 0; conv_num < MAX_CONVERSION_BOUNDARY && conv_res == CONVERSION_CONTINUE;
-	    conv_num++) {
-		// The conversion staging buffers (m_to_convert_evt / m_new_evt) are MAX_EVENT_SIZE
-		// bytes. Refuse to convert any event whose len would overflow them.
-		if((*pevent)->len > MAX_EVENT_SIZE) {
-			return scap_errprintf(handle->m_lasterr,
-			                      0,
-			                      "invalid event: len %u is larger than the maximum event size %u",
-			                      (*pevent)->len,
-			                      MAX_EVENT_SIZE);
-		}
-		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
-		conv_res = scap_convert_event(handle->m_converter_buf,
-		                              (scap_evt *)handle->m_new_evt,
-		                              (scap_evt *)handle->m_to_convert_evt,
-		                              MAX_EVENT_SIZE,
-		                              handle->m_lasterr);
-		*pevent = (scap_evt *)handle->m_new_evt;
-	}
-
-	if(conv_res == CONVERSION_ERROR) {
-		return SCAP_FAILURE;
-	}
-
-	if(conv_num == MAX_CONVERSION_BOUNDARY) {
-		switch(conv_res) {
-		case CONVERSION_PASS:
-		case CONVERSION_DROP:
-			return scap_errprintf(
-			        handle->m_lasterr,
-			        0,
-			        "Reached max conversions '%d' with result '%d' for event "
-			        "(type: %d, nparams: %d). Bump the conversions max limit in the code.",
-			        MAX_CONVERSION_BOUNDARY,
-			        conv_res,
-			        (*pevent)->type,
-			        (*pevent)->nparams);
-		case CONVERSION_CONTINUE:
-			return scap_errprintf(handle->m_lasterr,
-			                      0,
-			                      "Reached '%d' conversions with event (type: %d, nparams: %d) "
-			                      "without reaching an end.",
-			                      MAX_CONVERSION_BOUNDARY,
-			                      (*pevent)->type,
-			                      (*pevent)->nparams);
-		default:
-			return scap_errprintf(handle->m_lasterr,
-			                      0,
-			                      "Reached '%d' conversions with event (type: %d, nparams: %d) "
-			                      "with unknown conversion result '%d'.",
-			                      MAX_CONVERSION_BOUNDARY,
-			                      (*pevent)->type,
-			                      (*pevent)->nparams,
-			                      conv_res);
-		}
-	}
-
-	switch(conv_res) {
-	case CONVERSION_PASS:
-		return SCAP_SUCCESS;
-	case CONVERSION_DROP:
-		return SCAP_FILTERED_EVENT;
-	case CONVERSION_CONTINUE:
-		return scap_errprintf(handle->m_lasterr,
-		                      0,
-		                      "Bug. Conversion ended with unexpected conversion result '%d' and "
-		                      "resulting event (type: %d, nparams: %d).",
-		                      conv_res,
-		                      (*pevent)->type,
-		                      (*pevent)->nparams);
-	default:
-		return scap_errprintf(
-		        handle->m_lasterr,
-		        0,
-		        "Bug. Unknown conversion result '%d' for resulting event (type: %d, nparams: %d).",
-		        conv_res,
-		        (*pevent)->type,
-		        (*pevent)->nparams);
-	}
-}
-
 static uint64_t scap_raw_block_ftell(struct scap_engine_handle engine) {
 	scap_reader_t *reader = HANDLE(engine)->m_reader;
 	return reader->tell(reader);
@@ -369,7 +247,7 @@ const struct scap_vtable scap_raw_block_engine = {
         .init = init,
         .free_handle = free_handle,
         .close = scap_raw_block_close,
-        .next = next,
+        .next = scap_savefile_next,
         .start_capture = noop_start_capture,
         .stop_capture = noop_stop_capture,
         .configure = noop_configure,
