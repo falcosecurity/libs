@@ -456,6 +456,7 @@ void sinsp::try_open_common(scap_open_args* oargs,
 			scap_close(m_h);
 			m_h = nullptr;
 		}
+		m_mode = SINSP_MODE_NONE;
 		throw;
 	}
 }
