@@ -73,11 +73,18 @@ static string filter_string = "";
 static string file_path = "";
 // Backing storage for the raw_block engine. These must outlive the capture, so
 // the buffer pointer and size are kept here and handed to open_raw_block(). The whole
-// (decompressed) scap file lives in raw_block_buffer; we feed the engine incrementally
-// by growing raw_block_buffer_size to reveal more of it.
+// (decompressed) scap file lives in raw_block_buffer; the (ptr, size) descriptor is a
+// reusable window that we repoint at one block at a time (see raw_block_feed_next_block).
 static std::vector<uint8_t> raw_block_buffer;
 static uint8_t* raw_block_buffer_ptr = nullptr;
 static uint64_t raw_block_buffer_size = 0;
+// By default the raw_block engine is fed one block at a time in "replace" mode: each time
+// next() returns SCAP_EOF we point the window at the next block and rewind the reader with
+// fseek(0), reusing the buffer rather than growing it. This exercises the ability to keep
+// feeding the inspector after an EOF. raw_block_next_offset is the offset of the next block.
+// When raw_block_whole_file is true, the entire capture is exposed at once instead.
+static bool raw_block_whole_file = false;
+static uint64_t raw_block_next_offset = 0;
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 static bool all_cpus = false;
@@ -355,9 +362,12 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			"Scap file",
 			cxxopts::value<std::string>())
 		("R,raw_block",
-			"Raw block engine. Reads a scap file fully into memory and replays its "
-			"blocks through the raw_block engine.",
-			cxxopts::value<std::string>())
+			"Raw block engine. Reads the scap file specified by the \"-s\" option "
+			"fully into memory and replays its blocks through the raw_block engine.")
+		("raw_block_whole_file",
+			"(raw_block engine only) Expose the whole capture to the engine at once "
+			"instead of the default of feeding one block at a time and rewinding the "
+			"reader after each SCAP_EOF.")
 		("p,plugin",
 			"Plugin. Path can follow the pattern \"filepath.so|init_cfg|open_params\". "
 			"Must come after the \"-s\" option when reading events from a file.",
@@ -445,13 +455,16 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 		}
 
 		if(result.count("scap_file")) {
-			select_engine(SAVEFILE_ENGINE);
 			file_path = result["scap_file"].as<std::string>();
+			// -R reads the same scap file through the raw_block engine instead of savefile.
+			select_engine(result.count("raw_block") ? RAW_BLOCK_ENGINE : SAVEFILE_ENGINE);
+		} else if(result.count("raw_block")) {
+			std::cerr << "The --raw_block option requires a scap file (-s)." << std::endl;
+			exit(EXIT_FAILURE);
 		}
 
-		if(result.count("raw_block")) {
-			select_engine(RAW_BLOCK_ENGINE);
-			file_path = result["raw_block"].as<std::string>();
+		if(result.count("raw_block_whole_file")) {
+			raw_block_whole_file = true;
 		}
 
 		if(result.count("plugin")) {
@@ -660,6 +673,30 @@ static size_t find_first_event_block_offset(const std::vector<uint8_t>& data) {
 	return data.size();
 }
 
+// Feed the next pcapng block to the raw_block engine in "replace" mode: repoint the buffer
+// window at the next block and rewind the reader to offset 0 with fseek(0), reusing the
+// (ptr, size) descriptor rather than growing it. The whole file already lives in
+// raw_block_buffer; from the engine's point of view each call replaces the buffer contents
+// with a fresh single-block sequence. Returns false once the whole file has been fed.
+static bool raw_block_feed_next_block(sinsp& inspector) {
+	if(raw_block_next_offset + sizeof(block_header) > raw_block_buffer.size()) {
+		return false;
+	}
+	block_header bh;
+	memcpy(&bh, raw_block_buffer.data() + raw_block_next_offset, sizeof(bh));
+	uint64_t block_len = bh.block_total_length;
+	if(raw_block_next_offset + block_len > raw_block_buffer.size()) {
+		// Truncated trailing block; feed whatever is left and let the engine report it.
+		block_len = raw_block_buffer.size() - raw_block_next_offset;
+	}
+	raw_block_buffer_ptr = raw_block_buffer.data() + raw_block_next_offset;
+	raw_block_buffer_size = block_len;
+	raw_block_next_offset += block_len;
+	// Rewind the reader so it reads the replaced contents from the beginning.
+	inspector.fseek(0);
+	return true;
+}
+
 void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_codes) {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
 	libsinsp::events::set<ppm_sc_code>
@@ -731,20 +768,24 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 			          << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		// Demonstrate incremental feeding: open the engine with only the section header +
-		// metadata blocks visible, then reveal the event blocks by growing the buffer size.
-		// The reader's offset is left where init stopped, so it continues into the events
-		// with no rewind.
 		load_raw_block_file(file_path);
-		const size_t events_offset = find_first_event_block_offset(raw_block_buffer);
-
-		// Phase 1: only the section header + metadata blocks are visible.
 		raw_block_buffer_ptr = raw_block_buffer.data();
-		raw_block_buffer_size = static_cast<uint64_t>(events_offset);
-		inspector.open_raw_block(&raw_block_buffer_ptr, &raw_block_buffer_size);
 
-		// Phase 2: reveal the event blocks by extending the visible size.
-		raw_block_buffer_size = static_cast<uint64_t>(raw_block_buffer.size());
+		if(raw_block_whole_file) {
+			// Whole-file mode: the entire capture is visible at once, like the savefile engine.
+			raw_block_buffer_size = static_cast<uint64_t>(raw_block_buffer.size());
+			inspector.open_raw_block(&raw_block_buffer_ptr, &raw_block_buffer_size);
+		} else {
+			// Incremental "replace" mode (default): open the engine with only the section
+			// header + metadata blocks in the buffer. The event blocks are then fed one at a
+			// time from the capture loop, which keeps feeding the inspector after each SCAP_EOF
+			// by repointing the window and calling fseek(0) (see raw_block_feed_next_block).
+			const size_t events_offset = find_first_event_block_offset(raw_block_buffer);
+			raw_block_buffer_size = static_cast<uint64_t>(events_offset);
+			inspector.open_raw_block(&raw_block_buffer_ptr, &raw_block_buffer_size);
+			// Subsequent buffers hold one event block each, starting right after the metadata.
+			raw_block_next_offset = static_cast<uint64_t>(events_offset);
+		}
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
@@ -1070,6 +1111,13 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 		return ev;
 	}
 	if(res == SCAP_EOF) {
+		// In raw_block incremental mode (the default), SCAP_EOF means the current buffer has
+		// been consumed. Replace it with the next block and keep going; only stop once the
+		// whole file has been fed. This verifies we can keep feeding events after a SCAP_EOF.
+		if(!raw_block_whole_file && inspector.check_current_engine(RAW_BLOCK_ENGINE) &&
+		   raw_block_feed_next_block(inspector)) {
+			return nullptr;
+		}
 		std::cout << "-- EOF" << std::endl;
 		g_interrupted = true;
 		return nullptr;
