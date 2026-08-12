@@ -673,25 +673,46 @@ static size_t find_first_event_block_offset(const std::vector<uint8_t>& data) {
 	return data.size();
 }
 
-// Feed the next pcapng block to the raw_block engine in "replace" mode: repoint the buffer
-// window at the next block and rewind the reader to offset 0 with fseek(0), reusing the
-// (ptr, size) descriptor rather than growing it. The whole file already lives in
+// Feed the next chunk of blocks to the raw_block engine in "replace" mode: repoint the
+// buffer window at the next chunk and rewind the reader to offset 0 with fseek(0), reusing
+// the (ptr, size) descriptor rather than growing it. The whole file already lives in
 // raw_block_buffer; from the engine's point of view each call replaces the buffer contents
-// with a fresh single-block sequence. Returns false once the whole file has been fed.
+// with a fresh block sequence.
+//
+// Event blocks are fed one at a time (to exercise feeding after each SCAP_EOF). A run of
+// non-event blocks is fed as a single chunk: in a concatenated scap file the next capture's
+// section header + metadata blocks must reach the engine's read_init together, since it
+// parses the section header and all following metadata in one pass. Returns false once the
+// whole file has been fed.
 static bool raw_block_feed_next_block(sinsp& inspector) {
-	if(raw_block_next_offset + sizeof(block_header) > raw_block_buffer.size()) {
+	const size_t start = raw_block_next_offset;
+	if(start + sizeof(block_header) > raw_block_buffer.size()) {
 		return false;
 	}
+
 	block_header bh;
-	memcpy(&bh, raw_block_buffer.data() + raw_block_next_offset, sizeof(bh));
-	uint64_t block_len = bh.block_total_length;
-	if(raw_block_next_offset + block_len > raw_block_buffer.size()) {
-		// Truncated trailing block; feed whatever is left and let the engine report it.
-		block_len = raw_block_buffer.size() - raw_block_next_offset;
+	memcpy(&bh, raw_block_buffer.data() + start, sizeof(bh));
+	size_t offset = start;
+	if(is_event_block_type(bh.block_type)) {
+		offset += bh.block_total_length;
+	} else {
+		// Feed the whole run of header/metadata blocks up to the next event block.
+		while(offset + sizeof(block_header) <= raw_block_buffer.size()) {
+			memcpy(&bh, raw_block_buffer.data() + offset, sizeof(bh));
+			if(is_event_block_type(bh.block_type)) {
+				break;
+			}
+			offset += bh.block_total_length;
+		}
 	}
-	raw_block_buffer_ptr = raw_block_buffer.data() + raw_block_next_offset;
-	raw_block_buffer_size = block_len;
-	raw_block_next_offset += block_len;
+	if(offset > raw_block_buffer.size()) {
+		// Truncated trailing block; feed whatever is left and let the engine report it.
+		offset = raw_block_buffer.size();
+	}
+
+	raw_block_buffer_ptr = raw_block_buffer.data() + start;
+	raw_block_buffer_size = static_cast<uint64_t>(offset - start);
+	raw_block_next_offset = offset;
 	// Rewind the reader so it reads the replaced contents from the beginning.
 	inspector.fseek(0);
 	return true;

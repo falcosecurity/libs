@@ -209,10 +209,11 @@ static int32_t scap_raw_block_restart_capture(scap_t *handle) {
 
 	scap_platform_close(platform);
 
-	// Seek the reader back to the beginning
-	engine->m_reader->seek(engine->m_reader, 0, SEEK_SET);
-	engine->m_use_last_block_header = false;
-
+	// A restart is triggered when scap_savefile_next_event_from_file() hits an unexpected
+	// block: the section header of the next capture in a concatenated scap file. That block
+	// header has been cached (m_use_last_block_header), so we continue parsing the new
+	// section's header + metadata blocks from where we left off. Unlike the savefile engine
+	// we must not rewind the reader, and we don't require the new section to contain events.
 	if((res = scap_savefile_read_init(engine,
 	                                  engine->m_reader,
 	                                  &platform->m_machine_info,
