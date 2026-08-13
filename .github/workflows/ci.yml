@@ -76,19 +76,21 @@ jobs:
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google.txt
           libsinsp/examples/sinsp-example -s ../test/libsinsp_e2e/resources/captures/curl_google_comments.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_comments.txt
           diff -u /tmp/curl_google.txt /tmp/curl_google_comments.txt
-          # raw_block engine
-          libsinsp/examples/sinsp-example --raw_block -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_raw_block.txt
-          diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google.txt /tmp/curl_google_raw_block.txt
-          libsinsp/examples/sinsp-example --raw_block --raw_block_whole_file -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_raw_block_whole_file.txt
-          diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google.txt /tmp/curl_google_raw_block_whole_file.txt
-          # raw_block engine, concatenated files
+          # raw_block engine: every feed mode must reproduce the savefile output.
+          for mode in whole_file incremental_replace incremental_append; do
+            libsinsp/examples/sinsp-example --raw_block --raw_block_mode $mode -s ../test/libsinsp_e2e/resources/captures/curl_google.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_raw_block_$mode.txt
+            diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google.txt /tmp/curl_google_raw_block_$mode.txt
+          done
+          # raw_block engine, concatenated files: the engine must walk into the next capture's
+          # section header + metadata blocks. The bundled captures are gzip-compressed and our
+          # reader only inflates the first gzip member, so concatenate uncompressed copies.
           gunzip --stdout ../test/libsinsp_e2e/resources/captures/curl_google.scap > /tmp/curl_google_concat.scap
           gunzip --stdout ../test/libsinsp_e2e/resources/captures/test_ipv6_client.scap >> /tmp/curl_google_concat.scap
           libsinsp/examples/sinsp-example -s /tmp/curl_google_concat.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_concat.txt
-          libsinsp/examples/sinsp-example --raw_block -s /tmp/curl_google_concat.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_concat_raw_block.txt
-          diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google_concat.txt /tmp/curl_google_concat_raw_block.txt
-          libsinsp/examples/sinsp-example --raw_block --raw_block_whole_file -s /tmp/curl_google_concat.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_concat_raw_block_whole_file.txt
-          diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google_concat.txt /tmp/curl_google_concat_raw_block_whole_file.txt
+          for mode in whole_file incremental_replace incremental_append; do
+            libsinsp/examples/sinsp-example --raw_block --raw_block_mode $mode -s /tmp/curl_google_concat.scap | grep --extended-regexp --invert-match '^(Time spent|Events/ms): ' > /tmp/curl_google_concat_raw_block_$mode.txt
+            diff -u -I "'savefile'" -I "'raw_block'" /tmp/curl_google_concat.txt /tmp/curl_google_concat_raw_block_$mode.txt
+          done
 
       # On zig, check the glibc versions linked to unit-test-libsinsp to make sure we are actually using the correct
       # glibc version.
