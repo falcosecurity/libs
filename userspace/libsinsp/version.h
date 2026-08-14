@@ -23,6 +23,16 @@ limitations under the License.
 #include <inttypes.h>
 
 #include <driver/ppm_api_version.h>
+#include <libsinsp/sinsp_config.h>
+
+/*!
+    \brief Evaluates to true if the libsinsp version is at least major.minor.patch
+*/
+#define SINSP_CHECK_VERSION(major, minor, patch) \
+	(SINSP_VERSION_MAJOR > (major) ||            \
+	 (SINSP_VERSION_MAJOR == (major) &&          \
+	  (SINSP_VERSION_MINOR > (minor) ||          \
+	   (SINSP_VERSION_MINOR == (minor) && SINSP_VERSION_PATCH >= (patch)))))
 
 /*!
     \brief Represents a version number
