@@ -70,6 +70,32 @@ TEST(versions, operator_lt) {
 	EXPECT_TRUE(sinsp_version("1.2.3") <= sinsp_version("1.2.3"));
 }
 
+// SINSP_CHECK_VERSION() must be a constant expression, usable by the preprocessor.
+#if !SINSP_CHECK_VERSION(0, 0, 0)
+#error "SINSP_CHECK_VERSION(0, 0, 0) must hold for any libsinsp version"
+#endif
+
+static_assert(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, SINSP_VERSION_MINOR, SINSP_VERSION_PATCH),
+              "libsinsp must satisfy a check against its own version");
+
+TEST(versions, check_version) {
+	// The current version satisfies a check against itself and against anything older.
+	EXPECT_TRUE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, SINSP_VERSION_MINOR, SINSP_VERSION_PATCH));
+	EXPECT_TRUE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, SINSP_VERSION_MINOR, 0));
+	EXPECT_TRUE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, 0, 0));
+	EXPECT_TRUE(SINSP_CHECK_VERSION(0, 0, 0));
+
+	// Bumping any component past the current one must not.
+	EXPECT_FALSE(
+	        SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, SINSP_VERSION_MINOR, SINSP_VERSION_PATCH + 1));
+	EXPECT_FALSE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, SINSP_VERSION_MINOR + 1, 0));
+	EXPECT_FALSE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR + 1, 0, 0));
+
+	// A newer minor outweighs an older patch, and a newer major an older minor.
+	EXPECT_FALSE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR, SINSP_VERSION_MINOR + 1, 0));
+	EXPECT_TRUE(SINSP_CHECK_VERSION(SINSP_VERSION_MAJOR - 1, SINSP_VERSION_MINOR + 1, 0));
+}
+
 TEST(versions, compatible_with) {
 	sinsp_version a("1.2.3");
 	EXPECT_FALSE(a.compatible_with(sinsp_version("0.2.3")));

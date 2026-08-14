@@ -77,6 +77,11 @@ if(NOT HAVE_LIBSINSP)
 		PATTERN "*test*" EXCLUDE
 	)
 	install(
+		FILES ${CMAKE_BINARY_DIR}/libsinsp/libsinsp/sinsp_config.h
+		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp"
+		COMPONENT "sinsp"
+	)
+	install(
 		DIRECTORY "${LIBS_DIR}/userspace/async"
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
 		COMPONENT "sinsp"
