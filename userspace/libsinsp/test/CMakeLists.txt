@@ -126,6 +126,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	plugins.ut.cpp
 	plugin_manager.ut.cpp
 	prefix_search.ut.cpp
+	raw_block.ut.cpp
 	string_visitor.ut.cpp
 	filtercheck_has_args.ut.cpp
 	filter_fields_info.ut.cpp
