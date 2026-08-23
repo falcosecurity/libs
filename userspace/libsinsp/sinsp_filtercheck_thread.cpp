@@ -982,7 +982,9 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt* evt) {
 		// Initialize the vector of CPU times
 		//
 		const scap_machine_info* minfo = m_inspector->get_machine_info();
+#ifdef __linux__
 		ASSERT(minfo->num_cpus != 0);
+#endif
 
 		if(minfo == NULL || minfo->num_cpus == 0) {
 			return res;
