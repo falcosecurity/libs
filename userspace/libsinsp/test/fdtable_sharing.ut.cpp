@@ -20,6 +20,8 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
+#include <thread>
+
 // Tests for fd-table contents sharing: the clone parser shares the parent's
 // table with the child, and the first modification through either table
 // detaches a private copy (copy-on-write).
@@ -141,6 +143,30 @@ TEST_F(fdtable_sharing, fresh_tables_reference_the_shared_empty_contents) {
 	// No per-table map.
 	ASSERT_EQ(a->get_fdtable().contents_id(), b->get_fdtable().contents_id());
 	ASSERT_TRUE(a->get_fdtable().is_shared());
+}
+
+// Sharing an empty table gives this thread's empty map, not the source's.
+TEST_F(fdtable_sharing, sharing_an_empty_table_takes_this_threads_empty_contents) {
+	sinsp inspector;
+	const auto& factory = inspector.get_threadinfo_factory();
+
+	// A parent built on another thread, like the tables of the /proc scan.
+	std::shared_ptr<sinsp_threadinfo> parent;
+	std::thread builder([&factory, &parent]() { parent = factory.create_shared(); });
+	builder.join();
+	ASSERT_EQ(parent->get_fdtable().size(), 0);
+
+	const auto child = factory.create_shared();
+	child->get_fdtable().share_from(parent->get_fdtable());
+
+	ASSERT_EQ(child->get_fdtable().size(), 0);
+	// Not the empty map of the parent,
+	ASSERT_NE(child->get_fdtable().contents_id(), parent->get_fdtable().contents_id());
+	// but the one that every new table on this thread gets.
+	const auto sibling = factory.create_shared();
+	ASSERT_EQ(child->get_fdtable().contents_id(), sibling->get_fdtable().contents_id());
+	// The first write still detaches.
+	ASSERT_TRUE(child->get_fdtable().is_shared());
 }
 
 TEST_F(fdtable_sharing, fork_shares_the_parent_table) {

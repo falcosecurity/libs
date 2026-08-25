@@ -28,7 +28,9 @@ limitations under the License.
 static const auto s_fdtable_static_fields = sinsp_fdinfo::get_static_fields();
 
 const std::shared_ptr<sinsp_fdtable::table_t>& sinsp_fdtable::empty_contents() {
-	static const std::shared_ptr<table_t> s_empty = std::make_shared<table_t>();
+	// Per thread, so that consumers do not share one reference count. The static
+	// holds a reference too, so the first write to a fresh table detaches.
+	static thread_local const std::shared_ptr<table_t> s_empty = std::make_shared<table_t>();
 	return s_empty;
 }
 
@@ -75,13 +77,20 @@ const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) const {
 }
 
 void sinsp_fdtable::share_from(const sinsp_fdtable& other) {
+	if(other.m_table->empty()) {
+		// Nothing to share. Take this thread's empty map, not the source's, which can
+		// belong to another thread (the /proc scan).
+		m_table = empty_contents();
+		m_entries_maybe_shared = false;
+		other.m_entries_maybe_shared = false;
+		reset_cache();
+		return;
+	}
 	m_table = other.m_table;
 	// From now on both tables' entries may be referenced across tables, so
-	// writable access must copy entries (see slot_mut()). An empty map
-	// has no entries to share, which keeps the flag off for tables still
-	// referencing the shared empty contents.
-	m_entries_maybe_shared = !m_table->empty();
-	other.m_entries_maybe_shared = m_entries_maybe_shared;
+	// writable access must copy entries (see slot_mut()).
+	m_entries_maybe_shared = true;
+	other.m_entries_maybe_shared = true;
 	reset_cache();
 }
 
