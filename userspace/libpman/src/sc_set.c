@@ -127,15 +127,29 @@ int pman_enforce_sc_set(bool* sc_set) {
 	else
 		ret = ret ?: detach_connect_toctou_mitigation_progs();
 
-	if(attach_creat_ttm_progs)
-		ret = ret ?: ignore_and_log_enoent("creat", attach_creat_toctou_mitigation_progs());
-	else
+	if(attach_creat_ttm_progs) {
+		if(!g_state.creat_ttm_unavailable) {
+			const int err = attach_creat_toctou_mitigation_progs();
+			if(err == ENOENT) {
+				g_state.creat_ttm_unavailable = true;
+			}
+			ret = ret ?: ignore_and_log_enoent("creat", err);
+		}
+	} else {
 		ret = ret ?: detach_creat_toctou_mitigation_progs();
+	}
 
-	if(attach_open_ttm_progs)
-		ret = ret ?: ignore_and_log_enoent("open", attach_open_toctou_mitigation_progs());
-	else
+	if(attach_open_ttm_progs) {
+		if(!g_state.open_ttm_unavailable) {
+			const int err = attach_open_toctou_mitigation_progs();
+			if(err == ENOENT) {
+				g_state.open_ttm_unavailable = true;
+			}
+			ret = ret ?: ignore_and_log_enoent("open", err);
+		}
+	} else {
 		ret = ret ?: detach_open_toctou_mitigation_progs();
+	}
 
 	if(attach_openat2_ttm_progs)
 		ret = ret ?: ignore_and_log_enoent("openat2", attach_openat2_toctou_mitigation_progs());
