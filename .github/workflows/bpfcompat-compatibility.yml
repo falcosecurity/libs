@@ -80,7 +80,7 @@ jobs:
           file libscap/examples/01-open/scap-open
 
       - name: Validate scap-open across the kernel matrix
-        uses: Kernel-Guard/bpfcompat@f1ba21fd4e098d483961e9e9355a51ae78273422 # v0.3.6
+        uses: Kernel-Guard/bpfcompat@cba1e09537f2e05e4ba7278efdb5c2d044d1889b # v0.4.0-rc.3
         with:
           command: $BPFCOMPAT_BIN --modern_bpf --num_events 10
           command-binary: build/libscap/examples/01-open/scap-open
