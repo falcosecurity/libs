@@ -80,6 +80,7 @@ struct counter_map {
 	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
 	uint64_t n_drops_auxmap_reentrancy;
+	uint64_t n_drops_auxmap_reentrancy_tail_call;
 };
 
 /**

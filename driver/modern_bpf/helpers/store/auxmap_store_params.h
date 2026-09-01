@@ -139,7 +139,11 @@ static __always_inline struct auxiliary_map *auxmap__resume(void) {
 	if(auxmap->owner != bpf_get_current_pid_tgid()) {
 		struct counter_map *counter = maps__get_counter_map();
 		if(counter) {
+			/* Both, the tail-call count being a subset of the total: anything caught here is
+			 * at a tail call by construction, and total minus tail_call is what was caught
+			 * in submit, inside a program body. */
 			counter->n_drops_auxmap_reentrancy++;
+			counter->n_drops_auxmap_reentrancy_tail_call++;
 		}
 		return NULL;
 	}
