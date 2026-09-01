@@ -35,6 +35,7 @@ typedef enum modern_bpf_kernel_counters_stats {
 	MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT,
 	MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT,
 	MODERN_BPF_N_DROPS_SCRATCH_MAP,
+	MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY,
 	MODERN_BPF_N_DROPS,
 	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
 } modern_bpf_kernel_counters_stats;
@@ -87,6 +88,7 @@ const char *const modern_bpf_kernel_counters_stats_names[] = {
         [MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
         [MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
         [MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
+        [MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY] = "n_drops_auxmap_reentrancy",
         [MODERN_BPF_N_DROPS] = "n_drops",
 };
 
@@ -167,7 +169,11 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 		stats->n_drops_buffer_proc_exit += cnt_map.n_drops_buffer_proc_exit;
 		stats->n_drops_buffer_other_interest_exit += cnt_map.n_drops_buffer_other_interest_exit;
 		stats->n_drops_scratch_map += cnt_map.n_drops_max_event_size;
-		stats->n_drops += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+		/* struct scap_stats has no field for the auxmap reentrancy drops, and it is not the
+		 * place to grow one -- they are visible on their own in metrics_v2. Here they only
+		 * join the total, which is right: an event was dropped. */
+		stats->n_drops += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size +
+		                   cnt_map.n_drops_auxmap_reentrancy);
 	}
 	return 0;
 }
@@ -268,8 +274,11 @@ static int collect_kernel_counter_stats(const int counter_maps_fd, const bool co
 		g_state.stats[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT].value.u64 +=
 		        cnt_map.n_drops_buffer_proc_exit;
 		g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
+		g_state.stats[MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY].value.u64 +=
+		        cnt_map.n_drops_auxmap_reentrancy;
 		g_state.stats[MODERN_BPF_N_DROPS].value.u64 +=
-		        (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+		        (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size +
+		         cnt_map.n_drops_auxmap_reentrancy);
 
 		if(!collect_per_cpu) {
 			continue;
@@ -286,7 +295,8 @@ static int collect_kernel_counter_stats(const int counter_maps_fd, const bool co
 
 		// We set the drops for that CPU.
 		set_u64_monotonic_kernel_counter(collected_stats,
-		                                 cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size,
+		                                 cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size +
+		                                         cnt_map.n_drops_auxmap_reentrancy,
 		                                 METRICS_V2_KERNEL_COUNTERS_PER_CPU);
 		snprintf(g_state.stats[collected_stats].name,
 		         METRIC_NAME_MAX,

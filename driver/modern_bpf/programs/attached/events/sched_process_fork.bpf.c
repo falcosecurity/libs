@@ -161,7 +161,7 @@ int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child
 
 SEC("tp_btf/sched_process_fork")
 int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *child) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -237,7 +237,7 @@ int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *ch
 
 SEC("tp_btf/sched_process_fork")
 int BPF_PROG(t2_sched_p_fork, struct task_struct *parent, struct task_struct *child) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}

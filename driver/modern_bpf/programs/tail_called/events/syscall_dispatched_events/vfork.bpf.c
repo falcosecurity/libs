@@ -129,7 +129,7 @@ int BPF_PROG(vfork_x, struct pt_regs *regs, long ret) {
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t1_vfork_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -173,7 +173,7 @@ int BPF_PROG(t1_vfork_x, struct pt_regs *regs, long ret) {
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t2_vfork_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}

@@ -44,7 +44,7 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}

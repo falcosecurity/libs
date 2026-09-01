@@ -47,6 +47,10 @@ struct auxiliary_map {
 	uint64_t payload_pos;             /* position of the first empty byte in the `data` buf. */
 	uint8_t lengths_pos; /* position the first empty slot into the lengths array of the event. */
 	uint16_t event_type; /* event type we want to send to userspace */
+	/* The task building an event in this segment, as bpf_get_current_pid_tgid(), or 0 when no
+	 * build is in flight.
+	 */
+	uint64_t owner;
 };
 
 /* These per-cpu maps are used to carry the number of drops and
@@ -75,6 +79,7 @@ struct counter_map {
 	uint64_t n_drops_buffer_close_exit;
 	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
+	uint64_t n_drops_auxmap_reentrancy;
 };
 
 /**
