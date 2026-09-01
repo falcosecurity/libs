@@ -59,11 +59,11 @@
 // GET AUXILIARY MAP
 ////////////////////////////////
 
-/**
- * @brief Get the auxiliary map pointer for the current CPU.
- *
- * @return pointer to the auxmap
+/* One buffer per CPU, shared by every program that runs there, and on a PREEMPT kernel a build
+ * can be scheduled out at any point: the next task on that CPU then builds in the same buffer.
+ * The `owner` stamp catches that, so a spliced event is dropped rather than submitted.
  */
+
 static __always_inline struct auxiliary_map *auxmap__get() {
 	return maps__get_auxiliary_map();
 }
@@ -101,6 +101,10 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 	 * __builtin_memcpy, clang can lower the copy into wider stores at naturally
 	 * aligned destination offsets (ts/tid/len/type).
 	 */
+	/* Claim the buffer before the first write; anything that finds a different owner later
+	 * knows a build overlapped this one. */
+	auxmap->owner = bpf_get_current_pid_tgid();
+
 	struct ppm_evt_hdr hdr = {0};
 	hdr.ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
 	hdr.tid = bpf_get_current_pid_tgid() & 0xffffffff;
@@ -111,6 +115,35 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 	auxmap->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
 	auxmap->lengths_pos = sizeof(struct ppm_evt_hdr);
 	auxmap->event_type = event_type;
+}
+
+/**
+ * @brief Re-enter the auxmap critical section at the top of a tail-called continuation, and
+ * confirm the buffer is still the one this build was using.
+ *
+ * A continuation cannot be handed the buffer: the BPF stack does not survive a tail call and
+ * ctx is read-only, so it has to look the buffer up again the same way the first program did.
+ * That is safe for the pointer, which is a pure function of the CPU, but says nothing about
+ * the contents -- so the owner is checked here rather than assumed.
+ *
+ * @return the auxmap, or NULL if another task built an event in it. NULL means the caller must
+ * return without submitting: the buffer no longer holds this event, and the section has
+ * already been left.
+ */
+static __always_inline struct auxiliary_map *auxmap__resume(void) {
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap) {
+		return NULL;
+	}
+
+	if(auxmap->owner != bpf_get_current_pid_tgid()) {
+		struct counter_map *counter = maps__get_counter_map();
+		if(counter) {
+			counter->n_drops_auxmap_reentrancy++;
+		}
+		return NULL;
+	}
+	return auxmap;
 }
 
 #ifdef BPF_ITERATOR_SUPPORT
@@ -171,6 +204,12 @@ static __always_inline void auxmap_iter__finalize_event_header(struct auxiliary_
 // COPY EVENT FROM AUXMAP TO RINGBUF/SEQ FILE
 ////////////////////////////////
 
+/* Release the claim. Until this runs, a build arriving on this CPU takes another segment.
+ */
+static __always_inline void auxmap__put(struct auxiliary_map *auxmap) {
+	auxmap->owner = 0;
+}
+
 /**
  * @brief Copy the entire event from the auxiliary map to bpf ringbuf.
  * If the event is correctly copied in the ringbuf we increment the number
@@ -179,16 +218,26 @@ static __always_inline void auxmap_iter__finalize_event_header(struct auxiliary_
  * @param auxmap pointer to the auxmap in which we have already written the entire event.
  */
 static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
+	struct counter_map *counter = maps__get_counter_map();
+
+	if(auxmap->owner != bpf_get_current_pid_tgid()) {
+		if(counter) {
+			counter->n_drops_auxmap_reentrancy++;
+		}
+		return;
+	}
+
+	if(!counter) {
+		auxmap__put(auxmap);
+		return;
+	}
+
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
 		/* This should never happen in tail-called exit programs because we check it in `sys_exit`
 		 * dispatcher. It can happen in TOCTOU mitigation programs. */
 		bpf_printk("FAILURE: unable to obtain the ring buffer");
-		return;
-	}
-
-	struct counter_map *counter = maps__get_counter_map();
-	if(!counter) {
+		auxmap__put(auxmap);
 		return;
 	}
 
@@ -198,6 +247,7 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 
 	if(auxmap->payload_pos > MAX_EVENT_SIZE) {
 		counter->n_drops_max_event_size++;
+		auxmap__put(auxmap);
 		return;
 	}
 
@@ -209,6 +259,7 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 		counter->n_drops_buffer++;
 		compute_event_types_stats(auxmap->event_type, counter);
 	}
+	auxmap__put(auxmap);
 }
 
 #ifdef BPF_ITERATOR_SUPPORT
