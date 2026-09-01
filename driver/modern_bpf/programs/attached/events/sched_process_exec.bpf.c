@@ -168,7 +168,7 @@ int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_bi
 
 SEC("tp_btf/sched_process_exec")
 int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -263,7 +263,7 @@ int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux
 
 SEC("tp_btf/sched_process_exec")
 int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret, struct linux_binprm *bprm) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
