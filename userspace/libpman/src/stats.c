@@ -149,7 +149,6 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 	/* Not used in modern probe:
 	 * - stats->n_drops_bug
 	 * - stats->n_drops_pf
-	 * - stats->n_preemptions
 	 */
 
 	/* We always take statistics from all the CPUs, even if some of them are not online.
@@ -175,9 +174,8 @@ int pman_get_scap_stats(struct scap_stats *stats) {
 		stats->n_drops_buffer_proc_exit += cnt_map.n_drops_buffer_proc_exit;
 		stats->n_drops_buffer_other_interest_exit += cnt_map.n_drops_buffer_other_interest_exit;
 		stats->n_drops_scratch_map += cnt_map.n_drops_max_event_size;
-		/* struct scap_stats has no field of its own for the auxmap drops -- they are visible
-		 * separately in metrics_v2. Here they only join the total, which is right: an event
-		 * was dropped. */
+		stats->n_preemptions +=
+		        (cnt_map.n_drops_auxmap_reentrancy + cnt_map.n_drops_auxmap_pool_full);
 		stats->n_drops += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size +
 		                   cnt_map.n_drops_auxmap_reentrancy + cnt_map.n_drops_auxmap_pool_full);
 	}
