@@ -88,6 +88,32 @@ static void prepare_iter_progs_before_loading() {
 }
 #endif
 
+/* Whether this kernel offers a helper that a program asked for.
+ *
+ * `bpf_loop` carries an extra condition. A program that uses it keeps its auxmap claim inside the
+ * loop callback, and libbpf leaves a callback in `.text`, which is where prepare_bpf_atomics()
+ * cannot reach it: bpf_object__for_each_program() skips subprograms, and no API returns a
+ * subprogram's instructions. On a kernel without the 5.12 atomics the cmpxchg in that callback
+ * therefore survives the rewrite, and the verifier rejects the whole object over an instruction
+ * libpman has already reported removing.
+ *
+ * No kernel is in that state today -- `bpf_loop` arrived in 5.17, five releases after the
+ * atomics, so anything missing the atomics is missing bpf_loop as well and this gate has already
+ * turned those programs off. But that is a coincidence between two version numbers, and the rest
+ * of this gate deliberately probes rather than comparing versions, on the grounds that
+ * distributions backport. Hold the same line here and refuse the combination outright, which
+ * costs only the `_old_x` fallback that every pre-5.17 kernel already takes.
+ */
+static bool feature_available(const int feat) {
+	if(feat == BPF_FUNC_loop && !g_state.skel->rodata->g_bpf_atomics) {
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "refusing bpf_loop on a kernel without the BPF atomics: the auxmap claim in its "
+		         "callback is not reachable by the rewrite");
+		return false;
+	}
+	return libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, feat, NULL) == 1;
+}
+
 int pman_prepare_progs_before_loading() {
 	/*
 	 * Probe required features for each bpf program, as requested
@@ -104,9 +130,7 @@ int pman_prepare_progs_before_loading() {
 		for(idx = 0; idx < MAX_FEATURE_CHECKS && progs[idx].name != NULL; idx++) {
 			bool should_disable = chosen_idx != -1;
 			if(!should_disable) {
-				if(progs[idx].feat > 0 &&
-				   libbpf_probe_bpf_helper(BPF_PROG_TYPE_RAW_TRACEPOINT, progs[idx].feat, NULL) !=
-				           1) {
+				if(progs[idx].feat > 0 && !feature_available(progs[idx].feat)) {
 					log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
 					         "BPF program '%s' did not satisfy required feature [%d]",
 					         progs[idx].name,

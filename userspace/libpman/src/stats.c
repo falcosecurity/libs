@@ -37,6 +37,7 @@ typedef enum modern_bpf_kernel_counters_stats {
 	MODERN_BPF_N_DROPS_SCRATCH_MAP,
 	MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY,
 	MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY_TAIL_CALL,
+	MODERN_BPF_N_AUXMAP_POOL_FULL,
 	MODERN_BPF_N_DROPS,
 	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
 } modern_bpf_kernel_counters_stats;
@@ -91,6 +92,7 @@ const char *const modern_bpf_kernel_counters_stats_names[] = {
         [MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
         [MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY] = "n_drops_auxmap_reentrancy",
         [MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY_TAIL_CALL] = "n_drops_auxmap_reentrancy_tail_call",
+        [MODERN_BPF_N_AUXMAP_POOL_FULL] = "n_auxmap_pool_full",
         [MODERN_BPF_N_DROPS] = "n_drops",
 };
 
@@ -280,6 +282,8 @@ static int collect_kernel_counter_stats(const int counter_maps_fd, const bool co
 		        cnt_map.n_drops_auxmap_reentrancy;
 		g_state.stats[MODERN_BPF_N_DROPS_AUXMAP_REENTRANCY_TAIL_CALL].value.u64 +=
 		        cnt_map.n_drops_auxmap_reentrancy_tail_call;
+		/* Non-zero means AUXMAP_POOL_DEPTH is too small. */
+		g_state.stats[MODERN_BPF_N_AUXMAP_POOL_FULL].value.u64 += cnt_map.n_auxmap_pool_full;
 		g_state.stats[MODERN_BPF_N_DROPS].value.u64 +=
 		        (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size +
 		         cnt_map.n_drops_auxmap_reentrancy);

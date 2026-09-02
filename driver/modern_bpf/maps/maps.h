@@ -61,6 +61,14 @@ __weak const volatile uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE]
  */
 __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
+/**
+ * @brief Whether this kernel has the atomics added in 5.12 (BPF_CMPXCHG).
+ *
+ * Userspace probes for it and sets this before load, so the verifier folds the branch in
+ * auxmap__claim() and never decodes the cmpxchg on a kernel that would reject the opcode.
+ */
+__weak const volatile uint8_t g_bpf_atomics;
+
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
