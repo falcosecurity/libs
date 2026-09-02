@@ -1,0 +1,41 @@
+{
+  "name": "Falco Libs Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/msclock/features/vcpkg:1": {
+      "vcpkgversion": "2026.01.16"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools"
+      ],
+      "settings": {
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "cmake.configureOnOpen": true,
+        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        },
+        "terminal.integrated.defaultLocation": "editor"
+      }
+    }
+  },
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": false,
+  "mounts": [],
+  "postCreateCommand": "git config --global core.editor vim && git config --global --add safe.directory ${containerWorkspaceFolder} && (git -C /usr/local/vcpkg fetch --unshallow) && (/usr/local/vcpkg/bootstrap-vcpkg.sh || true) && (cd ${containerWorkspaceFolder} && pre-commit install || true)",
+  "remoteEnv": {}
+}
