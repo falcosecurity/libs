@@ -163,6 +163,7 @@ int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_bi
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &extra_sched_proc_exec_calls, T1_SCHED_PROC_EXEC);
+	auxmap__put(auxmap);
 	return 0;
 }
 
@@ -258,6 +259,7 @@ int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &extra_sched_proc_exec_calls, T2_SCHED_PROC_EXEC);
+	auxmap__put(auxmap);
 	return 0;
 }
 

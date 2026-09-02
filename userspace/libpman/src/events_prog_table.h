@@ -26,7 +26,13 @@ limitations under the License.
 
 typedef struct {
 	char *name;
+	// Helper this program needs the kernel to provide.
 	enum bpf_func_id feat;
+	// Whether this program needs the kernel's own BPF atomics (5.12), on top of any helper.
+	// Set for programs whose auxmap claim ends up in a subprogram: libbpf leaves a bpf_loop
+	// callback in `.text`, and prepare_bpf_atomics() cannot reach a subprogram to rewrite the
+	// cmpxchg, so a kernel without the atomics would refuse the whole object.
+	bool needs_bpf_atomics;
 } event_prog_t;
 
 // Maximum number of programs to be tried (requiring bpf feat checks) for each event

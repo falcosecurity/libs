@@ -209,9 +209,14 @@ static __always_inline struct iter_counters *maps__get_iter_counters() {
 
 /*=============================== AUXILIARY MAPS ===========================*/
 
-static __always_inline struct auxiliary_map *maps__get_auxiliary_map() {
-	uint32_t cpu_id = (uint32_t)bpf_get_smp_processor_id();
-	return (struct auxiliary_map *)bpf_map_lookup_elem(&auxiliary_maps, &cpu_id);
+/* One segment of the pool: AUXMAP_POOL_DEPTH per CPU, contiguous, so segment `i` of this CPU is
+ * at `cpu * AUXMAP_POOL_DEPTH + i`. */
+static __always_inline struct auxiliary_map *maps__get_auxiliary_map_slot(uint32_t slot) {
+	return (struct auxiliary_map *)bpf_map_lookup_elem(&auxiliary_maps, &slot);
+}
+
+static __always_inline uint32_t maps__auxiliary_map_base(void) {
+	return (uint32_t)bpf_get_smp_processor_id() * AUXMAP_POOL_DEPTH;
 }
 
 /*=============================== AUXILIARY MAPS ===========================*/

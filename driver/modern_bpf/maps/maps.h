@@ -61,6 +61,16 @@ __weak const volatile uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE]
  */
 __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
+/**
+ * @brief Whether this kernel has the atomics added in 5.12 (BPF_CMPXCHG).
+ *
+ * Userspace probes for it and sets this before load, which picks the branch of auxmap__claim()
+ * that this kernel can run. When the atomics are missing, libpman also has to patch the cmpxchg
+ * out of the dead branch, because a pre-5.12 verifier rejects the instruction whether or not it
+ * can be reached. See prepare_bpf_atomics().
+ */
+__weak const volatile uint8_t g_bpf_atomics;
+
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
