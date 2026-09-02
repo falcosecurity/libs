@@ -149,7 +149,8 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "proc.cmdline",
          "Command Line",
          "The concatenation of `proc.name + proc.args` (truncated after 4096 bytes) when starting "
-         "the process generating the event."},
+         "the process generating the event. For events occurring before an execve() call completes, "
+         "this value may differ from the command line later observed through tools such as ps or pstree."},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
