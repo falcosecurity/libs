@@ -46,6 +46,7 @@ int BPF_PROG(execve_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_EXECVE_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
@@ -111,6 +112,7 @@ int BPF_PROG(t1_execve_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_EXECVE_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
@@ -198,6 +200,7 @@ int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T3_EXECVE_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 

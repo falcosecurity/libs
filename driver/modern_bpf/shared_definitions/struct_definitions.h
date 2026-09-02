@@ -18,6 +18,11 @@
  */
 #define AUXILIARY_MAP_SIZE 128 * 1024
 
+/* Segments of auxiliary map per CPU, so that a build keeps its own across a preemption while
+ * another runs on the same CPU. Userspace sizes the map from this.
+ */
+#define AUXMAP_POOL_DEPTH 2
+
 /**
  * @brief General settings shared among all the CPUs.
  *
@@ -80,6 +85,7 @@ struct counter_map {
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
 	uint64_t n_drops_auxmap_reentrancy;
 	uint64_t n_drops_auxmap_reentrancy_tail_call;
+	uint64_t n_drops_auxmap_pool_full;
 };
 
 /**
