@@ -35,6 +35,7 @@ int BPF_PROG(open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_OPEN_BY_HANDLE_AT_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 

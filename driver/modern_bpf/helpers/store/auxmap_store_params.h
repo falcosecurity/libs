@@ -75,10 +75,11 @@ static __always_inline bool auxmap__claim(struct auxiliary_map *auxmap, uint64_t
 		return prev == 0 || prev == me;
 	}
 
-	if(auxmap->owner != 0 && auxmap->owner != me) {
+	const uint64_t owner = READ_ONCE(auxmap->owner);
+	if(owner != 0 && owner != me) {
 		return false;
 	}
-	auxmap->owner = me;
+	WRITE_ONCE(auxmap->owner, me);
 	return true;
 }
 
@@ -93,8 +94,6 @@ static __always_inline struct auxiliary_map *auxmap__get(void) {
 
 	/* Search by index, look up once afterwards: see auxmap__resume(). DEPTH means "none". */
 	uint32_t slot = AUXMAP_POOL_DEPTH;
-	uint32_t displaced = AUXMAP_POOL_DEPTH;
-	uint32_t was_full = 0;
 
 #pragma clang loop unroll(full)
 	for(uint32_t i = 0; i < AUXMAP_POOL_DEPTH; i++) {
@@ -110,47 +109,26 @@ static __always_inline struct auxiliary_map *auxmap__get(void) {
 		}
 		if(auxmap__claim(auxmap, me)) {
 			slot = i;
-		} else if(displaced == AUXMAP_POOL_DEPTH) {
-			displaced = i;
 		}
 	}
 
-	/* Nothing free, so displace the first busy segment rather than dropping this event: the
-	 * build we displace drops at its own owner check, which is what happened before the pool
-	 * existed, whereas a leaked claim would take a segment out of circulation for good. */
-	if(slot == AUXMAP_POOL_DEPTH && displaced != AUXMAP_POOL_DEPTH) {
-		slot = displaced;
-		was_full = 1;
-	}
-
-	/* No segment at all for this CPU -- the same short-map case the search breaks on. */
+	/* Every segment is in use, so drop this event. */
 	if(slot == AUXMAP_POOL_DEPTH) {
-		return NULL;
-	}
-
-	/* Cannot fail -- slot came from a lookup that did -- but the verifier wants it checked. */
-	struct auxiliary_map *auxmap = maps__get_auxiliary_map_slot(base + slot);
-	if(!auxmap) {
-		return NULL;
-	}
-
-	if(was_full) {
 		struct counter_map *counter = maps__get_counter_map();
 		if(counter) {
-			counter->n_auxmap_pool_full++;
+			counter->n_drops_auxmap_pool_full++;
 		}
-		/* Displacing is a deliberate steal from a live build, so it is a store rather than
-		 * a claim: the segment is busy, and a claim would refuse it. */
-		auxmap->owner = me;
+		return NULL;
 	}
 
-	return auxmap;
+	/* Cannot fail: slot came from a lookup that already succeeded. */
+	return maps__get_auxiliary_map_slot(base + slot);
 }
 
-/* Give up a claim without going through submit, for a caller that borrowed a segment as
- * scratch. */
-static __always_inline void auxmap__drop_claim(struct auxiliary_map *auxmap) {
-	auxmap->owner = 0;
+/* Release the claim. Until this runs, a build arriving on this CPU takes another segment.
+ */
+static __always_inline void auxmap__put(struct auxiliary_map *auxmap) {
+	WRITE_ONCE(auxmap->owner, 0);
 }
 
 #ifdef BPF_ITERATOR_SUPPORT
@@ -198,10 +176,35 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 	auxmap->event_type = event_type;
 }
 
+/* Find a segment this task owns anywhere in the array, rather than in this CPU's pool.
+ *
+ * Inlined, even though it only runs for a build that changed CPU and a subprogram would be
+ * walked once per program instead of once per resume site: every caller of auxmap__resume()
+ * tail-calls, and a program that both tail-calls and calls a subprogram is rejected unless the
+ * JIT compiled it. Nothing else in the probe pairs the two, and needing a working JIT to load at
+ * all is the worse trade.
+ *
+ * @return the index into `auxiliary_maps`, or AUXMAP_POOL_NO_SLOT if this task owns nothing.
+ */
+static __always_inline uint32_t auxmap__find_owned_slot(const uint64_t me) {
+	const uint32_t entries = g_auxmap_pool_entries;
+
+	for(uint32_t i = 0; i < entries; i++) {
+		struct auxiliary_map *auxmap = maps__get_auxiliary_map_slot(i);
+		if(!auxmap) {
+			/* For the verifier only: the bound is the array's own size. */
+			break;
+		}
+		if(READ_ONCE(auxmap->owner) == me) {
+			return i;
+		}
+	}
+	return AUXMAP_POOL_NO_SLOT;
+}
+
 /**
  * @brief Recover the segment this build was using, at the top of a tail-called continuation.
- * The BPF stack does not survive a tail call and ctx is read-only, so it is found by owner
- * rather than handed over.
+ * The BPF stack does not survive a tail call and ctx is read-only, so it is found by owner.
  *
  * @return the segment, or NULL if this build lost it: the caller must return without submitting.
  */
@@ -219,7 +222,7 @@ static __always_inline struct auxiliary_map *auxmap__resume(void) {
 			continue;
 		}
 		struct auxiliary_map *auxmap = maps__get_auxiliary_map_slot(base + i);
-		if(auxmap && auxmap->owner == me) {
+		if(auxmap && READ_ONCE(auxmap->owner) == me) {
 			slot = i;
 		}
 	}
@@ -231,9 +234,21 @@ static __always_inline struct auxiliary_map *auxmap__resume(void) {
 		}
 	}
 
-	/* Nothing here belongs to this task, so the build it was continuing is gone: another event
-	 * claimed its segment while we were suspended. Counted in both, the tail-call count being
-	 * a subset of the total. */
+	/* Not in this CPU's pool, which does not mean the segment is gone: a preempted filler can
+	 * also have been migrated -- a BPF program on a tracepoint is only pinned to its CPU from
+	 * 7.0 -- and then this is the wrong pool to look in. */
+	const uint32_t owned = auxmap__find_owned_slot(me);
+	if(owned != AUXMAP_POOL_NO_SLOT) {
+		struct auxiliary_map *auxmap = maps__get_auxiliary_map_slot(owned);
+		if(auxmap) {
+			struct counter_map *counter = maps__get_counter_map();
+			if(counter) {
+				counter->n_auxmap_migrations++;
+			}
+			return auxmap;
+		}
+	}
+
 	struct counter_map *counter = maps__get_counter_map();
 	if(counter) {
 		counter->n_drops_auxmap_reentrancy++;
@@ -300,12 +315,6 @@ static __always_inline void auxmap_iter__finalize_event_header(struct auxiliary_
 // COPY EVENT FROM AUXMAP TO RINGBUF/SEQ FILE
 ////////////////////////////////
 
-/* Release the claim. Until this runs, a build arriving on this CPU takes another segment.
- */
-static __always_inline void auxmap__put(struct auxiliary_map *auxmap) {
-	auxmap->owner = 0;
-}
-
 /**
  * @brief Copy the entire event from the auxiliary map to bpf ringbuf.
  * If the event is correctly copied in the ringbuf we increment the number
@@ -316,7 +325,7 @@ static __always_inline void auxmap__put(struct auxiliary_map *auxmap) {
 static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 	struct counter_map *counter = maps__get_counter_map();
 
-	if(auxmap->owner != bpf_get_current_pid_tgid()) {
+	if(READ_ONCE(auxmap->owner) != bpf_get_current_pid_tgid()) {
 		if(counter) {
 			counter->n_drops_auxmap_reentrancy++;
 		}

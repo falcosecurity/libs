@@ -384,6 +384,8 @@ static int size_auxiliary_maps(const struct bpf_probe* probe, const uint32_t max
 		log_errorf("unable to set max entries for 'auxiliary_maps' to %d", max_entries);
 		return last_errno;
 	}
+	/* The probe searches the whole array when a build changed CPU, so it needs the bound. */
+	probe->rodata->g_auxmap_pool_entries = max_entries;
 	return 0;
 }
 

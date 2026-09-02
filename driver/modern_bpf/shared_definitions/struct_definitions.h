@@ -23,6 +23,9 @@
  */
 #define AUXMAP_POOL_DEPTH 2
 
+/* No segment, as an index into `auxiliary_maps`. */
+#define AUXMAP_POOL_NO_SLOT UINT32_MAX
+
 /**
  * @brief General settings shared among all the CPUs.
  *
@@ -85,7 +88,10 @@ struct counter_map {
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
 	uint64_t n_drops_auxmap_reentrancy;
 	uint64_t n_drops_auxmap_reentrancy_tail_call;
-	uint64_t n_auxmap_pool_full;
+	uint64_t n_drops_auxmap_pool_full;
+	/* Builds that resumed in a segment belonging to another CPU's pool, so not a drop: the
+	 * event was delivered. Non-zero means this kernel migrates a preempted filler. */
+	uint64_t n_auxmap_migrations;
 };
 
 /**

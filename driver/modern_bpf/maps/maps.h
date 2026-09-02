@@ -62,6 +62,14 @@ __weak const volatile uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE]
 __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
 /**
+ * @brief Number of entries in the `auxiliary_maps` array, which userspace sizes.
+ *
+ * The bound for the cross-pool search in auxmap__find_owned_slot(); a runtime bound the
+ * verifier knows, so the loop is accepted and walked exactly as far as the array goes.
+ */
+__weak const volatile uint32_t g_auxmap_pool_entries;
+
+/**
  * @brief Whether this kernel has the atomics added in 5.12 (BPF_CMPXCHG).
  *
  * Userspace probes for it and sets this before load, so the verifier folds the branch in
