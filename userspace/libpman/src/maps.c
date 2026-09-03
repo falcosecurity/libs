@@ -466,8 +466,9 @@ static bool probe_bpf_atomics(void) {
 	                   insn_cnt,
 	                   NULL);
 	if(fd < 0) {
-		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-		         "cannot probe for BPF atomics (%s); assuming they are supported",
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot probe for BPF atomics (%s); assuming they are supported. If this "
+		         "kernel does not have them, loading the probe will fail",
 		         strerror(atomic_errno));
 		return true;
 	}
@@ -543,8 +544,10 @@ static int prepare_bpf_atomics(const struct bpf_probe* probe) {
 		}
 	}
 
-	log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
-	         "no BPF atomics on this kernel: %u instruction(s) rewritten as plain stores",
+	log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+	         "no BPF atomics on this kernel: %u instruction(s) rewritten as plain stores. "
+	         "Detection will continue to work, but the auxmap claim is no longer atomic, which "
+	         "is only safe on a kernel that cannot preempt a build mid-claim",
 	         rewritten);
 	return 0;
 }
