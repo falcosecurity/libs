@@ -16,9 +16,9 @@ typedef struct {
 	struct mmsghdr *mmh;
 } recvmmsg_data_t;
 
-static __always_inline long handle_exit(uint32_t index, void *ctx) {
-	recvmmsg_data_t *data = (recvmmsg_data_t *)ctx;
-
+static __always_inline long recvmmsg_handle_msg(uint32_t index,
+                                                recvmmsg_data_t *data,
+                                                bool use_bpf_loop) {
 	/* Read individual fields instead of the full struct mmsghdr to keep
 	 * frame 1 stack small enough for the 512-byte 3-frame limit.
 	 * Handle both native and compat (ia32) layouts.
@@ -73,7 +73,7 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	}
 
 	/* Parameter 4: data (type: PT_BYTEBUF) */
-	auxmap__store_iovec_data_param_noinline(auxmap, msg_iov, msg_iovlen, snaplen);
+	auxmap__store_iovec_data_param_mmsg(auxmap, msg_iov, msg_iovlen, snaplen, use_bpf_loop);
 
 	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
 	auxmap__store_socktuple_param_noinline(auxmap, data->fd, INBOUND, msg_name);
@@ -93,6 +93,12 @@ static __always_inline long handle_exit(uint32_t index, void *ctx) {
 
 	auxmap__submit_event_noinline(auxmap);
 	return 0;
+}
+
+/* bpf_loop callback used by recvmmsg_x. That program is loaded only when the
+ * bpf_loop helper is available, so the per-message iovec store uses bpf_loop. */
+static long handle_exit(uint32_t index, void *ctx) {
+	return recvmmsg_handle_msg(index, (recvmmsg_data_t *)ctx, true);
 }
 
 SEC("tp_btf/sys_exit")
@@ -189,8 +195,8 @@ int BPF_PROG(recvmmsg_old_x, struct pt_regs *regs, long ret) {
 	        .mmh = (struct mmsghdr *)args[1],
 	};
 
-	// Send only first message
-	handle_exit(0, &data);
+	// Send only first message; legacy program runs without bpf_loop.
+	recvmmsg_handle_msg(0, &data, false);
 
 	return 0;
 }
