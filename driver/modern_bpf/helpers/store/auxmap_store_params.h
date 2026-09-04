@@ -116,6 +116,9 @@ static __always_inline struct auxiliary_map *auxmap__get(void) {
 	if(slot == AUXMAP_POOL_DEPTH) {
 		struct counter_map *counter = maps__get_counter_map();
 		if(counter) {
+			/* Attempted before dropped, and never one without the other: consumers divide
+			 * n_drops by n_evts and require every drop to be in both. */
+			counter->n_evts++;
 			counter->n_drops_auxmap_pool_full++;
 		}
 		return NULL;
@@ -249,8 +252,11 @@ static __always_inline struct auxiliary_map *auxmap__resume(void) {
 		}
 	}
 
+	/* The event is counted as attempted here rather than at auxmap__submit_event(), which this
+	 * build will never reach. */
 	struct counter_map *counter = maps__get_counter_map();
 	if(counter) {
+		counter->n_evts++;
 		counter->n_drops_auxmap_reentrancy++;
 		counter->n_drops_auxmap_reentrancy_tail_call++;
 	}
@@ -327,6 +333,9 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 
 	if(READ_ONCE(auxmap->owner) != bpf_get_current_pid_tgid()) {
 		if(counter) {
+			/* The n_evts++ below is unreachable now, so count the attempt here: this event
+			 * was built, it just cannot be shipped. */
+			counter->n_evts++;
 			counter->n_drops_auxmap_reentrancy++;
 		}
 		return;
