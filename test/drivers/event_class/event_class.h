@@ -549,6 +549,16 @@ public:
 	void assert_numeric_param(int param_num, T param, enum assertion_operators op = EQUAL);
 
 	/**
+	 * @brief Assert that the parameter is a `PT_ABSTIME` holding a moment that has already
+	 * happened: at least 2001-09-09, so a dummy value fails, and no later than now, so a value
+	 * the kernel got wrong fails too. A lower bound on its own accepts most of the ways such a
+	 * parameter can be corrupted.
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 */
+	void assert_abstime_param_in_the_past(int param_num);
+
+	/**
 	 * @brief Assert that the parameter is a `charbuf` and
 	 * compare its value with the expected one.
 	 *
