@@ -308,7 +308,8 @@ static int collect_kernel_counter_stats(const int counter_maps_fd, const bool co
 		// We set the drops for that CPU.
 		set_u64_monotonic_kernel_counter(collected_stats,
 		                                 cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size +
-		                                         cnt_map.n_drops_auxmap_reentrancy,
+		                                         cnt_map.n_drops_auxmap_reentrancy +
+		                                         cnt_map.n_drops_auxmap_pool_full,
 		                                 METRICS_V2_KERNEL_COUNTERS_PER_CPU);
 		snprintf(g_state.stats[collected_stats].name,
 		         METRIC_NAME_MAX,
