@@ -2006,6 +2006,35 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	}
 }
 
+/**
+ * @brief Apply the dynamic snaplen logic only when it can actually change the outcome.
+ *
+ * `apply_dynamic_snaplen()` can only ever raise `*snaplen`: every assignment it performs is a
+ * `max()` against one of the `SNAPLEN_*` constants, so the value never goes down (note the
+ * constants are not necessarily above the configured snaplen - the `max()` is what makes the
+ * logic monotonic, not their magnitude). Callers then clamp the result back down to the number
+ * of bytes they are going to capture. So whenever that number already fits within the current
+ * snaplen, the final value is that number no matter what the dynamic snaplen logic computes, and
+ * the whole computation - a `fd -> file -> socket` walk plus a lookahead read of the user buffer
+ * - is dead work.
+ *
+ * @param regs pointer to the struct where we find the syscall arguments
+ * @param snaplen pointer to the current snaplen value (may be raised)
+ * @param input_args see `apply_dynamic_snaplen()`
+ * @param bytes_to_capture number of bytes the caller is going to capture, or a negative value when
+ * the caller cannot know it upfront (in that case the logic is always applied)
+ */
+static __always_inline void apply_dynamic_snaplen_if_relevant(
+        struct pt_regs *regs,
+        uint16_t *snaplen,
+        const dynamic_snaplen_args *input_args,
+        int64_t bytes_to_capture) {
+	if(bytes_to_capture >= 0 && bytes_to_capture <= (int64_t)*snaplen) {
+		return;
+	}
+	apply_dynamic_snaplen(regs, snaplen, input_args);
+}
+
 /* __noinline wrappers for use inside bpf_loop() callbacks.
  *
  * Kernel 6.19 commit f597664 introduced aggressive SCC analysis for implicit
@@ -2106,6 +2135,30 @@ static __noinline void apply_dynamic_snaplen_port_range(uint16_t *snaplen,
 		*snaplen = *snaplen > SNAPLEN_DNS_UDP ? *snaplen : SNAPLEN_DNS_UDP;
 		return;
 	}
+}
+
+/**
+ * @brief `apply_dynamic_snaplen_if_relevant()` for the port-range-only variant.
+ *
+ * Note the guard is kept here, at the caller side, rather than inside the `__noinline`
+ * `apply_dynamic_snaplen_port_range()`: this way a skipped message avoids the BPF subprogram call
+ * altogether. This matters for the sendmmsg/recvmmsg `bpf_loop()` callbacks, which would otherwise
+ * repeat the `fd -> file -> socket` walk once per message in the batch.
+ *
+ * @param snaplen pointer to the current snaplen value (may be raised)
+ * @param socket_fd the socket file descriptor (first syscall arg)
+ * @param sockaddr userspace sockaddr from the message header (may be NULL)
+ * @param bytes_to_capture number of bytes the caller is going to capture, or a negative value when
+ * the caller cannot know it upfront (in that case the logic is always applied)
+ */
+static __always_inline void apply_dynamic_snaplen_port_range_if_relevant(uint16_t *snaplen,
+                                                                         int32_t socket_fd,
+                                                                         struct sockaddr *sockaddr,
+                                                                         int64_t bytes_to_capture) {
+	if(bytes_to_capture >= 0 && bytes_to_capture <= (int64_t)*snaplen) {
+		return;
+	}
+	apply_dynamic_snaplen_port_range(snaplen, socket_fd, sockaddr);
 }
 
 /* We must always leave at least 4096 bytes free in our tmp scratch space
