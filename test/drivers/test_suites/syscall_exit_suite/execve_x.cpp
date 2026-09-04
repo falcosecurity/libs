@@ -193,11 +193,11 @@ TEST(SyscallExit, execveX_failure) {
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
 	 * PT_ABSTIME) */
-	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
+	evt_test->assert_abstime_param_in_the_past(25);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
 	 * PT_ABSTIME) */
-	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
+	evt_test->assert_abstime_param_in_the_past(26);
 
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
@@ -504,11 +504,11 @@ TEST(SyscallExit, execveX_failure_empty_arg) {
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
 	 * PT_ABSTIME) */
-	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
+	evt_test->assert_abstime_param_in_the_past(25);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
 	 * PT_ABSTIME) */
-	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
+	evt_test->assert_abstime_param_in_the_past(26);
 
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
