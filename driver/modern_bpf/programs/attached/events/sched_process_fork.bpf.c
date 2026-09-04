@@ -156,12 +156,13 @@ int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &extra_sched_proc_fork_calls, T1_SCHED_PROC_FORK);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sched_process_fork")
 int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *child) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -232,12 +233,13 @@ int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *ch
 	 * for the verifier (limit 1000000 instructions).
 	 */
 	bpf_tail_call(ctx, &extra_sched_proc_fork_calls, T2_SCHED_PROC_FORK);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sched_process_fork")
 int BPF_PROG(t2_sched_p_fork, struct task_struct *parent, struct task_struct *child) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}

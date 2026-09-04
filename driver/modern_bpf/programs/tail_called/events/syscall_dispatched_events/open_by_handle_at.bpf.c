@@ -35,6 +35,7 @@ int BPF_PROG(open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_OPEN_BY_HANDLE_AT_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
@@ -44,7 +45,7 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}

@@ -22,6 +22,8 @@ limitations under the License.
 #include "events_prog_table.h"
 #include "support_probing.h"
 #include <libscap/scap.h>
+#include <bpf/bpf.h>
+#include <string.h>
 
 /* Some exit events can require more than one bpf program to collect all the data. */
 static const char* sys_exit_extra_event_names[SYS_EXIT_EXTRA_CODE_MAX] = {
@@ -382,6 +384,8 @@ static int size_auxiliary_maps(const struct bpf_probe* probe, const uint32_t max
 		log_errorf("unable to set max entries for 'auxiliary_maps' to %d", max_entries);
 		return last_errno;
 	}
+	/* The probe searches the whole array when a build changed CPU, so it needs the bound. */
+	probe->rodata->g_auxmap_pool_entries = max_entries;
 	return 0;
 }
 
@@ -398,17 +402,189 @@ static int size_counter_maps(const struct bpf_probe* probe, const uint32_t max_e
 /* Here we split maps operations, before and after the loading phase.
  */
 
+/* Whether this kernel accepts the atomics added in 5.12, probed by loading a program that uses
+ * one. A version check would be wrong here: distributions backport, and what matters is only
+ * whether the verifier takes the opcode.
+ */
+static bool probe_bpf_atomics(void) {
+	/* r1 = 0; *(u64 *)(r10 - 8) = r1; r2 = 1; r0 = cmpxchg(r10 - 8, r0, r2); r0 = 0; exit */
+	struct bpf_insn insns[] = {
+	        {.code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_0, .imm = 0},
+	        {.code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_1, .imm = 0},
+	        {.code = BPF_STX | BPF_MEM | BPF_DW,
+	         .dst_reg = BPF_REG_10,
+	         .src_reg = BPF_REG_1,
+	         .off = -8},
+	        {.code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_2, .imm = 1},
+	        {.code = BPF_STX | BPF_ATOMIC | BPF_DW,
+	         .dst_reg = BPF_REG_10,
+	         .src_reg = BPF_REG_2,
+	         .off = -8,
+	         .imm = BPF_CMPXCHG},
+	        {.code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_0, .imm = 0},
+	        {.code = BPF_JMP | BPF_EXIT},
+	};
+
+	/* The instruction under test, and the only difference between this program and the control
+	 * below. */
+	const size_t atomic_insn = 4;
+	const size_t insn_cnt = sizeof(insns) / sizeof(insns[0]);
+
+	int fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
+	                       "auxmap_cas",
+	                       "Dual BSD/GPL",
+	                       insns,
+	                       insn_cnt,
+	                       NULL);
+	if(fd >= 0) {
+		close(fd);
+		return true;
+	}
+	const int atomic_errno = errno;
+
+	/* The load failed, and there is more than one reason it could have: the verifier refuses
+	 * the encoding before 5.12, a JIT refuses to compile it where the verifier accepts it
+	 * (arm64 took the fetching atomics only in 6.0), or this environment cannot load any BPF
+	 * program at all. The errno does not separate them reliably, and the difference matters,
+	 * because answering "no" is not a passive answer: it clears the flag *and* rewrites the
+	 * cmpxchg out of every program, which on a kernel that can preempt a build leaves
+	 * auxmap__claim() racy. Only a kernel that genuinely refuses the opcode may be answered
+	 * "no".
+	 *
+	 * So ask the same question again with the atomic replaced by the plain store the cleared
+	 * branch would have executed. Everything else -- program type, license, length, stack use,
+	 * absence of maps -- is identical, so if the control loads and the atomic did not, it is
+	 * the opcode; if neither loads, it is the environment, and the real load is about to fail
+	 * the same way and say so properly. */
+	insns[atomic_insn].code = BPF_STX | BPF_MEM | BPF_DW;
+	insns[atomic_insn].imm = 0;
+
+	fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
+	                   "auxmap_store",
+	                   "Dual BSD/GPL",
+	                   insns,
+	                   insn_cnt,
+	                   NULL);
+	if(fd < 0) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot probe for BPF atomics (%s); assuming they are supported. If this "
+		         "kernel does not have them, loading the probe will fail",
+		         strerror(atomic_errno));
+		return true;
+	}
+	close(fd);
+
+	log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+	         "no BPF atomics on this kernel (%s)",
+	         strerror(atomic_errno));
+	return false;
+}
+
+/* Tell the probe whether it has atomics, and where it does not, take the cmpxchg out of the
+ * programs altogether.
+ *
+ * The rodata flag alone is not enough. A verifier without the 5.12 atomics rejects
+ * `BPF_STX | BPF_ATOMIC` carrying a non-zero imm in a pass that runs before it walks a single
+ * instruction -- "BPF_STX uses reserved fields", 0 insns processed -- so it never reaches the
+ * branch the flag would have folded, and the whole object fails to load. The instruction has to
+ * be absent, not unreachable.
+ *
+ * Rewriting it as `*(u64 *)(dst + off) = src` is sound because auxmap__claim() holds the only
+ * atomic in the driver and it sits on the branch this function has just switched off: with the
+ * flag clear that code never runs, and the store is what the other branch does anyway. Only the
+ * cmpxchg encoding is rewritten, and any other atomic carrying an imm is an error rather than a
+ * silent rewrite, since a plain store does not implement it. An atomic with imm == 0 is the legacy
+ * bare add, which a pre-5.12 verifier accepts as it is; we emit none, and one would load fine.
+ */
+static int prepare_bpf_atomics(const struct bpf_probe* probe) {
+	if(probe_bpf_atomics()) {
+		probe->rodata->g_bpf_atomics = 1;
+		return 0;
+	}
+	probe->rodata->g_bpf_atomics = 0;
+
+	struct bpf_program* prog;
+	uint32_t rewritten = 0;
+
+	bpf_object__for_each_program(prog, probe->obj) {
+		const struct bpf_insn* insns = bpf_program__insns(prog);
+		const size_t insn_cnt = bpf_program__insn_cnt(prog);
+		struct bpf_insn* rewrite = NULL;
+
+		for(size_t i = 0; i < insn_cnt; i++) {
+			/* The second word of a 16-byte load carries no opcode, so step over it rather
+			 * than reading it as one. */
+			if(insns[i].code == (BPF_LD | BPF_IMM | BPF_DW)) {
+				i++;
+				continue;
+			}
+			if(BPF_CLASS(insns[i].code) != BPF_STX || BPF_MODE(insns[i].code) != BPF_ATOMIC ||
+			   insns[i].imm == 0) {
+				continue;
+			}
+			/* Only a cmpxchg may be taken out this way, and only because the branch holding it
+			 * is off. Every other atomic that carries an imm does something a plain store does
+			 * not -- a fetching add, an xchg, an and/or/xor -- so refuse to load rather than
+			 * strip it silently. */
+			if(insns[i].imm != BPF_CMPXCHG) {
+				log_errorf(
+				        "unexpected atomic instruction (code 0x%02x, imm 0x%x) at %zu of '%s': "
+				        "cannot run without the BPF atomics",
+				        insns[i].code,
+				        insns[i].imm,
+				        i,
+				        bpf_program__name(prog));
+				free(rewrite);
+				return -1;
+			}
+			if(!rewrite) {
+				rewrite = malloc(insn_cnt * sizeof(*rewrite));
+				if(!rewrite) {
+					log_errorf("unable to allocate instructions for '%s'", bpf_program__name(prog));
+					return -1;
+				}
+				memcpy(rewrite, insns, insn_cnt * sizeof(*rewrite));
+			}
+			rewrite[i].code = BPF_STX | BPF_MEM | BPF_SIZE(insns[i].code);
+			rewrite[i].imm = 0;
+			rewritten++;
+		}
+
+		if(rewrite) {
+			const int err = bpf_program__set_insns(prog, rewrite, insn_cnt);
+			free(rewrite);
+			if(err) {
+				log_errorf("unable to replace the atomics in '%s'", bpf_program__name(prog));
+				return err;
+			}
+		}
+	}
+
+	log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+	         "no BPF atomics on this kernel: %u instruction(s) rewritten as plain stores. "
+	         "Detection will continue to work, but the auxmap claim is no longer atomic, which "
+	         "is only safe on a kernel that cannot preempt a build mid-claim",
+	         rewritten);
+	return 0;
+}
+
 int pman_prepare_maps_before_loading() {
 	/* Read-only global variables must be set before loading phase. */
 	fill_event_params_table();
 	fill_ppm_sc_table();
 	fill_ia32_to_64_table();
 	fill_syscall_sampling_table();
+	int err = prepare_bpf_atomics(g_state.skel);
+	if(err) {
+		return err;
+	}
 
 	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY. The number of entries will be
 	 * always equal to the CPUs number, even if some of them are not online.
 	 */
-	int err = size_auxiliary_maps(g_state.skel, g_state.n_possible_cpus);
+	err = err
+	              ?: size_auxiliary_maps(g_state.skel,
+	                                     (uint32_t)g_state.n_possible_cpus * AUXMAP_POOL_DEPTH);
 	err = err ?: size_counter_maps(g_state.skel, g_state.n_possible_cpus);
 	return err;
 }
@@ -416,7 +592,8 @@ int pman_prepare_maps_before_loading() {
 #ifdef BPF_ITERATOR_SUPPORT
 // Variant of `pman_prepare_maps_before_loading()` used for testing BPF iterator programs support.
 int iter_support_probing__prepare_maps_before_loading(struct iter_support_probing_ctx* ctx) {
-	int err = size_auxiliary_maps(ctx->probe, 1);
+	int err = prepare_bpf_atomics(ctx->probe);
+	err = err ?: size_auxiliary_maps(ctx->probe, 1);
 	err = err ?: size_counter_maps(ctx->probe, 1);
 	return err;
 }

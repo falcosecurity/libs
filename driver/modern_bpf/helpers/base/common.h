@@ -44,3 +44,13 @@
 #endif
 
 /*=============================== DEBUG MACRO ===========================*/
+
+/*=============================== SINGLE ACCESS MACRO ===========================*/
+
+/* The kernel's own are not reachable from a BPF program: vmlinux.h is BTF-generated types, not
+ * <linux/compiler.h>. Same volatile access, same purpose.
+ */
+#define READ_ONCE(x) (*(const volatile typeof(x) *)&(x))
+#define WRITE_ONCE(x, val) (*(volatile typeof(x) *)&(x) = (val))
+
+/*=============================== SINGLE ACCESS MACRO ===========================*/

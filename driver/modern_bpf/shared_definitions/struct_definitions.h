@@ -18,6 +18,14 @@
  */
 #define AUXILIARY_MAP_SIZE 128 * 1024
 
+/* Segments of auxiliary map per CPU, so that a build keeps its own across a preemption while
+ * another runs on the same CPU. Userspace sizes the map from this.
+ */
+#define AUXMAP_POOL_DEPTH 2
+
+/* No segment, as an index into `auxiliary_maps`. */
+#define AUXMAP_POOL_NO_SLOT UINT32_MAX
+
 /**
  * @brief General settings shared among all the CPUs.
  *
@@ -47,6 +55,9 @@ struct auxiliary_map {
 	uint64_t payload_pos;             /* position of the first empty byte in the `data` buf. */
 	uint8_t lengths_pos; /* position the first empty slot into the lengths array of the event. */
 	uint16_t event_type; /* event type we want to send to userspace */
+	/* The task building an event in this segment, as bpf_get_current_pid_tgid(), or 0 when no
+	 * build is in flight. */
+	uint64_t owner;
 };
 
 /* These per-cpu maps are used to carry the number of drops and
@@ -75,6 +86,12 @@ struct counter_map {
 	uint64_t n_drops_buffer_close_exit;
 	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
+	uint64_t n_drops_auxmap_reentrancy;
+	uint64_t n_drops_auxmap_reentrancy_tail_call;
+	uint64_t n_drops_auxmap_pool_full;
+	/* Builds that resumed in a segment belonging to another CPU's pool, so not a drop: the
+	 * event was delivered. Non-zero means this kernel migrates a preempted filler. */
+	uint64_t n_auxmap_migrations;
 };
 
 /**

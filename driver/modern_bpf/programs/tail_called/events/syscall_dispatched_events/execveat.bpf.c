@@ -46,12 +46,13 @@ int BPF_PROG(execveat_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_EXECVEAT_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t1_execveat_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -111,12 +112,13 @@ int BPF_PROG(t1_execveat_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_EXECVEAT_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t2_execveat_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -197,12 +199,13 @@ int BPF_PROG(t2_execveat_x, struct pt_regs *regs, long ret) {
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T3_EXECVEAT_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t3_execveat_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}

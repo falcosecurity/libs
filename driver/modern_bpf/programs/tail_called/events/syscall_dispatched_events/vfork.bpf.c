@@ -124,12 +124,13 @@ int BPF_PROG(vfork_x, struct pt_regs *regs, long ret) {
 	 * for the verifier (limit 1000000 instructions).
 	 */
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_VFORK_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t1_vfork_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
@@ -168,12 +169,13 @@ int BPF_PROG(t1_vfork_x, struct pt_regs *regs, long ret) {
 	 * for the verifier (limit 1000000 instructions).
 	 */
 	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_VFORK_X);
+	auxmap__put(auxmap);
 	return 0;
 }
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t2_vfork_x, struct pt_regs *regs, long ret) {
-	struct auxiliary_map *auxmap = auxmap__get();
+	struct auxiliary_map *auxmap = auxmap__resume();
 	if(!auxmap) {
 		return 0;
 	}
