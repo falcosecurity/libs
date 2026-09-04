@@ -491,9 +491,10 @@ static bool probe_bpf_atomics(void) {
  *
  * Rewriting it as `*(u64 *)(dst + off) = src` is sound because auxmap__claim() holds the only
  * atomic in the driver and it sits on the branch this function has just switched off: with the
- * flag clear that code never runs, and the store is what the other branch does anyway. An atomic
- * with imm == 0 is a bare add, which a pre-5.12 verifier accepts; we emit none, and if one ever
- * appears its load will fail loudly rather than be quietly stripped of its atomicity.
+ * flag clear that code never runs, and the store is what the other branch does anyway. Only the
+ * cmpxchg encoding is rewritten, and any other atomic carrying an imm is an error rather than a
+ * silent rewrite, since a plain store does not implement it. An atomic with imm == 0 is the legacy
+ * bare add, which a pre-5.12 verifier accepts as it is; we emit none, and one would load fine.
  */
 static int prepare_bpf_atomics(const struct bpf_probe* probe) {
 	if(probe_bpf_atomics()) {
@@ -520,6 +521,21 @@ static int prepare_bpf_atomics(const struct bpf_probe* probe) {
 			if(BPF_CLASS(insns[i].code) != BPF_STX || BPF_MODE(insns[i].code) != BPF_ATOMIC ||
 			   insns[i].imm == 0) {
 				continue;
+			}
+			/* Only a cmpxchg may be taken out this way, and only because the branch holding it
+			 * is off. Every other atomic that carries an imm does something a plain store does
+			 * not -- a fetching add, an xchg, an and/or/xor -- so refuse to load rather than
+			 * strip it silently. */
+			if(insns[i].imm != BPF_CMPXCHG) {
+				log_errorf(
+				        "unexpected atomic instruction (code 0x%02x, imm 0x%x) at %zu of '%s': "
+				        "cannot run without the BPF atomics",
+				        insns[i].code,
+				        insns[i].imm,
+				        i,
+				        bpf_program__name(prog));
+				free(rewrite);
+				return -1;
 			}
 			if(!rewrite) {
 				rewrite = malloc(insn_cnt * sizeof(*rewrite));
