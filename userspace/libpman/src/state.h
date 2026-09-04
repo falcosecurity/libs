@@ -85,6 +85,14 @@ struct internal_state {
 	size_t log_buf_size;      /* size of the log buffer */
 	falcosecurity_log_fn log_fn;
 
+	bool creat_ttm_unavailable; /* If true, the `creat` TOCTOU mitigation tracepoint is not
+	                                  available on this kernel/arch (e.g. ARM64). Set the first time
+	                                  `pman_enforce_sc_set()` sees ENOENT attaching it, so later
+	                               calls skip the doomed attach instead of retrying and re-logging.
+	                             */
+	bool open_ttm_unavailable;  /* Same as `creat_ttm_unavailable`, for the `open` TOCTOU
+	                                  mitigation tracepoint. */
+
 #ifdef BPF_ITERATOR_SUPPORT
 
 	/* BPF iterator section */
