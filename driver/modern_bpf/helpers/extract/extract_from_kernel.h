@@ -350,9 +350,14 @@ static __always_inline void extract__ctime_from_inode(struct inode *f_inode,
 		return;
 	}
 
+	/* `BPF_CORE_READ_INTO()` reads `sizeof(*dst)` bytes, not the size of the field it names, so
+	 * `tv_nsec` cannot be the destination: it is a `long`, and reading 8 bytes at a `u32` field
+	 * takes `i_generation` along with it. */
 	struct inode___v6_11 *f_inode_v6_11 = (void *)f_inode;
+	uint32_t nsec = 0;
 	BPF_CORE_READ_INTO(&time->tv_sec, f_inode_v6_11, i_ctime_sec);
-	BPF_CORE_READ_INTO(&time->tv_nsec, f_inode_v6_11, i_ctime_nsec);
+	BPF_CORE_READ_INTO(&nsec, f_inode_v6_11, i_ctime_nsec);
+	time->tv_nsec = nsec;
 }
 
 /**
@@ -373,9 +378,13 @@ static __always_inline void extract__mtime_from_inode(struct inode *f_inode,
 		return;
 	}
 
+	/* A `u32` destination, for the reason given in extract__ctime_from_inode(): here the eight
+	 * bytes would carry `i_ctime_nsec` into the high half. */
 	struct inode___v6_11 *f_inode_v6_11 = (void *)f_inode;
+	uint32_t nsec = 0;
 	BPF_CORE_READ_INTO(&time->tv_sec, f_inode_v6_11, i_mtime_sec);
-	BPF_CORE_READ_INTO(&time->tv_nsec, f_inode_v6_11, i_mtime_nsec);
+	BPF_CORE_READ_INTO(&nsec, f_inode_v6_11, i_mtime_nsec);
+	time->tv_nsec = nsec;
 }
 
 /**
