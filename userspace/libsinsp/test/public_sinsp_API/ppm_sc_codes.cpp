@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
+#include <driver/syscall_compat.h>
 #include <libsinsp/sinsp.h>
 #include "../test_utils.h"
 
@@ -140,8 +141,10 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
         PPME_SYSCALL_SETRESGID_X,
         PPME_SYSCALL_SETRESUID_E,
         PPME_SYSCALL_SETRESUID_X,
+#ifdef __NR_setrlimit
         PPME_SYSCALL_SETRLIMIT_E,
         PPME_SYSCALL_SETRLIMIT_X,
+#endif
         PPME_SYSCALL_SETSID_E,
         PPME_SYSCALL_SETSID_X,
         PPME_SYSCALL_SETUID_E,
@@ -268,7 +271,9 @@ const libsinsp::events::set<ppm_sc_code> expected_sinsp_state_sc_set = {
         PPM_SC_SETRESGID32,
         PPM_SC_SETRESUID,
         PPM_SC_SETRESUID32,
+#ifdef __NR_setrlimit
         PPM_SC_SETRLIMIT,
+#endif
         PPM_SC_SETSID,
         PPM_SC_SETUID,
         PPM_SC_SETUID32,
