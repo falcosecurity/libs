@@ -1122,6 +1122,18 @@ template void event_test::assert_numeric_param<int16_t>(int, int16_t, assertion_
 template void event_test::assert_numeric_param<int32_t>(int, int32_t, assertion_operators);
 template void event_test::assert_numeric_param<int64_t>(int, int64_t, assertion_operators);
 
+void event_test::assert_abstime_param_in_the_past(int param_num) {
+	struct timespec now = {};
+	ASSERT_EQ(clock_gettime(CLOCK_REALTIME, &now), 0)
+	        << ">>>>> cannot read the current time." << std::endl;
+	const uint64_t now_ns =
+	        static_cast<uint64_t>(now.tv_sec) * 1000000000ULL + static_cast<uint64_t>(now.tv_nsec);
+
+	/* 2001-09-09 in nanoseconds: any real timestamp is above it, a dummy value is not. */
+	assert_numeric_param(param_num, static_cast<uint64_t>(1000000000000000000), GREATER_EQUAL);
+	assert_numeric_param(param_num, now_ns, LESS_EQUAL);
+}
+
 void event_test::assert_charbuf_param(int param_num, const char* param) {
 	assert_param_boundaries(param_num);
 	/* 'strlen()' does not include the terminating null byte while bpf adds it. */
