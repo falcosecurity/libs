@@ -41,7 +41,7 @@ sinsp_fdtable::sinsp_fdtable(const std::shared_ptr<ctor_params>& params):
 	reset_cache();
 }
 
-inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) const {
+const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd) const {
 	//
 	// Try looking up in our simple cache
 	//
@@ -132,7 +132,7 @@ bool sinsp_fdtable::detach_if_shared() {
 	return true;
 }
 
-inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
+const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(
         int64_t fd,
         std::shared_ptr<sinsp_fdinfo>&& fdinfo) {
 	fdinfo->m_fd = fd;
