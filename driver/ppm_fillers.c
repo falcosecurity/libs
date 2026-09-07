@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -7941,7 +7941,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args) {
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 	uint32_t flags = 0;
-	uint32_t euid = from_kuid(&init_user_ns, task_euid(child));
+	uint32_t euid = from_kuid(&init_user_ns, task_cred_xxx(child, euid));
 	uint32_t egid = from_kgid(&init_user_ns, child->cred->egid);
 	struct pid_namespace *pidns = task_active_pid_ns(child);
 	uint64_t pidns_init_start_time = 0;
