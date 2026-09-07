@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /*
-Copyright (C) 2024 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -532,8 +532,10 @@ TEST_F(scap_file_test, fcntl_x_check_final_converted_event) {
 	constexpr int64_t res = 0;
 	constexpr int64_t fd = 19;
 	constexpr uint8_t cmd = 5;
+	constexpr uint64_t arg = 0;  // Older events receive the converter's default value.
 
-	assert_event_presence(create_safe_scap_event(ts, tid, PPME_SYSCALL_FCNTL_X, 3, res, fd, cmd));
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SYSCALL_FCNTL_X, 4, res, fd, cmd, arg));
 }
 
 ////////////////////////////
