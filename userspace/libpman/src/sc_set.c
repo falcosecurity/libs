@@ -128,7 +128,7 @@ int pman_enforce_sc_set(bool* sc_set) {
 		ret = ret ?: detach_connect_toctou_mitigation_progs();
 
 	if(attach_creat_ttm_progs) {
-		if(!g_state.creat_ttm_unavailable) {
+		if(!g_state.creat_ttm_unavailable && ret == 0) {
 			const int err = attach_creat_toctou_mitigation_progs();
 			if(err == ENOENT) {
 				g_state.creat_ttm_unavailable = true;
@@ -140,7 +140,7 @@ int pman_enforce_sc_set(bool* sc_set) {
 	}
 
 	if(attach_open_ttm_progs) {
-		if(!g_state.open_ttm_unavailable) {
+		if(!g_state.open_ttm_unavailable && ret == 0) {
 			const int err = attach_open_toctou_mitigation_progs();
 			if(err == ENOENT) {
 				g_state.open_ttm_unavailable = true;
