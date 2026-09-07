@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -399,4 +399,94 @@ TEST(sinsp_utils_test, sinsp_split) {
 	EXPECT_EQ(split.size(), 2);
 	EXPECT_EQ(split[0], "");
 	EXPECT_EQ(split[1], "B");
+}
+
+TEST(sinsp_utils_test, concatenate_paths_under_the_gate_is_unaffected) {
+	std::string padded;
+	for(int i = 0; i < 100; i++) {
+		padded += "./";
+	}
+	padded += "foo/bar";
+	ASSERT_LT(1 + padded.length() + 1, SCAP_MAX_PATH_SIZE);
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths("/", padded));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_recovers_normalizing_long_paths) {
+	std::string padded;
+	for(int i = 0; i < 520; i++) {
+		padded += "./";
+	}
+	padded += "foo/bar";
+	ASSERT_GT(padded.length() + 1, SCAP_MAX_PATH_SIZE);
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths("/", padded));
+	EXPECT_EQ("/tmp/foo/bar", sinsp_utils::concatenate_paths("/tmp/", padded));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_still_rejects_genuinely_long_paths) {
+	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG",
+	          sinsp_utils::concatenate_paths("/", std::string(2048, 'a')));
+	// Inputs exceeding the scratch capacity are rejected before copying.
+	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG",
+	          sinsp_utils::concatenate_paths("/", std::string(16384, 'a')));
+	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG",
+	          sinsp_utils::concatenate_paths(std::string(9000, 'y') + "/", "foo/bar"));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_normalizes_long_absolute_paths) {
+	std::string padded = "/";
+	for(int i = 0; i < 520; i++) {
+		padded += "./";
+	}
+	padded += "foo/bar";
+	ASSERT_GT(padded.length() + 1, SCAP_MAX_PATH_SIZE);
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths("/ignored/", padded));
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths("", padded));
+	// An absolute second path also ignores a long first path.
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths(std::string(2048, 'a'), "/foo/bar"));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_normalized_length_boundaries) {
+	for(size_t length : {SCAP_MAX_PATH_SIZE - 1, SCAP_MAX_PATH_SIZE}) {
+		SCOPED_TRACE(length);
+		const std::string filename(length - 1, 'a');
+		const std::string expected =
+		        length < SCAP_MAX_PATH_SIZE ? "/" + filename : "/DIR_TOO_LONG/FILENAME_TOO_LONG";
+		// Include both sides of the fast-path gate, then force normalization
+		// through the slow branch for relative and absolute second paths.
+		EXPECT_EQ(expected, sinsp_utils::concatenate_paths("/", filename));
+		EXPECT_EQ(expected, sinsp_utils::concatenate_paths("/", "./" + filename));
+		EXPECT_EQ(expected, sinsp_utils::concatenate_paths("/ignored/", "/./" + filename));
+	}
+}
+
+TEST(sinsp_utils_test, concatenate_paths_raw_length_boundaries) {
+	const std::string path1 = "/";
+	std::string path2 = "foo/";
+	path2 += std::string(SCAP_MAX_PATH_CONCAT_SIZE - 1 - path1.size() - path2.size() - 3, '/');
+	path2 += "bar";
+	ASSERT_EQ(8192, path1.size() + path2.size());
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths(path1, path2));
+	// The absolute branch accepts the same total raw length.
+	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths("", path1 + path2));
+	path2 += '/';
+	ASSERT_EQ(8193, path1.size() + path2.size());
+	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG", sinsp_utils::concatenate_paths(path1, path2));
+	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG", sinsp_utils::concatenate_paths("", path1 + path2));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_long_parent_rewinds) {
+	// A long intermediate component can be removed before applying the limit.
+	const std::string component(2048, 'a');
+	EXPECT_EQ("/tmp/foo", sinsp_utils::concatenate_paths("/tmp/", component + "/../foo"));
+	EXPECT_EQ("/foo", sinsp_utils::concatenate_paths("/" + component + "/", "../foo"));
+	EXPECT_EQ("/foo", sinsp_utils::concatenate_paths("/ignored/", "/" + component + "/../foo"));
+	// Preserve the first path's raw spelling, just as the fast path does.
+	EXPECT_EQ("/tmp////foo",
+	          sinsp_utils::concatenate_paths("/tmp////" + component + "/", "../foo"));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_long_base_empty_second_path) {
+	const std::string path1(2048, 'a');
+	EXPECT_EQ("", sinsp_utils::concatenate_paths(path1, ""));
+	EXPECT_EQ("", sinsp_utils::concatenate_paths(path1, std::string_view{}));
 }
