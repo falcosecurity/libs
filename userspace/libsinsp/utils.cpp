@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -701,13 +701,50 @@ static inline void copy_and_normalize_path(char* target,
 	}
 }
 
+// Normalize longer inputs before applying the output limit. Normalization only
+// removes bytes, so a raw path that exceeds SCAP_MAX_PATH_SIZE can still fit.
+// Keep the larger scratch buffer out of concatenate_paths' fast-path frame.
+#if defined(__GNUC__)
+[[gnu::noinline]]
+#endif
+static std::string concatenate_paths_normalized(const char* path1_data,
+                                                const size_t path1_len,
+                                                const char* path2_data,
+                                                const size_t path2_len) {
+	// Bound the raw copy of path1 and the normalization work.
+	if(path1_len + path2_len + 1 > SCAP_MAX_PATH_CONCAT_SIZE) {
+		return "/DIR_TOO_LONG/FILENAME_TOO_LONG";
+	}
+
+	char target[SCAP_MAX_PATH_CONCAT_SIZE];
+	char* target_end = target + SCAP_MAX_PATH_CONCAT_SIZE;
+
+	// Preserve the fast path's behavior: path1 is copied without normalization.
+	if(path2_len != 0 && path2_data[0] != '/') {
+		memcpy(target, path1_data, path1_len);
+		copy_and_normalize_path(target + path1_len, target, target_end, path2_data, '/');
+	} else {
+		target[0] = 0;
+		if(path2_len != 0) {
+			copy_and_normalize_path(target, target, target_end, path2_data, '/');
+		}
+	}
+
+	// Apply the limit to the normalized result, including its terminator.
+	if(strlen(target) + 1 > SCAP_MAX_PATH_SIZE) {
+		return "/DIR_TOO_LONG/FILENAME_TOO_LONG";
+	}
+
+	return target;
+}
+
 std::string sinsp_utils::concatenate_paths(const std::string_view path1,
                                            const std::string_view path2) {
 	char target[SCAP_MAX_PATH_SIZE];
 	const auto path1_len = path1.length();
 	const auto path2_len = path2.length();
 	if(path1_len + path2_len + 1 > SCAP_MAX_PATH_SIZE) {
-		return "/DIR_TOO_LONG/FILENAME_TOO_LONG";
+		return concatenate_paths_normalized(path1.data(), path1_len, path2.data(), path2_len);
 	}
 
 	const auto path1_data = path1.data();

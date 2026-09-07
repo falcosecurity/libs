@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2024 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -200,3 +200,40 @@ static void BM_sinsp_utf8_sanitize_slow_path_all_invalid_long_noalloc(benchmark:
 	}
 }
 BENCHMARK(BM_sinsp_utf8_sanitize_slow_path_all_invalid_long_noalloc);
+
+// Long path that normalizes back under the limit, so it takes the new branch.
+// Built once, outside the loop, so the measurement is the concatenation and not
+// the construction of a 1KB-plus string.
+static void BM_sinsp_concatenate_paths_long_normalizing_path(benchmark::State& state) {
+	std::string path2;
+	for(int i = 0; i < 520; i++) {
+		path2 += "./";
+	}
+	path2 += "foo/bar";
+	const std::string path1 = "/tmp/";
+	for(auto _ : state) {
+		benchmark::DoNotOptimize(sinsp_utils::concatenate_paths(path1, path2));
+	}
+}
+BENCHMARK(BM_sinsp_concatenate_paths_long_normalizing_path);
+
+// Long path that is still over the limit after normalizing, so it reaches the
+// marker by the longer route.
+static void BM_sinsp_concatenate_paths_too_long_path(benchmark::State& state) {
+	const std::string path1 = "/tmp/";
+	const std::string path2(2048, 'a');
+	for(auto _ : state) {
+		benchmark::DoNotOptimize(sinsp_utils::concatenate_paths(path1, path2));
+	}
+}
+BENCHMARK(BM_sinsp_concatenate_paths_too_long_path);
+
+// Past the scratch entirely, rejected on length without any copying.
+static void BM_sinsp_concatenate_paths_beyond_scratch(benchmark::State& state) {
+	const std::string path1 = "/tmp/";
+	const std::string path2(16384, 'a');
+	for(auto _ : state) {
+		benchmark::DoNotOptimize(sinsp_utils::concatenate_paths(path1, path2));
+	}
+}
+BENCHMARK(BM_sinsp_concatenate_paths_beyond_scratch);
