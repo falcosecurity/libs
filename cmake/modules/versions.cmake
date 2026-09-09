@@ -48,8 +48,7 @@ function(get_shared_libs_versions _var _sovar)
 		${sl_ver}
 		PARENT_SCOPE
 	)
-	string(REPLACE "." ";" sl_ver_list ${sl_ver})
-	list(GET sl_ver_list 0 so_ver)
+	string(REGEX MATCH "^[0-9]+\\.[0-9]+" so_ver ${sl_ver})
 	set(${_sovar}
 		${so_ver}
 		PARENT_SCOPE
