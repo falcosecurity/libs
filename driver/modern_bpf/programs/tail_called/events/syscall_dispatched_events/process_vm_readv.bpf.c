@@ -38,7 +38,7 @@ int BPF_PROG(process_vm_readv_x, struct pt_regs *regs, long ret) {
 		        .evt_type = PPME_SYSCALL_PROCESS_VM_READV_X,
 		};
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
+		apply_dynamic_snaplen_if_relevant(regs, &snaplen, &snaplen_args, ret);
 		if(snaplen > ret) {
 			snaplen = ret;
 		}

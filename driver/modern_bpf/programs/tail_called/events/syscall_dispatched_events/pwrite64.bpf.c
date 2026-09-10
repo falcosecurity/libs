@@ -35,7 +35,7 @@ int BPF_PROG(pwrite64_x, struct pt_regs *regs, long ret) {
 	size_t size = extract__syscall_argument(regs, 2);
 	int64_t bytes_to_read = ret > 0 ? ret : size;
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
+	apply_dynamic_snaplen_if_relevant(regs, &snaplen, &snaplen_args, bytes_to_read);
 	if((int64_t)snaplen > bytes_to_read) {
 		snaplen = bytes_to_read;
 	}

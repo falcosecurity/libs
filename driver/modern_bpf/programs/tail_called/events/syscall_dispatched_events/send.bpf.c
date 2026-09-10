@@ -34,7 +34,6 @@ int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 	        .evt_type = PPME_SOCKET_SEND_X,
 	};
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
 
 	/* Extract size syscall parameter */
 	uint32_t size = (uint32_t)args[2];
@@ -43,6 +42,7 @@ int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 	 * otherwise we need to rely on the syscall parameter provided by the user */
 	int64_t bytes_to_read = ret > 0 ? ret : (int64_t)size;
 
+	apply_dynamic_snaplen_if_relevant(regs, &snaplen, &snaplen_args, bytes_to_read);
 	if((int64_t)snaplen > bytes_to_read) {
 		snaplen = bytes_to_read;
 	}
