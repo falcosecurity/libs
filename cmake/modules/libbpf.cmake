@@ -68,8 +68,8 @@ else()
 			DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1
 			# -Wno-error=discarded-qualifiers can be removed once we update to libbpf 1.7.0 or later
 			"EXTRA_CFLAGS=-fPIC ${LIBELF_COMPILER_STRING} -I${ZLIB_INCLUDE} -Wno-error=discarded-qualifiers"
-			"LDFLAGS=-Wl,-Bstatic" "EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C
-			${LIBBPF_SRC}/libbpf/src install install_uapi_headers
+			"LDFLAGS=-Wl,-Bstatic" "EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}/lib"
+			-C ${LIBBPF_SRC}/libbpf/src install install_uapi_headers
 		INSTALL_COMMAND ""
 		UPDATE_COMMAND ""
 		BUILD_BYPRODUCTS ${LIBBPF_LIB}
