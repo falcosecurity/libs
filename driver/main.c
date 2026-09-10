@@ -2622,7 +2622,7 @@ static int scap_init(void) {
 	unsigned int cpu;
 	unsigned int num_cpus;
 	int ret;
-	int acrret = 0;
+	int acrret = -1;
 	int j;
 	int n_created_devices = 0;
 	struct device *device = NULL;
