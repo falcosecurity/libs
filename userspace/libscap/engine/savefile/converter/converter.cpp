@@ -760,17 +760,12 @@ static conversion_result convert_event(std::unordered_map<uint64_t, safe_scap_ev
 				break;
 			}
 
-			// todo!: understand if we can pretend this is an error or it is a normal situation.
 			if(tmp_evt->type != evt_to_convert->type - 1) {
-				scap_errprintf(
-				        error,
-				        0,
-				        "The enter event for '%s_%c' is not the right one! Event found '%s_%c'.",
-				        get_event_name((ppm_event_code)evt_to_convert->type),
-				        get_direction_char((ppm_event_code)evt_to_convert->type),
-				        get_event_name((ppm_event_code)tmp_evt->type),
-				        get_direction_char((ppm_event_code)tmp_evt->type));
-				return CONVERSION_ERROR;
+				// An unmatched cached enter is unavailable for this exit. Discard it so
+				// later exits cannot reuse it, then use the missing-enter fallback below.
+				clear_evt(evt_storage, evt_to_convert->tid);
+				tmp_evt = nullptr;
+				break;
 			}
 
 			if(tmp_evt->nparams <= instr.param_num) {
