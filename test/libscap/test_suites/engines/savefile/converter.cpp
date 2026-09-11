@@ -8567,3 +8567,135 @@ TEST_F(convert_event_test, PPME_SYSCALL_SIGNALFD4_X_2_to_4_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SIGNALFD4_X, 2, res, flags),
 	        create_safe_scap_event(ts, tid, PPME_SYSCALL_SIGNALFD4_X, 4, res, flags, fd, mask));
 }
+
+////////////////////////////
+// MISMATCHED ENTER EVENTS
+////////////////////////////
+
+TEST_F(convert_event_test, issue3105_read_enter_before_mmap_exit) {
+	constexpr uint64_t tid = 25;
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(1, tid, PPME_SYSCALL_READ_E, 2, int64_t{123}, uint32_t{456})));
+	assert_full_conversion(create_safe_scap_event(2,
+	                                              tid,
+	                                              PPME_SYSCALL_MMAP_X,
+	                                              4,
+	                                              int64_t{89},
+	                                              uint32_t{21},
+	                                              uint32_t{22},
+	                                              uint32_t{23}),
+	                       create_safe_scap_event(2,
+	                                              tid,
+	                                              PPME_SYSCALL_MMAP_X,
+	                                              10,
+	                                              int64_t{89},
+	                                              uint32_t{21},
+	                                              uint32_t{22},
+	                                              uint32_t{23},
+	                                              uint64_t{0},
+	                                              uint64_t{0},
+	                                              uint32_t{0},
+	                                              uint32_t{0},
+	                                              int64_t{0},
+	                                              uint64_t{0}));
+}
+
+TEST_F(convert_event_test, issue3105_nanosleep_enter_before_futex_exit) {
+	constexpr uint64_t tid = 25;
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(1, tid, PPME_SYSCALL_NANOSLEEP_E, 1, uint64_t{123})));
+	assert_full_conversion(create_safe_scap_event(2, tid, PPME_SYSCALL_FUTEX_X, 1, int64_t{89}),
+	                       create_safe_scap_event(2,
+	                                              tid,
+	                                              PPME_SYSCALL_FUTEX_X,
+	                                              4,
+	                                              int64_t{89},
+	                                              uint64_t{0},
+	                                              uint16_t{0},
+	                                              uint64_t{0}));
+}
+
+TEST_F(convert_event_test, issue3105_wrong_enter_with_enough_parameters) {
+	constexpr uint64_t tid = 25;
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(1, tid, PPME_SYSCALL_READ_E, 2, int64_t{123}, uint32_t{456})));
+	assert_full_conversion(
+	        create_safe_scap_event(2, tid, PPME_SYSCALL_CLOSE_X, 1, int64_t{0}),
+	        create_safe_scap_event(2, tid, PPME_SYSCALL_CLOSE_X, 2, int64_t{0}, int64_t{0}));
+}
+
+TEST_F(convert_event_test, issue3105_mismatch_preserves_empty_fallback) {
+	constexpr uint64_t tid = 25;
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(1, tid, PPME_SYSCALL_READ_E, 2, int64_t{123}, uint32_t{456})));
+	SCAP_EMPTY_PARAMS_SET(empty_params, 1);
+	assert_full_conversion(create_safe_scap_event(2, tid, PPME_GENERIC_X, 1, uint16_t{10}),
+	                       create_safe_scap_event_with_empty_params(2,
+	                                                                tid,
+	                                                                PPME_GENERIC_X,
+	                                                                &empty_params,
+	                                                                2,
+	                                                                uint16_t{10},
+	                                                                uint16_t{0}));
+}
+
+TEST_F(convert_event_test, issue3105_rejected_enter_cannot_reappear) {
+	constexpr uint64_t tid = 25;
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(1, tid, PPME_SYSCALL_READ_E, 2, int64_t{123}, uint32_t{456})));
+	ASSERT_NO_FATAL_FAILURE(assert_full_conversion(
+	        create_safe_scap_event(2, tid, PPME_SYSCALL_CLOSE_X, 1, int64_t{0}),
+	        create_safe_scap_event(2, tid, PPME_SYSCALL_CLOSE_X, 2, int64_t{0}, int64_t{0})));
+	EXPECT_EQ(scap_retrieve_evt_from_converter_storage(m_converter_buf, tid), nullptr);
+	constexpr char data[] = "hello";
+	assert_full_conversion(create_safe_scap_event(3,
+	                                              tid,
+	                                              PPME_SYSCALL_READ_X,
+	                                              2,
+	                                              int64_t{5},
+	                                              scap_const_sized_buffer{data, sizeof(data)}),
+	                       create_safe_scap_event(3,
+	                                              tid,
+	                                              PPME_SYSCALL_READ_X,
+	                                              4,
+	                                              int64_t{5},
+	                                              scap_const_sized_buffer{data, sizeof(data)},
+	                                              int64_t{0},
+	                                              uint32_t{0}));
+}
+
+TEST_F(convert_event_test, issue3105_other_thread_and_fresh_pair_preserved) {
+	constexpr uint64_t tid = 25;
+	constexpr uint64_t other_tid = 26;
+	const auto other_enter = create_safe_scap_event(1,
+	                                                other_tid,
+	                                                PPME_SYSCALL_FUTEX_E,
+	                                                3,
+	                                                uint64_t{123},
+	                                                uint16_t{15},
+	                                                uint64_t{456});
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(other_enter));
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(2, tid, PPME_SYSCALL_READ_E, 2, int64_t{123}, uint32_t{456})));
+	ASSERT_NO_FATAL_FAILURE(assert_full_conversion(
+	        create_safe_scap_event(3, tid, PPME_SYSCALL_CLOSE_X, 1, int64_t{0}),
+	        create_safe_scap_event(3, tid, PPME_SYSCALL_CLOSE_X, 2, int64_t{0}, int64_t{0})));
+	ASSERT_NO_FATAL_FAILURE(assert_event_storage_presence(other_enter));
+	ASSERT_NO_FATAL_FAILURE(assert_full_conversion(
+	        create_safe_scap_event(4, other_tid, PPME_SYSCALL_FUTEX_X, 1, int64_t{89}),
+	        create_safe_scap_event(4,
+	                               other_tid,
+	                               PPME_SYSCALL_FUTEX_X,
+	                               4,
+	                               int64_t{89},
+	                               uint64_t{123},
+	                               uint16_t{15},
+	                               uint64_t{456})));
+	EXPECT_EQ(scap_retrieve_evt_from_converter_storage(m_converter_buf, other_tid), nullptr);
+	ASSERT_NO_FATAL_FAILURE(assert_single_conversion_drop(
+	        create_safe_scap_event(5, tid, PPME_SYSCALL_CLOSE_E, 1, int64_t{77})));
+	ASSERT_NO_FATAL_FAILURE(assert_full_conversion(
+	        create_safe_scap_event(6, tid, PPME_SYSCALL_CLOSE_X, 1, int64_t{0}),
+	        create_safe_scap_event(6, tid, PPME_SYSCALL_CLOSE_X, 2, int64_t{0}, int64_t{77})));
+	EXPECT_EQ(scap_retrieve_evt_from_converter_storage(m_converter_buf, tid), nullptr);
+}
