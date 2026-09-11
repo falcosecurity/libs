@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2026 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,27 @@ limitations under the License.
 #include <libsinsp/filterchecks.h>
 #include <libsinsp/eventformatter.h>
 #include <libsinsp/filter/parser.h>
+#include <libsinsp/utils.h>
 
 static constexpr const char* s_not_available_str = "<NA>";
+
+// Sanitize string values before JsonCpp can consume valid bytes after an invalid UTF-8 sequence.
+static void sanitize_json_strings(Json::Value& value) {
+	const char* begin = nullptr;
+	const char* end = nullptr;
+	if(value.getString(&begin, &end)) {
+		std::string storage;
+		const auto sanitized =
+		        utf8::sanitize(std::string_view(begin, static_cast<size_t>(end - begin)), storage);
+		if(sanitized.data() != begin) {
+			value = Json::Value(sanitized.data(), sanitized.data() + sanitized.size());
+		}
+	} else if(value.isArray() || value.isObject()) {
+		for(auto& child : value) {
+			sanitize_json_strings(child);
+		}
+	}
+}
 
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, filter_check_list& available_checks):
         m_inspector(inspector),
@@ -215,7 +234,9 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt,
 				retval = false;
 				break;
 			}
+			// Keep the second extraction: some fields update state on each call.
 			m_root[t.name] = t.token->tojson(evt);
+			sanitize_json_strings(m_root[t.name]);
 		}
 		output = m_writer.write(m_root);
 		output = output.substr(0, output.size() - 1);
