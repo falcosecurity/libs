@@ -74,6 +74,7 @@ jobs:
     if: ${{ needs.release-settings.outputs.is_latest_libs == 'true' }} # Only for latest libs releases.
     permissions:
       contents: write
+      pull-requests: read # rn2md lists the merged PRs
     runs-on: ubuntu-24.04
     steps:
       - name: Clone repo
@@ -103,7 +104,7 @@ jobs:
           echo "" >> release-body.md
 
       - name: Generate release notes
-        uses: leodido/rn2md@9c351d81278644c0e17b1ca68edbdba305276c73
+        uses: ekoops/rn2md@a30974f3c228cbca9409a3bb5b6eb17a2eeb9f71 # leodido/rn2md#15, until it is merged upstream
         with:
           milestone: ${{ github.event.release.tag_name }}
           output: ./notes.md
@@ -136,6 +137,7 @@ jobs:
     if: ${{ needs.release-settings.outputs.is_latest_drivers == 'true' }} # Only for latest drivers releases.
     permissions:
       contents: write
+      pull-requests: read # rn2md lists the merged PRs
     runs-on: ubuntu-24.04
     steps:
       - name: Clone libs repo
@@ -208,7 +210,7 @@ jobs:
           cat matrix_X64.md matrix_ARM64.md >> release-body.md
 
       - name: Generate release notes
-        uses: leodido/rn2md@9c351d81278644c0e17b1ca68edbdba305276c73 # main
+        uses: ekoops/rn2md@a30974f3c228cbca9409a3bb5b6eb17a2eeb9f71 # leodido/rn2md#15, until it is merged upstream
         with:
           milestone: ${{ github.event.release.tag_name }}
           output: ./notes.md
