@@ -374,6 +374,20 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	ASSERT_FALSE(field_has_value(evt, "fd.name", filterlist));
 	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname", filterlist), src_pl->name());
 	ASSERT_EQ(get_field_as_string(evt, "sample.hello", filterlist), "hello world");
+	ASSERT_FALSE(field_has_value(evt, "sample.absent", filterlist));
+
+	static bool extraction_failure_logged;
+	extraction_failure_logged = false;
+	libsinsp_logger()->add_callback_log([](std::string&& message, sinsp_logger::severity severity) {
+		extraction_failure_logged = true;
+		EXPECT_EQ(severity, sinsp_logger::SEV_ERROR);
+		EXPECT_NE(message.find("plugin 'sample_plugin_extract' field extraction failed: test "
+		                       "extraction failure"),
+		          std::string::npos);
+	});
+	ASSERT_FALSE(field_has_value(evt, "sample.failure", filterlist));
+	libsinsp_logger()->remove_callback_log();
+	ASSERT_TRUE(extraction_failure_logged);
 
 	auto offset = get_value_offset_start(evt, "sample.hello", filterlist, 0);
 	ASSERT_EQ(offset, PLUGIN_EVENT_PAYLOAD_OFFSET);

@@ -66,7 +66,9 @@ const char* plugin_get_contact() {
 const char* plugin_get_fields() {
 	return "["
 	       "{\"type\": \"string\", \"name\": \"sample.hello\", \"desc\": \"A constant hello world "
-	       "string\", \"addOutput\": true}"
+	       "string\", \"addOutput\": true},"
+	       "{\"type\": \"string\", \"name\": \"sample.absent\", \"desc\": \"An absent field\"},"
+	       "{\"type\": \"string\", \"name\": \"sample.failure\", \"desc\": \"A failing field\"}"
 	       "]";
 }
 
@@ -153,6 +155,12 @@ ss_plugin_rc plugin_extract_fields(ss_plugin_t* s,
 				ps->lengths[i] = res_length;
 			}
 		} break;
+		case 1:  // sample.absent
+			in->fields[i].res_len = 0;
+			break;
+		case 2:  // sample.failure
+			ps->lasterr = "test extraction failure";
+			return SS_PLUGIN_FAILURE;
 		default:
 			in->fields[i].res_len = 0;
 			return SS_PLUGIN_FAILURE;

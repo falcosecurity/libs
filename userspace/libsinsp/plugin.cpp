@@ -1082,14 +1082,19 @@ bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
 	m_extract_input.num_fields = num_fields;
 	m_extract_input.fields = fields;
 	m_extract_input.value_offsets = value_offsets;
-	auto res = m_handle->api.extract_fields(m_state, &ev, &m_extract_input) == SS_PLUGIN_SUCCESS;
+	auto rc = m_handle->api.extract_fields(m_state, &ev, &m_extract_input);
+	if(rc != SS_PLUGIN_SUCCESS) {
+		libsinsp_logger()->log(
+		        "plugin '" + name() + "' field extraction failed: " + get_last_error(),
+		        sinsp_logger::SEV_ERROR);
+	}
 
 	// do some defensive garbage collection
 	clear_ephemeral_tables();
 	clear_accessed_entries();
 	clear_created_entries();
 
-	return res;
+	return rc == SS_PLUGIN_SUCCESS;
 }
 
 bool sinsp_plugin::extract_fields(sinsp_evt* evt,
