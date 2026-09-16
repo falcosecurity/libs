@@ -1084,9 +1084,8 @@ bool sinsp_plugin::extract_fields_and_offsets(sinsp_evt* evt,
 	m_extract_input.value_offsets = value_offsets;
 	auto rc = m_handle->api.extract_fields(m_state, &ev, &m_extract_input);
 	if(rc != SS_PLUGIN_SUCCESS) {
-		libsinsp_logger()->log(
-		        "plugin '" + name() + "' field extraction failed: " + get_last_error(),
-		        sinsp_logger::SEV_ERROR);
+		auto error = "field extraction failed: " + get_last_error();
+		plugin_log_fn(this, nullptr, error.c_str(), SS_PLUGIN_LOG_SEV_ERROR);
 	}
 
 	// do some defensive garbage collection
