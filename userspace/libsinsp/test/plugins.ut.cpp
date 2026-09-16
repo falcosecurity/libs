@@ -381,8 +381,8 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	libsinsp_logger()->add_callback_log([](std::string&& message, sinsp_logger::severity severity) {
 		extraction_failure_logged = true;
 		EXPECT_EQ(severity, sinsp_logger::SEV_ERROR);
-		EXPECT_NE(message.find("plugin 'sample_plugin_extract' field extraction failed: test "
-		                       "extraction failure"),
+		EXPECT_NE(message.find("sample_plugin_extract: field extraction failed: test extraction "
+		                       "failure"),
 		          std::string::npos);
 	});
 	ASSERT_FALSE(field_has_value(evt, "sample.failure", filterlist));
