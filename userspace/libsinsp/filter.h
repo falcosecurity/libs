@@ -79,6 +79,14 @@ public:
 	void replace_last_check(std::unique_ptr<sinsp_filter_check> chk);
 
 	//
+	// Take over the children of a first child that combines them the way this expression
+	// combines its own: "(a and b) and c" is "a and b and c", one level instead of two. The
+	// compiler flattens same-operator nesting everywhere else, but not here -- the first child
+	// of a chain is compiled before the operator that joins it to its siblings is known.
+	//
+	void splice_first_child_group();
+
+	//
 	// An expression is consistent if all its checks are of the same type (or/and).
 	//
 	// This method returns the expression operator (BO_AND/BO_OR/BO_NONE) if the

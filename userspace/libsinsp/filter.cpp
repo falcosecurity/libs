@@ -83,6 +83,52 @@ void sinsp_filter_expression::replace_last_check(std::unique_ptr<sinsp_filter_ch
 	m_children_resolved = false;
 }
 
+void sinsp_filter_expression::splice_first_child_group() {
+	assert_not_on_cached_path();
+	while(m_checks.size() >= 2) {
+		// What this expression does with its children, which is what the group would have to be
+		// doing with its own for the two to be one and the same.
+		const auto chain = get_expr_boolop();
+		if(chain != BO_AND && chain != BO_OR) {
+			return;
+		}
+
+		auto* group = dynamic_cast<sinsp_filter_expression*>(m_checks[0].get());
+		if(group == nullptr || group->get_expr_boolop() != chain) {
+			return;
+		}
+
+		// A group of one is a pass-through and is folded elsewhere; a negated one means
+		// something else entirely, since the not applies to the group and not to its first
+		// child. Its own boolop must say nothing, which a first child's does.
+		if(group->m_checks.size() < 2 || group->m_boolop != BO_NONE) {
+			return;
+		}
+
+		// The group's children arrive with the operators they had: its first carries none,
+		// which is what a first child needs, and the rest carry the operator this expression
+		// uses anyway. So they can simply be laid out in front of the rest.
+		std::vector<std::unique_ptr<sinsp_filter_check>> spliced;
+		spliced.reserve(group->m_checks.size() + m_checks.size() - 1);
+		for(auto& chk : group->m_checks) {
+			if(auto* expr = dynamic_cast<sinsp_filter_expression*>(chk.get()); expr != nullptr) {
+				expr->m_parent = this;
+			}
+			spliced.push_back(std::move(chk));
+		}
+		group->m_checks.clear();
+
+		for(size_t j = 1; j < m_checks.size(); j++) {
+			spliced.push_back(std::move(m_checks[j]));
+		}
+
+		// This frees the group, so nothing may touch it afterwards.
+		m_checks = std::move(spliced);
+		m_child_ops.clear();
+		m_children_resolved = false;
+	}
+}
+
 void sinsp_filter_expression::resolve_children() {
 	m_child_ops.clear();
 	m_child_ops.reserve(m_checks.size());
@@ -192,6 +238,10 @@ void sinsp_filter::pop_expression() {
 	if(expr->is_pass_through()) {
 		ASSERT(m_curexpr->get_checks().back().get() == expr);
 		m_curexpr->replace_last_check(expr->release_only_child());
+	} else {
+		// Otherwise it may be holding a bracketed group that says what it says: one level of
+		// and inside another is one and.
+		expr->splice_first_child_group();
 	}
 }
 

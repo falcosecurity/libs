@@ -243,6 +243,24 @@ TEST(sinsp_filter_compiler, boolean_evaluation) {
 	test_filter_run(true, "not (c.false=1 or c.false=1 and not c.true=1)");
 	test_filter_run(false, "not (c.false=1 or not c.false=1 and c.true=1)");
 	test_filter_run(false, "not ((c.false=1 or not (c.false=1 and not c.true=1)) and c.true=1)");
+
+	// A bracketed group in front of an operator that is its own becomes one expression with it,
+	// so these say that joining the two changes nothing -- including where it must not happen,
+	// because the operators differ or because the group is negated.
+	test_filter_run(true, "(c.true=1 and c.true=1) and c.true=1");
+	test_filter_run(false, "(c.true=1 and c.true=1) and c.false=1");
+	test_filter_run(false, "(c.true=1 and c.false=1) and c.true=1");
+	test_filter_run(false, "(c.false=1 and c.true=1) and c.true=1");
+	test_filter_run(true, "((c.true=1 and c.true=1) and c.true=1) and c.true=1");
+	test_filter_run(false, "((c.true=1 and c.false=1) and c.true=1) and c.true=1");
+	test_filter_run(true, "(c.false=1 or c.true=1) or c.false=1");
+	test_filter_run(false, "(c.false=1 or c.false=1) or c.false=1");
+	test_filter_run(true, "(c.true=1 or c.false=1) and c.true=1");
+	test_filter_run(false, "(c.true=1 or c.false=1) and c.false=1");
+	test_filter_run(true, "(c.false=1 and c.true=1) or c.true=1");
+	test_filter_run(false, "not (c.true=1 and c.true=1) and c.true=1");
+	test_filter_run(true, "not (c.true=1 and c.false=1) and c.true=1");
+	test_filter_run(true, "not (c.false=1 or c.false=1) and c.true=1");
 }
 
 // A mock filtercheck that counts the times it was asked, so that a test can tell "this check
@@ -361,6 +379,41 @@ TEST(sinsp_filter_expression, a_not_around_one_check_costs_no_level) {
 	ASSERT_EQ(dynamic_cast<sinsp_filter_expression*>(and_expr->get_checks()[1].get()), nullptr);
 
 	ASSERT_TRUE(filter->run(NULL));
+}
+
+// A bracketed group that combines its checks the way the expression around it does is that
+// expression: "(a and b) and c" holds three checks at one level, not two levels. The compiler
+// flattens nesting of the same operator everywhere but here, so this asserts the shape -- and
+// asserts that a group joined by a different operator, or a negated one, keeps its level, since
+// there the flattening would change what the filter means.
+TEST(sinsp_filter_expression, a_group_of_the_same_operator_is_one_level) {
+	sinsp inspector;
+	auto factory = std::make_shared<mock_compiler_filter_factory>(&inspector);
+
+	const auto level_of = [&factory](const std::string& filter_str) {
+		sinsp_filter_compiler compiler(factory, filter_str);
+		auto filter = compiler.compile();
+		auto* top = dynamic_cast<sinsp_filter_expression*>(filter->m_filter->get_checks()[0].get());
+		EXPECT_NE(top, nullptr) << filter_str;
+		size_t checks = 0, groups = 0;
+		for(const auto& chk : top->get_checks()) {
+			checks++;
+			if(dynamic_cast<sinsp_filter_expression*>(chk.get()) != nullptr) {
+				groups++;
+			}
+		}
+		return std::make_pair(checks, groups);
+	};
+
+	// Same operator: one level of three checks, no group left in it.
+	ASSERT_EQ(level_of("(c.true=1 and c.true=1) and c.true=1"), std::make_pair(3ul, 0ul));
+	ASSERT_EQ(level_of("(c.true=1 or c.true=1) or c.true=1"), std::make_pair(3ul, 0ul));
+	// Four checks over two brackets flatten all the way, one splice per bracket.
+	ASSERT_EQ(level_of("((c.true=1 and c.true=1) and c.true=1) and c.true=1"),
+	          std::make_pair(4ul, 0ul));
+	// A different operator, or a negation, keeps the group: it means something else.
+	ASSERT_EQ(level_of("(c.true=1 or c.true=1) and c.true=1"), std::make_pair(2ul, 1ul));
+	ASSERT_EQ(level_of("not (c.true=1 and c.true=1) and c.true=1"), std::make_pair(2ul, 1ul));
 }
 
 TEST(sinsp_filter_compiler, str_escape) {
