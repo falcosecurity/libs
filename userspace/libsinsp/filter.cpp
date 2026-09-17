@@ -46,12 +46,14 @@ limitations under the License.
 // sinsp_filter_expression implementation
 ///////////////////////////////////////////////////////////////////////////////
 void sinsp_filter_expression::add_check(std::unique_ptr<sinsp_filter_check> chk) {
+	assert_not_on_cached_path();
 	m_checks.push_back(std::move(chk));
 	m_children_resolved = false;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_expression::release_only_child() {
 	ASSERT(is_pass_through());
+	assert_not_on_cached_path();
 
 	auto child = std::move(m_checks[0]);
 	m_checks.clear();
@@ -76,6 +78,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_expression::release_only_child(
 
 void sinsp_filter_expression::replace_last_check(std::unique_ptr<sinsp_filter_check> chk) {
 	ASSERT(!m_checks.empty());
+	assert_not_on_cached_path();
 	m_checks.back() = std::move(chk);
 	m_children_resolved = false;
 }
@@ -178,6 +181,7 @@ void sinsp_filter::pop_expression() {
 		        "expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
 	}
 
+	invalidate_entry();
 	auto* expr = m_curexpr;
 	m_curexpr = expr->m_parent;
 
@@ -191,11 +195,63 @@ void sinsp_filter::pop_expression() {
 	}
 }
 
+// Before the tree changes, not after: the change itself asserts it is not restructuring a
+// path the filter cached through.
+void sinsp_filter::invalidate_entry() {
+	if(m_entry == nullptr) {
+		return;
+	}
+	for(auto* expr = dynamic_cast<sinsp_filter_expression*>(m_filter.get());
+	    expr != nullptr && expr->m_on_cached_path;
+	    expr = expr->is_pass_through()
+	                   ? dynamic_cast<sinsp_filter_expression*>(expr->get_checks()[0].get())
+	                   : nullptr) {
+		expr->m_on_cached_path = false;
+	}
+	m_entry = nullptr;
+}
+
+// Runs once per filter, and keeping it out of run()'s frame is the point of the whole change:
+// inlined here, its casts and its loop cost run() six register saves on every event, which is
+// most of the level it removes.
+#if defined(__GNUC__)
+[[gnu::noinline]]
+#endif
+void sinsp_filter::resolve_entry() {
+	sinsp_filter_check* entry = m_filter.get();
+	bool negate = false;
+
+	// A pass-through expression runs one child and forwards its answer, so evaluation can start
+	// at that child and leave the level out. The root is one of those: it holds nothing but the
+	// expression the whole filter turned out to be. A negation on the way down comes along --
+	// and two of them cancel, as they do in the tree itself.
+	for(auto* expr = dynamic_cast<sinsp_filter_expression*>(entry);
+	    expr != nullptr && expr->is_pass_through();
+	    expr = dynamic_cast<sinsp_filter_expression*>(entry)) {
+		expr->m_on_cached_path = true;
+		entry = expr->get_checks()[0].get();
+		negate = negate != ((entry->m_boolop & BO_NOT) != 0);
+	}
+
+	m_entry = entry;
+	m_entry_negate = negate;
+}
+
 bool sinsp_filter::run(sinsp_evt* evt) {
-	return m_filter->compare(evt);
+	if(m_entry == nullptr) {
+		resolve_entry();
+	}
+
+	// The entry is only stale if the tree grew behind this call's back, which nothing in the
+	// library does: every way in through this class says so. A debug build refuses to evaluate
+	// a fragment of a filter quietly.
+	ASSERT(m_entry == m_filter.get() || m_filter->is_pass_through());
+
+	return m_entry->compare(evt) != m_entry_negate;
 }
 
 void sinsp_filter::add_check(std::unique_ptr<sinsp_filter_check> chk) {
+	invalidate_entry();
 	m_curexpr->add_check(std::move(chk));
 }
 

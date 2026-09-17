@@ -87,15 +87,28 @@ public:
 	int32_t get_expr_boolop() const;
 
 	//
-	// The children, to look at. There is deliberately no way to reach them for modification: the
-	// walk resolves what to do with each of them once (see compare()), and every way of changing
-	// the list is a method of this class, so that resolved view cannot go stale.
+	// The children, to look at. The list cannot be changed from outside, but the children can:
+	// const does not reach through a unique_ptr. Changing a child expression's own children goes
+	// through its methods, which re-resolve its walk (see compare()). What they cannot see is a
+	// filter that has already run and cached where its evaluation starts below the single-child
+	// expressions leading there: restructuring one of those would leave the filter evaluating a
+	// node the change freed. They are marked when the filter caches its entry, and a debug build
+	// refuses to restructure them. A filter's own methods forget the entry first.
 	//
 	const std::vector<std::unique_ptr<sinsp_filter_check>>& get_checks() const { return m_checks; }
 
 	sinsp_filter_expression* m_parent = nullptr;
 
 private:
+	friend class sinsp_filter;
+
+	// Set while a filter has cached its evaluation entry below this expression. See get_checks().
+	bool m_on_cached_path = false;
+	void assert_not_on_cached_path() const {
+		ASSERT(!m_on_cached_path &&
+		       "restructuring an expression its filter has cached a path through");
+	}
+
 	//
 	// Everything the walk needs to know about one child, decided once instead of on every
 	// event: which check to run, whether its result is negated, and the running value that
@@ -122,6 +135,8 @@ public:
 	sinsp_filter();
 	virtual ~sinsp_filter() = default;
 
+	// Not thread-safe, as it never was: the first run works out where evaluation starts, and each
+	// check resolves its comparison on its first event.
 	bool run(sinsp_evt* evt);
 
 	void push_expression(boolop op);
@@ -131,7 +146,19 @@ public:
 	std::unique_ptr<sinsp_filter_expression> m_filter;
 
 private:
+	//
+	// Where evaluating this filter starts. The root expression holds one child and nothing
+	// else -- the expression the filter turned out to be, or its single check -- so running the
+	// root would walk a level that only forwards an answer. Resolved on the first event,
+	// because the tree is not final until then. Owned by m_filter.
+	//
+	void resolve_entry();
+	// Forgets the entry, and the path it was cached through, before the tree changes.
+	void invalidate_entry();
+
 	sinsp_filter_expression* m_curexpr;
+	sinsp_filter_check* m_entry = nullptr;
+	bool m_entry_negate = false;
 };
 
 class sinsp_filter_factory {

@@ -277,6 +277,32 @@ TEST(sinsp_filter_expression, a_check_added_after_the_first_event_is_not_left_ou
 	ASSERT_FALSE(flt.run(NULL));
 }
 
+// A filter caches where its evaluation starts, below the single-child expressions that lead
+// there. The list of an expression's children is const, but the children are not, so a caller
+// holding one of those expressions could still restructure it behind the filter's back and
+// leave it evaluating a node the change freed. Through the filter the same change is fine: it
+// forgets the entry first.
+TEST(sinsp_filter_expression, a_path_the_filter_cached_through_is_changed_only_through_it) {
+	sinsp_filter flt;
+	flt.push_expression(BO_NONE);
+	flt.add_check(mock_check("c.true", BO_NONE));
+	ASSERT_TRUE(flt.run(NULL));
+
+	auto* nested = dynamic_cast<sinsp_filter_expression*>(flt.m_filter->get_checks()[0].get());
+	ASSERT_NE(nested, nullptr);
+	ASSERT_TRUE(nested->is_pass_through());
+#ifdef _DEBUG
+	const auto previous_style = ::testing::GTEST_FLAG(death_test_style);
+	::testing::GTEST_FLAG(death_test_style) = "threadsafe";
+	EXPECT_DEATH(nested->add_check(mock_check("c.false", BO_AND)),
+	             "restructuring an expression its filter has cached a path through");
+	::testing::GTEST_FLAG(death_test_style) = previous_style;
+#endif
+
+	flt.add_check(mock_check("c.false", BO_AND));
+	ASSERT_FALSE(flt.run(NULL));
+}
+
 // Short-circuiting is not only about the answer: the checks after the one that settles the
 // expression are not run at all, and not running them is the extraction that an 'and' is
 // expected to save.
