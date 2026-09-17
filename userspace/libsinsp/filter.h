@@ -151,7 +151,13 @@ public:
 	void pop_expression();
 	void add_check(std::unique_ptr<sinsp_filter_check> chk);
 
-	std::unique_ptr<sinsp_filter_expression> m_filter;
+	//
+	// The tree, to look at. There is no way to replace it from outside: where evaluation starts
+	// is worked out from the tree's shape, so a tree swapped from outside would leave a filter
+	// evaluating a fragment of itself. For changing what is inside it, see
+	// sinsp_filter_expression::get_checks().
+	//
+	const sinsp_filter_expression* get_root() const { return m_filter.get(); }
 
 private:
 	//
@@ -164,6 +170,7 @@ private:
 	// Forgets the entry, and the path it was cached through, before the tree changes.
 	void invalidate_entry();
 
+	std::unique_ptr<sinsp_filter_expression> m_filter;
 	sinsp_filter_expression* m_curexpr;
 	sinsp_filter_check* m_entry = nullptr;
 	bool m_entry_negate = false;
