@@ -1553,20 +1553,28 @@ bool sinsp_filter_check::compare_rhs_with_mod(comparator cmp,
 bool sinsp_filter_check::extract_nocache(sinsp_evt* evt,
                                          std::vector<extract_value_t>& values,
                                          std::vector<extract_offset_t>* offsets) {
-	values.clear();
-	if(offsets) {
-		offsets->clear();
-	}
 	extract_value_t val;
 	val.ptr = extract_single(evt, &val.len);
-	if(val.ptr != NULL) {
-		values.push_back(val);
+	if(val.ptr == NULL) {
+		values.clear();
 		if(offsets) {
-			offsets->emplace_back(extract_offset_t{UINT32_MAX, UINT32_MAX});
+			offsets->clear();
 		}
-		return true;
+		return false;
 	}
-	return false;
+	// Same story as the cache's: the vector holds one value from the previous event, so overwrite
+	// it instead of going through clear() and push_back()'s capacity check.
+	if(values.size() == 1) {
+		values[0] = val;
+	} else {
+		values.clear();
+		values.push_back(val);
+	}
+	if(offsets) {
+		offsets->clear();
+		offsets->emplace_back(extract_offset_t{UINT32_MAX, UINT32_MAX});
+	}
+	return true;
 }
 
 uint8_t* sinsp_filter_check::extract_single(sinsp_evt* evt, uint32_t* len) {
@@ -1743,6 +1751,11 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
 }
 
 bool sinsp_filter_check::apply_transformers(std::vector<extract_value_t>& values) {
+	// Most checks have none, and then there is nothing to look up either.
+	if(m_transformers.empty()) {
+		return true;
+	}
+
 	const filtercheck_field_info* field_info = get_field_info();
 	auto field_type = field_info->m_type;
 	auto field_flags = field_info->m_flags;

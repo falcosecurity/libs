@@ -60,6 +60,13 @@ public:
 		m_evtnum = evt->get_num();
 		m_result = res;
 		if(!deepcopy) {
+			// Almost every check extracts exactly one value, and from the second event on this
+			// vector already holds exactly one: assigning it element-wise skips the generic copy
+			// path, which is most of what caching a value costs on a miss.
+			if(values.size() == 1 && m_values.size() == 1) {
+				m_values[0] = values[0];
+				return;
+			}
 			m_values = values;
 			return;
 		}
