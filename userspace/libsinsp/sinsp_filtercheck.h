@@ -332,7 +332,21 @@ protected:
 
 	// What the vector-taking compare_rhs does with the extracted values is settled by the compiled
 	// filter too: whether the field is a list, whether the operator carries a modifier, and whether
-	// it is `exists` at all. Rediscovering that per event cost a VIRTUAL call to
+	// it is `exists` at all. Rediscovering that per event cost a virtual call, because
+	// get_transformed_field_info() is virtual and a comparison asked it for the field on every
+	// event. What is cached is the INFO, not the type read out of it: a check may rewrite its own
+	// type per event -- evt.rawarg.* does, because a parameter's type is only known from the event
+	// -- and the pointer stays put while that happens. A transformer is what makes the accessor
+	// start answering something else, so add_transformer() clears this.
+	const filtercheck_field_info* m_lhs_info = nullptr;
+
+	inline const filtercheck_field_info* lhs_info() {
+		if(m_lhs_info == nullptr) {
+			m_lhs_info = get_transformed_field_info();
+		}
+		return m_lhs_info;
+	}
+
 	// get_transformed_field_info() plus three tests; resolved once, the common case is one compare.
 	// `single` is zero so that case tests against zero.
 	enum class rhs_path : uint8_t {
