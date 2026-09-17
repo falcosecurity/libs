@@ -235,9 +235,28 @@ protected:
 	                 ppm_param_type type,
 	                 const void* operand1,
 	                 uint32_t op1_len = 0);
-	bool compare_rhs(comparator cmp,
-	                 ppm_param_type type,
-	                 const std::vector<extract_value_t>& values);
+	// Hot and small, so it lives here rather than being a call of its own: the three questions it
+	// used to ask on every event are resolved once (see rhs_path), which leaves one test against
+	// zero, and one extracted value then goes straight to the comparison above. Anything else --
+	// no value, or more than one from a field that promised one -- is cold and out of line.
+	inline bool compare_rhs(comparator cmp,
+	                        ppm_param_type type,
+	                        const std::vector<extract_value_t>& values) {
+		if(m_rhs_path != rhs_path::single) {
+			if(m_rhs_path == rhs_path::unresolved) {
+				resolve_rhs_path(cmp);
+			}
+			if(m_rhs_path != rhs_path::single) {
+				return compare_rhs_multi(cmp, type, values);
+			}
+		}
+		ASSERT(cmp.op == m_rhs_path_for.op && cmp.mod == m_rhs_path_for.mod);
+
+		if(values.size() != 1) {
+			return no_single_value(values);
+		}
+		return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
+	}
 	bool compare_rhs_with_mod(comparator cmp,
 	                          ppm_param_type type,
 	                          const std::vector<extract_value_t>& values);
@@ -359,6 +378,10 @@ protected:
 	rhs_path m_rhs_path = rhs_path::unresolved;
 	comparator m_rhs_path_for = {};
 	void resolve_rhs_path(comparator cmp);
+
+	// The cold end of the single-value path: no value at all is a failed comparison, and more than
+	// one from a field that is not a list is a bug in that field.
+	bool no_single_value(const std::vector<extract_value_t>& values);
 	// The list, exists and modifier paths. Out of line to keep the hot one small: the list block
 	// alone is longer than everything it shares the function with.
 	bool compare_rhs_multi(comparator cmp,

@@ -792,34 +792,14 @@ void sinsp_filter_check::resolve_rhs_path(comparator cmp) {
 		m_rhs_path = rhs_path::single;
 	}
 }
-bool sinsp_filter_check::compare_rhs(comparator cmp,
-                                     ppm_param_type type,
-                                     const std::vector<extract_value_t>& values) {
-	// The three questions this used to ask on every event -- is the operator `exists`, is the field
-	// a list, does the operator carry a modifier -- are all answered by the compiled filter, so
-	// they are asked once. The common answer, "none of them", comes back here as one test against
-	// zero.
-	if(m_rhs_path != rhs_path::single) {
-		if(m_rhs_path == rhs_path::unresolved) {
-			resolve_rhs_path(cmp);
-		}
-		if(m_rhs_path != rhs_path::single) {
-			return compare_rhs_multi(cmp, type, values);
-		}
-	}
-	ASSERT(cmp.op == m_rhs_path_for.op && cmp.mod == m_rhs_path_for.mod);
-
-	if(values.size() > 1) {
-		ASSERT(false);
-		throw sinsp_exception("non-list filter '" +
-		                      std::string(m_info->m_fields[m_field_id].m_name) +
-		                      "' expected to extract a single value, but " +
-		                      std::to_string(values.size()) + " were found");
-	}
+bool sinsp_filter_check::no_single_value(const std::vector<extract_value_t>& values) {
 	if(values.empty()) {
 		return false;
 	}
-	return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
+	ASSERT(false);
+	throw sinsp_exception("non-list filter '" + std::string(m_info->m_fields[m_field_id].m_name) +
+	                      "' expected to extract a single value, but " +
+	                      std::to_string(values.size()) + " were found");
 }
 bool sinsp_filter_check::compare_rhs_multi(comparator cmp,
                                            ppm_param_type type,
