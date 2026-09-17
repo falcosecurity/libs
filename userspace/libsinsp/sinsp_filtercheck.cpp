@@ -1602,7 +1602,7 @@ bool sinsp_filter_check::extract_in_place(sinsp_evt* evt) {
 		m_values_in_place = &m_extracted_values;
 		auto res = extract_nocache(evt, m_extracted_values, nullptr) &&
 		           apply_transformers(m_extracted_values);
-		m_extract_cache->update(evt, res, m_extracted_values, false);
+		m_extract_cache->update(evt, res, m_extracted_values);
 		return res;
 	}
 
@@ -1642,12 +1642,10 @@ bool sinsp_filter_check::extract_with_offsets(sinsp_evt* evt,
 	// cache is not valid for this event, so we perform a non-cached extraction
 	// and update it for the next time. We cache both failed and succeeded extractions
 	if(!m_extract_cache->is_valid(evt)) {
-		// for now, we support only shallow copies of cached values for performance
-		// gains -- we rely on each filtercheck to keep owning the result values
-		// across different extractions
-		bool deepcopy = false;
+		// The cached values are shallow copies: each filtercheck keeps owning what they point at
+		// across extractions.
 		auto res = extract_nocache(evt, values, offsets) && apply_transformers(values);
-		m_extract_cache->update(evt, res, values, deepcopy);
+		m_extract_cache->update(evt, res, values);
 		return res;
 	}
 
