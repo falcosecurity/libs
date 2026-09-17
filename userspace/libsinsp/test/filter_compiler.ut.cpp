@@ -306,7 +306,7 @@ TEST(sinsp_filter_expression, a_path_the_filter_cached_through_is_changed_only_t
 	flt.add_check(mock_check("c.true", BO_NONE));
 	ASSERT_TRUE(flt.run(NULL));
 
-	auto* nested = dynamic_cast<sinsp_filter_expression*>(flt.m_filter->get_checks()[0].get());
+	auto* nested = dynamic_cast<sinsp_filter_expression*>(flt.get_root()->get_checks()[0].get());
 	ASSERT_NE(nested, nullptr);
 	ASSERT_TRUE(nested->is_pass_through());
 #ifdef _DEBUG
@@ -370,7 +370,7 @@ TEST(sinsp_filter_expression, a_not_around_one_check_costs_no_level) {
 	auto filter = compiler.compile();
 
 	auto* and_expr =
-	        dynamic_cast<sinsp_filter_expression*>(filter->m_filter->get_checks()[0].get());
+	        dynamic_cast<sinsp_filter_expression*>(filter->get_root()->get_checks()[0].get());
 	ASSERT_NE(and_expr, nullptr);
 	ASSERT_EQ(and_expr->get_checks().size(), 2u);
 
@@ -393,7 +393,8 @@ TEST(sinsp_filter_expression, a_group_of_the_same_operator_is_one_level) {
 	const auto level_of = [&factory](const std::string& filter_str) {
 		sinsp_filter_compiler compiler(factory, filter_str);
 		auto filter = compiler.compile();
-		auto* top = dynamic_cast<sinsp_filter_expression*>(filter->m_filter->get_checks()[0].get());
+		auto* top =
+		        dynamic_cast<sinsp_filter_expression*>(filter->get_root()->get_checks()[0].get());
 		EXPECT_NE(top, nullptr) << filter_str;
 		size_t checks = 0, groups = 0;
 		for(const auto& chk : top->get_checks()) {

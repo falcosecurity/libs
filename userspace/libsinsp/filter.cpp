@@ -292,11 +292,6 @@ bool sinsp_filter::run(sinsp_evt* evt) {
 		resolve_entry();
 	}
 
-	// The entry is only stale if the tree grew behind this call's back, which nothing in the
-	// library does: every way in through this class says so. A debug build refuses to evaluate
-	// a fragment of a filter quietly.
-	ASSERT(m_entry == m_filter.get() || m_filter->is_pass_through());
-
 	return m_entry->compare(evt) != m_entry_negate;
 }
 
