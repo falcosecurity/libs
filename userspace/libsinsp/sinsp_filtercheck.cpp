@@ -570,6 +570,7 @@ int32_t sinsp_filter_check::parse_field_name(std::string_view str,
 void sinsp_filter_check::invalidate_resolved() {
 	m_rhs_path = rhs_path::unresolved;
 	m_fast_cmp = fast_cmp::unresolved;
+	m_lhs_info = nullptr;
 }
 
 void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i) {
@@ -1692,7 +1693,7 @@ bool sinsp_filter_check::compare_nocache(sinsp_evt* evt) {
 	// pointing into the cache.)
 	const auto* values = m_values_in_place;
 
-	auto lhs_type = get_transformed_field_info()->m_type;
+	auto lhs_type = lhs_info()->m_type;
 	if(has_filtercheck_value()) {
 		check_rhs_field_type_consistency();
 
