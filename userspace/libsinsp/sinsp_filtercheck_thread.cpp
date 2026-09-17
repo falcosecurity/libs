@@ -1845,7 +1845,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 	sinsp_thread_manager::visitor_func_t visitor = [this, &found](sinsp_threadinfo* pt) {
 		bool res;
 
-		res = compare_rhs(m_cmp, PT_PID, &pt->m_pid);
+		res = compare_rhs(m_cmp, PT_PID, &pt->m_pid, sizeof(pt->m_pid));
 
 		if(res == true) {
 			found = true;

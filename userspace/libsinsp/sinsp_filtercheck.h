@@ -179,6 +179,8 @@ public:
 	std::shared_ptr<sinsp_filter_extract_cache> m_extract_cache = nullptr;
 	std::shared_ptr<sinsp_filter_cache_metrics> m_cache_metrics = nullptr;
 	boolop m_boolop = BO_NONE;
+	// Set before the right-hand values are added, and not changed once the check has compared: the
+	// resolved shapes below are worked out from it on first use, and nothing watches it change.
 	comparator m_cmp;
 
 	char* rawval_to_string(uint8_t* rawval,
@@ -255,6 +257,55 @@ protected:
 	                           ppm_param_type ptype,
 	                           ppm_print_format print_format,
 	                           uint32_t len);
+
+	// A comparison whose field type and operator were both settled when the filter was compiled
+	// does not have to rediscover them on every event. flt_compare() switches over thirty field
+	// types and then over the operator, and casts both operands through memcpy on the way. With
+	// one constant right-hand value and no modifier, the shape -- an integer of a given width and
+	// signedness, or a string equality or substring test -- is resolved on the first comparison,
+	// with the right-hand side decoded once. Everything else resolves to `none` and goes through
+	// flt_compare: a right-hand side that is a field, lists, modifiers, addresses and networks,
+	// doubles, byte buffers, PMATCH and REGEX.
+	// `unresolved` is the state before the first comparison, and after invalidate_resolved().
+	enum class fast_cmp : uint8_t {
+		none = 0,
+		unresolved,
+		// Every integer field, by width and signedness. All of them widen to 64 bits and compare
+		// there, which is what flt_compare did too -- only it rediscovered the width, the
+		// signedness and the operator on every event. Keeping the width in the kind is what makes
+		// the load and the sign extension compile-time constants rather than a second dispatch.
+		s8,
+		s16,
+		s32,
+		s64,
+		u8,
+		u16,
+		u32,
+		u64,
+		str_eq,
+		str_ne,
+		str_startswith,
+		str_contains,
+		str_endswith,
+	};
+	fast_cmp m_fast_cmp = fast_cmp::unresolved;
+	comparator m_fast_cmp_for = {};
+	// The type the shape was resolved for. A few checks compare more than one type through the same
+	// object -- sinsp_filter_check_fd hands compare_rhs a v4 address or a v6 one depending on the
+	// fd -- so a resolved shape belongs to its type and is re-resolved if that changes.
+	ppm_param_type m_fast_cmp_type = PT_NONE;
+	int64_t m_fast_rhs_s64 = 0;
+	uint64_t m_fast_rhs_u64 = 0;
+	// For startswith and endswith: the right-hand side's length, which flt_compare_string measures
+	// on every event even though the filter fixed it at compile time.
+	size_t m_fast_rhs_len = 0;
+
+	// Decides which of the above applies to this check, given the type it is comparing.
+	void resolve_fast_cmp(comparator cmp, ppm_param_type type);
+
+	// Forgets everything resolved on first use, for the calls that change what it was resolved
+	// from: add_filter_value() and add_transformer().
+	void invalidate_resolved();
 
 	inline uint8_t* filter_value_p(uint16_t i = 0) {
 		ASSERT(i < m_vals.size());
