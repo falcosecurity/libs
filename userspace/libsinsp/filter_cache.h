@@ -53,37 +53,19 @@ public:
 		return evt->get_num() != 0 && m_evtnum != UINT64_MAX && evt->get_num() == m_evtnum;
 	}
 
-	inline void update(const sinsp_evt* evt,
-	                   bool res,
-	                   const std::vector<extract_value_t>& values,
-	                   bool deepcopy = false) {
+	// The values are cached as they are: the pointers in them belong to the check that extracted
+	// them, which keeps owning them across extractions.
+	inline void update(const sinsp_evt* evt, bool res, const std::vector<extract_value_t>& values) {
 		m_evtnum = evt->get_num();
 		m_result = res;
-		if(!deepcopy) {
-			// Almost every check extracts exactly one value, and from the second event on this
-			// vector already holds exactly one: assigning it element-wise skips the generic copy
-			// path, which is most of what caching a value costs on a miss.
-			if(values.size() == 1 && m_values.size() == 1) {
-				m_values[0] = values[0];
-				return;
-			}
-			m_values = values;
+		// Almost every check extracts exactly one value, and from the second event on this vector
+		// already holds exactly one: assigning it element-wise skips the generic copy path, which
+		// is most of what caching a value costs on a miss.
+		if(values.size() == 1 && m_values.size() == 1) {
+			m_values[0] = values[0];
 			return;
 		}
-
-		auto len = m_values.size();
-		m_values.resize(len);
-		resize_if_smaller(m_storage, len);
-		for(size_t i = 0; i < len; i++) {
-			auto v = values[i];
-			resize_if_smaller(m_storage[i], v.len);
-			if(v.len > 0) {
-				ASSERT(v.ptr != nullptr);
-				memcpy(m_storage[i].data(), v.ptr, v.len);
-			}
-			v.ptr = m_storage[i].data();
-			m_values[i] = v;
-		}
+		m_values = values;
 	}
 
 	inline const std::vector<extract_value_t>& values() const { return m_values; }
@@ -91,17 +73,9 @@ public:
 	inline bool result() const { return m_result; }
 
 private:
-	template<typename T>
-	static inline void resize_if_smaller(T& v, size_t len) {
-		if(v.size() < len) {
-			v.resize(len);
-		}
-	}
-
 	uint64_t m_evtnum = UINT64_MAX;
 	bool m_result = false;
 	std::vector<extract_value_t> m_values;
-	std::vector<std::vector<uint8_t>> m_storage;
 };
 
 /**
