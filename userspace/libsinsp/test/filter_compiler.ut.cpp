@@ -766,6 +766,65 @@ TEST_F(sinsp_with_test_input, filter_nul_byte_value) {
 // A right-hand side that is a FIELD is re-extracted on every event, so a check cannot cache
 // anything about it: `evt.num = val(evt.num)` holds for every event. The filter is compiled ONCE
 // and run twice on purpose -- compiling per event would hide a value cached at the first one.
+// evt.rawarg names a PARAMETER, not a type: `size` is a uint32 on a read and an int32 on an
+// epoll_create, and the check overwrites its type from each event (the type it was compiled with is
+// only a guess, as its own comment says). Same width, opposite signedness, which is the one case a
+// width check cannot catch: the comparison shape has to be re-resolved when the type changes.
+TEST_F(sinsp_with_test_input, filter_rawarg_type_can_change_between_events) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_filter_check_list flist;
+	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	// Compiled ONCE: compiling per event would resolve the shape afresh each time and prove
+	// nothing.
+	auto filter = sinsp_filter_compiler(factory, "evt.rawarg.size < 0").compile();
+
+	// The same four bytes both times: 4294967295 unsigned, -1 signed.
+	constexpr uint32_t all_ones = 0xffffffff;
+
+	auto* read_evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_READ_E,
+	                                      2,
+	                                      static_cast<int64_t>(3),
+	                                      all_ones);
+	ASSERT_NE(read_evt, nullptr);
+	ASSERT_FALSE(filter->run(read_evt));
+
+	auto* epoll_evt = add_event_advance_ts(increasing_ts(),
+	                                       1,
+	                                       PPME_SYSCALL_EPOLL_CREATE_E,
+	                                       1,
+	                                       static_cast<int32_t>(all_ones));
+	ASSERT_NE(epoll_evt, nullptr);
+	ASSERT_TRUE(filter->run(epoll_evt));
+}
+
+// evt.rawarg.* used to hand its value to the comparison without a length, and a numeric `in`
+// looked it up as a zero-length key, which no list holds: it was false whatever the list said.
+// (A byte buffer argument would have compared zero bytes too, but it cannot be compared at all:
+// there is no parser for a constant of that type, and evt.rawarg takes no right-hand field.)
+TEST_F(sinsp_with_test_input, filter_rawarg_in_sees_the_value_length) {
+	add_default_init_thread();
+	open_inspector();
+
+	uint8_t read_buf[] = {'h', 'e', 'l', 'l', 'o'};
+	auto* evt = add_event_advance_ts(increasing_ts(),
+	                                 1,
+	                                 PPME_SYSCALL_READ_X,
+	                                 4,
+	                                 static_cast<int64_t>(5),
+	                                 scap_const_sized_buffer{read_buf, sizeof(read_buf)},
+	                                 static_cast<int64_t>(3),
+	                                 static_cast<uint32_t>(5));
+	ASSERT_NE(evt, nullptr);
+
+	EXPECT_TRUE(eval_filter(evt, "evt.rawarg.fd in (3, 4)"));
+	EXPECT_FALSE(eval_filter(evt, "evt.rawarg.fd in (4, 5)"));
+	EXPECT_TRUE(eval_filter(evt, "evt.rawarg.size in (5)"));
+}
+
 TEST_F(sinsp_with_test_input, filter_rhs_field_is_re_extracted_per_event) {
 	add_default_init_thread();
 	open_inspector();

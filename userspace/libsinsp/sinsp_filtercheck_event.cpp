@@ -1575,7 +1575,12 @@ bool sinsp_filter_check_event::compare_nocache(sinsp_evt* evt) {
 
 		ASSERT(m_arginfo != NULL);
 
-		res = compare_rhs(m_cmp, m_arginfo->type, extracted_val);
+		// The length matters twice here. flt_cast's own comment names this field family as the
+		// reason it clamps a read to the value's length -- a parameter narrower than the type the
+		// filter compiled against -- and passing nothing left that clamp dead on the one path it
+		// was written for. It is also what a resolved comparison shape checks before trusting a
+		// value, so without it an integer raw argument could never take the fast path.
+		res = compare_rhs(m_cmp, m_arginfo->type, extracted_val, len);
 	} else if(m_field_id == TYPE_AROUND) {
 		uint64_t ts = evt->get_ts();
 		uint64_t t1 = ts - m_tsdelta;
