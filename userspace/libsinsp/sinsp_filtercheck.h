@@ -292,6 +292,15 @@ protected:
 		if(values.size() != 1) {
 			return no_single_value(values);
 		}
+		// The resolved shape is a function; the type test is what keeps a check that rewrites its
+		// own type between events (evt.rawarg.*) from being compared through the shape of the last
+		// one. Anything unresolved, or a width the shape does not cover, goes the general way.
+		if(m_cmp_fn != nullptr && type == m_fast_cmp_type) {
+			const int8_t res = m_cmp_fn(this, m_cmp, values[0].ptr, values[0].len);
+			if(res >= 0) {
+				return res != 0;
+			}
+		}
 		return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
 	}
 	bool compare_rhs_with_mod(comparator cmp,
@@ -363,6 +372,37 @@ protected:
 		ip6,
 		net4,
 	};
+	// The resolved shape as something to CALL, rather than a kind to switch on. Two instructions at
+	// the call site -- a load and an indirect call -- so a caller holding one value reaches the
+	// comparison without the operator switch in compare_rhs and without a frame of its own, and
+	// nothing grows for the checks whose shape is `none`. Each function IS one shape: the kind was
+	// chosen once, so there is nothing left to dispatch on. -1 comes back when the value arrived at
+	// a width the shape was not resolved for -- evt.rawarg.* can do that -- and the general path
+	// takes it from there.
+	using resolved_cmp_fn = int8_t (*)(sinsp_filter_check*, comparator, const void*, uint32_t);
+
+	template<typename T>
+	static int8_t resolved_cmp_signed(sinsp_filter_check*, comparator, const void*, uint32_t);
+	template<typename T>
+	static int8_t resolved_cmp_unsigned(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_str_eq(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_str_ne(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_str_startswith(sinsp_filter_check*,
+	                                          comparator,
+	                                          const void*,
+	                                          uint32_t);
+	static int8_t resolved_cmp_str_contains(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_str_endswith(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_ip4(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_net4(sinsp_filter_check*, comparator, const void*, uint32_t);
+	static int8_t resolved_cmp_ip6(sinsp_filter_check*, comparator, const void*, uint32_t);
+
+	// Which of them a resolved kind means, decided with the kind itself.
+	static resolved_cmp_fn resolved_cmp_for(fast_cmp kind);
+
+	void resolve_fast_cmp_kind(comparator cmp, ppm_param_type type);
+
+	resolved_cmp_fn m_cmp_fn = nullptr;
 	fast_cmp m_fast_cmp = fast_cmp::unresolved;
 	comparator m_fast_cmp_for = {};
 	// The type the shape was resolved for. A few checks compare more than one type through the same

@@ -570,6 +570,7 @@ int32_t sinsp_filter_check::parse_field_name(std::string_view str,
 void sinsp_filter_check::invalidate_resolved() {
 	m_rhs_path = rhs_path::unresolved;
 	m_fast_cmp = fast_cmp::unresolved;
+	m_cmp_fn = nullptr;
 	m_lhs_info = nullptr;
 }
 
@@ -994,7 +995,7 @@ static inline bool fast_compare_s64(cmpop op, int64_t lhs, int64_t rhs) {
 	case CO_GE:
 		return lhs >= rhs;
 	default:
-		// resolve_fast_cmp gives an integer a shape only for the six operators above.
+		// resolve_fast_cmp_kind gives an integer a shape only for the six operators above.
 		ASSERT(false);
 		return false;
 	}
@@ -1015,13 +1016,13 @@ static inline bool fast_compare_u64(cmpop op, uint64_t lhs, uint64_t rhs) {
 	case CO_GE:
 		return lhs >= rhs;
 	default:
-		// resolve_fast_cmp gives an integer a shape only for the six operators above.
+		// resolve_fast_cmp_kind gives an integer a shape only for the six operators above.
 		ASSERT(false);
 		return false;
 	}
 }
 
-void sinsp_filter_check::resolve_fast_cmp(comparator cmp, ppm_param_type type) {
+void sinsp_filter_check::resolve_fast_cmp_kind(comparator cmp, ppm_param_type type) {
 	m_fast_cmp_for = cmp;
 	m_fast_cmp_type = type;
 	m_fast_cmp = fast_cmp::none;
@@ -1245,6 +1246,164 @@ void sinsp_filter_check::resolve_fast_cmp(comparator cmp, ppm_param_type type) {
 	m_fast_cmp = kind;
 }
 
+template<typename T>
+int8_t sinsp_filter_check::resolved_cmp_signed(sinsp_filter_check* chk,
+                                               comparator cmp,
+                                               const void* val,
+                                               uint32_t len) {
+	// A value extracted at another width (evt.rawarg.* can do that) is not ours.
+	if(len != sizeof(T)) {
+		return -1;
+	}
+	T v;
+	memcpy(&v, val, sizeof(v));
+	return fast_compare_s64(cmp.op, v, chk->m_fast_rhs_s64) ? 1 : 0;
+}
+
+template<typename T>
+int8_t sinsp_filter_check::resolved_cmp_unsigned(sinsp_filter_check* chk,
+                                                 comparator cmp,
+                                                 const void* val,
+                                                 uint32_t len) {
+	// A value extracted at another width (evt.rawarg.* can do that) is not ours.
+	if(len != sizeof(T)) {
+		return -1;
+	}
+	T v;
+	memcpy(&v, val, sizeof(v));
+	return fast_compare_u64(cmp.op, v, chk->m_fast_rhs_u64) ? 1 : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_str_eq(sinsp_filter_check* chk,
+                                               comparator,
+                                               const void* val,
+                                               uint32_t) {
+	return strcmp((const char*)val, (const char*)chk->filter_value_p()) == 0 ? 1 : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_str_ne(sinsp_filter_check* chk,
+                                               comparator,
+                                               const void* val,
+                                               uint32_t) {
+	return strcmp((const char*)val, (const char*)chk->filter_value_p()) != 0 ? 1 : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_str_startswith(sinsp_filter_check* chk,
+                                                       comparator,
+                                                       const void* val,
+                                                       uint32_t) {
+	return strncmp((const char*)val, (const char*)chk->filter_value_p(), chk->m_fast_rhs_len) == 0
+	               ? 1
+	               : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_str_contains(sinsp_filter_check* chk,
+                                                     comparator,
+                                                     const void* val,
+                                                     uint32_t) {
+	return strstr((const char*)val, (const char*)chk->filter_value_p()) != nullptr ? 1 : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_str_endswith(sinsp_filter_check* chk,
+                                                     comparator,
+                                                     const void* val,
+                                                     uint32_t) {
+	return sinsp_utils::endswith((const char*)val,
+	                             (const char*)chk->filter_value_p(),
+	                             strlen((const char*)val),
+	                             chk->m_fast_rhs_len)
+	               ? 1
+	               : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_ip4(sinsp_filter_check* chk,
+                                            comparator cmp,
+                                            const void* val,
+                                            uint32_t len) {
+	if(len != sizeof(struct in_addr)) {
+		return -1;
+	}
+	uint32_t addr;
+	memcpy(&addr, val, sizeof(addr));
+	return (addr == static_cast<uint32_t>(chk->m_fast_rhs_u64)) == (cmp.op == CO_EQ) ? 1 : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_net4(sinsp_filter_check* chk,
+                                             comparator cmp,
+                                             const void* val,
+                                             uint32_t len) {
+	if(len != sizeof(struct in_addr)) {
+		return -1;
+	}
+	uint32_t addr;
+	memcpy(&addr, val, sizeof(addr));
+	// The network was masked by its own netmask when the shape was resolved, so an event pays one
+	// AND and one compare.
+	return ((addr & chk->m_fast_mask4) == static_cast<uint32_t>(chk->m_fast_rhs_u64)) ==
+	                       (cmp.op == CO_EQ)
+	               ? 1
+	               : 0;
+}
+
+int8_t sinsp_filter_check::resolved_cmp_ip6(sinsp_filter_check* chk,
+                                            comparator cmp,
+                                            const void* val,
+                                            uint32_t len) {
+	if(len != sizeof(ipv6addr)) {
+		return -1;
+	}
+	uint64_t addr[2];
+	memcpy(addr, val, sizeof(addr));
+	return (addr[0] == chk->m_fast_ip6[0] && addr[1] == chk->m_fast_ip6[1]) == (cmp.op == CO_EQ)
+	               ? 1
+	               : 0;
+}
+
+sinsp_filter_check::resolved_cmp_fn sinsp_filter_check::resolved_cmp_for(fast_cmp kind) {
+	switch(kind) {
+	case fast_cmp::s8:
+		return &resolved_cmp_signed<int8_t>;
+	case fast_cmp::s16:
+		return &resolved_cmp_signed<int16_t>;
+	case fast_cmp::s32:
+		return &resolved_cmp_signed<int32_t>;
+	case fast_cmp::s64:
+		return &resolved_cmp_signed<int64_t>;
+	case fast_cmp::u8:
+		return &resolved_cmp_unsigned<uint8_t>;
+	case fast_cmp::u16:
+		return &resolved_cmp_unsigned<uint16_t>;
+	case fast_cmp::u32:
+		return &resolved_cmp_unsigned<uint32_t>;
+	case fast_cmp::u64:
+		return &resolved_cmp_unsigned<uint64_t>;
+	case fast_cmp::str_eq:
+		return &resolved_cmp_str_eq;
+	case fast_cmp::str_ne:
+		return &resolved_cmp_str_ne;
+	case fast_cmp::str_startswith:
+		return &resolved_cmp_str_startswith;
+	case fast_cmp::str_contains:
+		return &resolved_cmp_str_contains;
+	case fast_cmp::str_endswith:
+		return &resolved_cmp_str_endswith;
+	case fast_cmp::ip4:
+		return &resolved_cmp_ip4;
+	case fast_cmp::net4:
+		return &resolved_cmp_net4;
+	case fast_cmp::ip6:
+		return &resolved_cmp_ip6;
+	default:
+		// none, and unresolved: there is no shape to call.
+		return nullptr;
+	}
+}
+
+void sinsp_filter_check::resolve_fast_cmp(comparator cmp, ppm_param_type type) {
+	resolve_fast_cmp_kind(cmp, type);
+	m_cmp_fn = resolved_cmp_for(m_fast_cmp);
+}
+
 bool sinsp_filter_check::compare_rhs(comparator cmp,
                                      ppm_param_type type,
                                      const void* operand1,
@@ -1306,123 +1465,19 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 			return false;
 		};
 	default:
-		// The shape of this comparison never changes; resolving it once turns flt_compare's two
-		// switches and two casts into a load and a compare. See fast_cmp.
-		// A compiled check's operator and modifier never change, so the shape is resolved on the
-		// first event and trusted afterwards; the assert is what says so out loud. A check that
-		// resolved to `none` -- a string, a list, an address -- pays one compare here and nothing
-		// else.
-		if(m_fast_cmp != fast_cmp::none) {
-			if(m_fast_cmp == fast_cmp::unresolved || type != m_fast_cmp_type) {
-				resolve_fast_cmp(cmp, type);
-			}
-			ASSERT(m_fast_cmp == fast_cmp::none ||
-			       (cmp.op == m_fast_cmp_for.op && cmp.mod == m_fast_cmp_for.mod));
-			switch(m_fast_cmp) {
-			case fast_cmp::str_eq:
-				return strcmp((const char*)operand1, (const char*)filter_value_p()) == 0;
-			case fast_cmp::str_ne:
-				return strcmp((const char*)operand1, (const char*)filter_value_p()) != 0;
-			case fast_cmp::str_startswith:
-				return strncmp((const char*)operand1,
-				               (const char*)filter_value_p(),
-				               m_fast_rhs_len) == 0;
-			case fast_cmp::str_contains:
-				return strstr((const char*)operand1, (const char*)filter_value_p()) != nullptr;
-			case fast_cmp::str_endswith:
-				return sinsp_utils::endswith((const char*)operand1,
-				                             (const char*)filter_value_p(),
-				                             strlen((const char*)operand1),
-				                             m_fast_rhs_len);
-			case fast_cmp::ip4:
-				if(op1_len == sizeof(struct in_addr)) {
-					uint32_t addr;
-					memcpy(&addr, operand1, sizeof(addr));
-					return (addr == static_cast<uint32_t>(m_fast_rhs_u64)) == (cmp.op == CO_EQ);
-				}
-				break;
-			case fast_cmp::net4:
-				if(op1_len == sizeof(struct in_addr)) {
-					uint32_t addr;
-					memcpy(&addr, operand1, sizeof(addr));
-					return ((addr & m_fast_mask4) == static_cast<uint32_t>(m_fast_rhs_u64)) ==
-					       (cmp.op == CO_EQ);
-				}
-				break;
-			case fast_cmp::ip6:
-				if(op1_len == sizeof(ipv6addr)) {
-					uint64_t addr[2];
-					memcpy(addr, operand1, sizeof(addr));
-					return (addr[0] == m_fast_ip6[0] && addr[1] == m_fast_ip6[1]) ==
-					       (cmp.op == CO_EQ);
-				}
-				break;
-			case fast_cmp::s8:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(int8_t)) {
-					int8_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_s64(cmp.op, v, m_fast_rhs_s64);
-				}
-				break;
-			case fast_cmp::s16:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(int16_t)) {
-					int16_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_s64(cmp.op, v, m_fast_rhs_s64);
-				}
-				break;
-			case fast_cmp::s32:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(int32_t)) {
-					int32_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_s64(cmp.op, v, m_fast_rhs_s64);
-				}
-				break;
-			case fast_cmp::s64:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(int64_t)) {
-					int64_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_s64(cmp.op, v, m_fast_rhs_s64);
-				}
-				break;
-			case fast_cmp::u8:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(uint8_t)) {
-					uint8_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_u64(cmp.op, v, m_fast_rhs_u64);
-				}
-				break;
-			case fast_cmp::u16:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(uint16_t)) {
-					uint16_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_u64(cmp.op, v, m_fast_rhs_u64);
-				}
-				break;
-			case fast_cmp::u32:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(uint32_t)) {
-					uint32_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_u64(cmp.op, v, m_fast_rhs_u64);
-				}
-				break;
-			case fast_cmp::u64:
-				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
-				if(op1_len == sizeof(uint64_t)) {
-					uint64_t v;
-					memcpy(&v, operand1, sizeof(v));
-					return fast_compare_u64(cmp.op, v, m_fast_rhs_u64);
-				}
-				break;
-			default:
-				break;
+		// The shape of this comparison never changes, and resolving it once turns flt_compare's two
+		// switches and two casts into a load and a compare. A compiled check's operator and
+		// modifier never change either, so the shape is resolved on the first event and trusted
+		// afterwards -- except for the type, which evt.rawarg.* rewrites per event.
+		if(m_fast_cmp == fast_cmp::unresolved || type != m_fast_cmp_type) {
+			resolve_fast_cmp(cmp, type);
+		}
+		ASSERT(m_cmp_fn == nullptr ||
+		       (cmp.op == m_fast_cmp_for.op && cmp.mod == m_fast_cmp_for.mod));
+		if(m_cmp_fn != nullptr) {
+			const int8_t res = m_cmp_fn(this, cmp, operand1, op1_len);
+			if(res >= 0) {
+				return res != 0;
 			}
 		}
 		return (::flt_compare(cmp, type, operand1, filter_value_p(), op1_len, filter_value_len()));
