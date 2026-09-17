@@ -191,6 +191,17 @@ public:
 protected:
 	virtual bool compare_nocache(sinsp_evt*);
 
+	//
+	// Extract the values and report where they ended up rather than moving them: this check's own
+	// vector on a cache miss, the cache's on a hit. m_values_in_place points at whichever it was,
+	// and the comparison family reads them from there.
+	//
+	bool extract_in_place(sinsp_evt* evt);
+
+	// Where the last extraction's values are: m_extracted_values, or the extract cache's own vector
+	// on a hit. Only valid right after extract_in_place().
+	const std::vector<extract_value_t>* m_values_in_place = nullptr;
+
 	virtual Json::Value extract_as_js(sinsp_evt*, uint32_t* len) { return Json::nullValue; }
 
 	//
@@ -224,10 +235,12 @@ protected:
 	                 ppm_param_type type,
 	                 const void* operand1,
 	                 uint32_t op1_len = 0);
-	bool compare_rhs(comparator cmp, ppm_param_type type, std::vector<extract_value_t>& values);
+	bool compare_rhs(comparator cmp,
+	                 ppm_param_type type,
+	                 const std::vector<extract_value_t>& values);
 	bool compare_rhs_with_mod(comparator cmp,
 	                          ppm_param_type type,
-	                          std::vector<extract_value_t>& values);
+	                          const std::vector<extract_value_t>& values);
 	[[nodiscard]] bool matches_rhs_regex(const filter_value_t& item,
 	                                     const uint16_t regex_idx) const;
 	bool matches_rhs_elem(const filter_value_t& item,
@@ -336,7 +349,7 @@ protected:
 	// alone is longer than everything it shares the function with.
 	bool compare_rhs_multi(comparator cmp,
 	                       ppm_param_type type,
-	                       std::vector<extract_value_t>& values);
+	                       const std::vector<extract_value_t>& values);
 
 	inline uint8_t* filter_value_p(uint16_t i = 0) {
 		ASSERT(i < m_vals.size());
