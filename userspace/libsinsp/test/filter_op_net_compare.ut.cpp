@@ -157,6 +157,15 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	EXPECT_TRUE(eval_filter(evt, "fd.sip != 127.0.0.1"));
 	EXPECT_FALSE(eval_filter(evt, "fd.sip == '127.0.0.1'"));
 
+	// The first four bytes of 2001:4860:4860::8888 spell 32.1.72.96, so an address of the wrong
+	// family must be rejected for being the wrong width rather than compared as far as it goes.
+	// fd.ip is the interesting one: it compares both endpoints itself, stating the concrete family
+	// and leaving the length of the value to be understood.
+	EXPECT_FALSE(eval_filter(evt, "fd.ip == 32.1.72.96"));
+	EXPECT_TRUE(eval_filter(evt, "fd.ip != 32.1.72.96"));
+	EXPECT_FALSE(eval_filter(evt, "fd.sip == 32.1.72.96"));
+	EXPECT_TRUE(eval_filter(evt, "fd.sip != 32.1.72.96"));
+
 	EXPECT_TRUE(eval_filter(evt, "fd.net == 2001::0/16"));
 	EXPECT_TRUE(eval_filter(evt, "fd.net == 2001:4860::0/32"));
 	EXPECT_TRUE(eval_filter(evt, "fd.net == 2001:4860:4860::8888/48"));

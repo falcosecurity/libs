@@ -262,10 +262,10 @@ protected:
 	// does not have to rediscover them on every event. flt_compare() switches over thirty field
 	// types and then over the operator, and casts both operands through memcpy on the way. With
 	// one constant right-hand value and no modifier, the shape -- an integer of a given width and
-	// signedness, or a string equality or substring test -- is resolved on the first comparison,
-	// with the right-hand side decoded once. Everything else resolves to `none` and goes through
-	// flt_compare: a right-hand side that is a field, lists, modifiers, addresses and networks,
-	// doubles, byte buffers, PMATCH and REGEX.
+	// signedness, a string equality or substring test, an IPv4 address or network, an IPv6
+	// address -- is resolved on the first comparison, with the right-hand side decoded once.
+	// Everything else resolves to `none` and goes through flt_compare: a right-hand side that is a
+	// field, lists, modifiers, IPv6 networks, doubles, byte buffers, PMATCH and REGEX.
 	// `unresolved` is the state before the first comparison, and after invalidate_resolved().
 	enum class fast_cmp : uint8_t {
 		none = 0,
@@ -287,6 +287,12 @@ protected:
 		str_startswith,
 		str_contains,
 		str_endswith,
+		// Addresses and networks. An address comparison is a fixed-width compare; a network
+		// comparison is the AND that flt_compare_ipv4net does, with the network's own masking done
+		// here instead of on every event.
+		ip4,
+		ip6,
+		net4,
 	};
 	fast_cmp m_fast_cmp = fast_cmp::unresolved;
 	comparator m_fast_cmp_for = {};
@@ -299,6 +305,10 @@ protected:
 	// For startswith and endswith: the right-hand side's length, which flt_compare_string measures
 	// on every event even though the filter fixed it at compile time.
 	size_t m_fast_rhs_len = 0;
+	// For ip6: the address, as two words. For net4: the mask, with the masked network in
+	// m_fast_rhs_u64.
+	uint64_t m_fast_ip6[2] = {0, 0};
+	uint32_t m_fast_mask4 = 0;
 
 	// Decides which of the above applies to this check, given the type it is comparing.
 	void resolve_fast_cmp(comparator cmp, ppm_param_type type);
