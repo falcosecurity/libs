@@ -763,6 +763,29 @@ TEST_F(sinsp_with_test_input, filter_nul_byte_value) {
 	ASSERT_FALSE(filter_compiles("evt.buffer bstartswith \"\\x00\""));
 }
 
+// A right-hand side that is a FIELD is re-extracted on every event, so a check cannot cache
+// anything about it: `evt.num = val(evt.num)` holds for every event. The filter is compiled ONCE
+// and run twice on purpose -- compiling per event would hide a value cached at the first one.
+TEST_F(sinsp_with_test_input, filter_rhs_field_is_re_extracted_per_event) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_filter_check_list flist;
+	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	auto filter = sinsp_filter_compiler(factory, "evt.num = val(evt.num)").compile();
+
+	auto* evt1 = generate_getcwd_failed_entry_event();
+	// Captured now: the inspector hands out the same sinsp_evt object again for the next event,
+	// so reading this after generating the second one would compare an event with itself.
+	const auto num1 = evt1->get_num();
+	ASSERT_TRUE(filter->run(evt1));
+
+	auto* evt2 = generate_getcwd_failed_entry_event();
+	// The premise: a second, distinct event. Without it the test proves nothing.
+	ASSERT_NE(num1, evt2->get_num());
+	ASSERT_TRUE(filter->run(evt2));
+}
+
 TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field) {
 	add_default_init_thread();
 	open_inspector();

@@ -138,6 +138,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_pmatch.ut.cpp
 	filter_op_net_compare.ut.cpp
 	filter_op_numeric_compare.ut.cpp
+	filter_compare_resolved.ut.cpp
 	filter_compiler.ut.cpp
 	filter_transformer.ut.cpp
 	user.ut.cpp
