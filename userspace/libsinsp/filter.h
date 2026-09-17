@@ -67,8 +67,14 @@ public:
 	//
 	int32_t get_expr_boolop() const;
 
+	//
+	// The children, to look at. There is deliberately no way to reach them for modification: the
+	// walk resolves what to do with each of them once (see compare()), and every way of changing
+	// the list is a method of this class, so that resolved view cannot go stale.
+	//
+	const std::vector<std::unique_ptr<sinsp_filter_check>>& get_checks() const { return m_checks; }
+
 	sinsp_filter_expression* m_parent = nullptr;
-	std::vector<std::unique_ptr<sinsp_filter_check>> m_checks;
 
 private:
 	//
@@ -84,6 +90,7 @@ private:
 
 	void resolve_children();
 
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_checks;
 	std::vector<child_op> m_child_ops;
 	bool m_children_resolved = false;
 };
