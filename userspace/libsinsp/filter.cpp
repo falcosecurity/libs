@@ -50,6 +50,36 @@ void sinsp_filter_expression::add_check(std::unique_ptr<sinsp_filter_check> chk)
 	m_children_resolved = false;
 }
 
+std::unique_ptr<sinsp_filter_check> sinsp_filter_expression::release_only_child() {
+	ASSERT(is_pass_through());
+
+	auto child = std::move(m_checks[0]);
+	m_checks.clear();
+	m_child_ops.clear();
+	m_children_resolved = false;
+
+	// The child stands where this expression stood, so it says what this expression said about
+	// how its parent combines it: the operator is this expression's, and the two nots -- this
+	// one's and the child's -- collapse into one, because negating twice is not negating. A
+	// first child's own operator bits are never consulted, so nothing else carries over.
+	child->m_boolop = (boolop)(((uint32_t)m_boolop & ~(uint32_t)BO_NOT) |
+	                           (((uint32_t)m_boolop ^ (uint32_t)child->m_boolop) & BO_NOT));
+
+	// If the child is an expression, its parent is about to be freed.
+	if(auto* child_expr = dynamic_cast<sinsp_filter_expression*>(child.get());
+	   child_expr != nullptr) {
+		child_expr->m_parent = m_parent;
+	}
+
+	return child;
+}
+
+void sinsp_filter_expression::replace_last_check(std::unique_ptr<sinsp_filter_check> chk) {
+	ASSERT(!m_checks.empty());
+	m_checks.back() = std::move(chk);
+	m_children_resolved = false;
+}
+
 void sinsp_filter_expression::resolve_children() {
 	m_child_ops.clear();
 	m_child_ops.reserve(m_checks.size());
@@ -148,7 +178,17 @@ void sinsp_filter::pop_expression() {
 		        "expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
 	}
 
-	m_curexpr = m_curexpr->m_parent;
+	auto* expr = m_curexpr;
+	m_curexpr = expr->m_parent;
+
+	// The expression is finished, so its children are final. If it has just the one, it does
+	// nothing but run that child and hand the answer up, and its parent can hold the child
+	// itself: a bracket that turned out to hold a single thing, or a not, stops costing a level
+	// of the walk. This frees the expression, so nothing may touch it afterwards.
+	if(expr->is_pass_through()) {
+		ASSERT(m_curexpr->get_checks().back().get() == expr);
+		m_curexpr->replace_last_check(expr->release_only_child());
+	}
 }
 
 bool sinsp_filter::run(sinsp_evt* evt) {

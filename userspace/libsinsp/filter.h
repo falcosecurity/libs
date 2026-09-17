@@ -60,6 +60,25 @@ public:
 	void add_check(std::unique_ptr<sinsp_filter_check> chk);
 
 	//
+	// An expression with a single child computes nothing: it runs that child and forwards the
+	// answer. Such an expression can be replaced by its child, so that no event pays for the
+	// level -- see release_only_child() and sinsp_filter::pop_expression().
+	//
+	bool is_pass_through() const { return m_checks.size() == 1; }
+
+	//
+	// Hand over the only child of a pass-through expression, with its boolop rewritten to say
+	// what this expression's said, so that it can take this expression's place in its parent.
+	//
+	std::unique_ptr<sinsp_filter_check> release_only_child();
+
+	//
+	// Put a check in the place of the one added last, which is how a pass-through child is
+	// replaced by what it was forwarding.
+	//
+	void replace_last_check(std::unique_ptr<sinsp_filter_check> chk);
+
+	//
 	// An expression is consistent if all its checks are of the same type (or/and).
 	//
 	// This method returns the expression operator (BO_AND/BO_OR/BO_NONE) if the
