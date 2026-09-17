@@ -1060,6 +1060,48 @@ void sinsp_filter_check::resolve_fast_cmp(comparator cmp, ppm_param_type type) {
 		}
 	}
 
+	// Addresses and networks. Only equality and inequality reach here: `in` and `intersects` are
+	// handled as set membership above, and nothing else is comparable for these types.
+	//
+	// Which of the four shapes this is comes from the type when the type names a family, and from
+	// the width of the parsed right-hand side when it does not. The distinction matters twice: a
+	// concrete type must not be talked out of its family by a right-hand side of the other one:
+	// `fd.ip = 1.2.3.4` against an IPv6 socket is false, not a comparison of the first four bytes.
+	if(type == PT_IPADDR || type == PT_IPNET || type == PT_IPV4ADDR || type == PT_IPV6ADDR ||
+	   type == PT_IPV4NET || type == PT_IPV6NET) {
+		if((cmp.op != CO_EQ && cmp.op != CO_NE) || filter_value_p() == nullptr) {
+			return;
+		}
+		const auto rhs_len = filter_value_len();
+		const bool v4_addr =
+		        (type == PT_IPV4ADDR) || (type == PT_IPADDR && rhs_len == sizeof(struct in_addr));
+		const bool v6_addr =
+		        (type == PT_IPV6ADDR) || (type == PT_IPADDR && rhs_len == sizeof(ipv6addr));
+		const bool v4_net =
+		        (type == PT_IPV4NET) || (type == PT_IPNET && rhs_len == sizeof(ipv4net));
+		if(v4_addr && rhs_len == sizeof(struct in_addr)) {
+			uint32_t addr;
+			memcpy(&addr, filter_value_p(), sizeof(addr));
+			m_fast_rhs_u64 = addr;
+			m_fast_cmp = fast_cmp::ip4;
+		} else if(v6_addr && rhs_len == sizeof(ipv6addr)) {
+			memcpy(m_fast_ip6, filter_value_p(), sizeof(m_fast_ip6));
+			m_fast_cmp = fast_cmp::ip6;
+		} else if(v4_net && rhs_len == sizeof(ipv4net)) {
+			ipv4net net;
+			memcpy(&net, filter_value_p(), sizeof(net));
+			m_fast_mask4 = net.m_netmask;
+			// flt_compare_ipv4net masks the network by its own netmask on every event, though both
+			// are constants; here it happens once.
+			m_fast_rhs_u64 = net.m_ip & net.m_netmask;
+			m_fast_cmp = fast_cmp::net4;
+		}
+		// Anything else keeps the general path: a right-hand side of the other family (which
+		// flt_compare answers from its width alone), and IPv6 networks, whose tail-bit handling in
+		// ipv6net::in_cidr is not worth duplicating for the gain.
+		return;
+	}
+
 	// A boolean is compared as a widened word, but only for equality: flt_compare_bool refuses an
 	// ordering, and a fast path that answered one would be a different filter language.
 	if(type == PT_BOOL && cmp.op != CO_EQ && cmp.op != CO_NE) {
@@ -1271,6 +1313,29 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 				                             (const char*)filter_value_p(),
 				                             strlen((const char*)operand1),
 				                             m_fast_rhs_len);
+			case fast_cmp::ip4:
+				if(op1_len == sizeof(struct in_addr)) {
+					uint32_t addr;
+					memcpy(&addr, operand1, sizeof(addr));
+					return (addr == static_cast<uint32_t>(m_fast_rhs_u64)) == (cmp.op == CO_EQ);
+				}
+				break;
+			case fast_cmp::net4:
+				if(op1_len == sizeof(struct in_addr)) {
+					uint32_t addr;
+					memcpy(&addr, operand1, sizeof(addr));
+					return ((addr & m_fast_mask4) == static_cast<uint32_t>(m_fast_rhs_u64)) ==
+					       (cmp.op == CO_EQ);
+				}
+				break;
+			case fast_cmp::ip6:
+				if(op1_len == sizeof(ipv6addr)) {
+					uint64_t addr[2];
+					memcpy(addr, operand1, sizeof(addr));
+					return (addr[0] == m_fast_ip6[0] && addr[1] == m_fast_ip6[1]) ==
+					       (cmp.op == CO_EQ);
+				}
+				break;
 			case fast_cmp::s8:
 				// A value extracted at another width (evt.rawarg.* can do that) is not ours.
 				if(op1_len == sizeof(int8_t)) {

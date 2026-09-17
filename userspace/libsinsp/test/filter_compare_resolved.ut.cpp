@@ -231,3 +231,31 @@ void check_against_flt_compare(const std::vector<type_case>& cases, size_t min_c
 TEST(sinsp_filter_check, a_resolved_comparison_answers_what_flt_compare_answers) {
 	check_against_flt_compare(s_cases, 50000);
 }
+
+// Addresses and networks: the left-hand values are addresses of both families whatever the type,
+// at their own widths, because a v6 address meeting a v4 constant is half of what the shapes
+// guard against.
+TEST(sinsp_filter_check, a_resolved_address_comparison_answers_what_flt_compare_answers) {
+	const std::vector<std::string> v4 = {"1.2.3.4", "1.2.3.5", "10.0.0.1", "32.1.72.96"};
+	const std::vector<std::string> v6 = {"::1", "2001:4860:4860::8888", "2001:db8::1"};
+	// Networks written with host bits set too: the network is masked by its own netmask, and one
+	// already written masked cannot tell whether that happened.
+	const std::vector<std::string> v4net =
+	        {"1.2.3.0/24", "1.2.3.77/24", "10.9.8.7/8", "1.2.3.4/32", "0.0.0.0/0", "1.2.3.4/0"};
+	const std::vector<std::string> v6net = {"2001:4860::/32", "2001:4860::1/32", "::1/128"};
+	auto both = [](std::vector<std::string> a, const std::vector<std::string>& b) {
+		a.insert(a.end(), b.begin(), b.end());
+		return a;
+	};
+	const auto addrs = both(v4, v6);
+	check_against_flt_compare(
+	        {
+	                {PT_IPV4ADDR, v4, {0, 16}, addrs, PT_IPADDR},
+	                {PT_IPV6ADDR, v6, {0, 4}, addrs, PT_IPADDR},
+	                {PT_IPADDR, addrs, {0, 2}, addrs, PT_IPADDR},
+	                {PT_IPV4NET, v4net, {0, 16}, addrs, PT_IPADDR},
+	                {PT_IPV6NET, v6net, {0}, addrs, PT_IPADDR},
+	                {PT_IPNET, both(v4net, v6net), {0, 2}, addrs, PT_IPADDR},
+	        },
+	        2000);
+}
