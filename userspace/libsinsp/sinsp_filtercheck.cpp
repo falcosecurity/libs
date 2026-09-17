@@ -1562,41 +1562,6 @@ uint8_t* sinsp_filter_check::extract_single(sinsp_evt* evt, uint32_t* len) {
 	return NULL;
 }
 
-bool sinsp_filter_check::extract_in_place(sinsp_evt* evt) {
-	if(m_cache_metrics != NULL) {
-		m_cache_metrics->m_num_extract++;
-	}
-
-	// no cache is installed, so just default to non-cached extraction
-	if(!m_extract_cache) {
-		m_values_in_place = &m_extracted_values;
-		// extract values and apply transformers on top of them
-		return extract_nocache(evt, m_extracted_values, nullptr) &&
-		       apply_transformers(m_extracted_values);
-	}
-
-	// cache is not valid for this event, so we perform a non-cached extraction
-	// and update it for the next time. We cache both failed and succeeded extractions
-	if(!m_extract_cache->is_valid(evt)) {
-		// The cached values are shallow copies: this check keeps owning what they point at across
-		// extractions, which is what lets a hit be read in place.
-		m_values_in_place = &m_extracted_values;
-		auto res = extract_nocache(evt, m_extracted_values, nullptr) &&
-		           apply_transformers(m_extracted_values);
-		m_extract_cache->update(evt, res, m_extracted_values);
-		return res;
-	}
-
-	// cache hit: the values stay where they are. The cache holds shallow copies, so they point at
-	// whatever the extracting check owns either way -- copying the vector out only moved the
-	// pointers, it did not make them any safer to hold.
-	m_values_in_place = &m_extract_cache->values();
-	if(m_cache_metrics != NULL) {
-		m_cache_metrics->m_num_extract_cache++;
-	}
-	return m_extract_cache->result();
-}
-
 bool sinsp_filter_check::extract(sinsp_evt* evt, std::vector<extract_value_t>& values) {
 	return extract_with_offsets(evt, values, nullptr);
 }
