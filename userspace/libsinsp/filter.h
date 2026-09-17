@@ -69,6 +69,23 @@ public:
 
 	sinsp_filter_expression* m_parent = nullptr;
 	std::vector<std::unique_ptr<sinsp_filter_check>> m_checks;
+
+private:
+	//
+	// Everything the walk needs to know about one child, decided once instead of on every
+	// event: which check to run, whether its result is negated, and the running value that
+	// says the walk can stop before running it at all. The check is owned by m_checks.
+	//
+	struct child_op {
+		sinsp_filter_check* m_check;
+		bool m_negate;
+		bool m_stop_on;
+	};
+
+	void resolve_children();
+
+	std::vector<child_op> m_child_ops;
+	bool m_children_resolved = false;
 };
 
 /*!

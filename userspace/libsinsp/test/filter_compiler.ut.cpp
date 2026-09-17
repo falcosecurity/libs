@@ -245,6 +245,76 @@ TEST(sinsp_filter_compiler, boolean_evaluation) {
 	test_filter_run(false, "not ((c.false=1 or not (c.false=1 and not c.true=1)) and c.true=1)");
 }
 
+// A mock filtercheck that counts the times it was asked, so that a test can tell "this check
+// answered false" apart from "this check was never run".
+class counting_compiler_filter_check : public mock_compiler_filter_check {
+public:
+	bool compare(sinsp_evt* evt) override {
+		m_compares++;
+		return mock_compiler_filter_check::compare(evt);
+	}
+
+	size_t m_compares = 0;
+};
+
+template<typename check_t = mock_compiler_filter_check>
+static std::unique_ptr<check_t> mock_check(std::string_view field, boolop op) {
+	auto chk = std::make_unique<check_t>();
+	chk->parse_field_name(field, false, true);
+	chk->m_boolop = op;
+	return chk;
+}
+
+// An expression decides once what to do with each of its children, on the first event it sees.
+// The compiler builds a whole tree before anything runs it, but the tree is public and a caller
+// can add to one after the fact, so that decision has to be noticed as out of date.
+TEST(sinsp_filter_expression, a_check_added_after_the_first_event_is_not_left_out) {
+	sinsp_filter flt;
+	flt.add_check(mock_check("c.true", BO_NONE));
+	ASSERT_TRUE(flt.run(NULL));
+
+	flt.add_check(mock_check("c.false", BO_AND));
+	ASSERT_FALSE(flt.run(NULL));
+}
+
+// Short-circuiting is not only about the answer: the checks after the one that settles the
+// expression are not run at all, and not running them is the extraction that an 'and' is
+// expected to save.
+TEST(sinsp_filter_expression, a_settled_expression_leaves_the_rest_of_it_alone) {
+	{
+		sinsp_filter flt;
+		flt.add_check(mock_check("c.false", BO_NONE));
+		auto skipped = mock_check<counting_compiler_filter_check>("c.true", BO_AND);
+		auto* skipped_ptr = skipped.get();
+		flt.add_check(std::move(skipped));
+
+		ASSERT_FALSE(flt.run(NULL));
+		ASSERT_EQ(skipped_ptr->m_compares, 0u);
+	}
+	{
+		sinsp_filter flt;
+		flt.add_check(mock_check("c.true", BO_NONE));
+		auto skipped = mock_check<counting_compiler_filter_check>("c.false", BO_OR);
+		auto* skipped_ptr = skipped.get();
+		flt.add_check(std::move(skipped));
+
+		ASSERT_TRUE(flt.run(NULL));
+		ASSERT_EQ(skipped_ptr->m_compares, 0u);
+	}
+	{
+		// The control: an undecided expression does run the check, so a zero above means
+		// skipped rather than never wired up.
+		sinsp_filter flt;
+		flt.add_check(mock_check("c.true", BO_NONE));
+		auto run = mock_check<counting_compiler_filter_check>("c.true", BO_AND);
+		auto* run_ptr = run.get();
+		flt.add_check(std::move(run));
+
+		ASSERT_TRUE(flt.run(NULL));
+		ASSERT_EQ(run_ptr->m_compares, 1u);
+	}
+}
+
 TEST(sinsp_filter_compiler, str_escape) {
 	test_filter_run(true, "c.singlequote = 'hello \\'quoted\\''");
 	test_filter_run(true, "c.singlequote = \"hello 'quoted'\"");

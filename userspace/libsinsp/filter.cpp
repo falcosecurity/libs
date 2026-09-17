@@ -47,63 +47,60 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 void sinsp_filter_expression::add_check(std::unique_ptr<sinsp_filter_check> chk) {
 	m_checks.push_back(std::move(chk));
+	m_children_resolved = false;
+}
+
+void sinsp_filter_expression::resolve_children() {
+	m_child_ops.clear();
+	m_child_ops.reserve(m_checks.size());
+	for(const auto& chk : m_checks) {
+		ASSERT(chk != NULL);
+
+		// Bit 0 of a boolop is its not, and what is left is the operator that not applies to.
+		static_assert(BO_NOT == 1 && BO_ORNOT == (BO_OR | BO_NOT) && BO_ANDNOT == (BO_AND | BO_NOT),
+		              "a boolop is an operator with its not in bit 0");
+		const bool negate = (chk->m_boolop & BO_NOT) != 0;
+		const auto op = (boolop)(chk->m_boolop & ~(uint32_t)BO_NOT);
+		ASSERT(op == BO_NONE || op == BO_OR || op == BO_AND);
+
+		// An or is settled by the first child that is true, an and by the first that is
+		// false. The first child has nothing to its left, so its value is never consulted.
+		m_child_ops.push_back({chk.get(), negate, op == BO_OR});
+	}
+	m_children_resolved = true;
 }
 
 bool sinsp_filter_expression::compare(sinsp_evt* evt) {
-	bool res = true;
-
-	sinsp_filter_check* chk = nullptr;
-
-	auto size = m_checks.size();
-	for(size_t j = 0; j < size; j++) {
-		chk = m_checks[j].get();
-		ASSERT(chk != NULL);
-
-		if(j == 0) {
-			switch(chk->m_boolop) {
-			case BO_NONE:
-				res = chk->compare(evt);
-				break;
-			case BO_NOT:
-				res = !chk->compare(evt);
-				break;
-			default:
-				ASSERT(false);
-				break;
-			}
-		} else {
-			switch(chk->m_boolop) {
-			case BO_OR:
-				if(res) {
-					goto done;
-				}
-				res = chk->compare(evt);
-				break;
-			case BO_AND:
-				if(!res) {
-					goto done;
-				}
-				res = chk->compare(evt);
-				break;
-			case BO_ORNOT:
-				if(res) {
-					goto done;
-				}
-				res = !chk->compare(evt);
-				break;
-			case BO_ANDNOT:
-				if(!res) {
-					goto done;
-				}
-				res = !chk->compare(evt);
-				break;
-			default:
-				ASSERT(false);
-				break;
-			}
-		}
+	// The children are resolved on the first event, and again if one has been added since --
+	// which is the only change a filter tree sees once it has been compiled. Adding one
+	// through m_checks rather than through add_check() would go unnoticed, so a debug build
+	// says so rather than walking a stale view.
+	if(!m_children_resolved) {
+		resolve_children();
 	}
-done:
+	ASSERT(m_child_ops.size() == m_checks.size());
+
+	// Read out of the vector once and walked by pointer: every child is an opaque call as far
+	// as the compiler is concerned, so a walk that indexes the vector has to load its bounds
+	// again after each one.
+	const child_op* op = m_child_ops.data();
+	const child_op* const end = op + m_child_ops.size();
+	if(op == end) {
+		return true;
+	}
+
+	// The first child is peeled out of the loop, so that what remains can take for granted
+	// that there is a running value to combine with -- rather than asking, once per child,
+	// whether this is the child that starts one.
+	bool res = op->m_check->compare(evt) != op->m_negate;
+
+	while(++op != end) {
+		if(res == op->m_stop_on) {
+			break;
+		}
+		res = op->m_check->compare(evt) != op->m_negate;
+	}
+
 	return res;
 }
 
