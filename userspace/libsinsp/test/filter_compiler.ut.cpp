@@ -315,6 +315,28 @@ TEST(sinsp_filter_expression, a_settled_expression_leaves_the_rest_of_it_alone) 
 	}
 }
 
+// A not, or a bracket that turned out to hold a single check, does not need a level of the tree
+// to itself: the compiled tree holds that check where the expression would have been, carrying
+// the negation in its own boolop. Only the cost of the walk says so, so the shape is asserted
+// here -- the fold could otherwise stop happening and every other test would still pass.
+TEST(sinsp_filter_expression, a_not_around_one_check_costs_no_level) {
+	sinsp inspector;
+	auto factory = std::make_shared<mock_compiler_filter_factory>(&inspector);
+	sinsp_filter_compiler compiler(factory, "c.true=1 and not c.false=1");
+	auto filter = compiler.compile();
+
+	auto* and_expr =
+	        dynamic_cast<sinsp_filter_expression*>(filter->m_filter->get_checks()[0].get());
+	ASSERT_NE(and_expr, nullptr);
+	ASSERT_EQ(and_expr->get_checks().size(), 2u);
+
+	// The negated check sits where its not's expression did, and is not an expression itself.
+	ASSERT_EQ(and_expr->get_checks()[1]->m_boolop, BO_ANDNOT);
+	ASSERT_EQ(dynamic_cast<sinsp_filter_expression*>(and_expr->get_checks()[1].get()), nullptr);
+
+	ASSERT_TRUE(filter->run(NULL));
+}
+
 TEST(sinsp_filter_compiler, str_escape) {
 	test_filter_run(true, "c.singlequote = 'hello \\'quoted\\''");
 	test_filter_run(true, "c.singlequote = \"hello 'quoted'\"");
