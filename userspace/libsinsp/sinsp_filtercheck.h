@@ -317,6 +317,27 @@ protected:
 	// from: add_filter_value() and add_transformer().
 	void invalidate_resolved();
 
+	// What the vector-taking compare_rhs does with the extracted values is settled by the compiled
+	// filter too: whether the field is a list, whether the operator carries a modifier, and whether
+	// it is `exists` at all. Rediscovering that per event cost a VIRTUAL call to
+	// get_transformed_field_info() plus three tests; resolved once, the common case is one compare.
+	// `single` is zero so that case tests against zero.
+	enum class rhs_path : uint8_t {
+		single = 0,
+		unresolved,
+		exists,
+		list,
+		modifier,
+	};
+	rhs_path m_rhs_path = rhs_path::unresolved;
+	comparator m_rhs_path_for = {};
+	void resolve_rhs_path(comparator cmp);
+	// The list, exists and modifier paths. Out of line to keep the hot one small: the list block
+	// alone is longer than everything it shares the function with.
+	bool compare_rhs_multi(comparator cmp,
+	                       ppm_param_type type,
+	                       std::vector<extract_value_t>& values);
+
 	inline uint8_t* filter_value_p(uint16_t i = 0) {
 		ASSERT(i < m_vals.size());
 		return m_vals[i].first;

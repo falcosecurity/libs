@@ -568,6 +568,7 @@ int32_t sinsp_filter_check::parse_field_name(std::string_view str,
 }
 
 void sinsp_filter_check::invalidate_resolved() {
+	m_rhs_path = rhs_path::unresolved;
 	m_fast_cmp = fast_cmp::unresolved;
 }
 
@@ -777,14 +778,55 @@ size_t sinsp_filter_check::parse_filter_value(const char* str,
 	return parsed_len;
 }
 
+void sinsp_filter_check::resolve_rhs_path(comparator cmp) {
+	m_rhs_path_for = cmp;
+	if(cmp.op == CO_EXISTS) {
+		// note: sinsp_filter_check_*::compare already discard NULL values
+		m_rhs_path = rhs_path::exists;
+	} else if(get_transformed_field_info()->is_list()) {
+		m_rhs_path = rhs_path::list;
+	} else if(cmp.mod != CMPOP_MOD_NONE) {
+		m_rhs_path = rhs_path::modifier;
+	} else {
+		m_rhs_path = rhs_path::single;
+	}
+}
 bool sinsp_filter_check::compare_rhs(comparator cmp,
                                      ppm_param_type type,
                                      std::vector<extract_value_t>& values) {
-	if(cmp.op == CO_EXISTS) {
+	// The three questions this used to ask on every event -- is the operator `exists`, is the field
+	// a list, does the operator carry a modifier -- are all answered by the compiled filter, so
+	// they are asked once. The common answer, "none of them", comes back here as one test against
+	// zero.
+	if(m_rhs_path != rhs_path::single) {
+		if(m_rhs_path == rhs_path::unresolved) {
+			resolve_rhs_path(cmp);
+		}
+		if(m_rhs_path != rhs_path::single) {
+			return compare_rhs_multi(cmp, type, values);
+		}
+	}
+	ASSERT(cmp.op == m_rhs_path_for.op && cmp.mod == m_rhs_path_for.mod);
+
+	if(values.size() > 1) {
+		ASSERT(false);
+		throw sinsp_exception("non-list filter '" +
+		                      std::string(m_info->m_fields[m_field_id].m_name) +
+		                      "' expected to extract a single value, but " +
+		                      std::to_string(values.size()) + " were found");
+	}
+	if(values.empty()) {
+		return false;
+	}
+	return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
+}
+bool sinsp_filter_check::compare_rhs_multi(comparator cmp,
+                                           ppm_param_type type,
+                                           std::vector<extract_value_t>& values) {
+	if(m_rhs_path == rhs_path::exists) {
 		return true;
 	}
-
-	if(get_transformed_field_info()->is_list()) {
+	if(m_rhs_path == rhs_path::list) {
 		// NOTE: using m_val_storages_members.find(item) relies on memcmp to
 		// compare filter_value_t values, and not the base-level flt_compare.
 		// This has two main consequences. First, this only works for equality
@@ -872,6 +914,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 		}
 	}
 
+	ASSERT(m_rhs_path == rhs_path::modifier);
 	if(values.size() > 1) {
 		ASSERT(false);
 		throw sinsp_exception("non-list filter '" +
@@ -882,10 +925,7 @@ bool sinsp_filter_check::compare_rhs(comparator cmp,
 	if(values.empty()) {
 		return false;
 	}
-	if(cmp.mod != CMPOP_MOD_NONE) {
-		return compare_rhs_with_mod(cmp, type, values);
-	}
-	return compare_rhs(m_cmp, type, values[0].ptr, values[0].len);
+	return compare_rhs_with_mod(cmp, type, values);
 }
 
 inline filter_value_t sinsp_filter_check::craft_filter_value(const ppm_param_type type,
@@ -1651,8 +1691,8 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
 		                      std::string(get_field_info()->m_name) + "'");
 	}
 
-	// The resolved shape described the field as it was before this transformer: transform_type
-	// above may have changed its type.
+	// Both resolved shapes described the field as it was before this transformer: transform_type
+	// above may have changed its type and its flags, list-ness included.
 	invalidate_resolved();
 
 	// add transformer to the back of the list, they will be applied at
