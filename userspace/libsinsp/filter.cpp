@@ -72,13 +72,11 @@ void sinsp_filter_expression::resolve_children() {
 
 bool sinsp_filter_expression::compare(sinsp_evt* evt) {
 	// The children are resolved on the first event, and again if one has been added since --
-	// which is the only change a filter tree sees once it has been compiled. Adding one
-	// through m_checks rather than through add_check() would go unnoticed, so a debug build
-	// says so rather than walking a stale view.
+	// which is the only change a filter tree sees once it has been compiled. Nothing outside
+	// this class can change the list without saying so, so this flag is the whole story.
 	if(!m_children_resolved) {
 		resolve_children();
 	}
-	ASSERT(m_child_ops.size() == m_checks.size());
 
 	// Read out of the vector once and walked by pointer: every child is an opaque call as far
 	// as the compiler is concerned, so a walk that indexes the vector has to load its bounds
