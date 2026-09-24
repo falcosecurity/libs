@@ -30,10 +30,15 @@ int BPF_PROG(signal_deliver, int sig, struct kernel_siginfo *info, struct k_siga
 	/* Try to find the source pid */
 	pid_t spid = 0;
 
+	/* Signal tracepoints can receive the `SEND_SIG_NOINFO` (0) and
+	 * `SEND_SIG_PRIV` (1) sentinels instead of a real pointer, so newer kernels
+	 * expose `info` as a scalar and the verifier rejects direct accesses.
+	 * `BPF_CORE_READ` works with both the scalar and the BTF pointer.
+	 */
 	if(info != NULL) {
 		switch(sig) {
 		case SIGKILL:
-			spid = info->_sifields._kill._pid;
+			spid = BPF_CORE_READ(info, _sifields._kill._pid);
 			break;
 
 		case SIGTERM:
@@ -41,18 +46,18 @@ int BPF_PROG(signal_deliver, int sig, struct kernel_siginfo *info, struct k_siga
 		case SIGINT:
 		case SIGTSTP:
 		case SIGQUIT: {
-			int si_code = info->si_code;
+			int si_code = BPF_CORE_READ(info, si_code);
 			if(si_code == SI_USER || si_code == SI_QUEUE || si_code <= 0) {
 				/* This is equivalent to `info->si_pid` where
 				 * `si_pid` is a macro `_sifields._kill._pid`
 				 */
-				spid = info->_sifields._kill._pid;
+				spid = BPF_CORE_READ(info, _sifields._kill._pid);
 			}
 			break;
 		}
 
 		case SIGCHLD:
-			spid = info->_sifields._sigchld._pid;
+			spid = BPF_CORE_READ(info, _sifields._sigchld._pid);
 			break;
 
 		default:
@@ -61,7 +66,7 @@ int BPF_PROG(signal_deliver, int sig, struct kernel_siginfo *info, struct k_siga
 		}
 
 		if(sig >= SIGRTMIN && sig <= SIGRTMAX) {
-			spid = info->_sifields._rt._pid;
+			spid = BPF_CORE_READ(info, _sifields._rt._pid);
 		}
 	}
 
