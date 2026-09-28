@@ -65,7 +65,8 @@ int dump_task(struct bpf_iter__task *ctx) {
 	                                           task);
 
 	/* Parameter 7: exepath (type: PT_FSPATH) */
-	auxmap__store_task_exe_file_path_sleepable(auxmap, task);
+	/* An RCU read-side critical section does not pin remote task path objects. */
+	auxmap__store_task_exe_file_path(auxmap, task);
 
 	/* Parameter 8: flags (type: PT_FLAGS32) */
 	uint32_t flags = 0;
@@ -96,7 +97,7 @@ int dump_task(struct bpf_iter__task *ctx) {
 	                                           task);
 
 	/* Parameter 10: cwd (type: PT_CHARBUF) */
-	auxmap__store_task_cwd_sleepable(auxmap, task);
+	auxmap__store_task_cwd(auxmap, task);
 
 	/* Parameter 11: fdlimit (type: PT_UINT64) */
 	unsigned long fdlimit = extract__fdlimit(task);
@@ -180,7 +181,7 @@ int dump_task(struct bpf_iter__task *ctx) {
 	auxmap__store_cgroups_param(auxmap, task);
 
 	/* Parameter 29: root (type: PT_FSPATH) */
-	auxmap__store_task_root_sleepable(auxmap, task);
+	auxmap__store_task_root(auxmap, task);
 
 	// filterd_out and fdlist in scap_threadinfo are internal fields, not relevant in this context.
 
