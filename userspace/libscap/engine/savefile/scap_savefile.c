@@ -1602,6 +1602,7 @@ static int32_t scap_read_fdlist(scap_reader_t *r,
 	totreadsize += readsize;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4) {
+		memset(&fdi, 0, sizeof(fdi));
 		if(scap_fd_read_from_disk(&fdi, &readsize, block_type, r, error) != SCAP_SUCCESS) {
 			return SCAP_FAILURE;
 		}
