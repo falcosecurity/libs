@@ -175,7 +175,7 @@ public:
 	virtual void visit(const libsinsp::filter::ast::field_transformer_expr *) override;
 
 	std::string m_last_field_name;
-	bool m_is_last_transformer;
+	bool m_is_last_transformer{false};
 	std::shared_ptr<sinsp_filter_factory> m_factory;
 	std::vector<resolution_token> &m_resolution_tokens;
 };
