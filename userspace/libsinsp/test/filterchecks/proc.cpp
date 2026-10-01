@@ -305,3 +305,23 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.stderr.name"), tuple_str);
 }
 #endif
+
+TEST_F(sinsp_with_test_input, PROC_FILTER_ppid_duration) {
+	DEFAULT_TREE
+
+	/* p3_t1 is a process cloned from p2_t1, so its ancestor process has a clone time and the
+	 * field has a value. */
+	auto evt = generate_random_event(p3_t1_tid);
+	ASSERT_TRUE(field_has_value(evt, "proc.ppid.duration"));
+
+	/* A thread info that was neither created from a clone event nor read from /proc keeps a zero
+	 * clone time. The ancestor has no known age then, so the field must have no value. It must
+	 * not fall through to proc.fdopencount and report the open descriptor count of the current
+	 * thread as a duration. */
+	auto ptinfo = m_inspector.m_thread_manager->find_thread(p2_t1_tid, true).get();
+	ASSERT_TRUE(ptinfo);
+	ptinfo->m_clone_ts = 0;
+
+	evt = generate_random_event(p3_t1_tid);
+	ASSERT_FALSE(field_has_value(evt, "proc.ppid.duration"));
+}
