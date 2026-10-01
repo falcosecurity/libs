@@ -995,3 +995,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_rseq_slice_yield
 #define __NR_rseq_slice_yield 471
 #endif
+#ifndef __NR_fchroot
+#define __NR_fchroot 472
+#endif

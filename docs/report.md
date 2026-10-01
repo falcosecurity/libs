@@ -28,7 +28,7 @@
 | clone                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | clone3                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | close                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| close_range             | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| close_range             | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | connect                 | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | copy_file_range         | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | creat                   | 🟢        | ppc64le,s390x,x86_64                             |
@@ -62,6 +62,7 @@
 | fchmodat2               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fchown                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fchownat                | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| fchroot                 | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fcntl                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fdatasync               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fgetxattr               | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
@@ -142,7 +143,7 @@
 | kcmp                    | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | kexec_file_load         | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | kexec_load              | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| keyctl                  | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| keyctl                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | kill                    | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | landlock_add_rule       | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | landlock_create_ruleset | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
