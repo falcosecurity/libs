@@ -755,7 +755,9 @@ std::string sinsp_utils::concatenate_paths(const std::string_view path1,
 		copy_and_normalize_path(target + path1_len, target, target_end, path2_data, '/');
 	} else {
 		target[0] = 0;
-		copy_and_normalize_path(target, target, target_end, path2_data, '/');
+		if(path2_len != 0) {
+			copy_and_normalize_path(target, target, target_end, path2_data, '/');
+		}
 	}
 	return target;
 }
