@@ -57,7 +57,9 @@ int BPF_PROG(sendmsg_x, struct pt_regs *regs, long ret) {
 		        .only_port_range = true,
 		        .evt_type = PPME_SOCKET_SENDMSG_X,
 		};
-		apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
+		/* When `ret <= 0` the snaplen is not clamped below, so the dynamic snaplen logic
+		 * can still change what we capture: pass -1 to always apply it in that case. */
+		apply_dynamic_snaplen_if_relevant(regs, &snaplen, &snaplen_args, ret > 0 ? ret : -1);
 		if(ret > 0 && snaplen > ret) {
 			snaplen = ret;
 		}
