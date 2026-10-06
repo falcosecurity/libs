@@ -108,7 +108,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(
 	}
 
 	// Secondary loop, on specific async event names, as filled by sinsp
-	for(int ppm_ev = PPM_EVENT_MAX; ppm_ev < g_infotables.m_event_size; ++ppm_ev) {
+	for(size_t ppm_ev = PPM_EVENT_MAX; ppm_ev < g_infotables.m_event_size; ++ppm_ev) {
 		const char* ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
 		if(events.find(ppm_ev_name) != events.end()) {
 			// Force-set PPME_ASYNCEVENT_E here.

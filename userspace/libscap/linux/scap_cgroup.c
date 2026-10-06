@@ -572,7 +572,7 @@ static bool scap_in_cgroupns(const char* host_root) {
 
 	snprintf(filename, sizeof(filename), "%s/proc/self/ns/cgroup", host_root);
 	link_len = readlink(filename, our_cgroupns, sizeof(our_cgroupns));
-	if(link_len < 0 || link_len >= sizeof(our_cgroupns)) {
+	if(link_len < 0 || link_len >= (ssize_t)sizeof(our_cgroupns)) {
 		// < 0 means couldn't get the link; assuming cgroupns not available
 		// otherwise cgroupns link is too long, which is surprising since it has a fixed,
 		// fairly short length
@@ -582,7 +582,7 @@ static bool scap_in_cgroupns(const char* host_root) {
 
 	snprintf(filename, sizeof(filename), "%s/proc/1/ns/cgroup", host_root);
 	link_len = readlink(filename, init_cgroupns, sizeof(init_cgroupns));
-	if(link_len < 0 || link_len >= sizeof(our_cgroupns)) {
+	if(link_len < 0 || link_len >= (ssize_t)sizeof(our_cgroupns)) {
 		return false;
 	}
 	init_cgroupns[link_len] = 0;
@@ -780,12 +780,12 @@ static int32_t scap_cgroup_resolve_v2(struct scap_cgroup_interface* cgi,
 		nwritten = snprintf(full_cgroup, sizeof(full_cgroup), "%s", cgroup);
 	}
 
-	if(nwritten >= sizeof(full_cgroup)) {
+	if(nwritten < 0 || (size_t)nwritten >= sizeof(full_cgroup)) {
 		return SCAP_FAILURE;
 	}
 
 	nwritten = snprintf(cgroup_path, sizeof(cgroup_path), "%s%s", cgi->m_mount_v2, full_cgroup);
-	if(nwritten >= sizeof(cgroup_path)) {
+	if(nwritten < 0 || (size_t)nwritten >= sizeof(cgroup_path)) {
 		return SCAP_FAILURE;
 	}
 
