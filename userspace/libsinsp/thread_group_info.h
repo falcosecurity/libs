@@ -36,6 +36,28 @@ class sinsp_threadinfo;
 /* New struct that keep information regarding the thread group */
 struct thread_group_info {
 public:
+	/* An entry of the thread list of the group. The thread table owns the threads, so borrow()
+	 * returns a thread without taking a reference. The pointer is valid until the table erases
+	 * the thread.
+	 */
+	class thread_ref {
+	public:
+		thread_ref(const std::shared_ptr<sinsp_threadinfo>& thread):
+		        m_weak(thread),
+		        m_raw(thread.get()) {}
+		thread_ref(const std::weak_ptr<sinsp_threadinfo>& thread):
+		        m_weak(thread),
+		        m_raw(thread.lock().get()) {}
+
+		inline bool expired() const { return m_weak.expired(); }
+		inline std::shared_ptr<sinsp_threadinfo> lock() const { return m_weak.lock(); }
+		inline sinsp_threadinfo* borrow() const { return m_weak.expired() ? nullptr : m_raw; }
+
+	private:
+		std::weak_ptr<sinsp_threadinfo> m_weak;
+		sinsp_threadinfo* m_raw;
+	};
+
 	thread_group_info(int64_t group_pid,
 	                  bool reaper,
 	                  std::weak_ptr<sinsp_threadinfo> current_thread):
@@ -75,9 +97,7 @@ public:
 
 	inline int64_t get_tgroup_pid() const { return m_pid; }
 
-	inline const std::list<std::weak_ptr<sinsp_threadinfo>>& get_thread_list() const {
-		return m_threads;
-	}
+	inline const std::list<thread_ref>& get_thread_list() const { return m_threads; }
 
 	inline void add_thread_to_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main) {
 		/* The main thread should always be the first element of the list, if present.
@@ -107,7 +127,7 @@ public:
 		}
 	}
 
-	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().lock().get(); }
+	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().borrow(); }
 
 	/* The parent process is the group of the thread that forked, and the tid of that thread.
 	 * Only the child side of the link is stored. The parent keeps no list of children.
@@ -207,7 +227,7 @@ public:
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
 	uint64_t m_alive_count;
-	std::list<std::weak_ptr<sinsp_threadinfo>> m_threads;
+	std::list<thread_ref> m_threads;
 	std::shared_ptr<thread_group_info> m_parent;
 	int64_t m_parent_tid = 0;
 	uint64_t m_rank = s_unknown_parent_rank;

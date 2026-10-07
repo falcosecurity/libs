@@ -199,7 +199,7 @@ void sinsp_thread_manager::create_thread_dependencies(
 	// the current thread), as their leader might have changed or we simply need
 	// to first initialize it.
 	for(const auto& thread : tinfo->m_tginfo->get_thread_list()) {
-		if(auto thread_ptr = thread.lock().get(); thread_ptr != nullptr) {
+		if(auto thread_ptr = thread.borrow(); thread_ptr != nullptr) {
 			thread_ptr->update_main_fdtable();
 		}
 	}
@@ -347,7 +347,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 			if(thread_weak.expired()) {
 				continue;
 			}
-			auto thread = thread_weak.lock().get();
+			auto thread = thread_weak.borrow();
 			if(!thread->is_dead() && thread != tinfo) {
 				return thread;
 			}
@@ -394,7 +394,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 				if(thread_weak.expired()) {
 					continue;
 				}
-				auto thread = thread_weak.lock().get();
+				auto thread = thread_weak.borrow();
 				if(!thread->is_dead()) {
 					return thread;
 				}
@@ -542,9 +542,9 @@ static sinsp_threadinfo* find_reaper_above(const sinsp_threadinfo& tinfo) {
 		if(!group->is_reaper() || group->get_thread_count() == 0) {
 			continue;
 		}
-		for(const auto& thread_weak : group->get_thread_list()) {
+		for(const auto& thread_ref : group->get_thread_list()) {
 			/* A thread of the group itself, as in thread_in_group() */
-			auto thread = thread_weak.lock().get();
+			auto thread = thread_ref.borrow();
 			if(thread != nullptr && thread->m_tginfo == group && !thread->is_dead()) {
 				return thread;
 			}
