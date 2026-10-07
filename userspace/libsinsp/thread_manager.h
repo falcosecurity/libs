@@ -295,6 +295,16 @@ private:
 	/* We call it immediately before removing the thread from the thread table. */
 	void remove_child_from_parent(int64_t ptid);
 
+	/* Link the new group of `tinfo` to the parent named by `ptid`, and publish it. */
+	void link_and_publish_group(const std::shared_ptr<sinsp_threadinfo>& tinfo,
+	                            const std::shared_ptr<thread_group_info>& tginfo,
+	                            int64_t ptid);
+
+	/* Link a group to `parent`. If the link is refused, leave the group unlinked, with `ptid`. */
+	void relink_group(thread_group_info& tginfo,
+	                  const std::shared_ptr<sinsp_threadinfo>& parent,
+	                  int64_t ptid);
+
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const;

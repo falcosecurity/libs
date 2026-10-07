@@ -219,33 +219,3 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree) {
 	const auto reaper = thread_manager->find_new_reaper(p6_t1_tinfo);
 	ASSERT_EQ(reaper->m_tid, p4_t1_tid);
 }
-
-TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
-	DEFAULT_TREE
-
-	const auto& thread_manager = m_inspector.m_thread_manager;
-
-	/* If we detect a loop the new reaper will be nullptr.
-	 * We set p2_t1 group as a reaper.
-	 */
-	const auto p2_t1_tinfo = thread_manager->find_thread(p2_t1_tid, true).get();
-	ASSERT_TRUE(p2_t1_tinfo);
-	p2_t1_tinfo->m_tginfo->set_reaper(true);
-
-	/* We explicitly set p3_t1 ptid to p4_t1, so we create a loop */
-	const auto p3_t1_tinfo = thread_manager->find_thread(p3_t1_tid, true).get();
-	ASSERT_TRUE(p3_t1_tinfo);
-	p3_t1_tinfo->set_ptid(p4_t1_tid);
-
-	/* We will call find_new_reaper on p4_t1 but before doing this we need to
-	 * remove p4_t2 otherwise we will have a valid thread in the same group as a new reaper
-	 */
-	remove_thread(p4_t2_tid, p4_t1_tid);
-
-	/* We call find_new_reaper on p4_t1.
-	 * The new reaper should be nullptr since we detected a loop.
-	 */
-	const auto p4_t1_tinfo = thread_manager->find_thread(p4_t1_tid, true).get();
-	ASSERT_TRUE(p4_t1_tinfo);
-	ASSERT_EQ(thread_manager->find_new_reaper(p4_t1_tinfo), nullptr);
-}

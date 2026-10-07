@@ -328,21 +328,32 @@ public:
 	void report_thread_loop(const sinsp_threadinfo& looping_thread);
 
 	/*!
-	  \brief Return the tid of this thread's parent, stored on its thread group once it has one.
+	  \brief Return the tid of this thread's parent: the stored tid if it is not linked.
 	*/
 	int64_t get_ptid() const;
 
 	/*!
-	  \brief Set this thread's parent tid: for a thread in a group, its process's.
+	  \brief Set the parent tid of a thread not in a group yet. Throws once it is: the parent is
+	  then the group's link.
 	*/
 	void set_ptid(int64_t ptid);
 
-	void assign_children_to_reaper(sinsp_threadinfo* reaper);
+	/*!
+	  \brief Return this thread's linked parent, or nullptr. The thread must have a group.
+	*/
+	sinsp_threadinfo* get_linked_parent() const;
 
+	/*!
+	  \brief Move the children of this thread to `reaper`, or unlink them if `reaper` is null.
+	  A link that would go up in rank is refused.
+
+	  \return the number of refused links.
+	*/
+	uint64_t assign_children_to_reaper(sinsp_threadinfo* reaper);
+
+	/* The process of the child must already link to the process of this thread. */
 	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child) {
 		m_children.push_front(child);
-		/* Set current thread as parent */
-		child->set_ptid(m_tid);
 		/* Increment the number of not expired children */
 		m_not_expired_children++;
 	}

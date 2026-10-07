@@ -22,6 +22,7 @@ limitations under the License.
 #include <stdint.h>
 #include <list>
 #include <libsinsp/sinsp_exception.h>
+#include <libsinsp/sinsp_public.h>
 
 /* Forward declaration */
 class sinsp_threadinfo;
@@ -108,15 +109,85 @@ public:
 
 	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().lock().get(); }
 
-	/* The tid of the thread that forked this process, shared by all its threads. */
-	inline void set_parent_tid(int64_t parent_tid) { m_parent_tid = parent_tid; }
+	/* The parent process is the group of the thread that forked, and the tid of that thread.
+	 *
+	 * The writer resolves the link when it writes it, and readers only follow it. A null link
+	 * with a tid is a parent that we do not link to.
+	 *
+	 * Every link goes down in rank, so the links never form a cycle. The rank of a group is set
+	 * before anything can link to the group, and it never changes. The rank is the rank of the
+	 * parent plus one, 0 without a parent, and s_unknown_parent_rank when the parent is unknown.
+	 * A link to a group of the same rank or higher is refused. Thus, the test of a link needs
+	 * only the two groups.
+	 */
+	static constexpr uint64_t s_unknown_parent_rank = uint64_t{1} << 62;
+
+	/* Link a group that nothing links to yet, and set its rank. If the rank of the parent is
+	 * pending (also when the parent is this group), the link is refused. Then the function keeps
+	 * the tid and returns false.
+	 */
+	inline bool link_new(std::shared_ptr<thread_group_info> parent, int64_t parent_tid) {
+		if(parent != nullptr && parent->m_rank != s_pending_rank) {
+			m_rank = parent->m_rank + 1;
+			m_parent = std::move(parent);
+			m_parent_tid = parent_tid;
+			return true;
+		}
+		m_rank = parent_tid > 0 ? s_unknown_parent_rank : 0;
+		m_parent = nullptr;
+		m_parent_tid = parent_tid;
+		return parent == nullptr;
+	}
+
+	/* Use this for a group that is published before it is linked, because the /proc scan creates
+	 * its parent first. Nothing can link to the group until link_new() sets its rank.
+	 */
+	inline void set_rank_pending() { m_rank = s_pending_rank; }
+
+	/* Link to `parent` unless that link goes up in rank. A refused link stores nothing. */
+	inline bool relink(std::shared_ptr<thread_group_info> parent, int64_t parent_tid) {
+		if(parent->m_rank >= m_rank) {
+			return false;
+		}
+		m_parent = std::move(parent);
+		m_parent_tid = parent_tid;
+		return true;
+	}
+
+	/* Drop the link to the group of the parent, but keep the parent tid. */
+	inline void unlink(int64_t parent_tid) {
+		m_parent = nullptr;
+		m_parent_tid = parent_tid;
+	}
+
+	inline uint64_t get_rank() const { return m_rank; }
+
+	inline const std::shared_ptr<thread_group_info>& get_parent() const { return m_parent; }
 
 	inline int64_t get_parent_tid() const { return m_parent_tid; }
+
+	/* True if the chain of parent links ends (has no cycle). For asserts and tests only. */
+	inline bool chain_ends() const {
+		const thread_group_info* slow = this;
+		const thread_group_info* fast = this;
+		while(fast != nullptr && fast->m_parent != nullptr) {
+			slow = slow->m_parent.get();
+			fast = fast->m_parent->m_parent.get();
+			if(slow == fast) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
 	uint64_t m_alive_count;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_threads;
+	std::shared_ptr<thread_group_info> m_parent;
 	int64_t m_parent_tid = 0;
+	uint64_t m_rank = s_unknown_parent_rank;
 	bool m_reaper;
+
+	static constexpr uint64_t s_pending_rank = UINT64_MAX;
 };
