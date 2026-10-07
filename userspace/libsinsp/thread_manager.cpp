@@ -770,36 +770,12 @@ void sinsp_thread_manager::maybe_log_max_lookup(int64_t tid, bool scan_sockets, 
 }
 
 void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visitor_func_t& visitor) {
-	// Use two pointers starting at this, traversing the parent
-	// state, at different rates. If they ever equal each other
-	// before slow is NULL there's a loop.
-
-	sinsp_threadinfo *slow = get_parent_thread(tinfo), *fast = slow;
-
-	// Move fast to its parent
-	fast = (fast ? get_parent_thread(*fast) : fast);
-
-	// The slow pointer must be valid and not have a tid of -1.
-	while(slow && slow->m_tid != -1) {
-		if(!visitor(slow)) {
-			break;
-		}
-
-		// Advance slow one step and advance fast two steps
-		slow = get_parent_thread(*slow);
-
-		// advance fast 2 steps, checking to see if we meet
-		// slow after each step.
-		for(uint32_t i = 0; i < 2; i++) {
-			fast = (fast ? get_parent_thread(*fast) : fast);
-
-			// If not at the end but fast == slow, there's a loop in the
-			// thread state (a thread that is its own parent included).
-			if(slow && slow == fast) {
-				tinfo.report_thread_loop(*slow);
-				return;
-			}
-		}
+	// Every step goes up a parent link, and the parent links have no cycle (see
+	// `thread_group_info`).
+	ASSERT(tinfo.m_tginfo == nullptr || tinfo.m_tginfo->chain_ends());
+	for(sinsp_threadinfo* parent = get_parent_thread(tinfo);
+	    parent != nullptr && parent->m_tid != -1 && visitor(parent);
+	    parent = get_parent_thread(*parent)) {
 	}
 }
 sinsp_threadinfo* sinsp_thread_manager::get_oldest_matching_ancestor(

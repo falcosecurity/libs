@@ -204,14 +204,6 @@ public:
 		return m_tginfo->get_thread_count();
 	}
 
-	/*
-	  \brief returns true if there is a loop detected in the thread parent state.
-	  Needs traverse_parent_state() to have been called first.
-	*/
-	inline bool parent_loop_detected() const { return m_parent_loop_detected; }
-
-	inline void set_parent_loop_detected(bool v) { m_parent_loop_detected = v; }
-
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
@@ -324,8 +316,6 @@ public:
 	  unchanged
 	 */
 	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
-
-	void report_thread_loop(const sinsp_threadinfo& looping_thread);
 
 	/*!
 	  \brief Return the tid of this thread's parent: the stored tid if it is not linked.
@@ -580,7 +570,6 @@ private:
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
-	bool m_parent_loop_detected;
 	// The ptid before the thread joins a group. After that, get_ptid() reads the link of the group.
 	int64_t m_ptid;
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;

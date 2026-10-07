@@ -463,7 +463,6 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_deep_chain) {
 		return true;
 	};
 	thread_manager->traverse_parent_state(*leaf, visitor);
-	ASSERT_FALSE(leaf->parent_loop_detected());
 	ASSERT_EQ(visited, s_deep_tree);
 	ASSERT_EQ(last, INIT_TID);
 
