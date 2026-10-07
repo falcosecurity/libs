@@ -134,13 +134,13 @@ public:
 	 * Only the child side of the link is stored. The parent keeps no list of children.
 	 *
 	 * The writer resolves the link when it writes it, and readers only follow it. A null link
-	 * with a tid is a parent that we do not link to.
+	 * with a tid is a parent that we do not know (yet).
 	 *
 	 * Every link goes down in rank, so the links never form a cycle. The rank of a group is set
 	 * before anything can link to the group, and it never changes. The rank is the rank of the
 	 * parent plus one, 0 without a parent, and s_unknown_parent_rank when the parent is unknown.
-	 * A link to a group of the same rank or higher is refused. Thus, the test of a link needs
-	 * only the two groups.
+	 * The high rank lets sinsp link the group to its parent later. A link to a group of the same
+	 * rank or higher is refused. Thus, the test of a link needs only the two groups.
 	 */
 	static constexpr uint64_t s_unknown_parent_rank = uint64_t{1} << 62;
 
@@ -173,6 +173,7 @@ public:
 		}
 		m_parent = std::move(parent);
 		m_parent_tid = parent_tid;
+		m_link_refused = false;
 		return true;
 	}
 
@@ -180,6 +181,15 @@ public:
 	inline void unlink(int64_t parent_tid) {
 		m_parent = nullptr;
 		m_parent_tid = parent_tid;
+		m_link_refused = false;
+	}
+
+	/* The link to `m_parent_tid` was refused, so sinsp does not try it again. */
+	inline void set_link_refused() { m_link_refused = true; }
+
+	/* True if a link to the parent known only by its tid is still to be tried. */
+	inline bool awaits_parent() const {
+		return m_parent == nullptr && m_parent_tid > 0 && !m_link_refused && !m_dead;
 	}
 
 	inline uint64_t get_rank() const { return m_rank; }
@@ -255,6 +265,7 @@ private:
 	uint64_t m_rank = s_unknown_parent_rank;
 	bool m_reaper;
 	bool m_dead = false;
+	bool m_link_refused = false;
 
 	inline void before_shortcut_store() const {
 #ifdef _DEBUG

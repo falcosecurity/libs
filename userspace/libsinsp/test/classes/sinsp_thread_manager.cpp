@@ -112,14 +112,15 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo) {
 	const auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51000;
-	tinfo->set_ptid(51001); /* we won't find it in the table, so we will default to 0 */
+	tinfo->set_ptid(51001); /* we will not find it in the table, so it stays a tid */
 	tinfo->m_vtid = 20;
 	tinfo->m_vpid = 1;
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, true, 1, 1);
 
-	ASSERT_EQ(tinfo->get_ptid(), 0);
+	ASSERT_EQ(tinfo->m_tginfo->get_parent(), nullptr);
+	ASSERT_EQ(tinfo->get_ptid(), 51001);
 }
 
 TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
@@ -180,8 +181,9 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, false, 1, 1);
-	/* the new parent will be 0 */
-	ASSERT_EQ(tinfo->get_ptid(), 0);
+	/* There is no parent to link to, so the thread keeps the ptid */
+	ASSERT_EQ(tinfo->m_tginfo->get_parent(), nullptr);
+	ASSERT_EQ(tinfo->get_ptid(), 8000);
 }
 
 TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
