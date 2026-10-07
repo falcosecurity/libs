@@ -53,10 +53,12 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_no_children) {
 	/* After the PROC_EXIT event we still have the thread but it is marked as dead */
 	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 1, false, 2, 2);
 
-	/* The reaper of p5_t1_tinfo should be always -1, p5_t1 has no children so we don't set it */
+	/* We do not know if p5_t1 has children, so we keep the reaper that the kernel sent. If there
+	 * are no children, nothing reads it.
+	 */
 	auto p5_t1_tinfo = evt->get_thread_info();
 	ASSERT_TRUE(p5_t1_tinfo);
-	ASSERT_EQ(p5_t1_tinfo->m_reaper_tid, -1);
+	ASSERT_EQ(p5_t1_tinfo->m_reaper_tid, INIT_TID);
 	ASSERT_THREAD_INFO_FLAG(p5_t1_tid, PPM_CL_CLOSED, true);
 
 	/* p5_t1 should be in `m_tid_to_remove` */
