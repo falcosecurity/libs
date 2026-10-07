@@ -290,7 +290,7 @@ public:
 	                                      bool resolve_hostname_and_port);
 
 private:
-	/* Make the group of `last_thread` a tombstone, linked to its reaper if the reaper is known. */
+	/* Make the group of `last_thread` a tombstone, linked to its reaper if sinsp finds one. */
 	void bury_thread_group(sinsp_threadinfo& last_thread);
 
 	/* Link the new group of `tinfo` to the parent named by `ptid`, and publish it. */

@@ -182,29 +182,27 @@ public:
 	}
 
 	/* A dead group is a tombstone (a group that stays after its process is gone). It leaves the
-	 * group table with its last thread, and it lives while a child links to it. Its reaper
-	 * replaces its parent link. If it has no reaper, its children have no parent.
+	 * group table with its last thread, and it lives while a child links to it. sinsp picks the
+	 * reaper when the group dies, and the reaper replaces the parent link. If sinsp finds no
+	 * reaper, the link is empty, and the children of the tombstone have no parent. The link of a
+	 * tombstone never changes.
 	 */
 	inline void set_dead() {
 		m_dead = true;
 		m_threads.clear();
 	}
 
-	/* For a dead group: link to its reaper, unless that link goes up in rank. */
+	/* For a dying group: link to its reaper, unless that link goes up in rank. */
 	inline bool link_reaper(std::shared_ptr<thread_group_info> reaper, int64_t reaper_tid) {
 		if(reaper->m_rank >= m_rank) {
 			return false;
 		}
 		m_parent = std::move(reaper);
 		m_parent_tid = reaper_tid;
-		m_reaper_known = true;
 		return true;
 	}
 
 	inline bool is_dead() const { return m_dead; }
-
-	/* For a dead group: true if the parent link names its reaper. */
-	inline bool is_reaper_known() const { return m_reaper_known; }
 
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
@@ -215,7 +213,6 @@ private:
 	uint64_t m_rank = s_unknown_parent_rank;
 	bool m_reaper;
 	bool m_dead = false;
-	bool m_reaper_known = false;
 
 	static constexpr uint64_t s_pending_rank = UINT64_MAX;
 };

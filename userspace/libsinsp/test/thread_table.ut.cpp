@@ -651,14 +651,60 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_to_subreaper_without_kernel
 TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_to_init_without_kernel_reaper) {
 	DEFAULT_TREE
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto p3_group = thread_manager->get_thread_group_info(p3_t1_pid);
 	remove_thread(p3_t1_tid, -1);
+	ASSERT_EQ(p3_group->get_parent(), thread_manager->get_thread_group_info(INIT_PID));
 
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, INIT_TID, p4_t2_vtid, p4_t2_vpid);
 }
 
+/* The reaper is picked when the process dies, as the kernel does. A subreaper set after the
+ * death does not take the children.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_ignores_subreaper_set_after_death) {
+	DEFAULT_TREE
+
+	remove_thread(p3_t1_tid, -1);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
+
+	m_inspector.m_thread_manager->get_thread_group_info(p2_t1_pid)->set_reaper(true);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, INIT_TID, p4_t2_vtid, p4_t2_vpid);
+}
+
+/* 0 from the kernel: the process had no children, so the exit does not search for a reaper. A
+ * child that sinsp has anyway gets no parent.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_no_reaper_search_when_the_kernel_saw_no_children) {
+	DEFAULT_TREE
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	thread_manager->get_thread_group_info(p2_t1_pid)->set_reaper(true);
+	auto p3_group = thread_manager->get_thread_group_info(p3_t1_pid);
+	remove_thread(p3_t1_tid, 0);
+	ASSERT_EQ(p3_group->get_parent(), nullptr);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, 0, p4_t1_vtid, p4_t1_vpid);
+}
+
+/* A subreaper that took the children keeps them when it stops being a subreaper. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_keeps_subreaper_cleared_after_death) {
+	DEFAULT_TREE
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	thread_manager->get_thread_group_info(p2_t1_pid)->set_reaper(true);
+	remove_thread(p3_t1_tid, -1);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, p2_t1_tid, p4_t1_vtid, p4_t1_vpid);
+
+	thread_manager->get_thread_group_info(p2_t1_pid)->set_reaper(false);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, p2_t1_tid, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, p2_t1_tid, p4_t2_vtid, p4_t2_vpid);
+}
+
 /* The search stays in the pid namespace of the dead process. p4 is in a container and its
- * parent p3 is not, so the children of p4 get no parent.
+ * parent p3 is not, so the children of p4 get no parent. A subreaper set later does not change
+ * that.
  */
 TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_stops_at_pid_namespace) {
 	DEFAULT_TREE
@@ -668,8 +714,14 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_stops_at_pid_namespace) {
 	/* p4 is the init of the container (vpid 1), so it is a reaper. Its main thread takes p6. */
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p6_t1_tid, p6_t1_pid, p4_t1_tid, p6_t1_vtid, p6_t1_vpid);
 
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto p4_group = thread_manager->get_thread_group_info(p4_t1_pid);
 	remove_thread(p4_t2_tid, -1);
 	remove_thread(p4_t1_tid, -1);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p6_t1_tid, p6_t1_pid, 0, p6_t1_vtid, p6_t1_vpid);
+	ASSERT_EQ(p4_group->get_parent(), nullptr);
+
+	thread_manager->get_thread_group_info(p3_t1_pid)->set_reaper(true);
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p6_t1_tid, p6_t1_pid, 0, p6_t1_vtid, p6_t1_vpid);
 }
 
@@ -711,8 +763,34 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_tombstone_lives_as_long_as_its_children
 	}
 }
 
+/* A process that dies after its parent, without a reaper from the kernel, links to the reaper
+ * that sinsp finds. This frees the dead parent.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_unreaped_process_dying_after_its_parent_drops_it) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t a = 10;
+	const int64_t b = 11;
+	const int64_t c = 12;
+	generate_clone_x_event(0, a, a, INIT_TID);
+	generate_clone_x_event(0, b, b, a);
+	generate_clone_x_event(0, c, c, b);
+	std::weak_ptr<thread_group_info> a_tombstone = thread_manager->get_thread_group_info(a);
+	auto b_group = thread_manager->get_thread_group_info(b);
+
+	/* -1: the kernel did not give the reaper */
+	remove_thread(a, -1);
+	ASSERT_FALSE(a_tombstone.expired());
+	remove_thread(b, -1);
+	ASSERT_TRUE(a_tombstone.expired());
+	ASSERT_EQ(b_group->get_parent(), thread_manager->get_thread_group_info(INIT_PID));
+	ASSERT_THREAD_INFO_PIDS(c, c, INIT_TID);
+}
+
 /* A reaper from the kernel that is below the dying process ranks higher. For example, a tid was
- * reused after a lost exit. The link is refused, and the children have no parent.
+ * reused after a lost exit. The link is refused, and sinsp searches for a reaper.
  */
 TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_below_the_dying_process_is_refused) {
 	capture_parent_link_logs();
@@ -724,11 +802,11 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_below_the_dying_process_is_refus
 	ASSERT_MISSING_THREAD_INFO(p3_t1_tid, true);
 
 	ASSERT_EQ(count_parent_link_logs("Refused"), 1);
-	ASSERT_FALSE(p3_group->is_reaper_known());
+	ASSERT_EQ(p3_group->get_parent(), thread_manager->get_thread_group_info(INIT_PID));
 	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 2, false, 2, 2);
 	auto p6 = thread_manager->find_thread(p6_t1_tid, true);
 	ASSERT_TRUE(p6->m_tginfo->chain_ends());
-	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, 0, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
 }
 
 /* A reaper that is not above the dying process, but ranks lower, is linked. */

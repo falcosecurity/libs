@@ -528,11 +528,36 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	}
 }
 
+/* Return the nearest live subreaper (or init) above the process of `tinfo`, in its pid
+ * namespace, or nullptr. Every step goes down in rank, so the search ends.
+ */
+static sinsp_threadinfo* find_reaper_above(const sinsp_threadinfo& tinfo) {
+	for(sinsp_threadinfo* ancestor = tinfo.get_linked_parent();
+	    ancestor != nullptr && ancestor->m_tginfo != nullptr;
+	    ancestor = ancestor->get_linked_parent()) {
+		if(ancestor->is_in_pid_namespace() != tinfo.is_in_pid_namespace()) {
+			return nullptr;
+		}
+		const auto& group = ancestor->m_tginfo;
+		if(!group->is_reaper() || group->get_thread_count() == 0) {
+			continue;
+		}
+		for(const auto& thread_weak : group->get_thread_list()) {
+			/* A thread of the group itself, as in thread_in_group() */
+			auto thread = thread_weak.lock().get();
+			if(thread != nullptr && thread->m_tginfo == group && !thread->is_dead()) {
+				return thread;
+			}
+		}
+	}
+	return nullptr;
+}
+
 /* [Record the reaper]
  * Use the reaper that the kernel sent for the last thread, if it sent one (> 0) and we have it.
- * Otherwise, use the reaper that our own search finds. The value is 0 when the kernel saw no
- * children. It is -1 when the kernel did not compute a reaper, for an old event, or for a lost
- * exit.
+ * Otherwise, search for one, as the kernel does. The value is 0 when the kernel saw no children.
+ * It is -1 when the kernel did not compute a reaper, for an old event, or for a lost exit. The
+ * reaper is picked once, here: a subreaper that is set or cleared later changes nothing.
  */
 void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 	const auto& tginfo = last_thread.m_tginfo;
@@ -545,36 +570,37 @@ void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 		reaper_tinfo = get_thread(last_thread.m_reaper_tid).get();
 	}
 
-	tginfo->set_dead();
-	if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid()) {
-		/* Fallback case:
-		 * We search for a reaper in best effort traversing our table
+	if(reaper_tinfo != nullptr && !reaper_tinfo->is_invalid() &&
+	   reaper_tinfo->m_tginfo != nullptr && reaper_tinfo->m_tginfo != tginfo) {
+		/* The reaper is nearly always an ancestor, so it ranks lower. If not, our tree is wrong,
+		 * for example because of a tid reused after a lost exit, or missing ancestry. Then the
+		 * link is refused, and we search for a reaper.
 		 */
-		reaper_tinfo = find_new_reaper(&last_thread);
-	}
-
-	if(reaper_tinfo == nullptr || reaper_tinfo->m_tginfo == nullptr ||
-	   reaper_tinfo->m_tginfo == tginfo) {
-		return;
-	}
-
-	/* The reaper is nearly always an ancestor, so it ranks lower. If not, our tree is wrong, for
-	 * example because of a tid reused after a lost exit, or missing ancestry. Then the link is
-	 * refused, and the children have no parent.
-	 */
-	if(!tginfo->link_reaper(reaper_tinfo->m_tginfo, reaper_tinfo->m_tid)) {
+		if(tginfo->link_reaper(reaper_tinfo->m_tginfo, reaper_tinfo->m_tid)) {
+			/* If that thread group was not marked as a reaper we mark it now:
+			 * - init process of a namespace.
+			 * - process that called prctl on itself.
+			 * Please note that in the kernel init processes are not marked with
+			 * `is_child_subreaper` but here we don't make distinctions we mark reapers and sub
+			 * reapers with the same flag.
+			 */
+			reaper_tinfo->m_tginfo->set_reaper(true);
+			tginfo->set_dead();
+			return;
+		}
 		log_refused_parent_link("reaper", *tginfo, *reaper_tinfo->m_tginfo, reaper_tinfo->m_tid);
-		return;
 	}
 
-	/* If that thread group was not marked as a reaper we mark it now:
-	 * - init process of a namespace.
-	 * - process that called prctl on itself.
-	 * Please note that in the kernel init processes are not marked with
-	 * `is_child_subreaper` but here we don't make distinctions we mark reapers and sub
-	 * reapers with the same flag.
+	/* The search goes up the parent links, so its result always ranks lower. If the kernel saw
+	 * no children, nothing needs a reaper, and the exit does not search.
 	 */
-	reaper_tinfo->m_tginfo->set_reaper(true);
+	reaper_tinfo = last_thread.m_reaper_tid != 0 ? find_reaper_above(last_thread) : nullptr;
+	if(reaper_tinfo == nullptr ||
+	   !tginfo->link_reaper(reaper_tinfo->m_tginfo, reaper_tinfo->m_tid)) {
+		/* No reaper: the children of the tombstone have no parent */
+		tginfo->unlink(0);
+	}
+	tginfo->set_dead();
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc(const bool resolve_hostname_and_port) {
