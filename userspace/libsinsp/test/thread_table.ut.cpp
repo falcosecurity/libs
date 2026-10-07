@@ -342,6 +342,113 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	/*=============================== p6_t1 traverse ===========================*/
 }
 
+/* A ptid that changes later can close a loop. The walk must stop and report the loop. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_detects_loop) {
+	DEFAULT_TREE
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	thread_manager->find_thread(p3_t1_tid, true)->set_ptid(p4_t1_tid);
+
+	auto tinfo = thread_manager->find_thread(p5_t1_tid, true).get();
+	ASSERT_TRUE(tinfo);
+	ASSERT_FALSE(tinfo->parent_loop_detected());
+
+	uint32_t visited = 0;
+	sinsp_thread_manager::visitor_func_t visitor = [&visited](sinsp_threadinfo*) {
+		visited++;
+		return true;
+	};
+	thread_manager->traverse_parent_state(*tinfo, visitor);
+	ASSERT_TRUE(tinfo->parent_loop_detected());
+	ASSERT_LT(visited, 16);
+}
+
+/* The depth is more than any cap, because a process tree has no depth limit. */
+static constexpr int64_t s_deep_tree = 300;
+
+TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_deep_chain) {
+	add_default_init_thread();
+	open_inspector();
+
+	/* init <- 2 <- 3 <- ... <- s_deep_tree + 1 */
+	for(int64_t tid = 2; tid <= s_deep_tree + 1; tid++) {
+		generate_clone_x_event(0, tid, tid, tid - 1);
+	}
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto leaf = thread_manager->find_thread(s_deep_tree + 1, true).get();
+	ASSERT_TRUE(leaf);
+
+	int64_t visited = 0;
+	int64_t last = -1;
+	sinsp_thread_manager::visitor_func_t visitor = [&](sinsp_threadinfo* pt) {
+		visited++;
+		last = pt->m_tid;
+		return true;
+	};
+	thread_manager->traverse_parent_state(*leaf, visitor);
+	ASSERT_FALSE(leaf->parent_loop_detected());
+	ASSERT_EQ(visited, s_deep_tree);
+	ASSERT_EQ(last, INIT_TID);
+
+	auto top = thread_manager->get_ancestor_process(*leaf, s_deep_tree);
+	ASSERT_TRUE(top);
+	ASSERT_EQ(top->m_tid, INIT_TID);
+}
+
+/* Every ancestor is a subreaper, and they die from the bottom up. The ancestor above reaps each
+ * one. At the end, the leaf is under init.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_through_a_deep_chain_of_reapers) {
+	add_default_init_thread();
+	open_inspector();
+	for(int64_t tid = 2; tid <= s_deep_tree + 1; tid++) {
+		generate_clone_x_event(0, tid, tid, tid - 1);
+		m_inspector.m_thread_manager->get_thread_group_info(tid)->set_reaper(true);
+	}
+
+	for(int64_t tid = s_deep_tree; tid >= 2; tid--) {
+		remove_thread(tid, tid - 1);
+	}
+	ASSERT_THREAD_INFO_PIDS(s_deep_tree + 1, s_deep_tree + 1, INIT_TID);
+}
+
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_through_a_deep_chain_without_kernel_reaper) {
+	add_default_init_thread();
+	open_inspector();
+	for(int64_t tid = 2; tid <= s_deep_tree + 1; tid++) {
+		generate_clone_x_event(0, tid, tid, tid - 1);
+		m_inspector.m_thread_manager->get_thread_group_info(tid)->set_reaper(true);
+	}
+
+	/* -1: the kernel did not give the reaper */
+	for(int64_t tid = s_deep_tree; tid >= 2; tid--) {
+		remove_thread(tid, -1);
+	}
+	ASSERT_THREAD_INFO_PIDS(s_deep_tree + 1, s_deep_tree + 1, INIT_TID);
+}
+
+/* Bad /proc data can describe a loop longer than any cap. The walk must still stop. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_long_ppid_loop) {
+	add_default_init_thread();
+	for(int64_t i = 0; i < s_deep_tree; i++) {
+		add_simple_thread(1000 + i, 1000 + i, 1000 + (i + 1) % s_deep_tree);
+	}
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto tinfo = thread_manager->find_thread(1000, true).get();
+	ASSERT_TRUE(tinfo);
+	uint64_t visited = 0;
+	sinsp_thread_manager::visitor_func_t visitor = [&visited](sinsp_threadinfo*) {
+		visited++;
+		return true;
+	};
+	thread_manager->traverse_parent_state(*tinfo, visitor);
+	ASSERT_TRUE(tinfo->parent_loop_detected());
+	ASSERT_LE(visited, 2 * s_deep_tree);
+}
+
 TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_main_thread_first) {
 	DEFAULT_TREE
 
@@ -431,6 +538,50 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree) {
 
 	/* the reaper flag should be set */
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 3, true, 3, 3);
+}
+
+/* If the kernel does not give the reaper, the children of a dead process go to the nearest
+ * subreaper above it.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_to_subreaper_without_kernel_reaper) {
+	DEFAULT_TREE
+
+	m_inspector.m_thread_manager->get_thread_group_info(p2_t1_pid)->set_reaper(true);
+
+	/* -1: the kernel did not give the reaper */
+	remove_thread(p3_t1_tid, -1);
+	ASSERT_MISSING_THREAD_INFO(p3_t1_tid, true);
+
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, p2_t1_tid, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, p2_t1_tid, p4_t2_vtid, p4_t2_vpid);
+	/* 3: the child list also counts p3. p3 is removed, but the list does not drop it yet. */
+	ASSERT_THREAD_CHILDREN(p2_t1_tid, 3, 2, p4_t1_tid, p4_t2_tid);
+}
+
+/* If no subreaper is between them, the children go to init. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_to_init_without_kernel_reaper) {
+	DEFAULT_TREE
+
+	remove_thread(p3_t1_tid, -1);
+
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, INIT_TID, p4_t2_vtid, p4_t2_vpid);
+}
+
+/* The search stays in the pid namespace of the dead process. p4 is in a container and its
+ * parent p3 is not, so the children of p4 get no parent.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_stops_at_pid_namespace) {
+	DEFAULT_TREE
+
+	remove_thread(p5_t2_tid, -1);
+	remove_thread(p5_t1_tid, -1);
+	/* p4 is the init of the container (vpid 1), so it is a reaper. Its main thread takes p6. */
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p6_t1_tid, p6_t1_pid, p4_t1_tid, p6_t1_vtid, p6_t1_vpid);
+
+	remove_thread(p4_t2_tid, -1);
+	remove_thread(p4_t1_tid, -1);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p6_t1_tid, p6_t1_pid, 0, p6_t1_vtid, p6_t1_vpid);
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
