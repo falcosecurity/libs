@@ -40,6 +40,7 @@ protected:
 			std::unique_ptr<sinsp_threadinfo> thr = threadinfo_factory.create();
 			thr->init();
 			thr->m_tid = pid;
+			thr->m_pid = pid;
 			thr->set_ptid(ppid);
 
 			thread_manager->add_thread(std::move(thr), true);
@@ -54,11 +55,8 @@ protected:
 	void reset() {
 		// Reset the state
 		for(uint32_t i = 0; i < m_max; i++) {
-			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid);
 			sinsp_threadinfo* tinfo = m_threads[i];
 			tinfo->m_lastevent_fd = 0;
-			tinfo->set_parent_loop_detected(false);
-			tinfo->set_ptid(ppid);
 		}
 	}
 
@@ -112,9 +110,8 @@ protected:
 		EXPECT_TRUE(result.wait_for(chrono::milliseconds(1000)) != future_status::timeout);
 	}
 
-	void verify(uint32_t test_idx, bool loop_detected, vector<uint32_t>& visited) {
+	void verify(uint32_t test_idx, vector<uint32_t>& visited) {
 		SCOPED_TRACE("test_idx=" + to_string(test_idx));
-		EXPECT_EQ(m_threads[test_idx]->parent_loop_detected(), loop_detected);
 		for(uint32_t i = 0; i < m_max; i++) {
 			SCOPED_TRACE("i=" + to_string(i));
 			EXPECT_EQ(m_threads[i]->m_lastevent_fd, visited[i]);
@@ -133,7 +130,7 @@ TEST_F(thread_state_test, parent_state_single) {
 	// Nothing is visited as we are starting with the top thread's
 	// parent.
 	vector<uint32_t> expected = {0, 0, 0, 0, 0};
-	verify(0, false, expected);
+	verify(0, expected);
 }
 
 TEST_F(thread_state_test, parent_state_parent) {
@@ -141,7 +138,7 @@ TEST_F(thread_state_test, parent_state_parent) {
 	traverse_with_timeout(m_threads[1]);
 
 	vector<uint32_t> expected = {1, 0, 0, 0, 0};
-	verify(1, false, expected);
+	verify(1, expected);
 }
 
 TEST_F(thread_state_test, parent_state_parent_ancestors) {
@@ -149,49 +146,44 @@ TEST_F(thread_state_test, parent_state_parent_ancestors) {
 	traverse_with_timeout(m_threads[4]);
 
 	vector<uint32_t> expected = {1, 1, 1, 1, 0};
-	verify(4, false, expected);
+	verify(4, expected);
 }
 
+// relink() refuses a link that closes a loop, so every walk ends.
 TEST_F(thread_state_test, parent_state_single_loop) {
 	reset();
-	m_threads[0]->set_ptid(m_threads[0]->m_tid);
+	m_threads[0]->m_tginfo->relink(m_threads[0]->m_tginfo, m_threads[0]->m_tid);
 	traverse_with_timeout(m_threads[0]);
 
-	// We end up visiting the top thread as we do so before
-	// detecting the loop.
-	vector<uint32_t> expected = {1, 0, 0, 0, 0};
-	verify(0, true, expected);
+	vector<uint32_t> expected = {0, 0, 0, 0, 0};
+	verify(0, expected);
 }
 
 TEST_F(thread_state_test, parent_state_short_loop) {
 	reset();
-	m_threads[0]->set_ptid(m_threads[1]->m_tid);
+	m_threads[0]->m_tginfo->relink(m_threads[1]->m_tginfo, m_threads[1]->m_tid);
 	traverse_with_timeout(m_threads[1]);
 
-	// In this case we reach the end of the parent state before
-	// detecting a loop.
 	vector<uint32_t> expected = {1, 0, 0, 0, 0};
-	verify(0, false, expected);
+	verify(0, expected);
 }
 
 TEST_F(thread_state_test, parent_state_loop) {
 	reset();
-	m_threads[0]->set_ptid(m_threads[4]->m_tid);
+	m_threads[0]->m_tginfo->relink(m_threads[4]->m_tginfo, m_threads[4]->m_tid);
 	traverse_with_timeout(m_threads[4]);
 
 	vector<uint32_t> expected = {1, 1, 1, 1, 0};
-	verify(4, true, expected);
+	verify(4, expected);
 }
 
 TEST_F(thread_state_test, parent_state_lollipop) {
 	reset();
-	m_threads[0]->set_ptid(m_threads[2]->m_tid);
+	m_threads[0]->m_tginfo->relink(m_threads[2]->m_tginfo, m_threads[2]->m_tid);
 	traverse_with_timeout(m_threads[4]);
 
-	// In this case, we detect the loop before visiting all the
-	// parents that comprise the loop.
-	vector<uint32_t> expected = {0, 0, 1, 1, 0};
-	verify(4, true, expected);
+	vector<uint32_t> expected = {1, 1, 1, 1, 0};
+	verify(4, expected);
 }
 
 TEST_F(thread_state_test, parent_state_verify_timeout) {

@@ -799,28 +799,33 @@ void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread
 /* We should never call this method if we don't have children to reparent
  * if we want to save some clock cycles
  */
-void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
+uint64_t sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 	/* We have no children to reparent. */
 	if(m_children.size() == 0) {
-		return;
+		return 0;
 	}
 
 	if(reaper == this) {
 		throw sinsp_exception("the current process is reaper of itself, this should never happen!");
 	}
 
+	uint64_t refused = 0;
 	auto child = m_children.begin();
 	while(child != m_children.end()) {
 		/* If the child is not expired we move it to the reaper
 		 * and we change its `ptid`.
 		 */
-		if(!child->expired()) {
-			if(reaper == nullptr) {
+		if(auto child_ptr = child->lock(); child_ptr != nullptr && child_ptr->m_tginfo != nullptr) {
+			auto& child_group = *child_ptr->m_tginfo;
+			if(reaper == nullptr || reaper->m_tginfo == nullptr) {
 				/* we set `0` as the parent for all children */
-				child->lock()->set_ptid(0);
-			} else {
+				child_group.unlink(0);
+			} else if(child_group.relink(reaper->m_tginfo, reaper->m_tid)) {
 				/* Add the child to the reaper list */
-				reaper->add_child(child->lock());
+				reaper->add_child(child_ptr);
+			} else {
+				child_group.unlink(reaper->m_tid);
+				refused++;
 			}
 		}
 
@@ -830,19 +835,53 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 		child = m_children.erase(child);
 	}
 	m_not_expired_children = 0;
+	return refused;
+}
+
+namespace {
+
+/* Return the thread that a link to `tid` in `group` points to. This is that thread or, if it is
+ * gone, the first live thread of the group.
+ */
+sinsp_threadinfo* thread_in_group(const thread_group_info& group, int64_t tid) {
+	sinsp_threadinfo* first_alive = nullptr;
+	for(const auto& thread_weak : group.get_thread_list()) {
+		/* Use only threads of this group, so that the next hop follows the link of this group */
+		auto thread = thread_weak.lock().get();
+		if(thread == nullptr || thread->m_tginfo.get() != &group) {
+			continue;
+		}
+		if(thread->m_tid == tid) {
+			return thread;
+		}
+		if(first_alive == nullptr && !thread->is_dead()) {
+			first_alive = thread;
+		}
+	}
+	return first_alive;
+}
+
+}  // namespace
+
+sinsp_threadinfo* sinsp_threadinfo::get_linked_parent() const {
+	const auto& parent = m_tginfo->get_parent();
+	return parent != nullptr ? thread_in_group(*parent, m_tginfo->get_parent_tid()) : nullptr;
 }
 
 int64_t sinsp_threadinfo::get_ptid() const {
 	if(m_tginfo == nullptr) {
 		return m_ptid;
 	}
-	return m_tginfo->get_parent_tid();
+	if(m_tginfo->get_parent() == nullptr) {
+		return m_tginfo->get_parent_tid();
+	}
+	auto parent = get_linked_parent();
+	return parent != nullptr ? parent->m_tid : 0;
 }
 
 void sinsp_threadinfo::set_ptid(int64_t ptid) {
 	if(m_tginfo != nullptr) {
-		m_tginfo->set_parent_tid(ptid);
-		return;
+		throw sinsp_exception("the ptid of a thread in the process tree is read-only");
 	}
 	m_ptid = ptid;
 }

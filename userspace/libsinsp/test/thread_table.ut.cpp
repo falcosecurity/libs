@@ -18,6 +18,28 @@ limitations under the License.
 
 #include <helpers/threads_helpers.h>
 
+/* The debug log lines about parent links, from the last capture_parent_link_logs() on. The
+ * fixture resets the logger at the end of each test.
+ */
+static std::vector<std::string> s_parent_link_logs;
+
+static void capture_parent_link_logs() {
+	s_parent_link_logs.clear();
+	libsinsp_logger()->set_severity(sinsp_logger::SEV_DEBUG);
+	libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity) {
+		if(str.find("parent link") != std::string::npos) {
+			s_parent_link_logs.push_back(std::move(str));
+		}
+	});
+}
+
+static size_t count_parent_link_logs(const char* kind) {
+	return std::count_if(
+	        s_parent_link_logs.begin(),
+	        s_parent_link_logs.end(),
+	        [kind](const std::string& line) { return line.find(kind) != std::string::npos; });
+}
+
 /* These are a sort of e2e for the sinsp state, they assert some flows in sinsp */
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_check_default_tree) {
@@ -342,25 +364,79 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	/*=============================== p6_t1 traverse ===========================*/
 }
 
-/* A ptid that changes later can close a loop. The walk must stop and report the loop. */
-TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_detects_loop) {
+/* The ptid of a thread in a group is read-only, on the thread and through the thread table. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_ptid_is_read_only_in_the_process_tree) {
 	DEFAULT_TREE
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
-	thread_manager->find_thread(p3_t1_tid, true)->set_ptid(p4_t1_tid);
+	auto p3 = thread_manager->find_thread(p3_t1_tid, true);
+	ASSERT_THROW(p3->set_ptid(p4_t1_tid), sinsp_exception);
+	ASSERT_EQ(p3->get_ptid(), p3_t1_ptid);
 
-	auto tinfo = thread_manager->find_thread(p5_t1_tid, true).get();
-	ASSERT_TRUE(tinfo);
-	ASSERT_FALSE(tinfo->parent_loop_detected());
+	libsinsp::state::sinsp_table_owner owner;
+	const auto& field = thread_manager->get_field("ptid", SS_PLUGIN_ST_INT64);
+	ss_plugin_state_data in{};
+	in.s64 = p4_t1_tid;
+	ASSERT_EQ(thread_manager->write_entry_field(&owner, p3.get(), &field, &in), SS_PLUGIN_FAILURE);
+	ASSERT_EQ(p3->get_ptid(), p3_t1_ptid);
 
+	/* A thread that is not in the table yet accepts the write */
+	auto entry = thread_manager->new_entry();
+	ASSERT_EQ(thread_manager->write_entry_field(&owner, entry.get(), &field, &in),
+	          SS_PLUGIN_SUCCESS);
+	ASSERT_EQ(static_cast<sinsp_threadinfo*>(entry.get())->get_ptid(), p4_t1_tid);
+}
+
+/* A thread without a group has no parent to follow. Two such threads that name each other as
+ * parents cannot make a walk loop.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_walk_from_a_thread_out_of_the_tree_ends) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	for(const auto& [tid, ptid] : {std::pair<int64_t, int64_t>{100, 101}, {101, 100}}) {
+		auto thread = m_inspector.get_threadinfo_factory().create();
+		thread->m_tid = tid;
+		thread->m_pid = -1;
+		thread->set_ptid(ptid);
+		thread_manager->add_thread(std::move(thread), true);
+	}
+
+	auto tinfo = thread_manager->find_thread(100, true);
+	ASSERT_EQ(tinfo->m_tginfo, nullptr);
+	ASSERT_EQ(thread_manager->get_parent_thread(*tinfo), nullptr);
 	uint32_t visited = 0;
 	sinsp_thread_manager::visitor_func_t visitor = [&visited](sinsp_threadinfo*) {
-		visited++;
-		return true;
+		return ++visited < 1000;
 	};
 	thread_manager->traverse_parent_state(*tinfo, visitor);
-	ASSERT_TRUE(tinfo->parent_loop_detected());
-	ASSERT_LT(visited, 16);
+	ASSERT_EQ(visited, 0);
+}
+
+/* relink() refuses a link that goes up in rank, also when the link closes no cycle. Here,
+ * the test first moves a off the chain of c, and then puts a under c.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_relink_up_in_rank_is_refused) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t a = 10;
+	const int64_t b = 11;
+	const int64_t c = 12;
+	generate_clone_x_event(0, a, a, INIT_TID);
+	generate_clone_x_event(0, b, b, a);
+	generate_clone_x_event(0, c, c, b);
+	auto a_tinfo = thread_manager->find_thread(a, true);
+	auto b_tinfo = thread_manager->find_thread(b, true);
+	auto c_tinfo = thread_manager->find_thread(c, true);
+
+	const auto& init_group = thread_manager->get_thread_group_info(INIT_PID);
+	ASSERT_TRUE(b_tinfo->m_tginfo->relink(init_group, INIT_TID));
+	ASSERT_FALSE(a_tinfo->m_tginfo->relink(c_tinfo->m_tginfo, c));
+	ASSERT_EQ(a_tinfo->m_tginfo->get_parent(), init_group);
+	ASSERT_TRUE(c_tinfo->m_tginfo->chain_ends());
 }
 
 /* The depth is more than any cap, because a process tree has no depth limit. */
@@ -428,8 +504,9 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_through_a_deep_chain_withou
 	ASSERT_THREAD_INFO_PIDS(s_deep_tree + 1, s_deep_tree + 1, INIT_TID);
 }
 
-/* Bad /proc data can describe a loop longer than any cap. The walk must still stop. */
+/* A loop in the /proc ppids is longer than any cap. sinsp refuses the link that closes it. */
 TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_long_ppid_loop) {
+	capture_parent_link_logs();
 	add_default_init_thread();
 	for(int64_t i = 0; i < s_deep_tree; i++) {
 		add_simple_thread(1000 + i, 1000 + i, 1000 + (i + 1) % s_deep_tree);
@@ -445,8 +522,20 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_long_ppid_loop) {
 		return true;
 	};
 	thread_manager->traverse_parent_state(*tinfo, visitor);
-	ASSERT_TRUE(tinfo->parent_loop_detected());
-	ASSERT_LE(visited, 2 * s_deep_tree);
+	ASSERT_LT(visited, s_deep_tree);
+
+	/* sinsp refuses only the link that closes the loop, and keeps its tid */
+	int64_t unlinked = 0;
+	for(int64_t i = 0; i < s_deep_tree; i++) {
+		auto thread = thread_manager->find_thread(1000 + i, true);
+		ASSERT_TRUE(thread->m_tginfo->chain_ends());
+		if(thread->m_tginfo->get_parent() == nullptr) {
+			unlinked++;
+			ASSERT_EQ(thread->get_ptid(), 1000 + (i + 1) % s_deep_tree);
+		}
+	}
+	ASSERT_EQ(unlinked, 1);
+	ASSERT_EQ(count_parent_link_logs("Refused"), 1);
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_main_thread_first) {
