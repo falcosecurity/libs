@@ -823,9 +823,6 @@ sinsp_threadinfo* resolve_parent(const thread_group_info* group, int64_t tid) {
 		if(!group->is_dead()) {
 			return thread_in_group(*group, tid);
 		}
-		if(!group->is_reaper_known()) {
-			return nullptr;
-		}
 		tid = group->get_parent_tid();
 		group = group->get_parent().get();
 	}
