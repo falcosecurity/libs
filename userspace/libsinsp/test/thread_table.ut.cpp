@@ -85,15 +85,16 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_missing_init_in_proc) {
 	int64_t p1_t1_ptid = INIT_TID;
 	add_simple_thread(p1_t1_tid, p1_t1_pid, p1_t1_ptid);
 
-	/* we will call `create_thread_dependencies` but `p1_t1_ptid` doesn't exist so
-	 * we will set ptid=0.
+	/* we will call `create_thread_dependencies` but `p1_t1_ptid` does not exist, so
+	 * the thread has no parent link and keeps the ptid.
 	 */
 	open_inspector();
 
 	/* Check the fake init thread info just created */
 	auto p1_t1_tinfo = m_inspector.m_thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
-	ASSERT_EQ(p1_t1_tinfo->get_ptid(), 0);
+	ASSERT_EQ(p1_t1_tinfo->m_tginfo->get_parent(), nullptr);
+	ASSERT_EQ(p1_t1_tinfo->get_ptid(), p1_t1_ptid);
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation) {
@@ -861,6 +862,59 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_above_the_dying_process_is_linke
 	remove_thread(p3_t1_tid, INIT_TID);
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
 	ASSERT_EQ(count_parent_link_logs("Refused"), 0);
+}
+
+/* A process from /proc with a parent that is not in the table keeps the tid of the parent. When
+ * the parent appears, the process links to it on its next execve.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_parent_known_later_links_on_execve) {
+	capture_parent_link_logs();
+	add_default_init_thread();
+	const int64_t parent = 50;
+	const int64_t child = 60;
+	add_simple_thread(child, child, parent);
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto child_tinfo = thread_manager->find_thread(child, true);
+	ASSERT_EQ(child_tinfo->m_tginfo->get_parent(), nullptr);
+	ASSERT_EQ(child_tinfo->get_ptid(), parent);
+
+	generate_clone_x_event(0, parent, parent, INIT_TID);
+	ASSERT_EQ(child_tinfo->m_tginfo->get_parent(), nullptr);
+
+	generate_execve_enter_and_exit_event(0, child, child, child, parent);
+	ASSERT_EQ(count_parent_link_logs("Late"), 1);
+	ASSERT_EQ(child_tinfo->m_tginfo->get_parent(), thread_manager->get_thread_group_info(parent));
+	ASSERT_THREAD_INFO_PIDS(child, child, parent);
+	ASSERT_EQ(thread_manager->get_ancestor_process(*child_tinfo, 2)->m_tid, INIT_TID);
+}
+
+/* The exception: the parent ranks as high, because its own parent is also unknown. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_parent_of_unknown_ancestry_is_not_linked_later) {
+	capture_parent_link_logs();
+	add_default_init_thread();
+	const int64_t parent = 50;
+	const int64_t child = 60;
+	add_simple_thread(child, child, parent);
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto child_tinfo = thread_manager->find_thread(child, true);
+	/* the parent of the parent, 40, is not in the table */
+	generate_clone_x_event(0, parent, parent, 40);
+	ASSERT_EQ(thread_manager->get_thread_group_info(parent)->get_rank(),
+	          child_tinfo->m_tginfo->get_rank());
+
+	generate_execve_enter_and_exit_event(0, child, child, child, parent);
+	ASSERT_EQ(count_parent_link_logs("Late"), 0);
+	ASSERT_EQ(count_parent_link_logs("Refused"), 1);
+	ASSERT_EQ(child_tinfo->m_tginfo->get_parent(), nullptr);
+	ASSERT_EQ(child_tinfo->get_ptid(), parent);
+
+	/* A refused tid is not tried again */
+	generate_execve_enter_and_exit_event(0, child, child, child, parent);
+	ASSERT_EQ(count_parent_link_logs("Refused"), 1);
 }
 
 #ifdef _DEBUG

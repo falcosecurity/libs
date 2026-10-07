@@ -132,7 +132,8 @@ public:
 	sinsp_threadinfo* get_parent_thread(const sinsp_threadinfo& tinfo);
 
 	/*!
-	  \brief Link the process of this thread past its dead parents. Clone and execve call this,
+	  \brief Link the process of this thread past its dead parents. Also link it to a parent
+	  known only by its tid, if the table has that parent now. Clone and execve call this,
 	  because they write the process anyway.
 	*/
 	void update_parent_link(sinsp_threadinfo& tinfo);

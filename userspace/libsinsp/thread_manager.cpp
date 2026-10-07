@@ -232,22 +232,17 @@ void sinsp_thread_manager::link_and_publish_group(const std::shared_ptr<sinsp_th
 	};
 
 	/* Link the group before it is published. Nothing links to it yet, so the link cannot close
-	 * a loop. The init group has no parent.
+	 * a loop. In the `/proc` scan, the `ptid` is the `ppid`. If the parent is not in the table,
+	 * the group keeps its tid, and update_parent_link() links it later. sinsp does not scan the
+	 * parent from `/proc`, because that can start a recursion through all the parents. The init
+	 * group has no parent.
 	 */
-	if(tinfo->m_pid == 1) {
-		tginfo->link_new(nullptr, ptid);
-		publish();
-		return;
+	std::shared_ptr<sinsp_threadinfo> parent;
+	if(tinfo->m_pid != 1) {
+		parent = find_thread(ptid, true);
 	}
-
-	/* In the `/proc` scan, the `ptid` is the `ppid`.
-	 * If the parent is not in the table, we can do nothing, so we set ptid = 0.
-	 * We do not scan `/proc` here, because that can start a recursion
-	 * through all the parents.
-	 */
-	std::shared_ptr<sinsp_threadinfo> parent = find_thread(ptid, true);
 	if(parent == nullptr || parent->is_invalid()) {
-		tginfo->link_new(nullptr, 0);
+		tginfo->link_new(nullptr, ptid);
 		publish();
 		return;
 	}
@@ -279,13 +274,35 @@ void sinsp_thread_manager::relink_group(thread_group_info& tginfo,
 			return;
 		}
 		log_refused_parent_link("parent", tginfo, *parent->m_tginfo, parent->m_tid);
+		tginfo.unlink(ptid);
+		tginfo.set_link_refused();
+		return;
 	}
 	tginfo.unlink(ptid);
 }
 
 void sinsp_thread_manager::update_parent_link(sinsp_threadinfo& tinfo) {
-	if(tinfo.m_tginfo != nullptr) {
-		link_past_dead_parents(tinfo);
+	thread_group_info* tginfo = tinfo.m_tginfo.get();
+	if(tginfo == nullptr) {
+		return;
+	}
+	link_past_dead_parents(tinfo);
+	if(!tginfo->awaits_parent()) {
+		return;
+	}
+
+	std::shared_ptr<sinsp_threadinfo> parent = find_thread(tginfo->get_parent_tid(), true);
+	if(parent == nullptr || parent->is_invalid() || parent->m_tginfo == nullptr) {
+		return;
+	}
+	relink_group(*tginfo, parent, tginfo->get_parent_tid());
+	if(tginfo->get_parent() != nullptr) {
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+		                          "Late parent link: pid %" PRId64 " to parent tid %" PRId64
+		                          " (pid %" PRId64 "), after it joined the thread table",
+		                          tginfo->get_tgroup_pid(),
+		                          parent->m_tid,
+		                          parent->m_pid);
 	}
 }
 
