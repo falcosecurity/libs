@@ -554,7 +554,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_to_subreaper_without_kernel
 
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, p2_t1_tid, p4_t1_vtid, p4_t1_vpid);
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, p2_t1_tid, p4_t2_vtid, p4_t2_vpid);
-	/* 3: the child list also counts p3. p3 is removed, but the list does not drop it yet. */
+
 	ASSERT_THREAD_CHILDREN(p2_t1_tid, 3, 2, p4_t1_tid, p4_t2_tid);
 }
 
@@ -702,6 +702,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group)
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 2);
 }
 
+/* A removed child stops being a child at once, for any number of children. */
 TEST_F(sinsp_with_test_input, THRD_TABLE_many_children) {
 	add_default_init_thread();
 	open_inspector();
@@ -713,48 +714,29 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_children) {
 
 	ASSERT_THREAD_CHILDREN(INIT_TID, HUGE_THREAD_NUMBER, HUGE_THREAD_NUMBER);
 
-	/* Only `DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1` removal, we need another one */
-	for(auto i = 0; i < (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1); i++) {
+	constexpr int removed = 9;
+	for(auto i = 0; i < removed; i++) {
 		remove_thread(tid + i, 0);
 	}
 
-	int64_t alive_children = HUGE_THREAD_NUMBER - (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
-	ASSERT_THREAD_CHILDREN(INIT_TID, HUGE_THREAD_NUMBER, alive_children);
+	int64_t alive_children = HUGE_THREAD_NUMBER - removed;
+	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children, alive_children);
 
 	/* remove random thread */
 	remove_thread(145, 0);
 	alive_children--;
+	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children, alive_children);
 
-	/* When we clean up the current thread is not taken into account
-	 * That's the reason why we need the +1
-	 */
-	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children + 1, alive_children);
-
-	/* Now if we remove another thread the logic shouldn't be called. */
 	remove_thread(146, 0);
 	alive_children--;
-	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children + 2, alive_children);
+	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children, alive_children);
 
 	/* remove all threads */
 	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++) {
 		remove_thread(tid + i, 0);
 	}
 
-	/* How many times the logic will be called.
-	 * The first time it is called is after `DEFAULT_EXPIRED_CHILDREN_THRESHOLD` dead threads.
-	 * When it is called one thread of the dead ones is still not expired so all the next time
-	 * the logic will be called after `DEFAULT_EXPIRED_CHILDREN_THRESHOLD-1` decrement.
-	 * (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) here we exclude:
-	 * - `-DEFAULT_EXPIRED_CHILDREN_THRESHOLD` is the first time we call the logic. To compensate
-	 *    this we will do `called_logic++` at the end.
-	 */
-	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) /
-	                   (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
-	called_logic++;
-	int remaining_threads =
-	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
-
-	ASSERT_THREAD_CHILDREN(INIT_TID, remaining_threads, 0);
+	ASSERT_THREAD_CHILDREN(INIT_TID, 0, 0);
 	/* Only init process */
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
 }
@@ -769,13 +751,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_children) {
 		remove_thread(tid + i, 0);
 	}
 
-	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) /
-	                   (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
-	called_logic++;
-	int remaining_threads =
-	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
-
-	ASSERT_THREAD_CHILDREN(INIT_TID, remaining_threads, 0);
+	ASSERT_THREAD_CHILDREN(INIT_TID, 0, 0);
 	/* Only init process */
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
 }

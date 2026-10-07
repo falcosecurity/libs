@@ -161,7 +161,12 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_valid_pare
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, false, 1, 1);
 	ASSERT_EQ(tinfo->get_ptid(), p6_t1_tid);
-	ASSERT_THREAD_CHILDREN(p6_t1_tid, 1, 1);
+	/* The thread is not in the table, so the search for the children of p6_t1 cannot find it.
+	 * Look at the parent link of the thread instead.
+	 */
+	auto parent = m_inspector.m_thread_manager->get_parent_thread(*tinfo);
+	ASSERT_TRUE(parent);
+	ASSERT_EQ(parent->m_tid, p6_t1_tid);
 }
 
 TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_parent) {
