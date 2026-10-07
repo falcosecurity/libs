@@ -182,11 +182,12 @@ public:
 	}
 
 	/* A dead group is a tombstone (a group that stays after its process is gone). It leaves the
-	 * group table with its last thread, and it lives while a child links to it. Its reaper
-	 * replaces its parent link. If it has no reaper, its children have no parent.
+	 * group table with its last thread, and it lives while a child links to it. If the reaper is
+	 * known, it replaces the parent link. If not, readers search above the tombstone.
 	 */
-	inline void set_dead() {
+	inline void set_dead(bool in_pid_namespace) {
 		m_dead = true;
+		m_in_pid_namespace = in_pid_namespace;
 		m_threads.clear();
 	}
 
@@ -206,6 +207,9 @@ public:
 	/* For a dead group: true if the parent link names its reaper. */
 	inline bool is_reaper_known() const { return m_reaper_known; }
 
+	/* For a dead group: true if its last thread was in a child pid namespace. */
+	inline bool is_in_pid_namespace() const { return m_in_pid_namespace; }
+
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
 	uint64_t m_alive_count;
@@ -216,6 +220,7 @@ private:
 	bool m_reaper;
 	bool m_dead = false;
 	bool m_reaper_known = false;
+	bool m_in_pid_namespace = false;
 
 	static constexpr uint64_t s_pending_rank = UINT64_MAX;
 };

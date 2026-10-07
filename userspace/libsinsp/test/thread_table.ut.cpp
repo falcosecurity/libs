@@ -657,6 +657,17 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_to_init_without_kernel_reap
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, INIT_TID, p4_t2_vtid, p4_t2_vpid);
 }
 
+/* The reaper search runs when a child is read, so a subreaper set after the death counts. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_sees_subreaper_set_after_death) {
+	DEFAULT_TREE
+
+	remove_thread(p3_t1_tid, -1);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
+
+	m_inspector.m_thread_manager->get_thread_group_info(p2_t1_pid)->set_reaper(true);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, p2_t1_tid, p4_t1_vtid, p4_t1_vpid);
+}
+
 /* The search stays in the pid namespace of the dead process. p4 is in a container and its
  * parent p3 is not, so the children of p4 get no parent.
  */
@@ -712,7 +723,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_tombstone_lives_as_long_as_its_children
 }
 
 /* A reaper from the kernel that is below the dying process ranks higher. For example, a tid was
- * reused after a lost exit. The link is refused, and the children have no parent.
+ * reused after a lost exit. The link is refused, and readers search for a reaper.
  */
 TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_below_the_dying_process_is_refused) {
 	capture_parent_link_logs();
@@ -728,7 +739,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_below_the_dying_process_is_refus
 	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 2, false, 2, 2);
 	auto p6 = thread_manager->find_thread(p6_t1_tid, true);
 	ASSERT_TRUE(p6->m_tginfo->chain_ends());
-	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, 0, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
 }
 
 /* A reaper that is not above the dying process, but ranks lower, is linked. */

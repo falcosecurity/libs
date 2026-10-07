@@ -783,6 +783,8 @@ bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup
 
 namespace {
 
+sinsp_threadinfo* resolve_parent(const thread_group_info* group, int64_t tid);
+
 /* Return the thread that a link to `tid` in the live `group` points to. This is that thread
  * while it is alive, or else the first live thread of the group. A dead thread keeps its children
  * until it is removed. If the group has no live thread, the link stays on the dead thread.
@@ -814,6 +816,41 @@ sinsp_threadinfo* thread_in_group(const thread_group_info& group, int64_t tid) {
 	return named;
 }
 
+/* For a dead `group` with an unknown reaper, return the nearest live subreaper (or init) above
+ * it, in the same pid namespace. Every step goes up a parent link, so the search ends.
+ */
+sinsp_threadinfo* find_reaper_above(const thread_group_info& group) {
+	const thread_group_info* parent = group.get_parent().get();
+	if(parent == nullptr) {
+		return nullptr;
+	}
+	auto ancestor = resolve_parent(parent, group.get_parent_tid());
+	while(ancestor != nullptr) {
+		if(ancestor->is_in_pid_namespace() != group.is_in_pid_namespace()) {
+			return nullptr;
+		}
+		const auto& ancestor_group = ancestor->m_tginfo;
+		if(ancestor_group == nullptr) {
+			return nullptr;
+		}
+		if(ancestor_group->is_reaper() && ancestor_group->get_thread_count() > 0) {
+			for(const auto& thread_weak : ancestor_group->get_thread_list()) {
+				/* A thread of the group itself, as in thread_in_group() */
+				auto thread = thread_weak.lock().get();
+				if(thread != nullptr && thread->m_tginfo == ancestor_group && !thread->is_dead()) {
+					return thread;
+				}
+			}
+		}
+		if(ancestor_group->get_parent() == nullptr) {
+			return nullptr;
+		}
+		ancestor = resolve_parent(ancestor_group->get_parent().get(),
+		                          ancestor_group->get_parent_tid());
+	}
+	return nullptr;
+}
+
 /* Return where a link to `tid` in `group` points to. This is the group if it is alive, or else
  * its reaper, and so on through dead reapers. It is nullptr if a dead group has no reaper. Each
  * step follows a parent link, so the search ends.
@@ -824,7 +861,7 @@ sinsp_threadinfo* resolve_parent(const thread_group_info* group, int64_t tid) {
 			return thread_in_group(*group, tid);
 		}
 		if(!group->is_reaper_known()) {
-			return nullptr;
+			return find_reaper_above(*group);
 		}
 		tid = group->get_parent_tid();
 		group = group->get_parent().get();

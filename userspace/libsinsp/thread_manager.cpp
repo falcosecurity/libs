@@ -530,9 +530,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 
 /* [Record the reaper]
  * Use the reaper that the kernel sent for the last thread, if it sent one (> 0) and we have it.
- * Otherwise, use the reaper that our own search finds. The value is 0 when the kernel saw no
- * children. It is -1 when the kernel did not compute a reaper, for an old event, or for a lost
- * exit.
+ * Otherwise, readers search for one (see `find_reaper_above`). The value is 0 when the kernel saw
+ * no children. It is -1 when the kernel did not compute a reaper, for an old event, or for a
+ * lost exit.
  */
 void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 	const auto& tginfo = last_thread.m_tginfo;
@@ -545,22 +545,15 @@ void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 		reaper_tinfo = get_thread(last_thread.m_reaper_tid).get();
 	}
 
-	tginfo->set_dead();
-	if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid()) {
-		/* Fallback case:
-		 * We search for a reaper in best effort traversing our table
-		 */
-		reaper_tinfo = find_new_reaper(&last_thread);
-	}
-
-	if(reaper_tinfo == nullptr || reaper_tinfo->m_tginfo == nullptr ||
+	tginfo->set_dead(last_thread.is_in_pid_namespace());
+	if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid() || reaper_tinfo->m_tginfo == nullptr ||
 	   reaper_tinfo->m_tginfo == tginfo) {
 		return;
 	}
 
 	/* The reaper is nearly always an ancestor, so it ranks lower. If not, our tree is wrong, for
 	 * example because of a tid reused after a lost exit, or missing ancestry. Then the link is
-	 * refused, and the children have no parent.
+	 * refused, and readers search for a reaper.
 	 */
 	if(!tginfo->link_reaper(reaper_tinfo->m_tginfo, reaper_tinfo->m_tid)) {
 		log_refused_parent_link("reaper", *tginfo, *reaper_tinfo->m_tginfo, reaper_tinfo->m_tid);
