@@ -181,11 +181,17 @@ void sinsp_thread_manager::create_thread_dependencies(
 		reaper = true;
 	}
 
+	/* After the thread joins a group, get_ptid() reads the link of the group */
+	const int64_t ptid = tinfo->get_ptid();
+
 	/* Create the thread group info for the thread. */
 	auto tginfo = get_thread_group_info(tinfo->m_pid);
-	if(tginfo == nullptr) {
+	const bool new_group = tginfo == nullptr;
+	if(new_group) {
 		tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, reaper, tinfo);
 		set_thread_group_info(tinfo->m_pid, tginfo);
+		/* The parent belongs to the process. The thread that creates the group sets it. */
+		tginfo->set_parent_tid(ptid);
 	} else {
 		tginfo->add_thread_to_group(tinfo, tinfo->is_main_thread());
 	}
@@ -218,10 +224,14 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * Here we avoid scanning `/proc` to not trigger a possible recursion
 	 * on all the parents
 	 */
-	const auto parent_thread = find_thread(tinfo->get_ptid(), true);
+	const auto parent_thread = find_thread(ptid, true);
 	if(parent_thread == nullptr || parent_thread->is_invalid()) {
-		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
-		tinfo->set_ptid(0);
+		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0.
+		 * A thread that joins a group does not change the parent of the group.
+		 */
+		if(new_group) {
+			tinfo->set_ptid(0);
+		}
 		tinfo->update_main_fdtable();
 		return;
 	}

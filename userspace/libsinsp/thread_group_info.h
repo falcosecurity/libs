@@ -108,9 +108,15 @@ public:
 
 	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().lock().get(); }
 
+	/* The tid of the thread that forked this process, shared by all its threads. */
+	inline void set_parent_tid(int64_t parent_tid) { m_parent_tid = parent_tid; }
+
+	inline int64_t get_parent_tid() const { return m_parent_tid; }
+
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
 	uint64_t m_alive_count;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_threads;
+	int64_t m_parent_tid = 0;
 	bool m_reaper;
 };
