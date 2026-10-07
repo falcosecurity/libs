@@ -1223,7 +1223,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 			for(int32_t j = 0; j < 20; j++)  // up to 20 levels, but realistically we will exit way
 			                                 // before given the mt nullptr check
 			{
-				mt = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true).get();
+				mt = m_inspector->m_thread_manager->find_thread(mt->get_ptid(), true).get();
 				if(mt == NULL) {
 					break;
 				}
@@ -1237,7 +1237,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		} else if(m_argid > 0) {
 			// start parent lineage traversal
 			for(int32_t j = 0; j < m_argid; j++) {
-				mt = m_inspector->m_thread_manager->find_thread(mt->m_ptid, true).get();
+				mt = m_inspector->m_thread_manager->find_thread(mt->get_ptid(), true).get();
 				if(mt == NULL) {
 					return NULL;
 				}
@@ -1692,7 +1692,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 	}
 	case TYPE_PVPID: {
 		sinsp_threadinfo* ptinfo =
-		        m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true).get();
+		        m_inspector->m_thread_manager->find_thread(tinfo->get_ptid(), true).get();
 
 		if(ptinfo != NULL) {
 			return extract_single_val(ptinfo->m_vpid, len);
@@ -1738,7 +1738,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		return extract_single_val(tinfo->m_clone_ts, len);
 	case TYPE_PPID_CLONE_TS: {
 		sinsp_threadinfo* ptinfo =
-		        m_inspector->m_thread_manager->find_thread(tinfo->m_ptid, true).get();
+		        m_inspector->m_thread_manager->find_thread(tinfo->get_ptid(), true).get();
 
 		if(ptinfo != NULL) {
 			return extract_single_val(ptinfo->m_clone_ts, len);

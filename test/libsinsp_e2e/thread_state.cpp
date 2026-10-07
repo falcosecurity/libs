@@ -40,7 +40,7 @@ protected:
 			std::unique_ptr<sinsp_threadinfo> thr = threadinfo_factory.create();
 			thr->init();
 			thr->m_tid = pid;
-			thr->m_ptid = ppid;
+			thr->set_ptid(ppid);
 
 			thread_manager->add_thread(std::move(thr), true);
 			sinsp_threadinfo* tinfo = thread_manager->find_thread(pid, true).get();
@@ -58,7 +58,7 @@ protected:
 			sinsp_threadinfo* tinfo = m_threads[i];
 			tinfo->m_lastevent_fd = 0;
 			tinfo->set_parent_loop_detected(false);
-			tinfo->m_ptid = ppid;
+			tinfo->set_ptid(ppid);
 		}
 	}
 
@@ -154,7 +154,7 @@ TEST_F(thread_state_test, parent_state_parent_ancestors) {
 
 TEST_F(thread_state_test, parent_state_single_loop) {
 	reset();
-	m_threads[0]->m_ptid = m_threads[0]->m_tid;
+	m_threads[0]->set_ptid(m_threads[0]->m_tid);
 	traverse_with_timeout(m_threads[0]);
 
 	// We end up visiting the top thread as we do so before
@@ -165,7 +165,7 @@ TEST_F(thread_state_test, parent_state_single_loop) {
 
 TEST_F(thread_state_test, parent_state_short_loop) {
 	reset();
-	m_threads[0]->m_ptid = m_threads[1]->m_tid;
+	m_threads[0]->set_ptid(m_threads[1]->m_tid);
 	traverse_with_timeout(m_threads[1]);
 
 	// In this case we reach the end of the parent state before
@@ -176,7 +176,7 @@ TEST_F(thread_state_test, parent_state_short_loop) {
 
 TEST_F(thread_state_test, parent_state_loop) {
 	reset();
-	m_threads[0]->m_ptid = m_threads[4]->m_tid;
+	m_threads[0]->set_ptid(m_threads[4]->m_tid);
 	traverse_with_timeout(m_threads[4]);
 
 	vector<uint32_t> expected = {1, 1, 1, 1, 0};
@@ -185,7 +185,7 @@ TEST_F(thread_state_test, parent_state_loop) {
 
 TEST_F(thread_state_test, parent_state_lollipop) {
 	reset();
-	m_threads[0]->m_ptid = m_threads[2]->m_tid;
+	m_threads[0]->set_ptid(m_threads[2]->m_tid);
 	traverse_with_timeout(m_threads[4]);
 
 	// In this case, we detect the loop before visiting all the

@@ -327,6 +327,16 @@ public:
 
 	void report_thread_loop(const sinsp_threadinfo& looping_thread);
 
+	/*!
+	  \brief Return the tid of this thread's parent.
+	*/
+	inline int64_t get_ptid() const { return m_ptid; }
+
+	/*!
+	  \brief Set this thread's parent tid.
+	*/
+	inline void set_ptid(int64_t ptid) { m_ptid = ptid; }
+
 	void assign_children_to_reaper(sinsp_threadinfo* reaper);
 
 	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child) {
@@ -370,10 +380,9 @@ public:
 	//
 	// Core state
 	//
-	int64_t m_tid;   ///< The id of this thread
-	int64_t m_pid;   ///< The id of the process containing this thread. In single thread threads,
-	                 ///< this is equal to tid.
-	int64_t m_ptid;  ///< The id of the process that started this thread.
+	int64_t m_tid;  ///< The id of this thread
+	int64_t m_pid;  ///< The id of the process containing this thread. In single thread threads,
+	                ///< this is equal to tid.
 	int64_t m_reaper_tid;   ///< The id of the reaper for this thread
 	int64_t m_sid;          ///< The session id of the process containing this thread.
 	std::string m_comm;     ///< Command name (e.g. "top")
@@ -561,6 +570,7 @@ private:
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
+	int64_t m_ptid;  ///< The id of the process that started this thread.
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_cgroups)> m_cgroups_table_adapter;

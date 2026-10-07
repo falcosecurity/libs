@@ -75,7 +75,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo) {
 	const auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_tid = 4;
 	tinfo->m_pid = -1;
-	tinfo->m_ptid = 1;
+	tinfo->set_ptid(1);
 
 	/* The thread info is invalid we do nothing */
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
@@ -92,7 +92,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there) {
 	auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_tid = 4;
 	tinfo->m_pid = 4;
-	tinfo->m_ptid = 1;
+	tinfo->set_ptid(1);
 
 	auto tginfo = std::make_shared<thread_group_info>(4, false, tinfo);
 	tinfo->m_tginfo = tginfo;
@@ -112,14 +112,14 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo) {
 	const auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51000;
-	tinfo->m_ptid = 51001; /* we won't find it in the table, so we will default to 0 */
+	tinfo->set_ptid(51001); /* we won't find it in the table, so we will default to 0 */
 	tinfo->m_vtid = 20;
 	tinfo->m_vpid = 1;
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, true, 1, 1);
 
-	ASSERT_EQ(tinfo->m_ptid, 0);
+	ASSERT_EQ(tinfo->get_ptid(), 0);
 }
 
 TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
@@ -133,7 +133,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
 	const auto tinfo = threadinfo_factory.create_shared();
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51003;
-	tinfo->m_ptid = 51004; /* we won't find it in the table, so we will default to 1 */
+	tinfo->set_ptid(51004); /* we won't find it in the table, so we will default to 1 */
 
 	{
 		auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
@@ -143,7 +143,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
 	const auto other_tinfo = threadinfo_factory.create_shared();
 	other_tinfo->m_tid = 51003;
 	other_tinfo->m_pid = 51003;
-	other_tinfo->m_ptid = 51004;
+	other_tinfo->set_ptid(51004);
 
 	m_inspector.m_thread_manager->create_thread_dependencies(other_tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 2, false, 2, 2);
@@ -156,11 +156,11 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_valid_pare
 	auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51003;
-	tinfo->m_ptid = p6_t1_tid;
+	tinfo->set_ptid(p6_t1_tid);
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, false, 1, 1);
-	ASSERT_EQ(tinfo->m_ptid, p6_t1_tid);
+	ASSERT_EQ(tinfo->get_ptid(), p6_t1_tid);
 	ASSERT_THREAD_CHILDREN(p6_t1_tid, 1, 1);
 }
 
@@ -171,12 +171,12 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 	auto tinfo = m_inspector.get_threadinfo_factory().create_shared();
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51003;
-	tinfo->m_ptid = 8000;
+	tinfo->set_ptid(8000);
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, false, 1, 1);
 	/* the new parent will be 0 */
-	ASSERT_EQ(tinfo->m_ptid, 0);
+	ASSERT_EQ(tinfo->get_ptid(), 0);
 }
 
 TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
@@ -230,7 +230,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
 	/* We explicitly set p3_t1 ptid to p4_t1, so we create a loop */
 	const auto p3_t1_tinfo = thread_manager->find_thread(p3_t1_tid, true).get();
 	ASSERT_TRUE(p3_t1_tinfo);
-	p3_t1_tinfo->m_ptid = p4_t1_tid;
+	p3_t1_tinfo->set_ptid(p4_t1_tid);
 
 	/* We will call find_new_reaper on p4_t1 but before doing this we need to
 	 * remove p4_t2 otherwise we will have a valid thread in the same group as a new reaper

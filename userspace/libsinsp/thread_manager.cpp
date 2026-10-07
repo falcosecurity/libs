@@ -218,10 +218,10 @@ void sinsp_thread_manager::create_thread_dependencies(
 	 * Here we avoid scanning `/proc` to not trigger a possible recursion
 	 * on all the parents
 	 */
-	const auto parent_thread = find_thread(tinfo->m_ptid, true);
+	const auto parent_thread = find_thread(tinfo->get_ptid(), true);
 	if(parent_thread == nullptr || parent_thread->is_invalid()) {
 		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
-		tinfo->m_ptid = 0;
+		tinfo->set_ptid(0);
 		tinfo->update_main_fdtable();
 		return;
 	}
@@ -327,7 +327,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	std::unordered_set<int64_t> loop_detection_set{tinfo->m_tid};
 	uint16_t prev_set_size = 1;
 
-	auto parent_tinfo = find_thread(tinfo->m_ptid, true).get();
+	auto parent_tinfo = find_thread(tinfo->get_ptid(), true).get();
 	while(parent_tinfo != nullptr) {
 		prev_set_size = loop_detection_set.size();
 		loop_detection_set.insert(parent_tinfo->m_tid);
@@ -360,7 +360,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 				}
 			}
 		}
-		parent_tinfo = find_thread(parent_tinfo->m_ptid, true).get();
+		parent_tinfo = find_thread(parent_tinfo->get_ptid(), true).get();
 	}
 
 	return nullptr;
@@ -435,7 +435,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * which don't have a group or children.
 	 */
 	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr) {
-		remove_child_from_parent(thread_to_remove->m_ptid);
+		remove_child_from_parent(thread_to_remove->get_ptid());
 		m_threadtable.erase(tid);
 		m_last_tid = -1;
 		m_last_tinfo.reset();
@@ -519,7 +519,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 		/* even if thread_to_remove is not the main thread the parent will be
 		 * the same so it's ok.
 		 */
-		remove_child_from_parent(thread_to_remove->m_ptid);
+		remove_child_from_parent(thread_to_remove->get_ptid());
 		m_thread_groups.erase(thread_to_remove->m_pid);
 		m_threadtable.erase(thread_to_remove->m_pid);
 	}
@@ -530,7 +530,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	 * in the previous `if`.
 	 */
 	if(!thread_to_remove->is_main_thread()) {
-		remove_child_from_parent(thread_to_remove->m_ptid);
+		remove_child_from_parent(thread_to_remove->get_ptid());
 		m_threadtable.erase(tid);
 	}
 
@@ -610,7 +610,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 
 	sctinfo->tid = tinfo.m_tid;
 	sctinfo->pid = tinfo.m_pid;
-	sctinfo->ptid = tinfo.m_ptid;
+	sctinfo->ptid = tinfo.get_ptid();
 	sctinfo->sid = tinfo.m_sid;
 	sctinfo->vpgid = tinfo.m_vpgid;
 	sctinfo->pgid = tinfo.m_pgid;
@@ -701,10 +701,10 @@ void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visito
 	// state, at different rates. If they ever equal each other
 	// before slow is NULL there's a loop.
 
-	sinsp_threadinfo *slow = find_thread(tinfo.m_ptid, true).get(), *fast = slow;
+	sinsp_threadinfo *slow = find_thread(tinfo.get_ptid(), true).get(), *fast = slow;
 
 	// Move fast to its parent
-	fast = (fast ? find_thread(fast->m_ptid, true).get() : fast);
+	fast = (fast ? find_thread(fast->get_ptid(), true).get() : fast);
 
 	// The slow pointer must be valid and not have a tid of -1.
 	while(slow && slow->m_tid != -1) {
@@ -713,17 +713,17 @@ void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visito
 		}
 
 		// Advance slow one step and advance fast two steps
-		slow = find_thread(slow->m_ptid, true).get();
+		slow = find_thread(slow->get_ptid(), true).get();
 
 		// advance fast 2 steps, checking to see if we meet
 		// slow after each step.
 		for(uint32_t i = 0; i < 2; i++) {
-			fast = (fast ? find_thread(fast->m_ptid, true).get() : fast);
+			fast = (fast ? find_thread(fast->get_ptid(), true).get() : fast);
 
 			// If not at the end but fast == slow or if
 			// slow points to itself, there's a loop in
 			// the thread state.
-			if(slow && (slow == fast || slow->m_tid == slow->m_ptid)) {
+			if(slow && (slow == fast || slow->m_tid == slow->get_ptid())) {
 				tinfo.report_thread_loop(*slow);
 				return;
 			}
@@ -966,7 +966,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread(const int64_t ti
 			auto fake_tinfo = m_threadinfo_factory.create();
 			fake_tinfo->m_tid = tid;
 			fake_tinfo->m_pid = -1;
-			fake_tinfo->m_ptid = -1;
+			fake_tinfo->set_ptid(-1);
 			fake_tinfo->m_reaper_tid = -1;
 			fake_tinfo->m_not_expired_children = 0;
 			fake_tinfo->m_comm = "<NA>";
@@ -1031,7 +1031,7 @@ sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& t
 		if(mt == nullptr) {
 			return nullptr;
 		}
-		mt = find_thread(mt->m_ptid, true).get();
+		mt = find_thread(mt->get_ptid(), true).get();
 		if(mt == nullptr) {
 			return nullptr;
 		}

@@ -1835,7 +1835,7 @@ TEST_F(sys_call_test, thread_lookup_static) {
 		EXPECT_EQ(1, tinfo->m_tid);
 		EXPECT_EQ(1, tinfo->m_pid);
 		EXPECT_EQ(1, tinfo->m_vtid);
-		EXPECT_EQ(0, tinfo->m_ptid);
+		EXPECT_EQ(0, tinfo->get_ptid());
 
 		ASSERT_EQ(SCAP_SUCCESS,
 		          scap_proc_read_thread(linux_platform, proclist, proc, 62725, err_buf, false));
@@ -1843,7 +1843,7 @@ TEST_F(sys_call_test, thread_lookup_static) {
 		EXPECT_EQ(62725, tinfo->m_tid);
 		EXPECT_EQ(62725, tinfo->m_pid);
 		EXPECT_EQ(62725, tinfo->m_vtid);
-		EXPECT_EQ(1, tinfo->m_ptid);
+		EXPECT_EQ(1, tinfo->get_ptid());
 
 		ASSERT_EQ(SCAP_SUCCESS,
 		          scap_proc_read_thread(linux_platform, proclist, proc, 62727, err_buf, false));
@@ -1851,7 +1851,7 @@ TEST_F(sys_call_test, thread_lookup_static) {
 		EXPECT_EQ(62727, tinfo->m_tid);
 		EXPECT_EQ(62725, tinfo->m_pid);
 		EXPECT_EQ(62727, tinfo->m_vtid);
-		EXPECT_EQ(1, tinfo->m_ptid);
+		EXPECT_EQ(1, tinfo->get_ptid());
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
@@ -1909,7 +1909,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 			EXPECT_EQ(evt_thread_tid, tinfo->m_tid);
 			EXPECT_EQ(evt_thread_pid, tinfo->m_pid);
 			EXPECT_EQ(evt_thread_vtid, tinfo->m_vtid);
-			// Do not test tinfo->m_ptid because it can change in between event and lookup.
+			// Do not test tinfo->get_ptid() because it can change in between event and lookup.
 		}
 	};
 
@@ -1926,7 +1926,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		EXPECT_EQ(getpid(), tinfo->m_tid);
 		EXPECT_EQ(getpid(), tinfo->m_pid);
 		EXPECT_EQ(getpid(), tinfo->m_vtid);
-		EXPECT_EQ(getppid(), tinfo->m_ptid);
+		EXPECT_EQ(getppid(), tinfo->get_ptid());
 
 		ASSERT_EQ(SCAP_SUCCESS,
 		          scap_proc_read_thread(linux_platform, proclist, proc, 1, err_buf, false));
@@ -1934,7 +1934,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		EXPECT_EQ(1, tinfo->m_tid);
 		EXPECT_EQ(1, tinfo->m_pid);
 		EXPECT_EQ(1, tinfo->m_vtid);
-		EXPECT_EQ(0, tinfo->m_ptid);
+		EXPECT_EQ(0, tinfo->get_ptid());
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
