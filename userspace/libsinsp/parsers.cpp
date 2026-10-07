@@ -1765,7 +1765,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 */
 	if(evt.get_tinfo()->m_tginfo != nullptr && evt.get_tinfo()->m_tginfo->get_thread_count() > 1) {
 		for(const auto &thread : evt.get_tinfo()->m_tginfo->get_thread_list()) {
-			auto thread_ptr = thread.lock().get();
+			auto thread_ptr = thread.borrow();
 			/* we don't want to remove the main thread since it is the one
 			 * running in this parser!
 			 *
