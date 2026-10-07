@@ -794,7 +794,7 @@ sinsp_threadinfo* thread_in_group(const thread_group_info& group, int64_t tid) {
 	sinsp_threadinfo* first_alive = nullptr;
 	for(const auto& thread_weak : group.get_thread_list()) {
 		/* Use only threads of this group, so that the next hop follows the link of this group */
-		auto thread = thread_weak.lock().get();
+		auto thread = thread_weak.borrow();
 		if(thread == nullptr || thread->m_tginfo.get() != &group) {
 			continue;
 		}
@@ -836,7 +836,7 @@ sinsp_threadinfo* find_reaper_above(const thread_group_info& group) {
 		if(ancestor_group->is_reaper() && ancestor_group->get_thread_count() > 0) {
 			for(const auto& thread_weak : ancestor_group->get_thread_list()) {
 				/* A thread of the group itself, as in thread_in_group() */
-				auto thread = thread_weak.lock().get();
+				auto thread = thread_weak.borrow();
 				if(thread != nullptr && thread->m_tginfo == ancestor_group && !thread->is_dead()) {
 					return thread;
 				}
