@@ -283,6 +283,25 @@ void sinsp_thread_manager::relink_group(thread_group_info& tginfo,
 	tginfo.unlink(ptid);
 }
 
+void sinsp_thread_manager::update_parent_link(sinsp_threadinfo& tinfo) {
+	if(tinfo.m_tginfo != nullptr) {
+		link_past_dead_parents(tinfo);
+	}
+}
+
+void sinsp_thread_manager::link_past_dead_parents(sinsp_threadinfo& tinfo) {
+	thread_group_info& tginfo = *tinfo.m_tginfo;
+	const thread_group_info* const seen = tginfo.get_parent().get();
+	if(seen == nullptr || !seen->is_dead()) {
+		return;
+	}
+	/* The parent that a reader gets */
+	sinsp_threadinfo* parent = tinfo.get_linked_parent();
+	if(parent != nullptr && parent->m_tginfo != nullptr) {
+		tginfo.skip_dead_parent(seen, parent->m_tginfo, parent->m_tid);
+	}
+}
+
 const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
         std::unique_ptr<sinsp_threadinfo> threadinfo,
         const bool must_create_thread_dependencies) {
