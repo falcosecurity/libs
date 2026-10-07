@@ -792,6 +792,33 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_child_event_skips_unreaped_parent) {
 	          thread_manager->get_thread_group_info(INIT_PID));
 }
 
+/* A process that dies after its parent, with an unknown reaper, links past the dead parent. This
+ * frees the parent.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_unreaped_process_dying_after_its_parent_drops_it) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t a = 10;
+	const int64_t b = 11;
+	const int64_t c = 12;
+	generate_clone_x_event(0, a, a, INIT_TID);
+	generate_clone_x_event(0, b, b, a);
+	generate_clone_x_event(0, c, c, b);
+	std::weak_ptr<thread_group_info> a_tombstone = thread_manager->get_thread_group_info(a);
+	auto b_group = thread_manager->get_thread_group_info(b);
+
+	/* -1: the kernel did not give the reaper */
+	remove_thread(a, -1);
+	ASSERT_FALSE(a_tombstone.expired());
+	remove_thread(b, -1);
+	ASSERT_TRUE(a_tombstone.expired());
+	ASSERT_EQ(b_group->get_parent(), thread_manager->get_thread_group_info(INIT_PID));
+	ASSERT_FALSE(b_group->is_reaper_known());
+	ASSERT_THREAD_INFO_PIDS(c, c, INIT_TID);
+}
+
 /* A reaper from the kernel that is below the dying process ranks higher. For example, a tid was
  * reused after a lost exit. The link is refused, and readers search for a reaper.
  */

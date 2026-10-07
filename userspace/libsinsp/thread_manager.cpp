@@ -567,6 +567,7 @@ void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 	tginfo->set_dead(last_thread.is_in_pid_namespace());
 	if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid() || reaper_tinfo->m_tginfo == nullptr ||
 	   reaper_tinfo->m_tginfo == tginfo) {
+		link_past_dead_parents(last_thread);
 		return;
 	}
 
@@ -576,6 +577,7 @@ void sinsp_thread_manager::bury_thread_group(sinsp_threadinfo& last_thread) {
 	 */
 	if(!tginfo->link_reaper(reaper_tinfo->m_tginfo, reaper_tinfo->m_tid)) {
 		log_refused_parent_link("reaper", *tginfo, *reaper_tinfo->m_tginfo, reaper_tinfo->m_tid);
+		link_past_dead_parents(last_thread);
 		return;
 	}
 
