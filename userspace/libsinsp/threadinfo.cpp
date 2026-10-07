@@ -54,7 +54,20 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
 	DEFINE_STATIC_FIELD(ret, self, m_tid, "tid");
 	DEFINE_STATIC_FIELD(ret, self, m_pid, "pid");
-	DEFINE_STATIC_FIELD(ret, self, m_ptid, "ptid");
+	libsinsp::state::define_static_field<int64_t>(
+	        ret,
+	        "ptid",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_INT64, int64_t>(
+		                c->get_ptid());
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        int64_t ptid;
+		        in_data.copy_to<SS_PLUGIN_ST_INT64, int64_t>(ptid);
+		        c->set_ptid(ptid);
+	        });
 	DEFINE_STATIC_FIELD(ret, self, m_reaper_tid, "reaper_tid");
 	DEFINE_STATIC_FIELD(ret, self, m_sid, "sid");
 	DEFINE_STATIC_FIELD(ret, self, m_comm, "comm");
@@ -804,7 +817,7 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 		if(!child->expired()) {
 			if(reaper == nullptr) {
 				/* we set `0` as the parent for all children */
-				child->lock()->m_ptid = 0;
+				child->lock()->set_ptid(0);
 			} else {
 				/* Add the child to the reaper list */
 				reaper->add_child(child->lock());
@@ -817,6 +830,21 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
 		child = m_children.erase(child);
 	}
 	m_not_expired_children = 0;
+}
+
+int64_t sinsp_threadinfo::get_ptid() const {
+	if(m_tginfo == nullptr) {
+		return m_ptid;
+	}
+	return m_tginfo->get_parent_tid();
+}
+
+void sinsp_threadinfo::set_ptid(int64_t ptid) {
+	if(m_tginfo != nullptr) {
+		m_tginfo->set_parent_tid(ptid);
+		return;
+	}
+	m_ptid = ptid;
 }
 
 void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo) {
