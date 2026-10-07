@@ -105,7 +105,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper) {
 
 	auto p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
 	ASSERT_NE(p1_t1_tinfo, nullptr);
-	p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo);
+	ASSERT_EQ(p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo), 0);
 
 	/* all p3_t1 children should be removed */
 	ASSERT_THREAD_CHILDREN(p3_t1_tid, 0, 0);
