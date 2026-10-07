@@ -147,7 +147,6 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// m_latency
 	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
 	DEFINE_STATIC_FIELD_READONLY(ret, self, m_cwd, "cwd");
-	// m_parent_loop_detected
 	return ret;
 }
 
@@ -182,7 +181,6 @@ void sinsp_threadinfo::init() {
 	m_pidns_init_start_ts = 0;
 	m_lastevent_fd = 0;
 	m_lastevent_data = NULL;
-	m_parent_loop_detected = false;
 	m_tty = 0;
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
@@ -782,18 +780,6 @@ bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup
 	}
 
 	return false;
-}
-
-void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread) {
-	// Note we only log a loop once for a given main thread, to avoid flooding logs.
-	if(!m_parent_loop_detected) {
-		libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
-		                               std::to_string(m_pid) +
-		                               ". stopped at tid= " + std::to_string(looping_thread.m_tid) +
-		                               " ptid=" + std::to_string(looping_thread.get_ptid()),
-		                       sinsp_logger::SEV_WARNING);
-		m_parent_loop_detected = true;
-	}
 }
 
 /* We should never call this method if we don't have children to reparent
