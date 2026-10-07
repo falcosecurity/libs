@@ -670,7 +670,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		caller_tinfo->m_pid = evt.get_param(4)->as<int64_t>();
 
 		/* ptid */
-		caller_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
+		caller_tinfo->set_ptid(evt.get_param(5)->as<int64_t>());
 
 		/* vtid & vpid */
 		// If one of these parameters is present, so is for the other ones, so just check the
@@ -868,7 +868,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		child_tinfo->m_pid = child_tinfo->m_tid;
 
 		/* The child parent is the calling process */
-		child_tinfo->m_ptid = caller_tinfo->m_tid;
+		child_tinfo->set_ptid(caller_tinfo->m_tid);
 	} else /* Simple thread case */
 	{
 		/* pid */
@@ -876,7 +876,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 		/* ptid */
 		/* The parent is the parent of the calling process */
-		child_tinfo->m_ptid = caller_tinfo->m_ptid;
+		child_tinfo->set_ptid(caller_tinfo->get_ptid());
 
 		/* Please note this is not the right behavior, it is something we do to be compliant with
 		 * `/proc` scan.
@@ -1107,7 +1107,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->m_pid = evt.get_param(4)->as<int64_t>();
 
 	/* ptid. */
-	child_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
+	child_tinfo->set_ptid(evt.get_param(5)->as<int64_t>());
 
 	/* `vtid` and `vpid` */
 	// If one of these parameters is present, so is for the other ones, so just check the
@@ -1145,7 +1145,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	bool is_thread_leader = !(child_tinfo->m_flags & PPM_CL_CLONE_THREAD);
 	if(is_thread_leader) {
 		/* We need to copy data from the parent */
-		lookup_tid = child_tinfo->m_ptid;
+		lookup_tid = child_tinfo->get_ptid();
 	} else {
 		/* We need to copy data from the thread leader */
 		lookup_tid = child_tinfo->m_pid;
@@ -1183,7 +1183,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 			/* ptid */
 			/* the new thread ptid is the same of the main thread */
-			lookup_tinfo->m_ptid = child_tinfo->m_ptid;
+			lookup_tinfo->set_ptid(child_tinfo->get_ptid());
 
 			/* vpid */
 			/* we are in the same thread group, the vpid is the same of the child */
@@ -1487,7 +1487,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	// we have it from the execve event
 	//
 	if(evt.get_tinfo()->is_invalid()) {
-		evt.get_tinfo()->m_ptid = evt.get_param(5)->as<uint64_t>();
+		evt.get_tinfo()->set_ptid(evt.get_param(5)->as<uint64_t>());
 
 		/* We are not in a namespace we recover also vtid and vpid */
 		if((evt.get_tinfo()->m_flags & PPM_CL_CHILD_IN_PIDNS) == 0) {

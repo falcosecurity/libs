@@ -1464,7 +1464,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			int64_t ptid = -1;
 			const auto& tinfo_ptr = m_thread_manager->find_thread(tid, true);
 			if(tinfo_ptr) {
-				ptid = tinfo_ptr->m_ptid;
+				ptid = tinfo_ptr->get_ptid();
 			}
 			m_thread_manager->record_recently_exited(tid, ptid, ts);
 			m_thread_manager->remove_thread(tid);

@@ -34,7 +34,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_failed) {
 	ASSERT_TRUE(evt->get_thread_info());
 	ASSERT_EQ(evt->get_thread_info()->m_tid, INIT_TID);
 	ASSERT_EQ(evt->get_thread_info()->m_pid, INIT_PID);
-	ASSERT_EQ(evt->get_thread_info()->m_ptid, INIT_PTID);
+	ASSERT_EQ(evt->get_thread_info()->get_ptid(), INIT_PTID);
 
 	/* We should have a NULL pointer here so no thread-info for the new process */
 	sinsp_threadinfo* p1_t1_tinfo =

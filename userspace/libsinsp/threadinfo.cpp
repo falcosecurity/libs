@@ -777,7 +777,7 @@ void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread
 		libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
 		                               std::to_string(m_pid) +
 		                               ". stopped at tid= " + std::to_string(looping_thread.m_tid) +
-		                               " ptid=" + std::to_string(looping_thread.m_ptid),
+		                               " ptid=" + std::to_string(looping_thread.get_ptid()),
 		                       sinsp_logger::SEV_WARNING);
 		m_parent_loop_detected = true;
 	}

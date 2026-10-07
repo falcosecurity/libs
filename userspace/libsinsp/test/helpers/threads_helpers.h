@@ -28,7 +28,7 @@ limitations under the License.
 		ASSERT_TRUE(tinfo);                                                                   \
 		ASSERT_EQ(tinfo->m_tid, tid);                                                         \
 		ASSERT_EQ(tinfo->m_pid, pid);                                                         \
-		ASSERT_EQ(tinfo->m_ptid, ptid);                                                       \
+		ASSERT_EQ(tinfo->get_ptid(), ptid);                                                   \
 		ASSERT_EQ(tinfo->m_vtid, vtid);                                                       \
 		ASSERT_EQ(tinfo->m_vpid, vpid);                                                       \
 		ASSERT_EQ(tinfo->is_main_thread(), tinfo->m_tid == tinfo->m_pid);                     \
