@@ -596,12 +596,13 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper) {
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 2, false, 3, 3);
 	auto p2_t1_tinfo = thread_manager->find_thread(p2_t1_tid, true).get();
 	ASSERT_TRUE(p2_t1_tinfo);
-	ASSERT_EQ(p2_t1_tinfo->m_reaper_tid, p2_t2_tid);
 
-	/* During the process we create also an invalid thread with id `unknonw_repaer_tid` */
-	auto unknonw_repaer_tinfo = thread_manager->find_thread(unknonw_repaer_tid, true).get();
-	ASSERT_TRUE(unknonw_repaer_tinfo);
-	ASSERT_TRUE(unknonw_repaer_tinfo->is_invalid());
+	/* While the group lives, its children go to its first live thread. The reaper from the kernel
+	 * counts only after the process is gone.
+	 */
+	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, p2_t2_tid);
+	ASSERT_THREAD_CHILDREN(p2_t2_tid, 1, 1, p3_t1_tid);
+	ASSERT_FALSE(thread_manager->find_thread(unknonw_repaer_tid, true));
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree) {
@@ -670,6 +671,88 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_stops_at_pid_namespace) {
 	remove_thread(p4_t2_tid, -1);
 	remove_thread(p4_t1_tid, -1);
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p6_t1_tid, p6_t1_pid, 0, p6_t1_vtid, p6_t1_vpid);
+}
+
+/* A daemon detaches with a double fork. The middle process stays as a tombstone while the
+ * daemon lives, and sinsp frees it when the daemon exits.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_tombstone_lives_as_long_as_its_children) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	constexpr int64_t daemons = 100;
+	const int64_t shell = 10;
+	generate_clone_x_event(0, shell, shell, INIT_TID);
+
+	std::vector<std::weak_ptr<thread_group_info>> tombstones;
+	for(int64_t i = 0; i < daemons; i++) {
+		const int64_t middle = 1000 + 2 * i;
+		const int64_t daemon = middle + 1;
+		generate_clone_x_event(0, middle, middle, shell);
+		generate_clone_x_event(0, daemon, daemon, middle);
+		tombstones.push_back(thread_manager->get_thread_group_info(middle));
+		/* the kernel names init as the reaper */
+		remove_thread(middle, INIT_TID);
+	}
+
+	for(int64_t i = 0; i < daemons; i++) {
+		const int64_t middle = 1000 + 2 * i;
+		ASSERT_MISSING_THREAD_INFO(middle, true);
+		ASSERT_FALSE(thread_manager->get_thread_group_info(middle));
+		ASSERT_FALSE(tombstones[i].expired());
+		ASSERT_THREAD_INFO_PIDS(middle + 1, middle + 1, INIT_TID);
+	}
+	ASSERT_THREAD_CHILDREN(INIT_TID, daemons + 1, daemons + 1);
+
+	for(int64_t i = 0; i < daemons; i++) {
+		remove_thread(1000 + 2 * i + 1, INIT_TID);
+		ASSERT_TRUE(tombstones[i].expired());
+	}
+}
+
+/* A reaper from the kernel that is below the dying process ranks higher. For example, a tid was
+ * reused after a lost exit. The link is refused, and the children have no parent.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_below_the_dying_process_is_refused) {
+	capture_parent_link_logs();
+	DEFAULT_TREE
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	auto p3_group = thread_manager->get_thread_group_info(p3_t1_pid);
+	remove_thread(p3_t1_tid, p5_t1_tid);
+	ASSERT_MISSING_THREAD_INFO(p3_t1_tid, true);
+
+	ASSERT_EQ(count_parent_link_logs("Refused"), 1);
+	ASSERT_FALSE(p3_group->is_reaper_known());
+	ASSERT_THREAD_GROUP_INFO(p5_t1_pid, 2, false, 2, 2);
+	auto p6 = thread_manager->find_thread(p6_t1_tid, true);
+	ASSERT_TRUE(p6->m_tginfo->chain_ends());
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, 0, p4_t1_vtid, p4_t1_vpid);
+}
+
+/* A reaper that is not above the dying process, but ranks lower, is linked. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_off_the_dying_process_chain_is_linked) {
+	capture_parent_link_logs();
+	DEFAULT_TREE
+
+	remove_thread(p4_t2_tid, p1_t1_tid);
+	remove_thread(p4_t1_tid, p1_t1_tid);
+	ASSERT_MISSING_THREAD_INFO(p4_t1_tid, true);
+
+	ASSERT_EQ(count_parent_link_logs("Refused"), 0);
+	ASSERT_THREAD_GROUP_INFO(p1_t1_pid, 2, true, 2, 2);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p5_t1_tid, p5_t1_pid, p1_t1_tid, p5_t1_vtid, p5_t1_vpid);
+}
+
+/* The usual reaper, above the dying process, is linked. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_above_the_dying_process_is_linked) {
+	capture_parent_link_logs();
+	DEFAULT_TREE
+
+	remove_thread(p3_t1_tid, INIT_TID);
+	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
+	ASSERT_EQ(count_parent_link_logs("Refused"), 0);
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
