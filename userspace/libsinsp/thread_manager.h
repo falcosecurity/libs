@@ -127,6 +127,13 @@ public:
 	const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
 
 	/*!
+	  \brief Get the parent thread of this thread.
+
+	  \return Pointer to the threadinfo, or NULL if it does not exist
+	*/
+	sinsp_threadinfo* get_parent_thread(const sinsp_threadinfo& tinfo);
+
+	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
 	  ancestors.
 

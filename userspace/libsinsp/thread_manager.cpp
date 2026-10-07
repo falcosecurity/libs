@@ -327,7 +327,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	std::unordered_set<int64_t> loop_detection_set{tinfo->m_tid};
 	uint16_t prev_set_size = 1;
 
-	auto parent_tinfo = find_thread(tinfo->get_ptid(), true).get();
+	auto parent_tinfo = get_parent_thread(*tinfo);
 	while(parent_tinfo != nullptr) {
 		prev_set_size = loop_detection_set.size();
 		loop_detection_set.insert(parent_tinfo->m_tid);
@@ -360,7 +360,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 				}
 			}
 		}
-		parent_tinfo = find_thread(parent_tinfo->get_ptid(), true).get();
+		parent_tinfo = get_parent_thread(*parent_tinfo);
 	}
 
 	return nullptr;
@@ -701,10 +701,10 @@ void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visito
 	// state, at different rates. If they ever equal each other
 	// before slow is NULL there's a loop.
 
-	sinsp_threadinfo *slow = find_thread(tinfo.get_ptid(), true).get(), *fast = slow;
+	sinsp_threadinfo *slow = get_parent_thread(tinfo), *fast = slow;
 
 	// Move fast to its parent
-	fast = (fast ? find_thread(fast->get_ptid(), true).get() : fast);
+	fast = (fast ? get_parent_thread(*fast) : fast);
 
 	// The slow pointer must be valid and not have a tid of -1.
 	while(slow && slow->m_tid != -1) {
@@ -713,12 +713,12 @@ void sinsp_thread_manager::traverse_parent_state(sinsp_threadinfo& tinfo, visito
 		}
 
 		// Advance slow one step and advance fast two steps
-		slow = find_thread(slow->get_ptid(), true).get();
+		slow = get_parent_thread(*slow);
 
 		// advance fast 2 steps, checking to see if we meet
 		// slow after each step.
 		for(uint32_t i = 0; i < 2; i++) {
-			fast = (fast ? find_thread(fast->get_ptid(), true).get() : fast);
+			fast = (fast ? get_parent_thread(*fast) : fast);
 
 			// If not at the end but fast == slow or if
 			// slow points to itself, there's a loop in
@@ -1024,6 +1024,10 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 	}
 }
 
+sinsp_threadinfo* sinsp_thread_manager::get_parent_thread(const sinsp_threadinfo& tinfo) {
+	return find_thread(tinfo.get_ptid(), true).get();
+}
+
 sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n) {
 	sinsp_threadinfo* mt = tinfo.get_main_thread();
 
@@ -1031,7 +1035,7 @@ sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& t
 		if(mt == nullptr) {
 			return nullptr;
 		}
-		mt = find_thread(mt->get_ptid(), true).get();
+		mt = get_parent_thread(*mt);
 		if(mt == nullptr) {
 			return nullptr;
 		}
