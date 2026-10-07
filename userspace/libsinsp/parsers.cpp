@@ -1424,7 +1424,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 	} else {
 		parse_clone_exit_caller(evt, verdict, childtid);
 	}
-	return;
+
+	if(auto *tinfo = evt.get_tinfo(); tinfo != nullptr) {
+		m_thread_manager->update_parent_link(*tinfo);
+	}
 }
 
 void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
@@ -1449,6 +1452,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		// %s\n",evt.get_param(1)->data()),evt.get_param(1)->data())); ASSERT(false);
 		return;
 	}
+
+	m_thread_manager->update_parent_link(*evt.get_tinfo());
 
 	/* In some corner cases an execve is thrown by a secondary thread when
 	 * the main thread is already dead. In these cases the secondary thread

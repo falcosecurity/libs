@@ -722,6 +722,76 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_tombstone_lives_as_long_as_its_children
 	}
 }
 
+/* The next clone of the child links it past a dead parent with a known reaper. This frees the
+ * tombstone of the parent.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_child_event_skips_reaped_parent) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t middle = 1000;
+	const int64_t daemon = 1001;
+	generate_clone_x_event(0, middle, middle, INIT_TID);
+	generate_clone_x_event(0, daemon, daemon, middle);
+	std::weak_ptr<thread_group_info> tombstone = thread_manager->get_thread_group_info(middle);
+	remove_thread(middle, INIT_TID);
+	ASSERT_FALSE(tombstone.expired());
+
+	/* An ordinary event does not change the link */
+	generate_random_event(daemon);
+	ASSERT_FALSE(tombstone.expired());
+
+	/* the daemon forks a worker */
+	generate_clone_x_event(daemon + 1, daemon, daemon, INIT_TID);
+	ASSERT_TRUE(tombstone.expired());
+	ASSERT_THREAD_INFO_PIDS(daemon, daemon, INIT_TID);
+	auto daemon_tinfo = thread_manager->find_thread(daemon, true);
+	ASSERT_EQ(daemon_tinfo->m_tginfo->get_parent(),
+	          thread_manager->get_thread_group_info(INIT_PID));
+}
+
+/* The next execve of the child does the same. */
+TEST_F(sinsp_with_test_input, THRD_TABLE_child_execve_skips_reaped_parent) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t middle = 1000;
+	const int64_t daemon = 1001;
+	generate_clone_x_event(0, middle, middle, INIT_TID);
+	generate_clone_x_event(0, daemon, daemon, middle);
+	std::weak_ptr<thread_group_info> tombstone = thread_manager->get_thread_group_info(middle);
+	remove_thread(middle, INIT_TID);
+	ASSERT_FALSE(tombstone.expired());
+
+	generate_execve_enter_and_exit_event(0, daemon, daemon, daemon, INIT_TID);
+	ASSERT_TRUE(tombstone.expired());
+	ASSERT_THREAD_INFO_PIDS(daemon, daemon, INIT_TID);
+}
+
+/* The same is true for a parent with an unknown reaper. The search runs once, and sinsp links its
+ * result.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_child_event_skips_unreaped_parent) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t middle = 1000;
+	const int64_t daemon = 1001;
+	generate_clone_x_event(0, middle, middle, INIT_TID);
+	generate_clone_x_event(0, daemon, daemon, middle);
+	std::weak_ptr<thread_group_info> tombstone = thread_manager->get_thread_group_info(middle);
+	remove_thread(middle, -1);
+
+	generate_clone_x_event(daemon + 1, daemon, daemon, INIT_TID);
+	ASSERT_TRUE(tombstone.expired());
+	ASSERT_THREAD_INFO_PIDS(daemon, daemon, INIT_TID);
+	ASSERT_EQ(thread_manager->find_thread(daemon, true)->m_tginfo->get_parent(),
+	          thread_manager->get_thread_group_info(INIT_PID));
+}
+
 /* A reaper from the kernel that is below the dying process ranks higher. For example, a tid was
  * reused after a lost exit. The link is refused, and readers search for a reaper.
  */
@@ -765,6 +835,79 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reaper_above_the_dying_process_is_linke
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, INIT_TID, p4_t1_vtid, p4_t1_vpid);
 	ASSERT_EQ(count_parent_link_logs("Refused"), 0);
 }
+
+#ifdef _DEBUG
+/* A shortcut (a direct link past dead parents) walks the chain of its group and then stores the
+ * link. A relink can come in between. A relink that puts the target of the shortcut under the
+ * group goes up in rank, so it is refused.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_relink_between_a_shortcut_walk_and_its_store) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t a = 10;
+	const int64_t b = 11;
+	const int64_t c = 12;
+	generate_clone_x_event(0, a, a, INIT_TID);
+	generate_clone_x_event(0, b, b, a);
+	generate_clone_x_event(0, c, c, b);
+
+	auto a_tinfo = thread_manager->find_thread(a, true);
+	auto c_tinfo = thread_manager->find_thread(c, true);
+	remove_thread(b, a);
+	bool ran = false;
+	bool relinked = true;
+	thread_group_info::s_before_shortcut_store = [&] {
+		if(!ran) {
+			ran = true;
+			/* Put a under c. The chain of c still leads to a, through the dead b */
+			relinked = a_tinfo->m_tginfo->relink(c_tinfo->m_tginfo, c);
+		}
+	};
+	generate_clone_x_event(1000, c, c, b);
+	thread_group_info::s_before_shortcut_store = nullptr;
+
+	ASSERT_TRUE(ran);
+	ASSERT_FALSE(relinked);
+	ASSERT_TRUE(a_tinfo->m_tginfo->chain_ends());
+	ASSERT_TRUE(c_tinfo->m_tginfo->chain_ends());
+	ASSERT_EQ(c_tinfo->m_tginfo->get_parent(), a_tinfo->m_tginfo);
+	ASSERT_EQ(a_tinfo->m_tginfo->get_parent(), thread_manager->get_thread_group_info(INIT_PID));
+}
+
+/* If the link of the group itself is relinked in between, the relink wins and the shortcut is
+ * not stored.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_shortcut_gives_way_to_a_relink_of_its_own_link) {
+	add_default_init_thread();
+	open_inspector();
+
+	const auto& thread_manager = m_inspector.m_thread_manager;
+	const int64_t a = 10;
+	const int64_t b = 11;
+	const int64_t c = 12;
+	generate_clone_x_event(0, a, a, INIT_TID);
+	generate_clone_x_event(0, b, b, a);
+	generate_clone_x_event(0, c, c, b);
+	remove_thread(b, a);
+
+	auto c_tinfo = thread_manager->find_thread(c, true);
+	bool ran = false;
+	thread_group_info::s_before_shortcut_store = [&] {
+		if(!ran) {
+			ran = true;
+			c_tinfo->m_tginfo->relink(thread_manager->get_thread_group_info(INIT_PID), INIT_TID);
+		}
+	};
+	generate_clone_x_event(1000, c, c, b);
+	thread_group_info::s_before_shortcut_store = nullptr;
+
+	ASSERT_TRUE(ran);
+	ASSERT_EQ(c_tinfo->m_tginfo->get_parent(), thread_manager->get_thread_group_info(INIT_PID));
+	ASSERT_THREAD_INFO_PIDS(c, c, INIT_TID);
+}
+#endif
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
 	const auto& thread_manager = m_inspector.m_thread_manager;

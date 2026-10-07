@@ -132,6 +132,12 @@ public:
 	sinsp_threadinfo* get_parent_thread(const sinsp_threadinfo& tinfo);
 
 	/*!
+	  \brief Link the process of this thread past its dead parents. Clone and execve call this,
+	  because they write the process anyway.
+	*/
+	void update_parent_link(sinsp_threadinfo& tinfo);
+
+	/*!
 	  \brief Get the process that launched this thread's process (its parent) or any of its
 	  ancestors.
 
@@ -292,6 +298,11 @@ public:
 private:
 	/* Make the group of `last_thread` a tombstone, linked to its reaper if the reaper is known. */
 	void bury_thread_group(sinsp_threadinfo& last_thread);
+
+	/* If the parent of the process of this thread is dead, link the process to the parent that a
+	 * reader gets. The search for an unknown reaper runs once, here.
+	 */
+	void link_past_dead_parents(sinsp_threadinfo& tinfo);
 
 	/* Link the new group of `tinfo` to the parent named by `ptid`, and publish it. */
 	void link_and_publish_group(const std::shared_ptr<sinsp_threadinfo>& tinfo,

@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <stdint.h>
 #include <list>
@@ -230,6 +231,27 @@ public:
 	/* For a dead group: true if its last thread was in a child pid namespace. */
 	inline bool is_in_pid_namespace() const { return m_in_pid_namespace; }
 
+	/* Link straight to `parent`, where the dead parent `seen` leads. The tombstones in between
+	 * are freed when nothing links to them. If the link is no longer `seen`, nothing is stored,
+	 * so a relink in between wins.
+	 */
+	inline void skip_dead_parent(const thread_group_info* seen,
+	                             std::shared_ptr<thread_group_info> parent,
+	                             int64_t parent_tid) {
+		ASSERT(parent->m_rank < m_rank);
+		before_shortcut_store();
+		if(m_parent.get() != seen) {
+			return;
+		}
+		m_parent = std::move(parent);
+		m_parent_tid = parent_tid;
+	}
+
+#ifdef _DEBUG
+	/* Tests only: called between the walk and the store of a shortcut. */
+	static inline std::function<void()> s_before_shortcut_store;
+#endif
+
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
 	uint64_t m_alive_count;
@@ -241,6 +263,14 @@ private:
 	bool m_dead = false;
 	bool m_reaper_known = false;
 	bool m_in_pid_namespace = false;
+
+	inline void before_shortcut_store() const {
+#ifdef _DEBUG
+		if(s_before_shortcut_store) {
+			s_before_shortcut_store();
+		}
+#endif
+	}
 
 	static constexpr uint64_t s_pending_rank = UINT64_MAX;
 };
