@@ -18,8 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
-
 #ifdef _WIN32
 struct iovec {
 	void* iov_base; /* Starting address */
@@ -318,7 +316,8 @@ public:
 	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
 
 	/*!
-	  \brief Return the tid of this thread's parent: the stored tid if it is not linked.
+	  \brief Return the tid of this thread's parent, following a dead parent to its reaper: the
+	  stored tid if the parent is not linked, 0 if a dead parent's reaper is not found.
 	*/
 	int64_t get_ptid() const;
 
@@ -329,39 +328,18 @@ public:
 	void set_ptid(int64_t ptid);
 
 	/*!
-	  \brief Return this thread's linked parent, or nullptr. The thread must have a group.
+	  \brief Return this thread's parent, following dead parents to their reapers, or nullptr.
+	  The thread must have a group.
 	*/
 	sinsp_threadinfo* get_linked_parent() const;
 
 	/*!
-	  \brief Move the children of this thread to `reaper`, or unlink them if `reaper` is null.
-	  A link that would go up in rank is refused.
-
-	  \return the number of refused links.
+	  \brief Mark the thread as removed by the thread manager. A main thread stays in the table
+	  while its group lives, so its presence in the table does not show if it is removed.
 	*/
-	uint64_t assign_children_to_reaper(sinsp_threadinfo* reaper);
+	inline void set_removed() { m_removed = true; }
 
-	/* The process of the child must already link to the process of this thread. */
-	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child) {
-		m_children.push_front(child);
-		/* Increment the number of not expired children */
-		m_not_expired_children++;
-	}
-
-	inline void clean_expired_children() {
-		auto child = m_children.begin();
-		while(child != m_children.end()) {
-			/* This child is expired */
-			if(child->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
-				child = m_children.erase(child);
-				continue;
-			}
-			child++;
-		}
-	}
+	inline bool is_removed() const { return m_removed; }
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
 	static void populate_args(std::string& args, const sinsp_threadinfo* tinfo);
@@ -428,8 +406,6 @@ public:
 
 	uint32_t m_tty;  ///< Number of controlling terminal
 	std::shared_ptr<thread_group_info> m_tginfo;
-	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
-	uint64_t m_not_expired_children;
 	std::string m_cmd_line;
 	bool m_filtered_out;  ///< True if this thread is filtered out by the inspector filter from
 	                      ///< saving to a capture
@@ -570,6 +546,7 @@ private:
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
+	bool m_removed;
 	// The ptid before the thread joins a group. After that, get_ptid() reads the link of the group.
 	int64_t m_ptid;
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;

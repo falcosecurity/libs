@@ -142,15 +142,15 @@ int main(int argc, char** argv) {
 
 		case PPME_PROCEXIT_1_E:
 			printf("💥 THREAD EXIT: evt_num(%" PRIu64 ")\n", ev->get_num());
-			for(const auto& child : tinfo->m_children) {
-				if(!child.expired()) {
-					auto child_shr = child.lock().get();
+			inspector.m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& child) {
+				if(inspector.m_thread_manager->get_parent_thread(child) == tinfo) {
 					printf("- move child, tid: %" PRId64 ", ptid: %" PRId64
 					       " (dead) to a new reaper.\n",
-					       child_shr->m_tid,
-					       child_shr->get_ptid());
+					       child.m_tid,
+					       child.get_ptid());
 				}
-			}
+				return true;
+			});
 			display_thread_lineage(*inspector.m_thread_manager, tinfo);
 			break;
 

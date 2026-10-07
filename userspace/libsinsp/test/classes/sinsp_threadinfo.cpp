@@ -88,53 +88,6 @@ TEST(sinsp_threadinfo, get_num_threads) {
 	ASSERT_EQ(tinfo->get_num_not_leader_threads(), 2);
 }
 
-TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper) {
-	DEFAULT_TREE
-
-	const auto& thread_manager = m_inspector.m_thread_manager;
-
-	auto p3_t1_tinfo = thread_manager->find_thread(p3_t1_tid, true).get();
-	ASSERT_NE(p3_t1_tinfo, nullptr);
-
-	/* The reaper cannot be the current process */
-	EXPECT_THROW(p3_t1_tinfo->assign_children_to_reaper(p3_t1_tinfo), sinsp_exception);
-
-	/* children of p3_t1 are p4_t1 and p4_t2 we can reparent them to p1_t1 for example */
-	ASSERT_THREAD_CHILDREN(p3_t1_tid, 2, 2, p4_t1_tid, p4_t2_tid);
-	ASSERT_THREAD_CHILDREN(p1_t1_tid, 0, 0);
-
-	auto p1_t1_tinfo = thread_manager->find_thread(p1_t1_tid, true).get();
-	ASSERT_NE(p1_t1_tinfo, nullptr);
-	ASSERT_EQ(p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo), 0);
-
-	/* all p3_t1 children should be removed */
-	ASSERT_THREAD_CHILDREN(p3_t1_tid, 0, 0);
-
-	/* the new parent should be p1_t1 */
-	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t1_tid, p4_t1_pid, p1_t1_tid, p4_t1_vtid, p4_t1_vpid);
-	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p4_t2_tid, p4_t2_pid, p1_t1_tid, p4_t2_vtid, p4_t2_vpid);
-
-	ASSERT_THREAD_CHILDREN(p1_t1_tid, 2, 2, p4_t1_tid, p4_t2_tid);
-
-	/* Another call to the reparenting function should do nothing since p3_t1 has no other children
-	 */
-	p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo);
-	ASSERT_THREAD_CHILDREN(p3_t1_tid, 0, 0);
-	ASSERT_THREAD_CHILDREN(p1_t1_tid, 2, 2, p4_t1_tid, p4_t2_tid);
-}
-
-TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr) {
-	DEFAULT_TREE
-
-	auto p2_t1_tinfo = m_inspector.m_thread_manager->find_thread(p2_t1_tid, true).get();
-	ASSERT_NE(p2_t1_tinfo, nullptr);
-	/* This call should change the parent of all children of p2_t1 to `0` */
-	p2_t1_tinfo->assign_children_to_reaper(nullptr);
-
-	ASSERT_THREAD_CHILDREN(p2_t1_tid, 0, 0);
-	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, 0);
-}
-
 TEST(sinsp_threadinfo, set_exepath) {
 	const sinsp inspector;
 	const auto tinfo = inspector.get_threadinfo_factory().create_shared();

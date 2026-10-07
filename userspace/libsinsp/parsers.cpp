@@ -2857,15 +2857,8 @@ void sinsp_parser::parse_thread_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 */
 	verdict.set_tid_to_remove(evt.get_tid());
 
-	/* If this thread has no children we don't send the reaper info from the kernel,
-	 * so we do nothing.
-	 */
-	if(evt.get_tinfo()->m_children.size() == 0) {
-		return;
-	}
-
 	/* [Set the reaper to the current thread]
-	 * We need to set the reaper for this thread
+	 * The kernel sends one only for a thread with children, and it is read only if there are.
 	 */
 	if(evt.get_num_params() > 4) {
 		if(const auto reaper_tid_param = evt.get_param(4); !reaper_tid_param->empty()) {

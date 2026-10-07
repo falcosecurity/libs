@@ -110,6 +110,7 @@ public:
 	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().lock().get(); }
 
 	/* The parent process is the group of the thread that forked, and the tid of that thread.
+	 * Only the child side of the link is stored. The parent keeps no list of children.
 	 *
 	 * The writer resolves the link when it writes it, and readers only follow it. A null link
 	 * with a tid is a parent that we do not link to.
@@ -180,6 +181,31 @@ public:
 		return true;
 	}
 
+	/* A dead group is a tombstone (a group that stays after its process is gone). It leaves the
+	 * group table with its last thread, and it lives while a child links to it. Its reaper
+	 * replaces its parent link. If it has no reaper, its children have no parent.
+	 */
+	inline void set_dead() {
+		m_dead = true;
+		m_threads.clear();
+	}
+
+	/* For a dead group: link to its reaper, unless that link goes up in rank. */
+	inline bool link_reaper(std::shared_ptr<thread_group_info> reaper, int64_t reaper_tid) {
+		if(reaper->m_rank >= m_rank) {
+			return false;
+		}
+		m_parent = std::move(reaper);
+		m_parent_tid = reaper_tid;
+		m_reaper_known = true;
+		return true;
+	}
+
+	inline bool is_dead() const { return m_dead; }
+
+	/* For a dead group: true if the parent link names its reaper. */
+	inline bool is_reaper_known() const { return m_reaper_known; }
+
 private:
 	int64_t m_pid; /* unsigned if we want to use `-1` as an invalid value */
 	uint64_t m_alive_count;
@@ -188,6 +214,8 @@ private:
 	int64_t m_parent_tid = 0;
 	uint64_t m_rank = s_unknown_parent_rank;
 	bool m_reaper;
+	bool m_dead = false;
+	bool m_reaper_known = false;
 
 	static constexpr uint64_t s_pending_rank = UINT64_MAX;
 };

@@ -18,8 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
-
 #include <array>
 #include <functional>
 #include <memory>
@@ -127,7 +125,7 @@ public:
 	const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
 
 	/*!
-	  \brief Get the parent thread of this thread.
+	  \brief Get the parent of this thread. If the parent is dead, follow it to its reaper.
 
 	  \return Pointer to the threadinfo, or NULL if it does not exist
 	*/
@@ -292,8 +290,8 @@ public:
 	                                      bool resolve_hostname_and_port);
 
 private:
-	/* We call it immediately before removing the thread from the thread table. */
-	void remove_child_from_parent(int64_t ptid);
+	/* Make the group of `last_thread` a tombstone, linked to its reaper if the reaper is known. */
+	void bury_thread_group(sinsp_threadinfo& last_thread);
 
 	/* Link the new group of `tinfo` to the parent named by `ptid`, and publish it. */
 	void link_and_publish_group(const std::shared_ptr<sinsp_threadinfo>& tinfo,
