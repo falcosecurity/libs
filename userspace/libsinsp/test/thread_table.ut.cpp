@@ -587,8 +587,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper) {
 	 * to assign the right reaper if it doesn't find the one suggested
 	 * by the kernel.
 	 */
-	int64_t unknonw_repaer_tid = 50000;
-	remove_thread(p2_t1_tid, unknonw_repaer_tid);
+	int64_t unknown_reaper_tid = 50000;
+	remove_thread(p2_t1_tid, unknown_reaper_tid);
 
 	const auto& thread_manager = m_inspector.m_thread_manager;
 
@@ -602,7 +602,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper) {
 	 */
 	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, p2_t2_tid);
 	ASSERT_THREAD_CHILDREN(p2_t2_tid, 1, 1, p3_t1_tid);
-	ASSERT_FALSE(thread_manager->find_thread(unknonw_repaer_tid, true));
+	ASSERT_FALSE(thread_manager->find_thread(unknown_reaper_tid, true));
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree) {
