@@ -202,14 +202,26 @@ TEST_F(sinsp_formatter_test, json_utf8_preserves_value_types) {
 	EXPECT_TRUE(json["evt.asynctype"].isNull());
 }
 
-TEST_F(sinsp_formatter_test, json_preserves_deltatime_behavior) {
+TEST_F(sinsp_formatter_test, json_deltatime_reports_event_gaps) {
 	sinsp_evt_formatter formatter(&m_inspector,
 	                              "%evt.deltatime %evt.deltatime.s %evt.deltatime.ns",
 	                              m_filter_list);
+	// The gaps differ on purpose: a value left over from the previous event cannot pass.
+	struct test_case {
+		uint64_t offset;
+		int64_t deltatime;
+		int64_t deltatime_s;
+		int64_t deltatime_ns;
+	};
+	const std::vector<test_case> cases = {
+	        {0ULL, 0, 0, 0},
+	        {1000000000ULL, 1000000000, 1, 0},
+	        {2500000000ULL, 1500000000, 1, 500000000},
+	};
 	const uint64_t first_ts = increasing_ts();
-	for(uint64_t offset : {0ULL, 1000000042ULL, 2000000084ULL}) {
-		SCOPED_TRACE(offset);
-		auto evt = add_event_advance_ts(first_ts + offset,
+	for(const auto& test : cases) {
+		SCOPED_TRACE(test.offset);
+		auto evt = add_event_advance_ts(first_ts + test.offset,
 		                                INIT_TID,
 		                                PPME_SYSCALL_GETCWD_X,
 		                                2,
@@ -217,8 +229,12 @@ TEST_F(sinsp_formatter_test, json_preserves_deltatime_behavior) {
 		                                "/test/dir");
 		std::string output;
 		ASSERT_TRUE(formatter.tostring_withformat(evt, output, sinsp_evt_formatter::OF_JSON));
-		// Preserve the existing second extraction, which observes the same timestamp and returns 0.
-		EXPECT_EQ(output, "{\"evt.deltatime\":0,\"evt.deltatime.ns\":0,\"evt.deltatime.s\":0}");
+		Json::Value json;
+		Json::Reader reader;
+		ASSERT_TRUE(reader.parse(output, json)) << output;
+		EXPECT_EQ(json["evt.deltatime"].asInt64(), test.deltatime);
+		EXPECT_EQ(json["evt.deltatime.s"].asInt64(), test.deltatime_s);
+		EXPECT_EQ(json["evt.deltatime.ns"].asInt64(), test.deltatime_ns);
 	}
 }
 
