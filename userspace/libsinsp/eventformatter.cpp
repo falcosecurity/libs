@@ -234,8 +234,8 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt,
 				retval = false;
 				break;
 			}
-			// Keep the second extraction: some fields update state on each call.
-			m_root[t.name] = t.token->tojson(evt);
+			// One extraction per field: some fields update state on each call.
+			m_root[t.name] = json_value;
 			sanitize_json_strings(m_root[t.name]);
 		}
 		output = m_writer.write(m_root);
