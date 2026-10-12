@@ -1025,17 +1025,14 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bo
 }
 
 sinsp_threadinfo* sinsp_thread_manager::get_ancestor_process(sinsp_threadinfo& tinfo, uint32_t n) {
-	sinsp_threadinfo* mt = tinfo.get_main_thread();
+	sinsp_threadinfo* mt = tinfo.get_main_thread_or_self();
 
 	for(uint32_t i = 0; i < n; i++) {
-		if(mt == nullptr) {
-			return nullptr;
-		}
 		mt = find_thread(mt->m_ptid, true).get();
 		if(mt == nullptr) {
 			return nullptr;
 		}
-		mt = mt->get_main_thread();
+		mt = mt->get_main_thread_or_self();
 	}
 
 	return mt;

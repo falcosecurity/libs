@@ -1157,10 +1157,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		m_tstr.clear();
 
 		if(m_argid == -1) {
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-			if(!mt) {
-				return NULL;
-			}
+			sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
 				if(!m_tstr.empty()) {
 					m_tstr += ' ';
@@ -1207,15 +1204,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		}
 
 		// get current tinfo / init for subsequent parent lineage traversal
-		sinsp_threadinfo* mt = NULL;
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-			if(mt == NULL) {
-				return extract_single_string(m_tstr, len);
-			}
-		}
+		sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 		if(!m_argname.empty())  // extract a specific ENV_NAME value
 		{
@@ -1341,10 +1330,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 	case TYPE_ACMDLINE: {
 		if(m_argid == -1) {
 			m_tstr.clear();
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-			if(!mt) {
-				return NULL;
-			}
+			sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
 				if(!m_tstr.empty()) {
 					m_tstr += ' ';
@@ -1384,10 +1370,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 	case TYPE_ANAME: {
 		if(m_argid == -1) {
 			m_tstr.clear();
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-			if(!mt) {
-				return NULL;
-			}
+			sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
 				if(!m_tstr.empty()) {
 					m_tstr += ' ';
@@ -1421,10 +1404,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 	case TYPE_AEXE: {
 		if(m_argid == -1) {
 			m_tstr.clear();
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-			if(!mt) {
-				return NULL;
-			}
+			sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
 				if(!m_tstr.empty()) {
 					m_tstr += ' ';
@@ -1458,10 +1438,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 	case TYPE_AEXEPATH: {
 		if(m_argid == -1) {
 			m_tstr.clear();
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-			if(!mt) {
-				return NULL;
-			}
+			sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 			sinsp_thread_manager::visitor_func_t visitor = [this](sinsp_threadinfo* pt) {
 				if(!m_tstr.empty()) {
 					m_tstr += ' ';
@@ -1484,18 +1461,8 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		return extract_single_string(m_tstr, len);
 	}
 	case TYPE_LOGINSHELLID: {
-		sinsp_threadinfo* mt = NULL;
+		sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 		int64_t* res = NULL;
-
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
-		}
 
 		sinsp_thread_manager::visitor_func_t check_thread_for_shell = [&res](sinsp_threadinfo* pt) {
 			size_t len = pt->m_comm.size();
@@ -1838,17 +1805,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
-	}
+	sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 	//
 	// No id specified, search in all of the ancestors
@@ -1881,17 +1838,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
-	}
+	sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 	//
 	// No id specified, search in all of the ancestors
@@ -1924,17 +1871,7 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
-	}
+	sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 	//
 	// No id specified, search in all of the ancestors
@@ -1967,17 +1904,7 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
-	}
+	sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 	//
 	// No id specified, search in all of the ancestors
@@ -2010,17 +1937,7 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
-	}
+	sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 	//
 	// No id specified, search in all of the ancestors
@@ -2055,17 +1972,7 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt* evt) {
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread()) {
-		mt = tinfo;
-	} else {
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL) {
-			return false;
-		}
-	}
+	sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
 
 	//
 	// No id specified, search in all of the ancestors
