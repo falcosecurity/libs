@@ -628,6 +628,18 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
 	sctinfo->loginuid = tinfo.m_loginuid;
+	sctinfo->pidns_init_start_ts = tinfo.m_pidns_init_start_ts;
+	sctinfo->tty = tinfo.m_tty;
+	sctinfo->cap_inheritable = tinfo.m_cap_inheritable;
+	sctinfo->cap_permitted = tinfo.m_cap_permitted;
+	sctinfo->cap_effective = tinfo.m_cap_effective;
+	sctinfo->exe_writable = tinfo.m_exe_writable;
+	sctinfo->exe_upper_layer = tinfo.m_exe_upper_layer;
+	sctinfo->exe_lower_layer = tinfo.m_exe_lower_layer;
+	sctinfo->exe_from_memfd = tinfo.m_exe_from_memfd;
+	sctinfo->exe_ino = tinfo.m_exe_ino;
+	sctinfo->exe_ino_ctime = tinfo.m_exe_ino_ctime;
+	sctinfo->exe_ino_mtime = tinfo.m_exe_ino_mtime;
 	sctinfo->filtered_out = tinfo.m_filtered_out;
 }
 
