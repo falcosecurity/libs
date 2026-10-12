@@ -859,7 +859,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 			child_tinfo->set_cwd(caller_tinfo->get_cwd());
 
 			/* Not a thread, copy env */
-			child_tinfo->m_env = caller_tinfo->m_env;
+			child_tinfo->m_env = caller_tinfo->get_env();
 		}
 
 		/* Create info about the thread group */
@@ -1292,7 +1292,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			child_tinfo->set_cwd(lookup_tinfo->get_cwd());
 
 			/* Not a thread, copy env */
-			child_tinfo->m_env = lookup_tinfo->m_env;
+			child_tinfo->m_env = lookup_tinfo->get_env();
 		} else {
 			/* If we are a new thread we keep the same lastexec time of the main thread */
 			child_tinfo->m_lastexec_ts = lookup_tinfo->m_lastexec_ts;
