@@ -1448,3 +1448,50 @@ TEST_F(sinsp_with_test_input, process_start_is_the_start_of_the_main_thread) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid.ts"), init_start);
 	ASSERT_NE(get_field_as_string(evt, "proc.pid.ts"), init_start);
 }
+
+/* A forked child runs the executable of its parent, so it reports the time between the start of
+ * its pid namespace and the last status change of that executable.
+ */
+TEST_F(sinsp_with_test_input, exe_ino_ctime_duration_pidns_start_of_a_forked_child) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t child_tid = 50;
+	const uint64_t pidns_start = 1000;
+	const uint64_t ctime = 4000000000000000000;
+	auto init = m_inspector.m_thread_manager->find_thread(INIT_TID, true);
+	init->m_exe_ino = 1234;
+	init->m_exe_ino_ctime = ctime;
+
+	/* The child side of a clone, in a child pid namespace that started at `pidns_start` */
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	add_event_advance_ts(increasing_ts(),
+	                     child_tid,
+	                     PPME_SYSCALL_CLONE_20_X,
+	                     21,
+	                     (int64_t)0,
+	                     "init",
+	                     empty_bytebuf,
+	                     child_tid,
+	                     child_tid,
+	                     (int64_t)INIT_TID,
+	                     "",
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     "init",
+	                     empty_bytebuf,
+	                     (uint32_t)PPM_CL_CHILD_IN_PIDNS,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (int64_t)1,
+	                     (int64_t)1,
+	                     pidns_start);
+
+	auto evt = generate_random_event(child_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.exe_ino.ctime_duration_pidns_start"),
+	          std::to_string(ctime - pidns_start));
+}
