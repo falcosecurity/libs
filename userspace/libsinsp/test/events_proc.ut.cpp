@@ -1395,3 +1395,34 @@ TEST_F(sinsp_with_test_input, process_fields_of_a_secondary_thread) {
 	libsinsp::state::table_input_adapter env_table{out.table};
 	ASSERT_EQ(env_table.get_size(&owner), 2);
 }
+
+/* The session and the root directory are the process's. A setsid or a chroot from a secondary
+ * thread changes them for every thread.
+ */
+TEST_F(sinsp_with_test_input, setsid_and_chroot_from_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	add_event_advance_ts(increasing_ts(), thread_tid, PPME_SYSCALL_SETSID_X, 1, (int64_t)77);
+	add_event_advance_ts(increasing_ts(),
+	                     thread_tid,
+	                     PPME_SYSCALL_CHROOT_X,
+	                     2,
+	                     (int64_t)0,
+	                     "/newroot");
+
+	const auto &thread_manager = m_inspector.m_thread_manager;
+	libsinsp::state::sinsp_table_owner owner;
+	const auto &root = thread_manager->get_field("root", SS_PLUGIN_ST_STRING);
+	for(const int64_t tid : {int64_t{INIT_TID}, thread_tid}) {
+		auto evt = generate_random_event(tid);
+		ASSERT_EQ(get_field_as_string(evt, "proc.sid"), "77") << tid;
+		ss_plugin_state_data out{};
+		auto tinfo = thread_manager->find_thread(tid, true);
+		ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &root, &out),
+		          SS_PLUGIN_SUCCESS);
+		ASSERT_STREQ(out.str, "/newroot") << tid;
+	}
+}

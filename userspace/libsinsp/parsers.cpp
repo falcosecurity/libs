@@ -3992,6 +3992,21 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
 	caller_tinfo->m_tginfo->set_reaper(child_subreaper);
 }
 
+// Apply `update` to every thread of the process of `tinfo`. The kernel keeps some state once per
+// process, but sinsp keeps a copy of it on each thread, and the readers read the event's thread.
+template<typename F>
+static void for_each_thread_of_process(sinsp_threadinfo &tinfo, F update) {
+	if(tinfo.m_tginfo == nullptr) {
+		update(tinfo);
+		return;
+	}
+	for(const auto &thread_weak : tinfo.m_tginfo->get_thread_list()) {
+		if(const auto thread = thread_weak.lock()) {
+			update(*thread);
+		}
+	}
+}
+
 void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 	if(evt.get_tinfo() == nullptr || evt.get_syscall_return_value() != 0) {
 		return;
@@ -3999,17 +4014,17 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 
 	const char *resolved_path;
 	const auto path = evt.get_param_as_str(1, &resolved_path);
-	if(resolved_path[0] == 0) {
-		evt.get_tinfo()->m_root = path;
-	} else {
-		evt.get_tinfo()->m_root = resolved_path;
-	}
+	const std::string root = resolved_path[0] == 0 ? path : resolved_path;
+	// The root directory is in the fs_struct, which the threads of a process share
+	for_each_thread_of_process(*evt.get_tinfo(), [&](sinsp_threadinfo &t) { t.m_root = root; });
 }
 
 void sinsp_parser::parse_setsid_exit(sinsp_evt &evt) {
 	if(const auto retval = evt.get_syscall_return_value();
 	   retval >= 0 && evt.get_thread_info() != nullptr) {
-		evt.get_thread_info()->m_sid = retval;
+		// The session is in the signal_struct of the process
+		for_each_thread_of_process(*evt.get_thread_info(),
+		                           [retval](sinsp_threadinfo &t) { t.m_sid = retval; });
 	}
 }
 
