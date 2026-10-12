@@ -1519,8 +1519,10 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		return extract_single_val(*res, len);
 	}
 	case TYPE_DURATION: {
-		if(tinfo->m_clone_ts != 0) {
-			m_val.s64 = evt->get_ts() - tinfo->m_clone_ts;
+		// A process starts with its main thread
+		const sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
+		if(mt->m_clone_ts != 0) {
+			m_val.s64 = evt->get_ts() - mt->m_clone_ts;
 			ASSERT(m_val.s64 > 0);
 			return extract_single_val(m_val.s64, len);
 		} else {
@@ -1735,16 +1737,22 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 			return NULL;
 		}
 		return extract_single_val(tinfo->m_pidns_init_start_ts, len);
-	case TYPE_PID_CLONE_TS:
-		if(tinfo->m_clone_ts == 0) {
+	case TYPE_PID_CLONE_TS: {
+		// A process starts with its main thread
+		const sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
+		if(mt->m_clone_ts == 0) {
 			return NULL;
 		}
-		return extract_single_val(tinfo->m_clone_ts, len);
+		m_val.u64 = mt->m_clone_ts;
+		return extract_single_val(m_val.u64, len);
+	}
 	case TYPE_PPID_CLONE_TS: {
-		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_parent_thread(*tinfo);
+		// The parent process starts with its main thread, as in proc.ppid.duration
+		sinsp_threadinfo* ptinfo = m_inspector->m_thread_manager->get_ancestor_process(*tinfo);
 
 		if(ptinfo != NULL) {
-			return extract_single_val(ptinfo->m_clone_ts, len);
+			m_val.u64 = ptinfo->m_clone_ts;
+			return extract_single_val(m_val.u64, len);
 		} else {
 			return NULL;
 		}
