@@ -619,6 +619,15 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 // PARSERS
 ///////////////////////////////////////////////////////////////////////////////
 
+// The time between the start of the pid namespace and the last status change of the executable, if
+// the change came after the start.
+static void update_exe_ino_ctime_duration_pidns_start(sinsp_threadinfo &tinfo) {
+	if(tinfo.m_pidns_init_start_ts != 0 && tinfo.m_exe_ino_ctime > tinfo.m_pidns_init_start_ts) {
+		tinfo.m_exe_ino_ctime_duration_pidns_start =
+		        tinfo.m_exe_ino_ctime - tinfo.m_pidns_init_start_ts;
+	}
+}
+
 void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
                                            sinsp_parser_verdict &verdict,
                                            const int64_t child_tid) const {
@@ -1000,6 +1009,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 		child_tinfo->m_exe_ino_ctime_duration_clone_ts =
 		        caller_tinfo->m_exe_ino_ctime_duration_clone_ts;
+
+		update_exe_ino_ctime_duration_pidns_start(*child_tinfo);
 	} else {
 		/* exe */
 		caller_tinfo->m_exe = child_tinfo->m_exe;
@@ -1366,6 +1377,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	} else {
 		child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
 	}
+	update_exe_ino_ctime_duration_pidns_start(*child_tinfo);
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
@@ -1687,11 +1699,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
 			        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
 		}
-		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
-		   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
-			evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
-			        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
-		}
+		update_exe_ino_ctime_duration_pidns_start(*evt.get_tinfo());
 	}
 
 	// Set uid.
