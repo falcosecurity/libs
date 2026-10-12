@@ -228,6 +228,19 @@ public:
 	}
 
 	/*!
+	  \brief Get the main thread of the process containing this thread, or this thread if sinsp
+	  does not know the main thread. Use it for the state that sinsp keeps on the main thread.
+	*/
+	inline sinsp_threadinfo* get_main_thread_or_self() {
+		sinsp_threadinfo* mt = get_main_thread();
+		return mt != nullptr ? mt : this;
+	}
+
+	inline const sinsp_threadinfo* get_main_thread_or_self() const {
+		return const_cast<sinsp_threadinfo*>(this)->get_main_thread_or_self();
+	}
+
+	/*!
 	  \brief Retrieve information about one of this thread/process FDs.
 
 	  \param fd The file descriptor number, e.g. 0 for stdin.
