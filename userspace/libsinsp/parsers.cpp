@@ -790,7 +790,14 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * threadinfo entry that leaks memory until the next autopurge cycle.
 	 * See: https://github.com/falcosecurity/falco/issues/3643
 	 */
-	if(m_thread_manager->has_recently_exited(child_tid, caller_tid, evt.get_ts())) {
+	/* The ptid of the child is its real_parent in the kernel: the parent of the caller for a new
+	 * thread or with CLONE_PARENT, else the caller. The child's own clone event reports it, and
+	 * that is the ptid recorded when the child exited.
+	 */
+	const int64_t child_ptid = (flags & (PPM_CL_CLONE_THREAD | PPM_CL_CLONE_PARENT))
+	                                   ? caller_tinfo->m_ptid
+	                                   : caller_tid;
+	if(m_thread_manager->has_recently_exited(child_tid, child_ptid, evt.get_ts())) {
 		return;
 	}
 
