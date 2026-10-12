@@ -1426,3 +1426,25 @@ TEST_F(sinsp_with_test_input, setsid_and_chroot_from_secondary_thread) {
 		ASSERT_STREQ(out.str, "/newroot") << tid;
 	}
 }
+
+/* A process starts with its main thread. Every thread of the process reports that start, and a
+ * child forked by a secondary thread reports it as the start of its parent process.
+ */
+TEST_F(sinsp_with_test_input, process_start_is_the_start_of_the_main_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	const int64_t child_tid = 50;
+	auto evt = generate_random_event(INIT_TID);
+	const std::string init_start = get_field_as_string(evt, "proc.pid.ts");
+
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	generate_clone_x_event(child_tid, thread_tid, INIT_PID, INIT_PTID);
+
+	evt = generate_random_event(thread_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.pid.ts"), init_start);
+	evt = generate_random_event(child_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.ppid.ts"), init_start);
+	ASSERT_NE(get_field_as_string(evt, "proc.pid.ts"), init_start);
+}
