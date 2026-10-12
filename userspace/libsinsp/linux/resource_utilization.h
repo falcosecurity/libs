@@ -26,8 +26,9 @@ private:
 	                   ///< /proc/self/smaps_rollup info, unit: kb.
 
 	uint64_t m_container_memory_used{};  ///< Cgroup current memory used, default Kubernetes
-	                                     ///< /sys/fs/cgroup/memory/memory.usage_in_bytes, unit:
-	                                     ///< bytes.
+	                                     ///< /sys/fs/cgroup/memory/memory.usage_in_bytes on cgroup
+	                                     ///< v1 and memory.current of the agent's cgroup on cgroup
+	                                     ///< v2, unit: bytes.
 
 	double m_host_cpu_usage_perc{};   ///< Current total host CPU usage (all CPUs), calculated based
 	                                  ///< on ${HOST_ROOT}/proc/stat info, unit: percentage.
