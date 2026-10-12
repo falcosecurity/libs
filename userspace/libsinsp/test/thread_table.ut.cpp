@@ -1220,3 +1220,24 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_apid_ppid) {
 	auto p5_t1_gparent_info = m_inspector.m_thread_manager->get_ancestor_process(*p5_t1_info, 2);
 	ASSERT_EQ(p3_t1_info->m_pid, p5_t1_gparent_info->m_pid);
 }
+
+/* A process that sinsp knows only by a secondary thread still has its ancestors */
+TEST_F(sinsp_with_test_input, THRD_TABLE_ancestors_of_a_process_without_its_main_thread) {
+	add_default_init_thread();
+	open_inspector();
+
+	auto thread = m_inspector.get_threadinfo_factory().create();
+	thread->m_tid = 71;
+	thread->m_pid = 70;
+	thread->set_ptid(INIT_TID);
+	thread->m_comm = "worker";
+	m_inspector.m_thread_manager->add_thread(std::move(thread), true);
+
+	auto evt = generate_random_event(71);
+	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aname[1]"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aname"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
+	ASSERT_TRUE(eval_filter(evt, "proc.aname = init"));
+	ASSERT_TRUE(eval_filter(evt, "proc.apid = 1"));
+}
