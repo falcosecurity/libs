@@ -1351,3 +1351,47 @@ TEST_F(sinsp_with_test_input, env_of_a_child_forked_by_a_secondary_thread) {
 	evt = generate_random_event(child_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.env"), env);
 }
+
+/* The plugin fields of the state of a process read it where sinsp keeps it, also on a secondary
+ * thread.
+ */
+TEST_F(sinsp_with_test_input, process_fields_of_a_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_SETRLIMIT_X,
+	                     4,
+	                     (int64_t)0,
+	                     (int64_t)80,
+	                     (int64_t)81,
+	                     (uint8_t)PPM_RLIMIT_NOFILE);
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_CHDIR_X,
+	                     2,
+	                     (int64_t)0,
+	                     "/home/user");
+
+	const auto &thread_manager = m_inspector.m_thread_manager;
+	auto tinfo = thread_manager->find_thread(thread_tid, true);
+	libsinsp::state::sinsp_table_owner owner;
+	ss_plugin_state_data out{};
+
+	const auto &fd_limit = thread_manager->get_field("fd_limit", SS_PLUGIN_ST_INT64);
+	ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &fd_limit, &out),
+	          SS_PLUGIN_SUCCESS);
+	ASSERT_EQ(out.s64, 80);
+
+	const auto &cwd = thread_manager->get_field("cwd", SS_PLUGIN_ST_STRING);
+	ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &cwd, &out), SS_PLUGIN_SUCCESS);
+	ASSERT_STREQ(out.str, "/home/user/");
+
+	const auto &env = thread_manager->get_field("env", SS_PLUGIN_ST_TABLE);
+	ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &env, &out), SS_PLUGIN_SUCCESS);
+	libsinsp::state::table_input_adapter env_table{out.table};
+	ASSERT_EQ(env_table.get_size(&owner), 2);
+}
