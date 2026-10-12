@@ -1550,14 +1550,19 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		m_val.d = tinfo->get_fd_usage_pct_d();
 		return extract_single_val(m_val.d, len);
 	case TYPE_VMSIZE:
-		m_val.u64 = tinfo->m_vmsize_kb;
-		return extract_single_val(m_val.u64, len);
 	case TYPE_VMRSS:
-		m_val.u64 = tinfo->m_vmrss_kb;
+	case TYPE_VMSWAP: {
+		// The memory footprint is the process's, and the main thread keeps it
+		const sinsp_threadinfo* mt = tinfo->get_main_thread_or_self();
+		if(m_field_id == TYPE_VMSIZE) {
+			m_val.u64 = mt->m_vmsize_kb;
+		} else if(m_field_id == TYPE_VMRSS) {
+			m_val.u64 = mt->m_vmrss_kb;
+		} else {
+			m_val.u64 = mt->m_vmswap_kb;
+		}
 		return extract_single_val(m_val.u64, len);
-	case TYPE_VMSWAP:
-		m_val.u64 = tinfo->m_vmswap_kb;
-		return extract_single_val(m_val.u64, len);
+	}
 	case TYPE_THREAD_VMSIZE:
 		if(tinfo->is_main_thread()) {
 			m_val.u64 = tinfo->m_vmsize_kb;
