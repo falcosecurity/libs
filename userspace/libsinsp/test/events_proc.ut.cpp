@@ -1334,3 +1334,20 @@ TEST_F(sinsp_with_test_input, proc_ppid_apid) {
 	    a thread performed a clone */
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), get_field_as_string(evt, "proc.apid[1]"));
 }
+
+/* The environment is the process's. A process forked by a secondary thread gets it too. */
+TEST_F(sinsp_with_test_input, env_of_a_child_forked_by_a_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	const int64_t child_tid = 50;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	generate_clone_x_event(child_tid, thread_tid, INIT_PID, INIT_PTID);
+
+	const std::string env = "TEST_ENV_PARENT_LINEAGE=secret HOME=/home/user/parent";
+	auto evt = generate_random_event(thread_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.env"), env);
+	evt = generate_random_event(child_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.env"), env);
+}
