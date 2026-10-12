@@ -89,3 +89,63 @@ TEST_F(sinsp_with_test_input, parse_brk_no_update) {
 	// the syscall sets an errno.
 	assert_return_value(evt, res);
 }
+
+/* The memory footprint is the process's. A brk from any thread updates it for all threads. */
+TEST_F(sinsp_with_test_input, parse_brk_from_a_secondary_thread) {
+	add_default_init_thread();
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+
+	uint32_t vm_size = 294;
+	uint32_t vm_rss = 295;
+	uint32_t vm_swap = 296;
+	add_event_advance_ts(increasing_ts(),
+	                     thread_tid,
+	                     PPME_SYSCALL_BRK_4_X,
+	                     5,
+	                     (uint64_t)83983092,
+	                     vm_size,
+	                     vm_rss,
+	                     vm_swap,
+	                     (uint64_t)8);
+
+	for(const int64_t tid : {int64_t{INIT_TID}, thread_tid}) {
+		auto evt = generate_random_event(tid);
+		ASSERT_EQ(get_field_as_string(evt, "proc.vmsize"), std::to_string(vm_size)) << tid;
+		ASSERT_EQ(get_field_as_string(evt, "proc.vmrss"), std::to_string(vm_rss)) << tid;
+		ASSERT_EQ(get_field_as_string(evt, "proc.vmswap"), std::to_string(vm_swap)) << tid;
+	}
+	auto evt = generate_random_event(INIT_TID);
+	ASSERT_EQ(get_field_as_string(evt, "thread.vmsize"), std::to_string(vm_size));
+}
+
+/* A context switch updates the memory footprint that proc.vmsize reads, also for a process whose
+ * main thread sinsp does not know
+ */
+TEST_F(sinsp_with_test_input, context_switch_without_the_main_thread) {
+	add_default_init_thread();
+	open_inspector();
+
+	auto thread = m_inspector.get_threadinfo_factory().create();
+	thread->m_tid = 71;
+	thread->m_pid = 70;
+	thread->set_ptid(INIT_TID);
+	m_inspector.m_thread_manager->add_thread(std::move(thread), true);
+
+	add_event_advance_ts(increasing_ts(),
+	                     71,
+	                     PPME_SCHEDSWITCH_6_E,
+	                     6,
+	                     (int64_t)INIT_TID,
+	                     (uint64_t)1,
+	                     (uint64_t)2,
+	                     (uint32_t)301,
+	                     (uint32_t)302,
+	                     (uint32_t)303);
+
+	auto evt = generate_random_event(71);
+	ASSERT_EQ(get_field_as_string(evt, "proc.vmsize"), "301");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vmrss"), "302");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vmswap"), "303");
+}
