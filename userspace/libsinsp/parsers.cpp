@@ -3824,11 +3824,10 @@ void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
 
 	evt.get_tinfo()->m_pfmajor = evt.get_param(1)->as<uint64_t>();
 	evt.get_tinfo()->m_pfminor = evt.get_param(2)->as<uint64_t>();
-	if(const auto main_tinfo = evt.get_tinfo()->get_main_thread()) {
-		main_tinfo->m_vmsize_kb = evt.get_param(3)->as<uint32_t>();
-		main_tinfo->m_vmrss_kb = evt.get_param(4)->as<uint32_t>();
-		main_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
-	}
+	auto *const process_tinfo = evt.get_tinfo()->get_main_thread_or_self();
+	process_tinfo->m_vmsize_kb = evt.get_param(3)->as<uint32_t>();
+	process_tinfo->m_vmrss_kb = evt.get_param(4)->as<uint32_t>();
+	process_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 }
 
 void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
@@ -3836,16 +3835,18 @@ void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
 		return;
 	}
 
+	// The memory footprint is the process's, and the main thread keeps it
+	auto *const process_tinfo = evt.get_tinfo()->get_main_thread_or_self();
 	if(const auto vm_size_param = evt.get_param(1); !vm_size_param->empty()) {
-		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
+		process_tinfo->m_vmsize_kb = vm_size_param->as<uint32_t>();
 	}
 	// If one of these parameters is present, so is for the other ones, so just check
 	// the presence of one of them.
 	const auto vm_rss_param = evt.get_param(2);
 	const auto vm_swap_param = evt.get_param(3);
 	if(!vm_swap_param->empty()) {
-		evt.get_tinfo()->m_vmrss_kb = vm_rss_param->as<uint32_t>();
-		evt.get_tinfo()->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+		process_tinfo->m_vmrss_kb = vm_rss_param->as<uint32_t>();
+		process_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 	}
 }
 
