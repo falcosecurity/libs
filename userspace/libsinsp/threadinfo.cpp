@@ -495,18 +495,9 @@ bool sinsp_threadinfo::set_env_from_proc() {
 }
 
 const std::vector<std::string>& sinsp_threadinfo::get_env() {
-	if(is_main_thread()) {
-		return m_env;
-	} else {
-		auto mtinfo = get_main_thread();
-		if(mtinfo != nullptr) {
-			return mtinfo->get_env();
-		} else {
-			// it should never happen but provide a safe fallback just in case
-			// except during sinsp::scap_open() (see sinsp::get_thread()).
-			return m_env;
-		}
-	}
+	// Without a main thread, which should only happen during sinsp::scap_open() (see
+	// sinsp::get_thread()), this thread's own copy is the safe fallback
+	return get_main_thread_or_self()->m_env;
 }
 
 // Return value string for the exact environment variable name given
