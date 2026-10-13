@@ -84,7 +84,7 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 		        auto c = static_cast<const self*>(in);
 		        return libsinsp::state::borrowed_state_data::
 		                from<SS_PLUGIN_ST_TABLE, const libsinsp::state::base_table*>(
-		                        &c->m_env_table_adapter);
+		                        &c->get_main_thread_or_self()->m_env_table_adapter);
 	        },
 	        [](void*, size_t, const libsinsp::state::borrowed_state_data&) {
 		        throw sinsp_exception("attempt to write to read-only static struct field: env");
@@ -104,7 +104,19 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	        },
 	        true);
 	DEFINE_STATIC_FIELD(ret, self, m_flags, "flags");
-	DEFINE_STATIC_FIELD(ret, self, m_fdlimit, "fd_limit");
+	libsinsp::state::define_static_field<int64_t>(
+	        ret,
+	        "fd_limit",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_INT64, int64_t>(
+		                c->get_main_thread_or_self()->m_fdlimit);
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        in_data.copy_to<SS_PLUGIN_ST_INT64, int64_t>(
+		                c->get_main_thread_or_self()->m_fdlimit);
+	        });
 	DEFINE_STATIC_FIELD(ret, self, m_uid, "uid");
 	DEFINE_STATIC_FIELD(ret, self, m_gid, "gid");
 	DEFINE_STATIC_FIELD(ret, self, m_loginuid, "loginuid");
@@ -133,7 +145,16 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// m_lastexec_ts
 	// m_latency
 	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
-	DEFINE_STATIC_FIELD_READONLY(ret, self, m_cwd, "cwd");
+	libsinsp::state::define_static_field<std::string>(
+	        ret,
+	        "cwd",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_STRING, std::string>(
+		                c->get_main_thread_or_self()->m_cwd);
+	        },
+	        READONLY_WRITER_LAMBDA("cwd"),
+	        true);
 	// m_parent_loop_detected
 	return ret;
 }
@@ -485,18 +506,9 @@ bool sinsp_threadinfo::set_env_from_proc() {
 }
 
 const std::vector<std::string>& sinsp_threadinfo::get_env() {
-	if(is_main_thread()) {
-		return m_env;
-	} else {
-		auto mtinfo = get_main_thread();
-		if(mtinfo != nullptr) {
-			return mtinfo->get_env();
-		} else {
-			// it should never happen but provide a safe fallback just in case
-			// except during sinsp::scap_open() (see sinsp::get_thread()).
-			return m_env;
-		}
-	}
+	// Without a main thread, which should only happen during sinsp::scap_open() (see
+	// sinsp::get_thread()), this thread's own copy is the safe fallback
+	return get_main_thread_or_self()->m_env;
 }
 
 // Return value string for the exact environment variable name given
@@ -695,7 +707,13 @@ void sinsp_threadinfo::update_cwd(std::string_view cwd) {
 		return;
 	}
 
-	tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, cwd);
+	// Resolve against the directory we are about to overwrite -- the process's,
+	// which is the main thread's -- and not against this thread's own copy of it.
+	// Only the main thread keeps that copy up to date, so for a chdir with a
+	// relative path from a secondary thread, m_cwd here is whatever the thread was
+	// created with, usually empty, and the process's directory was replaced by the
+	// relative path alone.
+	tinfo->m_cwd = sinsp_utils::concatenate_paths(tinfo->m_cwd, cwd);
 
 	if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/') {
 		tinfo->m_cwd += '/';

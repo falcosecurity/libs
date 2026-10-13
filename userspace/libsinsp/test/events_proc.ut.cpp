@@ -917,6 +917,32 @@ TEST_F(sinsp_with_test_input, chdir_fchdir) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory-fd/");
 }
 
+// A relative chdir from a secondary thread resolves against the cwd of the process
+TEST_F(sinsp_with_test_input, chdir_relative_from_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_CHDIR_X,
+	                     2,
+	                     (int64_t)0,
+	                     "/home/user");
+	sinsp_evt *evt = add_event_advance_ts(increasing_ts(),
+	                                      thread_tid,
+	                                      PPME_SYSCALL_CHDIR_X,
+	                                      2,
+	                                      (int64_t)0,
+	                                      "subdir");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/home/user/subdir/");
+
+	evt = generate_random_event(INIT_TID);
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/home/user/subdir/");
+}
+
 // Falco libs allowed pid over 32bit, those were used in the past to hold extra values in the high
 // bits. These PIDs are not meaningful to the user and should not be displayed
 TEST_F(sinsp_with_test_input, pid_over_32bit) {
@@ -1307,4 +1333,165 @@ TEST_F(sinsp_with_test_input, proc_ppid_apid) {
 	/* Check that proc.ppid and proc.apid[1] are the same and that this holds even in the case
 	    a thread performed a clone */
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), get_field_as_string(evt, "proc.apid[1]"));
+}
+
+/* The environment is the process's. A process forked by a secondary thread gets it too. */
+TEST_F(sinsp_with_test_input, env_of_a_child_forked_by_a_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	const int64_t child_tid = 50;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	generate_clone_x_event(child_tid, thread_tid, INIT_PID, INIT_PTID);
+
+	const std::string env = "TEST_ENV_PARENT_LINEAGE=secret HOME=/home/user/parent";
+	auto evt = generate_random_event(thread_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.env"), env);
+	evt = generate_random_event(child_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.env"), env);
+}
+
+/* The plugin fields of the state of a process read it where sinsp keeps it, also on a secondary
+ * thread.
+ */
+TEST_F(sinsp_with_test_input, process_fields_of_a_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_SETRLIMIT_X,
+	                     4,
+	                     (int64_t)0,
+	                     (int64_t)80,
+	                     (int64_t)81,
+	                     (uint8_t)PPM_RLIMIT_NOFILE);
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_CHDIR_X,
+	                     2,
+	                     (int64_t)0,
+	                     "/home/user");
+
+	const auto &thread_manager = m_inspector.m_thread_manager;
+	auto tinfo = thread_manager->find_thread(thread_tid, true);
+	libsinsp::state::sinsp_table_owner owner;
+	ss_plugin_state_data out{};
+
+	const auto &fd_limit = thread_manager->get_field("fd_limit", SS_PLUGIN_ST_INT64);
+	ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &fd_limit, &out),
+	          SS_PLUGIN_SUCCESS);
+	ASSERT_EQ(out.s64, 80);
+
+	const auto &cwd = thread_manager->get_field("cwd", SS_PLUGIN_ST_STRING);
+	ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &cwd, &out), SS_PLUGIN_SUCCESS);
+	ASSERT_STREQ(out.str, "/home/user/");
+
+	const auto &env = thread_manager->get_field("env", SS_PLUGIN_ST_TABLE);
+	ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &env, &out), SS_PLUGIN_SUCCESS);
+	libsinsp::state::table_input_adapter env_table{out.table};
+	ASSERT_EQ(env_table.get_size(&owner), 2);
+}
+
+/* The session and the root directory are the process's. A setsid or a chroot from a secondary
+ * thread changes them for every thread.
+ */
+TEST_F(sinsp_with_test_input, setsid_and_chroot_from_secondary_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	add_event_advance_ts(increasing_ts(), thread_tid, PPME_SYSCALL_SETSID_X, 1, (int64_t)77);
+	add_event_advance_ts(increasing_ts(),
+	                     thread_tid,
+	                     PPME_SYSCALL_CHROOT_X,
+	                     2,
+	                     (int64_t)0,
+	                     "/newroot");
+
+	const auto &thread_manager = m_inspector.m_thread_manager;
+	libsinsp::state::sinsp_table_owner owner;
+	const auto &root = thread_manager->get_field("root", SS_PLUGIN_ST_STRING);
+	for(const int64_t tid : {int64_t{INIT_TID}, thread_tid}) {
+		auto evt = generate_random_event(tid);
+		ASSERT_EQ(get_field_as_string(evt, "proc.sid"), "77") << tid;
+		ss_plugin_state_data out{};
+		auto tinfo = thread_manager->find_thread(tid, true);
+		ASSERT_EQ(thread_manager->read_entry_field(&owner, tinfo.get(), &root, &out),
+		          SS_PLUGIN_SUCCESS);
+		ASSERT_STREQ(out.str, "/newroot") << tid;
+	}
+}
+
+/* A process starts with its main thread. Every thread of the process reports that start, and a
+ * child forked by a secondary thread reports it as the start of its parent process.
+ */
+TEST_F(sinsp_with_test_input, process_start_is_the_start_of_the_main_thread) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t thread_tid = 2;
+	const int64_t child_tid = 50;
+	auto evt = generate_random_event(INIT_TID);
+	const std::string init_start = get_field_as_string(evt, "proc.pid.ts");
+
+	generate_clone_x_event(thread_tid, INIT_TID, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD);
+	generate_clone_x_event(child_tid, thread_tid, INIT_PID, INIT_PTID);
+
+	evt = generate_random_event(thread_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.pid.ts"), init_start);
+	evt = generate_random_event(child_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.ppid.ts"), init_start);
+	ASSERT_NE(get_field_as_string(evt, "proc.pid.ts"), init_start);
+}
+
+/* A forked child runs the executable of its parent, so it reports the time between the start of
+ * its pid namespace and the last status change of that executable.
+ */
+TEST_F(sinsp_with_test_input, exe_ino_ctime_duration_pidns_start_of_a_forked_child) {
+	add_default_init_thread();
+
+	open_inspector();
+	const int64_t child_tid = 50;
+	const uint64_t pidns_start = 1000;
+	const uint64_t ctime = 4000000000000000000;
+	auto init = m_inspector.m_thread_manager->find_thread(INIT_TID, true);
+	init->m_exe_ino = 1234;
+	init->m_exe_ino_ctime = ctime;
+
+	/* The child side of a clone, in a child pid namespace that started at `pidns_start` */
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	add_event_advance_ts(increasing_ts(),
+	                     child_tid,
+	                     PPME_SYSCALL_CLONE_20_X,
+	                     21,
+	                     (int64_t)0,
+	                     "init",
+	                     empty_bytebuf,
+	                     child_tid,
+	                     child_tid,
+	                     (int64_t)INIT_TID,
+	                     "",
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     "init",
+	                     empty_bytebuf,
+	                     (uint32_t)PPM_CL_CHILD_IN_PIDNS,
+	                     (uint32_t)0,
+	                     (uint32_t)0,
+	                     (int64_t)1,
+	                     (int64_t)1,
+	                     pidns_start);
+
+	auto evt = generate_random_event(child_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.exe_ino.ctime_duration_pidns_start"),
+	          std::to_string(ctime - pidns_start));
 }

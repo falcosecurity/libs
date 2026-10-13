@@ -702,5 +702,34 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_no_readd_after_child_procexit) {
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), thread_count_before);
 }
 
+TEST_F(sinsp_with_test_input, CLONE_CALLER_no_readd_after_thread_procexit) {
+	/* The same out-of-order case for a new thread. The child side of the clone reports the parent
+	 * of the process as the ptid of the thread, so the late caller side must look for that one.
+	 */
+	add_default_init_thread();
+	open_inspector();
+
+	int64_t p1_t1_tid = 24;
+	int64_t p1_t1_pid = 24;
+	int64_t p1_t1_ptid = INIT_PID;
+	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID);
+
+	/* Step 1: the clone exit of the new thread arrives first */
+	int64_t thread_tid = 31;
+	generate_clone_x_event(0, thread_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_THREAD);
+	ASSERT_THREAD_INFO_PIDS(thread_tid, p1_t1_pid, p1_t1_ptid)
+
+	/* Step 2: the thread exits */
+	remove_thread(thread_tid, 0);
+	ASSERT_EQ(m_inspector.m_thread_manager->find_thread(thread_tid, true).get(), nullptr);
+	uint32_t thread_count_before = m_inspector.m_thread_manager->get_thread_count();
+
+	/* Step 3: the clone return of the caller arrives late */
+	generate_clone_x_event(thread_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_THREAD);
+
+	ASSERT_EQ(m_inspector.m_thread_manager->find_thread(thread_tid, true).get(), nullptr);
+	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), thread_count_before);
+}
+
 /*=============================== CLONE CHILD EXIT EVENT (end of caller tests)
  * ===========================*/

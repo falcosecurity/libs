@@ -619,6 +619,15 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt &enter_evt, sinsp_evt &exit_ev
 // PARSERS
 ///////////////////////////////////////////////////////////////////////////////
 
+// The time between the start of the pid namespace and the last status change of the executable, if
+// the change came after the start.
+static void update_exe_ino_ctime_duration_pidns_start(sinsp_threadinfo &tinfo) {
+	if(tinfo.m_pidns_init_start_ts != 0 && tinfo.m_exe_ino_ctime > tinfo.m_pidns_init_start_ts) {
+		tinfo.m_exe_ino_ctime_duration_pidns_start =
+		        tinfo.m_exe_ino_ctime - tinfo.m_pidns_init_start_ts;
+	}
+}
+
 void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
                                            sinsp_parser_verdict &verdict,
                                            const int64_t child_tid) const {
@@ -781,7 +790,14 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	 * threadinfo entry that leaks memory until the next autopurge cycle.
 	 * See: https://github.com/falcosecurity/falco/issues/3643
 	 */
-	if(m_thread_manager->has_recently_exited(child_tid, caller_tid, evt.get_ts())) {
+	/* The ptid of the child is its real_parent in the kernel: the parent of the caller for a new
+	 * thread or with CLONE_PARENT, else the caller. The child's own clone event reports it, and
+	 * that is the ptid recorded when the child exited.
+	 */
+	const int64_t child_ptid = (flags & (PPM_CL_CLONE_THREAD | PPM_CL_CLONE_PARENT))
+	                                   ? caller_tinfo->m_ptid
+	                                   : caller_tid;
+	if(m_thread_manager->has_recently_exited(child_tid, child_ptid, evt.get_ts())) {
 		return;
 	}
 
@@ -859,7 +875,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 			child_tinfo->set_cwd(caller_tinfo->get_cwd());
 
 			/* Not a thread, copy env */
-			child_tinfo->m_env = caller_tinfo->m_env;
+			child_tinfo->m_env = caller_tinfo->get_env();
 		}
 
 		/* Create info about the thread group */
@@ -1000,6 +1016,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 		child_tinfo->m_exe_ino_ctime_duration_clone_ts =
 		        caller_tinfo->m_exe_ino_ctime_duration_clone_ts;
+
+		update_exe_ino_ctime_duration_pidns_start(*child_tinfo);
 	} else {
 		/* exe */
 		caller_tinfo->m_exe = child_tinfo->m_exe;
@@ -1292,7 +1310,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 			child_tinfo->set_cwd(lookup_tinfo->get_cwd());
 
 			/* Not a thread, copy env */
-			child_tinfo->m_env = lookup_tinfo->m_env;
+			child_tinfo->m_env = lookup_tinfo->get_env();
 		} else {
 			/* If we are a new thread we keep the same lastexec time of the main thread */
 			child_tinfo->m_lastexec_ts = lookup_tinfo->m_lastexec_ts;
@@ -1366,6 +1384,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	} else {
 		child_tinfo->m_pidns_init_start_ts = m_machine_info->boot_ts_epoch;
 	}
+	update_exe_ino_ctime_duration_pidns_start(*child_tinfo);
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
@@ -1682,11 +1701,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 			evt.get_tinfo()->m_exe_ino_ctime_duration_clone_ts =
 			        evt.get_tinfo()->m_clone_ts - evt.get_tinfo()->m_exe_ino_ctime;
 		}
-		if(evt.get_tinfo()->m_pidns_init_start_ts != 0 &&
-		   (evt.get_tinfo()->m_exe_ino_ctime > evt.get_tinfo()->m_pidns_init_start_ts)) {
-			evt.get_tinfo()->m_exe_ino_ctime_duration_pidns_start =
-			        evt.get_tinfo()->m_exe_ino_ctime - evt.get_tinfo()->m_pidns_init_start_ts;
-		}
+		update_exe_ino_ctime_duration_pidns_start(*evt.get_tinfo());
 	}
 
 	// Set uid.
@@ -3824,11 +3839,10 @@ void sinsp_parser::parse_context_switch(sinsp_evt &evt) {
 
 	evt.get_tinfo()->m_pfmajor = evt.get_param(1)->as<uint64_t>();
 	evt.get_tinfo()->m_pfminor = evt.get_param(2)->as<uint64_t>();
-	if(const auto main_tinfo = evt.get_tinfo()->get_main_thread()) {
-		main_tinfo->m_vmsize_kb = evt.get_param(3)->as<uint32_t>();
-		main_tinfo->m_vmrss_kb = evt.get_param(4)->as<uint32_t>();
-		main_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
-	}
+	auto *const process_tinfo = evt.get_tinfo()->get_main_thread_or_self();
+	process_tinfo->m_vmsize_kb = evt.get_param(3)->as<uint32_t>();
+	process_tinfo->m_vmrss_kb = evt.get_param(4)->as<uint32_t>();
+	process_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 }
 
 void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
@@ -3836,16 +3850,18 @@ void sinsp_parser::parse_brk_mmap_mmap2_munmap__exit(sinsp_evt &evt) {
 		return;
 	}
 
+	// The memory footprint is the process's, and the main thread keeps it
+	auto *const process_tinfo = evt.get_tinfo()->get_main_thread_or_self();
 	if(const auto vm_size_param = evt.get_param(1); !vm_size_param->empty()) {
-		evt.get_tinfo()->m_vmsize_kb = vm_size_param->as<uint32_t>();
+		process_tinfo->m_vmsize_kb = vm_size_param->as<uint32_t>();
 	}
 	// If one of these parameters is present, so is for the other ones, so just check
 	// the presence of one of them.
 	const auto vm_rss_param = evt.get_param(2);
 	const auto vm_swap_param = evt.get_param(3);
 	if(!vm_swap_param->empty()) {
-		evt.get_tinfo()->m_vmrss_kb = vm_rss_param->as<uint32_t>();
-		evt.get_tinfo()->m_vmswap_kb = vm_swap_param->as<uint32_t>();
+		process_tinfo->m_vmrss_kb = vm_rss_param->as<uint32_t>();
+		process_tinfo->m_vmswap_kb = vm_swap_param->as<uint32_t>();
 	}
 }
 
@@ -3993,6 +4009,21 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
 	caller_tinfo->m_tginfo->set_reaper(child_subreaper);
 }
 
+// Apply `update` to every thread of the process of `tinfo`. The kernel keeps some state once per
+// process, but sinsp keeps a copy of it on each thread, and the readers read the event's thread.
+template<typename F>
+static void for_each_thread_of_process(sinsp_threadinfo &tinfo, F update) {
+	if(tinfo.m_tginfo == nullptr) {
+		update(tinfo);
+		return;
+	}
+	for(const auto &thread_weak : tinfo.m_tginfo->get_thread_list()) {
+		if(const auto thread = thread_weak.lock()) {
+			update(*thread);
+		}
+	}
+}
+
 void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 	if(evt.get_tinfo() == nullptr || evt.get_syscall_return_value() != 0) {
 		return;
@@ -4000,17 +4031,17 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt &evt) {
 
 	const char *resolved_path;
 	const auto path = evt.get_param_as_str(1, &resolved_path);
-	if(resolved_path[0] == 0) {
-		evt.get_tinfo()->m_root = path;
-	} else {
-		evt.get_tinfo()->m_root = resolved_path;
-	}
+	const std::string root = resolved_path[0] == 0 ? path : resolved_path;
+	// The root directory is in the fs_struct, which the threads of a process share
+	for_each_thread_of_process(*evt.get_tinfo(), [&](sinsp_threadinfo &t) { t.m_root = root; });
 }
 
 void sinsp_parser::parse_setsid_exit(sinsp_evt &evt) {
 	if(const auto retval = evt.get_syscall_return_value();
 	   retval >= 0 && evt.get_thread_info() != nullptr) {
-		evt.get_thread_info()->m_sid = retval;
+		// The session is in the signal_struct of the process
+		for_each_thread_of_process(*evt.get_thread_info(),
+		                           [retval](sinsp_threadinfo &t) { t.m_sid = retval; });
 	}
 }
 
