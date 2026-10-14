@@ -282,7 +282,7 @@ static int parse_cpu_mask_file(const char *fcpu, bool **mask, int *mask_sz) {
 
 		return err;
 	}
-	if(len >= sizeof(buf)) {
+	if((size_t)len >= sizeof(buf)) {
 		fprintf(stderr, "CPU mask is too big in file %s\n", fcpu);
 
 		return -E2BIG;

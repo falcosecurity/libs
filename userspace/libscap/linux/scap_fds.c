@@ -1086,7 +1086,7 @@ static int32_t parse_procfs_proc_pid_socket_table_file(const char *filename,
 }
 
 int32_t scap_fd_read_sockets_impl(char *procdir, struct scap_ns_socket_list *sockets, char *error) {
-	char filename[SCAP_MAX_PATH_SIZE];
+	char filename[SCAP_MAX_PATH_SIZE + 8];
 	char netroot[SCAP_MAX_PATH_SIZE];
 	char err_buf[SCAP_LASTERR_SIZE];
 
@@ -1273,7 +1273,7 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform,
 	struct dirent *dir_entry_p;
 	int32_t res = SCAP_SUCCESS;
 	char fd_dir_name[SCAP_MAX_PATH_SIZE];
-	char f_name[SCAP_MAX_PATH_SIZE];
+	char f_name[SCAP_MAX_PATH_SIZE + 258];
 	struct stat sb;
 	uint64_t fd;
 	scap_fdinfo fdi = {};
