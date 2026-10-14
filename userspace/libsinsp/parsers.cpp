@@ -670,7 +670,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		caller_tinfo->m_pid = evt.get_param(4)->as<int64_t>();
 
 		/* ptid */
-		caller_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
+		caller_tinfo->set_ptid(evt.get_param(5)->as<int64_t>());
 
 		/* vtid & vpid */
 		// If one of these parameters is present, so is for the other ones, so just check the
@@ -868,7 +868,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 		child_tinfo->m_pid = child_tinfo->m_tid;
 
 		/* The child parent is the calling process */
-		child_tinfo->m_ptid = caller_tinfo->m_tid;
+		child_tinfo->set_ptid(caller_tinfo->m_tid);
 	} else /* Simple thread case */
 	{
 		/* pid */
@@ -876,7 +876,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 
 		/* ptid */
 		/* The parent is the parent of the calling process */
-		child_tinfo->m_ptid = caller_tinfo->m_ptid;
+		child_tinfo->set_ptid(caller_tinfo->get_ptid());
 
 		/* Please note this is not the right behavior, it is something we do to be compliant with
 		 * `/proc` scan.
@@ -1107,7 +1107,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	child_tinfo->m_pid = evt.get_param(4)->as<int64_t>();
 
 	/* ptid. */
-	child_tinfo->m_ptid = evt.get_param(5)->as<int64_t>();
+	child_tinfo->set_ptid(evt.get_param(5)->as<int64_t>());
 
 	/* `vtid` and `vpid` */
 	// If one of these parameters is present, so is for the other ones, so just check the
@@ -1145,7 +1145,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 	bool is_thread_leader = !(child_tinfo->m_flags & PPM_CL_CLONE_THREAD);
 	if(is_thread_leader) {
 		/* We need to copy data from the parent */
-		lookup_tid = child_tinfo->m_ptid;
+		lookup_tid = child_tinfo->get_ptid();
 	} else {
 		/* We need to copy data from the thread leader */
 		lookup_tid = child_tinfo->m_pid;
@@ -1183,7 +1183,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt &evt, sinsp_parser_verdict &
 
 			/* ptid */
 			/* the new thread ptid is the same of the main thread */
-			lookup_tinfo->m_ptid = child_tinfo->m_ptid;
+			lookup_tinfo->set_ptid(child_tinfo->get_ptid());
 
 			/* vpid */
 			/* we are in the same thread group, the vpid is the same of the child */
@@ -1424,7 +1424,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt &evt, sinsp_parser_verdict &verdic
 	} else {
 		parse_clone_exit_caller(evt, verdict, childtid);
 	}
-	return;
+
+	if(auto *tinfo = evt.get_tinfo(); tinfo != nullptr) {
+		m_thread_manager->update_parent_link(*tinfo);
+	}
 }
 
 void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdict) const {
@@ -1449,6 +1452,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 		// %s\n",evt.get_param(1)->data()),evt.get_param(1)->data())); ASSERT(false);
 		return;
 	}
+
+	m_thread_manager->update_parent_link(*evt.get_tinfo());
 
 	/* In some corner cases an execve is thrown by a secondary thread when
 	 * the main thread is already dead. In these cases the secondary thread
@@ -1487,7 +1492,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	// we have it from the execve event
 	//
 	if(evt.get_tinfo()->is_invalid()) {
-		evt.get_tinfo()->m_ptid = evt.get_param(5)->as<uint64_t>();
+		evt.get_tinfo()->set_ptid(evt.get_param(5)->as<uint64_t>());
 
 		/* We are not in a namespace we recover also vtid and vpid */
 		if((evt.get_tinfo()->m_flags & PPM_CL_CHILD_IN_PIDNS) == 0) {
@@ -1765,7 +1770,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 */
 	if(evt.get_tinfo()->m_tginfo != nullptr && evt.get_tinfo()->m_tginfo->get_thread_count() > 1) {
 		for(const auto &thread : evt.get_tinfo()->m_tginfo->get_thread_list()) {
-			auto thread_ptr = thread.lock().get();
+			auto thread_ptr = thread.borrow();
 			/* we don't want to remove the main thread since it is the one
 			 * running in this parser!
 			 *
@@ -2857,15 +2862,8 @@ void sinsp_parser::parse_thread_exit(sinsp_evt &evt, sinsp_parser_verdict &verdi
 	 */
 	verdict.set_tid_to_remove(evt.get_tid());
 
-	/* If this thread has no children we don't send the reaper info from the kernel,
-	 * so we do nothing.
-	 */
-	if(evt.get_tinfo()->m_children.size() == 0) {
-		return;
-	}
-
 	/* [Set the reaper to the current thread]
-	 * We need to set the reaper for this thread
+	 * The kernel sends one only for a thread with children, and it is read only if there are.
 	 */
 	if(evt.get_num_params() > 4) {
 		if(const auto reaper_tid_param = evt.get_param(4); !reaper_tid_param->empty()) {

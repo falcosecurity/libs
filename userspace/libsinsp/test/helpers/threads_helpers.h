@@ -28,7 +28,7 @@ limitations under the License.
 		ASSERT_TRUE(tinfo);                                                                   \
 		ASSERT_EQ(tinfo->m_tid, tid);                                                         \
 		ASSERT_EQ(tinfo->m_pid, pid);                                                         \
-		ASSERT_EQ(tinfo->m_ptid, ptid);                                                       \
+		ASSERT_EQ(tinfo->get_ptid(), ptid);                                                   \
 		ASSERT_EQ(tinfo->m_vtid, vtid);                                                       \
 		ASSERT_EQ(tinfo->m_vpid, vpid);                                                       \
 		ASSERT_EQ(tinfo->is_main_thread(), tinfo->m_tid == tinfo->m_pid);                     \
@@ -76,32 +76,28 @@ limitations under the License.
 		ASSERT_EQ(not_expired_count, not_expired);                                      \
 	}
 
+/* The children of a thread are the threads in the table that have it as their parent. The macro
+ * tests only `not_expired`.
+ */
 #define ASSERT_THREAD_CHILDREN(parent_tid, children_num, not_expired, ...)                    \
 	{                                                                                         \
 		const auto& thread_manager = m_inspector.m_thread_manager;                            \
 		sinsp_threadinfo* parent_tinfo = thread_manager->find_thread(parent_tid, true).get(); \
 		ASSERT_TRUE(parent_tinfo);                                                            \
-		ASSERT_EQ(parent_tinfo->m_children.size(), children_num);                             \
+		std::set<sinsp_threadinfo*> children;                                                 \
+		thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {                    \
+			if(thread_manager->get_parent_thread(tinfo) == parent_tinfo) {                    \
+				children.insert(&tinfo);                                                      \
+			}                                                                                 \
+			return true;                                                                      \
+		});                                                                                   \
 		std::set<int64_t> tid_to_assert{__VA_ARGS__};                                         \
 		for(const auto& tid : tid_to_assert) {                                                \
 			sinsp_threadinfo* tid_tinfo = thread_manager->find_thread(tid, true).get();       \
 			ASSERT_TRUE(tid_tinfo);                                                           \
-			bool found = false;                                                               \
-			for(const auto& child : parent_tinfo->m_children) {                               \
-				if(child.lock().get() == tid_tinfo) {                                         \
-					found = true;                                                             \
-				}                                                                             \
-			}                                                                                 \
-			ASSERT_TRUE(found);                                                               \
+			ASSERT_TRUE(children.count(tid_tinfo));                                           \
 		}                                                                                     \
-		uint16_t not_expired_count = 0;                                                       \
-		for(const auto& child : parent_tinfo->m_children) {                                   \
-			if(!child.expired()) {                                                            \
-				not_expired_count++;                                                          \
-			}                                                                                 \
-		}                                                                                     \
-		ASSERT_EQ(not_expired_count, not_expired);                                            \
-		ASSERT_EQ(not_expired_count, parent_tinfo->m_not_expired_children);                   \
+		ASSERT_EQ(children.size(), not_expired);                                              \
 	}
 
 /* if `missing==true` we shouldn't find the thread info */

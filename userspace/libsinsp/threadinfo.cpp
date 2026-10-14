@@ -54,7 +54,20 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
 	DEFINE_STATIC_FIELD(ret, self, m_tid, "tid");
 	DEFINE_STATIC_FIELD(ret, self, m_pid, "pid");
-	DEFINE_STATIC_FIELD(ret, self, m_ptid, "ptid");
+	libsinsp::state::define_static_field<int64_t>(
+	        ret,
+	        "ptid",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        auto c = static_cast<const self*>(in);
+		        return libsinsp::state::borrowed_state_data::from<SS_PLUGIN_ST_INT64, int64_t>(
+		                c->get_ptid());
+	        },
+	        [](void* in, size_t, const libsinsp::state::borrowed_state_data& in_data) {
+		        auto c = static_cast<self*>(in);
+		        int64_t ptid;
+		        in_data.copy_to<SS_PLUGIN_ST_INT64, int64_t>(ptid);
+		        c->set_ptid(ptid);
+	        });
 	DEFINE_STATIC_FIELD(ret, self, m_reaper_tid, "reaper_tid");
 	DEFINE_STATIC_FIELD(ret, self, m_sid, "sid");
 	DEFINE_STATIC_FIELD(ret, self, m_comm, "comm");
@@ -134,7 +147,6 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// m_latency
 	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
 	DEFINE_STATIC_FIELD_READONLY(ret, self, m_cwd, "cwd");
-	// m_parent_loop_detected
 	return ret;
 }
 
@@ -149,7 +161,6 @@ void sinsp_threadinfo::init() {
 	m_loginuid = 0xffffffff;
 	set_lastevent_data_validity(false);
 	m_reaper_tid = -1;
-	m_not_expired_children = 0;
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
 	m_prevevent_ts = 0;
@@ -169,7 +180,7 @@ void sinsp_threadinfo::init() {
 	m_pidns_init_start_ts = 0;
 	m_lastevent_fd = 0;
 	m_lastevent_data = NULL;
-	m_parent_loop_detected = false;
+	m_removed = false;
 	m_tty = 0;
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
@@ -356,7 +367,6 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_en
 
 	/* We cannot obtain the reaper_tid from a /proc scan */
 	m_reaper_tid = -1;
-	m_not_expired_children = 0;
 
 	set_args(pinfo.args, pinfo.args_len);
 	if(is_main_thread()) {
@@ -771,52 +781,116 @@ bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup
 	return false;
 }
 
-void sinsp_threadinfo::report_thread_loop(const sinsp_threadinfo& looping_thread) {
-	// Note we only log a loop once for a given main thread, to avoid flooding logs.
-	if(!m_parent_loop_detected) {
-		libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
-		                               std::to_string(m_pid) +
-		                               ". stopped at tid= " + std::to_string(looping_thread.m_tid) +
-		                               " ptid=" + std::to_string(looping_thread.m_ptid),
-		                       sinsp_logger::SEV_WARNING);
-		m_parent_loop_detected = true;
+namespace {
+
+sinsp_threadinfo* resolve_parent(const thread_group_info* group, int64_t tid);
+
+/* Return the thread that a link to `tid` in the live `group` points to. This is that thread
+ * while it is alive, or else the first live thread of the group. A dead thread keeps its children
+ * until it is removed. If the group has no live thread, the link stays on the dead thread.
+ */
+sinsp_threadinfo* thread_in_group(const thread_group_info& group, int64_t tid) {
+	sinsp_threadinfo* named = nullptr;
+	sinsp_threadinfo* first_alive = nullptr;
+	for(const auto& thread_weak : group.get_thread_list()) {
+		/* Use only threads of this group, so that the next hop follows the link of this group */
+		auto thread = thread_weak.borrow();
+		if(thread == nullptr || thread->m_tginfo.get() != &group) {
+			continue;
+		}
+		if(thread->m_tid == tid) {
+			if(!thread->is_dead()) {
+				return thread;
+			}
+			named = thread;
+		} else if(first_alive == nullptr && !thread->is_dead()) {
+			first_alive = thread;
+		}
 	}
+	if(named != nullptr && !named->is_removed()) {
+		return named;
+	}
+	if(first_alive != nullptr) {
+		return first_alive;
+	}
+	return named;
 }
 
-/* We should never call this method if we don't have children to reparent
- * if we want to save some clock cycles
+/* For a dead `group` with an unknown reaper, return the nearest live subreaper (or init) above
+ * it, in the same pid namespace. Every step goes up a parent link, so the search ends.
  */
-void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper) {
-	/* We have no children to reparent. */
-	if(m_children.size() == 0) {
-		return;
+sinsp_threadinfo* find_reaper_above(const thread_group_info& group) {
+	const thread_group_info* parent = group.get_parent().get();
+	if(parent == nullptr) {
+		return nullptr;
 	}
-
-	if(reaper == this) {
-		throw sinsp_exception("the current process is reaper of itself, this should never happen!");
-	}
-
-	auto child = m_children.begin();
-	while(child != m_children.end()) {
-		/* If the child is not expired we move it to the reaper
-		 * and we change its `ptid`.
-		 */
-		if(!child->expired()) {
-			if(reaper == nullptr) {
-				/* we set `0` as the parent for all children */
-				child->lock()->m_ptid = 0;
-			} else {
-				/* Add the child to the reaper list */
-				reaper->add_child(child->lock());
+	auto ancestor = resolve_parent(parent, group.get_parent_tid());
+	while(ancestor != nullptr) {
+		if(ancestor->is_in_pid_namespace() != group.is_in_pid_namespace()) {
+			return nullptr;
+		}
+		const auto& ancestor_group = ancestor->m_tginfo;
+		if(ancestor_group == nullptr) {
+			return nullptr;
+		}
+		if(ancestor_group->is_reaper() && ancestor_group->get_thread_count() > 0) {
+			for(const auto& thread_weak : ancestor_group->get_thread_list()) {
+				/* A thread of the group itself, as in thread_in_group() */
+				auto thread = thread_weak.borrow();
+				if(thread != nullptr && thread->m_tginfo == ancestor_group && !thread->is_dead()) {
+					return thread;
+				}
 			}
 		}
-
-		/* In any case (expired or not) we remove the child
-		 * from the list.
-		 */
-		child = m_children.erase(child);
+		if(ancestor_group->get_parent() == nullptr) {
+			return nullptr;
+		}
+		ancestor = resolve_parent(ancestor_group->get_parent().get(),
+		                          ancestor_group->get_parent_tid());
 	}
-	m_not_expired_children = 0;
+	return nullptr;
+}
+
+/* Return where a link to `tid` in `group` points to. This is the group if it is alive, or else
+ * its reaper, and so on through dead reapers. It is nullptr if a dead group has no reaper. Each
+ * step follows a parent link, so the search ends.
+ */
+sinsp_threadinfo* resolve_parent(const thread_group_info* group, int64_t tid) {
+	while(group != nullptr) {
+		if(!group->is_dead()) {
+			return thread_in_group(*group, tid);
+		}
+		if(!group->is_reaper_known()) {
+			return find_reaper_above(*group);
+		}
+		tid = group->get_parent_tid();
+		group = group->get_parent().get();
+	}
+	return nullptr;
+}
+
+}  // namespace
+
+sinsp_threadinfo* sinsp_threadinfo::get_linked_parent() const {
+	return resolve_parent(m_tginfo->get_parent().get(), m_tginfo->get_parent_tid());
+}
+
+int64_t sinsp_threadinfo::get_ptid() const {
+	if(m_tginfo == nullptr) {
+		return m_ptid;
+	}
+	if(m_tginfo->get_parent() == nullptr) {
+		return m_tginfo->get_parent_tid();
+	}
+	auto parent = get_linked_parent();
+	return parent != nullptr ? parent->m_tid : 0;
+}
+
+void sinsp_threadinfo::set_ptid(int64_t ptid) {
+	if(m_tginfo != nullptr) {
+		throw sinsp_exception("the ptid of a thread in the process tree is read-only");
+	}
+	m_ptid = ptid;
 }
 
 void sinsp_threadinfo::populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo) {

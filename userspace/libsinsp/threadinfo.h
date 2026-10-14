@@ -18,8 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
-
 #ifdef _WIN32
 struct iovec {
 	void* iov_base; /* Starting address */
@@ -204,14 +202,6 @@ public:
 		return m_tginfo->get_thread_count();
 	}
 
-	/*
-	  \brief returns true if there is a loop detected in the thread parent state.
-	  Needs traverse_parent_state() to have been called first.
-	*/
-	inline bool parent_loop_detected() const { return m_parent_loop_detected; }
-
-	inline void set_parent_loop_detected(bool v) { m_parent_loop_detected = v; }
-
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
@@ -325,32 +315,31 @@ public:
 	 */
 	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
 
-	void report_thread_loop(const sinsp_threadinfo& looping_thread);
+	/*!
+	  \brief Return the tid of this thread's parent, following a dead parent to its reaper: the
+	  stored tid if the parent is not linked, 0 if a dead parent's reaper is not found.
+	*/
+	int64_t get_ptid() const;
 
-	void assign_children_to_reaper(sinsp_threadinfo* reaper);
+	/*!
+	  \brief Set the parent tid of a thread not in a group yet. Throws once it is: the parent is
+	  then the group's link.
+	*/
+	void set_ptid(int64_t ptid);
 
-	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child) {
-		m_children.push_front(child);
-		/* Set current thread as parent */
-		child->m_ptid = m_tid;
-		/* Increment the number of not expired children */
-		m_not_expired_children++;
-	}
+	/*!
+	  \brief Return this thread's parent, following dead parents to their reapers, or nullptr.
+	  The thread must have a group.
+	*/
+	sinsp_threadinfo* get_linked_parent() const;
 
-	inline void clean_expired_children() {
-		auto child = m_children.begin();
-		while(child != m_children.end()) {
-			/* This child is expired */
-			if(child->expired()) {
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
-				child = m_children.erase(child);
-				continue;
-			}
-			child++;
-		}
-	}
+	/*!
+	  \brief Mark the thread as removed by the thread manager. A main thread stays in the table
+	  while its group lives, so its presence in the table does not show if it is removed.
+	*/
+	inline void set_removed() { m_removed = true; }
+
+	inline bool is_removed() const { return m_removed; }
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
 	static void populate_args(std::string& args, const sinsp_threadinfo* tinfo);
@@ -370,10 +359,9 @@ public:
 	//
 	// Core state
 	//
-	int64_t m_tid;   ///< The id of this thread
-	int64_t m_pid;   ///< The id of the process containing this thread. In single thread threads,
-	                 ///< this is equal to tid.
-	int64_t m_ptid;  ///< The id of the process that started this thread.
+	int64_t m_tid;  ///< The id of this thread
+	int64_t m_pid;  ///< The id of the process containing this thread. In single thread threads,
+	                ///< this is equal to tid.
 	int64_t m_reaper_tid;   ///< The id of the reaper for this thread
 	int64_t m_sid;          ///< The session id of the process containing this thread.
 	std::string m_comm;     ///< Command name (e.g. "top")
@@ -418,8 +406,6 @@ public:
 
 	uint32_t m_tty;  ///< Number of controlling terminal
 	std::shared_ptr<thread_group_info> m_tginfo;
-	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
-	uint64_t m_not_expired_children;
 	std::string m_cmd_line;
 	bool m_filtered_out;  ///< True if this thread is filtered out by the inspector filter from
 	                      ///< saving to a capture
@@ -560,7 +546,9 @@ private:
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
-	bool m_parent_loop_detected;
+	bool m_removed;
+	// The ptid before the thread joins a group. After that, get_ptid() reads the link of the group.
+	int64_t m_ptid;
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_cgroups)> m_cgroups_table_adapter;
