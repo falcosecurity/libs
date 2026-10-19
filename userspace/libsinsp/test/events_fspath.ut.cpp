@@ -40,6 +40,7 @@ protected:
 
 	const char *path = "/tmp/path";
 	const char *dirfd_path = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8";
+	const char *new_dirfd_path = "/tmp/new-dirfd";
 
 	const char *name = "/tmp/random/dir...///../../name/";
 	const char *resolved_name = "/tmp/name";
@@ -54,8 +55,7 @@ protected:
 	const char *resolved_rel_oldpath_at =
 	        "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/oldpath";
 	const char *resolved_rel_newpath = "/root/tmp/newpath";
-	const char *resolved_rel_newpath_at =
-	        "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/newpath";
+	const char *resolved_rel_newpath_at = "/tmp/new-dirfd/tmp/newpath";
 	const char *linkpath = "/tmp/linkpath";
 	const char *targetpath = "/tmp/targetpath";
 	const char *rel_linkpath = "tmp/linkpath";
@@ -73,7 +73,7 @@ protected:
 	int64_t evt_dirfd = 2;
 	int64_t evt_dirfd_cwd = PPM_AT_FDCWD;
 	int64_t olddirfd = evt_dirfd;
-	int64_t newdirfd = evt_dirfd;
+	int64_t newdirfd = evt_dirfd + 1;
 	int64_t linkdirfd = evt_dirfd;
 	int32_t flags = 0;
 	int64_t fd = 3;
@@ -224,6 +224,21 @@ protected:
 		verify_fields(event_type, evt, expected_name, expected_name_raw, NULL, NULL, NULL, NULL);
 	}
 
+	void add_dirfd(int64_t fd, const char *path) {
+		add_event_advance_ts(increasing_ts(),
+		                     1,
+		                     PPME_SYSCALL_OPENAT2_X,
+		                     8,
+		                     fd,
+		                     static_cast<int64_t>(PPM_AT_FDCWD),
+		                     path,
+		                     open_flags | PPM_O_DIRECTORY,
+		                     mode,
+		                     resolve,
+		                     dev,
+		                     ino);
+	}
+
 	void test_exit_source_target(const char *expected_source,
 	                             const char *expected_sourceraw,
 	                             const char *expected_target,
@@ -237,19 +252,12 @@ protected:
 		switch(event_type) {
 		case PPME_SYSCALL_LINKAT_2_X:
 		case PPME_SYSCALL_SYMLINKAT_X:
+		case PPME_SYSCALL_RENAMEAT_X:
 		case PPME_SYSCALL_RENAMEAT2_X: {
-			add_event_advance_ts(increasing_ts(),
-			                     1,
-			                     PPME_SYSCALL_OPENAT2_X,
-			                     8,
-			                     evt_dirfd,
-			                     evt_dirfd,
-			                     dirfd_path,
-			                     open_flags | PPM_O_DIRECTORY,
-			                     mode,
-			                     resolve,
-			                     dev,
-			                     ino);
+			add_dirfd(olddirfd, dirfd_path);
+			if(newdirfd != olddirfd) {
+				add_dirfd(newdirfd, new_dirfd_path);
+			}
 		} break;
 		default:
 			break;
@@ -681,6 +689,20 @@ TEST_F(fspath, renameat2) {
 	                 flags);
 }
 
+TEST_F(fspath, renameat_relative) {
+	test_exit_source_target(resolved_rel_oldpath_at,
+	                        rel_oldpath,
+	                        resolved_rel_newpath_at,
+	                        rel_newpath,
+	                        PPME_SYSCALL_RENAMEAT_X,
+	                        5,
+	                        res,
+	                        olddirfd,
+	                        rel_oldpath,
+	                        newdirfd,
+	                        rel_newpath);
+}
+
 TEST_F(fspath, renameat2_relative) {
 	test_exit_source_target(resolved_rel_oldpath_at,
 	                        rel_oldpath,
@@ -745,9 +767,9 @@ TEST_F(fspath, linkat_2) {
 }
 
 TEST_F(fspath, linkat_2_relative) {
-	test_exit_source_target(resolved_rel_newpath,
+	test_exit_source_target(resolved_rel_newpath_at,
 	                        rel_newpath,
-	                        resolved_rel_oldpath,
+	                        resolved_rel_oldpath_at,
 	                        rel_oldpath,
 	                        PPME_SYSCALL_LINKAT_2_X,
 	                        6,
