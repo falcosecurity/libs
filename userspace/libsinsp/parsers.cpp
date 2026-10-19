@@ -692,8 +692,11 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	/* Update the evt.get_tinfo() of the caller. */
 	evt.set_tinfo(caller_tinfo.get());
 
-	/// todo(@Andreagit97): here we could update `comm` `exe` and `args` with fresh info from the
-	/// event
+	// The clone event captures the caller's current comm. Refresh it in case we missed a
+	// preceding PR_SET_NAME event.
+	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
+		caller_tinfo->m_comm = comm_param->as<std::string>();
+	}
 
 	/*=============================== ENRICH/CREATE ESSENTIAL CALLER STATE
 	 * ===========================*/
@@ -3975,14 +3978,21 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
 	}
 
 	// prctl could be called by the main thread but also by a secondary thread.
-	const auto *caller_tinfo = evt.get_thread_info();
+	auto *caller_tinfo = evt.get_thread_info();
 	// Only invalid threads have `caller_tinfo->m_tginfo == nullptr`.
 	if(caller_tinfo == nullptr || caller_tinfo->is_invalid()) {
 		return;
 	}
 
-	if(const auto option = evt.get_param(1)->as<uint32_t>();
-	   option != PPM_PR_SET_CHILD_SUBREAPER && option != PPM_PR_GET_CHILD_SUBREAPER) {
+	const auto option = evt.get_param(1)->as<uint32_t>();
+	if(option == PPM_PR_SET_NAME) {
+		const auto name_param = evt.get_param(2);
+		if(!name_param->empty()) {
+			caller_tinfo->m_comm = name_param->as<std::string>();
+		}
+		return;
+	}
+	if(option != PPM_PR_SET_CHILD_SUBREAPER && option != PPM_PR_GET_CHILD_SUBREAPER) {
 		return;
 	}
 
