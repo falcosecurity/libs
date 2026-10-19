@@ -358,16 +358,21 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 				}
 				break;
 			}
-			case PPME_SYSCALL_RENAMEAT2_X: {
-				// newdirfd or olddirfd, we need to extract the dirfd on the fly here
+			case PPME_SYSCALL_RENAMEAT_X:
+			case PPME_SYSCALL_RENAMEAT2_X:
+			case PPME_SYSCALL_LINKAT_2_X: {
+				// Resolve the dirfd associated with the path selected for source/target.
+				const bool is_linkat = evt->get_type() == PPME_SYSCALL_LINKAT_2_X;
 				int64_t dirfd;
 				if(m_field_id == TYPE_TARGET) {
-					// newdirfd
-					dirfd = evt->get_param(3)->as<int64_t>();
+					// renameat uses newdirfd for target; linkat's target is oldpath.
+					const uint32_t param = is_linkat ? 1 : 3;
+					dirfd = evt->get_param(param)->as<int64_t>();
 					sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
 				} else if(m_field_id == TYPE_SOURCE) {
-					// olddirfd
-					dirfd = evt->get_param(1)->as<int64_t>();
+					// renameat uses olddirfd for source; linkat's source is newpath.
+					const uint32_t param = is_linkat ? 3 : 1;
+					dirfd = evt->get_param(param)->as<int64_t>();
 					sdir = sinsp_parser::parse_dirfd(*evt, m_tstr, dirfd);
 				} else {
 					sdir = "<UNKNOWN>";
