@@ -58,7 +58,7 @@ jobs:
           ./.venv/bin/python google-benchmark/tools/compare.py --no-color --display_aggregates_only --dump_to_json gbench_diff.json benchmarks gbench_data.json "${{ steps.perf.outputs.gbench_json }}" &> gbench_diff.txt
 
       - name: Archive perf diff
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: perf_diff
           path: |
@@ -98,7 +98,7 @@ jobs:
           echo ""
 
       - name: Upload PR info as artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
         with:
           name: pr-perf
           path: pr/
