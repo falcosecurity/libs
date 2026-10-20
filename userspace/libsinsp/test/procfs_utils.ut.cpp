@@ -35,3 +35,25 @@ TEST(procfs_utils_test, get_userns_uid_root) {
 
 	ASSERT_EQ(get_userns_root_uid(s), 0);
 }
+
+TEST(procfs_utils_test, get_cgroup_v2_memory_current_path_root) {
+	std::stringstream s("0::/\n");
+
+	ASSERT_EQ(get_cgroup_v2_memory_current_path(s), "/sys/fs/cgroup/memory.current");
+}
+
+TEST(procfs_utils_test, get_cgroup_v2_memory_current_path_nested) {
+	std::stringstream s(
+	        "1:name=systemd:/kubepods.slice/cri-containerd-0d03.scope\n"
+	        "0::/kubepods.slice/kubepods-burstable.slice/cri-containerd-0d03.scope\n");
+
+	ASSERT_EQ(get_cgroup_v2_memory_current_path(s),
+	          "/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/cri-containerd-0d03.scope/"
+	          "memory.current");
+}
+
+TEST(procfs_utils_test, get_cgroup_v2_memory_current_path_outside_namespace_root) {
+	std::stringstream s("0::/../other.scope\n");
+
+	ASSERT_EQ(get_cgroup_v2_memory_current_path(s), "");
+}

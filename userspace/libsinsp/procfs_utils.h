@@ -22,6 +22,14 @@ constexpr const int NO_MATCH = -1;
 int get_userns_root_uid(std::istream& uid_map);
 
 /**
+ * @brief Parse /proc/self/cgroup to find the cgroup v2 memory.current file of the process
+ * @param cgroup a stream with the contents of /proc/self/cgroup
+ * @return the path of memory.current under /sys/fs/cgroup, or an empty string if there is no
+ * usable cgroup v2 entry
+ */
+std::string get_cgroup_v2_memory_current_path(std::istream& cgroup);
+
+/**
  * @brief Access container data through proc
  */
 class ns_helper {
