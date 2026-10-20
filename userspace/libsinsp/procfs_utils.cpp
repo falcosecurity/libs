@@ -44,6 +44,27 @@ int libsinsp::procfs_utils::get_userns_root_uid(std::istream& uid_map) {
 	return libsinsp::procfs_utils::NO_MATCH;
 }
 
+std::string libsinsp::procfs_utils::get_cgroup_v2_memory_current_path(std::istream& cgroup) {
+	std::string cgroup_line;
+
+	while(std::getline(cgroup, cgroup_line)) {
+		// cgroup v2 has a single hierarchy, written as `0::<path>`
+		if(cgroup_line.rfind("0::", 0) != 0) {
+			continue;
+		}
+		std::string cgroup_path = cgroup_line.substr(3);
+		if(cgroup_path.find("..") != std::string::npos) {
+			return "";
+		}
+		if(cgroup_path == "/") {
+			cgroup_path.clear();
+		}
+		return "/sys/fs/cgroup" + cgroup_path + "/memory.current";
+	}
+
+	return "";
+}
+
 //
 // ns_helper
 //

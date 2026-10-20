@@ -1,6 +1,7 @@
 #include <libsinsp/linux/resource_utilization.h>
+#include <libsinsp/procfs_utils.h>
 
-#include <limits.h>
+#include <fstream>
 #include <sys/times.h>
 
 void linux_resource_utilization::get_rss_vsz_pss_total_memory_and_open_fds() {
@@ -294,34 +295,10 @@ void linux_resource_utilization::get_container_memory_used() {
 	}
 
 	// cgroup v2: the agent's own cgroup is the `0::<path>` line of /proc/self/cgroup
-	FILE* f = fopen("/proc/self/cgroup", "r");
-	if(!f) {
-		return;
+	std::ifstream proc_cgroup("/proc/self/cgroup");
+	std::string cgroup_filepath =
+	        libsinsp::procfs_utils::get_cgroup_v2_memory_current_path(proc_cgroup);
+	if(!cgroup_filepath.empty()) {
+		read_cgroup_memory_used(cgroup_filepath.c_str(), m_container_memory_used);
 	}
-
-	char line[PATH_MAX];
-	char cgroup_filepath[PATH_MAX + 64];
-	while(fgets(line, sizeof(line), f) != nullptr) {
-		if(strncmp(line, "0::", 3) != 0) {
-			continue;
-		}
-		char* newline = strchr(line, '\n');
-		const char* cgroup_path = line + 3;
-		// A line without newline was truncated
-		if(newline == nullptr || strstr(cgroup_path, "..") != nullptr) {
-			break;
-		}
-		*newline = '\0';
-		if(strcmp(cgroup_path, "/") == 0) {
-			cgroup_path = "";
-		}
-		snprintf(cgroup_filepath,
-		         sizeof(cgroup_filepath),
-		         "/sys/fs/cgroup%s/memory.current",
-		         cgroup_path);
-		read_cgroup_memory_used(cgroup_filepath, m_container_memory_used);
-		break;
-	}
-
-	fclose(f);
 }
