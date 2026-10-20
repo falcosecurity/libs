@@ -120,6 +120,17 @@ TEST_F(sinsp_with_test_input, PRCTL_set_name) {
 	                     "reader",
 	                     (int64_t)0);
 	ASSERT_EQ(tinfo->m_comm, "reader");
+
+	/* Linux stores task->comm in a 16-byte buffer including the terminating NUL. */
+	add_event_advance_ts(increasing_ts(),
+	                     p2_t2_tid,
+	                     PPME_SYSCALL_PRCTL_X,
+	                     4,
+	                     (int64_t)0,
+	                     PPM_PR_SET_NAME,
+	                     "12345678901234567890",
+	                     (int64_t)0);
+	ASSERT_EQ(tinfo->m_comm, "123456789012345");
 }
 
 TEST_F(sinsp_with_test_input, PRCTL_set_child_subreaper) {

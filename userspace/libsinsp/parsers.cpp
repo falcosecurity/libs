@@ -3988,7 +3988,7 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt &evt) {
 	if(option == PPM_PR_SET_NAME) {
 		const auto name_param = evt.get_param(2);
 		if(!name_param->empty()) {
-			caller_tinfo->m_comm = name_param->as<std::string>();
+			caller_tinfo->m_comm = name_param->as<std::string>().substr(0, 15);
 		}
 		return;
 	}
