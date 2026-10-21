@@ -436,6 +436,20 @@ TEST(sinsp_utils_test, concatenate_paths_empty_path2_discards_long_path1) {
 	EXPECT_EQ("", sinsp_utils::concatenate_paths(path1, ""));
 }
 
+TEST(sinsp_utils_test, concatenate_paths_empty_path2_string_view_discards_path1) {
+	// A default-constructed std::string_view has data() == nullptr and size() == 0. The fast path
+	// used to hand that pointer to copy_and_normalize_path, which dereferences it on its first
+	// line, so this case killed the process before the early return was added.
+	const std::string_view path2;
+	ASSERT_EQ(nullptr, path2.data());
+	EXPECT_EQ("", sinsp_utils::concatenate_paths("/foo/bar", path2));
+
+	// The normalizing route guarded the call already, but it now relies on the same early return.
+	const std::string long_path1(2000, 'a');
+	ASSERT_GT(long_path1.length() + 1, SCAP_MAX_PATH_SIZE);
+	EXPECT_EQ("", sinsp_utils::concatenate_paths(long_path1, path2));
+}
+
 TEST(sinsp_utils_test, concatenate_paths_still_rejects_genuinely_long_paths) {
 	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG",
 	          sinsp_utils::concatenate_paths("/", std::string(2048, 'a')));
