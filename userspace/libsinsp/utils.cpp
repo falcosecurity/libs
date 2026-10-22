@@ -716,18 +716,20 @@ static std::string concatenate_paths_normalized(const char* path1_data,
 		return "/DIR_TOO_LONG/FILENAME_TOO_LONG";
 	}
 
+	if(path2_len == 0) {
+		return "";
+	}
+
 	char target[SCAP_MAX_PATH_CONCAT_SIZE];
 	char* target_end = target + SCAP_MAX_PATH_CONCAT_SIZE;
 
 	// Preserve the fast path's behavior: path1 is copied without normalization.
-	if(path2_len != 0 && path2_data[0] != '/') {
+	if(path2_data[0] != '/') {
 		memcpy(target, path1_data, path1_len);
 		copy_and_normalize_path(target + path1_len, target, target_end, path2_data, '/');
 	} else {
 		target[0] = 0;
-		if(path2_len != 0) {
-			copy_and_normalize_path(target, target, target_end, path2_data, '/');
-		}
+		copy_and_normalize_path(target, target, target_end, path2_data, '/');
 	}
 
 	// Apply the limit to the normalized result, including its terminator.
@@ -747,10 +749,16 @@ std::string sinsp_utils::concatenate_paths(const std::string_view path1,
 		return concatenate_paths_normalized(path1.data(), path1_len, path2.data(), path2_len);
 	}
 
+	// An empty path2 discards path1, the same way an absolute path2 does. Returning here also
+	// keeps path2.data() away from copy_and_normalize_path, which dereferences it unconditionally.
+	if(path2_len == 0) {
+		return "";
+	}
+
 	const auto path1_data = path1.data();
 	const auto path2_data = path2.data();
 	char* target_end = target + SCAP_MAX_PATH_SIZE;
-	if(path2_len != 0 && path2[0] != '/') {
+	if(path2[0] != '/') {
 		memcpy(target, path1_data, path1_len);
 		copy_and_normalize_path(target + path1_len, target, target_end, path2_data, '/');
 	} else {
