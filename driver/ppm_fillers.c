@@ -2741,6 +2741,7 @@ int f_sys_sendmmsg_x(struct event_filler_arguments *args) {
 
 	/* Copy the endpoint info into the ring */
 	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
+	CHECK_RES(res);
 	return add_sentinel(args);
 }
 
