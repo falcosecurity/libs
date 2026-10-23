@@ -91,6 +91,48 @@ TEST_F(sinsp_with_test_input, PRCTL_failed) {
 	                     (int64_t)1);
 }
 
+TEST_F(sinsp_with_test_input, PRCTL_set_name) {
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	auto tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
+	ASSERT_TRUE(tinfo);
+	const auto old_comm = tinfo->m_comm;
+
+	/* A failed PR_SET_NAME must not change the cached comm. */
+	add_event_advance_ts(increasing_ts(),
+	                     p2_t2_tid,
+	                     PPME_SYSCALL_PRCTL_X,
+	                     4,
+	                     (int64_t)-1,
+	                     PPM_PR_SET_NAME,
+	                     "failed-name",
+	                     (int64_t)0);
+	ASSERT_EQ(tinfo->m_comm, old_comm);
+
+	/* A successful PR_SET_NAME updates proc.name's backing state. */
+	add_event_advance_ts(increasing_ts(),
+	                     p2_t2_tid,
+	                     PPME_SYSCALL_PRCTL_X,
+	                     4,
+	                     (int64_t)0,
+	                     PPM_PR_SET_NAME,
+	                     "reader",
+	                     (int64_t)0);
+	ASSERT_EQ(tinfo->m_comm, "reader");
+
+	/* Linux stores task->comm in a 16-byte buffer including the terminating NUL. */
+	add_event_advance_ts(increasing_ts(),
+	                     p2_t2_tid,
+	                     PPME_SYSCALL_PRCTL_X,
+	                     4,
+	                     (int64_t)0,
+	                     PPM_PR_SET_NAME,
+	                     "12345678901234567890",
+	                     (int64_t)0);
+	ASSERT_EQ(tinfo->m_comm, "123456789012345");
+}
+
 TEST_F(sinsp_with_test_input, PRCTL_set_child_subreaper) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
