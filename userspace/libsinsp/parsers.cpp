@@ -695,7 +695,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt &evt,
 	// The clone event captures the caller's current comm. Refresh it in case we missed a
 	// preceding PR_SET_NAME event.
 	if(const auto comm_param = evt.get_param(13); !comm_param->empty()) {
-		caller_tinfo->m_comm = comm_param->as<std::string>();
+		caller_tinfo->m_comm = comm_param->as<std::string>().substr(0, 15);
 	}
 
 	/*=============================== ENRICH/CREATE ESSENTIAL CALLER STATE

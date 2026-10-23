@@ -40,6 +40,43 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_refreshes_comm) {
 	ASSERT_EQ(caller_tinfo->m_comm, "renamed");
 }
 
+TEST_F(sinsp_with_test_input, CLONE_CALLER_refreshes_long_comm) {
+	DEFAULT_TREE
+
+	auto caller_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
+	ASSERT_TRUE(caller_tinfo);
+
+	generate_clone_x_event(40000,
+	                       p2_t2_tid,
+	                       p2_t2_pid,
+	                       p2_t2_ptid,
+	                       PPM_CL_CLONE_THREAD,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "12345678901234567890");
+
+	ASSERT_EQ(caller_tinfo->m_comm, "123456789012345");
+}
+
+TEST_F(sinsp_with_test_input, CLONE_CALLER_failed_keeps_comm) {
+	DEFAULT_TREE
+
+	auto caller_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
+	ASSERT_TRUE(caller_tinfo);
+	const auto original_comm = caller_tinfo->m_comm;
+
+	generate_clone_x_event(-1,
+	                       p2_t2_tid,
+	                       p2_t2_pid,
+	                       p2_t2_ptid,
+	                       PPM_CL_CLONE_THREAD,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "renamed");
+
+	ASSERT_EQ(caller_tinfo->m_comm, original_comm);
+}
+
 TEST_F(sinsp_with_test_input, CLONE_CALLER_failed) {
 	add_default_init_thread();
 	open_inspector();
