@@ -26,7 +26,8 @@ namespace filter {
 std::string escape_str(const std::string& str) {
 	std::string res = "";
 	size_t len = str.size();
-	bool should_escape = false;
+	// an empty value must be quoted to be parsed back as a value
+	bool should_escape = str.empty();
 	for(size_t i = 0; i < len; i++) {
 		switch(str[i]) {
 		case '\b':
@@ -49,13 +50,17 @@ std::string escape_str(const std::string& str) {
 			should_escape = true;
 			res += "\\t";
 			break;
+		// characters that terminate a bare string or a bare field argument
 		case ' ':
-			should_escape = true;
-			res += ' ';
-			break;
+		case '\v':
 		case '=':
+		case '(':
+		case ')':
+		case ',':
+		case '[':
+		case ']':
 			should_escape = true;
-			res += '=';
+			res += str[i];
 			break;
 		case '\\':
 			should_escape = true;
