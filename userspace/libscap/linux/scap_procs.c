@@ -715,6 +715,17 @@ static int32_t read_procfs_proc_pid_environ(const char* const procfs_proc_dir,
 	snprintf(filename, sizeof(filename), "%senviron", procfs_proc_dir);
 	const int fd = open(filename, O_RDONLY, 0);
 	if(fd == -1) {
+		// If the process is running in a container, the user may not have the
+		// necessary permissions to read the content of the environ file unless
+		// the DAC_READ_SEARCH capability is available. In this case, the kernel
+		// returns EACCES when trying to open the file. Instead of failing the
+		// entire information retrieval process, we return an empty environment
+		// variable list and continue with the rest of the information retrieval.
+		if(errno == EACCES) {
+			buff[0] = '\0';
+			*read_len = 0;
+			return SCAP_SUCCESS;
+		}
 		return scap_errprintf(error, errno, "can't open environ file %s", filename);
 	}
 
