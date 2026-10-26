@@ -30,6 +30,18 @@ static inline bool str_match_start(std::string_view val, size_t len, const char 
 
 #define STR_MATCH(s) str_match_start(val, sizeof(s) - 1, s)
 
+// Operators evaluated by the custom compare functions of the fields below. Other operators
+// accepted for the field type compile, but fail when the filter is evaluated (compare_ip(),
+// compare_port()) or never match (compare_net()). The operator modifiers are ignored: only the
+// first value is compared.
+// compare_ip(): fd.ip
+static constexpr uint32_t FD_IP_OPS = cmpop_mask({CO_EQ, CO_NE, CO_IN, CO_EXISTS});
+// compare_net(): fd.net
+static constexpr uint32_t FD_NET_OPS = cmpop_mask({CO_EQ, CO_NE, CO_IN, CO_EXISTS});
+// compare_port(): fd.port, fd.proto
+static constexpr uint32_t FD_PORT_OPS =
+        cmpop_mask({CO_EQ, CO_NE, CO_LT, CO_LE, CO_GT, CO_GE, CO_IN, CO_EXISTS});
+
 static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
         {PT_INT64,
          EPF_NONE,
@@ -77,7 +89,8 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
          PF_NA,
          "fd.ip",
          "FD IP Address",
-         "matches the ip address (client or server) of the fd."},
+         "matches the ip address (client or server) of the fd.",
+         FD_IP_OPS},
         {PT_IPADDR, EPF_NONE, PF_NA, "fd.cip", "FD Client Address", "client IP address."},
         {PT_IPADDR, EPF_NONE, PF_NA, "fd.sip", "FD Server Address", "server IP address."},
         {PT_IPADDR, EPF_NONE, PF_NA, "fd.lip", "FD Local Address", "local IP address."},
@@ -87,7 +100,8 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
          PF_DEC,
          "fd.port",
          "FD Port",
-         "matches the port (either client or server) of the fd."},
+         "matches the port (either client or server) of the fd.",
+         FD_PORT_OPS},
         {PT_PORT,
          EPF_NONE,
          PF_DEC,
@@ -150,7 +164,8 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
          PF_NA,
          "fd.proto",
          "FD Protocol",
-         "matches the protocol (either client or server) of the fd."},
+         "matches the protocol (either client or server) of the fd.",
+         FD_PORT_OPS},
         {PT_CHARBUF,
          EPF_NONE,
          PF_NA,
@@ -180,7 +195,8 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
          PF_NA,
          "fd.net",
          "FD IP Network",
-         "matches the IP network (client or server) of the fd."},
+         "matches the IP network (client or server) of the fd.",
+         FD_NET_OPS},
         {PT_IPNET,
          EPF_FILTER_ONLY | EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
@@ -223,25 +239,29 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
          PF_NA,
          "fd.cip.name",
          "FD Client Domain Name",
-         "Domain name associated with the client IP address."},
+         "Domain name associated with the client IP address. Operators other than '=', '!=' and "
+         "'in' are only supported when a domain name is known for the IP."},
         {PT_CHARBUF,
          EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
          "fd.sip.name",
          "FD Server Domain Name",
-         "Domain name associated with the server IP address."},
+         "Domain name associated with the server IP address. Operators other than '=', '!=' and "
+         "'in' are only supported when a domain name is known for the IP."},
         {PT_CHARBUF,
          EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
          "fd.lip.name",
          "FD Local Domain Name",
-         "Domain name associated with the local IP address."},
+         "Domain name associated with the local IP address. Operators other than '=', '!=' and "
+         "'in' are only supported when a domain name is known for the IP."},
         {PT_CHARBUF,
          EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
          "fd.rip.name",
          "FD Remote Domain Name",
-         "Domain name associated with the remote IP address."},
+         "Domain name associated with the remote IP address. Operators other than '=', '!=' and "
+         "'in' are only supported when a domain name is known for the IP."},
         {PT_INT32,
          EPF_NONE,
          PF_HEX,

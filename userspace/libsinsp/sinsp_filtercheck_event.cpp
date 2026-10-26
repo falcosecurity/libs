@@ -296,7 +296,9 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a "
          "delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the "
          "events with timestamp with one second before the timestamp and one second after it, for "
-         "a total of two seconds of capture."},
+         "a total of two seconds of capture.",
+         0,
+         cmpop_mask({CO_EQ})},
         {PT_CHARBUF,
          EPF_ARG_REQUIRED,
          PF_NA,
@@ -626,10 +628,7 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 
 		throw sinsp_exception("unknown event type " + stype);
 	} else if(m_field_id == TYPE_AROUND) {
-		if(m_cmp.op != CO_EQ) {
-			throw sinsp_exception("evt.around supports only '=' comparison operator");
-		}
-
+		// the compiler only lets '=' through, see m_enforced_ops
 		m_tsdelta = sinsp_numparser::parseu64(str) * 1000000;
 
 		return;
