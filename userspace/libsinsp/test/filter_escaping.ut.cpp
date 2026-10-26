@@ -160,3 +160,16 @@ TEST_F(filter_escaping_test, single_quotes_bidirectional) {
 	ASSERT_STREQ(out.c_str(),
 	             libsinsp::filter::unescape_str(libsinsp::filter::escape_str(in)).c_str());
 }
+
+TEST_F(filter_escaping_test, vertical_tab) {
+	std::string in = "some\vstring";
+	std::string out = "\"some\\x0bstring\"";
+
+	unidirectional(in, out);
+}
+
+TEST_F(filter_escaping_test, vertical_tab_bidirectional) {
+	std::string in = "some\vstring";
+
+	bidirectional(in);
+}

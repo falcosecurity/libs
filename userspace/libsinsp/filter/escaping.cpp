@@ -50,9 +50,13 @@ std::string escape_str(const std::string& str) {
 			should_escape = true;
 			res += "\\t";
 			break;
+		case '\v':
+			// written as \x0b because unescape_str() does not accept \v
+			should_escape = true;
+			res += "\\x0b";
+			break;
 		// characters that terminate a bare string or a bare field argument
 		case ' ':
-		case '\v':
 		case '=':
 		case '(':
 		case ')':
