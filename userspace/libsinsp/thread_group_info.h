@@ -128,7 +128,13 @@ public:
 		}
 	}
 
-	inline sinsp_threadinfo* get_first_thread() const { return m_threads.front().borrow(); }
+	/* A tombstone has no threads, so the list can be empty. */
+	inline sinsp_threadinfo* get_first_thread() const {
+		if(m_threads.empty()) {
+			return nullptr;
+		}
+		return m_threads.front().borrow();
+	}
 
 	/* The parent process is the group of the thread that forked, and the tid of that thread.
 	 * Only the child side of the link is stored. The parent keeps no list of children.
