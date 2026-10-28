@@ -592,6 +592,42 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_thread_left_by_a_dead_group_has_no_main
 	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
 }
 
+TEST_F(sinsp_with_test_input, THRD_TABLE_thread_left_by_a_dead_group_leaves_a_new_process_alone) {
+	DEFAULT_TREE
+	m_inspector.set_auto_threads_purging(false);
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	/* The kernel names a reaper only for the exit of p2_t3, so a second burial would link the
+	 * tombstone to it.
+	 */
+	generate_proc_exit_event(p2_t1_tid, INIT_TID);
+	generate_proc_exit_event(p2_t2_tid, 0);
+	generate_proc_exit_event(p2_t3_tid, INIT_TID);
+	generate_random_event();
+	thread_manager->remove_thread(p2_t2_tid);
+
+	/* A new process takes the pid of p2 while p2_t3 is still in the table */
+	auto old_group = thread_manager->find_thread(p2_t3_tid, true)->m_tginfo;
+	auto new_main = m_inspector.get_threadinfo_factory().create();
+	new_main->m_tid = p2_t1_tid;
+	new_main->m_pid = p2_t1_pid;
+	new_main->set_ptid(INIT_TID);
+	new_main->m_comm = "new";
+	thread_manager->add_thread(std::move(new_main), true);
+	auto new_group = thread_manager->get_thread_group_info(p2_t1_pid);
+	ASSERT_TRUE(new_group);
+	ASSERT_NE(new_group, old_group);
+	auto old_parent = old_group->get_parent();
+
+	/* The removal of p2_t3 does not bury its group again, and leaves the new process alone */
+	thread_manager->remove_thread(p2_t3_tid);
+	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
+	ASSERT_MISSING_THREAD_INFO(p2_t1_tid, false);
+	ASSERT_EQ(thread_manager->find_thread(p2_t1_tid, true)->m_comm, "new");
+	ASSERT_EQ(thread_manager->get_thread_group_info(p2_t1_pid), new_group);
+	ASSERT_EQ(old_group->get_parent(), old_parent);
+}
+
 TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost) {
 	DEFAULT_TREE
 
