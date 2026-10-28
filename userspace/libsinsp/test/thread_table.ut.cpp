@@ -567,6 +567,31 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_secondary_thread_fi
 	ASSERT_MISSING_THREAD_INFO(p5_t2_tid, true)
 }
 
+TEST_F(sinsp_with_test_input, THRD_TABLE_thread_left_by_a_dead_group_has_no_main_thread) {
+	DEFAULT_TREE
+	m_inspector.set_auto_threads_purging(false);
+	const auto& thread_manager = m_inspector.m_thread_manager;
+
+	/* All the threads of p2 exit, but nothing removes them yet */
+	generate_proc_exit_event(p2_t1_tid, INIT_TID);
+	generate_proc_exit_event(p2_t2_tid, 0);
+	generate_proc_exit_event(p2_t3_tid, 0);
+	generate_random_event();
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 0, false, 3, 3, p2_t1_tid, p2_t2_tid, p2_t3_tid);
+
+	/* The removal of p2_t2 buries the group, with its main thread. p2_t3 stays in the table. */
+	thread_manager->remove_thread(p2_t2_tid);
+	ASSERT_FALSE(thread_manager->get_thread_group_info(p2_t1_pid));
+	ASSERT_MISSING_THREAD_INFO(p2_t1_tid, true);
+	ASSERT_MISSING_THREAD_INFO(p2_t2_tid, true);
+	auto p2_t3 = thread_manager->find_thread(p2_t3_tid, true).get();
+	ASSERT_TRUE(p2_t3);
+	ASSERT_EQ(p2_t3->get_main_thread(), nullptr);
+
+	thread_manager->remove_thread(p2_t3_tid);
+	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
+}
+
 TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost) {
 	DEFAULT_TREE
 
