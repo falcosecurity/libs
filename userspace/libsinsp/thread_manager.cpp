@@ -534,9 +534,13 @@ void sinsp_thread_manager::remove_thread(int64_t tid) {
 	thread_to_remove->set_removed();
 
 	/* [Remove main thread]
-	 * We remove the main thread if there are no other threads in the group
+	 * We remove the main thread if there are no other threads in the group.
+	 * A thread of a group that is already a tombstone was left in the table when the group died,
+	 * without automatic purging. The pid may belong to a new process by now, so the removal of
+	 * the thread removes only the thread itself.
 	 */
-	if((thread_to_remove->m_tginfo->get_thread_count() == 0)) {
+	if(thread_to_remove->m_tginfo->get_thread_count() == 0 &&
+	   !thread_to_remove->m_tginfo->is_dead()) {
 		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
 
 		/* The group stays as a tombstone while children link to it */
