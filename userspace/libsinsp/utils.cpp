@@ -512,10 +512,10 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo,
 			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6)) {
 				ipv4tuple addr;
 				memcpy(&addr.m_fields.m_sip, sip, sizeof(uint32_t));
-				addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
+				addr.m_fields.m_sport = sinfo->m_ipv6info.m_fields.m_sport;
 				memcpy(&addr.m_fields.m_dip, dip, sizeof(uint32_t));
-				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
-				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
+				addr.m_fields.m_dport = sinfo->m_ipv6info.m_fields.m_dport;
+				addr.m_fields.m_l4proto = sinfo->m_ipv6info.m_fields.m_l4proto;
 				std::string straddr = ipv4tuple_to_string(addr, resolve);
 				snprintf(targetbuf, targetbuf_size, "%s", straddr.c_str());
 				return true;
