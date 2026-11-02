@@ -8,12 +8,19 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from subprocess import Popen
 from queue import Queue
-from threading import Thread
+from threading import Event, Thread
 from typing import IO, AnyStr
 
 from sinspqa import is_containerized, LOGS_PATH, BTF_IS_AVAILABLE
 
 SINSP_TAG = os.environ.get('SINSP_TAG', 'latest')
+
+# sinsp-example prints this line once it finished its initialization, right
+# before it starts the capture. Events from before the capture are lost, so the
+# tests must not start their workload until sinsp-example printed it.
+CAPTURE_START_LINE = '-- Start capture'
+# The initialization can take a long time, for example in sanitizer builds.
+CAPTURE_START_TIMEOUT = 120
 
 
 class SinspStreamer(ABC):
@@ -42,6 +49,29 @@ class SinspContainerStreamer(SinspStreamer):
         self.container = container
         self.timeout = timeout
         self.last_timestamp = None
+
+    def wait_for_capture_start(self, timeout: int = CAPTURE_START_TIMEOUT):
+        """
+        Blocks until sinsp-example reports the start of the capture.
+
+        Raises:
+            TimeoutError: if the line does not show up within timeout seconds,
+            or if the container exits before.
+        """
+        start = datetime.now()
+
+        while (datetime.now() - start).total_seconds() < timeout:
+            if CAPTURE_START_LINE in self.container.logs().decode('utf-8', errors='replace'):
+                return
+
+            self.container.reload()
+            if self.container.status == 'exited':
+                raise TimeoutError('sinsp-example exited before it started the capture')
+
+            sleep(0.2)
+
+        raise TimeoutError(
+            f'sinsp-example did not start the capture within {timeout} seconds')
 
     def read(self):
         start = datetime.now()
@@ -91,8 +121,9 @@ class SinspProcessStreamer(SinspStreamer):
         self.process = process
         self.timeout = timeout
         self.queue = Queue()
+        self.capture_started = Event()
         self.stdout_thread = Thread(target=SinspProcessStreamer._readline,
-                                    args=[self.process.stdout, self.queue])
+                                    args=[self.process.stdout, self.queue, self.capture_started])
         SinspProcessStreamer._running = True
         self.stdout_thread.start()
 
@@ -100,14 +131,35 @@ class SinspProcessStreamer(SinspStreamer):
         SinspProcessStreamer._running = False
         self.stdout_thread.join(timeout=1)
 
+    def wait_for_capture_start(self, timeout: int = CAPTURE_START_TIMEOUT):
+        """
+        Blocks until sinsp-example reports the start of the capture.
+
+        Raises:
+            TimeoutError: if the line does not show up within timeout seconds,
+            or if the process exits before.
+        """
+        start = datetime.now()
+
+        while not self.capture_started.wait(timeout=0.2):
+            if self.process.poll() is not None:
+                raise TimeoutError(
+                    f'sinsp-example exited with code {self.process.returncode} before it started the capture')
+
+            if (datetime.now() - start).total_seconds() > timeout:
+                raise TimeoutError(
+                    f'sinsp-example did not start the capture within {timeout} seconds')
+
     @staticmethod
-    def _readline(stream: IO[AnyStr], queue: Queue):
+    def _readline(stream: IO[AnyStr], queue: Queue, capture_started: Event):
         with open(os.path.join(LOGS_PATH, 'sinsp.log'), 'a') as f:
             while SinspProcessStreamer._running:
                 for line in iter(stream.readline, ''):
                     if line != '' and line != 'null':
                         f.write(line)
                         queue.put(line.rstrip())
+                        if CAPTURE_START_LINE in line:
+                            capture_started.set()
 
     def read(self):
         start = datetime.now()
@@ -359,7 +411,7 @@ def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: di
         'privileged': True,
         'pid_mode': 'host',
         'network_mode': 'host',
-        'init_wait': 5,
+        'init_wait': 1,
         'post_validation': sinsp_validation,
     }
 
@@ -369,7 +421,7 @@ def process_spec(path: str, args: list, env: dict) -> dict:
         'path': path,
         'args': args,
         'env': env,
-        'init_wait': 5,
+        'init_wait': 1,
     }
 
 
