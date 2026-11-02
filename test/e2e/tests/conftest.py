@@ -172,6 +172,27 @@ def run_containers(request, docker_client: docker.client.DockerClient):
     assert success, '\n'.join(errors)
 
 
+def wait_for_capture_start(reader, additional_wait: int) -> str:
+    """
+    Waits until sinsp-example starts the capture, so that the test does not
+    generate its events before sinsp-example can see them. sinsp-example
+    reports the start of the capture right before it calls start_capture(),
+    so the additional wait gives that call time to complete.
+
+    Returns:
+        An empty string on success, or the reason of the failure.
+    """
+    try:
+        reader.wait_for_capture_start()
+    except TimeoutError as e:
+        return str(e)
+
+    if additional_wait:
+        sleep(additional_wait)
+
+    return ''
+
+
 @pytest.fixture(scope='function')
 def sinsp(request, docker_client: docker.client.DockerClient):
     """
@@ -180,13 +201,23 @@ def sinsp(request, docker_client: docker.client.DockerClient):
     """
     if is_containerized():
         container = request.param
-        handle, post = run_container(docker_client, 'sinsp', container)
+        # The wait applies after the start of the capture, not after the start of the container
+        additional_wait = container.get('init_wait', 0)
+        handle, post = run_container(
+            docker_client, 'sinsp', {k: v for k, v in container.items() if k != 'init_wait'})
 
-        yield SinspStreamerBuilder() \
+        reader = SinspStreamerBuilder() \
             .setContainerized(True) \
             .setSinsp(handle) \
             .setTimeout(10) \
             .build()
+
+        error = wait_for_capture_start(reader, additional_wait)
+        if error:
+            teardown_container('sinsp', handle, None, None)
+            pytest.fail(error)
+
+        yield reader
 
         validation = container.get('post_validation', None)
         stop_signal = container.get('signal', None)
@@ -205,14 +236,18 @@ def sinsp(request, docker_client: docker.client.DockerClient):
             env[k] = v
         process = Popen(args, env=env, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
 
-        if additional_wait:
-            sleep(additional_wait)
-
         reader = SinspStreamerBuilder() \
             .setContainerized(False) \
             .setSinsp(process) \
             .setTimeout(10) \
             .build()
+
+        error = wait_for_capture_start(reader, additional_wait)
+        if error:
+            reader.stop()
+            process.terminate()
+            process.wait()
+            pytest.fail(error)
 
         yield reader
 
