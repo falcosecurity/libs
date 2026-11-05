@@ -20,6 +20,63 @@ limitations under the License.
 
 /*=============================== CLONE CALLER EXIT EVENT ===========================*/
 
+TEST_F(sinsp_with_test_input, CLONE_CALLER_refreshes_comm) {
+	DEFAULT_TREE
+
+	auto caller_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
+	ASSERT_TRUE(caller_tinfo);
+	ASSERT_NE(caller_tinfo->m_comm, "renamed");
+
+	/* The clone event carries the caller's current comm. */
+	generate_clone_x_event(40000,
+	                       p2_t2_tid,
+	                       p2_t2_pid,
+	                       p2_t2_ptid,
+	                       PPM_CL_CLONE_THREAD,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "renamed");
+
+	ASSERT_EQ(caller_tinfo->m_comm, "renamed");
+}
+
+TEST_F(sinsp_with_test_input, CLONE_CALLER_refreshes_long_comm) {
+	DEFAULT_TREE
+
+	auto caller_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
+	ASSERT_TRUE(caller_tinfo);
+
+	generate_clone_x_event(40000,
+	                       p2_t2_tid,
+	                       p2_t2_pid,
+	                       p2_t2_ptid,
+	                       PPM_CL_CLONE_THREAD,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "12345678901234567890");
+
+	ASSERT_EQ(caller_tinfo->m_comm, "123456789012345");
+}
+
+TEST_F(sinsp_with_test_input, CLONE_CALLER_failed_keeps_comm) {
+	DEFAULT_TREE
+
+	auto caller_tinfo = m_inspector.m_thread_manager->find_thread(p2_t2_tid, true).get();
+	ASSERT_TRUE(caller_tinfo);
+	const auto original_comm = caller_tinfo->m_comm;
+
+	generate_clone_x_event(-1,
+	                       p2_t2_tid,
+	                       p2_t2_pid,
+	                       p2_t2_ptid,
+	                       PPM_CL_CLONE_THREAD,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "renamed");
+
+	ASSERT_EQ(caller_tinfo->m_comm, original_comm);
+}
+
 TEST_F(sinsp_with_test_input, CLONE_CALLER_failed) {
 	add_default_init_thread();
 	open_inspector();
@@ -375,11 +432,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update) {
 
 	open_inspector();
 
-	/* Now imagine that process p1 calls a prctl and changes its name... */
-
-	/* p1_t1 create a new process p2_t1. The clone caller exit event contains the new comm and
-	 * should update the comm of p1
-	 */
+	/* The clone caller exit event contains the caller's current comm. */
 
 	int64_t p2_t1_tid = 26;
 	[[maybe_unused]] int64_t p2_t1_pid = 26;
@@ -394,8 +447,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update) {
 	                       DEFAULT_VALUE,
 	                       DEFAULT_VALUE,
 	                       "new-name");
-	/* The caller has a new comm but we don't catch it! */
-	ASSERT_THREAD_INFO_COMM(p1_t1_tid, "old-name");
+	/* The caller's comm was refreshed from the clone event. */
+	ASSERT_THREAD_INFO_COMM(p1_t1_tid, "new-name");
 
 	/* The child will have the new comm */
 	ASSERT_THREAD_INFO_COMM(p2_t1_tid, "new-name");

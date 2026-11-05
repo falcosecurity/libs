@@ -92,7 +92,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          PF_NA,
          "proc.name",
          "Name",
-         "The process name (truncated after 16 characters) generating the event (task->comm). "
+         "The process name (up to 15 bytes, as stored in task->comm) generating the event. "
          "Truncation is determined by kernel settings and not by Falco. This field is collected "
          "from the syscalls args or, as a fallback, extracted from /proc/PID/comm. The name of "
          "the process and the name of the executable file on disk (if applicable) can be different "
@@ -103,13 +103,13 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          PF_NA,
          "proc.pname",
          "Parent Name",
-         "The proc.name (truncated after 16 characters) of the parent process."},
+         "The proc.name (up to 15 bytes) of the parent process."},
         {PT_CHARBUF,
          EPF_ARG_ALLOWED | EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
          "proc.aname",
          "Ancestor Name",
-         "The proc.name (truncated after 16 characters) for a specific process ancestor. You can "
+         "The proc.name (up to 15 bytes) for a specific process ancestor. You can "
          "access different levels of ancestors by using indices. For example, proc.aname[1] "
          "retrieves the proc.name of the parent process, proc.aname[2] retrieves the proc.name of "
          "the grandparent process, and so on. The current process's proc.name line can be obtained "
