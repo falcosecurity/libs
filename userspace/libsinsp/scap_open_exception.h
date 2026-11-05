@@ -17,6 +17,8 @@ limitations under the License.
 */
 #pragma once
 
+#include <cstdint>
+
 #include <libsinsp/sinsp_exception.h>
 
 /*!
