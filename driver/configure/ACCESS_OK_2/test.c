@@ -19,7 +19,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
 static int access_ok_init(void) {
-	access_ok(0, 0);
+	access_ok((const void __user *)NULL, 0);
 	return 0;
 }
 
