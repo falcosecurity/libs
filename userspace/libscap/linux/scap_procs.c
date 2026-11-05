@@ -910,6 +910,88 @@ static int32_t linux_vtable_fetch_procs_files(const struct scap_linux_platform* 
 	                                                         error);
 }
 
+static bool is_xid_filename(const char* str);
+
+// The state letter in `<procfs_task_dir>stat`, or 0 if it cannot be read.
+static char read_procfs_task_state(const char* const procfs_task_dir) {
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%sstat", procfs_task_dir);
+	const int fd = open(filename, O_RDONLY, 0);
+	if(fd == -1) {
+		return 0;
+	}
+	char buff[512];
+	const ssize_t read_bytes = read(fd, buff, sizeof(buff) - 1);
+	close(fd);
+	if(read_bytes <= 0) {
+		return 0;
+	}
+	buff[read_bytes] = '\0';
+	// The comm can contain ')', so the state follows the last one.
+	const char* const comm_end = strrchr(buff, ')');
+	return (comm_end != NULL && comm_end[1] == ' ') ? comm_end[2] : 0;
+}
+
+// A leader that exited is a zombie until its last thread exits. It has no mm, fs or files any
+// more, but its threads still have them. If `procfs_proc_dir` is such a leader, write the
+// directory of its first live thread to `live_dir`.
+static bool find_live_thread_of_zombie_leader(const char* const procfs_proc_dir,
+                                              const uint32_t tid,
+                                              char* const live_dir,
+                                              const size_t live_dir_len,
+                                              uint32_t* const live_tid) {
+	if(read_procfs_task_state(procfs_proc_dir) != 'Z') {
+		return false;
+	}
+
+	char task_dir[SCAP_MAX_PATH_SIZE];
+	snprintf(task_dir, sizeof(task_dir), "%stask", procfs_proc_dir);
+	DIR* const dir = opendir(task_dir);
+	if(dir == NULL) {
+		return false;
+	}
+
+	bool found = false;
+	const struct dirent* entry;
+	while(!found && (entry = readdir(dir)) != NULL) {
+		if(!is_xid_filename(entry->d_name) || (uint32_t)atoi(entry->d_name) == tid) {
+			continue;
+		}
+		snprintf(live_dir, live_dir_len, "%s/%s/", task_dir, entry->d_name);
+		const char state = read_procfs_task_state(live_dir);
+		found = state != 0 && state != 'Z';
+		if(found && live_tid != NULL) {
+			*live_tid = (uint32_t)atoi(entry->d_name);
+		}
+	}
+	closedir(dir);
+	return found;
+}
+
+// Reads `<procfs_proc_dir>cmdline` and the `<procfs_proc_dir>exe` link. `*target_res` is the
+// result of readlink(); `target_name` is not NUL-terminated.
+static int32_t read_procfs_proc_pid_cmdline_and_exe(const char* const procfs_proc_dir,
+                                                    char* const cmdline_buff,
+                                                    size_t* const cmdline_len,
+                                                    char* const target_name,
+                                                    ssize_t* const target_res,
+                                                    char* const error) {
+	const int32_t res = read_procfs_proc_pid_cmdline(procfs_proc_dir,
+	                                                 cmdline_buff,
+	                                                 SCAP_MAX_ARGS_SIZE,
+	                                                 cmdline_len,
+	                                                 error);
+	if(res == SCAP_FAILURE) {
+		return res;
+	}
+	ASSERT(*cmdline_len <= SCAP_MAX_ARGS_SIZE);
+
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%sexe", procfs_proc_dir);
+	*target_res = readlink(filename, target_name, SCAP_MAX_PATH_SIZE - 1);
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -923,24 +1005,39 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	char dir_name[SCAP_MAX_PATH_SIZE];
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 
-	// Gather the command line.
+	// Gather the command line and the executable full path.
 	char cmdline_buff[SCAP_MAX_ARGS_SIZE];
 	size_t cmdline_len = 0;
-	int32_t res = read_procfs_proc_pid_cmdline(dir_name,
-	                                           cmdline_buff,
-	                                           SCAP_MAX_ARGS_SIZE,
-	                                           &cmdline_len,
-	                                           error);
+	char target_name[SCAP_MAX_PATH_SIZE];
+	ssize_t target_res;
+	int32_t res = read_procfs_proc_pid_cmdline_and_exe(dir_name,
+	                                                   cmdline_buff,
+	                                                   &cmdline_len,
+	                                                   target_name,
+	                                                   &target_res,
+	                                                   error);
 	if(res == SCAP_FAILURE) {
 		return res;
 	}
-	ASSERT(cmdline_len <= SCAP_MAX_ARGS_SIZE);
 
-	// Gather the executable full path.
-	char filename[SCAP_MAX_PATH_SIZE];
-	snprintf(filename, sizeof(filename), "%sexe", dir_name);
-	char target_name[SCAP_MAX_PATH_SIZE];
-	const ssize_t target_res = readlink(filename, target_name, sizeof(target_name) - 1);
+	// What needs the mm, the fs or the files of the process is read from this directory: the
+	// directory of the task, or of a live thread if the leader exited. A leader that exited has
+	// neither a cmdline nor an exe link, so only then is it worth checking.
+	char live_dir[SCAP_MAX_PATH_SIZE];
+	char* data_dir = dir_name;
+	if(cmdline_len == 0 && target_res <= 0 &&
+	   find_live_thread_of_zombie_leader(dir_name, tid, live_dir, sizeof(live_dir), NULL)) {
+		data_dir = live_dir;
+		res = read_procfs_proc_pid_cmdline_and_exe(data_dir,
+		                                           cmdline_buff,
+		                                           &cmdline_len,
+		                                           target_name,
+		                                           &target_res,
+		                                           error);
+		if(res == SCAP_FAILURE) {
+			return res;
+		}
+	}
 
 	// Here we have a logic determining if we accept the current process. It leverages information
 	// gathered while reading the command line and the executable full path.
@@ -981,7 +1078,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	set_tinfo_exe_and_args_from_cmdline(&tinfo, cmdline_buff, (uint16_t)cmdline_len);
 
 	// Gather and set the environment.
-	res = read_procfs_proc_pid_environ(dir_name,
+	res = read_procfs_proc_pid_environ(data_dir,
 	                                   tinfo.env,
 	                                   sizeof(tinfo.env),
 	                                   &tinfo.env_len,
@@ -993,7 +1090,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// set the current working directory of the process
 	//
-	res = read_procfs_proc_pid_cwd(dir_name, tinfo.cwd, sizeof(tinfo.cwd), error);
+	res = read_procfs_proc_pid_cwd(data_dir, tinfo.cwd, sizeof(tinfo.cwd), error);
 	if(res == SCAP_FAILURE) {
 		return res;
 	}
@@ -1050,7 +1147,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// set the current root of the process
 	//
-	res = read_procfs_proc_pid_root(dir_name, tinfo.root, sizeof(tinfo.root), error);
+	res = read_procfs_proc_pid_root(data_dir, tinfo.root, sizeof(tinfo.root), error);
 	if(res == SCAP_FAILURE) {
 		return res;
 	}
@@ -1078,7 +1175,8 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	// properly instead of making assumptions.
 	//
 	if(tinfo.tid == tinfo.pid) {
-		tinfo.flags = 0;
+		// A leader that exited is a zombie: it is dead, but it stays while its threads live.
+		tinfo.flags = data_dir != dir_name ? PPM_CL_CLOSED : 0;
 	} else {
 		/* Probably we are doing this because `pthread_create` calls `clone()`
 		 * with `CLONE_FILES`, but this is just an assumption.
@@ -1089,7 +1187,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 
 	if(SCAP_FAILURE == scap_proc_fill_exe_ino_ctime_mtime(linux_platform->m_lasterr,
 	                                                      &tinfo,
-	                                                      dir_name,
+	                                                      data_dir,
 	                                                      target_name)) {
 		return scap_errprintf(error,
 		                      0,
@@ -1102,7 +1200,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	                                               &tinfo,
 	                                               tinfo.uid,
 	                                               tinfo.gid,
-	                                               dir_name,
+	                                               data_dir,
 	                                               target_name)) {
 		return scap_errprintf(error,
 		                      0,
@@ -1127,20 +1225,24 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		return SCAP_SUCCESS;
 	}
 
+	// The engine fetches the files of a process by its pid, and a zombie leader has none: read the
+	// fd directory of its live thread instead.
 	const bool must_fetch_sockets = *sockets_by_ns != (void*)-1;
-	res = linux_vtable_fetch_proc_files(linux_platform,
-	                                    proclist,
-	                                    new_tinfo,
-	                                    must_fetch_sockets,
-	                                    num_fds_ret,
-	                                    error);
-	if(res != SCAP_NOT_SUPPORTED) {
-		return res;
+	if(data_dir == dir_name) {
+		res = linux_vtable_fetch_proc_files(linux_platform,
+		                                    proclist,
+		                                    new_tinfo,
+		                                    must_fetch_sockets,
+		                                    num_fds_ret,
+		                                    error);
+		if(res != SCAP_NOT_SUPPORTED) {
+			return res;
+		}
 	}
 
 	return scap_fd_scan_fd_dir(linux_platform,
 	                           proclist,
-	                           dir_name,
+	                           data_dir,
 	                           new_tinfo->pid,
 	                           new_tinfo,
 	                           sockets_by_ns,

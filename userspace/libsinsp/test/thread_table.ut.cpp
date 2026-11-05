@@ -1766,3 +1766,54 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_a_table_is_reported_once_after_its_thre
 	EXPECT_EQ(observer.m_erased, (erased{{400, 9}}));
 	m_inspector.set_observer(nullptr);
 }
+
+/* The /proc scan reports a zombie leader as closed. The leader stays as the owner of the table of
+ * its process, but it does not count as alive: the group dies with its last live thread.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_zombie_leader_is_not_alive) {
+	add_default_init_thread();
+	const auto task = [this](int64_t tid, uint32_t flags) {
+		auto tinfo = create_threadinfo(tid,
+		                               100,
+		                               INIT_TID,
+		                               100,
+		                               tid,
+		                               100,
+		                               "proc",
+		                               "/bin/proc",
+		                               "/bin/proc",
+		                               increasing_ts(),
+		                               0,
+		                               0,
+		                               {},
+		                               0,
+		                               {},
+		                               "/");
+		tinfo.flags = flags;
+		return tinfo;
+	};
+	add_thread(task(100, PPM_CL_CLOSED), {scap_file(3, "/tmp/process")});
+	add_thread(task(101, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES), {});
+	open_inspector();
+
+	auto& manager = *m_inspector.m_thread_manager;
+	auto leader = manager.find_thread(100, true);
+	auto thread = manager.find_thread(101, true);
+	ASSERT_NE(leader, nullptr);
+	ASSERT_NE(thread, nullptr);
+	EXPECT_TRUE(leader->is_dead());
+	EXPECT_EQ(thread->m_tginfo->get_thread_count(), 1);
+	EXPECT_EQ(leader->get_fd_table(), thread->get_fd_table());
+	// The mount lookup goes through the live thread.
+	EXPECT_EQ(thread->get_fdtable().get_tid(), 101);
+
+	erased_fds_observer observer;
+	m_inspector.set_observer(&observer);
+	using erased = std::vector<std::pair<int64_t, int64_t>>;
+	leader.reset();
+	thread.reset();
+	manager.remove_thread(101);
+	EXPECT_EQ(observer.m_erased, (erased{{101, 3}}));
+	EXPECT_EQ(manager.find_thread(100, true), nullptr);
+	m_inspector.set_observer(nullptr);
+}

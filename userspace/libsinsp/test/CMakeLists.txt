@@ -110,6 +110,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	events_file.ut.cpp
 	fdinfo_content_equals.ut.cpp
 	fdtable_sharing.ut.cpp
+	proc_scan.ut.cpp
 	events_fspath.ut.cpp
 	events_injection.ut.cpp
 	events_net.ut.cpp

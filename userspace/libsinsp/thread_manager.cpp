@@ -194,6 +194,14 @@ void sinsp_thread_manager::create_thread_dependencies(
 		                       ptid);
 	}
 
+	/* A thread that is dead when it joins, like a leader that the `/proc` scan finds as a zombie,
+	 * is in the group as a leader that exited: it does not count as alive, and it is removed.
+	 */
+	if(tinfo->is_dead()) {
+		tinfo->m_tginfo->decrement_thread_count();
+		tinfo->set_removed();
+	}
+
 	share_fd_table_of_group(*tinfo);
 }
 
