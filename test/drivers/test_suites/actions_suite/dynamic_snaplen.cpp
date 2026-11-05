@@ -1311,5 +1311,263 @@ TEST(Actions, dynamic_snaplen_no_statsd_port) {
 
 	evt_test->assert_num_params_pushed(5);
 }
+
+/* The dynamic snaplen logic is skipped whenever the data already fits within the configured
+ * snaplen, since it can only ever widen it and the caller clamps the result back down. Here the
+ * message is shorter than the snaplen, so the HTTP heuristic cannot change what we capture: we
+ * must still collect exactly the message, no more and no less.
+ */
+TEST(Actions, dynamic_snaplen_HTTP_below_snaplen) {
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
+
+	/* The payload looks like HTTP traffic but is shorter than the snaplen. */
+	const unsigned data_len = DEFAULT_SNAPLEN / 2;
+	char buf[data_len] = "HTTP/\0";
+	uint32_t sendto_flags = 0;
+
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "sendto",
+	                     syscall(__NR_sendto,
+	                             client_socket_fd,
+	                             buf,
+	                             data_len,
+	                             sendto_flags,
+	                             (sockaddr *)&server_addr,
+	                             sizeof(server_addr)),
+	                     NOT_EQUAL,
+	                     -1);
+
+	/* Cleaning phase */
+	syscall(__NR_shutdown, server_socket_fd, 2);
+	syscall(__NR_shutdown, client_socket_fd, 2);
+	syscall(__NR_close, server_socket_fd);
+	syscall(__NR_close, client_socket_fd);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, data_len);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(5);
+}
+
+#ifdef __NR_writev
+/* `writev` only applies the port-range part of the dynamic snaplen logic. The message is longer
+ * than the snaplen, so the logic must run and the fullcapture port must widen the snaplen enough
+ * to collect the whole iovec instead of truncating it to DEFAULT_SNAPLEN.
+ */
+TEST(Actions, dynamic_snaplen_writev_fullcapture_port) {
+	auto evt_test = get_syscall_event_test(__NR_writev, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
+
+	const unsigned data_len = DEFAULT_SNAPLEN * 2;
+	char sent_data[data_len] = "some-data";
+	struct iovec iov[1];
+	memset(iov, 0, sizeof(iov));
+	iov[0].iov_base = sent_data;
+	iov[0].iov_len = sizeof(sent_data);
+
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "writev",
+	                     syscall(__NR_writev, client_socket_fd, iov, 1),
+	                     NOT_EQUAL,
+	                     -1);
+
+	/* Cleaning phase */
+	syscall(__NR_shutdown, server_socket_fd, 2);
+	syscall(__NR_shutdown, client_socket_fd, 2);
+	syscall(__NR_close, server_socket_fd);
+	syscall(__NR_close, client_socket_fd);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Not truncated to DEFAULT_SNAPLEN: the dynamic snaplen logic must have run. */
+	evt_test->assert_bytebuf_param(2, sent_data, data_len);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(4);
+}
+
+/* `writev` only clamps the snaplen down to `ret` when the syscall succeeded. When it failed we
+ * cannot know upfront how many bytes will be collected from the iovec, so the dynamic snaplen
+ * logic must run unconditionally: skipping it here would silently truncate the captured data to
+ * DEFAULT_SNAPLEN even though the fullcapture port asked for everything.
+ */
+TEST(Actions, dynamic_snaplen_writev_fullcapture_port_failed_syscall) {
+	auto evt_test = get_syscall_event_test(__NR_writev, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
+
+	const unsigned data_len = DEFAULT_SNAPLEN * 2;
+	char sent_data[data_len] = "some-data";
+	struct iovec iov[1];
+	memset(iov, 0, sizeof(iov));
+	iov[0].iov_base = sent_data;
+	iov[0].iov_len = sizeof(sent_data);
+
+	/* Shutting down the write side makes the `writev` below fail with `EPIPE` while keeping the fd
+	 * open, so the driver can still walk fd -> file -> socket and see the fullcapture port.
+	 */
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "shutdown",
+	                     syscall(__NR_shutdown, client_socket_fd, SHUT_WR),
+	                     NOT_EQUAL,
+	                     -1);
+	auto previous_handler = signal(SIGPIPE, SIG_IGN);
+
+	assert_syscall_state(SYSCALL_FAILURE, "writev", syscall(__NR_writev, client_socket_fd, iov, 1));
+	int64_t errno_value = -errno;
+
+	signal(SIGPIPE, previous_handler);
+
+	/* Cleaning phase */
+	syscall(__NR_shutdown, server_socket_fd, 2);
+	syscall(__NR_close, server_socket_fd);
+	syscall(__NR_close, client_socket_fd);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* The syscall failed, so the snaplen was never clamped down to `ret`: we still expect the
+	 * whole iovec thanks to the fullcapture port, not a DEFAULT_SNAPLEN truncation. */
+	evt_test->assert_bytebuf_param(2, sent_data, data_len);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(4);
+}
+#endif /* __NR_writev */
 #endif
 #endif
