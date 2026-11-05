@@ -23,6 +23,11 @@ limitations under the License.
 #include <libsinsp/filter.h>
 #include <libsinsp/filter_check_list.h>
 
+#include <cstdio>
+#include <map>
+
+#include <sinsp_with_test_input.h>
+
 using namespace std;
 
 // Valid argument types for filter fields
@@ -773,6 +778,469 @@ TEST(filter_fields_info, is_list_in_json) {
 
 	EXPECT_TRUE(found_list_field) << "Should find list field";
 	EXPECT_TRUE(found_non_list_field) << "Should find non-list field";
+}
+
+// Helper to add a field with an explicit raw type and operator allowlist
+static void add_typed_test_field(sinsp_filter_factory::filter_fieldclass_info& fc,
+                                 const string& name,
+                                 ppm_param_type type,
+                                 bool is_list = false,
+                                 uint32_t allowed_ops = 0,
+                                 bool arg_index = false) {
+	add_test_field(fc, name, name, param_type_to_string(type), is_list, false, arg_index);
+	fc.fields.back().type = type;
+	fc.fields.back().allowed_ops = allowed_ops;
+}
+
+static Json::Value parse_json(const string& json_str) {
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+	std::string errors;
+	EXPECT_TRUE(reader->parse(json_str.c_str(), json_str.c_str() + json_str.size(), &root, &errors))
+	        << errors;
+	return root;
+}
+
+static set<string> json_strings(const Json::Value& arr) {
+	set<string> res;
+	for(const auto& v : arr) {
+		res.insert(v.asString());
+	}
+	return res;
+}
+
+static Json::Value find_json_field(const Json::Value& root, const string& name) {
+	for(const auto& field : root["fields"]) {
+		if(field["name"].asString() == name) {
+			return field;
+		}
+	}
+	ADD_FAILURE() << "field not found: " << name;
+	return Json::Value();
+}
+
+TEST(filter_fields_info, as_json_operators_omitted_by_default) {
+	auto fc = create_test_field_class("test");
+	add_typed_test_field(fc, "test.str", PT_CHARBUF);
+
+	auto root = parse_json(fc.as_json());
+	auto field = find_json_field(root, "test.str");
+	EXPECT_FALSE(field.isMember("operators"));
+	EXPECT_FALSE(field.isMember("modifier_operators"));
+	EXPECT_FALSE(field.isMember("suppressed_operators"));
+	EXPECT_FALSE(field.isMember("suppressed_modifier_operators"));
+}
+
+TEST(filter_fields_info, as_json_operators_by_type) {
+	auto fc = create_test_field_class("test");
+	add_typed_test_field(fc, "test.str", PT_CHARBUF);
+	add_typed_test_field(fc, "test.num", PT_INT64);
+	add_typed_test_field(fc, "test.bool", PT_BOOL);
+	add_typed_test_field(fc, "test.ip", PT_IPV4ADDR);
+	add_typed_test_field(fc, "test.buf", PT_BYTEBUF);
+	add_typed_test_field(fc, "test.list", PT_CHARBUF, true);
+	// an index argument does not change the operators of a list field
+	add_typed_test_field(fc, "test.list_idx", PT_CHARBUF, true, 0, true);
+
+	auto root = parse_json(fc.as_json({}, false, true));
+
+	auto str = find_json_field(root, "test.str");
+	auto str_ops = json_strings(str["operators"]);
+	EXPECT_TRUE(str_ops.count("contains"));
+	EXPECT_TRUE(str_ops.count("regex"));
+	EXPECT_TRUE(str_ops.count("exists"));
+	EXPECT_TRUE(json_strings(str["modifier_operators"]).count("contains"));
+	EXPECT_FALSE(json_strings(str["modifier_operators"]).count("in"));
+	EXPECT_FALSE(json_strings(str["modifier_operators"]).count("exists"));
+
+	auto num_ops = json_strings(find_json_field(root, "test.num")["operators"]);
+	EXPECT_TRUE(num_ops.count("<"));
+	EXPECT_TRUE(num_ops.count("intersects"));
+	EXPECT_FALSE(num_ops.count("contains"));
+	EXPECT_TRUE(json_strings(find_json_field(root, "test.num")["modifier_operators"]).count("="));
+	EXPECT_FALSE(json_strings(find_json_field(root, "test.num")["modifier_operators"])
+	                     .count("contains"));
+
+	auto bool_ops = json_strings(find_json_field(root, "test.bool")["operators"]);
+	EXPECT_TRUE(bool_ops.count("="));
+	EXPECT_FALSE(bool_ops.count("<"));
+
+	auto ip = find_json_field(root, "test.ip");
+	EXPECT_EQ(json_strings(ip["operators"]),
+	          (set<string>{"=", "!=", "in", "exists", "intersects"}));
+	EXPECT_EQ(json_strings(ip["modifier_operators"]), (set<string>{"=", "!="}));
+
+	auto buf_ops = json_strings(find_json_field(root, "test.buf")["operators"]);
+	EXPECT_TRUE(buf_ops.count("bcontains"));
+	EXPECT_FALSE(buf_ops.count("regex"));
+
+	for(const auto* name : {"test.list", "test.list_idx"}) {
+		auto list = find_json_field(root, name);
+		EXPECT_EQ(json_strings(list["operators"]), (set<string>{"in", "exists", "intersects"}))
+		        << name;
+		EXPECT_TRUE(list["modifier_operators"].empty()) << name;
+	}
+}
+
+TEST(filter_fields_info, as_json_suppressed_operators) {
+	auto fc = create_test_field_class("test");
+	add_typed_test_field(fc,
+	                     "test.restricted",
+	                     PT_CHARBUF,
+	                     false,
+	                     cmpop_mask({CO_EQ, CO_NE, CO_IN, CO_EXISTS}));
+	add_typed_test_field(fc, "test.free", PT_CHARBUF);
+
+	auto root = parse_json(fc.as_json({}, false, true));
+
+	auto restricted = find_json_field(root, "test.restricted");
+	auto suppressed = json_strings(restricted["suppressed_operators"]);
+	EXPECT_TRUE(suppressed.count("contains"));
+	EXPECT_TRUE(suppressed.count("<"));
+	EXPECT_FALSE(suppressed.count("="));
+	EXPECT_FALSE(suppressed.count("in"));
+	EXPECT_FALSE(suppressed.count("exists"));
+	// suppressed operators are a subset of the supported ones
+	auto ops = json_strings(restricted["operators"]);
+	for(const auto& op : suppressed) {
+		EXPECT_TRUE(ops.count(op)) << op;
+	}
+	// modifiers are never evaluated on restricted fields
+	EXPECT_EQ(json_strings(restricted["suppressed_modifier_operators"]),
+	          json_strings(restricted["modifier_operators"]));
+
+	auto free_field = find_json_field(root, "test.free");
+	EXPECT_FALSE(free_field.isMember("suppressed_operators"));
+	EXPECT_FALSE(free_field.isMember("suppressed_modifier_operators"));
+}
+
+TEST(filter_fields_info, as_json_enforced_operators) {
+	auto fc = create_test_field_class("test");
+	add_typed_test_field(fc, "test.enforced", PT_UINT64);
+	fc.fields.back().enforced_ops = cmpop_mask({CO_EQ});
+	add_typed_test_field(fc, "test.free", PT_UINT64);
+
+	auto root = parse_json(fc.as_json({}, false, true));
+
+	// the field supports exactly the enforced operators: nothing is reported as suppressed
+	auto enforced = find_json_field(root, "test.enforced");
+	EXPECT_EQ(json_strings(enforced["operators"]), (set<string>{"="}));
+	EXPECT_TRUE(enforced["modifier_operators"].empty());
+	EXPECT_FALSE(enforced.isMember("suppressed_operators"));
+	EXPECT_FALSE(enforced.isMember("suppressed_modifier_operators"));
+
+	auto free_field = find_json_field(root, "test.free");
+	EXPECT_TRUE(json_strings(free_field["operators"]).count("<"));
+	EXPECT_FALSE(free_field["modifier_operators"].empty());
+}
+
+TEST(filter_fields_info, as_json_transformer_operators) {
+	auto fc = create_test_field_class("test");
+	add_typed_test_field(fc, "test.str", PT_CHARBUF);
+	add_typed_test_field(fc, "test.num", PT_INT64);
+	add_typed_test_field(fc, "test.list", PT_CHARBUF, true);
+	add_typed_test_field(fc, "test.no_tr", PT_CHARBUF);
+	fc.fields.back().tags.insert("EPF_NO_TRANSFORMER");
+
+	auto root = parse_json(fc.as_json({}, false, true));
+
+	// len() turns strings into numbers, string transformers keep the type
+	auto str = find_json_field(root, "test.str");
+	ASSERT_TRUE(str.isMember("transformers"));
+	const auto& trs = str["transformers"];
+	EXPECT_EQ(trs["len"]["type"].asString(), "UINT64");
+	EXPECT_FALSE(trs["len"]["is_list"].asBool());
+	EXPECT_TRUE(json_strings(trs["len"]["operators"]).count("<"));
+	EXPECT_FALSE(json_strings(trs["len"]["operators"]).count("contains"));
+	EXPECT_EQ(trs["tolower"]["type"].asString(), "CHARBUF");
+	EXPECT_TRUE(json_strings(trs["tolower"]["operators"]).count("contains"));
+	EXPECT_TRUE(json_strings(trs["tolower"]["modifier_operators"]).count("contains"));
+	EXPECT_TRUE(trs.isMember("toupper"));
+	EXPECT_TRUE(trs.isMember("basename"));
+	EXPECT_TRUE(trs.isMember("b64"));
+	// the internal storage transformer is never exposed
+	EXPECT_FALSE(trs.isMember("storage"));
+
+	// transformers that don't apply to the type are left out
+	EXPECT_FALSE(find_json_field(root, "test.num").isMember("transformers"));
+
+	// len() of a list is a number
+	auto list = find_json_field(root, "test.list");
+	EXPECT_EQ(list["transformers"]["len"]["type"].asString(), "UINT64");
+	EXPECT_FALSE(list["transformers"]["len"]["is_list"].asBool());
+	EXPECT_TRUE(json_strings(list["transformers"]["len"]["operators"]).count("<"));
+
+	EXPECT_FALSE(find_json_field(root, "test.no_tr").isMember("transformers"));
+
+	// omitted by default
+	root = parse_json(fc.as_json());
+	EXPECT_FALSE(find_json_field(root, "test.str").isMember("transformers"));
+}
+
+TEST(filter_fields_info, as_json_dynamic_type_operators) {
+	auto fc = create_test_field_class("test");
+	add_typed_test_field(fc, "test.dyn", PT_DYN);
+
+	auto root = parse_json(fc.as_json({}, false, true));
+	auto field = find_json_field(root, "test.dyn");
+	EXPECT_TRUE(field["operators"].isNull());
+	EXPECT_TRUE(field["modifier_operators"].isNull());
+}
+
+// How the real compiler treats restricted operators: rejected for evt.around (enforced), accepted
+// but not evaluated for the fd fields with an advisory mask.
+TEST(filter_fields_info, suppressed_operators_compiler_behavior) {
+	sinsp inspector;
+	sinsp_filter_check_list checks;
+	auto factory = std::make_shared<sinsp_filter_factory>(&inspector, checks);
+	auto compiles = [&](const string& filter) {
+		try {
+			sinsp_filter_compiler(factory, filter).compile();
+			return true;
+		} catch(const std::exception&) {
+			return false;
+		}
+	};
+
+	EXPECT_TRUE(compiles("evt.around[1000] = 1000"));
+	EXPECT_FALSE(compiles("evt.around[1000] > 1000"));
+	EXPECT_FALSE(compiles("evt.around[1000] in (1000, 2000)"));
+	EXPECT_FALSE(compiles("evt.around[1000] exists"));
+	EXPECT_FALSE(compiles("evt.around[1000] = anyof (1000, 2000)"));
+
+	EXPECT_TRUE(compiles("fd.port intersects (80, 443)"));
+	EXPECT_TRUE(compiles("fd.ip intersects (10.0.0.1)"));
+}
+
+// Appends an IPv4 address (network order) and a port (host order), as scap packs them
+static void append_ipv4_endpoint(std::vector<uint8_t>& buf, const char* ip, uint16_t port) {
+	unsigned int b[4] = {};
+	ASSERT_EQ(sscanf(ip, "%u.%u.%u.%u", &b[0], &b[1], &b[2], &b[3]), 4) << ip;
+	for(const auto byte : b) {
+		buf.push_back(static_cast<uint8_t>(byte));
+	}
+	const auto* port_bytes = reinterpret_cast<const uint8_t*>(&port);
+	buf.insert(buf.end(), port_bytes, port_bytes + sizeof(port));
+}
+
+// An operator expression for a field, with the result it must have when the operator (or
+// modifier) is really evaluated. When it is reported as suppressed, the expression must instead
+// not match or fail (operators), or evaluate only the first value (modifiers).
+struct op_case {
+	std::string op;
+	std::string filter;
+	bool result_if_supported;
+	bool result_if_ignored;  // only for modifiers
+};
+
+// Evaluates the filters of the fields with an advisory operator mask against a real event, so
+// that the suppressed operators reported in the JSON can't drift from the compare functions.
+TEST_F(sinsp_with_test_input, as_json_suppressed_operators_match_evaluation) {
+	add_default_init_thread();
+	open_inspector();
+	auto* evt = generate_socket_exit_event();
+	int64_t return_value = 0;
+
+	// the connect tuple is built by hand since the test_utils socket helpers are not available
+	// on every platform: scap family, then the address and port of the client and of the server
+	std::vector<uint8_t> socktuple = {PPM_AF_INET};
+	append_ipv4_endpoint(socktuple, "172.40.111.222", 54321);
+	append_ipv4_endpoint(socktuple, "142.251.111.147", 443);
+	std::vector<uint8_t> server_sockaddr = {PPM_AF_INET};
+	append_ipv4_endpoint(server_sockaddr, "142.251.111.147", 443);
+	evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        return_value,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	// Every case matches the event when the operator is evaluated (the port is 443, the server
+	// address 142.251.111.147). Modifier cases are written so that evaluating only the first value
+	// gives the opposite result.
+	const std::vector<op_case> port_ops = {
+	        {"=", "fd.%s = 443", true, false},
+	        {"!=", "fd.%s != 80", true, false},
+	        {"<", "fd.%s < 500", true, false},
+	        {"<=", "fd.%s <= 443", true, false},
+	        {">", "fd.%s > 100", true, false},
+	        {">=", "fd.%s >= 443", true, false},
+	        {"in", "fd.%s in (443)", true, false},
+	        {"intersects", "fd.%s intersects (443)", true, false},
+	        {"exists", "fd.%s exists", true, false},
+	};
+	const std::vector<op_case> port_mods = {
+	        {"=", "fd.%s = anyof (80, 443)", true, false},
+	        {"=", "fd.%s = oneof (80, 443)", true, false},
+	        {"!=", "fd.%s != allof (80, 443)", false, true},
+	};
+	const std::vector<op_case> ip_ops = {
+	        {"=", "fd.%s = 142.251.111.147", true, false},
+	        {"!=", "fd.%s != 10.0.0.1", true, false},
+	        {"in", "fd.%s in (142.251.111.147)", true, false},
+	        {"intersects", "fd.%s intersects (142.251.111.147)", true, false},
+	        {"exists", "fd.%s exists", true, false},
+	};
+	const std::vector<op_case> ip_mods = {
+	        {"=", "fd.%s = anyof (10.0.0.1, 142.251.111.147)", true, false},
+	        {"=", "fd.%s = oneof (10.0.0.1, 142.251.111.147)", true, false},
+	        {"!=", "fd.%s != allof (10.0.0.1, 142.251.111.147)", false, true},
+	};
+	const std::vector<op_case> net_ops = {
+	        {"=", "fd.%s = 142.0.0.0/4", true, false},
+	        {"!=", "fd.%s != 10.0.0.0/8", true, false},
+	        {"in", "fd.%s in (142.0.0.0/4)", true, false},
+	        {"intersects", "fd.%s intersects (142.0.0.0/4)", true, false},
+	        {"exists", "fd.%s exists", true, false},
+	};
+	const std::vector<op_case> net_mods = {
+	        {"=", "fd.%s = anyof (10.0.0.0/8, 142.0.0.0/4)", true, false},
+	        {"=", "fd.%s = oneof (10.0.0.0/8, 142.0.0.0/4)", true, false},
+	        {"!=", "fd.%s != allof (10.0.0.0/8, 142.0.0.0/4)", false, true},
+	};
+	struct field_cases {
+		std::string name;
+		const std::vector<op_case>* ops;
+		const std::vector<op_case>* mods;
+	};
+	const std::vector<field_cases> fields = {
+	        {"fd.port", &port_ops, &port_mods},
+	        {"fd.proto", &port_ops, &port_mods},
+	        {"fd.ip", &ip_ops, &ip_mods},
+	        {"fd.net", &net_ops, &net_mods},
+	};
+
+	sinsp_filter_factory factory(&m_inspector, m_default_filterlist);
+	std::map<std::string, Json::Value> json_fields;
+	for(const auto& fc : factory.get_fields()) {
+		const auto json_str = fc.as_json({}, false, true);
+		if(json_str.empty()) {
+			continue;
+		}
+		const auto root = parse_json(json_str);
+		for(const auto& f : root["fields"]) {
+			json_fields[f["name"].asString()] = f;
+		}
+	}
+
+	auto expr = [](std::string filter, const std::string& field) {
+		return filter.replace(filter.find("%s"), 2, field.substr(3));
+	};
+
+	for(const auto& fcase : fields) {
+		SCOPED_TRACE(fcase.name);
+		ASSERT_TRUE(json_fields.count(fcase.name));
+		const auto& field = json_fields[fcase.name];
+		const auto suppressed = json_strings(field["suppressed_operators"]);
+		const auto suppressed_mods = json_strings(field["suppressed_modifier_operators"]);
+		const auto operators = json_strings(field["operators"]);
+		// the cases must cover every operator of the field, so that a new one is noticed
+		std::set<std::string> covered;
+		for(const auto& c : *fcase.ops) {
+			covered.insert(c.op);
+			ASSERT_TRUE(operators.count(c.op)) << c.op;
+			const auto filter = expr(c.filter, fcase.name);
+			if(suppressed.count(c.op)) {
+				// the field either never matches or fails when evaluating the operator
+				bool matched = false;
+				try {
+					matched = eval_filter(evt, filter);
+				} catch(const sinsp_exception&) {
+				}
+				EXPECT_FALSE(matched) << filter;
+			} else {
+				EXPECT_EQ(eval_filter(evt, filter), c.result_if_supported) << filter;
+			}
+		}
+		EXPECT_EQ(covered, operators);
+
+		// modifiers are never evaluated by fields with a mask: only the first value is compared
+		ASSERT_FALSE(suppressed_mods.empty());
+		for(const auto& c : *fcase.mods) {
+			ASSERT_TRUE(suppressed_mods.count(c.op)) << c.op;
+			EXPECT_EQ(eval_filter(evt, expr(c.filter, fcase.name)), c.result_if_ignored)
+			        << expr(c.filter, fcase.name);
+		}
+	}
+}
+
+// Guards against the allowlists drifting from the type-based rules
+TEST(filter_fields_info, as_json_operators_real_fields) {
+	sinsp inspector;
+	sinsp_filter_check_list checks;
+	sinsp_filter_factory factory(&inspector, checks);
+
+	bool found_domain_field = false;
+	bool found_around = false;
+	bool found_rawarg = false;
+	bool found_proc_name = false;
+	for(const auto& fc : factory.get_fields()) {
+		for(const auto& fld : fc.fields) {
+			if(fld.allowed_ops == 0) {
+				continue;
+			}
+			for(uint8_t op = CO_EQ; op <= CO_REGEX; op++) {
+				if(!cmpop_in_mask(fld.allowed_ops, static_cast<cmpop>(op))) {
+					continue;
+				}
+				bool supported = false;
+				for(const auto& cmp : flt_supported_cmpops(fld.type, fld.is_list())) {
+					supported |= cmp.op == op;
+				}
+				EXPECT_TRUE(supported) << fld.name << " allows op " << std::to_string(op);
+			}
+		}
+
+		// classes without any visible field serialize to an empty string
+		const auto json_str = fc.as_json({}, false, true);
+		if(json_str.empty()) {
+			continue;
+		}
+		auto root = parse_json(json_str);
+		if(root.isMember("fields")) {
+			for(const auto& field : root["fields"]) {
+				const auto name = field["name"].asString();
+				if(name == "evt.around") {
+					found_around = true;
+					// enforced by the compiler, so it redefines the operators
+					EXPECT_EQ(json_strings(field["operators"]), (set<string>{"="}));
+					EXPECT_TRUE(field["modifier_operators"].empty());
+					EXPECT_FALSE(field.isMember("suppressed_operators"));
+				} else if(name == "evt.rawarg") {
+					found_rawarg = true;
+					EXPECT_TRUE(field["operators"].isNull());
+				} else if(name == "proc.name") {
+					found_proc_name = true;
+					EXPECT_TRUE(field["transformers"].isMember("len"));
+					EXPECT_FALSE(field.isMember("suppressed_operators"));
+				} else if(name == "fd.cip.name" || name == "fd.sip.name" || name == "fd.lip.name" ||
+				          name == "fd.rip.name") {
+					EXPECT_FALSE(field.isMember("transformers")) << name;
+				}
+			}
+			// string operators work on fd.*ip.name whenever a name is resolved, so nothing is
+			// suppressed
+			for(const auto* name : {"fd.cip.name", "fd.sip.name", "fd.lip.name", "fd.rip.name"}) {
+				for(const auto& field : root["fields"]) {
+					if(field["name"].asString() != name) {
+						continue;
+					}
+					found_domain_field = true;
+					EXPECT_FALSE(field.isMember("suppressed_operators")) << name;
+					EXPECT_FALSE(field.isMember("suppressed_modifier_operators")) << name;
+					EXPECT_TRUE(json_strings(field["operators"]).count("contains")) << name;
+				}
+			}
+		}
+	}
+	EXPECT_TRUE(found_domain_field);
+	EXPECT_TRUE(found_around);
+	EXPECT_TRUE(found_rawarg);
+	EXPECT_TRUE(found_proc_name);
 }
 
 // Test as_markdown() basic functionality - using synthetic fields

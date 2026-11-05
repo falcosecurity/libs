@@ -66,6 +66,23 @@ struct filtercheck_field_info {
 	std::string m_display;            ///< Field display name (short description). May be empty.
 	std::string m_description;        ///< Field description.
 
+	/**
+	 * Optional bitmask of operators (bit N set for `cmpop` N) that the field can actually
+	 * use, because of its own comparison or value parsing logic. 0 means no restriction
+	 * beyond the type-based rules in flt_is_comparable. It only drives documentation
+	 * output: operators accepted for the type that are not in the mask are reported as
+	 * suppressed.
+	 */
+	uint32_t m_allowed_ops = 0;
+
+	/**
+	 * Optional bitmask of the only operators the field accepts, with the same encoding as
+	 * m_allowed_ops. Unlike m_allowed_ops, it is enforced: the filter compiler rejects any
+	 * other operator and any operator modifier, so the supported operators are exactly the
+	 * ones in the mask. 0 means no restriction.
+	 */
+	uint32_t m_enforced_ops = 0;
+
 	//
 	// Return true if this field must have an argument
 	//

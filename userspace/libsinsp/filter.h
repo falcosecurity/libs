@@ -203,6 +203,17 @@ public:
 		// The data type for the field
 		std::string data_type;
 
+		// The raw data type for the field, used to derive the supported operators
+		ppm_param_type type = PT_NONE;
+
+		// Bitmask of the operators the field's comparison logic evaluates (see
+		// filtercheck_field_info::m_allowed_ops). 0 means no restriction.
+		uint32_t allowed_ops = 0;
+
+		// Bitmask of the only operators the field accepts (see
+		// filtercheck_field_info::m_enforced_ops). 0 means no restriction.
+		uint32_t enforced_ops = 0;
+
 		// A set of free-form tags for the field. Examples include:
 		// FILTER ONLY: for fields that can only be used in filters, not outputs.
 		// IDX_REQUIRED: for fields that can take an optional index
@@ -249,8 +260,15 @@ public:
 		        bool include_deprecated = false) const;
 
 		// Print a JSON representation of this field class.
+		// If include_operators is set, each field also lists the operators it supports
+		// ("operators", "modifier_operators"), the ones accepted for its type that it
+		// can't use but the compiler lets through ("suppressed_operators",
+		// "suppressed_modifier_operators") and, for the
+		// transformers applicable to it, the resulting type and operators ("transformers").
+		// Operators are null for fields whose type is only known at parse time (PT_DYN).
 		std::string as_json(const std::set<std::string>& event_sources = std::set<std::string>(),
-		                    bool include_deprecated = false) const;
+		                    bool include_deprecated = false,
+		                    bool include_operators = false) const;
 
 		// How far to right-justify the name/description/etc block.
 		static uint32_t s_rightblock_start;

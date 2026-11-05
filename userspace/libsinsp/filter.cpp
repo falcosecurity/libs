@@ -37,6 +37,7 @@ limitations under the License.
 #include <libsinsp/filter.h>
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/sinsp_filter_transformers.h>
 #include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
 #include <libsinsp/sinsp_filtercheck_rawstring.h>
 #include <libsinsp/plugin_filtercheck.h>
@@ -625,6 +626,13 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::not_expr* e) {
 static inline void check_op_type_compatibility(sinsp_filter_check& c) {
 	std::string err;
 	auto fi = c.get_transformed_field_info();
+	if(fi && fi->m_enforced_ops != 0 &&
+	   (!cmpop_in_mask(fi->m_enforced_ops, c.m_cmp.op) || c.m_cmp.mod != CMPOP_MOD_NONE)) {
+		std::string opname;
+		cmpop_to_str(c.m_cmp, opname);
+		throw sinsp_exception("filter error: '" + opname + "' operator not supported for field '" +
+		                      fi->m_name + "'");
+	}
 	if(fi && !flt_is_comparable(c.m_cmp, fi->m_type, fi->is_list(), err)) {
 		throw sinsp_exception("filter error: " + err);
 	}
@@ -989,6 +997,9 @@ sinsp_filter_factory::check_infos_to_fieldclass_infos(
 			info.name = fld->m_name;
 			info.desc = fld->m_description;
 			info.data_type = param_type_to_string(fld->m_type);
+			info.type = fld->m_type;
+			info.allowed_ops = fld->m_allowed_ops;
+			info.enforced_ops = fld->m_enforced_ops;
 
 			if(fld->m_flags & EPF_FILTER_ONLY) {
 				info.tags.insert("FILTER_ONLY");
@@ -1151,9 +1162,99 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_markdown(
 	return os.str();
 }
 
+static Json::Value cmpops_to_json(const std::vector<comparator>& cmps) {
+	Json::Value arr(Json::arrayValue);
+	for(const auto& cmp : cmps) {
+		std::string name;
+		cmpop_to_str(cmp, name);
+		arr.append(name);
+	}
+	return arr;
+}
+
+// Adds "operators" and "modifier_operators" for the given type to the JSON object.
+// All the modifiers share the same rules, so probing one is enough.
+static void add_type_operators_json(Json::Value& obj, ppm_param_type type, bool is_list) {
+	obj["operators"] = cmpops_to_json(flt_supported_cmpops(type, is_list));
+	obj["modifier_operators"] =
+	        cmpops_to_json(flt_supported_cmpops(type, is_list, CMPOP_MOD_ANYOF));
+}
+
+static void add_operators_json(Json::Value& field,
+                               const sinsp_filter_factory::filter_field_info& fld_info) {
+	// The type of dynamic fields (e.g. evt.rawarg) is only known once the argument is parsed
+	if(fld_info.type == PT_DYN) {
+		field["operators"] = Json::nullValue;
+		field["modifier_operators"] = Json::nullValue;
+		return;
+	}
+
+	auto ops = flt_supported_cmpops(fld_info.type, fld_info.is_list());
+	auto mod_ops = flt_supported_cmpops(fld_info.type, fld_info.is_list(), CMPOP_MOD_ANYOF);
+	// Enforced restrictions redefine what the field supports: operators outside of the mask
+	// and all the modifiers are rejected by the compiler.
+	if(fld_info.enforced_ops != 0) {
+		ops.erase(std::remove_if(ops.begin(),
+		                         ops.end(),
+		                         [&](const comparator& cmp) {
+			                         return !cmpop_in_mask(fld_info.enforced_ops, cmp.op);
+		                         }),
+		          ops.end());
+		mod_ops.clear();
+	}
+	field["operators"] = cmpops_to_json(ops);
+	field["modifier_operators"] = cmpops_to_json(mod_ops);
+
+	// Operators accepted for the type that the field can't use: they are either rejected when
+	// parsing the value or fail / never match when the filter is evaluated. The field's
+	// comparison logic ignores modifiers whenever it restricts its operators.
+	if(fld_info.allowed_ops != 0) {
+		std::vector<comparator> suppressed;
+		for(const auto& cmp : ops) {
+			if(!cmpop_in_mask(fld_info.allowed_ops, cmp.op)) {
+				suppressed.push_back(cmp);
+			}
+		}
+		if(!suppressed.empty()) {
+			field["suppressed_operators"] = cmpops_to_json(suppressed);
+		}
+		if(!mod_ops.empty()) {
+			field["suppressed_modifier_operators"] = cmpops_to_json(mod_ops);
+		}
+	}
+
+	// A transformer changes the type the operators are checked against (e.g. len() yields a
+	// number), so list the ones applicable to this field along with the resulting operators.
+	if(fld_info.tags.find("EPF_NO_TRANSFORMER") != fld_info.tags.end()) {
+		return;
+	}
+	Json::Value transformers(Json::objectValue);
+	for(size_t i = 0; i < filter_transformer_len; i++) {
+		const auto trtype = static_cast<filter_transformer_type>(i);
+		if(trtype == FTR_STORAGE) {
+			continue;  // internal only
+		}
+		auto type = fld_info.type;
+		uint32_t flags = fld_info.is_list() ? EPF_IS_LIST : EPF_NONE;
+		const auto transformer = sinsp_filter_transformer_factory::create_transformer(trtype);
+		if(!transformer->transform_type(type, flags)) {
+			continue;
+		}
+		Json::Value tr;
+		tr["type"] = param_type_to_string(type);
+		tr["is_list"] = (flags & EPF_IS_LIST) != 0;
+		add_type_operators_json(tr, type, flags & EPF_IS_LIST);
+		transformers[filter_transformer_type_str(trtype)] = tr;
+	}
+	if(!transformers.empty()) {
+		field["transformers"] = transformers;
+	}
+}
+
 std::string sinsp_filter_factory::filter_fieldclass_info::as_json(
         const std::set<std::string>& event_sources,
-        bool include_deprecated) const {
+        bool include_deprecated,
+        bool include_operators) const {
 	Json::Value root;
 	uint32_t deprecated_count = 0;
 
@@ -1210,6 +1311,10 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_json(
 			field["argument"] = argument;
 		} else {
 			field["argument"] = Json::nullValue;
+		}
+
+		if(include_operators) {
+			add_operators_json(field, fld_info);
 		}
 
 		fields_array.append(field);

@@ -432,6 +432,44 @@ bool flt_is_comparable(comparator cmp, ppm_param_type t, bool is_list, std::stri
 	}
 }
 
+// Operators that the parser lets a oneof/anyof/allof modifier follow,
+// see s_binary_str_ops in filter/parser.cpp.
+static inline bool flt_cmpop_supports_modifier(cmpop op) {
+	switch(op) {
+	case CO_EQ:
+	case CO_NE:
+	case CO_GLOB:
+	case CO_IGLOB:
+	case CO_CONTAINS:
+	case CO_ICONTAINS:
+	case CO_BCONTAINS:
+	case CO_STARTSWITH:
+	case CO_BSTARTSWITH:
+	case CO_ENDSWITH:
+	case CO_REGEX:
+		return true;
+	default:
+		return false;
+	}
+}
+
+std::vector<comparator> flt_supported_cmpops(ppm_param_type t, bool is_list, cmpop_mod mod) {
+	std::vector<comparator> res;
+	// CO_REGEX is the last operator: keep the bound in sync when adding new ones
+	for(uint8_t i = CO_EQ; i <= CO_REGEX; i++) {
+		comparator cmp(static_cast<cmpop>(i));
+		cmp.mod = mod;
+		std::string err;
+		if(mod != CMPOP_MOD_NONE && !flt_cmpop_supports_modifier(cmp.op)) {
+			continue;
+		}
+		if(flt_is_comparable(cmp, t, is_list, err)) {
+			res.push_back(cmp);
+		}
+	}
+	return res;
+}
+
 // little helper for functions below
 template<typename Check>
 static inline void _throw_if_not_comparable(comparator cmp, Check c) {
