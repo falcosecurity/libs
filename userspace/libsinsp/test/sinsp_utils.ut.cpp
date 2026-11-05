@@ -28,11 +28,17 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	// * current impl supports UTF-8 encoding.
 	// * current impl does not normalize path1
 	// * current impl expects path1 to end with '/'
-	// * current impl skips path1 altogether if path2 is absolute
+	// * current impl skips path1 altogether if path2 is absolute or empty
 
 	std::string path1, path2, res;
 
 	res = sinsp_utils::concatenate_paths("", "");
+	EXPECT_EQ("", res);
+
+	// An empty path2 discards path1, the same way an absolute path2 does.
+	path1 = "/foo/bar";
+	path2 = "";
+	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("", res);
 
 	path1 = "";
@@ -420,6 +426,28 @@ TEST(sinsp_utils_test, concatenate_paths_recovers_normalizing_long_paths) {
 	ASSERT_GT(padded.length() + 1, SCAP_MAX_PATH_SIZE);
 	EXPECT_EQ("/foo/bar", sinsp_utils::concatenate_paths("/", padded));
 	EXPECT_EQ("/tmp/foo/bar", sinsp_utils::concatenate_paths("/tmp/", padded));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_empty_path2_discards_long_path1) {
+	// path1 alone exceeds the fast path, so the call goes through the normalizing route. An empty
+	// path2 discards path1 there as well.
+	const std::string path1(2000, 'a');
+	ASSERT_GT(path1.length() + 1, SCAP_MAX_PATH_SIZE);
+	EXPECT_EQ("", sinsp_utils::concatenate_paths(path1, ""));
+}
+
+TEST(sinsp_utils_test, concatenate_paths_empty_path2_string_view_discards_path1) {
+	// A default-constructed std::string_view has data() == nullptr and size() == 0. The fast path
+	// used to hand that pointer to copy_and_normalize_path, which dereferences it on its first
+	// line, so this case killed the process before the early return was added.
+	const std::string_view path2;
+	ASSERT_EQ(nullptr, path2.data());
+	EXPECT_EQ("", sinsp_utils::concatenate_paths("/foo/bar", path2));
+
+	// The normalizing route guarded the call already, but it now relies on the same early return.
+	const std::string long_path1(2000, 'a');
+	ASSERT_GT(long_path1.length() + 1, SCAP_MAX_PATH_SIZE);
+	EXPECT_EQ("", sinsp_utils::concatenate_paths(long_path1, path2));
 }
 
 TEST(sinsp_utils_test, concatenate_paths_still_rejects_genuinely_long_paths) {
