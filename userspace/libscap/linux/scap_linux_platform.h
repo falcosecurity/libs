@@ -178,6 +178,11 @@ struct scap_linux_platform {
 
 	falcosecurity_log_fn m_log_fn;
 
+	// kcmp() in the /proc scan. m_kcmp_usable: 0 not checked yet, 1 the scanned pids are valid
+	// kcmp() arguments, -1 they are not.
+	int8_t m_kcmp_usable;
+	bool m_kcmp_error_logged;
+
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;
 };

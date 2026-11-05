@@ -992,6 +992,74 @@ static int32_t read_procfs_proc_pid_cmdline_and_exe(const char* const procfs_pro
 	return SCAP_SUCCESS;
 }
 
+// KCMP_FILES of enum kcmp_type in linux/kcmp.h, which not every build has.
+#define SCAP_KCMP_FILES 2
+
+// kcmp() takes pids of our pid namespace, and the scan reads pids from the procfs under the host
+// root. They are the same pids if that procfs shows our pid as ours.
+static bool scanned_pids_are_ours(void) {
+	char path[SCAP_MAX_PATH_SIZE];
+	snprintf(path, sizeof(path), "%s/proc/self", scap_get_host_root());
+	char link[32];
+	const ssize_t len = readlink(path, link, sizeof(link) - 1);
+	if(len <= 0) {
+		return false;
+	}
+	link[len] = '\0';
+	char* end;
+	const unsigned long pid = strtoul(link, &end, 10);
+	return *end == '\0' && pid == (unsigned long)getpid();
+}
+
+// The task whose files the threads of `pid` share: the leader, or its first live thread if the
+// leader exited. The full scan learns it from the leader instead; this costs a file read.
+static uint64_t files_reference_tid(const uint64_t pid) {
+	char leader_dir[SCAP_MAX_PATH_SIZE];
+	snprintf(leader_dir, sizeof(leader_dir), "%s/proc/%" PRIu64 "/", scap_get_host_root(), pid);
+	char live_dir[SCAP_MAX_PATH_SIZE];
+	uint32_t live_tid;
+	if(find_live_thread_of_zombie_leader(leader_dir,
+	                                     (uint32_t)pid,
+	                                     live_dir,
+	                                     sizeof(live_dir),
+	                                     &live_tid)) {
+		return live_tid;
+	}
+	return pid;
+}
+
+// Whether the thread `tid` shares the files of the task `ref_tid`. If kcmp() fails, assume that it
+// does, as the threads of a process normally do.
+static bool thread_shares_files(struct scap_linux_platform* linux_platform,
+                                const uint64_t ref_tid,
+                                const uint64_t tid) {
+#ifdef SYS_kcmp
+	if(linux_platform->m_kcmp_usable == 0) {
+		linux_platform->m_kcmp_usable = scanned_pids_are_ours() ? 1 : -1;
+	}
+	if(linux_platform->m_kcmp_usable < 0) {
+		return true;
+	}
+	// syscall() returns -1 and sets errno on failure.
+	const long res = syscall(SYS_kcmp, (pid_t)ref_tid, (pid_t)tid, SCAP_KCMP_FILES, 0, 0);
+	if(res < 0) {
+		const int err = errno;
+		if(!linux_platform->m_kcmp_error_logged) {
+			linux_platform->m_kcmp_error_logged = true;
+			scap_log(linux_platform,
+			         FALCOSECURITY_LOG_SEV_WARNING,
+			         "kcmp() failed (%s), so the /proc scan assumes that the threads of a process "
+			         "share its fds",
+			         strerror(err));
+		}
+		return true;
+	}
+	return res == 0;
+#else
+	return true;
+#endif
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -1001,6 +1069,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
                                        char* procdirname,
                                        struct scap_ns_socket_list** sockets_by_ns,
                                        uint64_t* num_fds_ret,
+                                       uint64_t* const files_ref_tid,
                                        char* error) {
 	char dir_name[SCAP_MAX_PATH_SIZE];
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
@@ -1025,8 +1094,9 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	// neither a cmdline nor an exe link, so only then is it worth checking.
 	char live_dir[SCAP_MAX_PATH_SIZE];
 	char* data_dir = dir_name;
+	uint32_t live_tid = 0;
 	if(cmdline_len == 0 && target_res <= 0 &&
-	   find_live_thread_of_zombie_leader(dir_name, tid, live_dir, sizeof(live_dir), NULL)) {
+	   find_live_thread_of_zombie_leader(dir_name, tid, live_dir, sizeof(live_dir), &live_tid)) {
 		data_dir = live_dir;
 		res = read_procfs_proc_pid_cmdline_and_exe(data_dir,
 		                                           cmdline_buff,
@@ -1169,20 +1239,23 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		tinfo.clone_ts = dirstat.st_ctim.tv_sec * SECOND_TO_NS + dirstat.st_ctim.tv_nsec;
 	}
 
-	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set
-	// the corresponding process flags.
-	// XXX we should see if the process creation flags are stored somewhere in /proc and handle this
-	// properly instead of making assumptions.
-	//
+	// If tid is different from pid, this is a thread. It shares the files of its process unless
+	// kcmp() says otherwise. Then the thread has fds of its own, read below.
+	// `*files_ref_tid` carries the reference task from the leader to its threads in a full scan.
 	if(tinfo.tid == tinfo.pid) {
 		// A leader that exited is a zombie: it is dead, but it stays while its threads live.
-		tinfo.flags = data_dir != dir_name ? PPM_CL_CLOSED : 0;
+		tinfo.flags = live_tid != 0 ? PPM_CL_CLOSED : 0;
+		if(files_ref_tid != NULL) {
+			*files_ref_tid = live_tid != 0 ? live_tid : tinfo.tid;
+		}
 	} else {
-		/* Probably we are doing this because `pthread_create` calls `clone()`
-		 * with `CLONE_FILES`, but this is just an assumption.
-		 * All threads populated by /proc scan will have `fdtable->size()==0`.
-		 */
-		tinfo.flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+		tinfo.flags = PPM_CL_CLONE_THREAD;
+		const uint64_t ref_tid = files_ref_tid != NULL && *files_ref_tid != 0
+		                                 ? *files_ref_tid
+		                                 : files_reference_tid(tinfo.pid);
+		if(thread_shares_files(linux_platform, ref_tid, tinfo.tid)) {
+			tinfo.flags |= PPM_CL_CLONE_FILES;
+		}
 	}
 
 	if(SCAP_FAILURE == scap_proc_fill_exe_ino_ctime_mtime(linux_platform->m_lasterr,
@@ -1220,15 +1293,15 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	                                      NULL,
 	                                      &new_tinfo);
 
-	// Retrieve files only if this is the main thread.
-	if(new_tinfo->pid != new_tinfo->tid) {
+	// A thread that shares the files of its process has no fds of its own.
+	if(new_tinfo->pid != new_tinfo->tid && (new_tinfo->flags & PPM_CL_CLONE_FILES)) {
 		return SCAP_SUCCESS;
 	}
 
-	// The engine fetches the files of a process by its pid, and a zombie leader has none: read the
-	// fd directory of its live thread instead.
+	// The engine fetches the files of a process by its pid. Those are not the files of a thread
+	// with fds of its own, and a zombie leader has none: read the fd directory instead.
 	const bool must_fetch_sockets = *sockets_by_ns != (void*)-1;
-	if(data_dir == dir_name) {
+	if(new_tinfo->pid == new_tinfo->tid && live_tid == 0) {
 		res = linux_vtable_fetch_proc_files(linux_platform,
 		                                    proclist,
 		                                    new_tinfo,
@@ -1240,10 +1313,12 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		}
 	}
 
+	// Keyed by tid: a thread with its own table gets its own fds. The fds of a zombie leader's
+	// live thread go to the leader (tid == pid).
 	return scap_fd_scan_fd_dir(linux_platform,
 	                           proclist,
 	                           data_dir,
-	                           new_tinfo->pid,
+	                           new_tinfo->tid,
 	                           new_tinfo,
 	                           sockets_by_ns,
 	                           num_fds_ret,
@@ -1270,6 +1345,7 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
 	                                            tid,
 	                                            procdirname,
 	                                            &sockets_by_ns,
+	                                            NULL,
 	                                            NULL,
 	                                            add_error);
 	if(res != SCAP_SUCCESS) {
@@ -1459,10 +1535,12 @@ static int32_t fetch_procfs_procs_files(struct scap_linux_platform* linux_platfo
 //
 // Scan a directory containing multiple processes under /proc
 //
+// `files_ref_tid` is the reference task of the process when scanning its threads, 0 otherwise.
 static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_platform,
                                              struct scap_proclist* proclist,
                                              char* procdirname,
                                              int parenttid,
+                                             uint64_t files_ref_tid,
                                              char* error) {
 	DIR* dir_p;
 	struct dirent* dir_entry_p;
@@ -1545,12 +1623,14 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 		// We have a process that needs to be explored
 		//
 		uint64_t num_fds_this_proc;
+		uint64_t ref_tid = files_ref_tid;
 		res = scap_proc_add_from_proc(linux_platform,
 		                              proclist,
 		                              tid,
 		                              procdirname,
 		                              &sockets_by_ns,
 		                              &num_fds_this_proc,
+		                              &ref_tid,
 		                              add_error);
 		if(res != SCAP_SUCCESS) {
 			//
@@ -1575,8 +1655,12 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 		//
 		if(parenttid == -1 && !linux_platform->m_minimal_scan) {
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-			if(_scap_proc_scan_proc_dir_impl(linux_platform, proclist, childdir, tid, error) ==
-			   SCAP_FAILURE) {
+			if(_scap_proc_scan_proc_dir_impl(linux_platform,
+			                                 proclist,
+			                                 childdir,
+			                                 tid,
+			                                 ref_tid,
+			                                 error) == SCAP_FAILURE) {
 				res = SCAP_FAILURE;
 				break;
 			}
@@ -1826,7 +1910,12 @@ int32_t scap_linux_refresh_proc_table(struct scap_platform* platform,
 		// Fall back to procfs processes lookup.
 		char procfs_dir_path[SCAP_MAX_PATH_SIZE];
 		snprintf(procfs_dir_path, sizeof(procfs_dir_path), "%s/proc", scap_get_host_root());
-		res = _scap_proc_scan_proc_dir_impl(linux_platform, proclist, procfs_dir_path, -1, error);
+		res = _scap_proc_scan_proc_dir_impl(linux_platform,
+		                                    proclist,
+		                                    procfs_dir_path,
+		                                    -1,
+		                                    0,
+		                                    error);
 		goto cleanup;
 	}
 
