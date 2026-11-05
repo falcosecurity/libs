@@ -989,8 +989,12 @@ void sinsp::on_new_entry_from_proc(void* context,
 		                               tinfo->gid,
 		                               must_notify_thread_user_update());
 		if(is_nodriver()) {
+			// A known thread keeps its entry, unless it is new or it stopped sharing the files of
+			// its process. Then the scan reports the fds of its own table.
 			auto existing_tinfo = find_thread(tid, true);
-			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts) {
+			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts ||
+			   (newti->m_flags & PPM_CL_CLONE_FILES) !=
+			           (existing_tinfo->m_flags & PPM_CL_CLONE_FILES)) {
 				sinsp_tinfo = m_thread_manager->add_thread(std::move(newti),
 				                                           must_create_thread_dependencies);
 			}
