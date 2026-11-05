@@ -712,3 +712,111 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing) {
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, std::stoi(port_server_string));
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, std::stoi(port_client_string));
 }
+
+TEST_F(sinsp_with_test_input, net_ipv4_mapped_ipv6_preserves_l4proto) {
+	add_default_init_thread();
+	open_inspector();
+
+	/* Dual-stack socket: AF_INET6 carrying IPv4 traffic (TCP). */
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_STREAM));
+
+	sockaddr_in6 client =
+	        test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, "::ffff:" DEFAULT_IPV4_CLIENT_STRING);
+	sockaddr_in6 server =
+	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, "::ffff:" DEFAULT_IPV4_SERVER_STRING);
+
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+
+	auto* evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.l4proto"), "tcp");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV4_FDNAME);
+
+	const auto* fdinfo = evt->get_fd_info();
+	ASSERT_NE(fdinfo, nullptr);
+	ASSERT_EQ(fdinfo->get_l4proto(), SCAP_L4_TCP);
+}
+
+TEST_F(sinsp_with_test_input, net_ipv4_mapped_ipv6_preserves_l4proto_udp) {
+	add_default_init_thread();
+	open_inspector();
+
+	/* Dual-stack socket: AF_INET6 carrying IPv4 traffic (UDP). */
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_DGRAM));
+
+	sockaddr_in6 client =
+	        test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, "::ffff:" DEFAULT_IPV4_CLIENT_STRING);
+	sockaddr_in6 server =
+	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, "::ffff:" DEFAULT_IPV4_SERVER_STRING);
+
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+	                                   reinterpret_cast<sockaddr*>(&server));
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+
+	auto* evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.l4proto"), "udp");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV4_FDNAME);
+
+	const auto* fdinfo = evt->get_fd_info();
+	ASSERT_NE(fdinfo, nullptr);
+	ASSERT_EQ(fdinfo->get_l4proto(), SCAP_L4_UDP);
+}
+
+TEST_F(sinsp_with_test_input, net_ipv4_mapped_ipv6_preserves_l4proto_from_addr) {
+	add_default_init_thread();
+	open_inspector();
+
+	/* Dual-stack socket: AF_INET6 connect exit without tuple (from addr fallback). */
+	generate_socket_exit_event(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_STREAM));
+
+	sockaddr_in6 server =
+	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, "::ffff:" DEFAULT_IPV4_SERVER_STRING);
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+
+	add_filtered_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_E,
+	        2,
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	auto* evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_X,
+	        4,
+	        (int64_t)0,
+	        scap_const_sized_buffer{nullptr, 0},
+	        sinsp_test_input::socket_params::default_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	const auto* fdinfo = evt->get_fd_info();
+	ASSERT_NE(fdinfo, nullptr);
+	ASSERT_EQ(fdinfo->m_type, SCAP_FD_IPV4_SOCK);
+	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto, SCAP_L4_TCP);
+}
