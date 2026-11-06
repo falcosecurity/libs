@@ -795,12 +795,23 @@ void sinsp_thread_manager::reset_child_dependencies() {
 }
 
 void sinsp_thread_manager::create_thread_dependencies_after_proc_scan() {
-	// Main threads first, so that the other threads adopt their fd table. The
-	// thread table is not in tid order.
-	for(const bool main_threads : {true, false}) {
+	// The first thread of a group keeps its fd table and the others adopt it, so the thread that
+	// holds the fds goes first: the main thread, or, in a group without one, a thread with fds.
+	// The thread table is not in tid order.
+	enum class thread_class { main_thread, holds_fds, other };
+	for(const thread_class pass :
+	    {thread_class::main_thread, thread_class::holds_fds, thread_class::other}) {
 		m_threadtable.const_loop_shared_pointer(
 		        [&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
-			        if(tinfo->is_main_thread() == main_threads) {
+			        thread_class current_thread_class;
+			        if(tinfo->is_main_thread()) {
+				        current_thread_class = thread_class::main_thread;
+			        } else if(tinfo->get_fdtable().size() != 0) {
+				        current_thread_class = thread_class::holds_fds;
+			        } else {
+				        current_thread_class = thread_class::other;
+			        }
+			        if(current_thread_class == pass) {
 				        create_thread_dependencies(tinfo);
 			        }
 			        return true;

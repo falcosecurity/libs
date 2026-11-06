@@ -1817,3 +1817,68 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_zombie_leader_is_not_alive) {
 	EXPECT_EQ(manager.find_thread(100, true), nullptr);
 	m_inspector.set_observer(nullptr);
 }
+
+/* The scan keeps every fd table: the table of a thread without CLONE_FILES, and the table of a
+ * group without its main thread.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_keeps_every_fd_table) {
+	add_default_init_thread();
+	const auto task = [this](int64_t tid, int64_t pid, uint32_t flags) {
+		auto tinfo = create_threadinfo(tid,
+		                               pid,
+		                               INIT_TID,
+		                               pid,
+		                               tid,
+		                               pid,
+		                               "proc",
+		                               "/bin/proc",
+		                               "/bin/proc",
+		                               increasing_ts(),
+		                               0,
+		                               0,
+		                               {},
+		                               0,
+		                               {},
+		                               "/");
+		tinfo.flags = flags;
+		return tinfo;
+	};
+	const auto file = [](int64_t fd, const char* name) {
+		scap_fdinfo fdinfo{};
+		fdinfo.fd = fd;
+		fdinfo.ino = 100 + fd;
+		fdinfo.type = SCAP_FD_FILE_V2;
+		fdinfo.info.regularinfo.open_flags = PPM_O_RDONLY;
+		strlcpy(fdinfo.info.regularinfo.fname, name, sizeof(fdinfo.info.regularinfo.fname));
+		return fdinfo;
+	};
+	constexpr uint32_t thread = PPM_CL_CLONE_THREAD;
+	constexpr uint32_t sharing_thread = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	add_thread(task(100, 100, 0), {file(3, "/tmp/process")});
+	add_thread(task(101, 100, thread), {file(4, "/tmp/thread")});
+	// No main thread 200. The thread without fds comes first in tid order.
+	add_thread(task(201, 200, sharing_thread), {});
+	add_thread(task(202, 200, sharing_thread), {file(5, "/tmp/group")});
+	open_inspector();
+
+	const auto check = [](sinsp& inspector) {
+		auto main_thread = inspector.m_thread_manager->find_thread(100, true);
+		auto own_table = inspector.m_thread_manager->find_thread(101, true);
+		auto first = inspector.m_thread_manager->find_thread(201, true);
+		auto second = inspector.m_thread_manager->find_thread(202, true);
+		ASSERT_NE(main_thread, nullptr);
+		ASSERT_NE(own_table, nullptr);
+		ASSERT_NE(first, nullptr);
+		ASSERT_NE(second, nullptr);
+
+		ASSERT_NE(main_thread->get_fdtable().find(3), nullptr);
+		EXPECT_EQ(own_table->get_fdtable().find(3), nullptr);
+		ASSERT_NE(own_table->get_fdtable().find(4), nullptr);
+		EXPECT_EQ(own_table->get_fdtable().find(4)->m_name, "/tmp/thread");
+
+		EXPECT_EQ(first->get_fd_table(), second->get_fd_table());
+		ASSERT_NE(first->get_fdtable().find(5), nullptr);
+		EXPECT_EQ(first->get_fdtable().find(5)->m_name, "/tmp/group");
+	};
+	check(m_inspector);
+}
