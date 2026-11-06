@@ -1818,10 +1818,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_zombie_leader_is_not_alive) {
 	m_inspector.set_observer(nullptr);
 }
 
-/* The scan keeps every fd table: the table of a thread without CLONE_FILES, and the table of a
- * group without its main thread.
+/* The scan and a capture file keep every fd table: the table of a thread without CLONE_FILES,
+ * and the table of a group without its main thread.
  */
-TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_keeps_every_fd_table) {
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_and_capture_file_keep_every_fd_table) {
 	add_default_init_thread();
 	const auto task = [this](int64_t tid, int64_t pid, uint32_t flags) {
 		auto tinfo = create_threadinfo(tid,
@@ -1881,4 +1881,72 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_keeps_every_fd_table) {
 		EXPECT_EQ(first->get_fdtable().find(5)->m_name, "/tmp/group");
 	};
 	check(m_inspector);
+
+	const char* path = "every_fd_table.scap";
+	auto dumper = sinsp_dumper();
+	dumper.open(&m_inspector, path, false);
+	dumper.close();
+
+	sinsp replay;
+	replay.open_savefile(path);
+	check(replay);
+	replay.close();
+	remove(path);
+}
+
+/* A parent link can join a thread of a group before the thread that holds the fds of the group:
+ * here process 300 links to the thread 201 of a group without its main thread. The thread with
+ * the fds still keeps them when it adopts the table of the first thread, in the scan and in a
+ * capture file.
+ */
+TEST_F(sinsp_with_test_input, THRD_TABLE_proc_scan_keeps_fds_of_a_thread_after_a_parent_link) {
+	add_default_init_thread();
+	const auto task = [this](int64_t tid, int64_t pid, int64_t ptid, uint32_t flags) {
+		auto tinfo = create_threadinfo(tid,
+		                               pid,
+		                               ptid,
+		                               pid,
+		                               tid,
+		                               pid,
+		                               "proc",
+		                               "/bin/proc",
+		                               "/bin/proc",
+		                               increasing_ts(),
+		                               0,
+		                               0,
+		                               {},
+		                               0,
+		                               {},
+		                               "/");
+		tinfo.flags = flags;
+		return tinfo;
+	};
+	constexpr uint32_t sharing_thread = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	// No main thread 200. The thread without fds is the parent of process 300.
+	add_thread(task(201, 200, INIT_TID, sharing_thread), {});
+	add_thread(task(202, 200, INIT_TID, sharing_thread), {scap_file(5, "/tmp/group")});
+	add_thread(task(300, 300, 201, 0), {});
+	open_inspector();
+
+	const auto check = [](sinsp& inspector) {
+		auto first = inspector.m_thread_manager->find_thread(201, true);
+		auto second = inspector.m_thread_manager->find_thread(202, true);
+		ASSERT_NE(first, nullptr);
+		ASSERT_NE(second, nullptr);
+		EXPECT_EQ(first->get_fd_table(), second->get_fd_table());
+		ASSERT_NE(second->get_fdtable().find(5), nullptr);
+		EXPECT_EQ(second->get_fdtable().find(5)->m_name, "/tmp/group");
+	};
+	check(m_inspector);
+
+	const char* path = "parent_link_fd_table.scap";
+	auto dumper = sinsp_dumper();
+	dumper.open(&m_inspector, path, false);
+	dumper.close();
+
+	sinsp replay;
+	replay.open_savefile(path);
+	check(replay);
+	replay.close();
+	remove(path);
 }

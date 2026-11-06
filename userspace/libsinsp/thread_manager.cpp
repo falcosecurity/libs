@@ -1060,6 +1060,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 	// Dump the FDs
 	//
 
+	// Each fd table once. The main thread holds the table of its process, because the replay
+	// gives the table of the main thread to the threads that share it.
+	std::unordered_set<const sinsp_fdtable*> dumped_tables;
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
 		if(tinfo.m_filtered_out) {
 			return true;
@@ -1074,14 +1077,18 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper) {
 		// shallow copy is safe
 		thread_to_scap(tinfo, &sctinfo);
 
-		if(tinfo.is_main_thread()) {
+		const sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
+		if(fd_table_ptr == NULL) {
+			return false;
+		}
+		const sinsp_threadinfo* main_thread = tinfo.get_main_thread();
+		const bool dumped_with_main_thread = !tinfo.is_main_thread() && main_thread != nullptr &&
+		                                     !main_thread->m_filtered_out &&
+		                                     main_thread->get_fd_table() == fd_table_ptr;
+		if(!dumped_with_main_thread && dumped_tables.insert(fd_table_ptr).second) {
 			//
 			// Add the FDs
 			//
-			const sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
-			if(fd_table_ptr == NULL) {
-				return false;
-			}
 
 			bool should_exit = false;
 			fd_table_ptr->const_loop([&](int64_t fd, const sinsp_fdinfo& info) {
