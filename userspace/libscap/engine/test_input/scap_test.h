@@ -43,6 +43,10 @@ struct scap_test_input_data {
 	size_t thread_count;
 
 	struct scap_test_fdinfo_data *fdinfo_data;
+
+	/* Reported verbatim by the engine's get_stats, so a consumer that reacts to
+	 * drops can be driven from a test. */
+	uint64_t n_drops_buffer;
 };
 
 typedef struct scap_test_input_data scap_test_input_data;

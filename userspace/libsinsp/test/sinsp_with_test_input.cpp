@@ -25,6 +25,7 @@ sinsp_with_test_input::sinsp_with_test_input() {
 	m_test_data.events = nullptr;
 	m_test_data.thread_count = 0;
 	m_test_data.threads = nullptr;
+	m_test_data.n_drops_buffer = 0;
 }
 
 sinsp_with_test_input::~sinsp_with_test_input() {
@@ -706,6 +707,17 @@ void sinsp_with_test_input::remove_inactive_threads(uint64_t m_lastevent_ts,
 
 	m_inspector.set_lastevent_ts(m_lastevent_ts);
 	m_inspector.m_thread_timeout_ns = thread_timeout;
+	m_inspector.remove_inactive_threads();
+}
+
+// Drive the drop-triggered branch: hold off the periodic deadline and feed a
+// drop count directly, since the test engines report no stats.
+void sinsp_with_test_input::purge_on_drops(uint64_t m_lastevent_ts, uint64_t drops) {
+	m_inspector.m_thread_manager->set_last_flush_time_ns(m_lastevent_ts);
+	m_inspector.m_threads_purging_scan_time_ns = ~0ULL / 2;
+
+	m_test_data.n_drops_buffer = drops;
+	m_inspector.set_lastevent_ts(m_lastevent_ts);
 	m_inspector.remove_inactive_threads();
 }
 

@@ -202,6 +202,50 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_s
 	ASSERT_THREAD_INFO_PIDS(init_t3_tid, init_t3_pid, init_t3_ptid);
 }
 
+TEST_F(sinsp_with_test_input, THRD_TABLE_purge_on_proc_exit_drops) {
+	DEFAULT_TREE
+
+	auto& thread_manager = m_inspector.m_thread_manager;
+	const uint64_t now = 1000 * ONE_SECOND_IN_NS;
+
+	set_threadinfo_last_access_time(p2_t3_tid, now);
+
+	purge_on_drops(now, 0);
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
+
+	purge_on_drops(now + 60 * ONE_SECOND_IN_NS, PURGE_DROP_THRESHOLD_TOTAL / 2);
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
+
+	purge_on_drops(now + 120 * ONE_SECOND_IN_NS, PURGE_DROP_THRESHOLD_TOTAL * 2);
+	ASSERT_LT(thread_manager->get_thread_count(), DEFAULT_TREE_NUM_PROCS);
+}
+
+TEST_F(sinsp_with_test_input, THRD_TABLE_purge_drop_mark_accumulates) {
+	DEFAULT_TREE
+
+	auto& thread_manager = m_inspector.m_thread_manager;
+	const uint64_t now = 1000 * ONE_SECOND_IN_NS;
+	uint64_t t = now;
+
+	purge_on_drops(t, 0); /* seed */
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
+
+	const uint64_t step = PURGE_DROP_THRESHOLD_TOTAL / 3;
+	uint64_t total = 0;
+	for(int i = 0; i < 3; i++) {
+		total += step;
+		t += 60 * ONE_SECOND_IN_NS;
+		purge_on_drops(t, total);
+		ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count())
+		        << "fired early at drops=" << total;
+	}
+
+	total += step;
+	t += 60 * ONE_SECOND_IN_NS;
+	purge_on_drops(t, total);
+	ASSERT_LT(thread_manager->get_thread_count(), DEFAULT_TREE_NUM_PROCS);
+}
+
 TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
 	DEFAULT_TREE
 
