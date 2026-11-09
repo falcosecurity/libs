@@ -1034,6 +1034,9 @@ sinsp_filter_factory::check_infos_to_fieldclass_infos(
 				if(fld->m_flags & EPF_ARG_KEY) {
 					info.tags.insert("ARG_KEY");
 				}
+				if(fld->m_flags & EPF_ARG_DOTTED) {
+					info.tags.insert("ARG_DOTTED");
+				}
 			}
 
 			if(fld->m_flags & EPF_IS_LIST) {
@@ -1073,6 +1076,10 @@ sinsp_filter_factory::filter_field_info::get_argument_type() const {
 		retval |= ARG_TYPE_INDEX;
 	}
 	return static_cast<sinsp_filter_factory::field_argument_type>(retval);
+}
+
+bool sinsp_filter_factory::filter_field_info::is_arg_dotted() const {
+	return (tags.find("ARG_DOTTED") != tags.end());
 }
 
 sinsp_filter_factory::field_argument_requirement
@@ -1307,6 +1314,7 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_json(
 				type_array.append("KEY");
 			}
 			argument["type"] = type_array;
+			argument["dotted"] = fld_info.is_arg_dotted();
 
 			field["argument"] = argument;
 		} else {

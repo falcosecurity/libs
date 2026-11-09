@@ -1487,3 +1487,61 @@ TEST(filter_fields_info, as_string_all_fields) {
 		}
 	}
 }
+
+// 'field.argument' is the legacy syntax: it must not spread to new fields, so adding one here has
+// to be a deliberate decision
+TEST(filter_fields_info, arg_dotted_is_limited_to_legacy_fields) {
+	sinsp inspector;
+	sinsp_filter_check_list checks;
+	sinsp_filter_factory factory(&inspector, checks);
+
+	const std::set<string> legacy_dotted = {"evt.type.is",
+	                                        "evt.arg",
+	                                        "evt.rawarg",
+	                                        "evt.abspath",
+	                                        "thread.cgroup"};
+	std::set<string> dotted;
+	for(const auto& fc : factory.get_fields()) {
+		for(const auto& fld : fc.fields) {
+			if(fld.is_arg_dotted()) {
+				dotted.insert(fld.name);
+				EXPECT_NE(fld.is_expecting_arg(), sinsp_filter_factory::ARG_REQ_NONE) << fld.name;
+			}
+		}
+	}
+	EXPECT_EQ(legacy_dotted, dotted);
+}
+
+TEST(filter_fields_info, as_json_argument_dotted) {
+	sinsp inspector;
+	sinsp_filter_check_list checks;
+	sinsp_filter_factory factory(&inspector, checks);
+
+	std::map<string, bool> dotted_by_field;
+	for(const auto& fc : factory.get_fields()) {
+		const auto json_str = fc.as_json();
+		if(json_str.empty()) {
+			continue;
+		}
+		Json::Value root;
+		Json::CharReaderBuilder builder;
+		std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+		std::string errors;
+		ASSERT_TRUE(
+		        reader->parse(json_str.c_str(), json_str.c_str() + json_str.size(), &root, &errors))
+		        << errors;
+		for(const auto& field : root["fields"]) {
+			const auto& argument = field["argument"];
+			if(argument.isNull()) {
+				continue;
+			}
+			ASSERT_TRUE(argument["dotted"].isBool()) << field["name"].asString();
+			dotted_by_field[field["name"].asString()] = argument["dotted"].asBool();
+		}
+	}
+
+	EXPECT_TRUE(dotted_by_field.at("evt.type.is"));
+	EXPECT_TRUE(dotted_by_field.at("thread.cgroup"));
+	EXPECT_FALSE(dotted_by_field.at("fd.types"));
+	EXPECT_FALSE(dotted_by_field.at("proc.aname"));
+}

@@ -604,7 +604,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "Thread Cgroups",
          "All cgroups the thread belongs to, aggregated into a single string."},
         {PT_CHARBUF,
-         EPF_ARG_REQUIRED | EPF_ARG_KEY,
+         EPF_ARG_REQUIRED | EPF_ARG_KEY | EPF_ARG_DOTTED,
          PF_NA,
          "thread.cgroup",
          "Thread Cgroup",

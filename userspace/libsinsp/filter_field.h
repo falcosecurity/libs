@@ -51,6 +51,10 @@ enum filtercheck_field_flags {
 	                  ///< extractions (even of other fields), which makes them unsafe to be used
 	                  ///< with filter caching or field-to-field comparisons
 	EPF_FORMAT_SUGGESTED = 1 << 14,  ///< this field is suggested to be used as output field
+	EPF_ARG_DOTTED =
+	        1 << 15,  ///< legacy: this field also takes its argument as 'property.argument'
+	                  ///< instead of 'property[argument]'. Reserved for fields that already
+	                  ///< exist: new fields and plugin fields must use the bracket syntax.
 };
 
 /**

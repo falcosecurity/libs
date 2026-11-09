@@ -225,6 +225,8 @@ public:
 		bool is_deprecated() const;
 		bool is_list() const;
 		field_argument_type get_argument_type() const;
+		// True for legacy fields that also take the argument as 'field.argument'
+		bool is_arg_dotted() const;
 		field_argument_requirement is_expecting_arg() const;
 	};
 
