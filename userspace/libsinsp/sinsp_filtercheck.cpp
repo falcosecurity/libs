@@ -136,6 +136,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 	case PT_UINT8:
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
+	case PT_SIGTYPE:
 		if(print_format == PF_DEC || print_format == PF_ID) {
 			return *(uint8_t*)rawval;
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
@@ -163,6 +164,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 	case PT_ENUMFLAGS32:
 	case PT_UID:
 	case PT_GID:
+	case PT_MODE:
+	case PT_SIGSET:
 		if(print_format == PF_DEC || print_format == PF_ID) {
 			return *(uint32_t*)rawval;
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
@@ -188,6 +191,14 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 	case PT_SOCKADDR:
 	case PT_SOCKFAMILY:
 		ASSERT(false);
+		return Json::nullValue;
+
+	// evt.rawarg.* can hand us these, but they have no raw scalar representation.
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_DYN:
+	case PT_CHARBUFARRAY:
+	case PT_CHARBUF_PAIR_ARRAY:
 		return Json::nullValue;
 
 	case PT_BOOL:
@@ -307,6 +318,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_UINT8:
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
+	case PT_SIGTYPE:
 		if(len == 0) {
 			return (char*)"0";
 		}
@@ -356,6 +368,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	case PT_ENUMFLAGS32:
 	case PT_UID:
 	case PT_GID:
+	case PT_MODE:
+	case PT_SIGSET:
 		if(len == 0) {
 			return (char*)"0";
 		}
@@ -418,6 +432,13 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		return NULL;
 	case PT_SOCKFAMILY:
 		ASSERT(false);
+		return NULL;
+	// evt.rawarg.* can hand us these, but they have no raw scalar representation.
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_DYN:
+	case PT_CHARBUFARRAY:
+	case PT_CHARBUF_PAIR_ARRAY:
 		return NULL;
 	case PT_BOOL:
 		if(rawval_cast<uint32_t>(rawval) != 0) {
