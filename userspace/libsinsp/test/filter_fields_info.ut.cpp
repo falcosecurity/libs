@@ -1545,3 +1545,23 @@ TEST(filter_fields_info, as_json_argument_dotted) {
 	EXPECT_FALSE(dotted_by_field.at("fd.types"));
 	EXPECT_FALSE(dotted_by_field.at("proc.aname"));
 }
+
+// The argument type must reflect what the extraction uses: proc.env[N] ignores N, while
+// proc.aenv[N] walks N ancestors
+TEST(filter_fields_info, arg_type_follows_extraction) {
+	sinsp inspector;
+	sinsp_filter_check_list checks;
+	sinsp_filter_factory factory(&inspector, checks);
+
+	std::map<string, sinsp_filter_factory::field_argument_type> arg_types;
+	for(const auto& fc : factory.get_fields()) {
+		for(const auto& fld : fc.fields) {
+			arg_types[fld.name] = fld.get_argument_type();
+		}
+	}
+
+	EXPECT_EQ(arg_types.at("proc.env"), sinsp_filter_factory::ARG_TYPE_KEY);
+	EXPECT_EQ(arg_types.at("proc.aenv"),
+	          sinsp_filter_factory::ARG_TYPE_INDEX | sinsp_filter_factory::ARG_TYPE_KEY);
+	EXPECT_EQ(arg_types.at("proc.aname"), sinsp_filter_factory::ARG_TYPE_INDEX);
+}

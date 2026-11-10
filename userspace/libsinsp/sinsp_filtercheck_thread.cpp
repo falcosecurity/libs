@@ -193,7 +193,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "The full command line, with exe as first argument (proc.exe + proc.args) when starting "
          "the process generating the event."},
         {PT_CHARBUF,
-         EPF_ARG_ALLOWED | EPF_ARG_INDEX | EPF_ARG_KEY,
+         EPF_ARG_ALLOWED | EPF_ARG_KEY,
          PF_NA,
          "proc.env",
          "Environment",
