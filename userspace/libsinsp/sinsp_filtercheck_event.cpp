@@ -102,7 +102,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "event direction can be either '>' for enter events or '<' for exit events."},
         {PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "Type", "The name of the event (e.g. 'open')."},
         {PT_UINT32,
-         EPF_ARG_REQUIRED,
+         EPF_ARG_REQUIRED | EPF_ARG_KEY | EPF_ARG_DOTTED,
          PF_NA,
          "evt.type.is",
          "Type Is",
@@ -137,7 +137,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "Arguments",
          "all the event arguments, aggregated into a single string."},
         {PT_CHARBUF,
-         EPF_ARG_REQUIRED | EPF_NO_PTR_STABILITY,
+         EPF_ARG_REQUIRED | EPF_NO_PTR_STABILITY | EPF_ARG_INDEX | EPF_ARG_KEY | EPF_ARG_DOTTED,
          PF_NA,
          "evt.arg",
          "Argument",
@@ -145,7 +145,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "codes or FDs) will be converted into a text representation when possible. E.g. "
          "'evt.arg.fd' or 'evt.arg[0]'."},
         {PT_DYN,
-         EPF_ARG_REQUIRED | EPF_NO_RHS | EPF_NO_TRANSFORMER,
+         EPF_ARG_REQUIRED | EPF_NO_RHS | EPF_NO_TRANSFORMER | EPF_ARG_KEY | EPF_ARG_DOTTED,
          PF_NA,
          "evt.rawarg",
          "Raw Argument",
@@ -287,7 +287,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "Thread Info Count",
          "This filter field returns 1 for procinfo events."},
         {PT_UINT64,
-         (filtercheck_field_flags)(EPF_FILTER_ONLY | EPF_ARG_REQUIRED | EPF_NO_RHS |
+         (filtercheck_field_flags)(EPF_FILTER_ONLY | EPF_ARG_REQUIRED | EPF_ARG_INDEX | EPF_NO_RHS |
                                    EPF_NO_TRANSFORMER),
          PF_DEC,
          "evt.around",
@@ -296,9 +296,11 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a "
          "delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the "
          "events with timestamp with one second before the timestamp and one second after it, for "
-         "a total of two seconds of capture."},
+         "a total of two seconds of capture.",
+         0,
+         cmpop_mask({CO_EQ})},
         {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
+         EPF_ARG_REQUIRED | EPF_ARG_KEY | EPF_ARG_DOTTED,
          PF_NA,
          "evt.abspath",
          "Absolute Path",
@@ -626,10 +628,7 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 
 		throw sinsp_exception("unknown event type " + stype);
 	} else if(m_field_id == TYPE_AROUND) {
-		if(m_cmp.op != CO_EQ) {
-			throw sinsp_exception("evt.around supports only '=' comparison operator");
-		}
-
+		// the compiler only lets '=' through, see m_enforced_ops
 		m_tsdelta = sinsp_numparser::parseu64(str) * 1000000;
 
 		return;

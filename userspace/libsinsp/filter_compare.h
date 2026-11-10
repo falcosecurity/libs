@@ -21,9 +21,11 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libsinsp/tuples.h>
 
+#include <initializer_list>
 #include <string>
 #include <unordered_set>
 #include <memory>
+#include <vector>
 
 /*
  * Operators to compare events
@@ -58,6 +60,19 @@ enum cmpop_mod : uint8_t {
 	CMPOP_MOD_ALLOF = 3,
 };
 
+// Builds a bitmask with one bit set (1 << op) per given operator.
+constexpr uint32_t cmpop_mask(std::initializer_list<cmpop> ops) {
+	uint32_t mask = 0;
+	for(auto op : ops) {
+		mask |= 1u << op;
+	}
+	return mask;
+}
+
+constexpr bool cmpop_in_mask(uint32_t mask, cmpop op) {
+	return mask & (1u << op);
+}
+
 cmpop str_to_cmpop(std::string_view str);
 cmpop_mod str_to_cmpop_mod(std::string_view str);
 struct comparator {
@@ -74,6 +89,12 @@ std::string to_string(cmpop);
 }
 
 bool flt_is_comparable(comparator cmp, ppm_param_type t, bool is_list, std::string& err);
+
+// Returns the operators that flt_is_comparable accepts for the given field type. If a
+// modifier is given, only the operators that the parser lets it follow are considered.
+std::vector<comparator> flt_supported_cmpops(ppm_param_type t,
+                                             bool is_list,
+                                             cmpop_mod mod = CMPOP_MOD_NONE);
 bool flt_compare(comparator cmp,
                  ppm_param_type type,
                  const void* operand1,
