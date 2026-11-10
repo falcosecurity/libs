@@ -63,6 +63,9 @@ struct scap_platform_vtable {
 
 	int32_t (*refresh_proc_table)(struct scap_platform*, struct scap_proclist* proclist);
 	bool (*is_thread_alive)(struct scap_platform*, int64_t pid, int64_t tid, const char* comm);
+
+	// optional, callers fall back to is_thread_alive
+	int32_t (*foreach_live_pid)(struct scap_platform*, void* ctx, scap_pid_cb cb);
 	int32_t (*get_global_pid)(struct scap_platform*, int64_t* pid, char* error);
 	int32_t (*get_threadlist)(struct scap_platform* platform,
 	                          struct ppm_proclist_info** procinfo_p,

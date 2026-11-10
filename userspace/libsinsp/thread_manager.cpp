@@ -144,6 +144,10 @@ void sinsp_thread_manager::clear() {
 	m_last_tid = -1;
 	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
+	m_purge_last_emerg_ns = 0;
+	m_purge_last_drops = 0;
+	m_purge_emerg_remaining = 0;
+	m_purge_have_drop_sample = false;
 	m_recently_exited_tids.fill({});
 	m_recently_exited_write_idx = 0;
 }

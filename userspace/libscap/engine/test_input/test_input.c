@@ -69,6 +69,15 @@ static int32_t next(struct scap_engine_handle handle,
 	return SCAP_SUCCESS;
 }
 
+static int32_t get_stats(struct scap_engine_handle engine, scap_stats* stats) {
+	const test_input_engine* handle = engine.m_handle;
+	if(handle->m_data != NULL) {
+		stats->n_drops_buffer = handle->m_data->n_drops_buffer;
+		stats->n_drops = handle->m_data->n_drops_buffer;
+	}
+	return SCAP_SUCCESS;
+}
+
 static int32_t init(scap_t* main_handle, scap_open_args* oargs) {
 	test_input_engine* engine = main_handle->m_engine.m_handle;
 	struct scap_test_input_engine_params* params = oargs->engine_params;
@@ -93,7 +102,7 @@ const struct scap_vtable scap_test_input_engine = {
         .start_capture = noop_start_capture,
         .stop_capture = noop_stop_capture,
         .configure = noop_configure,
-        .get_stats = noop_get_stats,
+        .get_stats = get_stats,
         .get_stats_v2 = noop_get_stats_v2,
         .get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
         .get_n_devs = noop_get_n_devs,

@@ -113,6 +113,7 @@ static const struct scap_platform_vtable scap_linux_platform_vtable = {
         .get_proc = scap_linux_proc_get,
         .refresh_proc_table = scap_linux_refresh_proc_table,
         .is_thread_alive = scap_linux_is_thread_alive,
+        .foreach_live_pid = scap_linux_foreach_live_pid,
         .get_global_pid = scap_linux_getpid_global,
         .get_threadlist = scap_linux_get_threadlist,
         .get_fdlist = scap_linux_get_fdlist,

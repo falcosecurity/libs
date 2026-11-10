@@ -2048,6 +2048,20 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val) {
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////
 
+/* Matches on m_pid: a leaked process holds a whole fd table, a sub-thread entry
+ * almost nothing. False when the platform declines, never on an empty /proc. */
+static bool purge_collect_live_pids(scap_platform* platform, std::unordered_set<int64_t>& live) {
+	const auto collect = [](void* ctx, int64_t pid) {
+		static_cast<std::unordered_set<int64_t>*>(ctx)->insert(pid);
+	};
+
+	if(scap_foreach_live_pid(platform, &live, collect) != SCAP_SUCCESS) {
+		return false;
+	}
+
+	return !live.empty();
+}
+
 /* Returns true when we scan the table */
 bool sinsp_thread_manager::remove_inactive_threads() {
 	const uint64_t last_event_ts = m_timestamper.get_cached_ts();
@@ -2063,24 +2077,86 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 		}
 	}
 
-	if(last_event_ts <= m_last_flush_time_ns + m_threads_purging_scan_time_ns) {
+	/* Two clocks. A thread dying inside a live process drops nothing, so only the
+	 * periodic branch ever reclaims it. */
+	bool emergency = false;
+	bool do_purge = false;
+	uint64_t thread_timeout_ns = m_thread_timeout_ns;
+
+	if(last_event_ts > m_last_flush_time_ns + m_threads_purging_scan_time_ns) {
+		m_last_flush_time_ns = last_event_ts;
+		do_purge = true;
+	} else if(last_event_ts > m_purge_last_emerg_ns + PURGE_EMERG_SCAN_NS) {
+		m_purge_last_emerg_ns = last_event_ts;
+
+		if(m_purge_emerg_remaining > 0) {
+			/* Mid-burst: scan without re-reading the counter or moving the mark,
+			 * so the next comparison covers the whole burst. */
+			--m_purge_emerg_remaining;
+			emergency = true;
+			thread_timeout_ns = PURGE_EMERG_TIMEOUT_NS;
+			do_purge = true;
+		} else {
+			scap_stats st = {};
+			scap_get_stats(m_scap_handle, &st);
+
+			/* modern_bpf classifies on its single drop path. kmod bails out before
+			 * the filler on a full buffer and never classifies, so only its total
+			 * is usable, against a higher bar. */
+			const bool per_type_ok = scap_check_current_engine(m_scap_handle, MODERN_BPF_ENGINE);
+			const uint64_t drops = per_type_ok ? st.n_drops_buffer_proc_exit : st.n_drops_buffer;
+			const uint64_t threshold =
+			        per_type_ok ? PURGE_DROP_THRESHOLD : PURGE_DROP_THRESHOLD_TOTAL;
+
+			/* The mark advances only on a scan, so it measures what accumulated
+			 * since the last cleanup, not the rate inside one window. */
+			if(!m_purge_have_drop_sample) {
+				m_purge_last_drops = drops;
+				m_purge_have_drop_sample = true;
+			} else if(drops > m_purge_last_drops + threshold) {
+				emergency = true;
+				thread_timeout_ns = PURGE_EMERG_TIMEOUT_NS;
+				do_purge = true;
+				m_purge_emerg_remaining = PURGE_EMERG_BURST - 1;
+				m_purge_last_drops = drops;
+			}
+		}
+	}
+
+	if(!do_purge) {
 		return false;
 	}
 
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Flushing thread table");
-	m_last_flush_time_ns = last_event_ts;
 
 	// Here we loop over the table in search of threads to delete. We remove:
 	// 1. Invalid threads.
 	// 2. Threads that we are not using and that are no more alive in /proc.
+
+	/* Only the drop-triggered branch pays for a snapshot. On failure fall back to
+	 * the per-entry check: an empty set would delete live entries. */
+	std::unordered_set<int64_t> live_pids;
+	if(emergency && !purge_collect_live_pids(m_scap_platform, live_pids)) {
+		libsinsp_logger()->format(sinsp_logger::SEV_WARNING,
+		                          "purge: could not collect live pids, falling back to "
+		                          "the per-entry liveness check");
+		emergency = false;
+		thread_timeout_ns = m_thread_timeout_ns;
+	}
+
 	std::unordered_set<int64_t> to_delete;
 	m_threadtable.loop([&](sinsp_threadinfo& tinfo) {
-		if(tinfo.is_invalid() || (last_event_ts > tinfo.m_lastaccess_ts + m_thread_timeout_ns &&
-		                          !scap_is_thread_alive(m_scap_platform,
-		                                                tinfo.m_pid,
-		                                                tinfo.m_tid,
-		                                                tinfo.m_comm.c_str()))) {
+		if(tinfo.is_invalid()) {
 			to_delete.insert(tinfo.m_tid);
+		} else if(last_event_ts > tinfo.m_lastaccess_ts + thread_timeout_ns) {
+			const bool dead = emergency ? live_pids.find(tinfo.m_pid) == live_pids.end()
+			                            : !scap_is_thread_alive(m_scap_platform,
+			                                                    tinfo.m_pid,
+			                                                    tinfo.m_tid,
+			                                                    tinfo.m_comm.c_str());
+			if(dead) {
+				to_delete.insert(tinfo.m_tid);
+			}
 		}
 		return true;
 	});
