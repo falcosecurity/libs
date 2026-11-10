@@ -32,8 +32,6 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
-#include <dirent.h>
-
 #include <unordered_set>
 
 #ifndef _WIN32
@@ -2050,31 +2048,17 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val) {
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////
 
-/* Snapshots live pids in a few getdents64 calls, instead of probing
- * /proc/<pid>/task per thread. Callers match on m_pid: a leaked process holds a
- * whole fd table, a sub-thread entry almost nothing, and while the process is
- * alive none of its threads are pruned. Returns false if /proc could not be
- * read, so the caller falls back rather than read an empty set as "all dead". */
-static bool purge_collect_live_pids(std::unordered_set<int64_t>& live) {
-	const char* hr = scap_get_host_root();
-	const std::string procroot = std::string(hr ? hr : "") + "/proc";
+/* Matches on m_pid: a leaked process holds a whole fd table, a sub-thread entry
+ * almost nothing. False when the platform declines, never on an empty /proc. */
+static bool purge_collect_live_pids(scap_platform* platform, std::unordered_set<int64_t>& live) {
+	const auto collect = [](void* ctx, int64_t pid) {
+		static_cast<std::unordered_set<int64_t>*>(ctx)->insert(pid);
+	};
 
-	DIR* procd = opendir(procroot.c_str());
-	if(procd == nullptr) {
+	if(scap_foreach_live_pid(platform, &live, collect) != SCAP_SUCCESS) {
 		return false;
 	}
 
-	struct dirent* pe;
-	while((pe = readdir(procd)) != nullptr) {
-		if(pe->d_name[0] < '0' || pe->d_name[0] > '9') {
-			continue;
-		}
-		const int64_t pid = strtoll(pe->d_name, nullptr, 10);
-		if(pid > 0) {
-			live.insert(pid);
-		}
-	}
-	closedir(procd);
 	return !live.empty();
 }
 
@@ -2152,9 +2136,9 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 	/* Only the drop-triggered branch pays for a snapshot. On failure fall back to
 	 * the per-entry check: an empty set would delete live entries. */
 	std::unordered_set<int64_t> live_pids;
-	if(emergency && !purge_collect_live_pids(live_pids)) {
+	if(emergency && !purge_collect_live_pids(m_scap_platform, live_pids)) {
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING,
-		                          "purge: could not snapshot /proc, falling back to "
+		                          "purge: could not collect live pids, falling back to "
 		                          "the per-entry liveness check");
 		emergency = false;
 		thread_timeout_ns = m_thread_timeout_ns;

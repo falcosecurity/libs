@@ -386,7 +386,9 @@ protected:
 	void add_thread(const scap_threadinfo&, const std::vector<scap_fdinfo>&);
 	void set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns);
 	void remove_inactive_threads(uint64_t m_lastevent_ts, uint64_t thread_timeout);
-	void purge_on_drops(uint64_t m_lastevent_ts, uint64_t drops);
+	void purge_on_drops(uint64_t m_lastevent_ts,
+	                    uint64_t drops,
+	                    const std::vector<int64_t>& live_pids);
 
 	static scap_threadinfo create_threadinfo(uint64_t tid,
 	                                         uint64_t pid,

@@ -208,42 +208,63 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_purge_on_proc_exit_drops) {
 	auto& thread_manager = m_inspector.m_thread_manager;
 	const uint64_t now = 1000 * ONE_SECOND_IN_NS;
 
-	set_threadinfo_last_access_time(p2_t3_tid, now);
+	/* p6 is the dropped exit; the rest are live. */
+	const std::vector<int64_t> live =
+	        {INIT_TID, p1_t1_pid, p2_t1_pid, p3_t1_pid, p4_t1_pid, p5_t1_pid};
 
-	purge_on_drops(now, 0);
+	purge_on_drops(now, 0, live);
 	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
 
-	purge_on_drops(now + 60 * ONE_SECOND_IN_NS, PURGE_DROP_THRESHOLD_TOTAL / 2);
+	purge_on_drops(now + 60 * ONE_SECOND_IN_NS, PURGE_DROP_THRESHOLD_TOTAL / 2, live);
 	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
 
-	purge_on_drops(now + 120 * ONE_SECOND_IN_NS, PURGE_DROP_THRESHOLD_TOTAL * 2);
-	ASSERT_LT(thread_manager->get_thread_count(), DEFAULT_TREE_NUM_PROCS);
+	purge_on_drops(now + 120 * ONE_SECOND_IN_NS, PURGE_DROP_THRESHOLD_TOTAL * 2, live);
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, thread_manager->get_thread_count());
+	ASSERT_FALSE(thread_manager->find_thread(p6_t1_tid, true).get());
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_purge_drop_mark_accumulates) {
 	DEFAULT_TREE
 
 	auto& thread_manager = m_inspector.m_thread_manager;
-	const uint64_t now = 1000 * ONE_SECOND_IN_NS;
-	uint64_t t = now;
+	uint64_t t = 1000 * ONE_SECOND_IN_NS;
 
-	purge_on_drops(t, 0); /* seed */
+	const std::vector<int64_t> live =
+	        {INIT_TID, p1_t1_pid, p2_t1_pid, p3_t1_pid, p4_t1_pid, p5_t1_pid};
+
+	purge_on_drops(t, 0, live); /* seed */
 	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
 
+	/* Each step is under the threshold; only the sum crosses it. */
 	const uint64_t step = PURGE_DROP_THRESHOLD_TOTAL / 3;
 	uint64_t total = 0;
 	for(int i = 0; i < 3; i++) {
 		total += step;
 		t += 60 * ONE_SECOND_IN_NS;
-		purge_on_drops(t, total);
+		purge_on_drops(t, total, live);
 		ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count())
 		        << "fired early at drops=" << total;
 	}
 
 	total += step;
 	t += 60 * ONE_SECOND_IN_NS;
-	purge_on_drops(t, total);
-	ASSERT_LT(thread_manager->get_thread_count(), DEFAULT_TREE_NUM_PROCS);
+	purge_on_drops(t, total, live);
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, thread_manager->get_thread_count());
+}
+
+TEST_F(sinsp_with_test_input, THRD_TABLE_purge_without_live_pids_keeps_the_table) {
+	DEFAULT_TREE
+
+	auto& thread_manager = m_inspector.m_thread_manager;
+	uint64_t t = 1000 * ONE_SECOND_IN_NS;
+
+	/* No pid list: the platform declines, as one without a procfs does. */
+	purge_on_drops(t, 0, {});
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
+
+	t += 60 * ONE_SECOND_IN_NS;
+	purge_on_drops(t, PURGE_DROP_THRESHOLD_TOTAL * 2, {});
+	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS, thread_manager->get_thread_count());
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
