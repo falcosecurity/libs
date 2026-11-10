@@ -84,6 +84,14 @@ bool scap_is_thread_alive(struct scap_platform* platform,
 	return true;
 }
 
+int32_t scap_foreach_live_pid(struct scap_platform* platform, void* ctx, scap_pid_cb cb) {
+	if(platform && platform->m_vtable->foreach_live_pid) {
+		return platform->m_vtable->foreach_live_pid(platform, ctx, cb);
+	}
+
+	return SCAP_NOT_SUPPORTED;
+}
+
 int32_t scap_getpid_global(struct scap_platform* platform, int64_t* pid) {
 	if(platform == NULL) {
 		ASSERT(false);

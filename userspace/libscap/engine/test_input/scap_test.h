@@ -44,6 +44,10 @@ struct scap_test_input_data {
 
 	struct scap_test_fdinfo_data *fdinfo_data;
 
+	/* Reported by foreach_live_pid; NULL makes it decline. */
+	const int64_t *live_pids;
+	size_t live_pid_count;
+
 	/* Reported verbatim by the engine's get_stats, so a consumer that reacts to
 	 * drops can be driven from a test. */
 	uint64_t n_drops_buffer;

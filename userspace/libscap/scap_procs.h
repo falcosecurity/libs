@@ -26,6 +26,8 @@ typedef struct scap scap_t;
 typedef struct scap_threadinfo scap_threadinfo;
 typedef struct scap_fdinfo scap_fdinfo;
 
+typedef void (*scap_pid_cb)(void* ctx, int64_t pid);
+
 /*!
   @brief Callback function to be called for each thread or fd found
 
