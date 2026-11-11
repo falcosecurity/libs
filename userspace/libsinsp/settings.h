@@ -19,12 +19,6 @@ limitations under the License.
 #pragma once
 
 //
-// Memory storage size for an entry in the event storage LIFO.
-// Events bigger than SP_EVT_BUF_SIZE won't be be stored in the LIFO.
-//
-#define SP_EVT_BUF_SIZE 4096
-
-//
 // Max size that the FD table of a process can reach
 //
 #define MAX_FD_TABLE_SIZE 4096
