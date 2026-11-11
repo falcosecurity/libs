@@ -218,6 +218,61 @@ TEST_F(sinsp_with_test_input, path_too_long) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/DIR_TOO_LONG/FILENAME_TOO_LONG");
 }
 
+TEST_F(sinsp_with_test_input, enter_event_bigger_than_4096_bytes) {
+	add_default_init_thread();
+
+	open_inspector();
+
+	const auto& stats = m_inspector.get_sinsp_stats_v2();
+	ASSERT_NE(stats, nullptr);
+	const auto stored_evts = stats->m_n_stored_evts;
+	const auto store_evts_drops = stats->m_n_store_evts_drops;
+	const auto retrieved_evts = stats->m_n_retrieved_evts;
+	const auto retrieve_evts_drops = stats->m_n_retrieve_evts_drops;
+
+	// An enter event whose exit event is missing: its data stays stored in the thread.
+	add_event(increasing_ts(),
+	          1,
+	          PPME_SYSCALL_OPENAT_2_E,
+	          4,
+	          (int64_t)PPM_AT_FDCWD,
+	          "/tmp/stale_file",
+	          (uint32_t)0,
+	          (uint32_t)0);
+
+	// A valid pathname, PATH_MAX bytes long with its terminator, makes the enter event bigger than
+	// 4096 bytes.
+	const std::string long_path = std::string(4083, '/') + "tmp/the_file";
+	ASSERT_EQ(long_path.size() + 1, 4096);
+	const auto enter_evt = add_event(increasing_ts(),
+	                                 1,
+	                                 PPME_SYSCALL_OPENAT_2_E,
+	                                 4,
+	                                 (int64_t)PPM_AT_FDCWD,
+	                                 long_path.c_str(),
+	                                 (uint32_t)PPM_O_RDONLY,
+	                                 (uint32_t)0);
+	ASSERT_GT(scap_event_getlen(enter_evt), 4096);
+
+	// The exit event must be paired with the long enter event, and not with the stale one.
+	const auto evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPENAT_2_X,
+	                                      7,
+	                                      (int64_t)3,
+	                                      (int64_t)PPM_AT_FDCWD,
+	                                      "/tmp/some_other_file",
+	                                      (uint32_t)PPM_O_RDONLY,
+	                                      (uint32_t)0,
+	                                      (uint32_t)0,
+	                                      (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
+	ASSERT_EQ(stats->m_n_stored_evts, stored_evts + 2);
+	ASSERT_EQ(stats->m_n_store_evts_drops, store_evts_drops);
+	ASSERT_EQ(stats->m_n_retrieved_evts, retrieved_evts + 1);
+	ASSERT_EQ(stats->m_n_retrieve_evts_drops, retrieve_evts_drops);
+}
+
 TEST_F(sinsp_with_test_input, creates_fd_generic) {
 	add_default_init_thread();
 
