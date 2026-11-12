@@ -724,7 +724,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
 
 	/* Engine-specific args. */
-	scap_modern_bpf_engine_params params;
+	scap_modern_bpf_engine_params params = {};
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	params.cpus_for_each_buffer = cpus_for_each_buffer;
 	params.allocate_online_only = online_only;
