@@ -39,8 +39,7 @@ static void copy_ipv6_address(uint32_t (&dest)[4], const uint32_t (&src)[4]) {
 sinsp_threadinfo::sinsp_threadinfo(const std::shared_ptr<ctor_params>& params):
         extensible_struct(params->thread_manager_dyn_fields),
         m_params{params},
-        m_fdtable{params->fdtable_factory.create()},
-        m_main_fdtable(&m_fdtable),
+        m_fdtable{params->fdtable_factory.create_shared()},
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
         m_cgroups_table_adapter("cgroups", m_cgroups) {
@@ -157,7 +156,20 @@ libsinsp::state::static_field_infos sinsp_threadinfo::get_static_fields() {
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
-	DEFINE_STATIC_FIELD_READONLY(ret, self, m_main_fdtable, "file_descriptors");
+	// Not DEFINE_STATIC_FIELD_READONLY: the member is a shared_ptr, not the
+	// field's type.
+	libsinsp::state::define_static_field<const libsinsp::state::base_table*>(
+	        ret,
+	        "file_descriptors",
+	        [](const void* in, size_t) -> libsinsp::state::borrowed_state_data {
+		        const auto* c = static_cast<const self*>(in);
+		        const auto* t = static_cast<const libsinsp::state::base_table*>(c->get_fd_table());
+		        return libsinsp::state::borrowed_state_data::from<
+		                libsinsp::state::type_id_of<const libsinsp::state::base_table*>(),
+		                const libsinsp::state::base_table*>(t);
+	        },
+	        READONLY_WRITER_LAMBDA("file_descriptors"),
+	        true);
 	libsinsp::state::define_static_field<std::string>(
 	        ret,
 	        "cwd",
@@ -226,7 +238,7 @@ sinsp_threadinfo::~sinsp_threadinfo() {
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc(const std::set<uint16_t>& ipv4_server_ports,
                                                     const bool resolve_hostname_and_port) {
-	m_fdtable.loop([resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
+	m_fdtable->loop([resolve_hostname_and_port, &ipv4_server_ports](int64_t fd, sinsp_fdinfo& fdi) {
 		if(fdi.m_type != SCAP_FD_IPV4_SOCK) {
 			return true;
 		}
@@ -364,7 +376,7 @@ sinsp_fdinfo* sinsp_threadinfo::add_fd_from_scap(const scap_fdinfo& fdi,
 	}
 
 	// Add the FD to the table and returns a pointer to it.
-	return m_fdtable.add(fdi.fd, std::move(newfdi));
+	return m_fdtable->add(fdi.fd, std::move(newfdi));
 }
 
 void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_env_from_proc) {
@@ -397,8 +409,8 @@ void sinsp_threadinfo::init(const scap_threadinfo& pinfo, const bool can_load_en
 	m_flags |= pinfo.flags;
 	m_flags |= PPM_CL_ACTIVE;  // Assume that all the threads coming from /proc are real, active
 	                           // threads
-	m_fdtable.clear();
-	m_fdtable.set_tid(m_tid);
+	m_fdtable->clear();
+	m_fdtable->set_tid(m_tid);
 	m_fdlimit = pinfo.fdlimit;
 
 	m_cap_permitted = pinfo.cap_permitted;
@@ -733,7 +745,7 @@ void sinsp_threadinfo::update_cwd(std::string_view cwd) {
 uint64_t sinsp_threadinfo::get_fd_usage_pct() {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0) {
-		uint64_t fd_opencount = get_fd_opencount();
+		uint64_t fd_opencount = get_fdtable().size();
 		ASSERT(fd_opencount <= (uint64_t)fdlimit);
 		if(fd_opencount <= (uint64_t)fdlimit) {
 			return (fd_opencount * 100) / fdlimit;
@@ -748,7 +760,7 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct() {
 double sinsp_threadinfo::get_fd_usage_pct_d() {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0) {
-		uint64_t fd_opencount = get_fd_opencount();
+		uint64_t fd_opencount = get_fdtable().size();
 		ASSERT(fd_opencount <= (uint64_t)fdlimit);
 		if(fd_opencount <= (uint64_t)fdlimit) {
 			return ((double)fd_opencount * 100) / fdlimit;
@@ -758,14 +770,6 @@ double sinsp_threadinfo::get_fd_usage_pct_d() {
 	} else {
 		return 0;
 	}
-}
-
-uint64_t sinsp_threadinfo::get_fd_opencount() const {
-	auto main_thread = get_main_thread();
-	if(main_thread == nullptr) {
-		return 0;
-	}
-	return main_thread->get_fdtable().size();
 }
 
 uint64_t sinsp_threadinfo::get_fd_limit() {

@@ -20,6 +20,8 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
+#include <thread>
+
 // Tests for fd-table contents sharing: the clone parser shares the parent's
 // table with the child, and the first modification through either table
 // detaches a private copy (copy-on-write).
@@ -103,30 +105,68 @@ TEST_F(fdtable_sharing, proc_scan_dedup_requires_identical_content) {
 	ASSERT_EQ(w30->get_fdtable().find(0)->m_name, "/dev/zero");
 }
 
-TEST_F(fdtable_sharing, untouched_tables_reference_the_shared_empty_contents) {
+TEST_F(fdtable_sharing, threads_of_a_process_share_one_table_object) {
 	add_default_init_thread();
 	open_inspector();
+	generate_open_x_event();
 
-	// Secondary threads never own fds (they use their leader's table), so
-	// their own tables keep referencing the shared empty contents.
 	generate_clone_x_event(0, 21, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES);
 	generate_clone_x_event(0, 22, INIT_PID, INIT_PTID, PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES);
+	auto* leader = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
 	auto* t1 = m_inspector.m_thread_manager->find_thread(21, true).get();
 	auto* t2 = m_inspector.m_thread_manager->find_thread(22, true).get();
+	ASSERT_NE(leader, nullptr);
 	ASSERT_NE(t1, nullptr);
 	ASSERT_NE(t2, nullptr);
 	ASSERT_FALSE(t1->is_main_thread());
 
-	auto& tt1 = t1->get_fdtable();
-	auto& tt2 = t2->get_fdtable();
-	ASSERT_EQ(tt1.size(), 0);
-	ASSERT_TRUE(tt1.is_shared());
-	// Same contents object for every untouched table: no per-table map.
-	ASSERT_EQ(tt1.contents_id(), tt2.contents_id());
+	// The same object, not only the same contents.
+	ASSERT_EQ(t1->get_fd_table(), leader->get_fd_table());
+	ASSERT_EQ(t2->get_fd_table(), leader->get_fd_table());
 
-	// The leader's table, which does own an fd, has private contents.
-	auto* leader = m_inspector.m_thread_manager->find_thread(INIT_TID, true).get();
-	ASSERT_NE(leader->get_fdtable().contents_id(), tt1.contents_id());
+	// So a thread sees the fds of its process.
+	ASSERT_EQ(t1->get_fdtable().size(), leader->get_fdtable().size());
+	ASSERT_NE(t1->get_fdtable().find(s_fd), nullptr);
+
+	// Not copy-on-write sharing.
+	ASSERT_FALSE(leader->get_fdtable().is_shared());
+}
+
+TEST_F(fdtable_sharing, fresh_tables_reference_the_shared_empty_contents) {
+	sinsp inspector;
+	const auto& factory = inspector.get_threadinfo_factory();
+	const auto a = factory.create_shared();
+	const auto b = factory.create_shared();
+
+	ASSERT_EQ(a->get_fdtable().size(), 0);
+	ASSERT_EQ(b->get_fdtable().size(), 0);
+	// No per-table map.
+	ASSERT_EQ(a->get_fdtable().contents_id(), b->get_fdtable().contents_id());
+	ASSERT_TRUE(a->get_fdtable().is_shared());
+}
+
+// Sharing an empty table gives this thread's empty map, not the source's.
+TEST_F(fdtable_sharing, sharing_an_empty_table_takes_this_threads_empty_contents) {
+	sinsp inspector;
+	const auto& factory = inspector.get_threadinfo_factory();
+
+	// A parent built on another thread, like the tables of the /proc scan.
+	std::shared_ptr<sinsp_threadinfo> parent;
+	std::thread builder([&factory, &parent]() { parent = factory.create_shared(); });
+	builder.join();
+	ASSERT_EQ(parent->get_fdtable().size(), 0);
+
+	const auto child = factory.create_shared();
+	child->get_fdtable().share_from(parent->get_fdtable());
+
+	ASSERT_EQ(child->get_fdtable().size(), 0);
+	// Not the empty map of the parent,
+	ASSERT_NE(child->get_fdtable().contents_id(), parent->get_fdtable().contents_id());
+	// but the one that every new table on this thread gets.
+	const auto sibling = factory.create_shared();
+	ASSERT_EQ(child->get_fdtable().contents_id(), sibling->get_fdtable().contents_id());
+	// The first write still detaches.
+	ASSERT_TRUE(child->get_fdtable().is_shared());
 }
 
 TEST_F(fdtable_sharing, fork_shares_the_parent_table) {

@@ -238,10 +238,10 @@ private:
 		return m_params->m_sinsp_mode.is_plugin() && m_params->m_input_plugin->id() == 0;
 	}
 
-	// The shared immutable empty contents that every fd table starts out
-	// referencing: threads that never own fds (all non-main threads) pay no
-	// allocation. The first modification detaches a private map like any
-	// other write to shared contents.
+	// The immutable empty contents that every fd table starts out referencing,
+	// one instance per thread. A table that never owns fds allocates nothing. The
+	// first modification detaches a private map like any other write to shared
+	// contents.
 	static const std::shared_ptr<table_t>& empty_contents();
 
 	// Gives this table private contents before an in-place modification.

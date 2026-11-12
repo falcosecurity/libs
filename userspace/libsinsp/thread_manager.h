@@ -310,6 +310,13 @@ private:
 	                            const std::shared_ptr<thread_group_info>& tginfo,
 	                            int64_t ptid);
 
+	/* Give a thread that joined its group the fd table that it shares with the group, if any. */
+	void share_fd_table_of_group(sinsp_threadinfo& tinfo);
+	/* Whether the thread `tid` is in the thread table, alive, and holds `table`. */
+	bool is_live_holder_of(int64_t tid, const sinsp_fdtable& table);
+	/* Move the mount lookup of the table of `leaving` to another thread that holds the table. */
+	void move_fd_table_lookup_off(sinsp_threadinfo& leaving);
+
 	/* Link a group to `parent`. If the link is refused, leave the group unlinked, with `ptid`. */
 	void relink_group(thread_group_info& tginfo,
 	                  const std::shared_ptr<sinsp_threadinfo>& parent,
@@ -317,7 +324,14 @@ private:
 
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
-	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread) const;
+	// Reports the fds of the table of `tinfo` to the observer as erased, when
+	// the last thread that holds the table leaves. The table is not modified.
+	void notify_process_fds_erased(sinsp_threadinfo& tinfo) const;
+	// Whether another thread of the group, in the thread table, holds the fd
+	// table of `tinfo`.
+	bool fd_table_held_by_another_thread(const sinsp_threadinfo& tinfo);
+	// Reports each distinct fd table of a group that dies with `last_thread`.
+	void notify_group_fds_erased(sinsp_threadinfo& last_thread);
 
 	// The following fields are externally provided and access to them is expected to be read-only.
 	const sinsp_threadinfo_factory& m_threadinfo_factory;

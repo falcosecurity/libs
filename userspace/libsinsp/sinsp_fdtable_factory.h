@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 #include <libsinsp/fdtable.h>
+#include <memory>
 
 /*!
   \brief Factory hiding sinsp_fdtable creation details.
@@ -30,4 +31,9 @@ public:
 	        m_params{params} {}
 
 	sinsp_fdtable create() const { return sinsp_fdtable{m_params}; }
+
+	// For a table with several owners: sinsp_fdtable cannot be copied or moved.
+	std::shared_ptr<sinsp_fdtable> create_shared() const {
+		return std::make_shared<sinsp_fdtable>(m_params);
+	}
 };

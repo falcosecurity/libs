@@ -1754,22 +1754,21 @@ void sinsp::stop_capture() {
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
 	uint64_t unique_fd_cnt = 0;
+	// Each fd table once: the threads of a process share one.
+	std::unordered_set<const sinsp_fdtable*> counted;
 	std::unordered_set<const sinsp_fdinfo*> seen_entries;
 	m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
 		thread_cnt++;
 
-		/* Only main threads have an associated fdtable */
-		if(tinfo.is_main_thread()) {
-			const auto* fdtable_ptr = tinfo.get_fd_table();
-			if(fdtable_ptr != nullptr) {
-				fd_cnt += fdtable_ptr->size();
-				fdtable_ptr->const_loop([&](int64_t, const sinsp_fdinfo& fdinfo) {
-					if(seen_entries.insert(&fdinfo).second) {
-						unique_fd_cnt++;
-					}
-					return true;
-				});
-			}
+		const auto* fdtable_ptr = tinfo.get_fd_table();
+		if(fdtable_ptr != nullptr && counted.insert(fdtable_ptr).second) {
+			fd_cnt += fdtable_ptr->size();
+			fdtable_ptr->const_loop([&](int64_t, const sinsp_fdinfo& fdinfo) {
+				if(seen_entries.insert(&fdinfo).second) {
+					unique_fd_cnt++;
+				}
+				return true;
+			});
 		}
 		return true;
 	});
