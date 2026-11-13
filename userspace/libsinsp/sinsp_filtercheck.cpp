@@ -167,7 +167,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 	case PT_MODE:
 	case PT_SIGSET:
 		if(print_format == PF_DEC || print_format == PF_ID) {
-			return *(uint32_t*)rawval;
+			return rawval_cast<uint32_t>(rawval);
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
 			return rawval_to_string(rawval, ptype, print_format, len);
 		} else {
