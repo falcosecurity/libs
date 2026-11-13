@@ -24,11 +24,13 @@ limitations under the License.
 #include <driver/feature_gates.h>
 #include "events_prog_table.h"
 #include "support_probing.h"
+#include "programs.h"
 #include <fcntl.h>
 #include <linux/random.h>
 #include <pthread.h>
 #include <sched.h>
 #include <stdlib.h>
+#include <sys/resource.h>
 #include <sys/syscall.h>
 #include <time.h>
 
@@ -413,6 +415,88 @@ static bool syscall_tracepoints_miss_cpus() {
 	return false;
 }
 
+// On kernels where `syscall_tracepoints_miss_cpus()` finds the bug, libpman opens one perf event
+// per CPU for the tracepoint of each 64-bit TOCTOU mitigation program but `connect`. Raise the soft
+// RLIMIT_NOFILE by that number, so that the rest of the process keeps the file descriptors that it
+// had before. The soft limit grows at most to the hard limit, and libpman never changes the hard
+// limit. If the soft limit cannot grow enough, log a warning: the attachment fails with EMFILE only
+// if the process runs out of file descriptors. `pman_close_probe()` puts the soft limit back, so
+// that each load of the probe starts from the same limit.
+static void raise_nofile_limit_for_perf_events() {
+	if(g_state.ttm_nofile_raised) {
+		return;
+	}
+	const rlim_t needed = (rlim_t)(TTM_MAX - 1) * (rlim_t)g_state.n_possible_cpus;
+	struct rlimit old = {0};
+	if(getrlimit(RLIMIT_NOFILE, &old) != 0) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot read RLIMIT_NOFILE: the TOCTOU mitigation perf events need up to %llu "
+		         "more file descriptors",
+		         (unsigned long long)needed);
+		return;
+	}
+	if(old.rlim_cur == RLIM_INFINITY) {
+		return;
+	}
+
+	rlim_t wanted = RLIM_INFINITY;
+	if(needed < RLIM_INFINITY - old.rlim_cur) {
+		wanted = old.rlim_cur + needed;
+	}
+	struct rlimit raised = old;
+	raised.rlim_cur = wanted;
+	if(old.rlim_max != RLIM_INFINITY && old.rlim_max < wanted) {
+		raised.rlim_cur = old.rlim_max;
+	}
+	if(raised.rlim_cur > old.rlim_cur) {
+		if(setrlimit(RLIMIT_NOFILE, &raised) != 0) {
+			log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+			         "cannot raise the RLIMIT_NOFILE soft limit from %llu: the TOCTOU mitigation "
+			         "perf events need up to %llu more file descriptors",
+			         (unsigned long long)old.rlim_cur,
+			         (unsigned long long)needed);
+			return;
+		}
+		g_state.ttm_nofile_raised = true;
+		g_state.ttm_nofile_soft_before = old.rlim_cur;
+		g_state.ttm_nofile_soft_set = raised.rlim_cur;
+	}
+	if(raised.rlim_cur < wanted) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "the RLIMIT_NOFILE soft limit is %llu, at the hard limit: the TOCTOU mitigation "
+		         "perf events need up to %llu more file descriptors than the old soft limit %llu",
+		         (unsigned long long)raised.rlim_cur,
+		         (unsigned long long)needed,
+		         (unsigned long long)old.rlim_cur);
+		return;
+	}
+	log_msgf(FALCOSECURITY_LOG_SEV_INFO,
+	         "raised the RLIMIT_NOFILE soft limit from %llu to %llu for the TOCTOU mitigation "
+	         "perf events",
+	         (unsigned long long)old.rlim_cur,
+	         (unsigned long long)raised.rlim_cur);
+}
+
+// Put back the soft RLIMIT_NOFILE that `raise_nofile_limit_for_perf_events()` raised, unless
+// something else changed it since then.
+static void restore_nofile_limit() {
+	if(!g_state.ttm_nofile_raised) {
+		return;
+	}
+	g_state.ttm_nofile_raised = false;
+	struct rlimit limit = {0};
+	if(getrlimit(RLIMIT_NOFILE, &limit) != 0 || limit.rlim_cur != g_state.ttm_nofile_soft_set) {
+		return;
+	}
+	limit.rlim_cur = g_state.ttm_nofile_soft_before;
+	if(setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot put the RLIMIT_NOFILE soft limit back from %llu to %llu",
+		         (unsigned long long)g_state.ttm_nofile_soft_set,
+		         (unsigned long long)g_state.ttm_nofile_soft_before);
+	}
+}
+
 int pman_load_probe() {
 	if(bpf_probe__load(g_state.skel)) {
 		log_errorf("failed to load BPF object");
@@ -420,6 +504,10 @@ int pman_load_probe() {
 	}
 	save_attached_progs();
 	g_state.ttm_needs_perf_events = syscall_tracepoints_miss_cpus();
+	if(g_state.ttm_needs_perf_events) {
+		raise_nofile_limit_for_perf_events();
+		errno = 0;
+	}
 	// Programs are loaded so we passed the verifier we can free the 16 MB
 	if(g_state.log_buf) {
 		free(g_state.log_buf);
@@ -453,6 +541,9 @@ void pman_close_probe() {
 		free(g_state.prod_pos);
 		g_state.prod_pos = NULL;
 	}
+
+	close_toctou_perf_events();
+	restore_nofile_limit();
 
 	if(g_state.skel) {
 		bpf_probe__detach(g_state.skel);

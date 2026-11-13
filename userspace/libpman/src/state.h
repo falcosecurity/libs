@@ -25,6 +25,7 @@ limitations under the License.
 #include <driver/modern_bpf/shared_definitions/struct_definitions.h>
 #include <driver/feature_gates.h>
 #include <bpf_probe.skel.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -96,6 +97,11 @@ struct internal_state {
 	                               memory do not run on every CPU, and the 64-bit TOCTOU
 	                               mitigation programs need a perf event of their tracepoint on
 	                               each CPU. Set by `pman_load_probe()`. */
+	bool ttm_nofile_raised;     /* If true, `pman_load_probe()` raised the soft RLIMIT_NOFILE for
+	                               the perf events, from `ttm_nofile_soft_before` to
+	                               `ttm_nofile_soft_set`. `pman_close_probe()` puts it back. */
+	rlim_t ttm_nofile_soft_before;
+	rlim_t ttm_nofile_soft_set;
 
 #ifdef BPF_ITERATOR_SUPPORT
 
