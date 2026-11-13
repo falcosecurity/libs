@@ -24,6 +24,7 @@ limitations under the License.
 #include <driver/feature_gates.h>
 #include "events_prog_table.h"
 #include "support_probing.h"
+#include "programs.h"
 #include <fcntl.h>
 #include <linux/random.h>
 #include <sched.h>
@@ -392,6 +393,8 @@ void pman_close_probe() {
 		free(g_state.prod_pos);
 		g_state.prod_pos = NULL;
 	}
+
+	close_toctou_perf_events();
 
 	if(g_state.skel) {
 		bpf_probe__detach(g_state.skel);

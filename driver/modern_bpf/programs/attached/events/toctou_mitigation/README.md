@@ -19,6 +19,26 @@ The three programs have the following naming schema and purpose:
 
 ## FAQ
 
+### Why does libpman open perf events on the tracepoints of the 64-bit programs?
+
+Some kernels run a BPF program on a syscall tracepoint that reads user memory, such as the paths of the `open` family,
+only if a perf event of the tracepoint is active on the current CPU. These kernels carry commit 2c2b322acdcc ("tracing:
+perf: Fix stale head for perf syscall tracing") without commit 57918341dd19, which runs the BPF programs first. Stable
+7.1.y (since 7.1.6) and Ubuntu 7.0 kernels are examples. libbpf attaches a tracepoint program through one perf event on
+CPU 0, so on these kernels the `<syscall>_e` programs run only for system calls on CPU 0.
+
+Right after it loads the probe, libpman finds out whether the kernel has the bug. It attaches the `syscall_tp_check`
+program to `syscalls/sys_enter_faccessat` and makes one `faccessat` call on each CPU that it can use. The calls pass a
+`mode` that the kernel rejects with EINVAL, and the program counts only the calls with that `mode`. If the program
+counts fewer calls than libpman made, the kernel has the bug. If libpman can use only one CPU, the check cannot tell
+whether that CPU is the one with the perf event of libbpf, and libpman assumes that the kernel has the bug.
+
+On a kernel with the bug, libpman opens one counting perf event of each tracepoint on each CPU, right before it attaches
+the program, and closes the events when it detaches the program. Nothing reads the events. The programs return 0, so the
+kernel does not record anything for the events. The events take one file descriptor per tracepoint and CPU. If libpman
+cannot open an event, the attachment of the program fails. A CPU that comes online after the attachment has no event.
+The `connect` tracepoint reads no user memory, so it gets no events.
+
 ### Why don't use just a single tracepoint program per system call?
 
 Tracepoint programs are not triggered upon ia-32 emulated system calls.

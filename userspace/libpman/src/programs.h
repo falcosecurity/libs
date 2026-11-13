@@ -173,3 +173,8 @@ int attach_openat2_toctou_mitigation_progs();
  * @return `0` on success, `errno` in case of error.
  */
 int detach_openat2_toctou_mitigation_progs();
+
+/**
+ * @brief Close the perf events that make the 64-bit TOCTOU mitigation programs run on every CPU.
+ */
+void close_toctou_perf_events();
