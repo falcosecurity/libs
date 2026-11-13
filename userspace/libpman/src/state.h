@@ -92,6 +92,10 @@ struct internal_state {
 	                             */
 	bool open_ttm_unavailable;  /* Same as `creat_ttm_unavailable`, for the `open` TOCTOU
 	                                  mitigation tracepoint. */
+	bool ttm_needs_perf_events; /* If true, BPF programs on syscall tracepoints that read user
+	                               memory do not run on every CPU, and the 64-bit TOCTOU
+	                               mitigation programs need a perf event of their tracepoint on
+	                               each CPU. Set by `pman_load_probe()`. */
 
 #ifdef BPF_ITERATOR_SUPPORT
 
