@@ -16,10 +16,20 @@ limitations under the License.
 
 */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "state.h"
 #include <driver/feature_gates.h>
 #include "events_prog_table.h"
 #include "support_probing.h"
+#include "programs.h"
+#include <fcntl.h>
+#include <linux/random.h>
+#include <sched.h>
+#include <sys/syscall.h>
+#include <time.h>
 
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
@@ -248,12 +258,108 @@ static void save_attached_progs() {
 #endif
 }
 
+// Pick the mode of the `faccessat` calls that `syscall_tp_check` counts. Each check picks a random
+// mode, so two libpman instances that make the check at the same time do not count the calls of
+// each other. The mode has bits outside `S_IRWXO`, so the kernel rejects the calls with EINVAL
+// right after the tracepoint.
+static uint32_t syscall_tp_check_mode() {
+	uint32_t nonce = 0;
+	if(syscall(__NR_getrandom, &nonce, sizeof(nonce), GRND_NONBLOCK) != (long)sizeof(nonce)) {
+		struct timespec ts = {0};
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		nonce = (uint32_t)ts.tv_nsec ^ ((uint32_t)syscall(__NR_gettid) << 16);
+	}
+	return nonce | 0x40000000;
+}
+
+// Tell whether BPF programs on syscall tracepoints that read user memory miss some CPUs. Some
+// kernels run them only on the CPUs where a perf event of the tracepoint is active. They carry
+// commit 2c2b322acdcc ("tracing: perf: Fix stale head for perf syscall tracing") without commit
+// 57918341dd19. libbpf attaches a program through one perf event on CPU 0, so on these kernels
+// the program runs only for system calls on CPU 0.
+//
+// The check attaches `syscall_tp_check` to `syscalls/sys_enter_faccessat` and makes one `faccessat`
+// call on each CPU that this thread can use. It runs before any other program is attached, so no
+// event reaches the ring buffers.
+static bool syscall_tracepoints_miss_cpus() {
+	if(g_state.n_possible_cpus <= 1) {
+		return false;
+	}
+
+	struct bpf_link *link = bpf_program__attach(g_state.skel->progs.syscall_tp_check);
+	if(!link) {
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "cannot attach the 'syscall_tp_check' program: assume that BPF programs on "
+		         "syscall tracepoints run on every CPU");
+		return false;
+	}
+
+	const size_t set_size = CPU_ALLOC_SIZE(g_state.n_possible_cpus);
+	cpu_set_t *allowed = CPU_ALLOC(g_state.n_possible_cpus);
+	cpu_set_t *one = CPU_ALLOC(g_state.n_possible_cpus);
+	uint64_t calls = 0;
+	bool affinity_known = false;
+	if(allowed && one && sched_getaffinity(0, set_size, allowed) == 0) {
+		affinity_known = true;
+		const uint32_t mode = syscall_tp_check_mode();
+		g_state.skel->bss->syscall_tp_check__mode = mode;
+		g_state.skel->bss->syscall_tp_check__hits = 0;
+		for(int cpu = 0; cpu < g_state.n_possible_cpus; cpu++) {
+			if(!CPU_ISSET_S(cpu, set_size, allowed)) {
+				continue;
+			}
+			CPU_ZERO_S(set_size, one);
+			CPU_SET_S(cpu, set_size, one);
+			// The thread runs on `cpu` when the call returns.
+			if(sched_setaffinity(0, set_size, one) != 0) {
+				continue;
+			}
+			syscall(__NR_faccessat, AT_FDCWD, "", (long)mode);
+			calls++;
+		}
+		if(sched_setaffinity(0, set_size, allowed) != 0) {
+			log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+			         "cannot restore the CPU affinity of the thread after the syscall tracepoint "
+			         "check");
+		}
+	}
+	const uint64_t hits = *(volatile uint64_t *)&g_state.skel->bss->syscall_tp_check__hits;
+	CPU_FREE(allowed);
+	CPU_FREE(one);
+
+	if(bpf_link__destroy(link)) {
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "cannot detach the 'syscall_tp_check' program");
+	}
+
+	// The `faccessat` calls fail with EINVAL on purpose: do not report that in the messages below.
+	errno = 0;
+
+	// With fewer than two CPUs, the check cannot tell whether the only CPU is the one with the
+	// perf event of libbpf.
+	if(!affinity_known || calls < 2) {
+		log_msgf(FALCOSECURITY_LOG_SEV_INFO,
+		         "cannot check whether BPF programs on syscall tracepoints run on every CPU: "
+		         "assume that they do not");
+		return true;
+	}
+	if(hits < calls) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "BPF programs on syscall tracepoints that read user memory ran on %llu of %llu "
+		         "CPUs: open perf events to make the TOCTOU mitigation programs run on every CPU",
+		         (unsigned long long)hits,
+		         (unsigned long long)calls);
+		return true;
+	}
+	return false;
+}
+
 int pman_load_probe() {
 	if(bpf_probe__load(g_state.skel)) {
 		log_errorf("failed to load BPF object");
 		return errno;
 	}
 	save_attached_progs();
+	g_state.ttm_needs_perf_events = syscall_tracepoints_miss_cpus();
 	// Programs are loaded so we passed the verifier we can free the 16 MB
 	if(g_state.log_buf) {
 		free(g_state.log_buf);
@@ -287,6 +393,8 @@ void pman_close_probe() {
 		free(g_state.prod_pos);
 		g_state.prod_pos = NULL;
 	}
+
+	close_toctou_perf_events();
 
 	if(g_state.skel) {
 		bpf_probe__detach(g_state.skel);

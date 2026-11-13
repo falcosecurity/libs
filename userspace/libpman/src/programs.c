@@ -17,8 +17,15 @@ limitations under the License.
 */
 
 #include "state.h"
+#include "events_prog_table.h"
 #include <driver/feature_gates.h>
 #include <libpman.h>
+#include <limits.h>
+#include <linux/perf_event.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/syscall.h>
 
 /* Some notes about how a bpf program must be detached without unloading it:
  * https://lore.kernel.org/bpf/CAEf4BzZ8=dV0wvggAKnD64yXnhcXhdf1ovCT_LBd17RtJJXrdA@mail.gmail.com/T/
@@ -144,13 +151,130 @@ int attach_signal_deliver() {
 	return 0;
 }
 
-static int attach_64bit_toctou_prog(const struct bpf_program* prog, struct bpf_link** prog_link) {
+/* Some kernels run a BPF program on a syscall tracepoint that reads user memory, such as the
+ * `open` family, only if a perf event of the tracepoint is active on the current CPU. libbpf
+ * attaches a tracepoint program through one perf event on CPU 0, so on these kernels the program
+ * runs only for system calls on CPU 0. `pman_load_probe()` finds these kernels and sets
+ * `g_state.ttm_needs_perf_events`.
+ *
+ * On these kernels, libpman opens one counting perf event of the tracepoint of each 64-bit TOCTOU
+ * mitigation program on each CPU. Nothing reads the events. The programs return 0, so the kernel
+ * records nothing for the events. A CPU that comes online after the attachment has no event.
+ */
+static int* ttm_perf_event_fds[TTM_MAX];
+
+// Return the id of the tracepoint `tp_name` (e.g. `syscalls/sys_enter_openat`), or `-errno`.
+static int read_tracepoint_id(const char* tp_name) {
+	static const char* const tracefs_roots[] = {"/sys/kernel/tracing", "/sys/kernel/debug/tracing"};
+	int err = ENOENT;
+	for(size_t i = 0; i < sizeof(tracefs_roots) / sizeof(tracefs_roots[0]); i++) {
+		char path[PATH_MAX];
+		snprintf(path, sizeof(path), "%s/events/%s/id", tracefs_roots[i], tp_name);
+		FILE* f = fopen(path, "re");
+		if(!f) {
+			err = errno;
+			continue;
+		}
+		int id = -1;
+		const int matched = fscanf(f, "%d", &id);
+		fclose(f);
+		return matched == 1 && id >= 0 ? id : -EINVAL;
+	}
+	return -err;
+}
+
+static void close_toctou_perf_events_of(enum ttm_sc_code sc) {
+	int* fds = ttm_perf_event_fds[sc];
+	if(!fds) {
+		return;
+	}
+	for(int cpu = 0; cpu < g_state.n_possible_cpus; cpu++) {
+		if(fds[cpu] >= 0) {
+			close(fds[cpu]);
+		}
+	}
+	free(fds);
+	ttm_perf_event_fds[sc] = NULL;
+}
+
+void close_toctou_perf_events() {
+	for(int sc = 0; sc < TTM_MAX; sc++) {
+		close_toctou_perf_events_of(sc);
+	}
+}
+
+// Open one perf event of the tracepoint of `prog` on each CPU, if the kernel needs them.
+// Return `0` on success, `errno` in case of error.
+static int open_toctou_perf_events(const struct bpf_program* prog, enum ttm_sc_code sc) {
+	// The `connect` tracepoint reads no user memory, so its program runs on every CPU.
+	if(!g_state.ttm_needs_perf_events || sc == TTM_CONNECT || ttm_perf_event_fds[sc]) {
+		return 0;
+	}
+
+	static const char tracepoint_prefix[] = "tracepoint/";
+	const char* section = bpf_program__section_name(prog);
+	if(strncmp(section, tracepoint_prefix, sizeof(tracepoint_prefix) - 1) != 0) {
+		return 0;
+	}
+	const char* tp_name = section + sizeof(tracepoint_prefix) - 1;
+
+	const int id = read_tracepoint_id(tp_name);
+	if(id == -ENOENT) {
+		// The attachment of the program reports a missing tracepoint.
+		return 0;
+	}
+	if(id < 0) {
+		errno = -id;
+		log_errorf("cannot read the id of the '%s' tracepoint", tp_name);
+		return -id;
+	}
+
+	int* fds = calloc(g_state.n_possible_cpus, sizeof(*fds));
+	if(!fds) {
+		log_errorf("cannot allocate the perf events of the '%s' tracepoint", tp_name);
+		return ENOMEM;
+	}
+	for(int cpu = 0; cpu < g_state.n_possible_cpus; cpu++) {
+		fds[cpu] = -1;
+	}
+	ttm_perf_event_fds[sc] = fds;
+
+	struct perf_event_attr attr = {
+	        .type = PERF_TYPE_TRACEPOINT,
+	        .size = sizeof(attr),
+	        .config = (uint64_t)id,
+	};
+	for(int cpu = 0; cpu < g_state.n_possible_cpus; cpu++) {
+		fds[cpu] = (int)syscall(__NR_perf_event_open, &attr, -1, cpu, -1, PERF_FLAG_FD_CLOEXEC);
+		// ENODEV: the CPU is offline.
+		if(fds[cpu] < 0 && errno != ENODEV) {
+			const int err = errno;
+			close_toctou_perf_events_of(sc);
+			errno = err;
+			log_errorf("cannot open a perf event of the '%s' tracepoint on CPU %d", tp_name, cpu);
+			return err;
+		}
+	}
+	return 0;
+}
+
+static int attach_64bit_toctou_prog(const struct bpf_program* prog,
+                                    struct bpf_link** prog_link,
+                                    enum ttm_sc_code sc) {
 	if(*prog_link != NULL) {
 		return 0;
 	}
+	// Open the perf events first: reading the tracepoint id after the attachment of the `openat`
+	// program would send an `openat` enter event.
+	const int res = open_toctou_perf_events(prog, sc);
+	if(res) {
+		return res;
+	}
 	*prog_link = bpf_program__attach(prog);
 	if(!*prog_link) {
-		return errno;
+		const int err = errno;
+		close_toctou_perf_events_of(sc);
+		return err;
 	}
 	return 0;
 }
@@ -179,8 +303,9 @@ static int attach_ia32_toctou_prog(const struct bpf_program* ia32_compat_prog,
 }
 
 int attach_connect_toctou_mitigation_progs() {
-	const int res =
-	        attach_64bit_toctou_prog(g_state.skel->progs.connect_e, &g_state.skel->links.connect_e);
+	const int res = attach_64bit_toctou_prog(g_state.skel->progs.connect_e,
+	                                         &g_state.skel->links.connect_e,
+	                                         TTM_CONNECT);
 	if(res) {
 		return res;
 	}
@@ -191,8 +316,9 @@ int attach_connect_toctou_mitigation_progs() {
 }
 
 int attach_creat_toctou_mitigation_progs() {
-	const int res =
-	        attach_64bit_toctou_prog(g_state.skel->progs.creat_e, &g_state.skel->links.creat_e);
+	const int res = attach_64bit_toctou_prog(g_state.skel->progs.creat_e,
+	                                         &g_state.skel->links.creat_e,
+	                                         TTM_CREAT);
 	if(res) {
 		return res;
 	}
@@ -203,8 +329,9 @@ int attach_creat_toctou_mitigation_progs() {
 }
 
 int attach_open_toctou_mitigation_progs() {
-	const int res =
-	        attach_64bit_toctou_prog(g_state.skel->progs.open_e, &g_state.skel->links.open_e);
+	const int res = attach_64bit_toctou_prog(g_state.skel->progs.open_e,
+	                                         &g_state.skel->links.open_e,
+	                                         TTM_OPEN);
 	if(res) {
 		return res;
 	}
@@ -224,12 +351,15 @@ int attach_openat_toctou_mitigation_progs() {
 	if(res) {
 		return res;
 	}
-	return attach_64bit_toctou_prog(g_state.skel->progs.openat_e, &g_state.skel->links.openat_e);
+	return attach_64bit_toctou_prog(g_state.skel->progs.openat_e,
+	                                &g_state.skel->links.openat_e,
+	                                TTM_OPENAT);
 }
 
 int attach_openat2_toctou_mitigation_progs() {
-	const int res =
-	        attach_64bit_toctou_prog(g_state.skel->progs.openat2_e, &g_state.skel->links.openat2_e);
+	const int res = attach_64bit_toctou_prog(g_state.skel->progs.openat2_e,
+	                                         &g_state.skel->links.openat2_e,
+	                                         TTM_OPENAT2);
 	if(res) {
 		return res;
 	}
@@ -333,12 +463,14 @@ static int detach_toctou_progs(const struct bpf_program* prog,
                                const struct bpf_program* ia32_prog,
                                struct bpf_link** prog_link,
                                struct bpf_link** ia32_compat_prog_link,
-                               struct bpf_link** ia32_prog_link) {
+                               struct bpf_link** ia32_prog_link,
+                               enum ttm_sc_code sc) {
 	if(*prog_link && bpf_link__destroy(*prog_link)) {
 		print_prog_detachment_failure_error(prog);
 		return errno;
 	}
 	*prog_link = NULL;
+	close_toctou_perf_events_of(sc);
 
 	if(*ia32_compat_prog_link && bpf_link__destroy(*ia32_compat_prog_link)) {
 		print_prog_detachment_failure_error(ia32_compat_prog);
@@ -361,7 +493,8 @@ int detach_connect_toctou_mitigation_progs() {
 	                           g_state.skel->progs.ia32_connect_e,
 	                           &g_state.skel->links.connect_e,
 	                           &g_state.skel->links.ia32_compat_connect_e,
-	                           &g_state.skel->links.ia32_connect_e);
+	                           &g_state.skel->links.ia32_connect_e,
+	                           TTM_CONNECT);
 }
 
 int detach_creat_toctou_mitigation_progs() {
@@ -370,7 +503,8 @@ int detach_creat_toctou_mitigation_progs() {
 	                           g_state.skel->progs.ia32_creat_e,
 	                           &g_state.skel->links.creat_e,
 	                           &g_state.skel->links.ia32_compat_creat_e,
-	                           &g_state.skel->links.ia32_creat_e);
+	                           &g_state.skel->links.ia32_creat_e,
+	                           TTM_CREAT);
 }
 
 int detach_open_toctou_mitigation_progs() {
@@ -379,7 +513,8 @@ int detach_open_toctou_mitigation_progs() {
 	                           g_state.skel->progs.ia32_open_e,
 	                           &g_state.skel->links.open_e,
 	                           &g_state.skel->links.ia32_compat_open_e,
-	                           &g_state.skel->links.ia32_open_e);
+	                           &g_state.skel->links.ia32_open_e,
+	                           TTM_OPEN);
 }
 
 int detach_openat_toctou_mitigation_progs() {
@@ -388,7 +523,8 @@ int detach_openat_toctou_mitigation_progs() {
 	                           g_state.skel->progs.ia32_openat_e,
 	                           &g_state.skel->links.openat_e,
 	                           &g_state.skel->links.ia32_compat_openat_e,
-	                           &g_state.skel->links.ia32_openat_e);
+	                           &g_state.skel->links.ia32_openat_e,
+	                           TTM_OPENAT);
 }
 
 int detach_openat2_toctou_mitigation_progs() {
@@ -397,7 +533,8 @@ int detach_openat2_toctou_mitigation_progs() {
 	                           g_state.skel->progs.ia32_openat2_e,
 	                           &g_state.skel->links.openat2_e,
 	                           &g_state.skel->links.ia32_compat_openat2_e,
-	                           &g_state.skel->links.ia32_openat2_e);
+	                           &g_state.skel->links.ia32_openat2_e,
+	                           TTM_OPENAT2);
 }
 
 /*=============================== DETACH PROGRAMS ===============================*/
