@@ -46,7 +46,7 @@ target_include_directories(
 			${MODERN_BPF_SKEL_DIR}
 )
 
-target_link_libraries(pman PUBLIC scap_event_schema scap_platform lbpf ${ZLIB_LIB})
+target_link_libraries(pman PUBLIC scap_event_schema scap_platform lbpf ${ZLIB_LIB} pthread)
 
 if(BPF_ITERATOR_DEBUG)
 	target_compile_definitions(pman PRIVATE BPF_ITERATOR_DEBUG=1)
