@@ -106,6 +106,18 @@ __weak int64_t dump_task_file__fd_filter = -1;
  */
 __weak bool dump_task_file__must_dump_sockets = true;
 
+/**
+ * @brief The `faccessat` mode of the calls that the `syscall_tp_check` program counts. Set by
+ * libpman only while it checks whether BPF programs on syscall tracepoints run on this kernel.
+ */
+__weak uint32_t syscall_tp_check__mode;
+
+/**
+ * @brief The number of `faccessat` calls with mode `syscall_tp_check__mode` that the
+ * `syscall_tp_check` program counted.
+ */
+__weak uint64_t syscall_tp_check__hits;
+
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
