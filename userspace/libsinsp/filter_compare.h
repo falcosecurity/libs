@@ -51,6 +51,7 @@ enum cmpop : uint8_t {
 	CO_BSTARTSWITH = 17,
 	CO_IGLOB = 18,
 	CO_REGEX = 19,
+	CO_COUNT,  // not an operator: one past the last one, keep it last
 };
 
 enum cmpop_mod : uint8_t {

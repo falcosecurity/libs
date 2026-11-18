@@ -455,8 +455,9 @@ static inline bool flt_cmpop_supports_modifier(cmpop op) {
 
 std::vector<comparator> flt_supported_cmpops(ppm_param_type t, bool is_list, cmpop_mod mod) {
 	std::vector<comparator> res;
-	// CO_REGEX is the last operator: keep the bound in sync when adding new ones
-	for(uint8_t i = CO_EQ; i <= CO_REGEX; i++) {
+	static_assert(CO_COUNT == CO_REGEX + 1,
+	              "Update flt_cmpop_supports_modifier and this check when adding an operator");
+	for(uint8_t i = CO_EQ; i < CO_COUNT; i++) {
 		comparator cmp(static_cast<cmpop>(i));
 		cmp.mod = mod;
 		std::string err;
