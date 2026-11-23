@@ -77,6 +77,7 @@ limitations under the License.
 #include <libsinsp/sinsp_fdtable_factory.h>
 #include <libsinsp/sinsp_threadinfo_factory.h>
 #include <libsinsp/sinsp_thread_manager_factory.h>
+#include <libsinsp/sinsp_buffer.h>
 #include <libsinsp/sinsp_parser_verdict.h>
 #include <libsinsp/timestamper.h>
 
@@ -162,6 +163,14 @@ public:
 	        bool disable_iterators = false);
 	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);
 	/*!
+	  \brief Open the test_input engine with, in addition to the single event stream, optional
+	  per-buffer event queues that can be read with `next(evt, buffer_h)`.
+	  \param buffers the per-buffer queues, or nullptr for the single stream only.
+	*/
+	virtual void open_test_input(scap_test_input_data* data,
+	                             scap_test_input_buffers* buffers,
+	                             sinsp_mode_t mode = SINSP_MODE_TEST);
+	/*!
 	\brief Process a .scap file using a memory buffer.
 
 	The memory buffer must contain one or more scap/pcapng blocks,
@@ -197,6 +206,30 @@ public:
 	   call to \ref)
 	*/
 	virtual int32_t next(sinsp_evt** evt);
+
+	/*!
+	  \brief Get the next event from a specific buffer.
+
+	  \param buffer_h a buffer handle: `SINSP_INVALID_BUFFER_HANDLE` reads the merged event stream,
+	  exactly like `next(evt)`; a handle returned by `reserve_buffer_handle()` reads only the
+	  matching libscap buffer. The returned event and the parsing state are owned by that buffer,
+	  so the events returned for different buffers can be alive at the same time.
+	  \throws sinsp_exception if the handle does not identify a buffer.
+	  \note Buffers of an inspector are not safe to be read concurrently yet.
+	*/
+	int32_t next(sinsp_evt** evt, sinsp_buffer_t buffer_h);
+
+	/*!
+	  \brief Number of buffer handles that can be reserved, or 0 if the capture is closed or the
+	  engine does not support per-buffer reads.
+	*/
+	uint16_t get_num_allocated_buffer_handles() const;
+
+	/*!
+	  \brief Reserve a buffer handle and create the matching sinsp buffer.
+	  \throws sinsp_exception if no handle can be reserved.
+	*/
+	sinsp_buffer_t reserve_buffer_handle();
 
 	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
@@ -464,7 +497,9 @@ public:
 	/*!
 	  \brief get last library error.
 	*/
-	std::string getlasterr() const { return m_lasterr; }
+	std::string getlasterr(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
+		return get_buffer(buffer_h).m_lasterr;
+	}
 
 	/*!
 	  \brief Get the list of machine network interfaces.
@@ -685,9 +720,14 @@ public:
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
 	}
 
-	inline sinsp_parser* get_parser() { return m_parser.get(); }
+	inline sinsp_parser* get_parser(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) {
+		return get_buffer(buffer_h).m_parser.get();
+	}
 
-	inline const sinsp_parser* get_parser() const { return m_parser.get(); }
+	inline const sinsp_parser* get_parser(
+	        sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
+		return get_buffer(buffer_h).m_parser.get();
+	}
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp)
 	 * ===============================*/
@@ -783,7 +823,7 @@ public:
 	inline sinsp_observer* get_observer() const { return m_observer; }
 
 	bool get_track_connection_status() const;
-	inline void set_track_connection_status(bool enabled) const;
+	void set_track_connection_status(bool enabled) const;
 
 	std::shared_ptr<sinsp_thread_pool> get_thread_pool();
 	bool set_thread_pool(const std::shared_ptr<sinsp_thread_pool>& tpool);
@@ -808,7 +848,9 @@ public:
 
 	inline scap_t* get_scap_handle() { return m_h; }
 
-	inline int64_t get_tid_to_remove() const { return m_parser_verdict.get_tid_to_remove(); }
+	inline int64_t get_tid_to_remove(sinsp_buffer_t buffer_h = SINSP_INVALID_BUFFER_HANDLE) const {
+		return get_buffer(buffer_h).m_parser_verdict.get_tid_to_remove();
+	}
 
 	inline bool is_dumping() const { return m_is_dumping; }
 
@@ -833,10 +875,19 @@ private:
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
+	// Returns the buffer identified by the handle, or throws if there is none.
+	sinsp_buffer& get_buffer(sinsp_buffer_t buffer_h) const;
+	// Creates a buffer, with its own parser, reading from the given libscap buffer.
+	std::unique_ptr<sinsp_buffer> make_buffer(scap_buffer_t scap_buffer_h);
+	// Implementation of next(), shared by all the buffers.
+	int32_t next_from_buffer(sinsp_evt** puevt, sinsp_buffer& buffer);
+	void open_test_input_common(scap_test_input_data* data,
+	                            scap_test_input_buffers* buffers,
+	                            sinsp_mode_t mode);
 	static bool is_initialstate_event(const scap_evt& pevent);
 	void import_ifaddr_list();
 	void import_user_list();
-	int32_t fetch_next_event(sinsp_evt*& evt);
+	int32_t fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
@@ -892,14 +943,7 @@ private:
 	bool m_hostname_and_port_resolution_enabled;
 	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
-	sinsp_evt m_evt;
-	std::string m_lasterr;
-	sinsp_parser_verdict m_parser_verdict;
 	timestamper m_timestamper;
-	// the parsing engine
-	std::unique_ptr<sinsp_parser> m_parser;
-	// temporary storage for the parser event to avoid memory allocation
-	sinsp_evt m_parser_tmp_evt;
 	// the statistics analysis engine
 	std::unique_ptr<sinsp_dumper> m_dumper;
 	bool m_is_dumping;
@@ -1014,36 +1058,6 @@ public:
 		};
 	} m_async_events_checker;
 
-	// Holds an event dequeued from the above queue
-	sinsp_evt_ptr m_async_evt;
-
-	// temp storage for scap_next
-	// stores top scap_evt while qualified events from m_async_events_queue are being processed
-	struct {
-		inline auto next(scap_t* h) {
-			auto res = scap_next(h, &m_pevt, &m_cpuid, &m_dump_flags);
-			if(res != SCAP_SUCCESS) {
-				clear();
-			}
-			return res;
-		}
-		inline void move(sinsp_evt* evt) {
-			evt->set_scap_evt(m_pevt);
-			evt->set_cpuid(m_cpuid);
-			evt->set_dump_flags(m_dump_flags);
-			clear();
-		}
-		inline bool empty() const { return m_pevt == nullptr; }
-		inline void clear() {
-			m_pevt = nullptr;
-			m_cpuid = 0;
-			m_dump_flags = 0;
-		}
-
-		scap_evt* m_pevt{nullptr};
-		uint16_t m_cpuid{0};
-		uint32_t m_dump_flags;
-	} m_delayed_scap_evt;
 
 	//
 	// Used for collecting process CPU and res usage info from the kernel
@@ -1081,17 +1095,11 @@ public:
 	//
 	// The event sources available in the inspector
 	std::vector<std::string> m_event_sources;
-	//
-	// An instance of scap_evt to be used during the next call to sinsp::next().
-	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
-	// After using this event, sinsp::next() will set this back to nullptr.
-	// This is used internally during the state initialization phase.
-	scap_evt* m_replay_scap_evt;
-	//
-	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
-	// information of the replayed scap event.
-	uint16_t m_replay_scap_cpuid;
-	uint32_t m_replay_scap_flags;
+	// The buffers of the inspector. Index 0 is the default buffer, always present, that reads the
+	// merged event stream. The following ones are created by reserve_buffer_handle(), and the
+	// buffer handle is the index. Buffers are heap allocated because their addresses are shared
+	// with the events and the parsers they own.
+	std::vector<std::unique_ptr<sinsp_buffer>> m_buffers;
 
 	sinsp_observer* m_observer{nullptr};
 
