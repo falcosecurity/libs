@@ -22,10 +22,14 @@ limitations under the License.
 
 struct scap;
 struct scap_test_input_data;
+struct scap_test_input_buffers;
 
 struct test_input_engine {
 	char* m_lasterr;
 	struct scap_test_input_data* m_data;
+	// Optional per-buffer input, NULL in single stream mode.
+	struct scap_test_input_buffers* m_buffers;
+	uint16_t m_n_reserved_buffers;
 };
 
 typedef struct test_input_engine test_input_engine;
@@ -69,10 +73,52 @@ static int32_t next(struct scap_engine_handle handle,
 	return SCAP_SUCCESS;
 }
 
+static int32_t next_from_buffer(struct scap_engine_handle handle,
+                                scap_buffer_t buffer_h,
+                                scap_evt** pevent,
+                                uint32_t* pflags) {
+	test_input_engine* engine = handle.m_handle;
+	scap_test_input_buffers* bufs = engine->m_buffers;
+	if(bufs == NULL) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	// The buffer handle is just the buffer index: the test input engine has no private state to
+	// keep in it. Only reserved handles are valid.
+	if(buffer_h >= engine->m_n_reserved_buffers) {
+		return scap_errprintf(engine->m_lasterr, 0, "buffer handle %u not reserved", buffer_h);
+	}
+
+	struct scap_test_input_buffer* buf = &bufs->buffers[buffer_h];
+	if(!buf->events || buf->event_count == 0) {
+		return buf->eof_when_empty ? SCAP_EOF : SCAP_TIMEOUT;
+	}
+
+	*pevent = *(buf->events++);
+	buf->event_count--;
+	*pflags = 0;
+	return SCAP_SUCCESS;
+}
+
+static uint16_t get_n_allocated_buffer_handles(struct scap_engine_handle handle) {
+	test_input_engine* engine = handle.m_handle;
+	return engine->m_buffers != NULL ? engine->m_buffers->n_buffers : 0;
+}
+
+static scap_buffer_t reserve_buffer_handle(struct scap_engine_handle handle) {
+	test_input_engine* engine = handle.m_handle;
+	if(engine->m_buffers == NULL || engine->m_n_reserved_buffers >= engine->m_buffers->n_buffers) {
+		return SCAP_INVALID_BUFFER_HANDLE;
+	}
+	return (scap_buffer_t)engine->m_n_reserved_buffers++;
+}
+
 static int32_t init(scap_t* main_handle, scap_open_args* oargs) {
 	test_input_engine* engine = main_handle->m_engine.m_handle;
 	struct scap_test_input_engine_params* params = oargs->engine_params;
 	engine->m_data = params->test_input_data;
+	engine->m_buffers = params->test_input_buffers;
+	engine->m_n_reserved_buffers = 0;
 
 	if(engine->m_data == NULL) {
 		return scap_errprintf(engine->m_lasterr, 0, "No test input data provided");
@@ -90,9 +136,9 @@ const struct scap_vtable scap_test_input_engine = {
         .free_handle = noop_free_handle,
         .close = noop_close_engine,
         .next = next,
-        .next_from_buffer = noop_next_from_buffer,
-        .get_n_allocated_buffer_handles = noop_get_n_allocated_buffer_handles,
-        .reserve_buffer_handle = noop_reserve_buffer_handle,
+        .next_from_buffer = next_from_buffer,
+        .get_n_allocated_buffer_handles = get_n_allocated_buffer_handles,
+        .reserve_buffer_handle = reserve_buffer_handle,
         .start_capture = noop_start_capture,
         .stop_capture = noop_stop_capture,
         .configure = noop_configure,

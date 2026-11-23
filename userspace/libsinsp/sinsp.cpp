@@ -749,7 +749,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode) {
 #ifdef HAS_ENGINE_TEST_INPUT
 	scap_open_args oargs{};
-	scap_test_input_engine_params params;
+	scap_test_input_engine_params params{};
 	params.test_input_data = data;
 	oargs.engine_params = &params;
 
