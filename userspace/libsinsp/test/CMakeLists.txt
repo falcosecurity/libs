@@ -139,6 +139,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_compiler.ut.cpp
 	filter_transformer.ut.cpp
 	user.ut.cpp
+	usergroup_manager_concurrent.ut.cpp
 	sync_policy.ut.cpp
 	sinsp_utils.ut.cpp
 	sinsp_suppress.ut.cpp
@@ -171,6 +172,7 @@ if(WIN32)
 		events_user.ut.cpp
 		filter_op_net_compare.ut.cpp
 		user.ut.cpp
+		usergroup_manager_concurrent.ut.cpp
 		thread_table.ut.cpp
 		public_sinsp_API/sinsp_logger.cpp
 	)

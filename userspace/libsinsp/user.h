@@ -20,10 +20,14 @@ limitations under the License.
 #define FALCOSECURITY_LIBS_USER_H
 
 #include <unordered_map>
+#include <optional>
+#include <shared_mutex>
 #include <string>
 #include <memory>
+#include <mutex>
 #include <libsinsp/procfs_utils.h>
 #include <libsinsp/sinsp.h>
+#include <libsinsp/sync_policy.h>
 
 class sinsp;
 namespace libsinsp {
@@ -58,11 +62,21 @@ class ns_helper;
  * * Each threadinfo stores internally its uid and gid informations that, together
  * with the container_id written by the container plugin, will be used as keys to access
  * user/group metadata cache tables.
+ *
+ * Thread safety is selected by the `SyncPolicy` template parameter:
+ * * `sync_policy_single`: no locking at all (the lock is a no-op type), same code and layout as an
+ *   unsynchronized manager. This is what `sinsp_usergroup_manager` is, unless the library is built
+ *   with `LIBSINSP_SYNC_POLICY_CONCURRENT` defined.
+ * * `sync_policy_concurrent`: a reader/writer lock protects the tables, so that any thread can
+ *   look up, add and remove users and groups at the same time. Use `with_user()`/`with_group()` and
+ *   `copy_userlist()`/`copy_grouplist()` to read: the pointers returned by `get_user()` and friends
+ *   refer to the tables and are only valid while no other thread modifies them.
  */
-class sinsp_usergroup_manager {
+template<typename SyncPolicy>
+class basic_usergroup_manager {
 public:
-	explicit sinsp_usergroup_manager(sinsp *inspector, const timestamper &timestamper);
-	~sinsp_usergroup_manager() = default;
+	explicit basic_usergroup_manager(sinsp *inspector, const timestamper &timestamper);
+	~basic_usergroup_manager() = default;
 
 	void dump_users_groups(sinsp_dumper &dumper);
 
@@ -74,9 +88,38 @@ public:
 	  \note this call works with file captures as well, because the user
 	   table is stored in the trace files. In that case, the returned
 	   user list is the one of the machine where the capture happened.
+	  \note the returned pointer refers to the table itself: with a concurrent policy use
+	   `copy_userlist()` instead.
 	*/
 	const std::unordered_map<uint32_t, scap_userinfo> *get_userlist(
 	        const std::string &container_id);
+
+	/*!
+	  \brief Return a copy of the user table of a container, taken atomically.
+
+	  \return the copy, or `std::nullopt` if there is no table for the container.
+	*/
+	std::optional<std::unordered_map<uint32_t, scap_userinfo>> copy_userlist(
+	        const std::string &container_id);
+
+	/*!
+	  \brief Call `visitor(const scap_userinfo &)` with the user, if it is found, while the entry
+	   cannot change. No copy and no allocation.
+
+	  \return true if the user was found and the visitor was called, false otherwise.
+
+	  \note the visitor must not call back into this manager.
+	*/
+	template<typename Visitor>
+	bool with_user(const std::string &container_id, uint32_t uid, Visitor &&visitor) {
+		std::shared_lock<mutex_type> lock(m_mutex);
+		const scap_userinfo *usr = get_user_assuming_lock_held(container_id, uid);
+		if(usr == nullptr) {
+			return false;
+		}
+		visitor(*usr);
+		return true;
+	}
 
 	/*!
 	  \brief Lookup for user in the user table.
@@ -87,6 +130,8 @@ public:
 	  \note this call works with file captures as well, because the user
 	   table is stored in the trace files. In that case, the returned
 	   user list is the one of the machine where the capture happened.
+	  \note the returned pointer refers to the table itself: with a concurrent policy use
+	   `with_user()` instead.
 	*/
 	scap_userinfo *get_user(const std::string &container_id, uint32_t uid);
 
@@ -99,9 +144,38 @@ public:
 	  \note this call works with file captures as well, because the group
 	   table is stored in the trace files. In that case, the returned
 	   user table is the one of the machine where the capture happened.
+	  \note the returned pointer refers to the table itself: with a concurrent policy use
+	   `copy_grouplist()` instead.
 	*/
 	const std::unordered_map<uint32_t, scap_groupinfo> *get_grouplist(
 	        const std::string &container_id);
+
+	/*!
+	  \brief Return a copy of the group table of a container, taken atomically.
+
+	  \return the copy, or `std::nullopt` if there is no table for the container.
+	*/
+	std::optional<std::unordered_map<uint32_t, scap_groupinfo>> copy_grouplist(
+	        const std::string &container_id);
+
+	/*!
+	  \brief Call `visitor(const scap_groupinfo &)` with the group, if it is found, while the entry
+	   cannot change. No copy and no allocation.
+
+	  \return true if the group was found and the visitor was called, false otherwise.
+
+	  \note the visitor must not call back into this manager.
+	*/
+	template<typename Visitor>
+	bool with_group(const std::string &container_id, uint32_t gid, Visitor &&visitor) {
+		std::shared_lock<mutex_type> lock(m_mutex);
+		const scap_groupinfo *grp = get_group_assuming_lock_held(container_id, gid);
+		if(grp == nullptr) {
+			return false;
+		}
+		visitor(*grp);
+		return true;
+	}
 
 	/*!
 	  \brief Lookup for group in the group table for a container.
@@ -112,11 +186,17 @@ public:
 	  \note this call works with file captures as well, because the group
 	   table is stored in the trace files. In that case, the returned
 	   group list is the one of the machine where the capture happened.
+	  \note the returned pointer refers to the table itself: with a concurrent policy use
+	   `with_group()` instead.
 	*/
 	scap_groupinfo *get_group(const std::string &container_id, uint32_t gid);
 
 	// Note: pid is an unused parameter when container_id is an empty string
 	// ie: it is only used when adding users/groups from containers.
+	// Note: with a concurrent policy, the returned pointers refer to the tables and are only valid
+	// while no other thread modifies them; callers that do not need them should ignore them.
+	// Note: when container users/groups are added, the container's /etc/passwd and /etc/group are
+	// read while the writer lock is held.
 	scap_userinfo *add_user(const std::string &container_id,
 	                        int64_t pid,
 	                        uint32_t uid,
@@ -148,9 +228,35 @@ public:
 	//
 	// User and group tables
 	//
-	bool m_import_users;
+	typename libsinsp::sync_policy_traits<SyncPolicy>::atomic_flag m_import_users;
 
 private:
+	using mutex_type = typename libsinsp::sync_policy_traits<SyncPolicy>::shared_mutex;
+
+	// The *_assuming_lock_held() and *_impl() methods below do not lock: they are called by the
+	// public methods, that hold m_mutex (shared for lookups, exclusive for modifications). They
+	// never call a public method, so that m_mutex is never taken twice by the same thread.
+	scap_userinfo *get_user_assuming_lock_held(const std::string &container_id, uint32_t uid);
+	scap_groupinfo *get_group_assuming_lock_held(const std::string &container_id, uint32_t gid);
+	const std::unordered_map<uint32_t, scap_userinfo> *get_userlist_assuming_lock_held(
+	        const std::string &container_id);
+	const std::unordered_map<uint32_t, scap_groupinfo> *get_grouplist_assuming_lock_held(
+	        const std::string &container_id);
+
+	scap_userinfo *add_user_impl(const std::string &container_id,
+	                             int64_t pid,
+	                             uint32_t uid,
+	                             uint32_t gid,
+	                             std::string_view name,
+	                             std::string_view home,
+	                             std::string_view shell,
+	                             bool notify);
+	scap_groupinfo *add_group_impl(const std::string &container_id,
+	                               int64_t pid,
+	                               uint32_t gid,
+	                               std::string_view name,
+	                               bool notify);
+
 	scap_userinfo *add_host_user(uint32_t uid,
 	                             uint32_t gid,
 	                             std::string_view name,
@@ -207,6 +313,18 @@ private:
 
 	const std::string &m_host_root;
 	std::unique_ptr<libsinsp::procfs_utils::ns_helper> m_ns_helper;
+
+	// Protects m_userlist, m_grouplist and the fallback entries.
+	mutable mutex_type m_mutex;
+};
+
+extern template class basic_usergroup_manager<sync_policy_single>;
+extern template class basic_usergroup_manager<sync_policy_concurrent>;
+
+/// The user/group manager owned by `sinsp`: it uses `sync_policy_default`.
+class sinsp_usergroup_manager : public basic_usergroup_manager<sync_policy_default> {
+public:
+	using basic_usergroup_manager<sync_policy_default>::basic_usergroup_manager;
 };
 
 // RAII struct to manage threadinfos automatic user/group refresh
