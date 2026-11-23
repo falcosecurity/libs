@@ -72,6 +72,7 @@ struct scap_vtable;
 #endif
 
 #include <libscap/scap_limits.h>
+#include <libscap/scap_buffer.h>
 #include <libscap/scap_open.h>
 #include <libscap/scap_machine_info.h>
 #include <libscap/scap_procs.h>
@@ -559,6 +560,50 @@ uint64_t scap_max_buf_used(scap_t* handle);
   error.
 */
 int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid, uint32_t* pflags);
+
+/*!
+  \brief Get the next event from a specific buffer of the given capture instance
+
+  \param handle Handle to the capture instance.
+  \param buffer_h Handle of the buffer, obtained with scap_buffer_reserve_handle().
+  \param pevent [out] User-provided event pointer that will be initialized with address of the
+  event.
+  \param pflags [out] User-provided event pointer that will be initialized with the flags of the
+  event.
+
+  \return SCAP_SUCCESS if the call is successful and pevent and pflags contain valid data.
+   SCAP_TIMEOUT in case the read timeout expired and no event is available.
+   SCAP_EOF when no more events are going to arrive on this buffer.
+   SCAP_NOT_SUPPORTED if the engine does not support per-buffer reads.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the
+  error.
+*/
+int32_t scap_buffer_next(scap_t* handle,
+                         scap_buffer_t buffer_h,
+                         scap_evt** pevent,
+                         uint32_t* pflags);
+
+/*!
+  \brief Get the number of buffer handles allocated by the capture instance
+
+  \param handle Handle to the capture instance.
+
+  \return The number of buffer handles, 0 if the engine does not support per-buffer reads.
+   It is the maximum number of times scap_buffer_reserve_handle() can succeed.
+*/
+uint16_t scap_buffer_get_n_allocated_handles(scap_t* handle);
+
+/*!
+  \brief Reserve a buffer handle
+
+  \param handle Handle to the capture instance.
+
+  \return A valid buffer handle if the call is successful.
+   If a handle cannot be reserved (i.e. NULL handle, no handle left, or per-buffer reads not
+   supported by the engine), SCAP_INVALID_BUFFER_HANDLE is returned and scap_getlasterr() can be
+   used to obtain the cause of the error.
+*/
+scap_buffer_t scap_buffer_reserve_handle(scap_t* handle);
 
 /*!
   \brief Get the length of an event

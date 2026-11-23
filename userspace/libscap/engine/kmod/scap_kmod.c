@@ -26,6 +26,7 @@ limitations under the License.
 #define HANDLE(engine) ((struct kmod_engine *)(engine.m_handle))
 
 #include <libscap/engine/kmod/kmod.h>
+#include <libscap/engine/noop/noop.h>
 #include <libscap/scap.h>
 #include <driver_config.h>
 #include <driver/ppm_ringbuffer.h>
@@ -998,6 +999,9 @@ struct scap_vtable scap_kmod_engine = {
         .free_handle = free_handle,
         .close = scap_kmod_close,
         .next = scap_kmod_next,
+        .next_from_buffer = noop_next_from_buffer,
+        .get_n_allocated_buffer_handles = noop_get_n_allocated_buffer_handles,
+        .reserve_buffer_handle = noop_reserve_buffer_handle,
         .start_capture = scap_kmod_start_capture,
         .stop_capture = scap_kmod_stop_capture,
         .configure = configure,

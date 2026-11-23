@@ -213,6 +213,45 @@ int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t*
 	return res;
 }
 
+int32_t scap_buffer_next(scap_t* handle,
+                         scap_buffer_t buffer_h,
+                         scap_evt** pevent,
+                         uint32_t* pflags) {
+	if(!handle || !handle->m_vtable) {
+		return SCAP_FAILURE;
+	}
+	if(buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
+		return scap_errprintf(handle->m_lasterr, 0, "invalid buffer handle");
+	}
+
+	int32_t res = handle->m_vtable->next_from_buffer(handle->m_engine, buffer_h, pevent, pflags);
+	if(res == SCAP_NOT_SUPPORTED) {
+		return scap_err_opnotsup(handle->m_lasterr);
+	}
+	return res;
+}
+
+uint16_t scap_buffer_get_n_allocated_handles(scap_t* handle) {
+	if(!handle || !handle->m_vtable) {
+		return 0;
+	}
+	return handle->m_vtable->get_n_allocated_buffer_handles(handle->m_engine);
+}
+
+scap_buffer_t scap_buffer_reserve_handle(scap_t* handle) {
+	if(!handle || !handle->m_vtable) {
+		return SCAP_INVALID_BUFFER_HANDLE;
+	}
+
+	scap_buffer_t buffer_h = handle->m_vtable->reserve_buffer_handle(handle->m_engine);
+	if(buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
+		(void)scap_errprintf(handle->m_lasterr,
+		                     0,
+		                     "no buffer handle available or operation not supported");
+	}
+	return buffer_h;
+}
+
 //
 // Return the number of dropped events for the given handle.
 //
