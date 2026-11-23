@@ -139,6 +139,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_compiler.ut.cpp
 	filter_transformer.ut.cpp
 	user.ut.cpp
+	sync_policy.ut.cpp
 	sinsp_utils.ut.cpp
 	sinsp_suppress.ut.cpp
 	state.ut.cpp
