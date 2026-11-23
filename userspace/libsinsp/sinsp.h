@@ -153,13 +153,16 @@ public:
 	 * ring buffer. The last one allows allocating ring buffers only for online CPUs and not for all
 	 * system-available CPUs. `disable_iterators` disables the BPF iterator support for synchronous
 	 * information fetching, letting scap falling back to the procfs lookups.
+	 * `fixed_buffers_num`, if not 0, allocates exactly that many ring buffers, whatever the number
+	 * of CPUs, and makes `cpus_for_each_buffer` ignored.
 	 */
 	virtual void open_modern_bpf(
 	        unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM,
 	        uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER,
 	        bool online_only = true,
 	        const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest = {},
-	        bool disable_iterators = false);
+	        bool disable_iterators = false,
+	        uint16_t fixed_buffers_num = 0);
 	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);
 	/*!
 	\brief Process a .scap file using a memory buffer.

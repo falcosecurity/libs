@@ -24,6 +24,7 @@ limitations under the License.
 #include <sys/mman.h>
 #include <ringbuffer_debug_macro.h>
 #include <driver/ppm_events_public.h>
+#include <libpman.h>
 
 #include "ringbuffer_definitions.h"
 #include "support_probing.h"
@@ -199,8 +200,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 	}
 
 	/* We need to associate every CPU to the right ring buffer */
-	int ringbuf_id = 0;
-	int reached = 0;
+	uint16_t cpu_idx = 0;
 	for(int i = 0; i < g_state.n_possible_cpus; i++) {
 		/* If we want to allocate only buffers for online CPUs and the CPU is online, fill its
 		 * ring buffer array entry, otherwise we can go on with the next online CPU
@@ -209,6 +209,9 @@ int pman_finalize_ringbuf_array_after_loading() {
 			continue;
 		}
 
+		const uint32_t ringbuf_id = pman_ringbuf_id_for_cpu(cpu_idx++,
+		                                                    g_state.cpus_for_each_buffer,
+		                                                    g_state.fixed_buffers_num);
 		if(ringbuf_id >= g_state.n_required_buffers) {
 			/* If we arrive here it means that we have too many CPUs for our allocated ring buffers
 			 * so probably we faced a CPU hotplug.
@@ -222,12 +225,6 @@ int pman_finalize_ringbuf_array_after_loading() {
 			last_errno = errno;
 			log_errorf("failed to add the ringbuf map for CPU '%d' to ringbuf '%d'", i, ringbuf_id);
 			goto clean_percpu_ring_buffers;
-		}
-
-		if(++reached == g_state.cpus_for_each_buffer) {
-			/* we need to switch to the next buffer */
-			reached = 0;
-			ringbuf_id++;
 		}
 	}
 	success = true;

@@ -40,6 +40,12 @@ struct scap_modern_bpf_engine_params {
 	bool disable_iterators;    ///< If true, disable the BPF iterator support for synchronous
 	                           ///< information fetching, letting scap falling back to the procfs
 	                           ///< lookups.
+	uint16_t fixed_buffers_num;  ///< [EXPERIMENTAL] If not `0`, allocate exactly this number of
+	                             ///< ring buffers, whatever the number of CPUs: the CPUs are spread
+	                             ///< over them round-robin and `cpus_for_each_buffer` is ignored.
+	                             ///< It cannot be greater than the number of CPUs taken into
+	                             ///< account (see `allocate_online_only`). `0` (the default) keeps
+	                             ///< the `cpus_for_each_buffer` behavior.
 };
 
 extern const struct scap_linux_vtable scap_modern_bpf_linux_vtable;

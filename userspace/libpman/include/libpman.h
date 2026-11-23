@@ -56,13 +56,50 @@ struct scap_stats;
  * @param buf_bytes_dim dimension of a single per-CPU buffer in bytes.
  * @param cpus_for_each_buffer number of CPUs to which we want to associate a ring buffer.
  * @param allocate_online_only if true, allocate ring buffers taking only into account online CPUs.
+ * @param disable_iterators if true, disable the BPF iterator support.
+ * @param fixed_buffers_num if not `0`, allocate exactly this number of ring buffers, spreading the
+ * CPUs over them round-robin; `cpus_for_each_buffer` is then ignored. It must not be greater than
+ * the number of CPUs taken into account. `0` keeps the `cpus_for_each_buffer` behavior.
  * @return `0` on success, `-1` in case of error.
  */
 int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     uint16_t cpus_for_each_buffer,
                     bool allocate_online_only,
-                    bool disable_iterators);
+                    bool disable_iterators,
+                    uint16_t fixed_buffers_num);
+
+/**
+ * @brief Compute the number of ring buffers to allocate. It only does arithmetic and validation,
+ * it does not need any BPF support.
+ *
+ * @param n_cpus number of CPUs taken into account (online or possible).
+ * @param cpus_for_each_buffer one ring buffer every `cpus_for_each_buffer` CPUs, `0` means a single
+ * ring buffer. Ignored if `fixed_buffers_num` is not `0`.
+ * @param fixed_buffers_num exact number of ring buffers, `0` means not set.
+ * @param eff_cpus_for_each_buffer output: CPUs served by each buffer (`0` if `fixed_buffers_num` is
+ * set).
+ * @param n_buffers output: number of ring buffers to allocate.
+ * @return `0` on success, `-1` if the requested configuration cannot be satisfied.
+ */
+int pman_compute_buffers_layout(uint16_t n_cpus,
+                                uint16_t cpus_for_each_buffer,
+                                uint16_t fixed_buffers_num,
+                                uint16_t* eff_cpus_for_each_buffer,
+                                uint32_t* n_buffers);
+
+/**
+ * @brief Return the ring buffer that serves a CPU.
+ *
+ * @param cpu_idx index of the CPU among the CPUs taken into account (offline CPUs are not counted
+ * when only the online ones are considered).
+ * @param cpus_for_each_buffer effective value returned by `pman_compute_buffers_layout()`.
+ * @param fixed_buffers_num the same value given to `pman_compute_buffers_layout()`.
+ * @return the index of the ring buffer.
+ */
+uint32_t pman_ringbuf_id_for_cpu(uint16_t cpu_idx,
+                                 uint16_t cpus_for_each_buffer,
+                                 uint16_t fixed_buffers_num);
 
 /**
  * @brief Return the number of allocated ring buffers.

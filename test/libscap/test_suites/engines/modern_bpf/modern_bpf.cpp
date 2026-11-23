@@ -26,7 +26,8 @@ scap_t* open_modern_bpf_engine(char* error_buf,
                                unsigned long buffer_dim,
                                uint16_t cpus_for_each_buffer,
                                bool online_only,
-                               std::unordered_set<uint32_t> ppm_sc_set = {}) {
+                               std::unordered_set<uint32_t> ppm_sc_set = {},
+                               uint16_t fixed_buffers_num = 0) {
 	struct scap_open_args oargs {};
 
 	/* If empty we fill with all syscalls */
@@ -45,6 +46,7 @@ scap_t* open_modern_bpf_engine(char* error_buf,
 	        .allocate_online_only = online_only,
 	        .buffer_bytes_dim = buffer_dim,
 	        .disable_iterators = false,
+	        .fixed_buffers_num = fixed_buffers_num,
 	};
 	oargs.engine_params = &modern_bpf_params;
 	oargs.log_fn = test_open_log_fn;
@@ -179,6 +181,44 @@ TEST(modern_bpf, one_buffer_shared_between_all_online_CPUs_with_explicit_CPUs_nu
 	                        << std::endl;
 
 	scap_close(h);
+}
+
+TEST(modern_bpf, fixed_buffers_num_fewer_than_CPUs) {
+	char error_buffer[FILENAME_MAX]{};
+	int ret = 0;
+	/* A fixed number of buffers wins over `cpus_for_each_buffer` (here 1 buffer per CPU). */
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, false, {}, 1);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
+	        << "unable to open modern bpf engine with a fixed number of ring buffers: "
+	        << error_buffer << std::endl;
+	ASSERT_EQ(scap_get_ndevs(h), 1) << "we should have exactly 1 ring buffer!" << std::endl;
+	check_event_is_not_overwritten(h);
+	scap_close(h);
+
+	if(num_possible_cpus() >= 3) {
+		h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, false, {}, 2);
+		ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
+		        << "unable to open modern bpf engine with 2 ring buffers: " << error_buffer
+		        << std::endl;
+		ASSERT_EQ(scap_get_ndevs(h), 2) << "we should have exactly 2 ring buffers!" << std::endl;
+		check_event_is_not_overwritten(h);
+		scap_close(h);
+	}
+}
+
+TEST(modern_bpf, fixed_buffers_num_more_than_CPUs) {
+	char error_buffer[FILENAME_MAX]{};
+	int ret = 0;
+	scap_t* h = open_modern_bpf_engine(error_buffer,
+	                                   &ret,
+	                                   4 * 4096,
+	                                   1,
+	                                   false,
+	                                   {},
+	                                   num_possible_cpus() + 1);
+	ASSERT_TRUE(!h || ret != SCAP_SUCCESS)
+	        << "more ring buffers than possible CPUs were required, we should fail: "
+	        << error_buffer << std::endl;
 }
 
 TEST(modern_bpf, read_in_order_one_buffer_per_online_CPU) {
