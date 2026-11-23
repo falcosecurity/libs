@@ -141,6 +141,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	user.ut.cpp
 	sinsp_utils.ut.cpp
 	sinsp_suppress.ut.cpp
+	sinsp_buffer.ut.cpp
 	state.ut.cpp
 	suppress.ut.cpp
 	dns_manager.ut.cpp
