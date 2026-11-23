@@ -1058,7 +1058,6 @@ public:
 		};
 	} m_async_events_checker;
 
-
 	//
 	// Used for collecting process CPU and res usage info from the kernel
 	//

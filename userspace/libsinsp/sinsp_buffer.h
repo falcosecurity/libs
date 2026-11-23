@@ -34,10 +34,10 @@ class sinsp_parser;
   \brief Handle of a sinsp buffer.
 
   A sinsp buffer is the unit of event reading and parsing state of an inspector. Every
-  inspector owns the default buffer, identified by `SINSP_INVALID_BUFFER_HANDLE` (the name of #2853: the
-  "invalid" handle selects the default buffer), which reads the
-  single, merged event stream (`scap_next()`). Other buffers are obtained with
-  `sinsp::reserve_buffer_handle()` and read the matching libscap buffer (`scap_buffer_next()`).
+  inspector owns the default buffer, identified by `SINSP_INVALID_BUFFER_HANDLE` (the name of #2853:
+  the "invalid" handle selects the default buffer), which reads the single, merged event stream
+  (`scap_next()`). Other buffers are obtained with `sinsp::reserve_buffer_handle()` and read the
+  matching libscap buffer (`scap_buffer_next()`).
 */
 using sinsp_buffer_t = uint16_t;
 
