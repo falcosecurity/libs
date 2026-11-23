@@ -85,6 +85,8 @@ if(BUILD_LIBSCAP_MODERN_BPF)
 		 "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/modern_bpf/*.cpp"
 	)
 	list(APPEND LIBSCAP_TESTS_SOURCES ${MODERN_BPF_TEST_SUITE})
+	# The iterator tests call into libpman directly.
+	list(APPEND LIBSCAP_TESTS_LIBRARIES pman)
 endif()
 
 file(GLOB_RECURSE SAVEFILE_TEST_SUITE CONFIGURE_DEPENDS

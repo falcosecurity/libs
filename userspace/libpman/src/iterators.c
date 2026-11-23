@@ -399,7 +399,7 @@ static void fdinfo_from_task_file_socket_inet_evt(scap_fdinfo *fdinfo,
 	COPY_PARAM(dip, &evt_params[5]);    // remote_ip
 	COPY_PARAM(dport, &evt_params[6]);  // remote_port
 
-	if(dip != 0) {
+	if(dip != 0 || sport == 0) {
 		fdinfo->type = SCAP_FD_IPV4_SOCK;
 		fdinfo->info.ipv4info.sip = sip;
 		fdinfo->info.ipv4info.dip = dip;
@@ -435,7 +435,7 @@ static void fdinfo_from_task_file_socket_inet6_evt(scap_fdinfo *fdinfo,
 	COPY_PARAM(dip, &evt_params[5]);    // remote_ip
 	COPY_PARAM(dport, &evt_params[6]);  // remote_port
 
-	if(!is_ipv6_unspec_addr(dip)) {
+	if(!is_ipv6_unspec_addr(dip) || sport == 0) {
 		fdinfo->type = SCAP_FD_IPV6_SOCK;
 		memcpy(&fdinfo->info.ipv6info.sip, sip, sizeof(fdinfo->info.ipv6info.sip));
 		memcpy(&fdinfo->info.ipv6info.dip, dip, sizeof(fdinfo->info.ipv6info.dip));

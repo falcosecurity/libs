@@ -8,6 +8,12 @@
 #include <sched.h>
 #include <sys/resource.h>
 #include <helpers/engines.h>
+#include <libpman.h>
+#include <libscap/linux/scap_linux_platform.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 static falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
 
@@ -525,4 +531,127 @@ TEST(modern_bpf, double_metrics_v2_call) {
 	ASSERT_GT(nstats, 0);
 
 	scap_close(h);
+}
+
+/*=============================== ITERATORS: INET SOCKETS ===========================*/
+
+namespace {
+struct fetched_fd {
+	int64_t pid = 0;
+	int64_t fd = -1;
+	bool found = false;
+	scap_fdinfo fdinfo{};
+};
+
+int32_t store_fetched_fd(void* ctx,
+                         char* error,
+                         int64_t tid,
+                         scap_threadinfo* tinfo,
+                         scap_fdinfo* fdinfo,
+                         scap_threadinfo** new_tinfo) {
+	auto* out = static_cast<fetched_fd*>(ctx);
+	if(fdinfo != nullptr && tid == out->pid && fdinfo->fd == out->fd) {
+		out->found = true;
+		out->fdinfo = *fdinfo;
+	}
+	return SCAP_SUCCESS;
+}
+
+// Fetch `fd` of the current process through the `dump_task_file` BPF iterator, as the initial
+// proc scan does.
+int32_t fetch_fd_with_iterator(const int fd, fetched_fd& out, char* error) {
+	out.pid = getpid();
+	out.fd = fd;
+	scap_fetch_callbacks callbacks{store_fetched_fd, &out};
+	return pman_iter_fetch_procs_files(&callbacks, error);
+}
+}  // namespace
+
+// A socket neither bound nor connected has no peer and no local port: it must not be reported as
+// a server socket listening on port 0 (e.g. a UDP socket only used as an `ioctl()` handle).
+TEST(modern_bpf, iterator_unbound_ipv4_socket_is_not_a_server) {
+	char error_buffer[FILENAME_MAX]{};
+	int ret = 0;
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, true);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open modern bpf engine: " << error_buffer;
+
+	const int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	ASSERT_GE(fd, 0);
+	fetched_fd out;
+	char err[SCAP_LASTERR_SIZE]{};
+	const int32_t res = fetch_fd_with_iterator(fd, out, err);
+	close(fd);
+	scap_close(h);
+
+	if(res == SCAP_NOT_SUPPORTED) {
+		GTEST_SKIP() << "dumping files with BPF iterators is not supported";
+	}
+	ASSERT_EQ(res, SCAP_SUCCESS) << err;
+	ASSERT_TRUE(out.found) << "fd " << fd << " not fetched";
+	EXPECT_EQ(out.fdinfo.type, SCAP_FD_IPV4_SOCK);
+	EXPECT_EQ(out.fdinfo.info.ipv4info.sport, 0);
+	EXPECT_EQ(out.fdinfo.info.ipv4info.dport, 0);
+	EXPECT_EQ(out.fdinfo.info.ipv4info.l4proto, SCAP_L4_UDP);
+}
+
+TEST(modern_bpf, iterator_unbound_ipv6_socket_is_not_a_server) {
+	char error_buffer[FILENAME_MAX]{};
+	int ret = 0;
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, true);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open modern bpf engine: " << error_buffer;
+
+	const int fd = socket(AF_INET6, SOCK_DGRAM, 0);
+	if(fd < 0) {
+		scap_close(h);
+		GTEST_SKIP() << "IPv6 not available";
+	}
+	fetched_fd out;
+	char err[SCAP_LASTERR_SIZE]{};
+	const int32_t res = fetch_fd_with_iterator(fd, out, err);
+	close(fd);
+	scap_close(h);
+
+	if(res == SCAP_NOT_SUPPORTED) {
+		GTEST_SKIP() << "dumping files with BPF iterators is not supported";
+	}
+	ASSERT_EQ(res, SCAP_SUCCESS) << err;
+	ASSERT_TRUE(out.found) << "fd " << fd << " not fetched";
+	EXPECT_EQ(out.fdinfo.type, SCAP_FD_IPV6_SOCK);
+	EXPECT_EQ(out.fdinfo.info.ipv6info.sport, 0);
+	EXPECT_EQ(out.fdinfo.info.ipv6info.dport, 0);
+	EXPECT_EQ(out.fdinfo.info.ipv6info.l4proto, SCAP_L4_UDP);
+}
+
+// A listening socket must still be reported as a server socket with its local port.
+TEST(modern_bpf, iterator_listening_ipv4_socket_is_a_server) {
+	char error_buffer[FILENAME_MAX]{};
+	int ret = 0;
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, true);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open modern bpf engine: " << error_buffer;
+
+	const int fd = socket(AF_INET, SOCK_STREAM, 0);
+	ASSERT_GE(fd, 0);
+	sockaddr_in addr{};
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	addr.sin_port = 0;
+	ASSERT_EQ(bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)), 0);
+	ASSERT_EQ(listen(fd, 1), 0);
+	socklen_t len = sizeof(addr);
+	ASSERT_EQ(getsockname(fd, reinterpret_cast<sockaddr*>(&addr), &len), 0);
+
+	fetched_fd out;
+	char err[SCAP_LASTERR_SIZE]{};
+	const int32_t res = fetch_fd_with_iterator(fd, out, err);
+	close(fd);
+	scap_close(h);
+
+	if(res == SCAP_NOT_SUPPORTED) {
+		GTEST_SKIP() << "dumping files with BPF iterators is not supported";
+	}
+	ASSERT_EQ(res, SCAP_SUCCESS) << err;
+	ASSERT_TRUE(out.found) << "fd " << fd << " not fetched";
+	EXPECT_EQ(out.fdinfo.type, SCAP_FD_IPV4_SERVSOCK);
+	EXPECT_EQ(out.fdinfo.info.ipv4serverinfo.port, ntohs(addr.sin_port));
+	EXPECT_EQ(out.fdinfo.info.ipv4serverinfo.l4proto, SCAP_L4_TCP);
 }
