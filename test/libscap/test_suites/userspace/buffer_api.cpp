@@ -21,9 +21,18 @@ limitations under the License.
 #include <libscap/scap_engines.h>
 #include <gtest/gtest.h>
 
+#include <cstring>
 #include <vector>
 
 namespace {
+
+// Events are packed, so evt->tid may be misaligned: read it by value, never bind a reference to it
+// (gtest's ASSERT_EQ takes references, which UBSan reports).
+uint64_t tid_of(const scap_evt* evt) {
+	uint64_t tid;
+	memcpy(&tid, &evt->tid, sizeof(tid));
+	return tid;
+}
 
 // Builds a bare event header: libscap does not parse the events of the test_input engine, so the
 // thread id is enough to tell which event is which.
@@ -127,12 +136,12 @@ TEST_F(buffer_api, events_are_delivered_to_the_right_buffer_in_order) {
 
 	// Read the buffers in an interleaved order: each one keeps its own sequence.
 	ASSERT_EQ(scap_buffer_next(m_handle, h1, &evt, &flags), SCAP_SUCCESS);
-	ASSERT_EQ(evt->tid, 20u);
+	ASSERT_EQ(tid_of(evt), 20u);
 	ASSERT_EQ(flags, 0u);
 	ASSERT_EQ(scap_buffer_next(m_handle, h0, &evt, &flags), SCAP_SUCCESS);
-	ASSERT_EQ(evt->tid, 10u);
+	ASSERT_EQ(tid_of(evt), 10u);
 	ASSERT_EQ(scap_buffer_next(m_handle, h0, &evt, &flags), SCAP_SUCCESS);
-	ASSERT_EQ(evt->tid, 11u);
+	ASSERT_EQ(tid_of(evt), 11u);
 }
 
 TEST_F(buffer_api, an_empty_buffer_times_out_without_affecting_the_others) {
@@ -146,7 +155,7 @@ TEST_F(buffer_api, an_empty_buffer_times_out_without_affecting_the_others) {
 	uint32_t flags = 0;
 	ASSERT_EQ(scap_buffer_next(m_handle, h0, &evt, &flags), SCAP_TIMEOUT);
 	ASSERT_EQ(scap_buffer_next(m_handle, h1, &evt, &flags), SCAP_SUCCESS);
-	ASSERT_EQ(evt->tid, 7u);
+	ASSERT_EQ(tid_of(evt), 7u);
 	// h1 is now drained too, h0 is still just empty.
 	ASSERT_EQ(scap_buffer_next(m_handle, h1, &evt, &flags), SCAP_TIMEOUT);
 	ASSERT_EQ(scap_buffer_next(m_handle, h0, &evt, &flags), SCAP_TIMEOUT);
@@ -184,7 +193,7 @@ TEST_F(buffer_api, invalid_and_unreserved_handles_fail) {
 	ASSERT_EQ(scap_buffer_next(m_handle, 100, &evt, &flags), SCAP_FAILURE);
 	// The failures did not consume anything.
 	ASSERT_EQ(scap_buffer_next(m_handle, h0, &evt, &flags), SCAP_SUCCESS);
-	ASSERT_EQ(evt->tid, 1u);
+	ASSERT_EQ(tid_of(evt), 1u);
 }
 
 TEST_F(buffer_api, null_handle_is_rejected) {

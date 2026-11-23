@@ -15,6 +15,6 @@
 add_library(scap_engine_kmod scap_kmod.c)
 target_link_libraries(
 	scap_engine_kmod PRIVATE scap_event_schema scap_platform scap_engine_util scap_engine_noop
-						 scap_error
+							 scap_error
 )
 set_scap_target_properties(scap_engine_kmod)
