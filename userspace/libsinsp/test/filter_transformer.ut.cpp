@@ -498,6 +498,10 @@ TEST_F(sinsp_with_test_input, multivalue_transformer_concat) {
 	        "concat(fd.directory, concat(\"aaa\", toupper(fd.name))) = /tmpaaa/TMP/FILE_TO_RUN"));
 	EXPECT_TRUE(eval_filter(evt, "concat(\"aaa\", \"bbb\") = \"aaabbb\""));
 	EXPECT_FALSE(eval_filter(evt, "concat(\"aaa\", \"bbb\") = \"aaa-bbb\""));
+	// distinct transformer arguments must not share a cached extraction
+	EXPECT_TRUE(eval_filter(evt,
+	                        "concat(fd.name, \"x,y\") = \"/tmp/file_to_runx,y\" and "
+	                        "concat(fd.name, \"x\", \"y\") = /tmp/file_to_runxy"));
 
 	// Validation error tests
 	// concat() requires at least 2 arguments

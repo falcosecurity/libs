@@ -303,3 +303,42 @@ TEST_F(string_visitor_test, value_with_equals) {
 TEST_F(string_visitor_test, complex_bidirectional) {
 	bidirectional(complex_filter);
 }
+
+TEST_F(string_visitor_test, value_empty) {
+	std::string in = "proc.name = \"\"";
+
+	unidirectional(in, in);
+	bidirectional(in);
+}
+
+TEST_F(string_visitor_test, value_with_parentheses) {
+	std::string in = "proc.cmdline contains \"(x)\"";
+
+	unidirectional(in, in);
+	bidirectional(in);
+}
+
+TEST_F(string_visitor_test, list_value_with_comma) {
+	std::string in = "proc.name in (\"a,b\", c)";
+
+	unidirectional(in, in);
+	bidirectional(in);
+}
+
+TEST_F(string_visitor_test, list_value_empty) {
+	std::string in = "proc.name in (\"\", c)";
+
+	unidirectional(in, in);
+	bidirectional(in);
+}
+
+TEST_F(string_visitor_test, check_args_with_brackets) {
+	std::string in = "proc.aname[\"a]b\"] = nginx";
+
+	unidirectional(in, in);
+	bidirectional(in);
+}
+
+TEST_F(string_visitor_test, value_with_vertical_tab) {
+	bidirectional("proc.name = \"a\\x0bb\"");
+}
