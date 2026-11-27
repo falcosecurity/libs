@@ -48,10 +48,8 @@ int32_t scap_proc_scan_vtable(char *error,
 		                                      NULL,
 		                                      &tinfo);
 
-		if(tinfo->pid != tinfo->tid) {
-			continue;
-		}
-
+		// Every thread gets the fds that the platform gives for it: a thread with its own table,
+		// or the thread that holds the fds of a group without its main thread.
 		uint64_t n_fdinfos;
 		const scap_fdinfo *fdinfos;
 

@@ -86,10 +86,11 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform* linux_platform,
                             struct scap_ns_socket_list** sockets_by_ns,
                             uint64_t* num_fds_ret,
                             char* error);
-// read the file descriptor info for a given process directory
+// read the file descriptor info for a given process directory, and report it for `tid`
 int32_t scap_fd_get_fdinfo(struct scap_linux_platform const* linux_platform,
                            struct scap_proclist* proclist,
                            char* procdir,
+                           uint32_t tid,
                            scap_threadinfo* tinfo,
                            int fd,
                            struct scap_ns_socket_list** sockets_by_ns,

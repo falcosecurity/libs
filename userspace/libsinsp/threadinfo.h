@@ -304,11 +304,6 @@ public:
 	double get_fd_usage_pct_d();
 
 	/*!
-	  \brief Return the number of open FDs for this thread.
-	*/
-	uint64_t get_fd_opencount() const;
-
-	/*!
 	  \brief Return the maximum number of FDs this thread can open.
 	*/
 	uint64_t get_fd_limit();
@@ -446,20 +441,23 @@ public:
 	                      std::string& rem,
 	                      const cgroups_t& cgroups) const;
 
-	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
-	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
-	 */
-	inline const sinsp_fdtable* get_fd_table() const {
-		if(!(m_flags & PPM_CL_CLONE_FILES)) {
-			return &m_fdtable;
+	// A PPM_CL_CLONE_FILES thread adopts the table of its group when it joins
+	// the group (see sinsp_thread_manager::create_thread_dependencies()).
+	// Other threads keep their own.
+	inline const sinsp_fdtable* get_fd_table() const { return m_fdtable.get(); }
+
+	// For joining a thread group. A fork uses share_from(): forked tables diverge.
+	inline void adopt_fd_table(const std::shared_ptr<sinsp_fdtable>& table) {
+		if(table != nullptr && table != m_fdtable) {
+			m_fdtable = table;
 		}
-		const sinsp_threadinfo* root = get_main_thread();
-		return (root == nullptr) ? nullptr : &(root->get_fdtable());
 	}
 
+	// For a joining thread to adopt.
+	inline const std::shared_ptr<sinsp_fdtable>& get_fd_table_handle() const { return m_fdtable; }
+
 	// Table access for modification: the chokepoint where copy-on-write
-	// will detach state shared with other processes' fd tables. Same
-	// CLONE_FILES routing as the const accessor, so delegate to it.
+	// will detach state shared with other processes' fd tables.
 	inline sinsp_fdtable* get_fd_table_mut() { return const_cast<sinsp_fdtable*>(get_fd_table()); }
 
 	void init();
@@ -491,9 +489,9 @@ public:
 
 	inline void set_last_event_data(uint8_t* v) { m_lastevent_data = v; }
 
-	inline const sinsp_fdtable& get_fdtable() const { return m_fdtable; }
+	inline const sinsp_fdtable& get_fdtable() const { return *m_fdtable; }
 
-	inline sinsp_fdtable& get_fdtable() { return m_fdtable; }
+	inline sinsp_fdtable& get_fdtable() { return *m_fdtable; }
 
 	inline uint16_t get_lastevent_type() const { return m_lastevent_type; }
 
@@ -508,12 +506,6 @@ public:
 	}
 
 	inline sinsp_evt::category& get_lastevent_category() { return m_lastevent_category; }
-
-	inline void update_main_fdtable() {
-		auto fdtable = get_fd_table();
-		m_main_fdtable =
-		        !fdtable ? nullptr : static_cast<const libsinsp::state::base_table*>(fdtable);
-	}
 
 	void set_exepath(std::string&& exepath);
 
@@ -546,13 +538,13 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
+	// Shared by the threads of a process.
+	std::shared_ptr<sinsp_fdtable> m_fdtable;
+
 	//
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	sinsp_fdtable m_fdtable;  // The fd table of this thread
-	const libsinsp::state::base_table*
-	        m_main_fdtable;     // Points to the base fd table of the current main thread
 	std::string m_cwd;          // current working directory
 	uint8_t* m_lastevent_data;  // Used by some event parsers to store the last enter event
 

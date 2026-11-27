@@ -971,6 +971,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 	if(fdinfo == nullptr) {
 		ASSERT(tinfo != nullptr);
 
+		if(m_is_full_procfs_scan_in_progress) {
+			m_thread_manager->on_thread_scanned(tid);
+		}
 		threadinfo_map_t::ptr_t sinsp_tinfo;
 		auto newti = m_threadinfo_factory.create();
 		newti->init(*tinfo, large_envs_enabled());
@@ -986,8 +989,12 @@ void sinsp::on_new_entry_from_proc(void* context,
 		                               tinfo->gid,
 		                               must_notify_thread_user_update());
 		if(is_nodriver()) {
+			// A known thread keeps its entry, unless it is new or it stopped sharing the files of
+			// its process. Then the scan reports the fds of its own table.
 			auto existing_tinfo = find_thread(tid, true);
-			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts) {
+			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts ||
+			   (newti->m_flags & PPM_CL_CLONE_FILES) !=
+			           (existing_tinfo->m_flags & PPM_CL_CLONE_FILES)) {
 				sinsp_tinfo = m_thread_manager->add_thread(std::move(newti),
 				                                           must_create_thread_dependencies);
 			}
@@ -1151,6 +1158,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 void sinsp::on_proc_table_refresh_start() {
 	m_is_full_procfs_scan_in_progress = true;
+	m_thread_manager->begin_full_proc_scan();
 	m_suppress.initialize();
 }
 
@@ -1754,22 +1762,21 @@ void sinsp::stop_capture() {
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
 	uint64_t unique_fd_cnt = 0;
+	// Each fd table once: the threads of a process share one.
+	std::unordered_set<const sinsp_fdtable*> counted;
 	std::unordered_set<const sinsp_fdinfo*> seen_entries;
 	m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
 		thread_cnt++;
 
-		/* Only main threads have an associated fdtable */
-		if(tinfo.is_main_thread()) {
-			const auto* fdtable_ptr = tinfo.get_fd_table();
-			if(fdtable_ptr != nullptr) {
-				fd_cnt += fdtable_ptr->size();
-				fdtable_ptr->const_loop([&](int64_t, const sinsp_fdinfo& fdinfo) {
-					if(seen_entries.insert(&fdinfo).second) {
-						unique_fd_cnt++;
-					}
-					return true;
-				});
-			}
+		const auto* fdtable_ptr = tinfo.get_fd_table();
+		if(fdtable_ptr != nullptr && counted.insert(fdtable_ptr).second) {
+			fd_cnt += fdtable_ptr->size();
+			fdtable_ptr->const_loop([&](int64_t, const sinsp_fdinfo& fdinfo) {
+				if(seen_entries.insert(&fdinfo).second) {
+					unique_fd_cnt++;
+				}
+				return true;
+			});
 		}
 		return true;
 	});

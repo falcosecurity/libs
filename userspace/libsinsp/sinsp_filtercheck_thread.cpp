@@ -1510,7 +1510,8 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt, uint32_t* len
 		return NULL;
 	}
 	case TYPE_FDOPENCOUNT:
-		m_val.u64 = tinfo->get_fd_opencount();
+		// The threads of a process share one fd table.
+		m_val.u64 = tinfo->get_fdtable().size();
 		return extract_single_val(m_val.u64, len);
 	case TYPE_FDLIMIT:
 		m_val.s64 = tinfo->get_fd_limit();
