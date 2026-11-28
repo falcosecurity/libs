@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <helpers/threads_helpers.h>
 #include <filter_eval_test.h>
+#include <libsinsp/eventformatter.h>
 
 // Test that for rawarg.X we are correctly retrieving the correct field type/format.
 TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
@@ -404,4 +405,104 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_empty_params) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.trusted_exepath"), "<NA>");  // PT_FSPATH
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.pgid"), "0");                // PT_PID
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.gid"), "0");                 // PT_GID
+}
+
+static std::string format_rawarg(sinsp* inspector,
+                                 filter_check_list& flist,
+                                 sinsp_evt* evt,
+                                 const std::string& field,
+                                 sinsp_evt_formatter::output_format of) {
+	// Leading `*`: print `<NA>` for a missing value rather than failing the line, as Falco does.
+	sinsp_evt_formatter formatter(inspector, "*%" + field, flist);
+	std::string output;
+	formatter.tostring_withformat(evt, output, of);
+	return output;
+}
+
+// Formatting `evt.rawarg.*` must never throw, whatever the parameter type is: an output field is
+// resolved on every matching event, so an exception here reaches the caller of the formatter.
+TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_output_all_param_types) {
+	add_default_init_thread();
+	open_inspector();
+
+	auto text = [&](sinsp_evt* evt, const std::string& field) {
+		return format_rawarg(&m_inspector,
+		                     m_default_filterlist,
+		                     evt,
+		                     field,
+		                     sinsp_evt_formatter::OF_NORMAL);
+	};
+	auto json = [&](sinsp_evt* evt, const std::string& field) {
+		const auto output = format_rawarg(&m_inspector,
+		                                  m_default_filterlist,
+		                                  evt,
+		                                  field,
+		                                  sinsp_evt_formatter::OF_JSON);
+		Json::Value root;
+		Json::Reader reader;
+		EXPECT_TRUE(reader.parse(output, root)) << output;
+		return root[field];
+	};
+
+	// PT_MODE, printed with its PF_OCT format.
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                INIT_TID,
+	                                PPME_SYSCALL_CHMOD_X,
+	                                3,
+	                                (int64_t)0,
+	                                "/tmp/file",
+	                                (uint32_t)0755);
+	ASSERT_EQ(text(evt, "evt.rawarg.mode"), "755");
+	ASSERT_EQ(json(evt, "evt.rawarg.mode"), Json::Value("755"));
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.mode = 493"));
+
+	// PT_SIGTYPE.
+	evt = add_event_advance_ts(increasing_ts(),
+	                           INIT_TID,
+	                           PPME_SYSCALL_KILL_X,
+	                           3,
+	                           (int64_t)0,
+	                           (int64_t)1234,
+	                           (uint8_t)9);
+	ASSERT_EQ(text(evt, "evt.rawarg.sig"), "9");
+	ASSERT_EQ(json(evt, "evt.rawarg.sig"), Json::Value(9));
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.sig = 9"));
+	ASSERT_FALSE(eval_filter(evt, "evt.rawarg.sig = 15"));
+
+	// PT_FDLIST (one fd, 0x16, with flags 0x1) and PT_SIGSET.
+	const std::vector<uint8_t> fds{0x1, 0x0, 0x16, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0};
+	evt = add_event_advance_ts(increasing_ts(),
+	                           INIT_TID,
+	                           PPME_SYSCALL_PPOLL_X,
+	                           4,
+	                           (int64_t)1,
+	                           scap_const_sized_buffer{fds.data(), fds.size()},
+	                           (uint64_t)1000,
+	                           (uint32_t)0x4002);
+	ASSERT_EQ(text(evt, "evt.rawarg.sigmask"), "16386");
+	ASSERT_EQ(json(evt, "evt.rawarg.sigmask"), Json::Value(16386));
+	ASSERT_EQ(text(evt, "evt.rawarg.fds"), "<NA>");
+	ASSERT_TRUE(json(evt, "evt.rawarg.fds").isNull());
+
+	// PT_DYN.
+	const auto addr = test_utils::pack_ptrace_pair(PPM_PTRACE_IDX_UINT64, 0xcafeabba);
+	const auto data = test_utils::pack_ptrace_pair(PPM_PTRACE_IDX_UINT64, 0xabbacaffe);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           INIT_TID,
+	                           PPME_SYSCALL_PTRACE_X,
+	                           5,
+	                           (int64_t)0,
+	                           scap_const_sized_buffer{addr.data(), addr.size()},
+	                           scap_const_sized_buffer{data.data(), data.size()},
+	                           (uint16_t)PPM_PTRACE_PEEKSIGINFO,
+	                           (int64_t)66);
+	ASSERT_EQ(text(evt, "evt.rawarg.data"), "<NA>");
+	ASSERT_TRUE(json(evt, "evt.rawarg.data").isNull());
+
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+	// PT_SOCKTUPLE, the case originally reported in falcosecurity/libs#2551.
+	evt = generate_connect_exit_event();
+	ASSERT_EQ(text(evt, "evt.rawarg.tuple"), "<NA>");
+	ASSERT_TRUE(json(evt, "evt.rawarg.tuple").isNull());
+#endif
 }

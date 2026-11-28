@@ -75,6 +75,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str,
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_ENUMFLAGS8:
+	case PT_SIGTYPE:
 		check_storage_size(str, max_len, sizeof(uint8_t));
 		*(uint8_t*)storage = sinsp_numparser::parseu8(str);
 		parsed_len = sizeof(int8_t);
