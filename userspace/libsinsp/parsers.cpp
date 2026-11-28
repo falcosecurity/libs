@@ -525,15 +525,10 @@ void sinsp_parser::store_event(sinsp_evt &evt) const {
 		return;
 	}
 
-	// Make sure the event data is going to fit.
+	// Copy the data. The buffer is allocated with the event length, so no size limit is enforced:
+	// e.g. an enter event carrying a PATH_MAX long path is bigger than 4096 bytes, and dropping it
+	// would leave its exit event without the enter event.
 	const auto evt_len = scap_event_getlen(evt.get_scap_evt());
-
-	if(evt_len > SP_EVT_BUF_SIZE) {
-		ASSERT(false);
-		return;
-	}
-
-	// Copy the data.
 	auto *const tinfo = evt.get_tinfo();
 	auto *last_event_data = tinfo->get_last_event_data();
 	if(last_event_data != nullptr) {
