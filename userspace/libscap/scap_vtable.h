@@ -21,6 +21,7 @@ limitations under the License.
 #include <stdint.h>
 
 #include <libscap/engine_handle.h>
+#include <libscap/scap_buffer.h>
 #include <libscap/scap_open.h>
 
 #ifdef __cplusplus
@@ -182,6 +183,45 @@ struct scap_vtable {
 	                scap_evt** pevent,
 	                uint16_t* pdevid,
 	                uint32_t* pflags);
+
+	/**
+	 * @brief fetch the next event from a specific buffer
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param buffer_h the handle of the buffer, obtained with `reserve_buffer_handle`
+	 * @param pevent [out] where the pointer to the next event gets stored
+	 * @param pflags [out] where the flags for the event get stored
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * SCAP_SUCCESS: event successfully returned and stored in *pevent
+	 * SCAP_FAILURE: an error occurred (e.g. an unknown buffer handle)
+	 * SCAP_TIMEOUT: no events arrived for a while (not an error)
+	 * SCAP_EOF: no more events are going to arrive on this buffer
+	 * SCAP_NOT_SUPPORTED: the engine does not expose per-buffer reads
+	 *
+	 * The memory pointed to by *pevent must be owned by the engine and must remain valid at least
+	 * until the next call to next_from_buffer() on the same buffer.
+	 */
+	int32_t (*next_from_buffer)(struct scap_engine_handle engine,
+	                            scap_buffer_t buffer_h,
+	                            scap_evt** pevent,
+	                            uint32_t* pflags);
+
+	/**
+	 * @brief get the number of buffer handles the engine allocated
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return the number of buffer handles, 0 if per-buffer reads are not supported
+	 *
+	 * The returned value is the maximum number of times `reserve_buffer_handle` can succeed.
+	 */
+	uint16_t (*get_n_allocated_buffer_handles)(struct scap_engine_handle engine);
+
+	/**
+	 * @brief reserve a buffer handle
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return a valid buffer handle, or `SCAP_INVALID_BUFFER_HANDLE` if none is left or per-buffer
+	 * reads are not supported
+	 */
+	scap_buffer_t (*reserve_buffer_handle)(struct scap_engine_handle engine);
 
 	/**
 	 * @brief start a capture

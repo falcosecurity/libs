@@ -26,6 +26,9 @@ extern "C" {
 struct scap_test_input_engine_params {
 	scap_test_input_data* test_input_data;  ///<  only used for testing scap consumers by supplying
 	                                        ///<  arbitrary test data.
+	scap_test_input_buffers* test_input_buffers;  ///<  optional: per-buffer events, consumed with
+	                                              ///<  scap_buffer_next(). NULL for the single
+	                                              ///<  stream mode.
 };
 
 struct scap_platform;

@@ -32,6 +32,7 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
+#include <limits>
 #include <unordered_set>
 
 #ifndef _WIN32
@@ -165,7 +166,6 @@ std::atomic<int> sinsp::instance_count{0};
 sinsp::sinsp(bool with_metrics):
         m_external_event_processor(),
         m_sinsp_stats_v2(with_metrics ? std::make_shared<sinsp_stats_v2>() : nullptr),
-        m_evt(this),
         m_timestamper{0},
         m_host_root(scap_get_host_root()),
         m_thread_manager_dyn_fields{libsinsp::state::dynamic_field_infos::make<sinsp_threadinfo>()},
@@ -214,9 +214,7 @@ sinsp::sinsp(bool with_metrics):
 	++instance_count;
 
 	m_h = nullptr;
-	m_parser = nullptr;
 	m_is_dumping = false;
-	m_parser_tmp_evt = sinsp_evt{this};
 	m_usergroup_manager = std::make_shared<sinsp_usergroup_manager>(this, m_timestamper);
 	m_thread_manager = m_thread_manager_factory.create();
 	// Add thread manager table to state tables registry.
@@ -248,32 +246,13 @@ sinsp::sinsp(bool with_metrics):
 	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
 	m_proc_scan_log_interval_ms = SCAP_PROC_SCAN_LOG_NONE;
 
-	m_replay_scap_evt = nullptr;
-
 	m_plugin_parsers.clear();
 	// The "syscall" event source is implemented by sinsp itself and is always present at index 0.
-	constexpr size_t syscall_event_source_idx = 0;
 	m_event_sources.push_back(sinsp_syscall_event_source_name);
 	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
 
-	m_parser = std::make_unique<sinsp_parser>(m_mode,
-	                                          m_machine_info,
-	                                          m_event_sources,
-	                                          syscall_event_source_idx,
-	                                          m_network_interfaces,
-	                                          m_hostname_and_port_resolution_enabled,
-	                                          m_threadinfo_factory,
-	                                          m_fdinfo_factory,
-	                                          m_input_plugin,
-	                                          m_plugin_tables,
-	                                          m_large_envs_enabled,
-	                                          m_plugin_manager,
-	                                          m_thread_manager,
-	                                          m_usergroup_manager,
-	                                          m_sinsp_stats_v2,
-	                                          m_observer,
-	                                          m_parser_tmp_evt,
-	                                          m_platform);
+	// The default buffer reads the merged event stream.
+	m_buffers.push_back(make_buffer(SCAP_INVALID_BUFFER_HANDLE));
 
 #if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
 	m_thread_pool = std::make_shared<sinsp_thread_pool_bs>();
@@ -290,6 +269,63 @@ sinsp::~sinsp() {
 	}
 }
 
+std::unique_ptr<sinsp_buffer> sinsp::make_buffer(const scap_buffer_t scap_buffer_h) {
+	// The "syscall" event source is implemented by sinsp itself and is always present at index 0.
+	constexpr size_t syscall_event_source_idx = 0;
+	return std::make_unique<sinsp_buffer>(this, scap_buffer_h, [&](sinsp_evt& tmp_evt) {
+		return std::make_unique<sinsp_parser>(m_mode,
+		                                      m_machine_info,
+		                                      m_event_sources,
+		                                      syscall_event_source_idx,
+		                                      m_network_interfaces,
+		                                      m_hostname_and_port_resolution_enabled,
+		                                      m_threadinfo_factory,
+		                                      m_fdinfo_factory,
+		                                      m_input_plugin,
+		                                      m_plugin_tables,
+		                                      m_large_envs_enabled,
+		                                      m_plugin_manager,
+		                                      m_thread_manager,
+		                                      m_usergroup_manager,
+		                                      m_sinsp_stats_v2,
+		                                      m_observer,
+		                                      tmp_evt,
+		                                      m_platform);
+	});
+}
+
+sinsp_buffer& sinsp::get_buffer(const sinsp_buffer_t buffer_h) const {
+	if(buffer_h >= m_buffers.size()) {
+		throw sinsp_exception("invalid buffer handle: " + std::to_string(buffer_h));
+	}
+	return *m_buffers[buffer_h];
+}
+
+uint16_t sinsp::get_num_allocated_buffer_handles() const {
+	return m_h ? scap_buffer_get_n_allocated_handles(m_h) : 0;
+}
+
+sinsp_buffer_t sinsp::reserve_buffer_handle() {
+	if(m_h == nullptr) {
+		throw sinsp_exception("cannot reserve a buffer handle: the capture is not open");
+	}
+	if(m_buffers.size() > std::numeric_limits<sinsp_buffer_t>::max()) {
+		throw sinsp_exception("cannot reserve a buffer handle: too many buffers");
+	}
+
+	const scap_buffer_t scap_buffer_h = scap_buffer_reserve_handle(m_h);
+	if(scap_buffer_h == SCAP_INVALID_BUFFER_HANDLE) {
+		throw sinsp_exception(std::string("cannot reserve a buffer handle: ") +
+		                      scap_getlasterr(m_h));
+	}
+
+	auto buffer = make_buffer(scap_buffer_h);
+	// A new parser starts with the configuration of the one of the default buffer.
+	buffer->m_parser->set_track_connection_status(get_track_connection_status());
+	m_buffers.push_back(std::move(buffer));
+	return static_cast<sinsp_buffer_t>(m_buffers.size() - 1);
+}
+
 bool sinsp::is_initialstate_event(const scap_evt& pevent) {
 	const auto evt_type = pevent.type;
 	return evt_type == PPME_CONTAINER_JSON_2_E || evt_type == PPME_USER_ADDED_E ||
@@ -302,6 +338,7 @@ void sinsp::consume_initialstate_events() {
 	uint16_t pcpuid;
 	sinsp_evt* tevt;
 	uint32_t flags;
+	auto& default_buffer = *m_buffers[SINSP_INVALID_BUFFER_HANDLE];
 
 	if(m_external_event_processor) {
 		m_external_event_processor->on_capture_start();
@@ -317,9 +354,9 @@ void sinsp::consume_initialstate_events() {
 			// Setting these to non-null will make sinsp::next use them as a scap event
 			// to avoid a call to scap_next. In this way, we can avoid the state parsing phase
 			// once we reach a non-initialstate event.
-			m_replay_scap_evt = pevent;
-			m_replay_scap_cpuid = pcpuid;
-			m_replay_scap_flags = flags;
+			default_buffer.m_replay_scap_evt = pevent;
+			default_buffer.m_replay_scap_cpuid = pcpuid;
+			default_buffer.m_replay_scap_flags = flags;
 			if(!is_initialstate_event(*pevent)) {
 				break;
 			} else {
@@ -357,7 +394,9 @@ void sinsp::init() {
 	//
 
 	m_nevts = 0;
-	m_parser_verdict.clear();
+	for(auto& buffer : m_buffers) {
+		buffer->m_parser_verdict.clear();
+	}
 	m_timestamper.reset();
 	m_firstevent_ts = 0;
 
@@ -747,10 +786,23 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim,
 }
 
 void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode) {
+	open_test_input_common(data, nullptr, mode);
+}
+
+void sinsp::open_test_input(scap_test_input_data* data,
+                            scap_test_input_buffers* buffers,
+                            sinsp_mode_t mode) {
+	open_test_input_common(data, buffers, mode);
+}
+
+void sinsp::open_test_input_common(scap_test_input_data* data,
+                                   scap_test_input_buffers* buffers,
+                                   sinsp_mode_t mode) {
 #ifdef HAS_ENGINE_TEST_INPUT
 	scap_open_args oargs{};
-	scap_test_input_engine_params params;
+	scap_test_input_engine_params params{};
 	params.test_input_data = data;
+	params.test_input_buffers = buffers;
 	oargs.engine_params = &params;
 
 	scap_platform* platform;
@@ -883,6 +935,10 @@ void sinsp::close() {
 		scap_close(m_h);
 		m_h = nullptr;
 	}
+
+	// The reserved libscap buffer handles are gone with the libscap handle. The default buffer
+	// is kept: it is part of the inspector, not of the capture.
+	m_buffers.resize(1);
 
 	m_is_dumping = false;
 
@@ -1322,15 +1378,15 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts) {
 	}
 }
 
-int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
+int32_t sinsp::fetch_next_event(sinsp_evt*& evt, sinsp_buffer& buffer) {
 	// check if an event must be replayed, which currently happens
 	// when a capture file is read and we discover the first "event" block
 	// after the initial "machine state" section
-	if(m_replay_scap_evt != nullptr) {
-		evt->set_scap_evt(m_replay_scap_evt);
-		evt->set_cpuid(m_replay_scap_cpuid);
-		evt->set_dump_flags(m_replay_scap_flags);
-		m_replay_scap_evt = nullptr;
+	if(buffer.m_replay_scap_evt != nullptr) {
+		evt->set_scap_evt(buffer.m_replay_scap_evt);
+		evt->set_cpuid(buffer.m_replay_scap_cpuid);
+		evt->set_dump_flags(buffer.m_replay_scap_flags);
+		buffer.m_replay_scap_evt = nullptr;
 		return SCAP_SUCCESS;
 	}
 
@@ -1338,18 +1394,19 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
 	// from later that has been delayed. If our current libscap event storage
 	// is empty, attempt fetching the next event in line from the scap handle
 	int32_t res = SCAP_SUCCESS;
-	if(m_delayed_scap_evt.empty()) {
-		res = m_delayed_scap_evt.next(m_h);
+	if(buffer.m_delayed_scap_evt.empty()) {
+		res = buffer.m_delayed_scap_evt.next(m_h);
 	}
 
 	// in case we receive a timeout (when there's no element to fetch and no
 	// error is encountered) we attempt popping an event from the asynchronous
 	// event queue. If none is available, we just return the timeout.
 	// note: the queue is optimized for checking for emptyness before popping
-	if(res == SCAP_TIMEOUT && !m_async_events_queue.empty()) {
+	// note: the async events queue has a single consumer, which is the default buffer.
+	if(res == SCAP_TIMEOUT && buffer.is_default() && !m_async_events_queue.empty()) {
 		m_async_events_checker.ts = get_new_ts();
-		if(m_async_events_queue.try_pop_if(m_async_evt, m_async_events_checker)) {
-			evt = m_async_evt.get();
+		if(m_async_events_queue.try_pop_if(buffer.m_async_evt, m_async_events_checker)) {
+			evt = buffer.m_async_evt.get();
 			if(evt->get_scap_evt()->ts == (uint64_t)-1) {
 				evt->get_scap_evt()->ts = get_new_ts();
 			}
@@ -1362,13 +1419,13 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
 	// that should be returned first due to having a timestamp from earlier.
 	// the goal is to guarantee events to be fetched ordered by timestamp.
 	if(res == SCAP_SUCCESS) {
-		if(!m_async_events_queue.empty()) {
+		if(buffer.is_default() && !m_async_events_queue.empty()) {
 			// This is thread-safe as we're in a MPSC case in which
 			// sinsp::next is the single consumer
-			m_async_events_checker.ts = m_delayed_scap_evt.m_pevt->ts;
-			if(m_async_events_queue.try_pop_if(m_async_evt, m_async_events_checker)) {
+			m_async_events_checker.ts = buffer.m_delayed_scap_evt.m_pevt->ts;
+			if(m_async_events_queue.try_pop_if(buffer.m_async_evt, m_async_events_checker)) {
 				// the async event is the one with most priority
-				evt = m_async_evt.get();
+				evt = buffer.m_async_evt.get();
 				if(evt->get_scap_evt()->ts == (uint64_t)-1) {
 					evt->get_scap_evt()->ts = get_new_ts();
 				}
@@ -1377,18 +1434,26 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt) {
 		}
 
 		// the scap event is the one with most priority
-		m_delayed_scap_evt.move(evt);
+		buffer.m_delayed_scap_evt.move(evt);
 	}
 
 	return res;
 }
 
 int32_t sinsp::next(sinsp_evt** puevt) {
+	return next_from_buffer(puevt, *m_buffers[SINSP_INVALID_BUFFER_HANDLE]);
+}
+
+int32_t sinsp::next(sinsp_evt** puevt, const sinsp_buffer_t buffer_h) {
+	return next_from_buffer(puevt, get_buffer(buffer_h));
+}
+
+int32_t sinsp::next_from_buffer(sinsp_evt** puevt, sinsp_buffer& buffer) {
 	*puevt = nullptr;
-	sinsp_evt* evt = &m_evt;
+	sinsp_evt* evt = &buffer.m_evt;
 
 	// fetch the next event
-	int32_t res = fetch_next_event(evt);
+	int32_t res = fetch_next_event(evt, buffer);
 
 	// if we fetched an event successfully, check if we need to suppress
 	// it from userspace and update the result status
@@ -1423,7 +1488,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 				m_external_event_processor->process_event(nullptr, libsinsp::EVENT_RETURN_FILTERED);
 			}
 		} else {
-			m_lasterr = scap_getlasterr(m_h);
+			buffer.m_lasterr = scap_getlasterr(m_h);
 		}
 
 		return res;
@@ -1441,7 +1506,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_get_procs_cpu_from_driver && is_live()) {
+	if(m_get_procs_cpu_from_driver && is_live() && buffer.is_default()) {
 		get_procs_cpu_from_driver(ts);
 	}
 
@@ -1459,8 +1524,8 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// Delayed removal of threads from the thread table, so that
 		// things like exit() or close() can be parsed.
 		//
-		if(m_parser_verdict.must_remove_tid()) {
-			const auto tid = m_parser_verdict.get_tid_to_remove();
+		if(buffer.m_parser_verdict.must_remove_tid()) {
+			const auto tid = buffer.m_parser_verdict.get_tid_to_remove();
 			int64_t ptid = -1;
 			const auto& tinfo_ptr = m_thread_manager->find_thread(tid, true);
 			if(tinfo_ptr) {
@@ -1468,7 +1533,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			}
 			m_thread_manager->record_recently_exited(tid, ptid, ts);
 			m_thread_manager->remove_thread(tid);
-			m_parser_verdict.clear_tid_to_remove();
+			buffer.m_parser_verdict.clear_tid_to_remove();
 		}
 
 		if(!is_offline()) {
@@ -1490,25 +1555,25 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	// Delayed removal of the fd, so that
 	// things like exit() or close() can be parsed.
 	//
-	if(m_parser_verdict.must_remove_fds()) {
+	if(buffer.m_parser_verdict.must_remove_fds()) {
 		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread
 		 * to remove we are fine.
 		 */
-		const auto tid_of_fds_to_remove = m_parser_verdict.get_tid_of_fds_to_remove();
-		const auto& fds_to_remove = m_parser_verdict.get_fds_to_remove();
+		const auto tid_of_fds_to_remove = buffer.m_parser_verdict.get_tid_of_fds_to_remove();
+		const auto& fds_to_remove = buffer.m_parser_verdict.get_fds_to_remove();
 		if(sinsp_threadinfo* ptinfo =
 		           m_thread_manager->find_thread(tid_of_fds_to_remove, true).get()) {
 			for(const auto fd : fds_to_remove) {
 				ptinfo->remove_fd(fd);
 			}
 		}
-		m_parser_verdict.clear_fds_to_remove();
+		buffer.m_parser_verdict.clear_fds_to_remove();
 	}
 
 	//
 	// Cleanup the event-related state
 	//
-	m_parser->reset(*evt);
+	buffer.m_parser->reset(*evt);
 
 	// Since evt_filter object below uses RAII, create a new scope.
 	{
@@ -1527,7 +1592,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			//
 			// Run the state engine
 			//
-			m_parser->process_event(*evt, m_parser_verdict);
+			buffer.m_parser->process_event(*evt, buffer.m_parser_verdict);
 		}
 
 		// run plugin-implemented parsers
@@ -1547,7 +1612,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		// thus we can guarantee that any post-process callback
 		// will see the full post-event-processed state.
 		if(m_observer != nullptr) {
-			m_parser_verdict.run_post_process_cbs(m_observer, evt);
+			buffer.m_parser_verdict.run_post_process_cbs(m_observer, evt);
 		}
 	}
 
@@ -2183,11 +2248,13 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 }
 
 bool sinsp::get_track_connection_status() const {
-	return m_parser->get_track_connection_status();
+	return m_buffers[SINSP_INVALID_BUFFER_HANDLE]->m_parser->get_track_connection_status();
 }
 
 void sinsp::set_track_connection_status(const bool enabled) const {
-	m_parser->set_track_connection_status(enabled);
+	for(const auto& buffer : m_buffers) {
+		buffer->m_parser->set_track_connection_status(enabled);
+	}
 }
 
 std::shared_ptr<sinsp_thread_pool> sinsp::get_thread_pool() {

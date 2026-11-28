@@ -105,6 +105,7 @@ add_library(
 	thread_manager.cpp
 	tuples.cpp
 	sinsp.cpp
+	sinsp_buffer.cpp
 	token_bucket.cpp
 	utils.cpp
 	value_parser.cpp
