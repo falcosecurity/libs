@@ -154,7 +154,12 @@ set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
-	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
+	# oneTBB names its pkg-config module tbb32 on 32-bit platforms
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
+	else()
+		list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb32)
+	endif()
 endif()
 
 if(USE_BUNDLED_VALIJSON)
@@ -255,6 +260,10 @@ list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_LIBDIRS)
 string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBDIRS "${SINSP_PKG_CONFIG_LIBDIRS}")
 list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_INCLUDES)
 string(REPLACE ";" " " SINSP_PKG_CONFIG_INCLUDES "${SINSP_PKG_CONFIG_INCLUDES}")
+
+# Regression test for #3121: validate TBB pkg-config module selection
+include(${CMAKE_CURRENT_SOURCE_DIR}/test/test_tbb_pkgconfig.cmake)
+
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/libsinsp.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libsinsp.pc @ONLY
 )
