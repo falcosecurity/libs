@@ -3,7 +3,9 @@ MODULE_MAKEFILE_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 # Run the module build.sh (wrapper for make) script with an empty environment,
 # but pass PATH, KERNELDIR and eventually (if set) CC, LD and KBUILD_MODPOST_WARN.
 # The latter ones are used by driverkit build templates.
-HAS_@CONFIGURE_MODULE@ := $(shell env -i CC="$(CC)" LD="$(LD)" KBUILD_MODPOST_WARN="$(KBUILD_MODPOST_WARN)" PATH="$(PATH)" KERNELDIR="$(KERNELDIR)" sh $(MODULE_MAKEFILE_DIR)/build.sh ; echo $$?)
+# ARCH and CROSS_COMPILE, used when cross-compiling, are only passed if set, as
+# an empty ARCH would prevent the kernel Makefile from setting it.
+HAS_@CONFIGURE_MODULE@ := $(shell env -i CC="$(CC)" LD="$(LD)" $(if $(ARCH),ARCH="$(ARCH)") $(if $(CROSS_COMPILE),CROSS_COMPILE="$(CROSS_COMPILE)") KBUILD_MODPOST_WARN="$(KBUILD_MODPOST_WARN)" PATH="$(PATH)" KERNELDIR="$(KERNELDIR)" sh $(MODULE_MAKEFILE_DIR)/build.sh ; echo $$?)
 
 ifeq ($(HAS_@CONFIGURE_MODULE@),0)
 $(info [configure-kmod] Setting HAS_@CONFIGURE_MODULE@ flag)
