@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <syscall.h>
+#include <dirent.h>
+#include <sched.h>
+#include <sys/resource.h>
 #include <helpers/engines.h>
 
 static falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
@@ -62,6 +65,51 @@ TEST(modern_bpf, open_engine) {
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
 	        << "unable to open modern bpf engine: " << error_buffer << std::endl;
 	scap_close(h);
+}
+
+static int count_open_fds() {
+	DIR* dir = opendir("/proc/self/fd");
+	if(!dir) {
+		return -1;
+	}
+	int n = 0;
+	while(readdir(dir)) {
+		n++;
+	}
+	closedir(dir);
+	return n;
+}
+
+/* The syscall tracepoint check of libpman moves a thread of its own from CPU to CPU, and on kernels
+ * that need them, libpman raises the soft RLIMIT_NOFILE for the perf events of the TOCTOU
+ * mitigation programs. Opening and closing the engine twice must leave the CPU affinity, the file
+ * descriptor limits and the file descriptors of this process as they were.
+ */
+TEST(modern_bpf, open_close_keeps_process_state) {
+	cpu_set_t cpus_before;
+	ASSERT_EQ(sched_getaffinity(0, sizeof(cpus_before), &cpus_before), 0);
+	struct rlimit limit_before {};
+	ASSERT_EQ(getrlimit(RLIMIT_NOFILE, &limit_before), 0);
+	const int fds_before = count_open_fds();
+	ASSERT_GT(fds_before, 0);
+
+	for(int i = 0; i < 2; i++) {
+		char error_buffer[FILENAME_MAX]{};
+		int ret = 0;
+		scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, true);
+		ASSERT_FALSE(!h || ret != SCAP_SUCCESS)
+		        << "unable to open modern bpf engine: " << error_buffer << std::endl;
+		scap_close(h);
+
+		cpu_set_t cpus_after;
+		ASSERT_EQ(sched_getaffinity(0, sizeof(cpus_after), &cpus_after), 0);
+		ASSERT_TRUE(CPU_EQUAL(&cpus_before, &cpus_after)) << "open/close cycle " << i;
+		struct rlimit limit_after {};
+		ASSERT_EQ(getrlimit(RLIMIT_NOFILE, &limit_after), 0);
+		ASSERT_EQ(limit_after.rlim_cur, limit_before.rlim_cur) << "open/close cycle " << i;
+		ASSERT_EQ(limit_after.rlim_max, limit_before.rlim_max) << "open/close cycle " << i;
+		ASSERT_EQ(count_open_fds(), fds_before) << "open/close cycle " << i;
+	}
 }
 
 TEST(modern_bpf, empty_buffer_dim) {

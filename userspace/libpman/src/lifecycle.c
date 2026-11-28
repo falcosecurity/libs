@@ -16,10 +16,23 @@ limitations under the License.
 
 */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "state.h"
 #include <driver/feature_gates.h>
 #include "events_prog_table.h"
 #include "support_probing.h"
+#include "programs.h"
+#include <fcntl.h>
+#include <linux/random.h>
+#include <pthread.h>
+#include <sched.h>
+#include <stdlib.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <time.h>
 
 int pman_open_probe() {
 	g_state.skel = bpf_probe__open();
@@ -248,12 +261,253 @@ static void save_attached_progs() {
 #endif
 }
 
+// Pick the mode of the `faccessat` calls that `syscall_tp_check` counts. Each check picks a random
+// mode, so two libpman instances that make the check at the same time do not count the calls of
+// each other. The mode has bits outside `S_IRWXO`, so the kernel rejects the calls with EINVAL
+// right after the tracepoint.
+static uint32_t syscall_tp_check_mode() {
+	uint32_t nonce = 0;
+	if(syscall(__NR_getrandom, &nonce, sizeof(nonce), GRND_NONBLOCK) != (long)sizeof(nonce)) {
+		struct timespec ts = {0};
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		nonce = (uint32_t)ts.tv_nsec ^ ((uint32_t)syscall(__NR_gettid) << 16);
+	}
+	return nonce | 0x40000000;
+}
+
+// The CPU walk of the syscall tracepoint check. It runs on its own thread, which moves itself to
+// each CPU. `sched_setaffinity()` changes only the calling thread, so the CPU affinity of the
+// thread that loads the probe does not change. Setting it back would make it an explicit
+// affinity, which keeps the thread off the CPUs that its cpuset gains later.
+struct syscall_tp_check_walk {
+	uint32_t mode;        // The `faccessat` mode that `syscall_tp_check` counts.
+	uint64_t calls;       // The `faccessat` calls, one on each CPU that the thread can use.
+	bool affinity_known;  // Whether the thread could read its CPU affinity.
+};
+
+static void *syscall_tp_check_walk_cpus(void *arg) {
+	struct syscall_tp_check_walk *walk = arg;
+	const size_t set_size = CPU_ALLOC_SIZE(g_state.n_possible_cpus);
+	cpu_set_t *allowed = CPU_ALLOC(g_state.n_possible_cpus);
+	cpu_set_t *one = CPU_ALLOC(g_state.n_possible_cpus);
+	if(allowed && one && sched_getaffinity(0, set_size, allowed) == 0) {
+		walk->affinity_known = true;
+		for(int cpu = 0; cpu < g_state.n_possible_cpus; cpu++) {
+			if(!CPU_ISSET_S(cpu, set_size, allowed)) {
+				continue;
+			}
+			CPU_ZERO_S(set_size, one);
+			CPU_SET_S(cpu, set_size, one);
+			// The thread runs on `cpu` when the call returns.
+			if(sched_setaffinity(0, set_size, one) != 0) {
+				continue;
+			}
+			syscall(__NR_faccessat, AT_FDCWD, "", (long)walk->mode);
+			walk->calls++;
+		}
+	}
+	CPU_FREE(allowed);
+	CPU_FREE(one);
+	return NULL;
+}
+
+// Run the CPU walk on a new thread and wait until it finishes. Return `0` on success, or an error
+// number. Set `*running` if the thread started but cannot be joined: it can still use `walk`.
+static int syscall_tp_check_run_walk(struct syscall_tp_check_walk *walk, bool *running) {
+	pthread_attr_t attr;
+	int err = pthread_attr_init(&attr);
+	if(err != 0) {
+		return err;
+	}
+	// The application can make new threads detached by default with `pthread_setattr_default_np()`,
+	// and a detached thread cannot be joined.
+	err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	pthread_t thread;
+	if(err == 0) {
+		err = pthread_create(&thread, &attr, syscall_tp_check_walk_cpus, walk);
+	}
+	pthread_attr_destroy(&attr);
+	if(err != 0) {
+		return err;
+	}
+	err = pthread_join(thread, NULL);
+	if(err != 0) {
+		*running = true;
+	}
+	return err;
+}
+
+// Tell whether BPF programs on syscall tracepoints that read user memory miss some CPUs. Some
+// kernels run them only on the CPUs where a perf event of the tracepoint is active. They carry
+// commit 2c2b322acdcc ("tracing: perf: Fix stale head for perf syscall tracing") without commit
+// 57918341dd19. libbpf attaches a program through one perf event on CPU 0, so on these kernels
+// the program runs only for system calls on CPU 0.
+//
+// The check attaches `syscall_tp_check` to `syscalls/sys_enter_faccessat`, and a new thread makes
+// one `faccessat` call on each CPU that it can use. It runs before any other program is attached,
+// so no event reaches the ring buffers.
+static bool syscall_tracepoints_miss_cpus() {
+	if(g_state.n_possible_cpus <= 1) {
+		return false;
+	}
+
+	struct bpf_link *link = bpf_program__attach(g_state.skel->progs.syscall_tp_check);
+	if(!link) {
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG,
+		         "cannot attach the 'syscall_tp_check' program: assume that BPF programs on "
+		         "syscall tracepoints run on every CPU");
+		return false;
+	}
+
+	// The walk is on the heap: if the thread cannot be joined, it can still use the walk, which
+	// then leaks.
+	struct syscall_tp_check_walk *walk = calloc(1, sizeof(*walk));
+	int thread_err = ENOMEM;
+	bool running = false;
+	if(walk) {
+		walk->mode = syscall_tp_check_mode();
+		g_state.skel->bss->syscall_tp_check__mode = walk->mode;
+		g_state.skel->bss->syscall_tp_check__hits = 0;
+		thread_err = syscall_tp_check_run_walk(walk, &running);
+	}
+	const uint64_t hits = *(volatile uint64_t *)&g_state.skel->bss->syscall_tp_check__hits;
+
+	if(bpf_link__destroy(link)) {
+		log_msgf(FALCOSECURITY_LOG_SEV_DEBUG, "cannot detach the 'syscall_tp_check' program");
+	}
+
+	// Without the check, assume the bug: the perf events cost file descriptors, but on a kernel
+	// with the bug, the TOCTOU mitigation programs miss the system calls on most CPUs.
+	if(thread_err != 0) {
+		if(!running) {
+			free(walk);
+		}
+		errno = thread_err;
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot run the thread that checks whether BPF programs on syscall tracepoints "
+		         "run on every CPU: assume that they do not and open perf events to make the "
+		         "TOCTOU mitigation programs run on every CPU");
+		return true;
+	}
+	const bool affinity_known = walk->affinity_known;
+	const uint64_t calls = walk->calls;
+	free(walk);
+
+	// The `faccessat` calls fail with EINVAL on purpose: do not report that in the messages below.
+	errno = 0;
+
+	// With fewer than two CPUs, the check cannot tell whether the only CPU is the one with the
+	// perf event of libbpf.
+	if(!affinity_known || calls < 2) {
+		log_msgf(FALCOSECURITY_LOG_SEV_INFO,
+		         "cannot check whether BPF programs on syscall tracepoints run on every CPU: "
+		         "assume that they do not");
+		return true;
+	}
+	if(hits < calls) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "BPF programs on syscall tracepoints that read user memory ran on %llu of %llu "
+		         "CPUs: open perf events to make the TOCTOU mitigation programs run on every CPU",
+		         (unsigned long long)hits,
+		         (unsigned long long)calls);
+		return true;
+	}
+	return false;
+}
+
+// On kernels where `syscall_tracepoints_miss_cpus()` finds the bug, libpman opens one perf event
+// per CPU for the tracepoint of each 64-bit TOCTOU mitigation program but `connect`. Raise the soft
+// RLIMIT_NOFILE by that number, so that the rest of the process keeps the file descriptors that it
+// had before. The soft limit grows at most to the hard limit, and libpman never changes the hard
+// limit. If the soft limit cannot grow enough, log a warning: the attachment fails with EMFILE only
+// if the process runs out of file descriptors. `pman_close_probe()` puts the soft limit back, so
+// that each load of the probe starts from the same limit.
+static void raise_nofile_limit_for_perf_events() {
+	if(g_state.ttm_nofile_raised) {
+		return;
+	}
+	const rlim_t needed = (rlim_t)(TTM_MAX - 1) * (rlim_t)g_state.n_possible_cpus;
+	struct rlimit old = {0};
+	if(getrlimit(RLIMIT_NOFILE, &old) != 0) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot read RLIMIT_NOFILE: the TOCTOU mitigation perf events need up to %llu "
+		         "more file descriptors",
+		         (unsigned long long)needed);
+		return;
+	}
+	if(old.rlim_cur == RLIM_INFINITY) {
+		return;
+	}
+
+	rlim_t wanted = RLIM_INFINITY;
+	if(needed < RLIM_INFINITY - old.rlim_cur) {
+		wanted = old.rlim_cur + needed;
+	}
+	struct rlimit raised = old;
+	raised.rlim_cur = wanted;
+	if(old.rlim_max != RLIM_INFINITY && old.rlim_max < wanted) {
+		raised.rlim_cur = old.rlim_max;
+	}
+	if(raised.rlim_cur > old.rlim_cur) {
+		if(setrlimit(RLIMIT_NOFILE, &raised) != 0) {
+			log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+			         "cannot raise the RLIMIT_NOFILE soft limit from %llu: the TOCTOU mitigation "
+			         "perf events need up to %llu more file descriptors",
+			         (unsigned long long)old.rlim_cur,
+			         (unsigned long long)needed);
+			return;
+		}
+		g_state.ttm_nofile_raised = true;
+		g_state.ttm_nofile_soft_before = old.rlim_cur;
+		g_state.ttm_nofile_soft_set = raised.rlim_cur;
+	}
+	if(raised.rlim_cur < wanted) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "the RLIMIT_NOFILE soft limit is %llu, at the hard limit: the TOCTOU mitigation "
+		         "perf events need up to %llu more file descriptors than the old soft limit %llu",
+		         (unsigned long long)raised.rlim_cur,
+		         (unsigned long long)needed,
+		         (unsigned long long)old.rlim_cur);
+		return;
+	}
+	log_msgf(FALCOSECURITY_LOG_SEV_INFO,
+	         "raised the RLIMIT_NOFILE soft limit from %llu to %llu for the TOCTOU mitigation "
+	         "perf events",
+	         (unsigned long long)old.rlim_cur,
+	         (unsigned long long)raised.rlim_cur);
+}
+
+// Put back the soft RLIMIT_NOFILE that `raise_nofile_limit_for_perf_events()` raised, unless
+// something else changed it since then.
+static void restore_nofile_limit() {
+	if(!g_state.ttm_nofile_raised) {
+		return;
+	}
+	g_state.ttm_nofile_raised = false;
+	struct rlimit limit = {0};
+	if(getrlimit(RLIMIT_NOFILE, &limit) != 0 || limit.rlim_cur != g_state.ttm_nofile_soft_set) {
+		return;
+	}
+	limit.rlim_cur = g_state.ttm_nofile_soft_before;
+	if(setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+		log_msgf(FALCOSECURITY_LOG_SEV_WARNING,
+		         "cannot put the RLIMIT_NOFILE soft limit back from %llu to %llu",
+		         (unsigned long long)g_state.ttm_nofile_soft_set,
+		         (unsigned long long)g_state.ttm_nofile_soft_before);
+	}
+}
+
 int pman_load_probe() {
 	if(bpf_probe__load(g_state.skel)) {
 		log_errorf("failed to load BPF object");
 		return errno;
 	}
 	save_attached_progs();
+	g_state.ttm_needs_perf_events = syscall_tracepoints_miss_cpus();
+	if(g_state.ttm_needs_perf_events) {
+		raise_nofile_limit_for_perf_events();
+		errno = 0;
+	}
 	// Programs are loaded so we passed the verifier we can free the 16 MB
 	if(g_state.log_buf) {
 		free(g_state.log_buf);
@@ -287,6 +541,9 @@ void pman_close_probe() {
 		free(g_state.prod_pos);
 		g_state.prod_pos = NULL;
 	}
+
+	close_toctou_perf_events();
+	restore_nofile_limit();
 
 	if(g_state.skel) {
 		bpf_probe__detach(g_state.skel);

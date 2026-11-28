@@ -1423,6 +1423,13 @@ static __always_inline void auxmap__store_iovec_size_param_32(struct auxiliary_m
 static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map *auxmap,
                                                            unsigned long iov_pointer,
                                                            unsigned long iov_cnt) {
+	/* The loops below exit on `j == iov_cnt`, so the verifier leaves them with one state per
+	 * exact iov_cnt value (0..MAX_IOVCNT-1). The verifier links registers that hold the same
+	 * value through a shared scalar id, so without this barrier the exact value would also flow
+	 * into the caller's copy of iov_cnt, and the caller would verify its remaining code once
+	 * per value. On kernel 7.0 this pushed sendmmsg_x over the 1M processed-instruction limit.
+	 * An ALU instruction gives the register a new id, which breaks the link. */
+	asm volatile("%[x] |= 0" : [x] "+r"(iov_cnt));
 	if(!bpf_in_ia32_syscall()) {
 		auxmap__store_iovec_size_param_64(auxmap, iov_pointer, iov_cnt);
 	} else {
