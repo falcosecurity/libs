@@ -22,6 +22,8 @@ limitations under the License.
 #include <stdint.h>
 #include <stddef.h>
 
+#include <libscap/scap_procs.h>
+
 // this header is designed to be useful to scap consumers,
 // using the scap_t wrapper functions
 
@@ -77,6 +79,10 @@ bool scap_is_thread_alive(struct scap_platform* platform,
                           int64_t pid,
                           int64_t tid,
                           const char* comm);
+
+// Invoke `cb` for each pid in /proc. Matches processes, not threads.
+// Reports nothing unless it returns SCAP_SUCCESS.
+int32_t scap_foreach_live_pid(struct scap_platform* platform, void* ctx, scap_pid_cb cb);
 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(struct scap_platform* platform, int64_t* pid);

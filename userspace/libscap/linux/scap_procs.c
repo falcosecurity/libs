@@ -1705,6 +1705,32 @@ bool scap_linux_is_thread_alive(struct scap_platform* platform,
 	return strncmp(buff, comm, strlen(comm)) == 0;
 }
 
+/* Process ids only: the /proc entries, not the task ids below them. */
+int32_t scap_linux_foreach_live_pid(struct scap_platform* platform, void* ctx, scap_pid_cb cb) {
+	char procdirname[SCAP_MAX_PATH_SIZE];
+	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
+
+	DIR* dir_p = opendir(procdirname);
+	if(dir_p == NULL) {
+		return SCAP_FAILURE;
+	}
+
+	struct dirent* dir_entry_p;
+	while((dir_entry_p = readdir(dir_p)) != NULL) {
+		if(dir_entry_p->d_name[0] < '0' || dir_entry_p->d_name[0] > '9') {
+			continue;
+		}
+
+		const int64_t pid = strtoll(dir_entry_p->d_name, NULL, 10);
+		if(pid > 0) {
+			cb(ctx, pid);
+		}
+	}
+
+	closedir(dir_p);
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_linux_refresh_proc_table(struct scap_platform* platform,
                                       struct scap_proclist* proclist) {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;

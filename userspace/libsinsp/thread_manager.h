@@ -35,6 +35,17 @@ limitations under the License.
 
 class sinsp_observer;
 
+/* Thresholds for the drop-triggered purge: PROC_EXIT drops alone on engines
+ * that classify per event type, every dropped event otherwise -- hence the
+ * higher bar. */
+#define PURGE_DROP_THRESHOLD 1000
+#define PURGE_DROP_THRESHOLD_TOTAL 10000
+/* Scan interval, and the timeout it scans with: an entry gone from /proc is
+ * garbage now. */
+#define PURGE_EMERG_SCAN_NS (30 * ONE_SECOND_IN_NS)
+#define PURGE_EMERG_TIMEOUT_NS 0
+#define PURGE_EMERG_BURST 5
+
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
@@ -314,6 +325,17 @@ private:
 	void relink_group(thread_group_info& tginfo,
 	                  const std::shared_ptr<sinsp_threadinfo>& parent,
 	                  int64_t ptid);
+
+	/* A second, shorter clock, firing only while drops accumulate. */
+	uint64_t m_purge_last_emerg_ns = 0;
+	uint64_t m_purge_last_drops = 0;
+
+	/* The counter reports the kernel's present while the consumer replays the
+	 * past, so a trigger schedules a burst of scans, not one. */
+	uint32_t m_purge_emerg_remaining = 0;
+
+	/* A separate flag: the mark advances only on a scan, so 0 is legitimate. */
+	bool m_purge_have_drop_sample = false;
 
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);

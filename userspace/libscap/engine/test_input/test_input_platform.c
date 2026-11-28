@@ -82,10 +82,30 @@ static bool scap_test_input_is_thread_alive(struct scap_platform* platform,
 	return false;
 }
 
+/* Declines without a pid list, so a test that sets none keeps the fallback. */
+static int32_t scap_test_input_foreach_live_pid(struct scap_platform* platform,
+                                                void* ctx,
+                                                scap_pid_cb cb) {
+	const struct scap_test_input_platform* test_input_platform =
+	        (struct scap_test_input_platform*)platform;
+	const scap_test_input_data* data = test_input_platform->m_data;
+
+	if(data == NULL || data->live_pids == NULL) {
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	for(size_t i = 0; i < data->live_pid_count; i++) {
+		cb(ctx, data->live_pids[i]);
+	}
+
+	return SCAP_SUCCESS;
+}
+
 static const struct scap_platform_vtable scap_test_input_platform = {
         .init_platform = scap_test_input_init_platform,
         .free_platform = scap_test_input_free_platform,
         .is_thread_alive = scap_test_input_is_thread_alive,
+        .foreach_live_pid = scap_test_input_foreach_live_pid,
 };
 
 struct scap_platform* scap_test_input_alloc_platform(scap_proc_callbacks callbacks) {

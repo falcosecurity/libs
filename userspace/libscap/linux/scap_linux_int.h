@@ -22,6 +22,7 @@ limitations under the License.
 #include <stdint.h>
 
 #include <libscap/uthash_ext.h>
+#include <libscap/scap_procs.h>
 
 typedef struct scap_fdinfo scap_fdinfo;
 
@@ -55,6 +56,7 @@ bool scap_linux_is_thread_alive(struct scap_platform* platform,
                                 int64_t pid,
                                 int64_t tid,
                                 const char* comm);
+int32_t scap_linux_foreach_live_pid(struct scap_platform* platform, void* ctx, scap_pid_cb cb);
 int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t* pid, char* error);
 int32_t scap_linux_get_threadlist(struct scap_platform* platform,
                                   struct ppm_proclist_info** procinfo_p,
