@@ -114,6 +114,144 @@ TEST(SyscallExit, sendmmsgX_ipv4_tcp_truncated) {
 	evt_test->assert_num_params_pushed(5);
 }
 
+/* The dynamic snaplen logic runs once per message inside the `bpf_loop()` callback and is skipped
+ * whenever the message already fits within the configured snaplen. These two tests pin both sides
+ * of that boundary: the message here is longer than the snaplen, so the logic must run and the
+ * fullcapture port must widen the snaplen to capture the whole message.
+ */
+TEST(SyscallExit, sendmmsgX_ipv4_tcp_fullcapture_port_not_truncated) {
+	auto evt_test = get_syscall_event_test(__NR_sendmmsg, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	/* The client port is in the fullcapture range, so we expect the whole message. */
+	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{
+	                                            .syscall_num = __NR_sendmmsg,
+	                                            .greater_snaplen = true,
+	                                    });
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
+
+	/* Parameter 3: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (uint32_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 4: data (type: PT_BYTEBUF) */
+	/* Not truncated to DEFAULT_SNAPLEN: the dynamic snaplen logic must have run. */
+	evt_test->assert_bytebuf_param(4, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(5);
+}
+
+/* Same setup as above, but the message already fits within the snaplen. Whether or not the dynamic
+ * snaplen logic runs, the captured data must be exactly the message.
+ */
+TEST(SyscallExit, sendmmsgX_ipv4_tcp_fullcapture_port_below_snaplen) {
+	auto evt_test = get_syscall_event_test(__NR_sendmmsg, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t client_fd, server_fd;
+	evt_test->client_to_server_ipv4_tcp(&client_fd,
+	                                    &server_fd,
+	                                    send_data{.syscall_num = __NR_sendmmsg});
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure()) {
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: fd (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (int64_t)client_fd);
+
+	/* Parameter 3: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (uint32_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 4: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(4, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(5);
+}
+
 TEST(SyscallExit, sendmmsgX_ipv6_tcp_message_no_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_sendmmsg, EXIT_EVENT);
 
