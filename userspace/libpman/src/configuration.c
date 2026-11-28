@@ -16,6 +16,7 @@ limitations under the License.
 
 */
 
+#include <libpman.h>
 #include "state.h"
 #include "support_probing.h"
 
@@ -141,7 +142,8 @@ int pman_init_state(falcosecurity_log_fn log_fn,
                     unsigned long buf_bytes_dim,
                     uint16_t cpus_for_each_buffer,
                     bool allocate_online_only,
-                    bool disable_iterators) {
+                    bool disable_iterators,
+                    uint16_t fixed_buffers_num) {
 	clear_state();
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
@@ -196,32 +198,15 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 		g_state.n_interesting_cpus = g_state.n_possible_cpus;
 	}
 
-	/* We are requiring a buffer every `cpus_for_each_buffer` CPUs,
-	 * but `cpus_for_each_buffer` is greater than our possible CPU number!
-	 */
-	if(cpus_for_each_buffer > g_state.n_interesting_cpus) {
-		log_errorf(
-		        "buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!",
-		        cpus_for_each_buffer,
-		        cpus_for_each_buffer,
-		        g_state.n_interesting_cpus);
+	/* Compute how many ring buffers we need and how the CPUs are spread over them. */
+	if(pman_compute_buffers_layout(g_state.n_interesting_cpus,
+	                               cpus_for_each_buffer,
+	                               fixed_buffers_num,
+	                               &g_state.cpus_for_each_buffer,
+	                               &g_state.n_required_buffers)) {
 		return -1;
 	}
-
-	/* `0` is a special value that means a single ring buffer shared between all the CPUs */
-	if(cpus_for_each_buffer == 0) {
-		/* We want a single ring buffer so 1 ring buffer for all the interesting CPUs we have */
-		g_state.cpus_for_each_buffer = g_state.n_interesting_cpus;
-	} else {
-		g_state.cpus_for_each_buffer = cpus_for_each_buffer;
-	}
-
-	/* Set the number of ring buffers we need */
-	g_state.n_required_buffers = g_state.n_interesting_cpus / g_state.cpus_for_each_buffer;
-	/* If we have some remaining CPUs it means that we need another buffer */
-	if((g_state.n_interesting_cpus % g_state.cpus_for_each_buffer) != 0) {
-		g_state.n_required_buffers++;
-	}
+	g_state.fixed_buffers_num = fixed_buffers_num;
 	/* Set the dimension of a single ring buffer */
 	g_state.buffer_bytes_dim = buf_bytes_dim;
 
@@ -233,6 +218,60 @@ int pman_init_state(falcosecurity_log_fn log_fn,
 	init_iter_state(disable_iterators);
 
 	return 0;
+}
+
+int pman_compute_buffers_layout(uint16_t n_cpus,
+                                uint16_t cpus_for_each_buffer,
+                                uint16_t fixed_buffers_num,
+                                uint16_t *eff_cpus_for_each_buffer,
+                                uint32_t *n_buffers) {
+	if(fixed_buffers_num != 0) {
+		/* A fixed number of buffers wins over `cpus_for_each_buffer`. */
+		if(fixed_buffers_num > n_cpus) {
+			log_errorf(
+			        "'%d' ring buffers required, but '%d' is greater than our interesting CPU "
+			        "number (%d)!",
+			        fixed_buffers_num,
+			        fixed_buffers_num,
+			        n_cpus);
+			return -1;
+		}
+		*eff_cpus_for_each_buffer = 0;
+		*n_buffers = fixed_buffers_num;
+		return 0;
+	}
+
+	/* We are requiring a buffer every `cpus_for_each_buffer` CPUs,
+	 * but `cpus_for_each_buffer` is greater than our possible CPU number!
+	 */
+	if(cpus_for_each_buffer > n_cpus) {
+		log_errorf(
+		        "buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!",
+		        cpus_for_each_buffer,
+		        cpus_for_each_buffer,
+		        n_cpus);
+		return -1;
+	}
+
+	/* `0` is a special value that means a single ring buffer shared between all the CPUs */
+	*eff_cpus_for_each_buffer = cpus_for_each_buffer == 0 ? n_cpus : cpus_for_each_buffer;
+
+	/* Set the number of ring buffers we need */
+	*n_buffers = n_cpus / *eff_cpus_for_each_buffer;
+	/* If we have some remaining CPUs it means that we need another buffer */
+	if((n_cpus % *eff_cpus_for_each_buffer) != 0) {
+		(*n_buffers)++;
+	}
+	return 0;
+}
+
+uint32_t pman_ringbuf_id_for_cpu(uint16_t cpu_idx,
+                                 uint16_t cpus_for_each_buffer,
+                                 uint16_t fixed_buffers_num) {
+	if(fixed_buffers_num != 0) {
+		return cpu_idx % fixed_buffers_num;
+	}
+	return cpu_idx / cpus_for_each_buffer;
 }
 
 int pman_get_required_buffers() {

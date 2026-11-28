@@ -65,7 +65,10 @@ struct internal_state {
 	                            explicitly requested it or if the probe is not running in the root
 	                            PID namespace. */
 	uint32_t n_required_buffers;    /* number of ring buffers we need to allocate */
-	uint16_t cpus_for_each_buffer;  /* Users want a ring buffer every `cpus_for_each_buffer` CPUs */
+	uint16_t cpus_for_each_buffer;  /* Users want a ring buffer every `cpus_for_each_buffer` CPUs;
+	                                   unused (0) when `fixed_buffers_num` is set. */
+	uint16_t fixed_buffers_num;     /* If not 0, users want exactly this number of ring buffers,
+	                                   whatever the number of CPUs. */
 	int ringbuf_pos;                /* actual ringbuf we are considering. */
 	unsigned long* cons_pos;        /* every ringbuf has a consumer position. */
 	unsigned long* prod_pos;        /* every ringbuf has a producer position. */

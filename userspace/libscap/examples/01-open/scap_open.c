@@ -41,6 +41,7 @@ limitations under the License.
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
 #define CPUS_FOR_EACH_BUFFER_MODE "--cpus_for_buf"
+#define BUFFERS_NUM_OPTION "--buffers_num"
 #define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 #define DROP_FAILED "--drop-failed"
 #define VERBOSE_OPTION "--verbose"
@@ -285,6 +286,10 @@ void print_help() {
 	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` "
 	       "CPUs.\n",
 	       CPUS_FOR_EACH_BUFFER_MODE);
+	printf("'%s <buffers_num>': allocate exactly `buffers_num` ring buffers, whatever the number "
+	       "of CPUs. It takes precedence over `%s`. (default: 0, not set)\n",
+	       BUFFERS_NUM_OPTION,
+	       CPUS_FOR_EACH_BUFFER_MODE);
 	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for "
 	       "online CPUs only.\n",
 	       ALL_AVAILABLE_CPUS_MODE);
@@ -310,7 +315,12 @@ void print_scap_source() {
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(vtable == &scap_modern_bpf_engine) {
 		struct scap_modern_bpf_engine_params* params = oargs.engine_params;
-		printf("* Modern BPF probe, 1 ring buffer every %d CPUs\n", params->cpus_for_each_buffer);
+		if(params->fixed_buffers_num != 0) {
+			printf("* Modern BPF probe, %d ring buffers\n", params->fixed_buffers_num);
+		} else {
+			printf("* Modern BPF probe, 1 ring buffer every %d CPUs\n",
+			       params->cpus_for_each_buffer);
+		}
 	}
 #endif
 #ifdef HAS_ENGINE_SAVEFILE
@@ -440,6 +450,19 @@ void parse_CLI_options(int argc, char** argv) {
 				exit(EXIT_FAILURE);
 			}
 			modern_bpf_params.cpus_for_each_buffer = atoi(argv[++i]);
+		}
+		/* This should be used only with the modern probe */
+		if(!strcmp(argv[i], BUFFERS_NUM_OPTION)) {
+			if(!(i + 1 < argc)) {
+				printf("\nYou need to specify also the number of ring buffers. Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			const long buffers_num = strtol(argv[++i], NULL, 10);
+			if(buffers_num < 0 || buffers_num > UINT16_MAX) {
+				printf("\nThe number of ring buffers must be between 0 and %d. Bye!\n", UINT16_MAX);
+				exit(EXIT_FAILURE);
+			}
+			modern_bpf_params.fixed_buffers_num = (uint16_t)buffers_num;
 		}
 		/* This should be used only with the modern probe */
 		if(!strcmp(argv[i], ALL_AVAILABLE_CPUS_MODE)) {
