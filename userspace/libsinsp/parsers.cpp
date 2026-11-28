@@ -2314,10 +2314,14 @@ void sinsp_parser::fill_client_socket_info_from_addr(sinsp_evt &evt, const uint8
 		memcpy(&port, packed::in6_sockaddr::port(packed_data), sizeof(uint16_t));
 		if(const auto *const ip = packed::in6_sockaddr::ip(packed_data);
 		   sinsp_utils::is_ipv4_mapped_ipv6(ip)) {
+			const uint8_t l4proto = (fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+			                                ? sockinfo.m_ipv4info.m_fields.m_l4proto
+			                                : sockinfo.m_ipv6info.m_fields.m_l4proto;
 			fdinfo->m_type = SCAP_FD_IPV4_SOCK;
 			const auto *const mapped_dip = packed::in6_sockaddr::ipv4_mapped_ip(packed_data);
 			memcpy(&sockinfo.m_ipv4info.m_fields.m_dip, mapped_dip, sizeof(uint32_t));
 			sockinfo.m_ipv4info.m_fields.m_dport = port;
+			sockinfo.m_ipv4info.m_fields.m_l4proto = l4proto;
 		} else {
 			fdinfo->m_type = SCAP_FD_IPV6_SOCK;
 			sockinfo.m_ipv6info.m_fields.m_dport = port;
@@ -2472,6 +2476,9 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 				                                       dport,
 				                                       overwrite_dest);
 			} else {
+				const uint8_t l4proto = (fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				                                ? fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto
+				                                : fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 				fdinfo->m_type = SCAP_FD_IPV4_SOCK;
 				const auto *const mapped_sip = packed::in6_addr::ipv4_mapped_ip(sip);
 				const auto *const mapped_dip = packed::in6_addr::ipv4_mapped_ip(dip);
@@ -2481,6 +2488,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt &evt,
 				                                                   mapped_dip,
 				                                                   dport,
 				                                                   overwrite_dest);
+				fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = l4proto;
 			}
 		} else {
 			fdinfo->m_type = SCAP_FD_IPV4_SOCK;
@@ -3067,6 +3075,16 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 		//
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)) {
+			uint8_t l4proto = SCAP_L4_UNKNOWN;
+			if(fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+				l4proto = fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto;
+			} else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
+				l4proto = fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+			} else if(fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+				l4proto = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
+			} else if(fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK) {
+				l4proto = fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto;
+			}
 			fdinfo->m_type = SCAP_FD_IPV4_SOCK;
 			const auto *const mapped_sip = packed::in6_socktuple::ipv4_mapped_sip(packed_data);
 			const auto *const mapped_dip = packed::in6_socktuple::ipv4_mapped_dip(packed_data);
@@ -3077,7 +3095,17 @@ bool sinsp_parser::update_fd(sinsp_evt &evt, const sinsp_evt_param &parinfo) con
 			                                            dport) == false) {
 				return false;
 			}
+			if(l4proto != SCAP_L4_UNKNOWN) {
+				fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = l4proto;
+			}
 		} else {
+			if(fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK) {
+				//
+				// If this was previously a server socket, propagate the L4 protocol
+				//
+				fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto =
+				        fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto;
+			}
 			// It's not an ipv4-mapped ipv6 address. Extract it as a normal address.
 			if(set_ipv6_addresses_and_ports(*fdinfo, sip, sport, dip, dport) == false) {
 				return false;
