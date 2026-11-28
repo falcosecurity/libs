@@ -144,7 +144,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_aname) {
 	DEFAULT_TREE
 
 	// proc.aname[0]=good-exe, proc.aname[1]=bash, proc.aname[2]=bash, proc.aname[3]=bash,
-	// proc.aname[4]=bash, proc.aname[5]=init
+	// proc.aname[4]=bash, proc.aname[5]=bash (refreshed from the clone event)
 	auto evt = generate_execve_enter_and_exit_event(0,
 	                                                p6_t1_tid,
 	                                                p6_t1_tid,
@@ -154,11 +154,11 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_aname) {
 	                                                "good-exe",
 	                                                "/good-exe");
 
-	EXPECT_TRUE(eval_filter(evt, "proc.aname in (init)"));
+	EXPECT_FALSE(eval_filter(evt, "proc.aname in (init)"));
 	EXPECT_TRUE(eval_filter(evt, "proc.aname in (bash)"));
-	EXPECT_TRUE(eval_filter(evt, "proc.aname in (good-exe, init)"));
+	EXPECT_TRUE(eval_filter(evt, "proc.aname in (good-exe, bash)"));
 	EXPECT_TRUE(eval_filter(evt, "proc.aname = bash"));
-	EXPECT_TRUE(eval_filter(evt, "proc.aname = init"));
+	EXPECT_FALSE(eval_filter(evt, "proc.aname = init"));
 
 	EXPECT_FALSE(eval_filter(evt, "proc.aname in (good-exe)"));
 	EXPECT_FALSE(eval_filter(evt, "proc.aname = good-exe"));
