@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <stdint.h>
 #include <stdlib.h>
 
 //
@@ -46,3 +47,25 @@ struct scap_test_input_data {
 };
 
 typedef struct scap_test_input_data scap_test_input_data;
+
+//
+// Optional multi-buffer input for the test_input engine.
+//
+// Each buffer has its own queue of events, consumed with `scap_buffer_next()`, which mimics the
+// per-CPU ring buffers of the live engines. There is no ordering between buffers: the consumer
+// decides which buffer to read next. This is kept separate from `scap_test_input_data` so that
+// existing users of that struct, which do not zero-initialize it, are not affected.
+//
+struct scap_test_input_buffer {
+	struct ppm_evt_hdr **events;
+	size_t event_count;
+	// If non-zero, an empty buffer reports SCAP_EOF instead of SCAP_TIMEOUT.
+	int eof_when_empty;
+};
+
+struct scap_test_input_buffers {
+	struct scap_test_input_buffer *buffers;
+	uint16_t n_buffers;
+};
+
+typedef struct scap_test_input_buffers scap_test_input_buffers;
