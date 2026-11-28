@@ -34,8 +34,12 @@ static void log_msg_v(const enum falcosecurity_log_severity level, const char* f
 	// infinitely large, not the amount of written bytes. That's why we must cap it (see below).
 	char buf[MAX_ERROR_MESSAGE_LEN];
 	const int writable_bytes = vsnprintf(buf, sizeof(buf), fmt, args);
-	// Append errno details if set.
-	if(errno != 0 && writable_bytes >= 0) {
+	// Append errno details if set, but only for error logs where errno is meaningful. Lower
+	// severities (debug/info/warning) may run right after a libbpf/syscall probe that leaves a
+	// stale errno behind (e.g. ENOENT for a missing symbol, EACCES from the verifier rejecting a
+	// probe program); those results are signalled through return values, not errno, so appending it
+	// there would be misleading.
+	if(level == FALCOSECURITY_LOG_SEV_ERROR && errno != 0 && writable_bytes >= 0) {
 		// See above why we cap to `sizeof(buf) - 1`.
 		const size_t offset = writable_bytes < sizeof(buf) ? writable_bytes : sizeof(buf) - 1;
 		// libbpf uses -ESRCH to indicate that something could not be found, e.g. vmlinux or btf id.
