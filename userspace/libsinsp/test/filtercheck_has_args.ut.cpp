@@ -75,3 +75,25 @@ TEST(filtercheck_has_args, has_args) {
 		}
 	}
 }
+
+TEST(filtercheck_has_args, args_declare_their_type) {
+	sinsp_filter_check_list sinsp_filter_checks;
+
+	std::vector<const filter_check_info *> checks_info;
+
+	sinsp_filter_checks.get_all_fields(checks_info);
+
+	for(auto &check_info : checks_info) {
+		for(int32_t i = 0; i < check_info->m_nfields; i++) {
+			const filtercheck_field_info *field_info = &(check_info->m_fields[i]);
+
+			if(!field_info->is_arg_supported()) {
+				continue;
+			}
+
+			EXPECT_TRUE(field_info->m_flags & (EPF_ARG_INDEX | EPF_ARG_KEY))
+			        << "Field " << field_info->m_name
+			        << " accepts an argument but declares neither EPF_ARG_INDEX nor EPF_ARG_KEY";
+		}
+	}
+}
