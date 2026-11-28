@@ -1245,14 +1245,20 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 			ensure_storage_size(m_paramstr_storage, MAX_UINT32_DEC_DIGITS + 1);
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
-			scap_userinfo *user_info = nullptr;
+			bool resolved = false;
 			if(tinfo) {
 				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-				user_info = m_inspector->m_usergroup_manager->get_user(container_id, val);
+				m_inspector->m_usergroup_manager->with_user(
+				        container_id,
+				        val,
+				        [&](const scap_userinfo &user_info) {
+					        if(user_info.name[0] != 0) {
+						        write_to_storage(m_resolved_paramstr_storage, user_info.name);
+						        resolved = true;
+					        }
+				        });
 			}
-			if(user_info != nullptr && user_info->name[0] != 0) {
-				write_to_storage(m_resolved_paramstr_storage, user_info->name);
-			} else {
+			if(!resolved) {
 				write_to_storage(m_resolved_paramstr_storage, "<NA>");
 			}
 		} else {
@@ -1269,14 +1275,20 @@ const char *sinsp_evt::get_param_as_str(uint32_t id, const char **resolved_str, 
 			ensure_storage_size(m_paramstr_storage, MAX_UINT32_DEC_DIGITS + 1);
 			snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "%d", val);
 			sinsp_threadinfo *tinfo = get_thread_info();
-			scap_groupinfo *group_info = nullptr;
+			bool resolved = false;
 			if(tinfo) {
 				auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-				group_info = m_inspector->m_usergroup_manager->get_group(container_id, val);
+				m_inspector->m_usergroup_manager->with_group(
+				        container_id,
+				        val,
+				        [&](const scap_groupinfo &group_info) {
+					        if(group_info.name[0] != 0) {
+						        write_to_storage(m_resolved_paramstr_storage, group_info.name);
+						        resolved = true;
+					        }
+				        });
 			}
-			if(group_info != nullptr && group_info->name[0] != 0) {
-				write_to_storage(m_resolved_paramstr_storage, group_info->name);
-			} else {
+			if(!resolved) {
 				write_to_storage(m_resolved_paramstr_storage, "<NA>");
 			}
 		} else {

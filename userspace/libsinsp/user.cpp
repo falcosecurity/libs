@@ -212,7 +212,8 @@ static inline std::string_view sv_or_empty(const char *s) {
 }
 
 // clang-format off
-sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector, const timestamper& timestamper)
+template<typename SyncPolicy>
+basic_usergroup_manager<SyncPolicy>::basic_usergroup_manager(sinsp* inspector, const timestamper& timestamper)
 	: m_import_users(true)
 	, m_inspector(inspector)
 	, m_timestamper {timestamper}
@@ -230,10 +231,12 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector, const timesta
 }
 // clang-format on
 
-void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
+template<typename SyncPolicy>
+void basic_usergroup_manager<SyncPolicy>::dump_users_groups(sinsp_dumper &dumper) {
+	std::shared_lock<mutex_type> lock(m_mutex);
 	for(const auto &it : m_userlist) {
-		std::string container_id = it.first;
-		const auto &usrlist = m_userlist[container_id];
+		const std::string &container_id = it.first;
+		const auto &usrlist = it.second;
 		for(const auto &user : usrlist) {
 			sinsp_evt evt;
 			if(user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
@@ -244,8 +247,8 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 	}
 
 	for(const auto &it : m_grouplist) {
-		std::string container_id = it.first;
-		const auto &grplist = m_grouplist[container_id];
+		const std::string &container_id = it.first;
+		const auto &grplist = it.second;
 		for(const auto &group : grplist) {
 			sinsp_evt evt;
 			if(group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
@@ -256,8 +259,10 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 	}
 }
 
-void sinsp_usergroup_manager::delete_container(const std::string &container_id) {
-	if(auto usrlist = get_userlist(container_id)) {
+template<typename SyncPolicy>
+void basic_usergroup_manager<SyncPolicy>::delete_container(const std::string &container_id) {
+	std::unique_lock<mutex_type> lock(m_mutex);
+	if(auto usrlist = get_userlist_assuming_lock_held(container_id)) {
 		for(auto &u : *usrlist) {
 			// We do not have a thread id here, as a removed container
 			// means that it has no tIDs anymore.
@@ -265,7 +270,7 @@ void sinsp_usergroup_manager::delete_container(const std::string &container_id) 
 		}
 	}
 
-	if(auto grplist = get_grouplist(container_id)) {
+	if(auto grplist = get_grouplist_assuming_lock_held(container_id)) {
 		for(auto &g : *grplist) {
 			// We do not have a thread id here, as a removed container
 			// means that it has no tIDs anymore.
@@ -277,12 +282,13 @@ void sinsp_usergroup_manager::delete_container(const std::string &container_id) 
 	m_grouplist.erase(container_id);
 }
 
-scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(userinfo_map &map,
-                                                            uint32_t uid,
-                                                            uint32_t gid,
-                                                            std::string_view name,
-                                                            std::string_view home,
-                                                            std::string_view shell) {
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::userinfo_map_insert(userinfo_map &map,
+                                                                        uint32_t uid,
+                                                                        uint32_t gid,
+                                                                        std::string_view name,
+                                                                        std::string_view home,
+                                                                        std::string_view shell) {
 	auto &usr = map[uid];
 	usr.uid = uid;
 	usr.gid = gid;
@@ -301,9 +307,10 @@ scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(userinfo_map &map,
 	return &usr;
 }
 
-scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(groupinfo_map &map,
-                                                              uint32_t gid,
-                                                              std::string_view name) {
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::groupinfo_map_insert(groupinfo_map &map,
+                                                                          uint32_t gid,
+                                                                          std::string_view name) {
 	auto &grp = map[gid];
 	grp.gid = gid;
 	strlcpy(grp.name,
@@ -313,14 +320,15 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(groupinfo_map &map
 	return &grp;
 }
 
-scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id,
-                                                 int64_t pid,
-                                                 uint32_t uid,
-                                                 uint32_t gid,
-                                                 std::string_view name,
-                                                 std::string_view home,
-                                                 std::string_view shell,
-                                                 bool notify) {
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::add_user_impl(const std::string &container_id,
+                                                                  int64_t pid,
+                                                                  uint32_t uid,
+                                                                  uint32_t gid,
+                                                                  std::string_view name,
+                                                                  std::string_view home,
+                                                                  std::string_view shell,
+                                                                  bool notify) {
 	// ignore NSS entries
 	if(!name.empty() && (name[0] == '+' || name[0] == '-')) {
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -336,7 +344,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 		return &m_fallback_user;
 	}
 
-	scap_userinfo *usr = get_user(container_id, uid);
+	scap_userinfo *usr = get_user_assuming_lock_held(container_id, uid);
 	if(usr) {
 		// Update user if it was already there
 		if(name.data() != nullptr) {
@@ -353,30 +361,46 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 	return add_container_user(container_id, pid, uid, notify);
 }
 
-scap_groupinfo *sinsp_usergroup_manager::add_group(const std::string &container_id,
-                                                   int64_t pid,
-                                                   uint32_t gid,
-                                                   bool notify) {
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::add_user(const std::string &container_id,
+                                                             int64_t pid,
+                                                             uint32_t uid,
+                                                             uint32_t gid,
+                                                             std::string_view name,
+                                                             std::string_view home,
+                                                             std::string_view shell,
+                                                             bool notify) {
+	std::unique_lock<mutex_type> lock(m_mutex);
+	return add_user_impl(container_id, pid, uid, gid, name, home, shell, notify);
+}
+
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::add_group(const std::string &container_id,
+                                                               int64_t pid,
+                                                               uint32_t gid,
+                                                               bool notify) {
 	if(gid == (uint32_t)-1) {
 		return nullptr;
 	}
-	if(auto gr = get_group(container_id, gid); gr != nullptr) {
+	std::unique_lock<mutex_type> lock(m_mutex);
+	if(auto gr = get_group_assuming_lock_held(container_id, gid); gr != nullptr) {
 		return gr;
 	}
 
 	if(gid == 0) {
-		return add_group(container_id, pid, gid, "root", notify);
+		return add_group_impl(container_id, pid, gid, "root", notify);
 	} else {
-		return add_group(container_id, pid, gid, {}, notify);
+		return add_group_impl(container_id, pid, gid, {}, notify);
 	}
 }
 
-scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid,
-                                                      uint32_t gid,
-                                                      std::string_view name,
-                                                      std::string_view home,
-                                                      std::string_view shell,
-                                                      bool notify) {
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::add_host_user(uint32_t uid,
+                                                                  uint32_t gid,
+                                                                  std::string_view name,
+                                                                  std::string_view home,
+                                                                  std::string_view shell,
+                                                                  bool notify) {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "adding host user: name: %.*s",
 	                          static_cast<int>(name.length()),
@@ -408,10 +432,12 @@ scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid,
 	return retval;
 }
 
-scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id,
-                                                           int64_t pid,
-                                                           uint32_t uid,
-                                                           bool notify) {
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::add_container_user(
+        const std::string &container_id,
+        int64_t pid,
+        uint32_t uid,
+        bool notify) {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "adding container [%s] user %d",
 	                          container_id.c_str(),
@@ -469,13 +495,17 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 	return retval;
 }
 
-bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify) {
+template<typename SyncPolicy>
+bool basic_usergroup_manager<SyncPolicy>::rm_user(const string &container_id,
+                                                  uint32_t uid,
+                                                  bool notify) {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "removing user: container: %s, uid: %d",
 	                          container_id.c_str(),
 	                          uid);
+	std::unique_lock<mutex_type> lock(m_mutex);
 	bool res = false;
-	scap_userinfo *usr = get_user(container_id, uid);
+	scap_userinfo *usr = get_user_assuming_lock_held(container_id, uid);
 	if(usr) {
 		if(notify) {
 			notify_user_changed(usr, container_id, false);
@@ -486,11 +516,12 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 	return res;
 }
 
-scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id,
-                                                   int64_t pid,
-                                                   uint32_t gid,
-                                                   std::string_view name,
-                                                   bool notify) {
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::add_group_impl(const std::string &container_id,
+                                                                    int64_t pid,
+                                                                    uint32_t gid,
+                                                                    std::string_view name,
+                                                                    bool notify) {
 	// ignore NSS entries
 	if(!name.empty() && (name[0] == '+' || name[0] == '-')) {
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -505,7 +536,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id,
 		return &m_fallback_grp;
 	}
 
-	scap_groupinfo *gr = get_group(container_id, gid);
+	scap_groupinfo *gr = get_group_assuming_lock_held(container_id, gid);
 	if(gr) {
 		// Update group if it was already there
 		if(name.data() != nullptr) {
@@ -520,9 +551,20 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id,
 	return add_container_group(container_id, pid, gid, notify);
 }
 
-scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid,
-                                                        std::string_view name,
-                                                        bool notify) {
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::add_group(const std::string &container_id,
+                                                               int64_t pid,
+                                                               uint32_t gid,
+                                                               std::string_view name,
+                                                               bool notify) {
+	std::unique_lock<mutex_type> lock(m_mutex);
+	return add_group_impl(container_id, pid, gid, name, notify);
+}
+
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::add_host_group(uint32_t gid,
+                                                                    std::string_view name,
+                                                                    bool notify) {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "adding host group: name: %.*s",
 	                          static_cast<int>(name.length()),
@@ -549,10 +591,12 @@ scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid,
 	return gr;
 }
 
-scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &container_id,
-                                                             int64_t pid,
-                                                             uint32_t gid,
-                                                             bool notify) {
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::add_container_group(
+        const std::string &container_id,
+        int64_t pid,
+        uint32_t gid,
+        bool notify) {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "adding container [%s] group: %d",
 	                          container_id.c_str(),
@@ -606,13 +650,17 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 	return retval;
 }
 
-bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify) {
+template<typename SyncPolicy>
+bool basic_usergroup_manager<SyncPolicy>::rm_group(const string &container_id,
+                                                   uint32_t gid,
+                                                   bool notify) {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 	                          "removing group: container: %s, gid: %d",
 	                          container_id.c_str(),
 	                          gid);
+	std::unique_lock<mutex_type> lock(m_mutex);
 	bool res = false;
-	scap_groupinfo *gr = get_group(container_id, gid);
+	scap_groupinfo *gr = get_group_assuming_lock_held(container_id, gid);
 	if(gr) {
 		if(notify) {
 			notify_group_changed(gr, container_id, false);
@@ -623,71 +671,136 @@ bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid,
 	return res;
 }
 
-const unordered_map<uint32_t, scap_userinfo> *sinsp_usergroup_manager::get_userlist(
-        const string &container_id) {
-	if(m_userlist.find(container_id) == m_userlist.end()) {
-		return nullptr;
-	}
-	return &m_userlist[container_id];
-}
-
-scap_userinfo *sinsp_usergroup_manager::get_user(const string &container_id, uint32_t uid) {
-	if(m_userlist.find(container_id) == m_userlist.end()) {
-		return nullptr;
-	}
-
-	auto &userlist = m_userlist[container_id];
-	auto it = userlist.find(uid);
-	if(it == userlist.end()) {
+template<typename SyncPolicy>
+const unordered_map<uint32_t, scap_userinfo> *
+basic_usergroup_manager<SyncPolicy>::get_userlist_assuming_lock_held(const string &container_id) {
+	auto it = m_userlist.find(container_id);
+	if(it == m_userlist.end()) {
 		return nullptr;
 	}
 	return &it->second;
 }
 
-const unordered_map<uint32_t, scap_groupinfo> *sinsp_usergroup_manager::get_grouplist(
-        const string &container_id) {
-	if(m_grouplist.find(container_id) == m_grouplist.end()) {
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::get_user_assuming_lock_held(
+        const string &container_id,
+        uint32_t uid) {
+	auto it = m_userlist.find(container_id);
+	if(it == m_userlist.end()) {
 		return nullptr;
 	}
-	return &m_grouplist[container_id];
+
+	auto &userlist = it->second;
+	auto uit = userlist.find(uid);
+	if(uit == userlist.end()) {
+		return nullptr;
+	}
+	return &uit->second;
 }
 
-scap_groupinfo *sinsp_usergroup_manager::get_group(const std::string &container_id, uint32_t gid) {
-	if(m_grouplist.find(container_id) == m_grouplist.end()) {
-		return nullptr;
-	}
-
-	auto &grplist = m_grouplist[container_id];
-	auto it = grplist.find(gid);
-	if(it == grplist.end()) {
+template<typename SyncPolicy>
+const unordered_map<uint32_t, scap_groupinfo> *
+basic_usergroup_manager<SyncPolicy>::get_grouplist_assuming_lock_held(const string &container_id) {
+	auto it = m_grouplist.find(container_id);
+	if(it == m_grouplist.end()) {
 		return nullptr;
 	}
 	return &it->second;
 }
 
-scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id,
-                                                 int64_t pid,
-                                                 uint32_t uid,
-                                                 uint32_t gid,
-                                                 bool notify) {
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::get_group_assuming_lock_held(
+        const std::string &container_id,
+        uint32_t gid) {
+	auto it = m_grouplist.find(container_id);
+	if(it == m_grouplist.end()) {
+		return nullptr;
+	}
+
+	auto &grplist = it->second;
+	auto git = grplist.find(gid);
+	if(git == grplist.end()) {
+		return nullptr;
+	}
+	return &git->second;
+}
+
+template<typename SyncPolicy>
+const unordered_map<uint32_t, scap_userinfo> *basic_usergroup_manager<SyncPolicy>::get_userlist(
+        const string &container_id) {
+	std::shared_lock<mutex_type> lock(m_mutex);
+	return get_userlist_assuming_lock_held(container_id);
+}
+
+template<typename SyncPolicy>
+std::optional<unordered_map<uint32_t, scap_userinfo>>
+basic_usergroup_manager<SyncPolicy>::copy_userlist(const string &container_id) {
+	std::shared_lock<mutex_type> lock(m_mutex);
+	const auto *list = get_userlist_assuming_lock_held(container_id);
+	if(list == nullptr) {
+		return std::nullopt;
+	}
+	return *list;
+}
+
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::get_user(const string &container_id,
+                                                             uint32_t uid) {
+	std::shared_lock<mutex_type> lock(m_mutex);
+	return get_user_assuming_lock_held(container_id, uid);
+}
+
+template<typename SyncPolicy>
+const unordered_map<uint32_t, scap_groupinfo> *basic_usergroup_manager<SyncPolicy>::get_grouplist(
+        const string &container_id) {
+	std::shared_lock<mutex_type> lock(m_mutex);
+	return get_grouplist_assuming_lock_held(container_id);
+}
+
+template<typename SyncPolicy>
+std::optional<unordered_map<uint32_t, scap_groupinfo>>
+basic_usergroup_manager<SyncPolicy>::copy_grouplist(const string &container_id) {
+	std::shared_lock<mutex_type> lock(m_mutex);
+	const auto *list = get_grouplist_assuming_lock_held(container_id);
+	if(list == nullptr) {
+		return std::nullopt;
+	}
+	return *list;
+}
+
+template<typename SyncPolicy>
+scap_groupinfo *basic_usergroup_manager<SyncPolicy>::get_group(const std::string &container_id,
+                                                               uint32_t gid) {
+	std::shared_lock<mutex_type> lock(m_mutex);
+	return get_group_assuming_lock_held(container_id, gid);
+}
+
+template<typename SyncPolicy>
+scap_userinfo *basic_usergroup_manager<SyncPolicy>::add_user(const std::string &container_id,
+                                                             int64_t pid,
+                                                             uint32_t uid,
+                                                             uint32_t gid,
+                                                             bool notify) {
 	if(uid == (uint32_t)-1) {
 		return nullptr;
 	}
-	if(auto usr = get_user(container_id, uid); usr != nullptr) {
+	std::unique_lock<mutex_type> lock(m_mutex);
+	if(auto usr = get_user_assuming_lock_held(container_id, uid); usr != nullptr) {
 		return usr;
 	}
 
 	if(uid == 0) {
-		return add_user(container_id, pid, uid, gid, "root", "/root", {}, notify);
+		return add_user_impl(container_id, pid, uid, gid, "root", "/root", {}, notify);
 	} else {
-		return add_user(container_id, pid, uid, gid, {}, {}, {}, notify);
+		return add_user_impl(container_id, pid, uid, gid, {}, {}, {}, notify);
 	}
 }
 
-bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user,
-                                                  sinsp_evt *evt,
-                                                  const string &container_id,
-                                                  uint16_t ev_type) {
+template<typename SyncPolicy>
+bool basic_usergroup_manager<SyncPolicy>::user_to_sinsp_event(const scap_userinfo *user,
+                                                              sinsp_evt *evt,
+                                                              const string &container_id,
+                                                              uint16_t ev_type) {
 	// 6 lens, uid, gid, name, home, shell, container_id
 	size_t totlen = sizeof(scap_evt) + 6 * sizeof(uint16_t) + sizeof(uint32_t) + sizeof(uint32_t) +
 	                strlen(user->name) + 1 + strlen(user->homedir) + 1 + strlen(user->shell) + 1 +
@@ -735,10 +848,11 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user,
 	return true;
 }
 
-bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group,
-                                                   sinsp_evt *evt,
-                                                   const string &container_id,
-                                                   uint16_t ev_type) {
+template<typename SyncPolicy>
+bool basic_usergroup_manager<SyncPolicy>::group_to_sinsp_event(const scap_groupinfo *group,
+                                                               sinsp_evt *evt,
+                                                               const string &container_id,
+                                                               uint16_t ev_type) {
 	// gid, name, container_id
 	size_t totlen = sizeof(scap_evt) + 3 * sizeof(uint16_t) + sizeof(uint32_t) +
 	                strlen(group->name) + 1 + container_id.length() + 1;
@@ -776,9 +890,10 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group,
 	return true;
 }
 
-void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user,
-                                                  const string &container_id,
-                                                  bool added) {
+template<typename SyncPolicy>
+void basic_usergroup_manager<SyncPolicy>::notify_user_changed(const scap_userinfo *user,
+                                                              const string &container_id,
+                                                              bool added) {
 	if(!m_inspector->m_inited || !m_import_users) {
 		return;
 	}
@@ -798,9 +913,10 @@ void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user,
 	m_inspector->handle_async_event(std::move(evt));
 }
 
-void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group,
-                                                   const string &container_id,
-                                                   bool added) {
+template<typename SyncPolicy>
+void basic_usergroup_manager<SyncPolicy>::notify_group_changed(const scap_groupinfo *group,
+                                                               const string &container_id,
+                                                               bool added) {
 	if(!m_inspector->m_inited || !m_import_users) {
 		return;
 	}
@@ -818,3 +934,6 @@ void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group,
 
 	m_inspector->handle_async_event(std::move(evt));
 }
+
+template class basic_usergroup_manager<sync_policy_single>;
+template class basic_usergroup_manager<sync_policy_concurrent>;

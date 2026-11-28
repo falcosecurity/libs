@@ -91,34 +91,37 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt, uint32_t* len) 
 	}
 
 	auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
-	auto user = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_uid);
-	auto loginuser = m_inspector->m_usergroup_manager->get_user(container_id, tinfo->m_loginuid);
+	auto& ugm = *m_inspector->m_usergroup_manager;
 	switch(m_field_id) {
 	case TYPE_UID:
 		m_val.u32 = tinfo->m_uid;
 		return extract_single_val(m_val.u32, len);
 	case TYPE_NAME:
-		if(user) {
-			m_strval = user->name;
-		} else if(tinfo->m_uid == 0) {
-			m_strval = "root";
-		} else {
-			m_strval = "<NA>";
+		if(!ugm.with_user(container_id, tinfo->m_uid, [this](const scap_userinfo& user) {
+			   m_strval = user.name;
+		   })) {
+			if(tinfo->m_uid == 0) {
+				m_strval = "root";
+			} else {
+				m_strval = "<NA>";
+			}
 		}
 		return extract_single_string(m_strval, len);
 	case TYPE_HOMEDIR:
-		if(user) {
-			m_strval = user->homedir;
-		} else if(tinfo->m_uid == 0) {
-			m_strval = "/root";
-		} else {
-			m_strval = "<NA>";
+		if(!ugm.with_user(container_id, tinfo->m_uid, [this](const scap_userinfo& user) {
+			   m_strval = user.homedir;
+		   })) {
+			if(tinfo->m_uid == 0) {
+				m_strval = "/root";
+			} else {
+				m_strval = "<NA>";
+			}
 		}
 		return extract_single_string(m_strval, len);
 	case TYPE_SHELL:
-		if(user) {
-			m_strval = user->shell;
-		} else {
+		if(!ugm.with_user(container_id, tinfo->m_uid, [this](const scap_userinfo& user) {
+			   m_strval = user.shell;
+		   })) {
 			m_strval = "<NA>";
 		}
 		return extract_single_string(m_strval, len);
@@ -129,12 +132,14 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt, uint32_t* len) 
 		}
 		return extract_single_val(m_val.s64, len);
 	case TYPE_LOGINNAME:
-		if(loginuser) {
-			m_strval = loginuser->name;
-		} else if(tinfo->m_loginuid == 0) {
-			m_strval = "root";
-		} else {
-			m_strval = "<NA>";
+		if(!ugm.with_user(container_id, tinfo->m_loginuid, [this](const scap_userinfo& user) {
+			   m_strval = user.name;
+		   })) {
+			if(tinfo->m_loginuid == 0) {
+				m_strval = "root";
+			} else {
+				m_strval = "<NA>";
+			}
 		}
 		return extract_single_string(m_strval, len);
 	default:
